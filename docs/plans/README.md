@@ -25,7 +25,7 @@
 | [notification-system-design/04-refactor-P.md](notification-system-design/04-refactor-P.md) | **通知模块拆分（阶段 P）**（目录 29 文件/4530 有效行盘点；manager.py 498 行 45 成员；2 个拆分方案：A 两块纯函数化→~318 行/测试零改动、B 四块+Context→~220 行；零行为变更判据 6 条；G-048 防膨胀门禁） | 🔧 **待批准**（方案待决策者选） |
 | [notification-system-design/05-refactor-decision.md](notification-system-design/05-refactor-decision.md) | **manager.py 拆分方案重新评估（目标优先）**（三条目标判据实测：加渠道 12→≤2、加事件 11→≤2、删事件 11→≤2；根因＝`events.py` 半 SSOT；软约束真实代价 25 行 + 6 处；结论：A/B 均未命中目标，新提方案 C） | 🔧 **待批准**（方案 C / 或退取 B） |
 | [notification-system-design/06-spec-and-phasing.md](notification-system-design/06-spec-and-phasing.md) | **SSOT 重建方案（✅ 已定稿 2026-10-03）**（五处澄清 + 两处补充澄清：e2e `EVENTS` 实为 **476 行**、9 字段 100% 可覆盖/派生、`aggregation` 非常量 ⇒ spec **16 字段**；工作量 7 天=50h 小时级拆解 + 4 个历史锚点；五项裁决全部录入；三步：步 A 渠道 11→2、步 B 事件/删事件 11→2、步 C 薄门面） | ✅ **已定稿**，待进入步 A 实施设计 |
-| [notification-system-design/07-impl-design-A.md](notification-system-design/07-impl-design-A.md) | **步 A 实施设计：渠道端到端收敛**（channel_spec 8+8 字段；后端 5 处 + 前端 13 处 + 新发现 2 处收敛点；`GET /api/notification/channels` + `spec_hash`；**实测发现 schema 缺 5 字段与 mask/secret 分裂**；G-045 就地扩展 A/B 两类错误；验收 9 条） | 🔧 **待批准**（5 项待裁决） |
+| [notification-system-design/07-impl-design-A.md](notification-system-design/07-impl-design-A.md) | **步 A 实施设计（🔧 已修订 2026-10-03）**（五项裁决执行：三处锁改**跨层验证**含真代码、`ctor` 移出 API、`mask`/`password` 分裂；G-045 B 类**阻断** + 4 项**非恒真**校验 + 误报评估；核对 1：schema vs 前端 **5 类差异**；核对 2：16h→**23h** 逐项明细 + 历史锚点） | 🔧 **待批准**（N6/N7 待裁决） |
 
 ---
 
