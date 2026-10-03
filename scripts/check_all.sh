@@ -336,10 +336,13 @@ run_deep() {
     fi
 
     # G-020: Vulture 死代码
+    # T-36（2026-10-03）：调用由 PATH 上的 `vulture` 改为 `python -m vulture`（与 ruff/mypy 同批）。
+    # 起因：本机 vulture 已安装（`python -m vulture --version` = 2.16）但可执行文件不在 PATH，
+    # 裸命令报 `vulture: command not found` → G-020 误报 FAIL、`--deep` 整体红灯。勿改回裸命令。
     # T-34（2026-10-01 第十三轮 R13-2）：口径与 CI 对齐——原为 `vulture pilotstd/ --min-confidence 80`，
     # 而 CI（`.github/workflows/ci.yml`）为 `vulture pilotstd/ docker/ tests/ scripts/ whitelist.py --min-confidence=100`，
     # 范围少 3 个目录、阈值低 20 → `tests/` 等处的 100% 置信度死代码本地看不见（R13-1 实测：本地 --deep 全绿、CI test-backend 红）。
-    if vulture pilotstd/ docker/ tests/ scripts/ whitelist.py --min-confidence=100; then
+    if python -m vulture pilotstd/ docker/ tests/ scripts/ whitelist.py --min-confidence=100; then
         log_pass "G-020 Vulture 死代码"
     else
         log_fail "G-020 Vulture 死代码"
