@@ -15,6 +15,7 @@
 | [batch5-terminology-design.md](batch5-terminology-design.md) | 第 5 批方案设计：术语表 + 禁用词门禁（G-044） | 📋 待裁决（F-1~F-6 六个决策点） |
 | [moviepilot-investigation/01-moviepilot-notification-report.md](moviepilot-investigation/01-moviepilot-notification-report.md) | **MoviePilot 通知系统调查报告**（v2.15.6 源码实测，A–H 八组 28 问逐条作答） | 🔍 调查完成（零代码改动） |
 | [moviepilot-investigation/02-pilotstd-gap-analysis.md](moviepilot-investigation/02-pilotstd-gap-analysis.md) | **PilotStd vs MoviePilot 差距分析**（三类判断 + 反向/保留清单 + 41 事件层次论断） | 🔍 分析完成（**不含改造方案**） |
+| [moviepilot-investigation/03-user-needs-and-aggregation-recheck.md](moviepilot-investigation/03-user-needs-and-aggregation-recheck.md) | **用户视角通知需求推导 + MoviePilot 聚合复查**（37 个用户时刻／重复 5·多余 3·粒度错配 7·缺失 1；01 报告 7 条结论修正） | 🔍 调查完成（**不含改造方案**） |
 
 ---
 
