@@ -414,16 +414,42 @@ class TestChannelMessageIdsContract(unittest.TestCase):
     """`channel_message_ids` 的**语义约定**（阶段 3 编辑消息的前置）。"""
 
     def test_key_whitelist(self):
-        """键必须取自渠道白名单；桌面与 Web 不计入（无句柄 / 无推送）。"""
-        self.assertEqual(set(CHANNEL_KEY_WHITELIST), {"wechat", "dingtalk", "feishu", "telegram"})
+        """spec 必须恰好声明 4 个已知渠道；桌面与 Web 不计入（无句柄 / 无推送）。
+
+        锚点是**字面量集合**（独立于派生结果），故本用例对 spec 内容有判别力：
+        spec 少一个渠道、多一个渠道、渠道改名都会 FAIL。
+        """
+        from pilotstd.core.notification.channel_spec import CHANNEL_SPECS
+
+        self.assertEqual(
+            {s.name for s in CHANNEL_SPECS}, {"wechat", "dingtalk", "feishu", "telegram"}
+        )
         for excluded in ("desktop", "web", "desktop_toast"):
             self.assertNotIn(excluded, CHANNEL_KEY_WHITELIST)
 
-    def test_whitelist_matches_channel_implementations(self):
-        """白名单必须与 `_CHANNEL_CLASSES` 的键集合一致（新增渠道时同批扩展）。"""
-        from pilotstd.core.notification.manager import _CHANNEL_CLASSES
+    def test_spec_classes_match_real_implementations(self):
+        """跨层：spec 声明的实现类名必须等于 `channels/*.py` 中**真实定义**的子类名。
 
-        self.assertEqual(set(CHANNEL_KEY_WHITELIST), set(_CHANNEL_CLASSES))
+        为什么不再断言 `set(CHANNEL_KEY_WHITELIST) == set(_CHANNEL_CLASSES)`：R1/R2 之后
+        两者都派生自 `CHANNEL_SPECS`，该断言退化为"同一来源的两个视图互相验证"（恒真、
+        判别力为零）。本用例改为比对**源码**（AST 扫描）与 spec 声明：spec 多声明、
+        少声明、类名改名，或实现类被删除都会 FAIL。
+        """
+        import ast
+        from pathlib import Path
+
+        from pilotstd.core.notification.channel_spec import CHANNEL_SPECS
+
+        declared = {s.cls_name for s in CHANNEL_SPECS}
+        actual: set[str] = set()
+        for path in Path("pilotstd/core/notification/channels").glob("*.py"):
+            tree = ast.parse(path.read_text(encoding="utf-8"))
+            for node in ast.walk(tree):
+                if isinstance(node, ast.ClassDef) and any(
+                    isinstance(b, ast.Name) and b.id == "NotificationChannel" for b in node.bases
+                ):
+                    actual.add(node.name)
+        self.assertEqual(declared, actual)
 
     def test_missing_channel_means_key_absent_not_none(self):
         """★ 未投递的渠道用**键缺席**表达，不是 `{"wechat": None}`（值恒为 str）。"""

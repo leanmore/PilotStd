@@ -94,12 +94,7 @@ class FeishuChannel(NotificationChannel):
         )
 
     def get_config_schema(self) -> dict[str, Any]:
-        """渠道配置字段 schema（供前端动态渲染配置表单）。"""
-        return {
-            "webhook_url": {
-                "type": "string",
-                "label": t("notification.channel.config.webhook_url"),
-                "required": True,
-                "secret": False,
-            },
-        }
+        """渠道配置字段 schema（供前端动态渲染配置表单）——由 `channel_spec` 派生。"""
+        from ..channel_spec import legacy_schema, spec_for
+
+        return legacy_schema(spec_for(self.name), t)

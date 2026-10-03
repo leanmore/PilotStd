@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from .blocks import NotificationBlock
+from .channel_spec import CHANNEL_NAMES
 from .specs import ActionSpec, AttachmentSpec
 
 # ── channel_message_ids 的键白名单（**闭集**，阶段 1c 钉死）─────────────────────
@@ -23,9 +24,9 @@ from .specs import ActionSpec, AttachmentSpec
 #      **不是** `{"wechat": None}`（值恒为 str，读取方不必处理 None）；
 #   4. 桌面与 Web **不计入**：桌面 `QSystemTrayIcon.showMessage` 无消息句柄、
 #      Web 无后端推送通道（见 01-现状盘点.md §1.3 的能力实测）；
-#   5. 将来新增渠道时，本元组与渠道实现（`channels/`）必须**同批**扩展，
-#      并由 tests/test_notification_stage1c_fields.py 的契约用例锁定。
-CHANNEL_KEY_WHITELIST: tuple[str, ...] = ("wechat", "dingtalk", "feishu", "telegram")
+#   5. 新增渠道时只改 `channel_spec.py`（唯一声明源）与该渠道实现类；
+#      本元组由声明派生，并由 tests/test_notification_stage1c_fields.py 锁定。
+CHANNEL_KEY_WHITELIST: tuple[str, ...] = CHANNEL_NAMES
 
 
 @dataclass

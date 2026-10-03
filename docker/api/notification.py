@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from pilotstd.core.audit import write_audit
 from pilotstd.core.notification import NotificationManager, NotificationMessage
 from pilotstd.core.notification._credentials import MASKED_VALUE, CredentialHelper
+from pilotstd.core.notification.channel_spec import CHANNEL_NAMES, CHANNEL_SPECS, masked_field_names
 from pilotstd.core.notification.events import ALL_EVENT_KEYS
 from pilotstd.core.notification.security_notifier import client_ip, notify_credential_change
 from pilotstd.i18n import t
@@ -20,6 +21,9 @@ from ..manager import get_manager_dep
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["notification"])
+
+# 需掩码的字段名（由 channel_spec 声明派生；实测等于既有硬编码四项）
+_MASKED_FIELDS: frozenset[str] = masked_field_names()
 
 # SEC-001: 本模块 9 个接口移除 @require_role —— 通知是用户级功能，
 # 认证由 AuthMiddleware 保证，用户间隔离通过 user_id=Depends(_get_user_id)。
@@ -119,14 +123,14 @@ def get_config(request: Request, mgr=Depends(get_manager_dep), user_id: int = De
         """掩码函数：非空值统一返回掩码占位符（引用常量，不硬编码）。"""
         return MASKED_VALUE if v else ""
 
-    # 构建每个渠道的配置视图，敏感字段（_等）做掩码处理
+    # 构建每个渠道的配置视图，需掩码字段（由 channel_spec 声明）做掩码处理
     def build_channel(ch_name: str, defaults: dict) -> dict:
-        """构建单个渠道的配置视图：合并用户凭证与默认参数，敏感字段做掩码处理。"""
+        """构建单个渠道的配置视图：合并用户凭证与默认参数，需掩码字段做掩码处理。"""
         ch = creds.get(ch_name) or {}
         result: dict[str, object] = {}
         for k in defaults:
             val = ch.get(k, "")
-            if k in ("webhook_url", "bot_token", "secret", "corpsecret"):
+            if k in _MASKED_FIELDS:
                 result[k] = mask(str(val))
             elif k == "enabled":
                 if isinstance(val, bool):
@@ -141,22 +145,13 @@ def get_config(request: Request, mgr=Depends(get_manager_dep), user_id: int = De
 
     return {
         "enabled": nmgr.enabled,
-        # 四渠道配置：///
+        # 四渠道配置：字段与默认值全部由 channel_spec 声明派生
         "channels": {
-            "wechat": build_channel(
-                "wechat",
-                {
-                    "enabled": True,
-                    "webhook_url": "",
-                    "corpid": "",
-                    "agentid": "",
-                    "corpsecret": "",
-                    "proxy_url": "",
-                },
-            ),
-            "telegram": build_channel("telegram", {"enabled": False, "bot_token": "", "chat_id": ""}),
-            "feishu": build_channel("feishu", {"enabled": False, "webhook_url": "", "secret": ""}),
-            "dingtalk": build_channel("dingtalk", {"enabled": False, "webhook_url": "", "secret": ""}),
+            s.name: build_channel(
+                s.name,
+                {"enabled": s.enabled_default, **{f.name: "" for f in s.fields}},
+            )
+            for s in CHANNEL_SPECS
         },
         "rules": {ev: mgr.cfg.get(f"notification.rules.{ev}", []) for ev in ALL_EVENT_KEYS},
     }
@@ -324,7 +319,7 @@ def test_notification(request: Request, body: dict, nmgr=Depends(_get_notificati
       params: dict     — 渠道参数覆盖（可选，如临时测试其他 webhook）
     """
     channel = body.get("channel", "")
-    if channel not in ("wechat", "telegram", "feishu", "dingtalk"):
+    if channel not in CHANNEL_NAMES:
         return {"ok": False, "error": t("notification.api.unsupported_channel").format(ch=channel)}
 
     msg = NotificationMessage(

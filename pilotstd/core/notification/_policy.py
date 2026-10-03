@@ -6,8 +6,6 @@ import logging
 import secrets
 from typing import Any, cast
 
-_CHANNEL_CLASSES = ("wechat", "telegram", "feishu", "dingtalk")
-
 logger = logging.getLogger(__name__)
 
 

@@ -24,7 +24,7 @@ class TestNotificationManagerExtended(unittest.TestCase):
         self.assertFalse(nmgr._enabled)
 
     @patch("pilotstd.core.notification.manager.CredentialHelper")
-    @patch("pilotstd.core.notification.manager.WechatChannel")
+    @patch("pilotstd.core.notification.channels.wechat.WechatChannel")
     def test_send_event_with_aggregator_disabled(self, _wc, _cred):
         from pilotstd.core.notification import NotificationManager
 

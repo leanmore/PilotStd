@@ -61,10 +61,7 @@ from ._message_builders import (
 )
 from ._policy import NotificationPolicyHelper
 from .channel import NotificationMessage
-from .channels.dingtalk import DingTalkChannel
-from .channels.feishu import FeishuChannel
-from .channels.telegram import TelegramChannel
-from .channels.wechat import WechatChannel
+from .channel_spec import CHANNEL_NAMES, CHANNEL_SPECS, channel_class
 from .delivery_health import NotificationDeliveryHealth
 from .specs import specs_to_jsonable
 
@@ -77,12 +74,7 @@ def _log_trace_id() -> str:
 
     return secrets.token_hex(4)
 
-_CHANNEL_CLASSES = {
-    "wechat": WechatChannel,
-    "telegram": TelegramChannel,
-    "feishu": FeishuChannel,
-    "dingtalk": DingTalkChannel,
-}
+_CHANNEL_CLASSES: dict[str, Any] = {s.name: channel_class(s) for s in CHANNEL_SPECS}
 
 # notification_queue.event_data ⇄ NotificationMessage 的**字段契约**（唯一数据源）。
 # 写入侧（_enqueue_notification）与重建侧（release_suppressed_notifications）共用本常量：
@@ -241,37 +233,29 @@ class NotificationManager:
         return None
 
     def _init_channels(self) -> None:
-        """从 user_credentials 表加载各渠道配置并初始化渠道实例。"""
+        """从 user_credentials 表加载各渠道配置并初始化渠道实例。
+
+        构造形态由 `channel_spec` 声明驱动（`ctor` 为按序传入的凭证字段，
+        `ctor_required` 为构造前必须非空的字段）——新增渠道无需改本方法。
+        """
         creds: dict[str, dict[str, str]] = {}
         if self._cred_helper:
             creds = self._cred_helper.get_all(self._user_id)
-        for name, cls in _CHANNEL_CLASSES.items():
+        for spec in CHANNEL_SPECS:
             try:
-                ch_cfg = creds.get(name) or {}
+                ch_cfg = creds.get(spec.name) or {}
                 enabled = ch_cfg.get("enabled", True)
                 if isinstance(enabled, str):
                     enabled = enabled.lower() not in ("false", "0", "")
                 if not enabled:
                     continue
-                if name == "telegram":
-                    token = (ch_cfg.get("bot_token") or "").strip()
-                    chat_id = (ch_cfg.get("chat_id") or "").strip()
-                    if token and chat_id:
-                        self._channels[name] = cls(token, chat_id)
-                else:
-                    url = (ch_cfg.get("webhook_url") or "").strip()
-                    if not url:
-                        continue
-                    if name == "dingtalk":
-                        secret = (ch_cfg.get("secret") or "").strip()
-                        self._channels[name] = cls(url, secret)
-                    elif name == "feishu":
-                        secret = (ch_cfg.get("secret") or "").strip()
-                        self._channels[name] = cls(url, secret)
-                    else:
-                        self._channels[name] = cls(url)
+                args = tuple((ch_cfg.get(f) or "").strip() for f in spec.ctor)
+                guards = tuple((ch_cfg.get(f) or "").strip() for f in spec.ctor_required)
+                if not all(guards):
+                    continue
+                self._channels[spec.name] = _CHANNEL_CLASSES[spec.name](*args)
             except Exception as e:
-                logger.warning("通知渠道 %s 初始化失败: %s", name, e)
+                logger.warning("通知渠道 %s 初始化失败: %s", spec.name, e)
 
     # ── 发送事件 ──────────────────────────────────────────────
 
