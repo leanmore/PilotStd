@@ -16,6 +16,7 @@
 | [moviepilot-investigation/01-moviepilot-notification-report.md](moviepilot-investigation/01-moviepilot-notification-report.md) | **MoviePilot 通知系统调查报告**（v2.15.6 源码实测，A–H 八组 28 问逐条作答） | 🔍 调查完成（零代码改动） |
 | [moviepilot-investigation/02-pilotstd-gap-analysis.md](moviepilot-investigation/02-pilotstd-gap-analysis.md) | **PilotStd vs MoviePilot 差距分析**（三类判断 + 反向/保留清单 + 41 事件层次论断） | 🔍 分析完成（**不含改造方案**） |
 | [moviepilot-investigation/03-user-needs-and-aggregation-recheck.md](moviepilot-investigation/03-user-needs-and-aggregation-recheck.md) | **用户视角通知需求推导 + MoviePilot 聚合复查**（37 个用户时刻／重复 5·多余 3·粒度错配 7·缺失 1；01 报告 7 条结论修正） | 🔍 调查完成（**不含改造方案**） |
+| [dual-end-investigation/01-architecture-recon.md](dual-end-investigation/01-architecture-recon.md) | **PilotStd 双端架构实测**（`pilotstd/` 与 `docker/` 依赖关系、Windows 端信号呈现机制、41 事件分端归属：Docker 25／两端 15／Windows 1） | 🔍 侦察完成（**不含方案**） |
 
 ---
 
