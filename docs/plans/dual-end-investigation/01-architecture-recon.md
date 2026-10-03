@@ -306,7 +306,7 @@ docker/app.py:161  lambda: process_chain(_cron_mgr.download_engine)
   → :271  download_to_inbox(favorite_id, user_id, record_id, notify=notify)        ← notify=False
   → tasks/favorite_download.py:167/196/139  if not notify: return
 ```
-`process_chain` 的**唯一调用点**就是那一处 cron（另有 `docker/app.py:263` 的关闭路径）；`process_pending_downloads` 也**只**被 `process_chain:413` 调用。⇒ 这三个事件在生产路径上**恒被抑制**，只有"手工以 `notify_per_record=True` 调 `process_pending_downloads`"才会发出——而这样的调用点在代码里不存在。它们仍保留在 G-045 覆盖度基线里（i18n 三语 + e2e `trigger_file`）。
+`process_chain` 的**唯一调用点**就是那一处 cron lambda（注册在 `_start_all_schedulers` 内，该方法由 lifespan 在 `docker/app.py:263` 调用；关闭路径见 `docker/app.py:267-270` 的 `notification_mgr.shutdown()` / `_shutdown_cleanup`）；`process_pending_downloads` 也**只**被 `process_chain:413` 调用。⇒ 这三个事件在生产路径上**恒被抑制**，只有"手工以 `notify_per_record=True` 调 `process_pending_downloads`"才会发出——而这样的调用点在代码里不存在。它们仍保留在 G-045 覆盖度基线里（i18n 三语 + e2e `trigger_file`）。
 
 ### 4.4 `notification_delivery_failed` 在 Windows 端不可能触发
 
