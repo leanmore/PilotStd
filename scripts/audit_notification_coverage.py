@@ -7,9 +7,12 @@
 
 判定标准：
   - **i18n**：该事件构建器调用的全部 `t()` 键在 zh_CN/zh_TW/en 三语中齐备（阻断项）；
-  - **e2e**：事件出现在 `tests/test_notification_e2e.py` 的 EVENTS 列表（阻断项），
-    且其 `trigger_file` **物理存在**（防止元数据指向已改名/删除的文件——实测曾出现
-    三处指向不存在的 `_query_exec.py`）；
+  - **契约四字段 + e2e**：以**事件规格**（`pilotstd/core/notification/event_spec.py`）为源，
+    校验 `levels`（非空、按严重度升序）/ `module_key`（i18n 键且三语齐备）/
+    `aggregation`（取值闭集）/ `payload_keys`（非空字符串集合）/ `builder_ref`
+    （指向真实存在的构建器函数），并校验其 `trigger_file` **物理存在**（阻断项；
+    防止声明指向已改名/删除的文件——实测曾出现三处指向不存在的 `_query_exec.py`）。
+    **2026-10-03 起契约由规格派生**，故本维度不再解析 e2e 契约副本（同源比较恒真）；
   - **审计**：安全类事件（`security_*` / `notification_credential_changed`）的触发文件
     必须调用 `write_audit`（阻断项）；业务类事件标注 `N/A 业务事件无安全语义`。
   - **术语**：构建器键在 `docs/governance/glossary.json` 中登记（跟踪项，不阻断）。
@@ -138,27 +141,118 @@ def manager_event_builders() -> dict[str, str]:
     return pairs
 
 
-def e2e_events() -> dict[str, dict]:
-    """解析 e2e EVENTS 列表（括号配平 + literal_eval）。
+def spec_declarations() -> dict[str, dict]:
+    """从 `event_spec.py` 提取每个事件的声明字段（**AST 读源，不 import 被检对象**）。
 
-    不用正则取 `"name": "..."`：EVENTS 的每个条目含嵌套的 `builder_keys` 集合，
-    正则难以界定条目边界；括号配平能精确定位列表字面量，再交给 literal_eval
-    做一次可信解析（该列表语法上是纯字面量，故 literal_eval 安全）。
+    **为什么改读规格（2026-10-03 步 B D6 后半段）**：D4 完整形态后，e2e 的 `EVENTS`
+    已由事件规格派生（源码里不再有字面量清单）——继续解析契约既无可读字面量、又
+    恒等于规格（同源比较恒真）。故本维度以**规格声明**为源：契约只是它的投影。
     """
-    src = E2E_TEST.read_text(encoding="utf-8")
-    marker = "EVENTS: list[dict[str, Any]] = "
-    start = src.index(marker) + len(marker)
-    depth = 0
-    # 逐字符配平方括号：遇到 '[' 深度 +1，']' 深度 -1；归零处即列表结尾
-    for i in range(start, len(src)):
-        if src[i] == "[":
-            depth += 1
-        elif src[i] == "]":
-            depth -= 1
-            if depth == 0:
-                entries = ast.literal_eval(src[start : i + 1])
-                return {e["name"]: e for e in entries}
-    return {}
+    src = (NOTIF / "event_spec.py").read_text(encoding="utf-8")
+    tree = ast.parse(src)
+    out: dict[str, dict] = {}
+    for node in ast.walk(tree):
+        if not (isinstance(node, ast.Call) and getattr(node.func, "id", "") == "EventSpec"):
+            continue
+        fields: dict[str, object] = {}
+        for kw in node.keywords:
+            if kw.arg is None:
+                continue
+            value = kw.value
+            if isinstance(value, ast.Constant):
+                fields[kw.arg] = value.value
+            elif isinstance(value, ast.Tuple):
+                fields[kw.arg] = tuple(e.value for e in value.elts if isinstance(e, ast.Constant))
+            elif isinstance(value, ast.Call) and getattr(value.func, "id", "") == "frozenset":
+                args = value.args[0] if value.args else None
+                fields[kw.arg] = (
+                    frozenset(e.value for e in args.elts if isinstance(e, ast.Constant))
+                    if isinstance(args, ast.Set)
+                    else frozenset()
+                )
+        key = fields.get("key")
+        if isinstance(key, str):
+            out[key] = fields
+    return out
+
+
+def spec_closed_sets() -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """AST 读规格里的两个值域闭集：`LEVEL_ORDER`（严重度升序）与 `AGGREGATION_VALUES`。"""
+    tree = ast.parse((NOTIF / "event_spec.py").read_text(encoding="utf-8"))
+    found: dict[str, tuple[str, ...]] = {}
+    for node in ast.walk(tree):
+        target = getattr(getattr(node, "target", None), "id", None)
+        value = getattr(node, "value", None)
+        if target in ("LEVEL_ORDER", "AGGREGATION_VALUES") and isinstance(value, ast.Tuple):
+            found[target] = tuple(e.value for e in value.elts if isinstance(e, ast.Constant))
+    return found.get("LEVEL_ORDER", ()), found.get("AGGREGATION_VALUES", ())
+
+
+def _builder_defs() -> dict[str, set[str]]:
+    """构建器模块名 → 该模块内 `def` 的函数名集合（AST 读源，不 import）。"""
+    out: dict[str, set[str]] = {}
+    for path in sorted(NOTIF.glob("_builders_*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        out[path.stem] = {
+            node.name for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)
+        }
+    return out
+
+
+def spec_field_problems(
+    event: str,
+    meta: dict,
+    packs: dict[str, dict[str, str]],
+    level_order: tuple[str, ...],
+    aggregation_values: tuple[str, ...],
+    builder_defs: dict[str, set[str]],
+) -> list[str]:
+    """校验规格四字段的定义（D6 后半段：`level`/`module`/`aggregation`/`builder_keys`）。
+
+    这四项在 D4 完整形态后**唯一存在于规格**，故校验其定义本身，而不是校验一份
+    跟它同源的副本：`levels` 非空且按严重度升序；`module_key` 为 i18n 键且三语齐备；
+    `aggregation` 取值落闭集；`payload_keys` 全为非空字符串；`builder_ref` 指向
+    真实存在的构建器函数（读 `_builders_*.py` 的 `def`——仍不 import 被检对象）。
+    """
+    problems: list[str] = []
+    levels = meta.get("levels")
+    if not isinstance(levels, tuple) or not levels:
+        problems.append("levels 缺失或为空")
+    else:
+        unknown = [x for x in levels if x not in level_order]
+        ranks = [level_order.index(x) for x in levels if x in level_order]
+        if unknown:
+            problems.append(f"levels 取值越界 -> {unknown}")
+        elif ranks != sorted(ranks):
+            problems.append(f"levels 未按严重度升序 -> {levels}")
+
+    module_key = meta.get("module_key")
+    if not isinstance(module_key, str) or not module_key.startswith("notification.module."):
+        problems.append(f"module_key 非模块键 -> {module_key!r}")
+    else:
+        missing_lang = [lang for lang, pack in packs.items() if module_key not in pack]
+        if missing_lang:
+            problems.append(f"module_key 缺语言 -> {missing_lang}")
+
+    aggregation = meta.get("aggregation")
+    if aggregation not in aggregation_values:
+        problems.append(f"aggregation 越界 -> {aggregation!r}")
+
+    keys = meta.get("payload_keys")
+    if not isinstance(keys, frozenset) or any(not isinstance(k, str) or not k for k in keys):
+        problems.append(f"payload_keys 非字符串集合 -> {keys!r}")
+
+    ref = meta.get("builder_ref")
+    if not isinstance(ref, str) or ":" not in ref:
+        problems.append(f"builder_ref 形态非法 -> {ref!r}")
+    else:
+        module_name, func_name = ref.rsplit(":", 1)
+        short = module_name.rsplit(".", 1)[-1]
+        if short not in builder_defs:
+            problems.append(f"builder_ref 指向未知构建器模块 -> {module_name}")
+        elif func_name not in builder_defs[short]:
+            problems.append(f"builder_ref 指向不存在的函数 -> {ref}")
+    return problems
 
 
 def glossary_keys() -> set[str]:
@@ -184,8 +278,11 @@ def _audit_one_event(
     packs: dict[str, dict[str, str]],
     mapping: dict[str, str],
     t_keys: dict[str, set[str]],
-    e2e: dict[str, dict],
+    specs: dict[str, dict],
     glossary: set[str],
+    level_order: tuple[str, ...],
+    aggregation_values: tuple[str, ...],
+    defs: dict[str, set[str]],
 ) -> tuple[dict[str, object], list[str], list[str]]:
     """审计单个事件，返回 (矩阵行, 该事件的阻断缺口, 该事件的跟踪项)。"""
     blocking: list[str] = []
@@ -201,17 +298,24 @@ def _audit_one_event(
     if not i18n_ok:
         blocking.append(f"{event}: i18n 键缺失 {miss[:3] if miss else '构建器未注册'}")
 
-    # 维度 2（e2e）：事件须进 EVENTS 列表，且 trigger_file 必须真实存在。
-    # 只检查"是否在列表里"不够——实测曾有三处 trigger_file 指向已删除的文件，
-    # 那种情况下"有触发点"的断言是假绿。
-    meta = e2e.get(event)
+    # 维度 2（契约四字段 + trigger_file）：D4 完整形态后契约由规格派生，故以**规格声明**
+    # 为源校验（见 spec_field_problems 的 docstring）；trigger_file 仍须物理存在——
+    # 只检查"登记过"不够，实测曾有三处 trigger_file 指向已删除的文件（假绿）。
+    meta = specs.get(event)
     trigger = str(meta.get("trigger_file", "")) if meta else ""
     trigger_exists = bool(trigger) and (ROOT / trigger).exists()
-    e2e_ok = meta is not None and trigger_exists
+    field_problems = (
+        spec_field_problems(event, meta, packs, level_order, aggregation_values, defs)
+        if meta is not None
+        else ["规格中无该事件声明"]
+    )
+    e2e_ok = meta is not None and trigger_exists and not field_problems
     if meta is None:
-        blocking.append(f"{event}: 未出现在 e2e EVENTS 列表")
+        blocking.append(f"{event}: 未出现在事件规格声明中")
     elif not trigger_exists:
         blocking.append(f"{event}: trigger_file 不存在 -> {trigger}")
+    else:
+        blocking.extend(f"{event}: {item}" for item in field_problems)
 
     # 维度 3（审计）：安全事件必须在其触发文件里写审计；业务事件标注 N/A
     if is_security_event(event):
@@ -288,14 +392,15 @@ def print_coverage(
         max_item_len=120,  # 条目含事件名 + 中文说明，40 字符会截断到不可辨识
         notes=(
             "i18n 三语键齐备 -> {}/{} 事件（A 类，阻断维度）".format(n_i18n, len(rows)),
-            "e2e 覆盖 + trigger_file 存在 -> {}/{} 事件（A 类，阻断维度）".format(n_e2e, len(rows)),
+            "契约四字段 + trigger_file 存在 -> {}/{} 事件（A 类，阻断维度）".format(n_e2e, len(rows)),
             "安全事件 write_audit -> {}/{} 事件（A 类，阻断维度，仅安全类）".format(n_sec, len(sec_rows)),
             "术语表登记 -> {}/{} 事件（A 类，跟踪项，不阻断）".format(n_term, len(rows)),
             *[f"{label} -> {states[label]}（B 类，阻断维度）" for label in b_labels],
         ),
         uncovered=(
-            "**EVENTS 的 level/module/aggregation/builder_keys 未校验**"
-            "（level 为 `a/b` 集合约定，表示构建器按分支取值的集合）；"
+            "**契约四字段（level/module/aggregation/builder_keys）已由规格侧校验**"
+            "（2026-10-03 步 B D6 后半段：D4 完整形态后契约由规格派生，故改校其唯一定义处；"
+            "e2e 契约本体的派生正确性由 `tests/test_event_spec.py` 的跨层用例锁定）；"
             "`desktop_toast` 无独立构建器与 i18n 键（标题继承自上游事件，如 "
             "`_(\"download_results_title\")`），未登记进 ALL_EVENTS——已采纳方案 B 显式声明"
             "未覆盖，方案 A 触发条件见 docs/governance/notification_coverage.md；"
@@ -315,14 +420,18 @@ def main(argv: list[str]) -> int:
     events = events_from_registry()
     mapping = manager_event_builders()
     t_keys = builder_t_keys()
-    e2e = e2e_events()
+    specs = spec_declarations()
+    level_order, aggregation_values = spec_closed_sets()
+    defs = _builder_defs()
     glossary = glossary_keys()
 
     rows: list[dict[str, object]] = []
     blocking: list[str] = []
     tracked: list[str] = []
     for event in events:
-        row, ev_blocking, ev_tracked = _audit_one_event(event, packs, mapping, t_keys, e2e, glossary)
+        row, ev_blocking, ev_tracked = _audit_one_event(
+            event, packs, mapping, t_keys, specs, glossary, level_order, aggregation_values, defs
+        )
         rows.append(row)
         blocking.extend(ev_blocking)
         tracked.extend(ev_tracked)
@@ -367,7 +476,7 @@ def main(argv: list[str]) -> int:
         for item in blocking:
             print(f"   - {item}")
     else:
-        print("✅ 无阻断缺口（覆盖度：i18n 齐备、e2e 覆盖且触发文件存在、安全事件有审计；"
+        print("✅ 无阻断缺口（覆盖度：i18n 齐备、契约四字段与触发文件均已校验、安全事件有审计；"
               "派生一致性：声明与实现/后端/前端三层一致）")
     print_coverage(rows, blocking, tracked, b_states)
     if blocking or (strict and tracked):

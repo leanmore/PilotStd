@@ -27,7 +27,7 @@
 | G-040 | i18n 硬编码检查 | `web/src/**/*.{vue,ts}` 里不得**新增**写死的中文文案（注释除外；存量走基线） | 超出 `scripts/i18n_hardcoded_baseline.txt` 的行数 | `scripts/check_i18n_hardcoded.py` | ✅ 已部署 |
 | G-043 | 敏感端点审计接线 | `docker/api/**/*.py` 中命中敏感清单（S1 凭证生命周期 / S2 权限与身份边界 / S3 不可逆批量销毁）的状态变更端点必须有 `write_audit` | 敏感路由所属模块内无 `write_audit` 调用 | `scripts/check_sensitive_endpoint_audit.py` | ✅ 已部署 |
 | G-044 | 术语与禁用词检查 | `notification.*` 作用域内的文案不得命中术语表的 `forbidden` 词组；术语表 `keys` 登记的键三语值必须与登记值严格相等 | 命中禁用词，或术语三语不一致 | `scripts/check_terminology.py` | ✅ 已部署 |
-| G-045 | 通知系统覆盖度基线 | **A 类**：每个已注册事件必须 i18n 三语键齐备、出现在 e2e `EVENTS` 且 `trigger_file` 物理存在、安全类事件触发文件含 `write_audit`；**B1–B4**：渠道声明的实现类/自洽性/后端无字面量/前端硬编码棘轮与三层集合一致 | 任一维度缺失（术语登记为跟踪项，`--strict` 才升阻断；B4 已全阻断，基线 0） | `scripts/audit_notification_coverage.py` | ✅ 已部署 |
+| G-045 | 通知系统覆盖度基线 | **A 类**：每个已注册事件必须 i18n 三语键齐备、**契约四字段合法且 `trigger_file` 物理存在**、安全类事件触发文件含 `write_audit`；**B1–B4**：渠道声明的实现类/自洽性/后端无字面量/前端硬编码棘轮与三层集合一致 | 任一维度缺失（术语登记为跟踪项，`--strict` 才升阻断；B4 已全阻断，基线 0） | `scripts/audit_notification_coverage.py` | ✅ 已部署 |
 | G-046 | 通知链路审计 | 通知构建器不得出现空文本风险、不得缺空值守卫、不得静默吞错 | 任一发现（`--strict`，零基线） | `scripts/audit_notification_chain.py` | ✅ 已部署 |
 | G-047 | Python 侧 i18n 硬编码检查 | `pilotstd/`、`docker/` 的 **Python 字符串字面量**中不得**新增**写死的中文（**跳过 docstring**——G-012 强制其中文；注释不在 AST 中不计） | 超出 `scripts/i18n_hardcoded_python_baseline.json` 的新增 | `scripts/check_i18n_hardcoded_python.py` | ✅ 已部署 |
 | G-048 | 架构文档模块计数一致性 | `docs/architecture/modules/core.md` 的「子模块数」必须等于 `pilotstd/core/` 递归全部 `.py` 数（含 `__init__.py`，不含 `__pycache__`） | 文档数字与实际文件数不符 | `scripts/check_g_048_core_module_count.py` | ✅ 已部署 |
@@ -445,7 +445,7 @@ wrapper 取不到请求对象 → `current_role` 回落默认 `"user"` → **连
 | 维度 | 合格标准 | 性质 |
 |------|---------|------|
 | i18n | 该事件构建器调用的全部 `t()` 键在 zh_CN/zh_TW/en 三语中齐备 | 阻断 |
-| e2e | 事件出现在 `tests/test_notification_e2e.py` 的 `EVENTS`，**且 `trigger_file` 物理存在** | 阻断 |
+| e2e / 契约四字段 | **以事件规格为源**（`event_spec.py`，AST 读）：`levels` 非空且按严重度升序、`module_key` 三语齐备、`aggregation` 取值闭集、`payload_keys` 非空字符串集、`builder_ref` 指向真实构建器函数；**且 `trigger_file` 物理存在**（2026-10-03 起契约由规格派生，故不再解析契约副本——同源比较恒真） | 阻断 |
 | 审计 | **安全类**事件（`security_*` / `notification_credential_changed`）的触发文件含 `write_audit(` | 阻断 |
 | 术语登记 | 构建器键在 `glossary.json` 登记 | 跟踪（`--strict` 升阻断） |
 
@@ -460,7 +460,7 @@ wrapper 取不到请求对象 → `current_role` 回落默认 `"user"` → **连
 
 **2026-10-03 步 B D6：事件 → 构建器的读取源由 `manager.py` 改为 `event_spec.py`**
 
-原实现用 AST 解析 `manager._init_event_builders` 的**字面量字典**取"事件 → 构建器函数名"。步 B D2 让该注册表由事件规格派生后，源码里不再有字面量键值对，故本门禁改读**事件规格声明**：对 `event_spec.py` 的 `EventSpec(...)` 调用取 `key` 与 `builder_ref` 两个静态字面量，后者按 `模块全名:函数名` 取冒号后段即函数名。**仍坚持"门禁不 import 被检对象"**（全程只 `ast.parse` 读源文件）。改造前后逐条比对：**41 条 vs 41 条、事件→构建器函数名 0 处不一致**，键集与 `ALL_EVENT_KEYS` 一致；检查项计数与退出码不变（45/45、阻断 0）。**仍未升级为校验的字段**：`level`/`module`/`aggregation`/`builder_keys`（设计 §1.3 D6 的后半段，另批）。
+原实现用 AST 解析 `manager._init_event_builders` 的**字面量字典**取"事件 → 构建器函数名"。步 B D2 让该注册表由事件规格派生后，源码里不再有字面量键值对，故本门禁改读**事件规格声明**：对 `event_spec.py` 的 `EventSpec(...)` 调用取 `key` 与 `builder_ref` 两个静态字面量，后者按 `模块全名:函数名` 取冒号后段即函数名。**仍坚持"门禁不 import 被检对象"**（全程只 `ast.parse` 读源文件）。改造前后逐条比对：**41 条 vs 41 条、事件→构建器函数名 0 处不一致**，键集与 `ALL_EVENT_KEYS` 一致；检查项计数与退出码不变（45/45、阻断 0）。**仍未升级为校验的字段**：无——`level`/`module`/`aggregation`/`builder_keys`（设计 §1.3 D6 的后半段）**已于同日晚间批次落地**：因 D4 完整形态让 e2e 契约由规格派生（源码不再是字面量清单），门禁改以**规格声明**为源校验这四字段（`e2e_events()` → `spec_declarations()` + `spec_field_problems()`），**判别力实证**：注入 `aggregation="bypassX"` → 门禁 exit 1 并报 `[覆盖度] notification_credential_changed: aggregation 越界 -> 'bypassX'`，还原后 SHA256 一致、exit 0。
 
 **2026-10-03 步 A C2 扩展：新增 B1–B4 渠道派生一致性（全部阻断维度；B4 存量已随 C3 清理并归零）**
 
@@ -543,6 +543,7 @@ A 类管"**事件**是否齐备"（数据完备性）；B 类管"同一事实在
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
+| v1.81 | 2026-10-03 | **步 B D4 完整形态 + D6 后半段：e2e 契约由规格派生，G-045 四字段升为校验**。① `tests/test_notification_e2e.py` 的 `EVENTS` 由 439 行手写元数据改为**由 `event_spec.EVENT_SPECS` 派生**（8 字段直取 + 构建器反射），逐条比对 41×7 字段零不一致；② G-045 的"契约"维度改以**规格声明**为源（`spec_declarations()`/`spec_field_problems()`，仍只 `ast.parse` 不 import 被检对象）：校验 `levels` 升序、`module_key` 三语齐备、`aggregation` 闭集、`payload_keys` 形态、`builder_ref` 指向真实构建器函数 + `trigger_file` 物理存在；③ 检查项仍 **45/45、阻断 0**（沿用途维度行不新增计数的做法），「未覆盖说明」同步改为"四字段已由规格侧校验"；④ 判别力实证：注入越界 `aggregation` → exit 1 并点名该事件 |
 | v1.80 | 2026-10-03 | **步 B D6：G-045 的"事件 → 构建器"读取源由 `manager.py` 的字面量字典改为 `event_spec.py` 的 `EventSpec(...)` 静态字面量（`key` + `builder_ref` 取冒号后段）** —— 为步 B D2（manager 注册表派生）解除门禁侧阻塞；**仍不 import 被检对象**（只 `ast.parse`）。改造前后逐条比对 41 条一致、键集与 `ALL_EVENT_KEYS` 一致、检查项仍 45/45 阻断 0。同批背景：步 B D1（`mapping.EVENT_MAPPINGS` 派生）、D3（`defaults` 订阅规则派生 + `pilotstd/core/notification/__init__.py` 惰性化切断反向耦合） |
 | v1.79 | 2026-10-03 | **步 A C3：前端 schema 驱动改造（渠道端到端收敛收口）+ B4 基线归零转全阻断 + 门禁前缀改名**。**① 前端**：`NotificationConfig.vue` 的 **4 个渠道模板块 → 1 个 spec 驱动动态表单**（字段渲染按 `field.type` 选 `InputText`/`Password`/`InputText type=password`；标签走"前端 locales → `label` 字面量"、徽标走 `badge_key`、分段走 `divider_key`、渠道提示走 `hint_key`）；渠道清单/折叠态/字段集/敏感清单/状态判定（`status_rule` 通用解释器）**全部由 `GET /api/notification/channels` 派生**，`CHANNELS`/`channelOpen`/`SENSITIVE_FIELDS`/`chStatus`/`chSeverity`/按渠道 if-else 分支**全部删除**；`NotificationLogsView.vue` 的筛选下拉与显示名同样改为 API 派生——**顺带修复其漏 dingtalk 的既有漂移**。**② 门禁**：B4 前端硬编码由 **26 → 0 行**，本项由"缓阻断"转**全阻断**；输出前缀 `[A]`/`[B]` 改名 **`[覆盖度]`/`[派生·B?]`**（避免与 `notification_coverage.md` §三 的 A/B/C 缺口分类同名混淆）。**③ 三层一致性**：spec == API == 前端源码结构位（前端结构位已归零 ⇒ 该半检查自动转为"不得出现未知渠道"）。**验证**：全量 pytest 与前端 vitest（**314 例**）均 exit 0；`--fast`/`--deep` exit 0；G-045 B4 输出 `0 行 / 基线 0`。**判据 1（加渠道 ≤2 处）实测演练**：临时新增假渠道 `mock_channel`（spec 一条 + 类文件一个）⇒ 前端/API/manager **零改动**，改动代码文件数 **2**；演练后已完全回滚。 |
 | v1.78 | 2026-10-03 | **步 A C2：G-045 就地扩展 B1–B4（渠道派生一致性）+ 新增 `GET /api/notification/channels` 元数据接口（含 `spec_hash`）**。**① 接口**：返回 `{spec_hash, channels:[{name,label_key,icon,enabled_default,hint_key,fields,status_rule}]}`——**不含** `ctor`/`ctor_required`/`cls_name`/`module`/`legacy_label_key` 等实现细节，也不含任何凭证值（凭证视图仍由 `GET /config` 提供）；`spec_hash` = 对负载本体的**规范化 JSON**（键排序、去空白）做 SHA-256 取前 16 位，**放在响应体**、后端不缓存，供前端做**内容级缓存失效**（故不引 URL 版本号）。**② G-045 扩展**：新增 B1（声明类 vs `channels/*.py` 源码实际子类）、B2（spec 自洽性）、B3（后端 AST 无渠道名比较）、B4（前端硬编码**棘轮** + 三层集合一致）——四项**全部锚定非派生对象**（同源比对会恒真，正是 C1 替换掉的旧锁的毛病）；A 类阻断项加 `[覆盖度]`、B 类加 `[派生]`；`[覆盖摘要]` 的 `检查项` 由 41 → **45**（41 事件 + 4 个 B 类检查），`检查口径` 按 A/B 分开逐条列出。**③ B4 缓阻断**：前端存量硬编码渠道键 **26 行**（C2 实测），`≤` 基线警告、`>` 基线阻断；基线归零未收紧时提示"请收紧为 0"防"只缓不清"；**过渡期截止点 = C3 落地时**，清理方案逐项列在 `notification_coverage.md` §一-B。**④ T2 补回**：三层一致性（spec == API == 前端源码）由 `tests/test_notification_api.py` 4 例断言，跨层而非同源。**受控实验**：B1–B4 逐项注入漂移 → 阻断（19 例，含退出码集成断言）；`spec_hash` 判别力（注入字段 → 哈希变）1 例。**同批修正**：前端扫描器原把 4 个渠道键**写死在正则里**（新增第 5 渠道即盲区）、结构位扫描原**未限定渠道列表块**（把日志状态 `success`/`failed` 误判为未知渠道）——两处均已修正并各有回归用例。 |

@@ -46,6 +46,7 @@ E2E_FILE = ROOT / "tests" / "test_notification_e2e.py"
 VUE_FILE = ROOT / "web" / "src" / "components" / "NotificationConfig.vue"
 I18N_DIR = ROOT / "pilotstd" / "i18n"
 LANGS = ("zh_CN", "zh_TW", "en")
+_E2E_MODULE = None  # e2e 契约模块缓存（见 _e2e_module）
 
 # 字面量基线（独立于 spec，用于检出 spec 内容的静默变更）
 EXPECTED_FIELDS = (
@@ -143,20 +144,27 @@ def _docstring_lines(tree: ast.AST) -> set[int]:
 
 
 def _e2e_events() -> dict[str, dict]:
-    """按括号配平 + literal_eval 解析端到端契约的事件清单（不 import 测试模块）。"""
-    src = E2E_FILE.read_text(encoding="utf-8")
-    marker = "EVENTS: list[dict[str, Any]] = "
-    start = src.index(marker) + len(marker)
-    depth = 0
-    for i in range(start, len(src)):
-        if src[i] == "[":
-            depth += 1
-        elif src[i] == "]":
-            depth -= 1
-            if depth == 0:
-                entries = ast.literal_eval(src[start : i + 1])
-                return {e["name"]: e for e in entries}
-    raise AssertionError("未能从端到端契约中解析出事件清单")
+    """运行期读取端到端契约的事件清单（不复制契约数据）。
+
+    D4 完整形态（2026-10-03）后 `EVENTS` 由事件规格派生，源码里已不是字面量清单，
+    故改为按文件路径导入该模块、读其 `EVENTS`——这样断言面对的是**契约的实际运行期取值**。
+    """
+    module = _e2e_module()
+    return {e["name"]: e for e in module.EVENTS}
+
+
+def _e2e_module():
+    """按路径导入 e2e 契约模块（只执行一次，结果缓存）。"""
+    global _E2E_MODULE
+    if _E2E_MODULE is None:
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("_e2e_contract_module", E2E_FILE)
+        assert spec and spec.loader, "无法加载端到端契约模块"
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        _E2E_MODULE = module
+    return _E2E_MODULE
 
 
 def _frontend_event_keys() -> set[str]:
@@ -409,14 +417,18 @@ class TestScopeOfThisSubStep(unittest.TestCase):
         self.assertEqual(relative, {"events"})
 
     def test_only_landed_derivation_consumers_import_spec(self):
-        """**接入白名单**：`mapping.py`（D1）、`config/defaults.py`（D3）、`manager.py`（D2）。
+        """**接入白名单**：三处生产派生 + 一处契约派生。
 
-        步 B 的三处派生均已落地；任何**未在计划内**的模块 import 事件规格都在此拦截。
+        - 生产：`mapping.py`（D1）、`config/defaults.py`（D3）、`manager.py`（D2）
+        - 契约：`tests/test_notification_e2e.py`（D4 完整形态——EVENTS 元数据由规格派生）
+
+        任何**未在计划内**的模块 import 事件规格都在此拦截。
         """
         allowed = {
             "pilotstd/core/notification/mapping.py",
             "pilotstd/core/config/defaults.py",
             "pilotstd/core/notification/manager.py",
+            "tests/test_notification_e2e.py",
         }
         self_relative = SPEC_FILE.relative_to(ROOT).as_posix()
         this_file = Path(__file__).resolve().relative_to(ROOT).as_posix()

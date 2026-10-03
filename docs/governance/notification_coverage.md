@@ -100,7 +100,7 @@
 | # | 缺口 | 影响 | 建议 |
 |---|------|------|------|
 | B-1 | **glossary 只登记 40 / 221 个 `notification.*` 键**（38 个事件的文案键未登记） | G-044 的**三层检查覆盖范围不同**（源码核实：`check_terminology.py:_check_key` / `_check_term_consistency`）：① 三语**存在性**与 ② 禁用词/别名 -> **全部 221 个作用域内键**（作用域外 478 键不检查）；③ 术语三语**值与术语表严格相等** -> **仅 40 个登记键**。故其余 181 键的**值**无标准答案可比对（改简体忘改繁体不会被拦），但键**存在性**已全量校验 | 分批登记：优先高频事件（`scan_*` / `download_*` / `archive_*` / `validity_*`），每批 20–30 键。**不建议一次性全量**——术语表是"受控词汇表"不是"全量字典"，无限扩张会失去治理意义 |
-| B-2 | e2e `EVENTS` 的 `module`/`level`/`aggregation`/`builder_keys` 字段为人工维护，**G-045 只校验 `trigger_file` 的存在性**，其余字段未校验 | 元数据可能与构建器脱节。**但 `level` 已于本批做集合精查（AST 语义遍历）：39 事件声明集合与构建器实际分支集合完全一致，零漂移**。注意 `level` 用 `a/b` 表示**可产出集合**（如 `info/warning` = 按分支取 info 或 warning），把它当单值读会得出错误的"漂移"结论 | 若扩审计脚本比对：须按**集合**比对，且构建器 level 可能经局部变量传递（`level = ...` 再 `level=level`），正则提取会漏——必须走 AST |
+| B-2 | **已收敛（2026-10-03 步 B D4 + D6）**：e2e `EVENTS` 曾为人工维护的 `module`/`level`/`aggregation`/`builder_keys` 四字段，G-045 只校验 `trigger_file` 存在性 | **契约现由事件规格派生**（`event_spec.py` ⇒ `EVENTS`），四字段在**规格侧**已被 G-045 **校验**（`levels` 非空且按严重度升序 / `module_key` 三语齐备 / `aggregation` 闭集 / `payload_keys` 非空字符串集 / `builder_ref` 指向真实构建器函数），故"元数据与构建器脱节"的结构性风险已消除（判别力实证：注入 `aggregation` 越界值 → 门禁 exit 1 并报出该事件）。历史实测（本批前）：`level` 声明集合与构建器实际分支集合零漂移；`level` 用 `a/b` 表示**可产出集合**（如 `info/warning`），**按集合读**才对 | 若将来再引入"非派生"的契约副本，仍须按**集合**比对，且构建器 level 可能经局部变量传递（`level = ...` 再 `level=level`），正则提取会漏——必须走 AST |
 | B-3 | 测试覆盖为"事件级"而非"渠道级"：仅 `batch_download_complete` 等少数事件有逐渠道渲染断言 | 新增渠道或改渲染器时，多数事件无跨渠道回归网 | 按渠道补渲染断言（`tests/test_notification_renderer.py` 已有基础设施） |
 
 ### C 类（设计如此，不予修复）
@@ -124,7 +124,7 @@
 - [ ] **4. i18n 三语齐备**：`pilotstd/i18n/{zh_CN,zh_TW,en}.json` 同步加键，**占位符集合三语必须一致**
 - [ ] **5. 术语登记**：`docs/governance/glossary.json` 加条目（含 `keys`），随后跑 `check_terminology.py`
 - [ ] **6. 默认渠道规则**：若事件应默认投递，在 `defaults.py` 加 `notification.rules.<event>`——否则策略表为空时回退 config 也拿不到渠道，事件"注册了但发不出去"
-- [ ] **7. e2e 契约**：`tests/test_notification_e2e.py` 的 `EVENTS` 加条目（`name`/`module`/`level`/`aggregation`/`trigger_file`/`builder_file`/`builder_method`/`builder_keys`）；**`trigger_file` 必须真实存在且含触发方**
+- [ ] **7. e2e 契约**：**自 2026-10-03 步 B D4 起 `EVENTS` 由事件规格派生**——本项**无需手改**；只需确认规格四字段合法（`trigger_file` 必须真实存在且含触发方；G-045 同时校验 `levels`/`module_key`/`aggregation`/`payload_keys`/`builder_ref`）
 - [ ] **8. 安全类额外要求**：触发文件必须调用 `write_audit`；若因时序要求绕过 `send_event`，需加入 `SECURITY_EVENTS_BY_DESIGN_UNTRIGGERED` 并写明理由
 - [ ] **9. 跑门禁**：`audit_notification_coverage.py`（G-045 本基线）+ `check_terminology.py`（G-044）+ `check_sensitive_endpoint_audit.py`（G-043，若涉及敏感端点）
 
@@ -202,7 +202,7 @@ B1/B2/B3 用 **AST**（门禁不 import 被检对象，避免副作用与路径�
 **三个已接入门禁均打印 `[覆盖摘要]`（L-23）**：PASS 之后追加五段式摘要（`范围` /
 `检查项` / `检查口径` / `豁免明细`或`跟踪项明细` / `未覆盖说明`），显式声明**检查了什么、
 豁免了什么、没检查什么**——否则 PASS 会掩盖空洞（G-044 的术语三语值校验只覆盖
-40 个登记键、G-043 的 7 项豁免、G-045 未校验的 `level`/`module`/`aggregation`/`builder_keys`）。
+40 个登记键、G-043 的 7 项豁免；G-045 的四字段**已于 2026-10-03 由"未校验"升为"校验"**（规格侧）。
 
 **豁免/跟踪**必须以**逐条名单**呈现，不能只给计数——三处门禁的豁免数据源都可枚举：
 G-043 的 7 项待接入路由（含理由）、G-044 的 16 个豁免键 + 10 个豁免词、
