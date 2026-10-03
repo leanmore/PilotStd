@@ -17,6 +17,7 @@
 | [moviepilot-investigation/02-pilotstd-gap-analysis.md](moviepilot-investigation/02-pilotstd-gap-analysis.md) | **PilotStd vs MoviePilot 差距分析**（三类判断 + 反向/保留清单 + 41 事件层次论断） | 🔍 分析完成（**不含改造方案**） |
 | [moviepilot-investigation/03-user-needs-and-aggregation-recheck.md](moviepilot-investigation/03-user-needs-and-aggregation-recheck.md) | **用户视角通知需求推导 + MoviePilot 聚合复查**（37 个用户时刻／重复 5·多余 3·粒度错配 7·缺失 1；01 报告 7 条结论修正） | 🔍 调查完成（**不含改造方案**） |
 | [dual-end-investigation/01-architecture-recon.md](dual-end-investigation/01-architecture-recon.md) | **PilotStd 双端架构实测**（`pilotstd/` 与 `docker/` 依赖关系、Windows 端信号呈现机制、41 事件分端归属：Docker 25／两端 15／Windows 1） | 🔍 侦察完成（**不含方案**） |
+| [dual-end-investigation/02-cli-and-signal-path.md](dual-end-investigation/02-cli-and-signal-path.md) | **双端报告澄清**（CLI 定位推断 + Windows 任务中心判定 + 共享事件信号链路 + 共享重统计；含对 01 报告的 2 处修正声明） | 🔍 澄清完成（**不含方案、不裁决定位**） |
 
 ---
 
