@@ -27,7 +27,7 @@
 | G-040 | i18n 硬编码检查 | `web/src/**/*.{vue,ts}` 里不得**新增**写死的中文文案（注释除外；存量走基线） | 超出 `scripts/i18n_hardcoded_baseline.txt` 的行数 | `scripts/check_i18n_hardcoded.py` | ✅ 已部署 |
 | G-043 | 敏感端点审计接线 | `docker/api/**/*.py` 中命中敏感清单（S1 凭证生命周期 / S2 权限与身份边界 / S3 不可逆批量销毁）的状态变更端点必须有 `write_audit` | 敏感路由所属模块内无 `write_audit` 调用 | `scripts/check_sensitive_endpoint_audit.py` | ✅ 已部署 |
 | G-044 | 术语与禁用词检查 | `notification.*` 作用域内的文案不得命中术语表的 `forbidden` 词组；术语表 `keys` 登记的键三语值必须与登记值严格相等 | 命中禁用词，或术语三语不一致 | `scripts/check_terminology.py` | ✅ 已部署 |
-| G-045 | 通知系统覆盖度基线 | **A 类**：每个已注册事件必须 i18n 三语键齐备、出现在 e2e `EVENTS` 且 `trigger_file` 物理存在、安全类事件触发文件含 `write_audit`；**B1–B4**：渠道声明的实现类/自洽性/后端无字面量/前端硬编码棘轮与三层集合一致 | 任一维度缺失（术语登记为跟踪项，`--strict` 才升阻断；B4 存量缓阻断、增量阻断） | `scripts/audit_notification_coverage.py` | ✅ 已部署 |
+| G-045 | 通知系统覆盖度基线 | **A 类**：每个已注册事件必须 i18n 三语键齐备、出现在 e2e `EVENTS` 且 `trigger_file` 物理存在、安全类事件触发文件含 `write_audit`；**B1–B4**：渠道声明的实现类/自洽性/后端无字面量/前端硬编码棘轮与三层集合一致 | 任一维度缺失（术语登记为跟踪项，`--strict` 才升阻断；B4 已全阻断，基线 0） | `scripts/audit_notification_coverage.py` | ✅ 已部署 |
 | G-046 | 通知链路审计 | 通知构建器不得出现空文本风险、不得缺空值守卫、不得静默吞错 | 任一发现（`--strict`，零基线） | `scripts/audit_notification_chain.py` | ✅ 已部署 |
 | G-047 | Python 侧 i18n 硬编码检查 | `pilotstd/`、`docker/` 的 **Python 字符串字面量**中不得**新增**写死的中文（**跳过 docstring**——G-012 强制其中文；注释不在 AST 中不计） | 超出 `scripts/i18n_hardcoded_python_baseline.json` 的新增 | `scripts/check_i18n_hardcoded_python.py` | ✅ 已部署 |
 | G-048 | 架构文档模块计数一致性 | `docs/architecture/modules/core.md` 的「子模块数」必须等于 `pilotstd/core/` 递归全部 `.py` 数（含 `__init__.py`，不含 `__pycache__`） | 文档数字与实际文件数不符 | `scripts/check_g_048_core_module_count.py` | ✅ 已部署 |
@@ -458,7 +458,7 @@ wrapper 取不到请求对象 → `current_role` 回落默认 `"user"` → **连
 **执行方式**：`python scripts/audit_notification_coverage.py`；辅助模式 `--matrix`（输出 Markdown 矩阵）/ `--strict`（术语跟踪项也阻断）。退出码 0=无阻断缺口，1=存在缺口。
 **已接入**：`scripts/check_all.sh`（紧跟 G-044，`--fast` 路径）与 `.github/workflows/ci.yml`（紧跟 G-044）。
 
-**2026-10-03 步 A C2 扩展：新增 B1–B4 渠道派生一致性（阻断维度，B4 存量缓阻断）**
+**2026-10-03 步 A C2 扩展：新增 B1–B4 渠道派生一致性（全部阻断维度；B4 存量已随 C3 清理并归零）**
 
 A 类管"**事件**是否齐备"（数据完备性）；B 类管"同一事实在**多个落点**是否一致"（派生一致性）。
 渠道声明在步 A C1 收敛到 `channel_spec.py` 单一来源后，真正的风险从"漏登记"变成"某处没跟着派生"。
@@ -468,7 +468,7 @@ A 类管"**事件**是否齐备"（数据完备性）；B 类管"同一事实在
 | B1 | 声明类 vs 实现类 | `channels/*.py` **源码**中渠道基类的直接子类名 | 阻断 |
 | B2 | spec 自洽性 | spec **自身**结构（字段非空/名唯一/形态合法/ctor 引用有效） | 阻断 |
 | B3 | 后端无渠道名字面量 | `manager.py` 与 `docker/api/notification.py` 的 **AST** | 阻断 |
-| B4 | 前端硬编码棘轮 + 集合一致 | 前端**源码文本**（渠道列表字面量块内的 `key:`/`value:`） | 缓阻断（存量）+ 阻断（增量） |
+| B4 | 前端硬编码棘轮 + 集合一致 | 前端**源码文本**（渠道列表字面量块内的 `key:`/`value:`） | 阻断（基线 0：任何新增硬编码当场红灯） |
 
 **为什么必须锚定非派生对象**：若比较双方都由同一来源派生，断言会退化为"同一来源的两个视图
 互相验证"（**恒真、判别力为零**）——这正是 C1 替换掉的旧锁的毛病。实现见
@@ -481,10 +481,7 @@ A 类管"**事件**是否齐备"（数据完备性）；B 类管"同一事实在
 **⚠️ `[覆盖度]`/`[派生]` 指检查族**（A＝事件覆盖度、B＝渠道派生一致性），**不是**
 `notification_coverage.md` §三 的 A/B/C 缺口分类——同名不同轴，该文档 §一-B 已显式区分。
 
-**B4 的缓阻断（可执行形式＝棘轮）**：前端存量硬编码 **26 行**（C2 时点实测），
-`≤` 基线只警告、`>` 基线**阻断**；基线归零但未收紧时输出"请把基线收紧为 0"警告，
-防止"只缓不清"。**过渡期截止点 = C3（前端 schema 驱动改造）落地时**，清理方案逐项列在
-`docs/governance/notification_coverage.md` §一-B（不得跨步）。
+**B4 的棘轮（已于 C3 收口为全阻断）**：C2 时点前端存量硬编码 **26 行**，当时以「棘轮」形态缓阻断（`≤` 基线警告、`>` 基线阻断）；**C3 清理完毕后基线归零**，本项现为**全阻断**——任何新增硬编码渠道键当场红灯。`≤`/`>` 语义与「基线归零但未收紧时提示收紧」的兜底逻辑均保留（该兜底在 C3 实施时确实触发过一次并据此收口）。
 
 **受控实验（判别力）**：B1–B4 逐项在**临时假树**上注入漂移 → 对应检查阻断（19 例，
 `tests/test_notification_spec_audit.py`）；并含一条**退出码**集成断言（注入 B 类阻断项 →
