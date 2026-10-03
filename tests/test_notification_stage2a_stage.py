@@ -38,9 +38,13 @@ class TestCurrentStage(unittest.TestCase):
             os.environ.pop(ENV_STAGE, None)
             self.assertEqual(current_stage(), HIGHEST_STABLE_STAGE)
 
-    def test_default_is_one_for_this_batch(self):
-        """2a 交付后仍为 1（2a 是纯新增、未接入 send_event，故默认不能跳到 2）。"""
-        self.assertEqual(HIGHEST_STABLE_STAGE, 1.0)
+    def test_default_is_two_after_enable_batch(self):
+        """2b-启用批把默认值提为 2（映射生效）；回滚 = 设 `NOTIFY_REDESIGN_STAGE=1`。
+
+        演化：2a 纯新增时为 1（映射不生效）→ 2b-接入仍为 1（接入但不生效）→
+        2b-启用提为 **2**（本批的行为变更点）。
+        """
+        self.assertEqual(HIGHEST_STABLE_STAGE, 2.0)
 
     def test_known_stages_set(self):
         self.assertEqual(set(KNOWN_STAGES), {0.0, 1.0, 2.0, 2.5, 3.0, 4.0})
@@ -88,8 +92,8 @@ class TestPredicates(unittest.TestCase):
     CASES = (
         # (环境值, mapping, agg_v2, interaction)
         ("0", False, False, False),
-        ("1", False, False, False),  # ← 本批默认：三个谓词全假（新能力一个都没开）
-        ("2", True, False, False),
+        ("1", False, False, False),  # ← 一行回滚档：映射关闭
+        ("2", True, False, False),  # ← 2b-启用后的默认档
         ("2.5", True, True, False),
         ("3", True, True, True),
         ("4", True, True, True),
@@ -103,13 +107,21 @@ class TestPredicates(unittest.TestCase):
                     self.assertEqual(is_aggregation_key_v2(), agg_v2)
                     self.assertEqual(is_interaction_enabled(), interaction)
 
-    def test_default_disables_everything(self):
-        """★ 默认值下的安全性：未配置环境变量时，三个新能力全部关闭。"""
+    def test_default_enables_mapping_only(self):
+        """★ 默认档（2）下的安全性：只开"映射"这一项，聚合键 v2 / 交互仍关闭。
+
+        这是 2b-启用批的行为边界——启用映射**不得**顺带开启后续阶段的能力。
+        """
         with patch.dict(os.environ, {}, clear=False):
             os.environ.pop(ENV_STAGE, None)
-            self.assertFalse(is_mapping_enabled())
+            self.assertTrue(is_mapping_enabled())
             self.assertFalse(is_aggregation_key_v2())
             self.assertFalse(is_interaction_enabled())
+
+    def test_rollback_to_one_disables_mapping(self):
+        """★ 一键回滚：`NOTIFY_REDESIGN_STAGE=1` 即可让映射不生效（无需回滚代码）。"""
+        with patch.dict(os.environ, {ENV_STAGE: "1"}):
+            self.assertFalse(is_mapping_enabled())
 
 
 class TestConsumptionBoundary(unittest.TestCase):
