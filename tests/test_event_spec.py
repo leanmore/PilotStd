@@ -393,7 +393,7 @@ class TestCrossLayerConsistency(unittest.TestCase):
 
 
 class TestScopeOfThisSubStep(unittest.TestCase):
-    """本轮范围：纯新增、未接入、不拖重既有轻模块。"""
+    """接入面必须与计划一致：只允许已落地的派生消费方 import 事件规格。"""
 
     def test_events_module_stays_dependency_free(self):
         """事件注册表不得出现内部依赖；规格模块只允许 import 标准库与事件注册表。"""
@@ -408,18 +408,20 @@ class TestScopeOfThisSubStep(unittest.TestCase):
         }
         self.assertEqual(relative, {"events"})
 
-    def test_not_wired_into_any_consumer_yet(self):
-        """除本文件外，仓库内不得有模块 import 事件规格（本轮"未接入"的范围事实）。
+    def test_only_landed_derivation_consumers_import_spec(self):
+        """**接入白名单**：目前只允许 `mapping.py`（D1）。
 
-        后续子步骤（构建器注册 / 映射表 / 默认配置派生）落地时本用例须随之更新。
+        D2（`manager` 构建器注册）/ D3（`defaults` 订阅规则）落地时，把对应文件加进
+        白名单；任何**未在计划内**的模块 import 事件规格都在此拦截。
         """
+        allowed = {"pilotstd/core/notification/mapping.py"}
         self_relative = SPEC_FILE.relative_to(ROOT).as_posix()
         this_file = Path(__file__).resolve().relative_to(ROOT).as_posix()
         offenders = []
         for root_name in ("pilotstd", "docker", "scripts", "tests"):
             for path in (ROOT / root_name).rglob("*.py"):
                 rel = path.relative_to(ROOT).as_posix()
-                if rel in (self_relative, this_file) or "__pycache__" in path.parts:
+                if rel in (self_relative, this_file, *allowed) or "__pycache__" in path.parts:
                     continue
                 try:
                     tree = ast.parse(path.read_text(encoding="utf-8"))
@@ -430,7 +432,11 @@ class TestScopeOfThisSubStep(unittest.TestCase):
                         offenders.append(rel)
                     if isinstance(node, ast.Import) and any(a.name.endswith("event_spec") for a in node.names):
                         offenders.append(rel)
-        self.assertEqual(sorted(set(offenders)), [], "本轮不得接入任何消费方")
+        self.assertEqual(sorted(set(offenders)), [], f"出现计划外的规格消费方: {sorted(set(offenders))}")
+        landed = allowed & {
+            path.relative_to(ROOT).as_posix() for path in ROOT.rglob("*.py") if path.is_file()
+        }
+        self.assertEqual(landed, allowed, "白名单里的消费方文件必须真实存在（防白名单失效）")
 
 
 if __name__ == "__main__":

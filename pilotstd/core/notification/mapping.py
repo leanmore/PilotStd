@@ -41,6 +41,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Mapping
 
+from .event_spec import EVENT_SPECS
+
 __all__ = [
     "CONTENT_TYPES",
     "EVENT_MAPPINGS",
@@ -151,66 +153,10 @@ class NotificationProjection:
 #   validity_batch_report / validity_round_summary → 04 表列 anomaly_alert，本表列 batch_summary
 #     （二者都是"一轮批量校验的汇总"，与 batch_summary 的定义相符；其失败子集的分支判定
 #      留待后续批次，见 _BRANCH_PENDING）
+# **派生**（2026-10-03 步 B 第一步）：本表不再手写——三个投影字段一律取自事件规格声明；
+# 上方分类原则与「与 04 表已知不一致」的说明保留（追溯用）。
 EVENT_MAPPINGS: dict[str, EventMapping] = {
-    # ── task_lifecycle：单条任务的终局（含"做了但没成"）─────────────────────
-    "favorite_created": EventMapping("task_lifecycle", "field_list", "favorite_download"),
-    "download_started": EventMapping("task_lifecycle", "field_list", "favorite_download"),
-    "download_complete": EventMapping("task_lifecycle", "field_list", "favorite_download"),
-    "download_failed": EventMapping("task_lifecycle", "text", "favorite_download"),
-    "archive_complete": EventMapping("task_lifecycle", "list", "organize"),
-    # archive_failed：单类归档失败（系统级失败另有 task_execution_failed）
-    "archive_failed": EventMapping("task_lifecycle", "text", "organize"),
-    "archive_abandoned": EventMapping("task_lifecycle", "text", "favorite_download"),
-    "normalize_complete": EventMapping("task_lifecycle", "text", "normalize"),
-    # normalize_failed：同上，单条规范化失败
-    "normalize_failed": EventMapping("task_lifecycle", "text", "normalize"),
-    "scan_complete": EventMapping("task_lifecycle", "list", "scan"),
-    "scan_empty": EventMapping("task_lifecycle", "text", "scan"),
-    # query_failed：单条标准查询失败（属"我交办的单件事没成"；批量汇总走 batch_query_summary）
-    "query_failed": EventMapping("task_lifecycle", "text", "query"),
-    "expire_standard_moved": EventMapping("task_lifecycle", "text", "organize"),
-    "replacement_not_found": EventMapping("task_lifecycle", "text", "query"),
-    # standard_first_registered：新增标准首次登记（与 standard_status_changed 同族，
-    # 但语义是"数据集合发生变化"而非"到时间了"。02 表把它归 schedule_reminder，
-    # 本表按"单条事项有结果"归 task_lifecycle——不一致处，见本文件顶部说明）
-    "standard_first_registered": EventMapping("task_lifecycle", "list", "validity_check"),
-    # ── batch_summary：一次批量运行的总结 ──────────────────────────────────
-    "batch_download_complete": EventMapping("batch_summary", "list", "favorite_download"),
-    "favorite_abandoned_summary": EventMapping("batch_summary", "list", "favorite_download"),
-    "batch_query_summary": EventMapping("batch_summary", "list", "query"),
-    "query_empty": EventMapping("batch_summary", "text", "query"),
-    "auto_scan_failed": EventMapping("batch_summary", "text", "scan"),
-    "announce_fetch_summary": EventMapping("batch_summary", "list", "announce_fetch"),
-    "announcement_fetch_complete": EventMapping("batch_summary", "list", "announce_fetch"),
-    "announcement_check_complete": EventMapping("batch_summary", "list", "announce_fetch"),
-    "announcement_fetch_failed": EventMapping("batch_summary", "text", "announce_fetch"),
-    # validity_batch_report / validity_round_summary：一轮批量校验的汇总
-    "validity_batch_report": EventMapping("batch_summary", "list", "validity_check"),
-    "validity_round_summary": EventMapping("batch_summary", "list", "validity_check"),
-    # ── anomaly_alert：需要人处理的问题 ────────────────────────────────────
-    "task_execution_failed": EventMapping("anomaly_alert", "text", ""),
-    "worker_error": EventMapping("anomaly_alert", "text", ""),
-    # auto_backup / image_update_available：成功分支属 task_lifecycle（见 _BRANCH_PENDING）
-    "auto_backup": EventMapping("anomaly_alert", "field_list", "backup"),
-    "image_update_available": EventMapping("anomaly_alert", "text", "image_update"),
-    "quota_exhausted": EventMapping("anomaly_alert", "text", ""),
-    "validity_standard_failed": EventMapping("anomaly_alert", "text", "validity_check"),
-    "validity_system_failed": EventMapping("anomaly_alert", "text", "validity_check"),
-    # ── system_health：通知系统自身故障 ────────────────────────────────────
-    "notification_delivery_failed": EventMapping("system_health", "text", ""),
-    # ── schedule_reminder：到时间了 ────────────────────────────────────────
-    "date_reminder": EventMapping("schedule_reminder", "field_list", ""),
-    "standard_status_changed": EventMapping("schedule_reminder", "status_change", "validity_check"),
-    # ── security_alert：三个共用物理调用点（event_type 是变量）+ 登录失败 ────
-    # 显式登记三个键：security_notifier.py 用一个物理调用点发三种事件，
-    # 静态扫描识别不了，只能靠本表人工登记（这正是"间接载荷"盲区）
-    "notification_credential_changed": EventMapping("security_alert", "list", ""),
-    "security_password_changed": EventMapping("security_alert", "list", ""),
-    "security_token_refreshed": EventMapping("security_alert", "text", ""),
-    "security_login_failed": EventMapping("security_alert", "field_list", ""),
-    # trust_ip_update：企业微信「可信 IP」变更——属**渠道信任关系**变更（与凭证变更同族），
-    # 故归 security_alert 而非 system_health。载荷只有 title/body（调用点直出，P2 残留）
-    "trust_ip_update": EventMapping("security_alert", "field_list", ""),
+    s.key: EventMapping(s.notify_event, s.content_type, s.task_kind) for s in EVENT_SPECS
 }
 
 

@@ -5,7 +5,7 @@
 | 模块路径 | `pilotstd/core/` |
 | G-031 映射 | `pilotstd/core/`（2026-09-25 落地：`DOC_SYNC_MAP` 已含该条，改任何 core 文件都会要求同步本文件） |
 | 核心类 | `Database` / `ConfigManager` / `CacheManager` / `NotificationManager` |
-| 子模块数 | 87 个 `.py`（新增 `event_spec.py`：41 个通知事件 × 16 字段的规格唯一来源，2026-10-03 步 B 第一子步骤）（**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-10-03**；顶层 = 3 个包 config / db / notification + 22 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
+| 子模块数 | 87 个 `.py`（新增 `event_spec.py`：41 个通知事件 × 15 字段的规格唯一来源，2026-10-03 步 B）（**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-10-03**；顶层 = 3 个包 config / db / notification + 22 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
 | Schema 版本 | `CURRENT_SCHEMA_VERSION = 61`（`db/_constants.py`） |
 | 状态 | 活跃 |
 
@@ -46,7 +46,7 @@ pilotstd/core/
 │   ├── aggregate_buffer.py    # 聚合缓冲（窗口内合并同类事件）
 │   ├── channel.py / events.py / _policy.py / _credentials.py
 │   ├── channel_spec.py        # 四渠道声明的唯一来源（键/字段/掩码/控件形态/状态规则，2026-10-03 步 A C1）
-│   ├── event_spec.py          # 41 个事件声明的唯一来源（15 字段：投影/构建器指针/文案前缀/**模块 i18n 键**/默认渠道/级别/触发文件/载荷键/审计标志/聚合**ASCII 枚举**；2026-10-03 步 B 第一子步骤，**尚未接入消费方**）
+│   ├── event_spec.py          # 41 个事件声明的唯一来源（15 字段：投影/构建器指针/文案前缀/**模块 i18n 键**/默认渠道/级别/触发文件/载荷键/审计标志/聚合**ASCII 枚举**；2026-10-03 步 B，**D1 起由 `mapping` 接入**，D2/D3 逐步接入 manager/defaults）
 │   ├── blocks.py / renderer.py / desktop_formatter.py / _format_utils.py
 │   ├── _builders_batch.py / _builders_system.py / _builders_validity.py
 │   ├── _builders_task_results.py  # 扫描/查询/归档/规范化/状态迁移/公告抓取类模板（2026-09-26 拆出）
