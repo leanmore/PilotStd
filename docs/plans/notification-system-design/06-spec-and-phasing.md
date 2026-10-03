@@ -18,6 +18,7 @@
 > 3. `aggregation` 值域改 **ASCII 枚举**（`aggregate` / `bypass`）——系统内部状态标识，**不进 i18n**（做成键只多一层无意义的间接）。
 > 4. **e2e 契约同批对齐**：`module` 值改 i18n 键、`aggregation` 值改 ASCII 枚举（`mutual` 原样保留）。
 > 5. **D4 判据口径**：由"逐字段 == e2e 中文字面量"改为"**逐字段 == spec 定义值**"（§1.3 D4、§2.3 B1）。
+> 6. **字段 #5 `builder` 表示法**（决策者 2026-10-03 裁决 §八.1）：由 `builder: Callable` 改为 **`builder_ref`（静态指针，指向构建器模块与函数名）+ `builder` 属性（延迟解析）**。**理由**：spec 模块只依赖标准库与 `.events`，**避免循环依赖**（`event_spec → _builders_* → channel.py → …` 这条重链只在真正取构建器时才加载；`mapping` / `defaults` 这类轻消费方取规格时不会被动拖入渲染链路）；与实现对齐。**D4 判据不受影响**：`spec.builder.__module__` / `__name__` 在两种形态下都成立（前者解析后再反射）。<br>**实现口径（2026-10-03 实测）**：`builder` 是 `EventSpec` 的只读属性 ⇒ 每次访问调用 `builder_callable(spec)`，内部 `importlib.import_module(...)` —— **首次访问才 import，其后命中解释器的 `sys.modules` 缓存**（进程内模块只真正加载一次），未另加显式缓存（`frozen=True` 数据类不允许回写属性）。
 >
 > **与上次修订的关系**：§1.6.1 记录的 **15 → 16**（新增 `aggregation`）**仍成立**；本次是 **16 → 15**（删 `mutual`），两次改动互不抵消 ⇒ 故 §1.6.1 / §2.5 中"16 字段"的历史表述**保留原文**，**规范性字段清单以 §1.1.1 为准**（表内编号已按新清单重排：`aggregation` 由 #16 → **#15**）。
 > **附带结论**：§三 2 遗留 1 的"`levels` 序列化约定"已定为**严重度升序**（`info` → `warning` → `error`，与既有 6 个字面值同序，无需改写）。
@@ -64,7 +65,7 @@
 | 2 | `notify_event` | `str` | 7 类通知事件之一 | `mapping.project()`、前端双层订阅 | — |
 | 3 | `content_type` | `str` | 渲染形态 | `mapping` / `renderer` | — |
 | 4 | `task_kind` | `str` | 任务视角 SSOT（可空） | `mapping` / 进度锚点 | — |
-| 5 | `builder` | `Callable` | 构建器函数 | `manager._EVENT_BUILDERS`、e2e 的 `builder_file`/`builder_method`（**反射派生**） | — |
+| 5 | `builder_ref` | `str` | 构建器位置的**静态指针**（`模块全名:函数名`）；配套只读属性 `builder` 给出解析后的可调用对象 | `manager._EVENT_BUILDERS`、e2e 的 `builder_file`/`builder_method`（**反射派生**） | **由 `Callable` 改静态指针 + 延迟解析属性**（2026-10-03 修订，见修订块） |
 | 6 | `i18n_category` | `str` | 文案前缀 | 门禁 G-045、前端 locales | — |
 | 7 | `default_channels` | `tuple[str, ...]` | 默认订阅渠道 | `defaults.notification.rules.*`（派生） | — |
 | 8 | `levels` | `tuple[str, ...]` | 级别**有序**集合（分支取值） | e2e `level`（斜杠连接） | **需排序约定**（见 §1.6.1） |
@@ -86,9 +87,9 @@
 | 模块 | 内容 | 依赖 | 理由 |
 |---|---|---|---|
 | **`events.py`（保留，保轻）** | `EventDef` + `ALL_EVENTS` + `ALL_EVENT_KEYS` + `BYPASS_EVENTS` | **零内部依赖**（实测唯一 import 是 `dataclasses`，`events.py:12`） | **10 个消费方**只需键列表：`docker/api/notification.py:13`、`__init__.py:7,48`、`manager.py:164`、`core/notification_aggregator.py:317` + 5 处测试；不应被迫加载 41 个构建器 + i18n + blocks |
-| **`event_spec.py`（新增）** | 15 字段 × 41 条声明 | **单向 `import .events`** | 需要完整 spec 的消费方本来就重 |
+| **`event_spec.py`（新增）** | 15 字段 × 41 条声明 | **只 `import .events`**（构建器以 `builder_ref` 静态指针登记、**运行期延迟解析**，不在 import 期加载 `_builders_*`） | 需要完整 spec 的消费方本来就重；但 `mapping` / `defaults` 这类只取数据的轻消费方**不应被动拖入渲染链路**（2026-10-03 修订 #6） |
 
-**依赖方向（实测无环）**：`event_spec.py → events.py`（零依赖）；`event_spec.py → _builders_* → channel.py → blocks.py/specs.py`；`mapping.py` 零内部依赖。**实测确认无反向依赖**（`_builders_task_results.py:17-25`、`_builders_system.py:7-17`、`channel.py:9-16`、`mapping.py:39-42` 均不 import `events.py`/`manager.py`）。
+**依赖方向（实测无环）**：`event_spec.py → events.py`（零依赖）；**取 `builder` 时**才走 `event_spec.py → _builders_* → channel.py → blocks.py/specs.py`（延迟解析，import 期不发生）；`mapping.py` 零内部依赖。**实测确认无反向依赖**（`_builders_task_results.py:17-25`、`_builders_system.py:7-17`、`channel.py:9-16`、`mapping.py:39-42` 均不 import `events.py`/`manager.py`）。
 
 **护栏（必需）**：`assert set(ALL_EVENT_KEYS) == {s.key for s in EVENT_SPECS}`。
 
@@ -106,7 +107,7 @@
 
 ### 1.1.4 声明式 vs 可执行：**可执行（数据 + 指针），受 §1.1.3 约束**
 
-`builder` / `branch_by` 是函数引用；其余为纯数据。**实测无环** ⇒ 不需特殊处理，但须加**方向守护测试**（断言 `events.py` 不 import 内部模块、`_builders_*`/`channel.py` 不 import `events.py`/`manager.py`）。
+`builder`（经 `builder_ref` **延迟解析**的函数引用）/ `branch_by` 是函数引用；其余为纯数据。**实测无环** ⇒ 不需特殊处理，但须加**方向守护测试**（断言 `events.py` 不 import 内部模块、`_builders_*`/`channel.py` 不 import `events.py`/`manager.py`）。**2026-10-03 修订 #6**：函数引用改"静态指针 + 延迟解析"，import 期本模块不加载 `_builders_*`。
 
 ## 1.2 中间态（**上轮的"按层切"假设被推翻**）
 
