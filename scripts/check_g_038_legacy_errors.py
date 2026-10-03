@@ -23,12 +23,17 @@ SCAN_TARGETS = ["pilotstd/", "docker/", "tests/", "scripts/"]
 MYPY_TARGETS = ["pilotstd/", "docker/"]
 MYPY_FLAGS = ["--follow-imports=skip", "--ignore-missing-imports"]
 
+# T-36（2026-10-03）：ruff/mypy 改用 `sys.executable -m` 调用。原裸命令依赖 PATH 上存在
+# 同名可执行文件，而本机两者**已安装**却不在 PATH → `FileNotFoundError` → 误报「未安装」，
+# 使 `--deep` 的 G-038 与 CI 口径脱节（`--fast` 的 L1 已在 check_all.sh 中同样修正）。
+# 语义不变：模块真缺失时 `python -m` 以非零码退出 → 仍然**阻断**（不是跳过）。
+
 
 def run_ruff() -> tuple[bool, str]:
     """运行 Ruff 检查，返回 (是否通过, 输出内容)"""
     try:
         result = subprocess.run(
-            ["ruff", "check", *SCAN_TARGETS],
+            [sys.executable, "-m", "ruff", "check", *SCAN_TARGETS],
             capture_output=True,
             text=True,
             encoding="utf-8",
@@ -47,7 +52,7 @@ def run_mypy() -> tuple[bool, str]:
     """运行 Mypy 检查，返回 (是否通过, 输出内容)。与 check_all.sh --deep 的 mypy 范围一致。"""
     try:
         result = subprocess.run(
-            ["mypy", *MYPY_TARGETS, *MYPY_FLAGS],
+            [sys.executable, "-m", "mypy", *MYPY_TARGETS, *MYPY_FLAGS],
             capture_output=True,
             text=True,
             encoding="utf-8",
