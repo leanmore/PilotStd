@@ -77,12 +77,12 @@ CONTENT_TYPES: tuple[str, ...] = (
 )
 
 # ── 任务种类（业务域名词，非定时任务名）────────────────────────────────────────
-# **消费时点（2026-10-02 登记）**：`task_kind` 自本模块 2a 起就产出，但**在阶段 2.5 之前
-# 保持"算而不落"**——不回填到 `NotificationMessage`、不落 `notification_log`、
-# 不进 `_QUEUE_MESSAGE_FIELDS`。消费点是**阶段 2.5 的聚合键切换**
-# （`notify_event × correlation_id × target_id`）与阶段 3 的回调。
-# 防腐化由 `tests/test_notification_stage2b_wiring.py::TestTaskKindAntiCorrosion` 锁定：
-# 一旦提前落库/进白名单即 FAIL（见 03-实施路径.md 的"阶段 2.5 必做项"）。
+# **消费时点（2026-10-02 裁决；2026-10-02 阶段 2.5a 起已落地）**：
+# `task_kind` 的消费点是**阶段 2.5 的聚合键切换**（`notify_event × correlation_id × target_id`）
+# 与阶段 3 的回调。**2b-接入期间**曾刻意保持"算而不落"（回填消息/落库/进白名单均无），
+# 并由当时的 `TestTaskKindAntiCorrosion` 锁定；**2.5a 已按裁决翻转闸门**——
+# 现在它是消息字段 + 队列白名单成员 + `notification_log.task_kind` 列，
+# 由 `tests/test_notification_stage2b_wiring.py::TestTaskKindPersisted` 锁定。
 #
 # 与 `_builders_system.py::_TASK_NAME_KEY_MAP` 的**关系校正**（2026-10-02 实测）：
 # 02-目标架构.md §2.3 原文称"九个值恰好对应现有 9 个定时任务名"，**实测不成立**——
@@ -212,6 +212,47 @@ EVENT_MAPPINGS: dict[str, EventMapping] = {
     # 故归 security_alert 而非 system_health。载荷只有 title/body（调用点直出，P2 残留）
     "trust_ip_update": EventMapping("security_alert", "field_list", ""),
 }
+
+
+# ── 单向翻译：task_kind → task_type（阶段 2.5a）────────────────────────────────
+# **双 SSOT 约定**（用户 2026-10-02 裁决）：
+#   * `task_kind` 是**通知视角**的 SSOT —— 回答"用户交办的是哪类事"，值域见 TASK_KINDS；
+#     其数据源就是本模块（`mapping.py`）。
+#   * `task_type` 是**执行队列视角**的 SSOT —— 回答"哪个任务在跑"，
+#     值域见 `pilotstd/task/models.py::TaskType`（scan/query/download/organize/expire），
+#     其数据源是 `pilotstd/task/`。
+# 本表**只做翻译**，不改变两侧任何一侧的权威性；**只做单向**
+# （`task_kind` → `task_type`），**不提供反向函数**——反向是"一对多"（如 `query` 可来自
+# `query` 或 `announce_fetch`），强行反向必然要猜，属"留后门"。将来若确需反向，
+# 另开批次并明确该批的判据与歧义处置。
+#
+# 实测依据（2026-10-02）：两者**不同轴**——TaskType 有 5 值、TASK_KINDS 有 9 值，
+# 交集仅 scan/query/organize；`task_queue` 现有数据只出现 download/organize/query/scan。
+TASK_KIND_TO_TASK_TYPE: dict[str, str] = {
+    # 三处**同名同义**（两侧概念一致，直接对应）
+    "scan": "scan",
+    "query": "query",
+    "organize": "organize",
+    # `favorite_download` 是最常用的下载语义（TaskType 侧的取值是 `download`）
+    "favorite_download": "download",
+    # —— 以下 task_kind 在 TaskType 里**无专门取值**，按"最接近的执行队列"收敛 ——
+    "announce_fetch": "query",  # 公告抓取由查询侧适配器执行（无独立队列类型）
+    "normalize": "organize",  # 规范化是归档整理链的一步
+    "validity_check": "query",  # 时效性核查走站点查询
+    "backup": "organize",  # 备份由整理侧定时任务承担
+    "image_update": "organize",  # 镜像更新无独立队列类型，归入整理侧
+}
+
+
+def task_kind_to_task_type(task_kind: str) -> str:
+    """把通知视角的 `task_kind` **单向**翻译为执行队列视角的 `task_type`。
+
+    未知 `task_kind`（含空串）返回 `""`——**回退语义**，与 `project()` 的未映射回退同口径：
+    调用方据此跳过翻译，而不是猜一个值。
+
+    **注意**：本函数不落库（阶段 2.5a 只提供翻译工具；是否落 `task_type` 由后续批次决定）。
+    """
+    return TASK_KIND_TO_TASK_TYPE.get(task_kind, "")
 
 
 def project(event_type: str, data: Mapping[str, Any]) -> NotificationProjection:
