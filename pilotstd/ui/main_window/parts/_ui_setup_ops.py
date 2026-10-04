@@ -58,6 +58,10 @@ class _TrayEventBridge(QObject):
     经信号跨线程投递，Qt 会按接收者所在线程排队执行。
     """
 
+    # 分档节流开关（W3）：默认开，由 `_wire_tray_event_sink` 按配置注入。
+    # 类属性给默认值，`__init__` 里再赋一次实例属性——G-011 只认 `self.x = …` 形式的定义。
+    throttle = True
+
     # 载荷：(event_type, title, message, level)
     # 两个命名约束：① **不能**叫 `event`——会遮蔽 `QObject.event(QEvent)` 虚函数，
     # PyQt 抛 "native Qt signal is not callable"；② 后缀须落在门禁 G-011 认可的信号后缀
@@ -66,6 +70,7 @@ class _TrayEventBridge(QObject):
 
     def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
+        self.throttle = True
         self.tray_event_occurred.connect(self._show)
 
     def _show(self, event_type: str, title: str, message: str, level: str) -> None:
@@ -80,7 +85,10 @@ class _TrayEventBridge(QObject):
         from ....platform.notify import NotifyService
 
         service = NotifyService.get()
-        if level in ("warning", "error"):
+        if self.throttle:
+            # W3：长阶段 60 秒/主题；警告在 show_event 内部立即发射
+            service.show_event(title, message, level)
+        elif level in ("warning", "error"):
             service.show_warning(title, message)
         else:
             service.show(title, message)
@@ -98,6 +106,8 @@ def _wire_tray_event_sink(self) -> None:
     if getattr(self, "_tray", None) is None:
         return
     self._tray_event_bridge = _TrayEventBridge(self)
+    # W3：分档节流开关随分流一起接线（关闭即走不节流的 show/show_warning）
+    self._tray_event_bridge.throttle = self._config.get("notification.windows_tray_throttle", True)
     self._mgr.notification_mgr.set_local_sink(
         lambda msg: self._tray_event_bridge.tray_event_occurred.emit(
             msg.event_type or "", msg.title or "", msg.body or "", msg.level or "info"

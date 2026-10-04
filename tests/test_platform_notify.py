@@ -151,3 +151,68 @@ class TestAggregatorPath:
         with patch.object(svc, "_get_aggregator", return_value=mock_agg):
             svc.show_warning("Warn Agg", "Warn Body", 3000)
             mock_agg.should_show.assert_called_once()
+
+
+class TestShowEventTiering:
+    """W3：托盘事件分档节流（长阶段 60 秒/主题；警告立即）。"""
+
+    def _service(self):
+        from pilotstd.platform.notify import NotifyService
+
+        return NotifyService(None)
+
+    def test_same_topic_within_window_emits_once(self):
+        """同一主题在 60 秒窗口内只放行一条（长阶段档）。"""
+        from types import SimpleNamespace
+        from unittest.mock import patch
+
+        svc = self._service()
+        aggregator = SimpleNamespace(topic_of=lambda title, body: "scan")
+        with (
+            patch.object(svc, "_get_aggregator", return_value=aggregator),
+            patch.object(svc, "show") as show,
+        ):
+            svc.show_event("扫描完成", "共 3 条", "info")
+            svc.show_event("扫描完成", "共 4 条", "info")
+        assert show.call_count == 1
+
+    def test_warning_bypasses_window(self):
+        """警告档立即发射：两条警告都要弹（不受 60 秒窗口约束）。"""
+        from unittest.mock import patch
+
+        svc = self._service()
+        with patch.object(svc, "show_warning") as warn:
+            svc.show_event("下载失败", "连接超时", "warning")
+            svc.show_event("下载失败", "连接超时", "error")
+        assert warn.call_count == 2
+
+    def test_window_expiry_allows_again(self, monkeypatch):
+        """窗口过期后同主题可再次弹出（把窗口压到 0 秒模拟过期）。"""
+        from types import SimpleNamespace
+        from unittest.mock import patch
+
+        from pilotstd.platform.notify import NotifyService
+
+        svc = self._service()
+        aggregator = SimpleNamespace(topic_of=lambda title, body: "scan")
+        monkeypatch.setattr(NotifyService, "LONG_STAGE_WINDOW", 0.0)
+        with (
+            patch.object(svc, "_get_aggregator", return_value=aggregator),
+            patch.object(svc, "show") as show,
+        ):
+            svc.show_event("扫描完成", "共 3 条", "info")
+            svc.show_event("扫描完成", "共 4 条", "info")
+        assert show.call_count == 2
+
+    def test_plain_entries_are_not_throttled(self):
+        """既有 UI 直呼链路（show/show_warning）不经节流：行为逐字不变。"""
+        from unittest.mock import patch
+
+        svc = self._service()
+        with (
+            patch.object(svc, "_check_event_window") as window,
+            patch.object(svc, "show"),
+        ):
+            svc.show("标题", "正文")
+            svc.show("标题", "正文")
+        window.assert_not_called()

@@ -18,6 +18,9 @@ class NotifyService:
 
     _instance: "NotifyService | None" = None
     _DEDUP_WINDOW = 3.0  # 同标题去重窗口（秒）
+    # 长阶段节流窗口（秒，W3）：**必须 > 桌面熔断的"30 秒内 3 条"**，
+    # 否则进度类气泡会自己触发熔断暂停（5 分钟），正是分档策略要避免的
+    LONG_STAGE_WINDOW = 60.0
 
     @classmethod
     def init(cls, tray: QSystemTrayIcon) -> None:
@@ -34,6 +37,7 @@ class NotifyService:
         self._tray = tray
         self._enabled = True
         self._last: dict[str, float] = {}  # title → last_emit_time
+        self._event_last: dict[str, float] = {}  # topic → last_emit_time（W3 长阶段节流）
 
     @property
     def enabled(self) -> bool:
@@ -81,6 +85,27 @@ class NotifyService:
             lambda t, b, _l: self._tray.showMessage(t, b, QSystemTrayIcon.MessageIcon.Warning, duration),
         )  # type: ignore[arg-type]
 
+    def show_event(self, title: str, message: str, level: str = "info", duration: int = 5000) -> None:
+        """把**已分流到托盘**的业务事件弹成气泡，并遵守分档节流（W3）。
+
+        分档规则（[02-framework-update.md](../../docs/plans/notification-system-design/02-framework-update.md) §三）：
+        - **警告档**（`level` 为 `warning`/`error`）→ **立即发射**，不受节流（与 Docker 端
+          "警告绕过聚合"同口径：失败/需人处置的事不能等窗口）；
+        - 其余 → 同一**主题**在 `LONG_STAGE_WINDOW`（60 秒）内只弹一条。
+
+        设计原文为"每 60 秒**或**每 25% 且间隔 ≥60 秒，取先到者"；**25% 检查点在本路径不适用**
+        ——托盘事件只带标题/正文，没有进度百分比，故以时间为准（`Total/Completed` 类进度仍由
+        应用内进度条承担）。节流只加在**本方法**：`show`/`show_warning`（既有 UI 直呼链路）
+        行为逐字不变。
+        """
+        if level in ("warning", "error"):
+            self.show_warning(title, message, duration)
+            return
+        topic = self._get_aggregator().topic_of(title, message)
+        if not self._check_event_window(topic):
+            return
+        self.show(title, message, duration)
+
     # ── 内部 ──
 
     @staticmethod
@@ -89,6 +114,19 @@ class NotifyService:
         from pilotstd.core.notification_aggregator import NotificationAggregator  # type: ignore[import-untyped]
 
         return NotificationAggregator()
+
+    def _check_event_window(self, topic: str) -> bool:
+        """长阶段节流：同主题在 `LONG_STAGE_WINDOW` 内只放行一次（返回 True 表示放行）。
+
+        与 `_check_dedup`（3 秒同标题瞬时防抖）**不同层**：本方法按**主题**、窗口 60 秒，
+        用于压住长阶段的重复进度；两者可以同时生效。
+        """
+        now = time.monotonic()
+        last = self._event_last.get(topic, 0.0)
+        if now - last < self.LONG_STAGE_WINDOW:
+            return False
+        self._event_last[topic] = now
+        return True
 
     def _check_dedup(self, title: str) -> bool:
         """检查是否应发送。同标题在去重窗口内返回 False。

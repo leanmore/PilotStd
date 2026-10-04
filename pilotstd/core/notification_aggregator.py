@@ -365,6 +365,13 @@ class NotificationAggregator:
             )
         return index, patterns
 
+    def topic_of(self, title: str, body: str) -> str:
+        """公开的主题判定（只读入口）：托盘分档节流需与聚合分组**同源**，避免两套关键词。
+
+        W3 新增；内部仍走 `_extract_topic`（关键词表唯一来源）。
+        """
+        return self._extract_topic(title, body)
+
     @classmethod
     def _extract_topic(cls, title: str, _body: str) -> str:
         """从标题提取主题分类，用于新版聚合器的 target_id 分组。

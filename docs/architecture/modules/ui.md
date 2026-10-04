@@ -60,6 +60,16 @@ MainWindow (QMainWindow)
   信号名有两个约束：**不能**叫 `event`（遮蔽 `QObject.event(QEvent)` 虚函数）；后缀须落在
   G-011 认可的 `_changed` / `_ready` / `_occurred` 内。
 
+### 分档节流（W3）
+
+- 节流只加在**已分流到托盘**的事件上（`NotifyService.show_event`）：警告档（`warning`/`error`）
+  **立即发射**；其余同一**主题**每 `LONG_STAGE_WINDOW`（60 秒）只弹一条。
+- 60 秒这个数字必须 **> 桌面熔断的"30 秒内 3 条"**，否则进度气泡会自己触发熔断暂停（5 分钟）。
+- 设计原文的"每 25% 且间隔 ≥60 秒"里，**25% 检查点不适用于托盘路径**：托盘事件只带标题/正文，
+  没有进度百分比，故以时间为准（应用内进度条仍承担百分比呈现）。
+- 开关 `notification.windows_tray_throttle`（默认开）关闭即回退为不节流的 `show`/`show_warning`；
+  **既有 UI 直呼链路（`show`/`show_warning`）不经节流**，行为不变。
+
 ## Handler 组合模式
 
 > 旧版 28 个 Mixin 已在 2026-07-11 全部重构为 Handler 组合模式。参见 [STATUS.md](../../../STATUS.md)。

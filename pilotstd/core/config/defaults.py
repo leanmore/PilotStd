@@ -56,6 +56,8 @@ FACTORY_DEFAULTS = {
     "notification.enabled": False,
     # W2 分流开关：桌面端是否把业务事件弹成托盘气泡（关闭即回退到"本端无可见信号"）
     "notification.windows_tray_events": True,
+    # W3 分档节流开关：托盘事件是否遵守"长阶段 60 秒/主题"（关闭即回退为不节流）
+    "notification.windows_tray_throttle": True,
     "notification.channels.wechat.enabled": True,
     "notification.channels.wechat.webhook_url": "",
     "notification.channels.telegram.enabled": False,
