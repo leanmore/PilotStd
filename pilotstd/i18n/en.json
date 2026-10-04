@@ -836,5 +836,21 @@
     "notification.security.reason.channel_failed": "channel reported failure",
     "notification.security.reason.total_timeout": "timed out after {seconds:g}s",
     "notification.security.reason.no_cred_helper": "cred_helper unavailable",
-    "notification.security.reason.no_builder": "no builder available for event {event}"
+    "notification.security.reason.no_builder": "no builder available for event {event}",
+    "header_task_business": "Action",
+    "header_task_result": "Result",
+    "header_task_updated": "Time",
+    "header_task_hint": "Next step",
+    "task_status_running": "In progress",
+    "task_status_completed": "Done",
+    "task_status_failed": "Failed",
+    "task_status_cancelled": "Abandoned",
+    "task_expire": "Expiry handling",
+    "task_unknown": "Unknown action",
+    "task_result_summary": "{ok} succeeded / {failed} failed / {skipped} skipped",
+    "task_hint_failed": "Check the details; retry if needed",
+    "task_hint_cancelled": "Abandoned; run it again if needed",
+    "task_detail_summary": "{business} · {status} · {result} · {time}",
+    "task_detail_error": "Error details: {error}",
+    "task_detail_result": "Result details: {result}"
 }

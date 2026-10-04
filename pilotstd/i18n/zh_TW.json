@@ -757,5 +757,21 @@
     "notification.security.reason.channel_failed": "渠道回傳失敗",
     "notification.security.reason.total_timeout": "總逾時 {seconds:g}s 未完成",
     "notification.security.reason.no_cred_helper": "cred_helper 無法使用",
-    "notification.security.reason.no_builder": "事件 {event} 無可用建構器"
+    "notification.security.reason.no_builder": "事件 {event} 無可用建構器",
+    "header_task_business": "業務",
+    "header_task_result": "結果",
+    "header_task_updated": "時間",
+    "header_task_hint": "提示",
+    "task_status_running": "進行中",
+    "task_status_completed": "已完成",
+    "task_status_failed": "失敗",
+    "task_status_cancelled": "已放棄",
+    "task_expire": "過期處理",
+    "task_unknown": "未知任務",
+    "task_result_summary": "成功 {ok} / 失敗 {failed} / 跳過 {skipped}",
+    "task_hint_failed": "看明細裡的原因，必要時重試",
+    "task_hint_cancelled": "已放棄，需要的話重新執行",
+    "task_detail_summary": "{business} · {status} · {result} · {time}",
+    "task_detail_error": "錯誤明細：{error}",
+    "task_detail_result": "結果明細：{result}"
 }

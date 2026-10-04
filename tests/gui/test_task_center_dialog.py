@@ -63,18 +63,23 @@ class TestTaskPage:
 
     @pytest.fixture
     def mock_queue_with_tasks(self) -> MagicMock:
-        """创建 mock TaskQueue，返回示例任务列表。"""
-        from pilotstd.task.models import TaskStatus, TaskType
+        """创建 mock TaskQueue，返回示例任务列表。
 
-        task = MagicMock()
-        task.task_id = "task-001"
-        task.task_type = TaskType.QUERY
-        task.status = TaskStatus.COMPLETED
-        task.completed_items = 5
-        task.total_items = 5
-        task.progress_pct = 100.0
-        task.updated_at = "2024-01-15T10:30:00.000000"
-        task.error_log = ""
+        用**真实 `TaskInfo`** 而非 MagicMock：W1 的结果列会对计数做算术
+        （`总数 - 成功 - 失败`），Mock 参与算术会直接抛 TypeError，且真实模型更贴近生产。
+        """
+        from pilotstd.task.models import TaskInfo, TaskStatus, TaskType
+
+        task = TaskInfo(
+            task_id="task-001",
+            task_type=TaskType.QUERY,
+            status=TaskStatus.COMPLETED,
+            completed_items=5,
+            total_items=5,
+            failed_items=0,
+            updated_at="2024-01-15T10:30:00.000000",
+            error_log="",
+        )
 
         q = MagicMock()
         q.list_all.return_value = [task]
@@ -107,26 +112,88 @@ class TestTaskPage:
         mock_queue_with_tasks.list_all.assert_called_once()
 
     def test_clear_completed(self, qtbot, mock_queue_with_tasks) -> None:
-        """点击清除已完成按钮调用 queue.cancel 清理已完成任务。"""
+        """W1：点击"清除已完成"调用 queue.clear_finished（真删），不再复用 cancel。"""
         from pilotstd.ui.pages.task_page import TaskPage
 
         page = TaskPage(mock_queue_with_tasks)
         qtbot.addWidget(page)
+        mock_queue_with_tasks.clear_finished.reset_mock()
         mock_queue_with_tasks.cancel.reset_mock()
         qtbot.mouseClick(page.btn_clear, Qt.MouseButton.LeftButton)
-        # 已完成/取消/失败的任务会被 cancel 标记清理
-        assert mock_queue_with_tasks.cancel.call_count >= 1
+        assert mock_queue_with_tasks.clear_finished.call_count == 1
+        assert mock_queue_with_tasks.cancel.call_count == 0, "清除不是取消：不得再调用 cancel"
 
     def test_table_columns(self, qtbot) -> None:
-        """TaskPage 表格有 6 列并设置了正确的表头。"""
+        """W1：表格 5 列 = 业务 / 状态 / 结果 / 时间 / 提示（不再有任务ID与类型列）。"""
         from pilotstd.ui.pages.task_page import TaskPage
 
         page = TaskPage()
         qtbot.addWidget(page)
-        assert page.task_table.columnCount() == 6
-        headers = [page.task_table.horizontalHeaderItem(i).text() for i in range(6)]  # type: ignore[union-attr]
-        assert any("ID" in h or "id" in h.lower() for h in headers)
-        assert any("类型" in h or "Type" in h for h in headers)
+        assert page.task_table.columnCount() == 5
+        headers = [page.task_table.horizontalHeaderItem(i).text() for i in range(5)]  # type: ignore[union-attr]
+        assert headers == ["业务", "状态", "结果", "时间", "提示"]
+        assert not any("ID" in h for h in headers), "行单位是「一次用户操作」，不再展示任务ID"
+
+    def test_row_renders_user_language(self, qtbot) -> None:
+        """W1：一行 = 业务名 + 用户语言状态 + 结果摘要；失败行给出"需要我做什么"。"""
+        from pilotstd.task.models import TaskInfo, TaskStatus, TaskType
+        from pilotstd.ui.pages.task_page import TaskPage
+
+        done = TaskInfo(
+            task_id="t-done", task_type=TaskType.QUERY, status=TaskStatus.COMPLETED,
+            total_items=10, completed_items=7, failed_items=1,
+            updated_at="2026-01-15T10:30:00.000000",
+        )
+        failed = TaskInfo(
+            task_id="t-fail", task_type=TaskType.DOWNLOAD, status=TaskStatus.FAILED,
+            total_items=4, completed_items=1, failed_items=3,
+            updated_at="2026-01-15T11:00:00.000000", error_log="连接超时",
+        )
+        running = TaskInfo(
+            task_id="t-run", task_type=TaskType.SCAN, status=TaskStatus.RUNNING,
+            total_items=20, completed_items=5, failed_items=0,
+            updated_at="2026-01-15T11:05:00.000000",
+        )
+        q = MagicMock()
+        q.list_all.return_value = [done, failed, running]
+        page = TaskPage(q)
+        qtbot.addWidget(page)
+
+        def cell(row: int, col: int) -> str:
+            return page.task_table.item(row, col).text()  # type: ignore[union-attr]
+
+        assert cell(0, 0) == "查询"
+        assert cell(0, 1) == "已完成"
+        assert cell(0, 2) == "成功 7 / 失败 1 / 跳过 2"
+        assert cell(0, 3) == "2026-01-15T10:30:00"
+        assert cell(0, 4) == ""
+        assert cell(1, 1) == "失败"
+        assert cell(1, 2) == "成功 1 / 失败 3 / 跳过 0"
+        assert cell(1, 4) == "看明细里的原因，必要时重试"
+        assert cell(2, 0) == "扫描"
+        assert cell(2, 1) == "进行中"
+        assert cell(2, 2) == "5/20 (25%)", "进行中给进度，不给结果摘要"
+
+    def test_selection_expands_detail(self, qtbot) -> None:
+        """W1：选中行后明细可展开（错误原文不再挤在列表列里）。"""
+        from pilotstd.task.models import TaskInfo, TaskStatus, TaskType
+        from pilotstd.ui.pages.task_page import TaskPage
+
+        failed = TaskInfo(
+            task_id="t-fail", task_type=TaskType.DOWNLOAD, status=TaskStatus.FAILED,
+            total_items=2, completed_items=0, failed_items=2,
+            updated_at="2026-01-15T11:00:00.000000", error_log="连接超时",
+            result_json='{"failed": 2}',
+        )
+        q = MagicMock()
+        q.list_all.return_value = [failed]
+        page = TaskPage(q)
+        qtbot.addWidget(page)
+        page.task_table.selectRow(0)
+        text = page.detail_view.toPlainText()
+        assert "下载" in text
+        assert "错误明细：连接超时" in text
+        assert "结果明细：" in text
 
     def test_detail_view_readonly(self, qtbot) -> None:
         """详情文本框为只读。"""

@@ -840,5 +840,21 @@
     "notification.security.reason.channel_failed": "渠道返回失败",
     "notification.security.reason.total_timeout": "总超时 {seconds:g}s 未完成",
     "notification.security.reason.no_cred_helper": "cred_helper 不可用",
-    "notification.security.reason.no_builder": "事件 {event} 无可用构建器"
+    "notification.security.reason.no_builder": "事件 {event} 无可用构建器",
+    "header_task_business": "业务",
+    "header_task_result": "结果",
+    "header_task_updated": "时间",
+    "header_task_hint": "提示",
+    "task_status_running": "进行中",
+    "task_status_completed": "已完成",
+    "task_status_failed": "失败",
+    "task_status_cancelled": "已放弃",
+    "task_expire": "过期处理",
+    "task_unknown": "未知任务",
+    "task_result_summary": "成功 {ok} / 失败 {failed} / 跳过 {skipped}",
+    "task_hint_failed": "看明细里的原因，必要时重试",
+    "task_hint_cancelled": "已放弃，需要的话重新执行",
+    "task_detail_summary": "{business} · {status} · {result} · {time}",
+    "task_detail_error": "错误明细：{error}",
+    "task_detail_result": "结果明细：{result}"
 }

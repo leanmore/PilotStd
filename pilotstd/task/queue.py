@@ -98,6 +98,25 @@ class TaskQueue:
         rows = self._db.fetchall(f"SELECT * FROM {TASK_TABLE} WHERE status IN ('pending','paused') ORDER BY created_at")
         return [self._row_to_task(r) for r in rows]
 
+    def clear_finished(self) -> int:
+        """删除已结束的任务记录（已完成 / 失败 / 已放弃），返回删除行数。
+
+        **为什么必须真删（W1 技术发现 1）**：任务中心的"清除已完成"原先复用 `cancel()`，
+        而 `cancel` 只是把状态改成 `CANCELLED`，列表查询又没有状态过滤 ⇒ 点完列表照旧显示
+        这些任务，用户会反复点；且 `cancel` 的本意是"取消运行中的任务"，被挪用来表达"清理"
+        属语义污染。**不删仍在进行中（pending/running/paused）的任务**——它们不是"已完成"。
+        """
+        with self._lock:
+            cur = self._db.execute(
+                f"DELETE FROM {TASK_TABLE} WHERE status IN (?, ?, ?)",
+                (
+                    TaskStatus.COMPLETED.value,
+                    TaskStatus.FAILED.value,
+                    TaskStatus.CANCELLED.value,
+                ),
+            )
+            return int(cur.rowcount or 0)
+
     def update_progress(self, task: TaskInfo, completed: int, failed: int = 0) -> None:
         """更新任务进度，全部完成时自动标记为 COMPLETED。"""
         with self._lock:

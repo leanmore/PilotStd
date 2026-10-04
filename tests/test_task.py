@@ -51,6 +51,23 @@ class TestTaskQueue(unittest.TestCase):
         t = self.queue.get(task.task_id)
         self.assertEqual(t.status, TaskStatus.CANCELLED)
 
+    def test_clear_finished_deletes_only_finished(self):
+        """W1：清除已完成必须**真删**（旧实现只把状态改成 CANCELLED，列表照旧显示）。"""
+        done = self.queue.enqueue(TaskType.SCAN, total_items=1)
+        self.queue.update_progress(done, completed=1)  # → COMPLETED
+        failed = self.queue.enqueue(TaskType.QUERY, total_items=1)
+        self.queue.update_progress(failed, completed=0, failed=1)  # → COMPLETED（计数达总数）
+        gone = self.queue.enqueue(TaskType.DOWNLOAD, total_items=1)
+        self.queue.cancel(gone.task_id)  # → CANCELLED
+        running = self.queue.enqueue(TaskType.ORGANIZE, total_items=10)  # 仍在进行中
+
+        removed = self.queue.clear_finished()
+        self.assertGreaterEqual(removed, 3)
+        remaining = {t.task_id for t in self.queue.list_all(limit=50)}
+        self.assertIn(running.task_id, remaining, "进行中的任务不得被清除")
+        self.assertNotIn(done.task_id, remaining)
+        self.assertNotIn(gone.task_id, remaining)
+
     def test_list_all(self):
         for i in range(3):
             self.queue.enqueue(TaskType.DOWNLOAD, total_items=i)
