@@ -8,6 +8,10 @@ import logging
 from datetime import datetime
 from typing import Any, cast
 
+# 掩码校验文案与 API 层（docker/api/notification_config.py）**共用同一 i18n 键**，
+# 保证"核心层校验、接口层展示"两处文案不漂移
+from pilotstd.i18n import t
+
 logger = logging.getLogger(__name__)
 
 # 系统默认用户 ID：迁移引导目标用户（语义化，消除魔法数字）
@@ -130,7 +134,7 @@ class CredentialHelper:
                     extra={"source_type": "credential_helper", "user_id": user_id},
                 )
                 raise ValueError(
-                    f"凭证校验失败: 字段 '{k}' 的值疑似掩码占位符，请重新输入真实凭证。"
+                    t("notification.api.credential_masked_field").format(field=k)
                 )
 
         existing = self.get_channel(user_id, channel) or {}

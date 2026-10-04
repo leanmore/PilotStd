@@ -751,5 +751,11 @@
     "auth.log.session_cleanup": "工作階段清理: 移除 {count} 筆過期",
     "auth.log.secret_read_failed": "JWT_SECRET 檔案讀取失敗，將重新產生",
     "auth.log.secret_generated": "JWT_SECRET 已產生並寫入: {path}",
-    "auth.log.secret_persist_failed": "JWT_SECRET 寫入失敗，本次使用行程內隨機金鑰（重啟後工作階段失效）"
+    "auth.log.secret_persist_failed": "JWT_SECRET 寫入失敗，本次使用行程內隨機金鑰（重啟後工作階段失效）",
+    "notification.aggregator.paused_title": "通知已暫停",
+    "notification.aggregator.paused_body": "連續 {count} 次警告，通知將於 5 分鐘後自動恢復",
+    "notification.security.reason.channel_failed": "渠道回傳失敗",
+    "notification.security.reason.total_timeout": "總逾時 {seconds:g}s 未完成",
+    "notification.security.reason.no_cred_helper": "cred_helper 無法使用",
+    "notification.security.reason.no_builder": "事件 {event} 無可用建構器"
 }

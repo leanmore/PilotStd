@@ -830,5 +830,11 @@
     "auth.log.session_cleanup": "Session cleanup: removed {count} expired entries",
     "auth.log.secret_read_failed": "Failed to read the JWT_SECRET file; regenerating",
     "auth.log.secret_generated": "JWT_SECRET generated and persisted: {path}",
-    "auth.log.secret_persist_failed": "Failed to persist JWT_SECRET; using an in-process random key (sessions end on restart)"
+    "auth.log.secret_persist_failed": "Failed to persist JWT_SECRET; using an in-process random key (sessions end on restart)",
+    "notification.aggregator.paused_title": "Notifications paused",
+    "notification.aggregator.paused_body": "{count} warnings in a row; notifications resume automatically in 5 minutes",
+    "notification.security.reason.channel_failed": "channel reported failure",
+    "notification.security.reason.total_timeout": "timed out after {seconds:g}s",
+    "notification.security.reason.no_cred_helper": "cred_helper unavailable",
+    "notification.security.reason.no_builder": "no builder available for event {event}"
 }

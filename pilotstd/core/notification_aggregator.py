@@ -24,6 +24,8 @@ import secrets
 import time
 from typing import Any, cast
 
+from pilotstd.i18n import t
+
 # 缓冲窗口：0.3 秒内同类通知合并为一条
 # 设计意图（专项确认，不变更）：这是**桌面托盘气泡**的分组窗口，与服务端聚合器的
 # `DEFAULT_WINDOW_SECONDS = 5.0s` 分属两条独立链路（见模块 docstring）。语义不同——
@@ -468,8 +470,10 @@ class NotificationAggregator:
                 self._save_pause_state()
                 if self._on_show:
                     self._on_show(
-                        "通知已暂停",
-                        f"连续 {len(self._warning_errors)} 次警告，通知将在 5 分钟后自动恢复",
+                        t("notification.aggregator.paused_title"),
+                        t("notification.aggregator.paused_body").format(
+                            count=len(self._warning_errors)
+                        ),
                         "warning",
                     )
                 return True

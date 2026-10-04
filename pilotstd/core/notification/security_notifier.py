@@ -24,6 +24,8 @@ import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
+from pilotstd.i18n import t
+
 from .channel import NotificationMessage
 
 logger = logging.getLogger(__name__)
@@ -118,14 +120,22 @@ def _send_all(instances: list[tuple[str, Any]], message: NotificationMessage) ->
                 name = futures[future]
                 try:
                     ok = bool(future.result())
-                    results.append((name, ok, "" if ok else "渠道返回失败"))
+                    results.append((name, ok, "" if ok else t("notification.security.reason.channel_failed")))
                 except Exception as exc:  # noqa: BLE001 - 单渠道异常不得影响其它渠道
                     results.append((name, False, str(exc)[:200]))
         except TimeoutError:
             done = {futures[f] for f in futures if f.done()}
             for name in futures.values():
                 if name not in done:
-                    results.append((name, False, f"总超时 {NOTIFY_TOTAL_TIMEOUT_SECONDS:g}s 未完成"))
+                    results.append(
+                        (
+                            name,
+                            False,
+                            t("notification.security.reason.total_timeout").format(
+                                seconds=NOTIFY_TOTAL_TIMEOUT_SECONDS
+                            ),
+                        )
+                    )
     return results
 
 
@@ -161,7 +171,7 @@ def notify_security_event(
 
     if cred_helper is None:
         logger.warning("凭据助手不可用，安全告警 %s 无法投递", event_type)
-        return [], ["cred_helper 不可用"]
+        return [], [t("notification.security.reason.no_cred_helper")]
 
     # 事件名以字面量传给 send_event，且内联完整归一化键集：
     # ① 满足 tests/test_notification_e2e.py 的"每个事件都有触发点 + 字段双向一致"静态契约
@@ -190,7 +200,7 @@ def notify_security_event(
 
     message = _build_security_message(event_type, payload)
     if message is None:
-        return [], [f"事件 {event_type} 无可用构建器"]
+        return [], [t("notification.security.reason.no_builder").format(event=event_type)]
 
     creds_by_channel = cred_helper.get_all(user_id) or {}
     wanted = set(target_channels) if target_channels else set(creds_by_channel)
