@@ -827,5 +827,12 @@
     "notification.api.log_get_policy_failed": "获取通知策略失败",
     "notification.api.log_save_policy_failed": "保存通知策略失败",
     "notification.api.log_pref_write_failed": "通知启用状态写入用户偏好表失败: {error}",
-    "notification.api.log_channel_config_rejected": "渠道 {channel} 配置保存被拒绝: {error}"
+    "notification.api.log_channel_config_rejected": "渠道 {channel} 配置保存被拒绝: {error}",
+    "auth.api.unauthorized": "认证失败",
+    "auth.api.session_expired": "会话已过期，请重新登录",
+    "auth.api.rate_limited": "请求过于频繁，请稍后重试",
+    "auth.log.session_cleanup": "会话清理: 移除 {count} 条过期",
+    "auth.log.secret_read_failed": "JWT_SECRET 文件读取失败，将重新生成",
+    "auth.log.secret_generated": "JWT_SECRET 已生成并落盘: {path}",
+    "auth.log.secret_persist_failed": "JWT_SECRET 落盘失败，本次使用进程内随机密钥（重启后会话失效）"
 }

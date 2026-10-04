@@ -1,25 +1,31 @@
 # 鉴权模块（多用户 + 速率限制 + 跨站伪造防护 + 会话安全标记 + 接口密钥）
-import hashlib
 import logging
-import os
 import secrets
 import threading
 import time
-from collections import defaultdict
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
-from typing import Any, cast
+from typing import cast
 
 from fastapi import Form, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
 from jose import JWTError, jwt
-from starlette.middleware.base import BaseHTTPMiddleware
 
 from pilotstd import ADMIN_ROLE
 from pilotstd.core.audit import write_audit
 
-from ._static_token import _ensure_static_token_in_db
+# ── 再导出：状态/常量/中间件迁至 auth_state / auth_middleware，保持既有 import 路径可用 ──
+from .auth_middleware import AuthMiddleware as AuthMiddleware
+from .auth_middleware import _start_session_cleanup as _start_session_cleanup
+from .auth_state import API_RATE_LIMIT as API_RATE_LIMIT
+from .auth_state import API_RATE_WINDOW as API_RATE_WINDOW
+from .auth_state import API_TOKEN_HEADER as API_TOKEN_HEADER
+from .auth_state import AUTH_WHITELIST as AUTH_WHITELIST
+from .auth_state import COOKIE_NAME as COOKIE_NAME
+from .auth_state import CSRF_HEADER as CSRF_HEADER
+from .auth_state import SECRET as SECRET
+from .auth_state import TOKEN_EXPIRE_HOURS as TOKEN_EXPIRE_HOURS
+from .auth_state import verify_api_key as verify_api_key
 from .session_store import get_session_store
 from .users import (
     _resolve_audit_identity,
@@ -35,52 +41,11 @@ from .users import (
     verify_user,
 )
 
-router = APIRouter(tags=["auth"])
-logger = logging.getLogger(__name__)
-
-def _load_or_create_secret() -> str:
-    """取 JWT 密钥：环境变量 > 落盘文件 > 新生成并落盘。
-
-    原实现未设环境变量时每次进程启动随机（容器重启即全员掉线）；决策 #6 由"固定/随机二选一"
-    改为落盘复用（`DATA_DIR/.jwt_secret`，权限 600），两头问题一并消除。
-    落盘失败降级为进程内随机（只告警，不阻断启动）。
-    """
-    env_secret = os.environ.get("JWT_SECRET")
-    if env_secret:
-        return env_secret
-
-    data_dir = os.environ.get("DATA_DIR", os.path.join(os.path.dirname(__file__), "..", "..", "data"))
-    secret_file = Path(data_dir) / ".jwt_secret"
-    try:
-        if secret_file.exists():
-            saved = secret_file.read_text(encoding="utf-8").strip()
-            if saved:
-                return saved
-    except OSError:
-        logger.warning("JWT_SECRET 文件读取失败，将重新生成", exc_info=True)
-
-    generated = secrets.token_urlsafe(32)
-    try:
-        secret_file.parent.mkdir(parents=True, exist_ok=True)
-        secret_file.write_text(generated, encoding="utf-8")
-        os.chmod(secret_file, 0o600)
-        logger.info("JWT_SECRET 已生成并落盘: %s", secret_file)
-    except OSError:
-        logger.warning("JWT_SECRET 落盘失败，本次使用进程内随机密钥（重启后会话失效）", exc_info=True)
-    return generated
-
-
-SECRET = _load_or_create_secret()
-
-# 应用启动时确保用户表存在
+# 登录表一次性初始化标志（login() 用；属登录流程状态，不随后端常量外移）
 _init_done = False
 
-TOKEN_EXPIRE_HOURS = 2  # jwt 过期时间（小时），可通过 TOKEN_EXPIRE_HOURS 环境变量覆盖
-COOKIE_NAME = "pilotstd_token"
-CSRF_HEADER = "X-CSRF-Token"
-API_TOKEN_HEADER = "X-API-KEY"  # 静态令牌 Header（参考 MoviePilot）
-
-
+router = APIRouter(tags=["auth"])
+logger = logging.getLogger(__name__)
 
 def get_current_user_id(request: Request) -> int:
     """从请求 Cookie 中解码 JWT，返回当前用户的 user_id（int）。
@@ -173,18 +138,6 @@ def require_role(role: str):
 
 
 # 白名单：(路径前缀,{允许的网络方法})，方法集合为空表示允许所有方法
-AUTH_WHITELIST: list[tuple[str, set[str]]] = [
-    ("/api/login", set()),
-    ("/api/logout", set()),
-    ("/api/health", set()),
-    ("/api/system/version", {"GET"}),
-    ("/api/logs", {"GET"}),
-    # 登录页背景图 URL（公开接口）：仅暴露 appearance.login_bg 单字段，替代
-    # 仅管理员的 GET /api/settings 在未登录态下的 401 拦截问题
-    ("/api/login-background", set()),
-    ("/api/backgrounds", set()),
-    ("/assets", set()),
-]
 
 # 登录失败计数（持久化到数据库查询），仅保留5分钟内的记录
 MAX_ATTEMPTS = 100  # 5 分钟内最多 100 次失败（压测放宽）
@@ -196,11 +149,6 @@ LOCKOUT_SECONDS = 300  # 锁定 5 分钟
 # 达到阈值时发一次（继续失败不刷屏），登录成功清空计数后再次累积可再次触发。
 LOGIN_FAILURE_ALERT_THRESHOLD = 5
 
-# 接口全局速率限制：{:[,...]}，=用户名或
-_api_rate_limit: dict[str, list[float]] = defaultdict(list)
-_api_rate_lock = threading.Lock()  # 保护 _api_rate_limit 并发读写
-API_RATE_LIMIT = 1000  # 每分钟最多 1000 次请求（压测放宽）
-API_RATE_WINDOW = 60  # 窗口 60 秒
 
 # 锁定拒绝（429）的审计留痕去重：IP -> 上次留痕时刻（墙钟 time.time()）。
 # 与 _api_rate_limit 同模式（进程内 dict + 锁 + 按访问修剪）。
@@ -426,209 +374,3 @@ def logout(request: Request):
     return resp
 
 
-def verify_api_key(token: str) -> dict | None:
-    """验证 API Key。返回 {key_id, scopes} 或 None。
-    token 以 "pst_" 开头，提取后 SHA256 哈希查表，验证 is_active=1。
-    """
-    if not token.startswith("pst_"):
-        return None
-    actual_token = token[4:]  # 去掉 "pst_" 前缀后做 SHA256 哈希
-    key_hash = hashlib.sha256(actual_token.encode()).hexdigest()
-    from pilotstd.core.config import get_db_path
-    from pilotstd.core.db import Database
-
-    db = Database(get_db_path())
-    row = db.fetchone(
-        "SELECT key_id, scopes FROM api_keys WHERE key_hash = ? AND is_active = 1",
-        (key_hash,),
-    )
-    if row is None:
-        return None
-    # 更新__
-    db.execute(
-        "UPDATE api_keys SET last_used_at = datetime('now', 'localtime') WHERE key_hash = ?",
-        (key_hash,),
-    )
-    try:
-        import json
-
-        scopes = json.loads(row["scopes"]) if row["scopes"] else []
-    except (json.JSONDecodeError, TypeError):
-        scopes = []
-    return {"key_id": row["key_id"], "scopes": scopes}
-
-
-class AuthMiddleware(BaseHTTPMiddleware):
-    """鉴权中间件：白名单放行 + Origin/Referer 校验 + Cookie JWT 校验 + API Key 校验 + CSRF 检查。"""
-
-    async def _check_public_path(self, request, path: str) -> bool:
-        """白名单路径 + 非 API 路径放行。返回 True 表示已放行（无需鉴权）。"""
-        for w_path, w_methods in AUTH_WHITELIST:
-            if path.startswith(w_path) and (not w_methods or request.method in w_methods):
-                return True
-        if not path.startswith("/api/"):
-            return True
-        return False
-
-    def _check_rate_limit(self, request) -> JSONResponse | None:
-        """全局 API 速率限制。返回 429 响应或 None（通过）。"""
-        now = time.time()
-        client_ip = request.client.host if request.client else "unknown"
-        cutoff = now - API_RATE_WINDOW
-        with _api_rate_lock:
-            _api_rate_limit[client_ip] = [t for t in _api_rate_limit[client_ip] if t > cutoff]
-            if not _api_rate_limit[client_ip]:
-                del _api_rate_limit[client_ip]
-            elif len(_api_rate_limit[client_ip]) >= API_RATE_LIMIT:
-                return JSONResponse({"error": "请求过于频繁，请稍后重试"}, 429)
-            _api_rate_limit[client_ip].append(now)
-        return None
-
-    def _authenticate_api_key(self, request) -> bool:
-        """三通道 API Key 校验：Authorization Bearer / X-API-KEY Header / ?token 查询参数。
-        返回 True 表示已认证。失败时返回 False 或直接返回 401（pst_ 前缀 token 不回落 JWT）。"""
-        auth_header = request.headers.get("Authorization", "")
-        api_key_header = request.headers.get(API_TOKEN_HEADER, "")
-        query_token = request.query_params.get("token", "")
-
-        api_token = ""
-        if auth_header.startswith("Bearer "):
-            api_token = auth_header[7:]
-        elif api_key_header:
-            api_token = api_key_header
-        elif query_token:
-            api_token = query_token
-
-        if not api_token:
-            return False
-
-        key_info = verify_api_key(api_token)
-        if key_info:
-            request.state.api_key_id = key_info["key_id"]
-            request.state.api_key_scopes = key_info["scopes"]
-            return True
-        # _前缀验证失败直接401（不回落令牌）
-        if api_token.startswith("pst_"):
-            raise HTTPException(401, "认证失败")
-        return False
-
-    def _authenticate_session(self, request) -> dict:
-        """Origin/Referer 跨源校验 + Cookie JWT 校验 + CSRF 检查。
-
-        失败直接抛 HTTPException。成功返回解码后的 JWT payload (dict)。
-        """
-        origin = request.headers.get("Origin", "") or request.headers.get("Referer", "")
-        if origin:
-            from urllib.parse import urlparse
-
-            try:
-                origin_host = urlparse(origin).hostname
-                request_host = request.headers.get("Host", "").split(":")[0]
-                if origin_host and request_host and origin_host != request_host:
-                    raise HTTPException(403, "认证失败")
-            except Exception:
-                raise HTTPException(403, "认证失败")
-
-        token = request.cookies.get(COOKIE_NAME)
-        if not token:
-            raise HTTPException(401, "认证失败")
-        try:
-            payload = jwt.decode(token, SECRET, algorithms=["HS256"])
-        except JWTError:
-            raise HTTPException(401, "认证失败")
-
-        if get_session_store().get(token) is None:
-            raise HTTPException(401, "会话已过期，请重新登录")
-
-        if request.method in ("POST", "PUT", "DELETE", "PATCH"):
-            csrf_header = request.headers.get(CSRF_HEADER, "")
-            csrf_cookie = request.cookies.get("csrf_token", "")
-            if not csrf_header or csrf_header != csrf_cookie:
-                raise HTTPException(403, "认证失败")
-
-        return cast("dict[Any, Any]", payload)
-
-    async def dispatch(self, request, call_next):
-        path = request.url.path
-
-        _ensure_static_token_in_db()
-
-        # 白名单+非接口路径放行
-        if await self._check_public_path(request, path):
-            return await call_next(request)
-
-        # 全局速率限制
-        rate_limit_resp = self._check_rate_limit(request)
-        if rate_limit_resp:
-            return rate_limit_resp
-
-        # 接口校验
-        try:
-            if self._authenticate_api_key(request):
-                return await call_next(request)
-        except HTTPException:
-            return JSONResponse({"error": "认证失败"}, 401)
-
-        # 令牌+跨站伪造防护校验→注入
-        try:
-            payload = self._authenticate_session(request)
-        except HTTPException as e:
-            return JSONResponse({"error": "认证失败"}, e.status_code)
-
-        # 版本三0:注入_到请求上下文（/防止异步泄漏）
-        from pilotstd.core.config import get_db_path
-        from pilotstd.core.context import _current_user_id, set_current_user_id
-        from pilotstd.core.db import Database
-
-        user_id = None
-        sub = payload.get("sub", "")
-        if sub.isdigit():
-            user_id = int(sub)
-        else:
-            db = Database(get_db_path())
-            row = db.fetchone("SELECT id FROM users WHERE username = ?", (sub,))
-            if row:
-                user_id = row["id"]
-
-        if user_id is not None:
-            token_ctx = set_current_user_id(user_id)
-            try:
-                return await call_next(request)
-            finally:
-                _current_user_id.reset(token_ctx)
-
-        return await call_next(request)
-
-
-# ──会话清理后台线程（每小时清理过期）────────────────────
-
-_cleanup_started = False
-_cleanup_lock = threading.Lock()
-
-
-def _start_session_cleanup() -> None:
-    """启动后台线程定期清理过期会话。幂等——多次调用只启动一次。"""
-    global _cleanup_started
-    if _cleanup_started:
-        return
-    with _cleanup_lock:
-        if _cleanup_started:
-            return
-        _cleanup_started = True
-
-    def _cleanup_loop() -> None:
-        """后台会话清理循环：每小时调用一次 cleanup_expired()，移除过期 token。"""
-        while True:
-            time.sleep(3600)
-            try:
-                store = get_session_store()
-                removed = store.cleanup_expired()
-                if removed > 0:
-                    import logging
-
-                    logging.getLogger("pilotstd.auth").debug("会话清理: 移除 %d 条过期", removed)
-            except Exception:
-                pass
-
-    t = threading.Thread(target=_cleanup_loop, daemon=True, name="session-cleanup")
-    t.start()

@@ -744,5 +744,12 @@
     "notification.api.log_get_policy_failed": "取得通知策略失敗",
     "notification.api.log_save_policy_failed": "儲存通知策略失敗",
     "notification.api.log_pref_write_failed": "通知啟用狀態寫入使用者偏好表失敗: {error}",
-    "notification.api.log_channel_config_rejected": "渠道 {channel} 設定儲存被拒絕: {error}"
+    "notification.api.log_channel_config_rejected": "渠道 {channel} 設定儲存被拒絕: {error}",
+    "auth.api.unauthorized": "認證失敗",
+    "auth.api.session_expired": "工作階段已過期，請重新登入",
+    "auth.api.rate_limited": "請求過於頻繁，請稍後重試",
+    "auth.log.session_cleanup": "工作階段清理: 移除 {count} 筆過期",
+    "auth.log.secret_read_failed": "JWT_SECRET 檔案讀取失敗，將重新產生",
+    "auth.log.secret_generated": "JWT_SECRET 已產生並寫入: {path}",
+    "auth.log.secret_persist_failed": "JWT_SECRET 寫入失敗，本次使用行程內隨機金鑰（重啟後工作階段失效）"
 }
