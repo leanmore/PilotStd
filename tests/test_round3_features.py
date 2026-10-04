@@ -114,6 +114,14 @@ class TestAnnounceStats(unittest.TestCase):
 
     def setUp(self):
         self.client.app.dependency_overrides.clear()
+        # 夹具自持：端点 `announce.py` 带 5 分钟内存缓存；热缓存会让 `fetchone` 的调用次数减少，
+        # 使 `MagicMock.fetchone.side_effect` 的**位置队列**错位（表现为 xdist 下的顺序依赖：
+        # 同一 worker 里先跑过本类的其它用例就会命中缓存）。此处每个用例开跑前清空缓存，
+        # 只影响测试进程内存，不触碰生产逻辑与断言。
+        from docker.api import announce as announce_api
+
+        announce_api._stats_cache["data"] = None
+        announce_api._stats_cache["ts"] = 0
 
     def test_stats_returns_200_with_expected_structure(self):
         """统计接口返回正确的 JSON 结构。"""
