@@ -5,7 +5,7 @@
 | 模块路径 | `pilotstd/core/` |
 | G-031 映射 | `pilotstd/core/`（2026-09-25 落地：`DOC_SYNC_MAP` 已含该条，改任何 core 文件都会要求同步本文件） |
 | 核心类 | `Database` / `ConfigManager` / `CacheManager` / `NotificationManager` |
-| 子模块数 | 93 个 `.py`（新增 `_dispatcher.py`：发送编排，2026-10-03 步 C B2）（**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-10-03**；顶层 = 3 个包 config / db / notification + 22 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
+| 子模块数 | 94 个 `.py`（新增 `_dispatcher.py`：发送编排，2026-10-03 步 C B2）（**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-10-03**；顶层 = 3 个包 config / db / notification + 22 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
 | Schema 版本 | `CURRENT_SCHEMA_VERSION = 61`（`db/_constants.py`） |
 | 状态 | 活跃 |
 
@@ -46,6 +46,11 @@ pilotstd/core/
 │   ├── _dispatcher.py — 事件分发；**阶段 D 可见性解耦**（2026-10-03）
 │   │    关闭投递（`_enabled=False`）时仍写 `notification_log`（status=`skipped`，不调用渠道
 │   │    `send()`、不进投递健康统计）；回滚开关 `NOTIFY_RECORD_WHEN_DISABLED=v0`。
+│   ├── telegram_receiver.py — TG 接收通道（B2b-3，2026-10-03）
+│   │    长轮询（默认，应用主动拉取，不需要对外地址）与 webhook（走 B2b-1 端点）双模式；
+│   │    `receive_mode` 是**运行时配置**（`defaults.py`），**不进 channel_spec**。
+│   │    线程生命周期由 `NotificationManager.start/stop_telegram_receiver()` 管理，
+│   │    `shutdown()` 收停；**不在构造时自动启动**（桌面端/测试不连外网）。
 │   ├── callback_service.py / callback_store.py — 回调闭环与持久化幂等（B2b，2026-10-03）
 │   │    `handle_callback`：解析 token（仅用于定位密钥）→ 验签 → **持久化幂等** → 服务端角色
 │   │    授权 → 执行动作（ignore/snooze 写 ack_status；retry 请求重投）。

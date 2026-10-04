@@ -889,5 +889,14 @@
     "notification.manager.skipped_disabled": "投递已关闭，仅记录（未推送渠道）",
     "notification.manager.visibility_policy_failed": "关闭投递时读取渠道订阅失败，跳过可见性记录",
     "notification.callback.credential_read_failed": "读取回调验签凭证失败（channel={channel}）",
-    "notification.callback.handled": "通知回调处理: {detail}"
+    "notification.callback.handled": "通知回调处理: {detail}",
+    "notification.telegram.receiver_no_token": "TG 接收通道未配置 bot_token，未启动",
+    "notification.telegram.receiver_started": "TG 长轮询接收通道已启动",
+    "notification.telegram.receiver_stopped": "TG 长轮询接收通道已停止",
+    "notification.telegram.receiver_dispatch_failed": "TG 更新分发失败（已跳过该条，轮询继续）",
+    "notification.telegram.receiver_mode_invalid": "TG 接收模式非法（{mode}），回落到长轮询",
+    "notification.telegram.receiver_webhook_mode": "TG 接收模式为 webhook，不启动长轮询线程",
+    "notification.telegram.get_updates_exception": "getUpdates 异常: {error}",
+    "notification.telegram.get_updates_failed": "getUpdates 返回失败: {detail}",
+    "notification.manager.credential_read_failed": "读取渠道凭证失败（channel={channel}）"
 }

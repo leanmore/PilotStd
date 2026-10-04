@@ -7,6 +7,8 @@ import json
 import logging
 from typing import Any, Callable, Optional, cast
 
+from pilotstd.i18n import t
+
 from ..db import Database
 from . import _dispatcher, _suppression_queue
 from ._credentials import CredentialHelper
@@ -65,6 +67,8 @@ class NotificationManager:
         # 端点到本地的信号出口（W2 按端分流）：桌面端注入"弹托盘气泡"，Docker 端保持 None
         # ⇒ 渠道投递不变。**与 `_enabled` 无关**：渠道开关只管"是否投递渠道"。
         self._local_sink: Callable[[NotificationMessage], None] | None = None
+        # TG 接收通道（阶段 B2b-3）：默认不起线程，由 Docker lifespan 显式启动
+        self._telegram_receiver: Any = None
         self._cred_helper: CredentialHelper | None = None
         try:
             config_dir = __import__("os").path.dirname(config._filepath)
@@ -266,6 +270,83 @@ class NotificationManager:
         for detail in failures:
             logger.error("补发通知失败: %s", detail)
         return count
+
+    # ── 接收通道生命周期（阶段 B2b-3）──
+
+    def start_telegram_receiver(self) -> bool:
+        """按配置启动 TG 接收通道；返回是否真的启动了长轮询线程。
+
+        - `receive_mode=long_poll`（默认）⇒ 起守护线程主动拉取；
+        - `receive_mode=webhook` ⇒ **不起线程**（由 B2b-1 的回调端点接收入站请求）；
+        - 未配置 bot_token 时返回 False（能力不足，不是错误）。
+
+        **不在 `__init__` 里自动启动**：桌面端与测试也会构造管理器，自动起线程会让
+        "只发不收"的进程凭空连外网。故由 Docker 端的 lifespan 显式调用。
+        """
+        from .telegram_receiver import MODE_LONG_POLL, TelegramReceiver, mode_from_config
+
+        if mode_from_config(self._cfg) != MODE_LONG_POLL:
+            logger.info(t("notification.telegram.receiver_webhook_mode"))
+            return False
+        token = str((self._channel_credentials("telegram") or {}).get("bot_token") or "")
+        if not token:
+            return False
+        # 局部变量显式具体类型：`self._telegram_receiver` 是 Any，直接 return 会让 mypy
+        # 报 no-any-return（本项目禁止 cast/type: ignore，故用类型收窄收口）
+        receiver: TelegramReceiver = self._telegram_receiver or TelegramReceiver(
+            token, self._dispatch_telegram_update
+        )
+        self._telegram_receiver = receiver
+        return receiver.start()
+
+    def stop_telegram_receiver(self) -> None:
+        """收停 TG 接收通道（可重入）。"""
+        if self._telegram_receiver is not None:
+            self._telegram_receiver.stop()
+            self._telegram_receiver = None
+
+    def shutdown(self) -> None:
+        """进程退出前的整体收停（供 Docker lifespan 调用）。"""
+        self.stop_telegram_receiver()
+
+    def _dispatch_telegram_update(self, update: dict) -> None:
+        """把一条 TG 更新交给回调服务处理（与 webhook 模式同一条授权/幂等路径）。"""
+        from .callback_service import handle_callback
+        from .callback_store import LogBackedReplayGuard
+
+        raw = json.dumps(update, ensure_ascii=False).encode("utf-8")
+        outcome = handle_callback(
+            self._db,
+            "telegram",
+            {},
+            raw,
+            lambda user_id, channel: self._channel_credentials("telegram"),
+            guard=LogBackedReplayGuard(self._db),
+        )
+        logger.info(
+            t("notification.callback.handled").format(detail=f"long_poll status={outcome.status}")
+        )
+
+    def _channel_credentials(self, channel: str) -> dict[str, str]:
+        """读当前用户该渠道的**解密**凭证（失败返回空字典）。
+
+        `CredentialHelper` 需要 config_dir，取 `self._cfg._filepath` 的目录；取不到时用 "."。
+        任何异常都吞掉并返回空字典——接收通道不能用"读不到凭证"来中断轮询。
+        """
+        try:
+            from pathlib import Path
+
+            from ._credentials import CredentialHelper
+
+            filepath = getattr(self._cfg, "_filepath", "") or "."
+            helper_obj = CredentialHelper(self._db, str(Path(filepath).parent))
+            return helper_obj.get_channel(self._user_id, channel) or {}
+        except Exception:
+            logger.debug(
+                t("notification.manager.credential_read_failed").format(channel=channel),
+                exc_info=True,
+            )
+            return {}
 
     def _init_event_builders(self) -> None:
         """初始化事件类型 → 消息构建函数的映射表。"""

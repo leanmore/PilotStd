@@ -885,5 +885,14 @@
     "notification.manager.skipped_disabled": "Delivery disabled; logged only (not pushed to channels)",
     "notification.manager.visibility_policy_failed": "Reading channel subscriptions failed while delivery is disabled; skipping the visibility record",
     "notification.callback.credential_read_failed": "Failed to read callback verification credentials (channel={channel})",
-    "notification.callback.handled": "Notification callback handled: {detail}"
+    "notification.callback.handled": "Notification callback handled: {detail}",
+    "notification.telegram.receiver_no_token": "Telegram receiver has no bot_token configured; not started",
+    "notification.telegram.receiver_started": "Telegram long-poll receiver started",
+    "notification.telegram.receiver_stopped": "Telegram long-poll receiver stopped",
+    "notification.telegram.receiver_dispatch_failed": "Telegram update dispatch failed (skipped; polling continues)",
+    "notification.telegram.receiver_mode_invalid": "Invalid Telegram receive mode ({mode}); falling back to long polling",
+    "notification.telegram.receiver_webhook_mode": "Telegram receive mode is webhook; long-poll thread not started",
+    "notification.telegram.get_updates_exception": "getUpdates exception: {error}",
+    "notification.telegram.get_updates_failed": "getUpdates failed: {detail}",
+    "notification.manager.credential_read_failed": "Failed to read channel credentials (channel={channel})"
 }

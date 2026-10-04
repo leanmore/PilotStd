@@ -806,5 +806,14 @@
     "notification.manager.skipped_disabled": "投遞已關閉，僅記錄（未推送渠道）",
     "notification.manager.visibility_policy_failed": "關閉投遞時讀取渠道訂閱失敗，跳過可見性記錄",
     "notification.callback.credential_read_failed": "讀取回調驗簽憑證失敗（channel={channel}）",
-    "notification.callback.handled": "通知回調處理: {detail}"
+    "notification.callback.handled": "通知回調處理: {detail}",
+    "notification.telegram.receiver_no_token": "TG 接收通道未設定 bot_token，未啟動",
+    "notification.telegram.receiver_started": "TG 長輪詢接收通道已啟動",
+    "notification.telegram.receiver_stopped": "TG 長輪詢接收通道已停止",
+    "notification.telegram.receiver_dispatch_failed": "TG 更新分發失敗（已跳過該條，輪詢繼續）",
+    "notification.telegram.receiver_mode_invalid": "TG 接收模式非法（{mode}），回落到長輪詢",
+    "notification.telegram.receiver_webhook_mode": "TG 接收模式為 webhook，不啟動長輪詢執行緒",
+    "notification.telegram.get_updates_exception": "getUpdates 異常: {error}",
+    "notification.telegram.get_updates_failed": "getUpdates 傳回失敗: {detail}",
+    "notification.manager.credential_read_failed": "讀取渠道憑證失敗（channel={channel}）"
 }

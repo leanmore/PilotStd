@@ -67,6 +67,8 @@ FACTORY_DEFAULTS = {
     "notification.channels.dingtalk.card_template_id": "",
     "notification.channels.dingtalk.open_conversation_id": "",
     "notification.channels.telegram.enabled": False,
+    # B2b-3：TG 接收模式（long_poll=应用主动拉取，默认；webhook=走回调端点）
+    "notification.channels.telegram.receive_mode": "long_poll",
     "notification.channels.telegram.bot_token": "",
     "notification.channels.telegram.chat_id": "",
     "notification.channels.feishu.enabled": False,
