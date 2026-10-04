@@ -29,7 +29,8 @@ class UserMoment:
 
 def _load_moments() -> tuple[UserMoment, ...]:
     """从包内 JSON 读时刻清单（数据文件缺失即抛错，避免静默退化成空清单）。"""
-    path = Path(__file__).with_name("data") / "user_moments.json"
+    # 与模块同目录：`data/` 目录名被仓库 .gitignore 忽略，放同目录才能随代码一起入库
+    path = Path(__file__).with_name("user_moments_data.json")
     payload = json.loads(path.read_text(encoding="utf-8"))
     return tuple(
         UserMoment(

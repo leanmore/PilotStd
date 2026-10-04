@@ -1,0 +1,295 @@
+{
+  "_comment": "用户时刻清单数据（阶段 C 第二 SSOT）。逐行转录自 docs/plans/notification-system-design/00-framework.md §1.1；放 JSON 而非 .py 遵循『数据与展示分离』：本文件是数据，Python 侧只做闭包判定，不承载文案字面量。",
+  "moments": [
+    {
+      "no": 1,
+      "name": "我丢进监视目录的文件处理完了",
+      "priority": "应发",
+      "events": [
+        "scan_complete",
+        "scan_empty"
+      ]
+    },
+    {
+      "no": 2,
+      "name": "扫描跑完了、有几个没认出来",
+      "priority": "应发",
+      "events": [
+        "scan_complete"
+      ]
+    },
+    {
+      "no": 3,
+      "name": "自动扫描整体失败",
+      "priority": "必发",
+      "events": [
+        "auto_scan_failed"
+      ]
+    },
+    {
+      "no": 4,
+      "name": "我提交的一批标准号查完了",
+      "priority": "应发",
+      "events": [
+        "batch_query_summary"
+      ]
+    },
+    {
+      "no": 5,
+      "name": "有几条没查到，要我去确认",
+      "priority": "必发",
+      "events": []
+    },
+    {
+      "no": 6,
+      "name": "查询整体失败",
+      "priority": "必发",
+      "events": [
+        "query_failed"
+      ]
+    },
+    {
+      "no": 7,
+      "name": "我选的这批下完了",
+      "priority": "应发",
+      "events": [
+        "batch_download_complete"
+      ]
+    },
+    {
+      "no": 8,
+      "name": "某个标准下载失败",
+      "priority": "应发",
+      "events": [
+        "download_failed"
+      ]
+    },
+    {
+      "no": 9,
+      "name": "昨晚那批收藏跑完了",
+      "priority": "应发",
+      "events": [
+        "batch_download_complete"
+      ]
+    },
+    {
+      "no": 10,
+      "name": "有东西彻底放弃了，必须我去弄",
+      "priority": "必发",
+      "events": [
+        "favorite_abandoned_summary"
+      ]
+    },
+    {
+      "no": 11,
+      "name": "我刚点的收藏，系统记住了吗",
+      "priority": "可选",
+      "events": [
+        "favorite_created"
+      ]
+    },
+    {
+      "no": 12,
+      "name": "我提交归档的那批进目录了吗",
+      "priority": "应发",
+      "events": [
+        "archive_complete"
+      ]
+    },
+    {
+      "no": 13,
+      "name": "归档失败",
+      "priority": "必发",
+      "events": [
+        "archive_failed"
+      ]
+    },
+    {
+      "no": 14,
+      "name": "某个文件的归档链路彻底放弃",
+      "priority": "必发",
+      "events": [
+        "archive_abandoned"
+      ]
+    },
+    {
+      "no": 15,
+      "name": "文件名/编号被系统改了",
+      "priority": "可关",
+      "events": [
+        "normalize_complete"
+      ]
+    },
+    {
+      "no": 16,
+      "name": "规范化失败",
+      "priority": "应发",
+      "events": [
+        "normalize_failed"
+      ]
+    },
+    {
+      "no": 17,
+      "name": "废止标准被挪到别处了",
+      "priority": "可选",
+      "events": [
+        "expire_standard_moved"
+      ]
+    },
+    {
+      "no": 18,
+      "name": "标准废止了但没找到替代",
+      "priority": "必发",
+      "events": [
+        "replacement_not_found"
+      ]
+    },
+    {
+      "no": 19,
+      "name": "这轮时效性检查跑完了",
+      "priority": "应发",
+      "events": [
+        "validity_round_summary",
+        "validity_batch_report"
+      ]
+    },
+    {
+      "no": 20,
+      "name": "我关注的标准状态变了",
+      "priority": "应发",
+      "events": [
+        "standard_status_changed"
+      ]
+    },
+    {
+      "no": 21,
+      "name": "某个标准检查失败",
+      "priority": "应发",
+      "events": [
+        "validity_standard_failed"
+      ]
+    },
+    {
+      "no": 22,
+      "name": "整个检查机制坏了",
+      "priority": "必发",
+      "events": [
+        "validity_system_failed"
+      ]
+    },
+    {
+      "no": 23,
+      "name": "公告抓取/核对跑完了",
+      "priority": "应发",
+      "events": [
+        "announcement_fetch_complete",
+        "announcement_check_complete",
+        "announce_fetch_summary"
+      ]
+    },
+    {
+      "no": 24,
+      "name": "公告抓取失败",
+      "priority": "应发",
+      "events": [
+        "announcement_fetch_failed"
+      ]
+    },
+    {
+      "no": 25,
+      "name": "我设的日期到了",
+      "priority": "必发",
+      "events": [
+        "date_reminder"
+      ]
+    },
+    {
+      "no": 26,
+      "name": "备份成功",
+      "priority": "可关",
+      "events": [
+        "auto_backup"
+      ]
+    },
+    {
+      "no": 27,
+      "name": "备份失败",
+      "priority": "必发",
+      "events": [
+        "auto_backup"
+      ]
+    },
+    {
+      "no": 28,
+      "name": "有新版可用",
+      "priority": "可选",
+      "events": [
+        "image_update_available"
+      ]
+    },
+    {
+      "no": 29,
+      "name": "定时任务失败了",
+      "priority": "必发",
+      "events": [
+        "task_execution_failed"
+      ]
+    },
+    {
+      "no": 31,
+      "name": "查询配额用尽",
+      "priority": "必发",
+      "events": [
+        "quota_exhausted"
+      ]
+    },
+    {
+      "no": 32,
+      "name": "通知自己坏了",
+      "priority": "必发",
+      "events": [
+        "notification_delivery_failed"
+      ]
+    },
+    {
+      "no": 33,
+      "name": "企业微信可信 IP 变了",
+      "priority": "可选",
+      "events": [
+        "trust_ip_update"
+      ]
+    },
+    {
+      "no": 34,
+      "name": "通知渠道凭证被改",
+      "priority": "必发",
+      "events": [
+        "notification_credential_changed"
+      ]
+    },
+    {
+      "no": 35,
+      "name": "账号密码被改",
+      "priority": "必发",
+      "events": [
+        "security_password_changed"
+      ]
+    },
+    {
+      "no": 36,
+      "name": "静态令牌被轮换",
+      "priority": "必发",
+      "events": [
+        "security_token_refreshed"
+      ]
+    },
+    {
+      "no": 37,
+      "name": "有人在试我的密码",
+      "priority": "必发",
+      "events": [
+        "security_login_failed"
+      ]
+    }
+  ]
+}
