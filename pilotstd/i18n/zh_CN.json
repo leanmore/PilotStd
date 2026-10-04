@@ -816,5 +816,16 @@
     "notification.manager.skip_disabled": "通知功能未启用，跳过事件 {event} 的发送",
     "notification.manager.skip_no_channels": "事件 {event} 无订阅渠道，跳过发送",
     "notification.manager.validate_failed": "构建器契约校验失败，事件 {event} 已跳过发送: {error}",
-    "notification.manager.delivery_alert_failed": "通知投递失败告警发送异常: {error}"
+    "notification.manager.delivery_alert_failed": "通知投递失败告警发送异常: {error}",
+    "notification.api.user_not_found": "用户不存在",
+    "notification.api.mark_read_not_found": "通知 ID {id} 不存在",
+    "notification.api.mark_read_success": "已标记为已读",
+    "notification.api.credential_masked_field": "凭证校验失败: 字段 '{field}' 的值疑似掩码占位符，请重新输入真实凭证。",
+    "notification.api.log_mark_read_failed": "标记已读失败",
+    "notification.api.log_unread_count_failed": "获取未读数量失败",
+    "notification.api.log_cleanup_failed": "清理通知日志失败",
+    "notification.api.log_get_policy_failed": "获取通知策略失败",
+    "notification.api.log_save_policy_failed": "保存通知策略失败",
+    "notification.api.log_pref_write_failed": "通知启用状态写入用户偏好表失败: {error}",
+    "notification.api.log_channel_config_rejected": "渠道 {channel} 配置保存被拒绝: {error}"
 }

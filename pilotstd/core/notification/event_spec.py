@@ -404,7 +404,7 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
     EventSpec(key="notification_credential_changed", notify_event="security_alert", content_type="list", task_kind="",
         builder_ref="pilotstd.core.notification._builders_system:_build_notification_credential_changed_message",
         i18n_category="notification.system", default_channels=(), levels=("warning",),
-        module_key="notification.module.security", trigger_file="docker/api/notification.py",
+        module_key="notification.module.security", trigger_file="docker/api/notification_config.py",
         payload_keys=frozenset({"changed_keys", "from_ip", "rules_changed", "services"}), security=True,
         branch_by=None, subscribable=False, aggregation="bypass",
     ),

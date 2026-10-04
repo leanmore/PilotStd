@@ -358,7 +358,9 @@ def test_spec_hash_stable_and_sensitive(notif_client_and_db, notif_cookies, monk
     """V2：`spec_hash` 判别力——同负载两次一致；负载变化（加字段）则**必须变化**。"""
     import copy
 
-    import docker.api.notification as api_mod
+    # patch 目标随实现迁移：`/channels` 端点在步 C 后位于 notification_config（再导出不生效——
+    # 端点读的是该模块自己的名字）
+    import docker.api.notification_config as api_mod
     from pilotstd.core.notification.channel_spec import spec_payload
 
     client, _ = notif_client_and_db

@@ -733,5 +733,16 @@
     "notification.manager.skip_disabled": "通知功能未啟用，跳過事件 {event} 的傳送",
     "notification.manager.skip_no_channels": "事件 {event} 無訂閱渠道，跳過傳送",
     "notification.manager.validate_failed": "建構器契約校驗失敗，事件 {event} 已跳過傳送: {error}",
-    "notification.manager.delivery_alert_failed": "通知投遞失敗告警傳送異常: {error}"
+    "notification.manager.delivery_alert_failed": "通知投遞失敗告警傳送異常: {error}",
+    "notification.api.user_not_found": "使用者不存在",
+    "notification.api.mark_read_not_found": "通知 ID {id} 不存在",
+    "notification.api.mark_read_success": "已標記為已讀",
+    "notification.api.credential_masked_field": "憑證校驗失敗: 欄位 '{field}' 的值疑似遮罩佔位符，請重新輸入真實憑證。",
+    "notification.api.log_mark_read_failed": "標記已讀失敗",
+    "notification.api.log_unread_count_failed": "取得未讀數量失敗",
+    "notification.api.log_cleanup_failed": "清理通知日誌失敗",
+    "notification.api.log_get_policy_failed": "取得通知策略失敗",
+    "notification.api.log_save_policy_failed": "儲存通知策略失敗",
+    "notification.api.log_pref_write_failed": "通知啟用狀態寫入使用者偏好表失敗: {error}",
+    "notification.api.log_channel_config_rejected": "渠道 {channel} 設定儲存被拒絕: {error}"
 }

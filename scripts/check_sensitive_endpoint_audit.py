@@ -82,7 +82,7 @@ EXEMPT_ROUTES: dict[str, str] = {}
 #   2. 不声明就不认可 —— 故不会因"同模块任意辅助函数"产生假 PASS。
 AUDIT_WRAPPERS: dict[str, str] = {
     "write_audit": "pilotstd/core/audit.py:26 — 审计写入本体",
-    "_persist_config_and_audit": "docker/api/notification.py — 凭证变更落库 + 审计",
+    "_persist_config_and_audit": "docker/api/notification_config.py — 凭证变更落库 + 审计",
     "_audit_password_change": "docker/api/users.py — 改密审计（成功/失败共用）",
     "_notify_login_failure": "docker/auth.py — 登录失败告警 + LOGIN_FAILED 审计",
     "_audit_and_respond": "docker/api/admin_db.py — 查询审计 + 统一响应",

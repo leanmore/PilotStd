@@ -812,5 +812,16 @@
     "notification.manager.skip_disabled": "Notification disabled; skipped sending event {event}",
     "notification.manager.skip_no_channels": "Event {event} has no subscribed channel; skipped sending",
     "notification.manager.validate_failed": "Builder contract validation failed; event {event} skipped: {error}",
-    "notification.manager.delivery_alert_failed": "Failed to send the delivery-failure alert: {error}"
+    "notification.manager.delivery_alert_failed": "Failed to send the delivery-failure alert: {error}",
+    "notification.api.user_not_found": "User not found",
+    "notification.api.mark_read_not_found": "Notification ID {id} not found",
+    "notification.api.mark_read_success": "Marked as read",
+    "notification.api.credential_masked_field": "Credential validation failed: field '{field}' looks like a masked placeholder; please enter the real value.",
+    "notification.api.log_mark_read_failed": "Failed to mark notifications as read",
+    "notification.api.log_unread_count_failed": "Failed to get unread count",
+    "notification.api.log_cleanup_failed": "Failed to clean up notification logs",
+    "notification.api.log_get_policy_failed": "Failed to get notification policy",
+    "notification.api.log_save_policy_failed": "Failed to save notification policy",
+    "notification.api.log_pref_write_failed": "Failed to persist the notification-enabled flag to user preferences: {error}",
+    "notification.api.log_channel_config_rejected": "Channel {channel} config save rejected: {error}"
 }

@@ -22,10 +22,13 @@ from _frontend_channel_scan import FRONTEND_FILES, scan, structural_keys
 
 # B 类检查项数（用于覆盖摘要的"检查项"计数）
 B_RULE_COUNT = 4
-# B3 的扫描范围（后端两个落点：渠道构造与配置接口）
+# B3 的扫描范围（后端三个落点：渠道构造、配置接口、路由装配）
+# 2026-10-03 步 C 拆分后，API 侧的渠道字面量落点由 notification.py 迁至 notification_config.py，
+# 故三者都扫（装配模块如今无渠道逻辑，保留扫描以防回填）。
 BACKEND_SCAN_FILES: tuple[str, ...] = (
     "pilotstd/core/notification/manager.py",
     "docker/api/notification.py",
+    "docker/api/notification_config.py",
 )
 # B4 存量基线：C3（前端 schema 驱动改造）已落地，前端不再硬编码渠道键 ⇒ **基线归零**。
 # 此前（C1..C2）为 26 行、缓阻断；归零后本项为**全阻断**：任何新增硬编码当场红灯。
