@@ -135,7 +135,7 @@ class TelegramChannel(NotificationChannel):
                     if data.get("ok"):
                         return True, False
                     desc = data.get("description", "")
-                    self.last_error = f"Telegram 返回失败: {desc}"
+                    self.last_error = t("notification.channel.telegram.send_failed").format(detail=desc)
                     logger.warning("Telegram 通知失败: %s", desc)
                     return False, False
                 # 真实网络库对非成功状态码会抛网络错误，此分支仅防御非标准实现
@@ -186,12 +186,12 @@ class TelegramChannel(NotificationChannel):
             return False, e.code == 429 or e.code >= 500
         except OSError as e:
             # 网络类异常（连接重置/握手超时/域名解析失败，含网络库错误）属瞬时故障 → 退避重试
-            self.last_error = f"Telegram 发送异常: {e}"
+            self.last_error = t("notification.channel.telegram.send_exception").format(error=e)
             logger.warning("Telegram 通知异常: %s", e)
             return False, True
         except Exception as e:
             # 非网络类异常（如解析/编程错误）重试无意义
-            self.last_error = f"Telegram 发送异常: {e}"
+            self.last_error = t("notification.channel.telegram.send_exception").format(error=e)
             logger.warning("Telegram 通知异常: %s", e)
             return False, False
 

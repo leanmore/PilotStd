@@ -77,10 +77,10 @@ class FeishuChannel(NotificationChannel):
                     if data.get("code") == 0:
                         return True
                     msg = data.get("msg", "")
-                    self.last_error = f"飞书返回失败: {msg}"
+                    self.last_error = t("notification.channel.feishu.api_failed").format(detail=msg)
                     logger.warning("飞书通知失败: %s", msg)
                     return False
-                self.last_error = f"飞书 HTTP {resp.status}"
+                self.last_error = t("notification.channel.feishu.http_error").format(status=resp.status)
                 return False
         except Exception as e:
             # 读取错误响应体用于诊断（回调返回非 200 时的具体错误）

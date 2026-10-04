@@ -47,7 +47,7 @@ class WechatChannel(NotificationChannel):
             with urlopen(req, timeout=10) as resp:
                 if resp.status == 200:
                     return True
-                self.last_error = f"企业微信 HTTP {resp.status}"
+                self.last_error = t("notification.channel.wechat.http_error").format(status=resp.status)
                 logger.warning("企业微信通知失败: HTTP %d", resp.status)
                 return False
         except Exception as e:

@@ -124,15 +124,15 @@ class DingTalkChannel(NotificationChannel):
             req = Request(url, data=payload, headers={"Content-Type": "application/json"}, method="POST")
             with urlopen(req, timeout=10) as resp:
                 if resp.status != 200:
-                    self.last_error = f"钉钉 HTTP {resp.status}"
+                    self.last_error = t("notification.channel.dingtalk.http_error").format(status=resp.status)
                     logger.warning("钉钉通知 HTTP %d", resp.status)
                     return False
                 data = json.loads(resp.read().decode("utf-8"))
                 # 钉钉返回=0表示成功
                 if data.get("errcode") == 0:
                     return True
-                errmsg = data.get("errmsg", "未知错误")
-                self.last_error = f"钉钉返回失败: {errmsg}"
+                errmsg = data.get("errmsg") or t("notification.channel.api_unknown_error")
+                self.last_error = t("notification.channel.dingtalk.api_failed").format(detail=errmsg)
                 logger.warning("钉钉通知失败: %s", errmsg)
                 return False
         except Exception as e:

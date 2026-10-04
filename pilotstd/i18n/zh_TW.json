@@ -815,5 +815,12 @@
     "notification.telegram.receiver_webhook_mode": "TG 接收模式為 webhook，不啟動長輪詢執行緒",
     "notification.telegram.get_updates_exception": "getUpdates 異常: {error}",
     "notification.telegram.get_updates_failed": "getUpdates 傳回失敗: {detail}",
-    "notification.manager.credential_read_failed": "讀取渠道憑證失敗（channel={channel}）"
+    "notification.manager.credential_read_failed": "讀取渠道憑證失敗（channel={channel}）",
+    "notification.channel.wechat.http_error": "企業微信 HTTP {status}",
+    "notification.channel.feishu.api_failed": "飛書傳回失敗: {detail}",
+    "notification.channel.feishu.http_error": "飛書 HTTP {status}",
+    "notification.channel.dingtalk.http_error": "釘釘 HTTP {status}",
+    "notification.channel.dingtalk.api_failed": "釘釘傳回失敗: {detail}",
+    "notification.channel.telegram.send_exception": "Telegram 傳送異常: {error}",
+    "notification.channel.telegram.send_failed": "Telegram 傳回失敗: {detail}"
 }
