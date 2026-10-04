@@ -147,6 +147,13 @@ if __name__ == "__main__":
 class TestTaskWriterMapping(unittest.TestCase):
     """任务写入方（`_dialog_ops._register_task`）的业务名 → TaskType 映射。"""
 
+    def setUp(self):
+        """环境守卫：本类经 `_dialog_ops` 间接依赖 PyQt6（后端作业不装 GUI 依赖）。
+
+        对齐既有惯例（`pytest.importorskip`）；本文件其它类不 import GUI，故守卫只加在本类。
+        """
+        pytest.importorskip("PyQt6", reason="任务写入方经由 UI 模块，需 PyQt6；后端测试作业不含 GUI 依赖")
+
     def _run(self, label: str):
         """用最小窗口替身调用 `_register_task`，返回入队时用的 TaskType。"""
         from types import SimpleNamespace

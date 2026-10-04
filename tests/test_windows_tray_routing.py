@@ -3,6 +3,14 @@
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
+import pytest
+
+# 环境守卫（对齐既有惯例，见 tests/unit/core/test_status.py:171 与
+# tests/test_notification_aggregator_topic_i18n.py:326）：本文件全部用例都构造
+# `_TrayEventBridge` / `NotifyService`，二者顶层依赖 PyQt6；`test-backend` 作业
+# 不安装 GUI 依赖 ⇒ 模块级跳过，本地与 CI 的 GUI 作业中仍会真实执行。
+pytest.importorskip("PyQt6", reason="桌面托盘路由需 PyQt6，后端测试作业不含 GUI 依赖")
+
 
 def _stub_window(*, tray: object | None = object(), switch: bool = True):
     """最小窗口替身：只提供 `_wire_tray_event_sink` 需要的三样（配置/托盘/管理器）。"""

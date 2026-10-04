@@ -5,6 +5,7 @@
 """
 
 from datetime import datetime, timedelta
+from pathlib import Path
 from types import SimpleNamespace
 
 from pilotstd.core.notification import tiered
@@ -37,10 +38,40 @@ class TestTieredThrottle:
         assert throttle.admit("", True, NOW + 1) is True
 
     def test_window_default_matches_w3_constant(self):
-        """两端一致：Docker 侧与 Windows 端 W3 共用同一常量值。"""
-        from pilotstd.platform.notify import NotifyService
+        """两端一致：Docker 侧与 Windows 端 W3 共用同一常量值。
 
-        assert NotifyService.LONG_STAGE_WINDOW == tiered.LONG_STAGE_THROTTLE_SECONDS
+        **不 import `pilotstd.platform.notify`**：该模块顶层依赖 PyQt6，而 `test-backend`
+        作业不安装 GUI 依赖（会直接 `ModuleNotFoundError`）。改为**源码级（AST）校验**：
+        平台层从 `pilotstd.core.notification.tiered` 导入 `LONG_STAGE_THROTTLE_SECONDS`
+        并把 `NotifyService.LONG_STAGE_WINDOW` 赋为该名字 ⇒ 与核心常量**同值**。
+        语义等价（仍是"验证两端常量一致"），且在后端作业中也能真实执行。
+        """
+        import ast
+
+        source = Path(__file__).resolve().parents[1] / "pilotstd" / "platform" / "notify.py"
+        tree = ast.parse(source.read_text(encoding="utf-8"))
+
+        alias: str | None = None
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom) and node.module == "pilotstd.core.notification.tiered":
+                for imported in node.names:
+                    if imported.name == "LONG_STAGE_THROTTLE_SECONDS":
+                        alias = imported.asname or imported.name
+        assert alias, "platform/notify.py 未从核心模块导入 LONG_STAGE_THROTTLE_SECONDS"
+
+        assigned: str | None = None
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef) and node.name == "NotifyService":
+                for stmt in node.body:
+                    if isinstance(stmt, ast.Assign) and isinstance(stmt.value, ast.Name):
+                        if any(
+                            isinstance(t, ast.Name) and t.id == "LONG_STAGE_WINDOW"
+                            for t in stmt.targets
+                        ):
+                            assigned = stmt.value.id
+        assert assigned == alias, f"LONG_STAGE_WINDOW 应赋值为 {alias}，实得 {assigned}"
+
+        assert tiered.LONG_STAGE_THROTTLE_SECONDS == 60.0
         assert tiered.LONG_STAGE_THROTTLE_SECONDS > 30.0  # 必须 > 桌面熔断窗口
 
 
