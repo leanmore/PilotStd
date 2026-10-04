@@ -5,7 +5,7 @@
 | 模块路径 | `pilotstd/core/` |
 | G-031 映射 | `pilotstd/core/`（2026-09-25 落地：`DOC_SYNC_MAP` 已含该条，改任何 core 文件都会要求同步本文件） |
 | 核心类 | `Database` / `ConfigManager` / `CacheManager` / `NotificationManager` |
-| 子模块数 | 95 个 `.py`（新增 `_dispatcher.py`：发送编排，2026-10-03 步 C B2）（**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-10-03**；顶层 = 3 个包 config / db / notification + 22 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
+| 子模块数 | 96 个 `.py`（新增 `_dispatcher.py`：发送编排，2026-10-03 步 C B2）（**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-10-03**；顶层 = 3 个包 config / db / notification + 22 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
 | Schema 版本 | `CURRENT_SCHEMA_VERSION = 61`（`db/_constants.py`） |
 | 状态 | 活跃 |
 
@@ -78,6 +78,9 @@ pilotstd/core/
 │   │    + 卡片模板 ID + 群会话 ID，经 `/v1.0/oauth2/accessToken` 取令牌后创建并投递互动卡片。
 │   │    优先级：企业级字段齐全 ⇒ 企业级；否则回落 Webhook；两者都配 ⇒ 企业级优先（记一行 info）。
 │   │    卡片负载结构在渲染层（`renderer.DingTalkCardRenderer.render_card`），渠道层只负责投递。
+│   ├── _topic_index.py（顶层）— 主题索引数据（2026-10-03 从 notification_aggregator 拆出）
+│   │    `_TOPIC_BY_EVENT`（41 条 i18n 标题→主题）+ `_LEGACY_TOPIC_KEYWORDS`（10 组跨语言兜底）。
+│   │    **领域数据字典、非文案、勿 i18n**（详见该文件头）。
 │   ├── notification_aggregator.py（顶层）— 桌面聚合适配层；2026-10-03 新增公开 `topic_of(title, body)`
 │   │                            # （`_extract_topic` 的只读入口），供托盘分档节流与聚合分组**同源**
 │   ├── _suppression_queue.py  # 静音时段暂存与补发（组合式 SuppressionQueue：判静音/入队/到期补发；2026-10-03 步 C B1 从 manager.py 拆出，manager 保留同名薄转发与白名单再导出）

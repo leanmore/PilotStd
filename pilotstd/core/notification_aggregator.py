@@ -26,6 +26,8 @@ from typing import Any, cast
 
 from pilotstd.i18n import t
 
+from ._topic_index import _LEGACY_TOPIC_KEYWORDS, _TOPIC_BY_EVENT
+
 # 缓冲窗口：0.3 秒内同类通知合并为一条
 # 设计意图（专项确认，不变更）：这是**桌面托盘气泡**的分组窗口，与服务端聚合器的
 # `DEFAULT_WINDOW_SECONDS = 5.0s` 分属两条独立链路（见模块 docstring）。语义不同——
@@ -39,88 +41,10 @@ _PAUSE_DURATION = 300  # 秒 (5分钟)
 # 配置键名：暂停状态持久化到配置脚本
 _PAUSE_CONFIG_KEY = "notification.aggregation"
 
-# ── 主题分组映射（i18n 契约驱动，专项修复）──
-# 原实现用**简体中文关键词**猜测主题，导致繁中/英文标题全部落到"标题前 8 字符"
-# 兜底分支——同一事件在不同语言下归入不同分组，跨语言完全不合并，且分组数随
-# 标题数无界增长（实测三语下 65 条落兜底）。
-#
-# 修法：以 i18n 中的**真实标题**为契约。`notification.*` 的 `.title*` 键
-# 经实测**全部可映射到事件**（唯一例外 `notification.channel.test.title`
-# 不属任何事件），故把标题渲染值与事件的对应关系固化为映射表，用**准确匹配**
-# 取代关键词猜测。事件 → 主题再由 `_TOPIC_BY_EVENT` 显式给出。
-# **新增事件必须同步登记本表**，否则该事件会落到"标题前 8 字符"兜底分支，
-# 导致同一事件在不同语言下分裂成不同主题（`favorite_abandoned_summary` 上线时
-# 即被 `tests/test_notification_aggregator_topic_i18n.py` 拦下）。
-#
-# **实际生效范围（实测）**：`_extract_topic` 在全库只有一个调用点（本模块
-# `should_show`），而平台层调用方 `ui/core/handlers/_download.py` 传的是
-# `_("download_results_title")` 这类**静态键**，其返回值随 UI 语言变化。因此本修复
-# 的现实收益是：**UI 切到繁体/英文后，桌面 toast 的主题分组重新正确**——此前那些
-# 标题一律落兜底、每个标题各成一组。含占位符的动态标题（如
-# `Scan Complete ({failed} unrecognized)`）当前桌面链路并不产生，模板正则属
-# **防御性覆盖**，为将来把含动态计数的标题接入桌面通知预留。
-_TOPIC_BY_EVENT: dict[str, str] = {
-    # 完成/成功类
-    "scan_complete": "done",
-    "batch_download_complete": "done",
-    "archive_complete": "done",
-    "normalize_complete": "done",
-    "announcement_fetch_complete": "done",
-    "announce_fetch_summary": "done",
-    "download_complete": "done",
-    "auto_backup": "backup",
-    "notification_credential_changed": "done",
-    "security_password_changed": "done",
-    "security_token_refreshed": "done",
-    # 失败/异常类
-    "auto_scan_failed": "error",
-    "validity_standard_failed": "error",
-    "validity_system_failed": "error",
-    "worker_error": "error",
-    "download_failed": "error",
-    "archive_abandoned": "error",
-    "task_execution_failed": "error",
-    "notification_delivery_failed": "error",
-    "query_failed": "error",
-    "archive_failed": "error",
-    "announcement_fetch_failed": "error",
-    "normalize_failed": "error",
-    "security_login_failed": "error",
-    # 领域类：跨语言稳定归组（避免同一事件因语言不同而分裂）
-    "scan_empty": "scan",
-    "batch_query_summary": "query",
-    "query_empty": "query",
-    "date_reminder": "validity",
-    "validity_batch_report": "validity",
-    "validity_round_summary": "validity",
-    "image_update_available": "update",
-    "trust_ip_update": "ip",
-    "standard_status_changed": "validity",
-    "standard_first_registered": "validity",
-    "expire_standard_moved": "validity",
-    "replacement_not_found": "validity",
-    "quota_exhausted": "validity",
-    "favorite_created": "download",
-    "favorite_abandoned_summary": "download",
-    "download_started": "download",
-    "announcement_check_complete": "announce",
-}
-
-# 回退关键词（仅当标题不在 i18n 标题索引中时使用，如自定义/截断标题）。
-# 保留原简体词表**及其原始顺序**以维持向后兼容——顺序即优先级，`done`/`error`
-# 在前，与原实现一致，避免既有分组行为漂移。
-_LEGACY_TOPIC_KEYWORDS: tuple[tuple[str, tuple[str, ...]], ...] = (
-    ("done", ("完成", "成功")),
-    ("error", ("失败", "异常", "错误")),
-    ("scan", ("扫描",)),
-    ("download", ("下载",)),
-    ("archive", ("归档",)),
-    ("query", ("查询",)),
-    ("backup", ("备份",)),
-    ("announce", ("公告",)),
-    ("update", ("更新", "镜像")),
-    ("ip", ("ip",)),
-)
+# ── 主题分组映射 ──
+# 数据表已移至同级 `_topic_index.py`（G-010 规模控制；该文件同时写明
+# 「本表是领域数据字典、非文案、勿 i18n」的边界）。导入保持名称不变，
+# 本模块内所有引用与对外行为均不回归。
 
 logger = logging.getLogger(__name__)
 

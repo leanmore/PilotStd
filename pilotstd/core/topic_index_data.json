@@ -1,0 +1,112 @@
+{
+  "_comment": "主题索引数据（聚合器专用）：领域数据字典、非文案、勿 i18n。中文取值是 i18n 包中真实标题的匹配契约；详见同目录 _topic_index.py 的模块说明。",
+  "topic_by_event": {
+    "scan_complete": "done",
+    "batch_download_complete": "done",
+    "archive_complete": "done",
+    "normalize_complete": "done",
+    "announcement_fetch_complete": "done",
+    "announce_fetch_summary": "done",
+    "download_complete": "done",
+    "auto_backup": "backup",
+    "notification_credential_changed": "done",
+    "security_password_changed": "done",
+    "security_token_refreshed": "done",
+    "auto_scan_failed": "error",
+    "validity_standard_failed": "error",
+    "validity_system_failed": "error",
+    "worker_error": "error",
+    "download_failed": "error",
+    "archive_abandoned": "error",
+    "task_execution_failed": "error",
+    "notification_delivery_failed": "error",
+    "query_failed": "error",
+    "archive_failed": "error",
+    "announcement_fetch_failed": "error",
+    "normalize_failed": "error",
+    "security_login_failed": "error",
+    "scan_empty": "scan",
+    "batch_query_summary": "query",
+    "query_empty": "query",
+    "date_reminder": "validity",
+    "validity_batch_report": "validity",
+    "validity_round_summary": "validity",
+    "image_update_available": "update",
+    "trust_ip_update": "ip",
+    "standard_status_changed": "validity",
+    "standard_first_registered": "validity",
+    "expire_standard_moved": "validity",
+    "replacement_not_found": "validity",
+    "quota_exhausted": "validity",
+    "favorite_created": "download",
+    "favorite_abandoned_summary": "download",
+    "download_started": "download",
+    "announcement_check_complete": "announce"
+  },
+  "legacy_topic_keywords": [
+    [
+      "done",
+      [
+        "完成",
+        "成功"
+      ]
+    ],
+    [
+      "error",
+      [
+        "失败",
+        "异常",
+        "错误"
+      ]
+    ],
+    [
+      "scan",
+      [
+        "扫描"
+      ]
+    ],
+    [
+      "download",
+      [
+        "下载"
+      ]
+    ],
+    [
+      "archive",
+      [
+        "归档"
+      ]
+    ],
+    [
+      "query",
+      [
+        "查询"
+      ]
+    ],
+    [
+      "backup",
+      [
+        "备份"
+      ]
+    ],
+    [
+      "announce",
+      [
+        "公告"
+      ]
+    ],
+    [
+      "update",
+      [
+        "更新",
+        "镜像"
+      ]
+    ],
+    [
+      "ip",
+      [
+        "ip"
+      ]
+    ]
+  ]
+}
