@@ -5,7 +5,7 @@
 | 模块路径 | `pilotstd/core/` |
 | G-031 映射 | `pilotstd/core/`（2026-09-25 落地：`DOC_SYNC_MAP` 已含该条，改任何 core 文件都会要求同步本文件） |
 | 核心类 | `Database` / `ConfigManager` / `CacheManager` / `NotificationManager` |
-| 子模块数 | 94 个 `.py`（新增 `_dispatcher.py`：发送编排，2026-10-03 步 C B2）（**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-10-03**；顶层 = 3 个包 config / db / notification + 22 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
+| 子模块数 | 95 个 `.py`（新增 `_dispatcher.py`：发送编排，2026-10-03 步 C B2）（**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-10-03**；顶层 = 3 个包 config / db / notification + 22 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
 | Schema 版本 | `CURRENT_SCHEMA_VERSION = 61`（`db/_constants.py`） |
 | 状态 | 活跃 |
 
@@ -56,6 +56,10 @@ pilotstd/core/
 │   │    授权 → 执行动作（ignore/snooze 写 ack_status；retry 请求重投）。
 │   │    `LogBackedReplayGuard`：复用 `notification_log`（`correlation_id` 存事件号、
 │   │    `event_type='callback'`、`sent_at` 供 TTL 清理）⇒ **无新建表、无迁移号**。
+│   ├── user_moments.py — 用户时刻清单（**第二 SSOT**，阶段 C，2026-10-03）
+│   │    36 个 Docker 侧用户时刻（逐行转录自 00-framework §1.1），提供
+│   │    `moments_without_event()` / `events_without_moment()` / `unknown_event_keys()`；
+│   │    声明的例外（#5 无事件、3 个多余事件无时刻）写成常量，放宽必须同时改常量与测试。
 │   ├── callback.py — 回调验签/动作授权/防重放骨架（阶段 B 基础先行，2026-10-03）
 │   │    `verify_callback`（telegram/dingtalk/feishu 逐渠道；企微按缺口 1/2 一律 501 不猜协议）、
 │   │    `authorize_action`（仅管理员；角色必须来自服务端，不信任载荷身份）、

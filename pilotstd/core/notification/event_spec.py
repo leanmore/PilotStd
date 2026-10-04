@@ -114,7 +114,7 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
     EventSpec(key="standard_first_registered", notify_event="task_lifecycle", content_type="list",
         task_kind="validity_check",
         builder_ref="pilotstd.core.notification._builders_validity:_build_standard_first_registered_message",
-        i18n_category="notification.validity", default_channels=("wechat",), levels=("info",),
+        i18n_category="notification.validity", default_channels=(), levels=("info",),
         module_key="notification.module.validity", trigger_file="pilotstd/core/validity_checker.py",
         payload_keys=frozenset({"detail_url", "elapsed_ms", "name", "standard_number", "standards"}), security=False,
         branch_by=None, subscribable=True, aggregation="aggregate",

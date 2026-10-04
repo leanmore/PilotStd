@@ -287,7 +287,18 @@ EVENTS: list[dict[str, Any]] = [
 
 # 验证 EVENTS 列表完整性
 # 41 = 原 39 + `favorite_abandoned_summary` + `notification_delivery_failed`（两项均 P0）
-assert len(EVENTS) == 41, f"Expected 41 events, got {len(EVENTS)}"
+# 阶段 C：原 `assert len(EVENTS) == 41` 是"加事件成本高"的病灶（硬编码数量，
+# 任何增删都要改多处清单）。改为**双向闭包断言**：e2e 覆盖的事件集合必须等于
+# 「用户时刻 × 事件」闭包声明的可见事件集合（缺一多一都失败，且失败信息可读）。
+from pilotstd.core.notification.user_moments import all_attributable_events
+
+covered = {case["name"] for case in EVENTS}
+# 期望集合 = 可追溯到用户时刻的事件 ∪ Windows 专属（worker_error）
+expected_visible = all_attributable_events() | {"worker_error"}
+assert covered == expected_visible, (
+    f"e2e 覆盖与用户时刻闭包不一致: 缺 {sorted(expected_visible - covered)}; "
+    f"多 {sorted(covered - expected_visible)}"
+)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

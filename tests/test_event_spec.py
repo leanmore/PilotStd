@@ -446,6 +446,9 @@ class TestScopeOfThisSubStep(unittest.TestCase):
             # D5：可订阅事件清单改由后端端点下发（前端零硬编码）⇒ 端点与其测试是合法消费方
             "docker/api/notification_config.py",
             "tests/test_notification_api.py",
+            # C：用户时刻清单（第二 SSOT）与事件规格的**双向闭包**需要事件键集合 ⇒
+            # 本用例是闭包断言方（只读事件键，不派生文案/渠道），属计划内的契约消费方
+            "tests/test_user_moments.py",
         }
         self_relative = SPEC_FILE.relative_to(ROOT).as_posix()
         this_file = Path(__file__).resolve().relative_to(ROOT).as_posix()
