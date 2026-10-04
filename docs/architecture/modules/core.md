@@ -78,6 +78,8 @@ pilotstd/core/
 │   │    + 卡片模板 ID + 群会话 ID，经 `/v1.0/oauth2/accessToken` 取令牌后创建并投递互动卡片。
 │   │    优先级：企业级字段齐全 ⇒ 企业级；否则回落 Webhook；两者都配 ⇒ 企业级优先（记一行 info）。
 │   │    卡片负载结构在渲染层（`renderer.DingTalkCardRenderer.render_card`），渠道层只负责投递。
+│   │    **边界（勿动）**：本表按**数据字典**口径维护——中文是 i18n 真实标题的匹配契约，
+│   │    不是文案；不 i18n 化、不进 G-047 基线、不做逐行豁免（理由见文件头）。
 │   ├── _topic_index.py（顶层）— 主题索引数据（2026-10-03 从 notification_aggregator 拆出）
 │   │    `_TOPIC_BY_EVENT`（41 条 i18n 标题→主题）+ `_LEGACY_TOPIC_KEYWORDS`（10 组跨语言兜底）。
 │   │    **领域数据字典、非文案、勿 i18n**（详见该文件头）。
