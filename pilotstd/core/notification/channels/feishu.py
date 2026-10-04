@@ -1,8 +1,12 @@
 # 模块：项目/核心//渠道/脚本
 """飞书机器人 Webhook 通知渠道。"""
 
+import base64
+import hashlib
+import hmac
 import json
 import logging
+import time
 from typing import TYPE_CHECKING, Any
 from urllib.request import Request, urlopen
 
@@ -22,13 +26,27 @@ class FeishuChannel(NotificationChannel):
     """飞书机器人 Webhook。"""
 
     def __init__(self, webhook_url: str, secret: str = ""):
-        # 签名校验密钥参数：保留以匹配渠道声明的构造形态；
-        # 飞书签名校验尚未实现（密钥当前不被使用，勿因"看似未用"删除本参数——
-        # 删除会让管理器按声明传参时抛类型错误，导致渠道完全无法初始化）。
+        # 签名校验密钥（大阶段 5 起**真正生效**；此前仅声明未实现——见提交说明）。
+        # 注意与钉钉的差异：钉钉 `_sign()` 把密钥当 HMAC **key**、把 "timestamp\nsecret"
+        # 当消息；飞书反过来——把 "timestamp\nsecret" 当 **key**、且没有独立消息。
+        # 两种口径不可互相套用。
         self._url = webhook_url
+        self._secret = secret
         self._renderer = FeishuCardRenderer()
         # 错误详情透传给管理层（发送日志记录使用）
         self.last_error: str = ""
+
+    def _sign(self) -> dict[str, str]:
+        """飞书自定义机器人签名（官方口径）。
+
+        算法：`timestamp = str(int(time.time()))`；`string_to_sign = f"{timestamp}\n{secret}"`；
+        `sign = base64(HMAC-SHA256(key=string_to_sign))`——**key 是 string_to_sign，没有独立消息**。
+        与钉钉的 `_sign()`（key=secret、msg="timestamp\nsecret"）恰好互换，故单独写明防误抄。
+        """
+        timestamp = str(int(time.time()))
+        string_to_sign = f"{timestamp}\n{self._secret}"
+        digest = hmac.new(string_to_sign.encode("utf-8"), digestmod=hashlib.sha256).digest()
+        return {"timestamp": timestamp, "sign": base64.b64encode(digest).decode("utf-8")}
 
     def send(self, message: NotificationMessage) -> bool:
         """发送交互式卡片通知到飞书群。"""
@@ -42,12 +60,15 @@ class FeishuChannel(NotificationChannel):
             # 与电报渠道同口径——见提交 57f58a6c 的尾部重复行消除）
             card = self._renderer.render(message)
 
-            payload = json.dumps(
-                {
-                    "msg_type": "interactive",
-                    "card": card,
-                }
-            ).encode("utf-8")
+            # 变量名避开 except 分支里的 `body`（那是 str，同名会让 mypy 报类型冲突）
+            request_body: dict[str, Any] = {
+                "msg_type": "interactive",
+                "card": card,
+            }
+            # 配了签名密钥才带 timestamp/sign（未配时保持既有请求体逐字不变）
+            if self._secret:
+                request_body.update(self._sign())
+            payload = json.dumps(request_body).encode("utf-8")
             req = Request(self._url, data=payload, headers={"Content-Type": "application/json"})
             with urlopen(req, timeout=10) as resp:
                 if resp.status == 200:

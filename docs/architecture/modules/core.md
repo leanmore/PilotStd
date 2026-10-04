@@ -51,6 +51,9 @@ pilotstd/core/
 │   │    `authorize_action`（仅管理员；角色必须来自服务端，不信任载荷身份）、
 │   │    `ReplayGuard`（进程内幂等窗口，接口可换成 DB 实现）、`parse_envelope`（载荷归一）。
 │   │    **不含公网端点**：`POST /api/notification/callback/{channel}` 属 B2b（需部署侧定对外地址）。
+│   ├── channels/feishu.py — 飞书渠道：**签名校验已实现**（2026-10-03）
+│   │    配了签名密钥时请求体带 `timestamp`（秒）+ `sign`；算法为
+│   │    `base64(HMAC-SHA256(key="timestamp\nsecret"))`——与钉钉**互换 key/msg 布局**，勿互相套用。
 │   ├── interaction.py — 交互能力底座（阶段 B 基础先行，2026-10-03）
 │   │    `ChannelCapabilities`（能否回调/能否编辑/编辑锚点/说明键）+ `MessageHandle`
 │   │    （渠道无关改写句柄 `(channel, anchor, value)`；锚点闭集 `message_id` / `out_track_id`）。
