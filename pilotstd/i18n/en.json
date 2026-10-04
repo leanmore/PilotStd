@@ -852,5 +852,6 @@
     "task_hint_cancelled": "Abandoned; run it again if needed",
     "task_detail_summary": "{business} · {status} · {result} · {time}",
     "task_detail_error": "Error details: {error}",
-    "task_detail_result": "Result details: {result}"
+    "task_detail_result": "Result details: {result}",
+    "tray_events_disabled": "Desktop tray event routing disabled (notification.windows_tray_events=False)"
 }

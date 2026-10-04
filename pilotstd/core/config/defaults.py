@@ -54,6 +54,8 @@ FACTORY_DEFAULTS = {
     "file.clear_readonly": True,
     "watchdog.enabled": False,
     "notification.enabled": False,
+    # W2 分流开关：桌面端是否把业务事件弹成托盘气泡（关闭即回退到"本端无可见信号"）
+    "notification.windows_tray_events": True,
     "notification.channels.wechat.enabled": True,
     "notification.channels.wechat.webhook_url": "",
     "notification.channels.telegram.enabled": False,

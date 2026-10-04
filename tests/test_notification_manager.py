@@ -112,6 +112,36 @@ class TestLogMethods:
         assert r["total"] == 2
 
 
+class TestLocalSink:
+    """W2：桌面端本地信号出口（按端分流）——与渠道开关解耦。"""
+
+    def test_local_sink_receives_event_when_channels_disabled(self, mgr):
+        """`_enabled=False`（桌面默认）时，事件仍要落到本地信号，而不是"两头都不落"。"""
+        got: list = []
+        mgr._enabled = False
+        mgr.set_local_sink(got.append)
+
+        mgr.send_event("worker_error", {"worker": "W", "error": "E"})
+
+        assert len(got) == 1
+        assert got[0].event_type == "worker_error"
+
+    def test_without_local_sink_nothing_is_built(self, mgr):
+        """未注入出口时行为不变：渠道关闭即早退（不构建消息）。"""
+        mgr._enabled = False
+        mgr._local_sink = None
+        mgr.send_event("worker_error", {"worker": "W", "error": "E"})  # 不抛异常即通过
+
+    def test_local_sink_can_be_cleared(self, mgr):
+        """传 None 即关闭分流（回退开关的运行时等价物）。"""
+        got: list = []
+        mgr.set_local_sink(got.append)
+        mgr.set_local_sink(None)
+        mgr._enabled = False
+        mgr.send_event("worker_error", {"worker": "W", "error": "E"})
+        assert got == []
+
+
 class TestTestSend:
     def test_ok(self, mgr):
         with patch("pilotstd.core.notification.manager.do_test_send") as m:

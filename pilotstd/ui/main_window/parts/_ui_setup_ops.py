@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import signal
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import QObject, Qt, pyqtSignal
 from PyQt6.QtWidgets import (
     QApplication,
     QHBoxLayout,
@@ -49,6 +49,60 @@ def _setup_tray(self) -> None:
     from ....platform.notify import NotifyService
 
     NotifyService.init(self._tray)
+
+
+class _TrayEventBridge(QObject):
+    """把工作线程里的业务事件切回主线程后弹托盘气泡（W2 按端分流）。
+
+    `send_event` 可能在工作线程被调用，而托盘是 GUI 对象（Qt 要求 GUI 调用在主线程）；
+    经信号跨线程投递，Qt 会按接收者所在线程排队执行。
+    """
+
+    # 载荷：(event_type, title, message, level)
+    # 两个命名约束：① **不能**叫 `event`——会遮蔽 `QObject.event(QEvent)` 虚函数，
+    # PyQt 抛 "native Qt signal is not callable"；② 后缀须落在门禁 G-011 认可的信号后缀
+    # （`_changed` / `_ready` / `_occurred`）内，否则被当作"引用未定义的属性"。
+    tray_event_occurred = pyqtSignal(str, str, str, str)
+
+    def __init__(self, parent: QObject | None = None) -> None:
+        super().__init__(parent)
+        self.tray_event_occurred.connect(self._show)
+
+    def _show(self, event_type: str, title: str, message: str, level: str) -> None:
+        """在主线程把一条事件弹成托盘气泡（信号槽）。
+
+        - 本方法由信号投递到主线程执行，故可以安全触碰托盘（GUI 对象）；
+        - 按 `level` 选警告形态：`warning`/`error` 走 `show_warning`（立即、警示图标），
+          其余走 `show`（信息图标，受 3 秒同标题防抖与自动暂停约束）；
+        - `event_type` 暂不参与展示（托盘只有标题/正文两个字段），保留形参以便将来细分。
+        """
+        del event_type  # 托盘只展示标题/正文；事件名留作将来细化分流
+        from ....platform.notify import NotifyService
+
+        service = NotifyService.get()
+        if level in ("warning", "error"):
+            service.show_warning(title, message)
+        else:
+            service.show(title, message)
+
+
+def _wire_tray_event_sink(self) -> None:
+    """把通知管理器的本地信号出口接到托盘（W2）；开关关闭或托盘缺失时不接。
+
+    分流点只有这一处：Docker 端不调用本方法 ⇒ 事件仍由渠道承载；桌面端接上后，
+    业务事件（scan_complete / download_complete / …）不再"两头都不落"。
+    """
+    if not self._config.get("notification.windows_tray_events", True):
+        logger.info(_("tray_events_disabled"))
+        return
+    if getattr(self, "_tray", None) is None:
+        return
+    self._tray_event_bridge = _TrayEventBridge(self)
+    self._mgr.notification_mgr.set_local_sink(
+        lambda msg: self._tray_event_bridge.tray_event_occurred.emit(
+            msg.event_type or "", msg.title or "", msg.body or "", msg.level or "info"
+        )
+    )
 
 
 # ── 托盘双击恢复 ──

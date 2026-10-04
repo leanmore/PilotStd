@@ -173,6 +173,7 @@ class MainWindow(_WindowLifecycleMixin, QMainWindow):
         _setup_toolbar,
         _setup_tray,
         _setup_work_table,
+        _wire_tray_event_sink,  # W2：按端分流（桌面事件 → 托盘气泡）
     )
 
     def __init__(self, config: "core.ConfigManager", project: "core.ProjectManager") -> None:

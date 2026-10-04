@@ -49,6 +49,7 @@ def _init_manager(self) -> None:
     mgr = StandardManager(config=self._config)
     self._mgr = mgr
     self._mgr_ready = True
+    self._wire_tray_event_sink()  # W2：按端分流（桌面→托盘）
     self._set_toolbar_enabled(True)
     self._apply_announce_cache_mode()
     self.status_bar.showMessage(_("ready"), 2000)

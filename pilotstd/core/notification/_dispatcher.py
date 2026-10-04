@@ -43,6 +43,12 @@ def send_event(
     使用：故障渠道很可能就是问题本身，必须能定向发给**旁路**渠道（策略表无法表达
     "除某渠道外的全部渠道"）。
     """
+    # W2（共享事件按端分流）：桌面端把事件落到**本地信号**（托盘气泡）。
+    # 必须在 `_enabled` 早退**之前**——渠道开关（默认关闭）与"本端是否可见"是两件事；
+    # 若先早退，这些事件在 Windows 端就"两头都不落"（Docker 端的渠道/Web 由那边的 manager 负责）。
+    # 本地信号看的是**构建器原始产出**（不施加三层模型投影，那是渠道侧阶段）。
+    if host._local_sink is not None:
+        host._local_sink(host._build_message(event_type, event_data))
     if not host._enabled:
         logger.debug(t("notification.manager.skip_disabled").format(event=event_type))
         return

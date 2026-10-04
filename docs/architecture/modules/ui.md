@@ -36,14 +36,29 @@ MainWindow (QMainWindow)
 │   ├── ThemeHandler         — 主题/语言/图标
 │   └── UISetupHandler       — UI 组装
 └── parts/ (方法注入)
-    ├── _actions_ops.py      — 菜单动作
+    ├── _actions_ops.py      — 菜单动作；`_init_manager()` 是门面就绪点（W2 在此接托盘事件出口）
     ├── _delegate_ops.py     — 业务委托
     ├── _table_ops.py        — 表格操作
     ├── _file_tree_ops.py    — 文件树操作
     ├── _query_ops.py        — 查询操作
     ├── _theme_ops.py        — 主题操作
+    ├── _ui_setup_ops.py     — UI 组装/托盘；`_TrayEventBridge` + `_wire_tray_event_sink()`（W2 按端分流）
     └── ... (共 14 个)
 ```
+
+## Windows 端事件分流（W2，2026-10-03）
+
+> 设计见 [notification-system-design/00-framework.md](../../plans/notification-system-design/00-framework.md) §3.5 与
+> [02-framework-update.md](../../plans/notification-system-design/02-framework-update.md)（W2 行）。
+
+- **分流点**：`NotificationManager.set_local_sink()`（核心只认一个回调，**不 import** UI/PyQt）；
+  `_dispatcher.send_event` 在 `_enabled` 早退**之前**调用它 —— 渠道开关与"本端是否可见"是两件事。
+- **接线**：`_init_manager()`（门面就绪）→ `_wire_tray_event_sink()`；开关
+  `notification.windows_tray_events`（默认开）关闭即回退；Docker 端不调用 ⇒ 渠道链路不变。
+- **线程亲和**：事件可能来自工作线程，托盘是 GUI 对象 ⇒ 经 `_TrayEventBridge.tray_event_occurred`
+  信号切回主线程再弹（`warning`/`error` → `show_warning`，其余 → `show`）。
+  信号名有两个约束：**不能**叫 `event`（遮蔽 `QObject.event(QEvent)` 虚函数）；后缀须落在
+  G-011 认可的 `_changed` / `_ready` / `_occurred` 内。
 
 ## Handler 组合模式
 

@@ -856,5 +856,6 @@
     "task_hint_cancelled": "已放弃，需要的话重新执行",
     "task_detail_summary": "{business} · {status} · {result} · {time}",
     "task_detail_error": "错误明细：{error}",
-    "task_detail_result": "结果明细：{result}"
+    "task_detail_result": "结果明细：{result}",
+    "tray_events_disabled": "已关闭桌面托盘事件分流（notification.windows_tray_events=False）"
 }

@@ -5,7 +5,7 @@
 
 import json
 import logging
-from typing import Any, Optional, cast
+from typing import Any, Callable, Optional, cast
 
 from ..db import Database
 from . import _dispatcher, _suppression_queue
@@ -47,6 +47,11 @@ class NotificationManager:
     渠道加载失败时降级（记录错误，不阻断流程）。
     """
 
+    # 端点本地信号出口（W2 按端分流）。此处**类属性**声明不可少：
+    # `tests/test_aggregate_buffer.py` 等用 `MagicMock(spec=NotificationManager)` 打桩并直接
+    # 调用类方法，而 `spec` 只认类属性（与 `_log` 的同款约定）；实例侧在 `__init__` 里置 None。
+    _local_sink: Callable[[NotificationMessage], None] | None = None
+
     def __init__(self, config: Any, db: Database, user_id: int):
         self._cfg = config
         self._db = db
@@ -57,6 +62,9 @@ class NotificationManager:
         self._queue = _suppression_queue.SuppressionQueue(
             config, db, lambda msg, channels: self._send_now(msg, channels)
         )
+        # 端点到本地的信号出口（W2 按端分流）：桌面端注入"弹托盘气泡"，Docker 端保持 None
+        # ⇒ 渠道投递不变。**与 `_enabled` 无关**：渠道开关只管"是否投递渠道"。
+        self._local_sink: Callable[[NotificationMessage], None] | None = None
         self._cred_helper: CredentialHelper | None = None
         try:
             config_dir = __import__("os").path.dirname(config._filepath)
@@ -231,6 +239,14 @@ class NotificationManager:
         _dispatcher.send_delivery_alert(self, channel, reason, samples, failures)
 
     # ── 静音时段（实现在 _suppression_queue；此处保留同名方法作为内部 API）──────
+
+    def set_local_sink(self, sink: Callable[[NotificationMessage], None] | None) -> None:
+        """注入/清除本地信号出口（W2 按端分流）。
+
+        Windows 端注入"托盘气泡"，让业务事件在桌面可见；Docker 端不注入（走渠道）。
+        传 `None` 即关闭分流（等价于回退到"事件在本端不产生可见信号"）。
+        """
+        self._local_sink = sink
 
     def _is_quiet_hours(self) -> bool:
         """检查当前是否在静音时段内（实现见 `_suppression_queue`）。"""
