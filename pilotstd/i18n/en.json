@@ -883,5 +883,7 @@
     "notification.callback.forbidden": "The current user may not perform this callback action",
     "notification.callback.replayed": "Duplicate callback event (idempotent ignore)",
     "notification.manager.skipped_disabled": "Delivery disabled; logged only (not pushed to channels)",
-    "notification.manager.visibility_policy_failed": "Reading channel subscriptions failed while delivery is disabled; skipping the visibility record"
+    "notification.manager.visibility_policy_failed": "Reading channel subscriptions failed while delivery is disabled; skipping the visibility record",
+    "notification.callback.credential_read_failed": "Failed to read callback verification credentials (channel={channel})",
+    "notification.callback.handled": "Notification callback handled: {detail}"
 }

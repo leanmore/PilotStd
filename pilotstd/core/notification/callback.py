@@ -23,7 +23,7 @@ import hashlib
 import hmac
 import time
 from dataclasses import dataclass, field
-from typing import Iterable
+from typing import Iterable, Protocol
 
 # 三个低频动作（设计 §1.2 B 行："低频编辑（状态/回执/汇总）"配套的用户动作）
 ACTION_RETRY = "retry"
@@ -54,6 +54,23 @@ class SignatureVerdict:
     ok: bool
     status: int
     reason_key: str = ""
+
+
+class ActionVerdictLike(Protocol):
+    """`SignatureVerdict` 的结构性子集：授权结论只需要 `ok` / `status` / `reason_key`。
+
+    成员声明为**只读属性**：`SignatureVerdict` 是 frozen dataclass，字段本身只读，
+    声明成可写变量会让 mypy 报"expected settable variable, got read-only attribute"。
+    """
+
+    @property
+    def ok(self) -> bool: ...
+
+    @property
+    def status(self) -> int: ...
+
+    @property
+    def reason_key(self) -> str: ...
 
 
 @dataclass(frozen=True)

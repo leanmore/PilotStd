@@ -374,7 +374,7 @@
     "ocr_tencent_secret_key": "騰訊雲 Secret Key",
     "ocr_aliyun_access_key_id": "阿里雲 Access Key ID",
     "ocr_aliyun_access_key_secret": "阿里雲 Access Key Secret",
-    "ocr_note": "三雲調度：百度雲+騰訊雲主力，阿里雲應急。憑據保存後不可複製。",
+    "ocr_note": "三雲調度：百度雲+騰訊雲主力，阿里雲應急。憑證保存後不可複製。",
     "announcement_disabled": "公告監控未開啟（可在設定中啟用）",
     "announcement_no_new": "公告監控: 無新公告",
     "announcement_result": "公告更新: {} 條新公告，{} 條與本地標準相關",
@@ -804,5 +804,7 @@
     "notification.callback.forbidden": "目前使用者無權執行該回調動作",
     "notification.callback.replayed": "回調事件重複（冪等忽略）",
     "notification.manager.skipped_disabled": "投遞已關閉，僅記錄（未推送渠道）",
-    "notification.manager.visibility_policy_failed": "關閉投遞時讀取渠道訂閱失敗，跳過可見性記錄"
+    "notification.manager.visibility_policy_failed": "關閉投遞時讀取渠道訂閱失敗，跳過可見性記錄",
+    "notification.callback.credential_read_failed": "讀取回調驗簽憑證失敗（channel={channel}）",
+    "notification.callback.handled": "通知回調處理: {detail}"
 }

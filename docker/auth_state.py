@@ -76,6 +76,9 @@ AUTH_WHITELIST: list[tuple[str, set[str]]] = [
     ("/api/login-background", set()),
     ("/api/backgrounds", set()),
     ("/assets", set()),
+    # B2b-1：渠道回调端点。免鉴权是**有意**的（渠道服务器无法持我方会话），
+    # 唯一安全边界是逐渠道自实现验签 + 幂等 + 服务端角色授权（见 core/notification/callback*.py）。
+    ("/api/notification/callback", set()),
 ]
 
 
