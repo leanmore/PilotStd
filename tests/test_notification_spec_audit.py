@@ -89,7 +89,11 @@ DUP_SECRET_FIELD = '            FieldSpec(name="secret", type="string"),'
 def build_tree(tmp_path: Path, *, spec: str = GOOD_SPEC, alpha: str = GOOD_CHANNEL_ALPHA,
                beta: str = GOOD_CHANNEL_BETA, manager: str = GOOD_MANAGER,
                api: str = GOOD_API, vue: str | None = None) -> Path:
-    """搭一棵最小假树：spec + 两个渠道实现 + 后端两文件 + 前端两文件。"""
+    """搭一棵最小假树：spec + 两个渠道实现 + 后端三文件 + 前端两文件。
+
+    后端三文件＝`manager.py` + `docker/api/notification.py` + `docker/api/notification_config.py`
+    ——后者于 2026-10-03 步 C 拆分后纳入 B3 扫描范围（渠道字面量落点随之迁移）。
+    """
     notif = tmp_path / "pilotstd/core/notification"
     (notif / "channels").mkdir(parents=True)
     (notif / "channel_spec.py").write_text(spec, encoding="utf-8")
@@ -99,6 +103,7 @@ def build_tree(tmp_path: Path, *, spec: str = GOOD_SPEC, alpha: str = GOOD_CHANN
     api_dir = tmp_path / "docker/api"
     api_dir.mkdir(parents=True)
     (api_dir / "notification.py").write_text(api, encoding="utf-8")
+    (api_dir / "notification_config.py").write_text(api, encoding="utf-8")
     front = tmp_path / FRONTEND_FILES[0]
     front.parent.mkdir(parents=True)
     front.write_text(vue if vue is not None else GOOD_VUE, encoding="utf-8")

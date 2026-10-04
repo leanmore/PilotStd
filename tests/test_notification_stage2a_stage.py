@@ -154,12 +154,17 @@ class TestConsumptionBoundary(unittest.TestCase):
         self.assertIn("is_mapping_enabled", text, "stage 的谓词应由 _manager_ops.apply_mapping 消费")
 
     def test_manager_delegates_via_ops(self):
-        """manager.py 不再直接 import stage，改为经 `self.ops.apply_mapping(...)` 调用。"""
+        """manager.py 不再直接 import stage；投影调用随编排迁至 `_dispatcher.py`（步 C B2）。
+
+        判据不变：stage 的谓词只由 `_manager_ops.apply_mapping` 消费，
+        manager.py 自身不得出现 `is_mapping_enabled`（避免开关语义分叉）。
+        """
         from pathlib import Path
 
-        text = Path("pilotstd/core/notification/manager.py").read_text(encoding="utf-8")
-        self.assertIn("self.ops.apply_mapping(msg, event_type, event_data)", text)
-        self.assertNotIn("is_mapping_enabled", text)
+        dispatcher = Path("pilotstd/core/notification/_dispatcher.py").read_text(encoding="utf-8")
+        self.assertIn("host.ops.apply_mapping(msg, event_type, event_data)", dispatcher)
+        manager = Path("pilotstd/core/notification/manager.py").read_text(encoding="utf-8")
+        self.assertNotIn("is_mapping_enabled", manager)
 
 
 if __name__ == "__main__":
