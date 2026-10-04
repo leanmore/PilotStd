@@ -1049,7 +1049,8 @@
         "success": "Success",
         "failed": "Failed",
         "read": "Read",
-        "unread": "Unread"
+        "unread": "Unread",
+        "skipped": "Not delivered"
       }
     },
     "bell": {

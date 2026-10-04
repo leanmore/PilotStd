@@ -43,6 +43,9 @@ pilotstd/core/
 │   ├── manager.py             # NotificationManager：事件 → 渠道分发 + 聚合装配（**包根改为惰性导出**，见下行；**构建器注册表由 `event_spec` 派生**，2026-10-03 步 B D2，有效行 481 → 397）
 │   ├── __init__.py            # 包根惰性导出：`NotificationManager` 改为**取用时才 import**（2026-10-03 步 B D3）——此前"导入本包"即拖入通知全栈（构建器/渠道/凭证），`config/defaults` 派生订阅规则时会被牵连；现 import 期只剩 channel/events 链
 │   ├── _manager_ops.py        # 日志/查询/清理/WS 广播（组合式 NotificationOps，2026-09-26 拆出）
+│   ├── _dispatcher.py — 事件分发；**阶段 D 可见性解耦**（2026-10-03）
+│   │    关闭投递（`_enabled=False`）时仍写 `notification_log`（status=`skipped`，不调用渠道
+│   │    `send()`、不进投递健康统计）；回滚开关 `NOTIFY_RECORD_WHEN_DISABLED=v0`。
 │   ├── callback.py — 回调验签/动作授权/防重放骨架（阶段 B 基础先行，2026-10-03）
 │   │    `verify_callback`（telegram/dingtalk/feishu 逐渠道；企微按缺口 1/2 一律 501 不猜协议）、
 │   │    `authorize_action`（仅管理员；角色必须来自服务端，不信任载荷身份）、

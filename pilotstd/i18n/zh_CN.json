@@ -885,5 +885,7 @@
     "notification.callback.channel_unsupported": "该渠道回调未启用（证据缺口未闭合）",
     "notification.callback.action_unknown": "回调动作未知",
     "notification.callback.forbidden": "当前用户无权执行该回调动作",
-    "notification.callback.replayed": "回调事件重复（幂等忽略）"
+    "notification.callback.replayed": "回调事件重复（幂等忽略）",
+    "notification.manager.skipped_disabled": "投递已关闭，仅记录（未推送渠道）",
+    "notification.manager.visibility_policy_failed": "关闭投递时读取渠道订阅失败，跳过可见性记录"
 }

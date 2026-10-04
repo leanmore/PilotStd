@@ -802,5 +802,7 @@
     "notification.callback.channel_unsupported": "該渠道回調未啟用（證據缺口未閉合）",
     "notification.callback.action_unknown": "回調動作未知",
     "notification.callback.forbidden": "目前使用者無權執行該回調動作",
-    "notification.callback.replayed": "回調事件重複（冪等忽略）"
+    "notification.callback.replayed": "回調事件重複（冪等忽略）",
+    "notification.manager.skipped_disabled": "投遞已關閉，僅記錄（未推送渠道）",
+    "notification.manager.visibility_policy_failed": "關閉投遞時讀取渠道訂閱失敗，跳過可見性記錄"
 }

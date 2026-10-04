@@ -881,5 +881,7 @@
     "notification.callback.channel_unsupported": "Callbacks are not enabled for this channel (evidence gaps remain)",
     "notification.callback.action_unknown": "Unknown callback action",
     "notification.callback.forbidden": "The current user may not perform this callback action",
-    "notification.callback.replayed": "Duplicate callback event (idempotent ignore)"
+    "notification.callback.replayed": "Duplicate callback event (idempotent ignore)",
+    "notification.manager.skipped_disabled": "Delivery disabled; logged only (not pushed to channels)",
+    "notification.manager.visibility_policy_failed": "Reading channel subscriptions failed while delivery is disabled; skipping the visibility record"
 }

@@ -1049,7 +1049,8 @@
         "success": "成功",
         "failed": "失败",
         "read": "已读",
-        "unread": "未读"
+        "unread": "未读",
+        "skipped": "未投递"
       }
     },
     "bell": {

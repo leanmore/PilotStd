@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from datetime import datetime
 from typing import Any
 
@@ -25,6 +26,35 @@ from pilotstd.i18n import t
 from .channel import NotificationMessage
 
 logger = logging.getLogger(__name__)
+
+
+def _record_when_disabled() -> bool:
+    """D 回滚开关：`NOTIFY_RECORD_WHEN_DISABLED`（默认开）。
+
+    取值为 `v0` / `0` / `false` / `off`（忽略大小写）时回到旧行为"关闭即不写日志"。
+    """
+    raw = os.environ.get("NOTIFY_RECORD_WHEN_DISABLED", "")
+    return raw.strip().lower() not in ("v0", "0", "false", "off")
+
+
+def _log_skipped(host: Any, event_type: str, event_data: dict) -> None:
+    """关闭投递时写"仅记录"行：每订阅渠道一行。
+
+    无订阅渠道时不写（避免为"没有收件人"的事件凭空造行——那不是可观测性而是噪声）。
+    只调用 `host._log`，**不碰渠道对象**，故 `send()` 不可能被调用。
+    """
+    try:
+        channels = host._policy.get_channels_for_event(host._user_id, event_type)
+    except Exception:  # noqa: BLE001 - 可见性记录不得影响主流程
+        logger.debug(t("notification.manager.visibility_policy_failed"), exc_info=True)
+        return
+    if not channels:
+        return
+    msg = host._build_message(event_type, event_data)
+    reason = t("notification.manager.skipped_disabled")
+    sent_at = datetime.now().isoformat()
+    for ch_name in channels:
+        host._log(event_type, ch_name, msg, "skipped", reason, sent_at)
 
 
 def send_event(
@@ -50,6 +80,11 @@ def send_event(
     if host._local_sink is not None:
         host._local_sink(host._build_message(event_type, event_data))
     if not host._enabled:
+        # D（可见性解耦）：关闭投递 **不等于**"无事发生"——Web 端仍要能查到历史。
+        # 只写库、**不调用渠道 send()**，且不参与投递健康统计（status="skipped"）。
+        # 回滚：NOTIFY_RECORD_WHEN_DISABLED=v0（默认开）。
+        if _record_when_disabled():
+            _log_skipped(host, event_type, event_data)
         logger.debug(t("notification.manager.skip_disabled").format(event=event_type))
         return
     if target_channels is None:
