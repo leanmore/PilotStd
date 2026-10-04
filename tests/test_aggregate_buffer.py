@@ -589,7 +589,8 @@ class TestAggregateContract(unittest.TestCase):
         # 本用例的判据是"空消息跳过 + 记 Error"，投影不在判据内。
         mgr.ops = MagicMock()
 
-        with unittest.mock.patch("pilotstd.core.notification.manager.logger") as mock_logger:
+        # 日志发出方随实现迁移：send_event 的编排已移至 _dispatcher（步 C B2）
+        with unittest.mock.patch("pilotstd.core.notification._dispatcher.logger") as mock_logger:
             NotificationManager.send_event(mgr, "broken_builder", {})
             mock_logger.error.assert_called_once()
             # 校验失败 → 不进入发送

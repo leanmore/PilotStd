@@ -729,5 +729,9 @@
     "notification.module.announce": "公告抓取",
     "notification.module.system": "系統維運",
     "notification.module.favorite": "收藏鏈",
-    "notification.module.security": "安全告警"
+    "notification.module.security": "安全告警",
+    "notification.manager.skip_disabled": "通知功能未啟用，跳過事件 {event} 的傳送",
+    "notification.manager.skip_no_channels": "事件 {event} 無訂閱渠道，跳過傳送",
+    "notification.manager.validate_failed": "建構器契約校驗失敗，事件 {event} 已跳過傳送: {error}",
+    "notification.manager.delivery_alert_failed": "通知投遞失敗告警傳送異常: {error}"
 }

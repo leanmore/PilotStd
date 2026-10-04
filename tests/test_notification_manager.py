@@ -127,7 +127,7 @@ class TestSendEvent:
     def test_disabled_logs_debug(self, mgr, caplog):
         """阶段四：通知功能关闭时记录 DEBUG 日志（不再完全静默）。"""
         mgr._enabled = False
-        with caplog.at_level("DEBUG", logger="pilotstd.core.notification.manager"):
+        with caplog.at_level("DEBUG", logger="pilotstd.core.notification._dispatcher"):
             mgr.send_event("test_event", {"k": 1})
         assert any("通知功能未启用" in r.message for r in caplog.records)
 
@@ -136,7 +136,7 @@ class TestSendEvent:
         mgr._enabled = True
         mgr._policy = MagicMock()
         mgr._policy.get_channels_for_event.return_value = []
-        with caplog.at_level("INFO", logger="pilotstd.core.notification.manager"):
+        with caplog.at_level("INFO", logger="pilotstd.core.notification._dispatcher"):
             mgr.send_event("test_event", {"k": 1})
         assert any("无订阅渠道" in r.message for r in caplog.records)
 

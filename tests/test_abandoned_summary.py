@@ -258,7 +258,19 @@ class TestRegistration(unittest.TestCase):
         self.assertTrue(FACTORY_DEFAULTS["notification.rules.favorite_abandoned_summary"])
 
     def test_builder_registered_in_manager(self):
-        from pilotstd.core.notification.manager import _build_favorite_abandoned_summary_message  # noqa: F401
+        """该事件的构建器必须已注册进管理器。
+
+        D2（2026-10-03）起 `_EVENT_BUILDERS` 由事件规格派生、管理器不再逐个重导出构建器名，
+        故改按**运行期注册表**断言（与 `tests/test_notification_e2e.py` 的取法一致）。
+        """
+        from types import SimpleNamespace
+
+        from pilotstd.core.notification.manager import NotificationManager
+
+        stub = SimpleNamespace()
+        NotificationManager._init_event_builders(stub)
+        self.assertIn("favorite_abandoned_summary", stub._EVENT_BUILDERS)
+        self.assertTrue(callable(stub._EVENT_BUILDERS["favorite_abandoned_summary"]))
 
     def test_i18n_keys_present_in_all_three_locales(self):
         import json

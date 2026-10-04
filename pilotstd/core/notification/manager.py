@@ -5,13 +5,10 @@
 
 import json
 import logging
-from datetime import datetime
 from typing import Any, Optional, cast
 
-from pilotstd.i18n import t
-
 from ..db import Database
-from . import _suppression_queue
+from . import _dispatcher, _suppression_queue
 from ._credentials import CredentialHelper
 from ._format_utils import do_test_send, format_standard_status_changed_aggregated
 from ._manager_ops import NotificationOps
@@ -208,156 +205,32 @@ class NotificationManager:
         bypass_aggregation: bool = False,
         target_channels: list[str] | None = None,
     ) -> None:
-        """根据策略表分发通知到各渠道（经过聚合器缓冲）。
-
-        优先从 notification_policy 表读取渠道事件订阅，
-        若表为空则回退到 config.json 的 notification.rules 配置。
-        bypass_aggregation=True 时跳过聚合缓冲，实时发送（供紧急告警事件使用）。
-        target_channels 非空时**跳过策略查询**、改用调用方指定渠道——供"投递失败告警"
-        使用：故障渠道很可能就是问题本身，必须能定向发给**旁路**渠道（策略表无法表达
-        "除某渠道外的全部渠道"）。
-        """
-        if not self._enabled:
-            logger.debug("通知功能未启用，跳过事件 %s 的发送", event_type)
-            return
-        if target_channels is None:
-            target_channels = self._policy.get_channels_for_event(self._user_id, event_type)
-        if not target_channels:
-            logger.info("事件 %s 无订阅渠道，跳过发送", event_type)
-            return
-
-        msg = self._build_message(event_type, event_data)
-        # 三层模型投影回填（阶段 2b-接入）：默认 stage=1 → 不生效，行为零变化。
-        # 实现在 _manager_ops（本文件加入该逻辑会超 G-010 的 500 阻断线）。
-        self.ops.apply_mapping(msg, event_type, event_data)
-        # 构建器契约校验：空消息拦截（失败仅记错误日志，不中断主业务流程）
-        try:
-            self._validate_message(msg, event_type)
-        except ValueError as e:
-            logger.error("构建器契约校验失败，事件 %s 已跳过发送: %s", event_type, e)
-            return
-        self._do_send(msg, target_channels, bypass_aggregation=bypass_aggregation)
+        """根据策略表分发通知到各渠道（编排实现在 `_dispatcher.send_event`；签名即契约）。"""
+        _dispatcher.send_event(self, event_type, event_data, bypass_aggregation, target_channels)
 
     def _validate_message(self, msg: NotificationMessage, event_type: str) -> None:
-        """构建器产出契约校验：确保任何路径下消息都不会为空。
-
-        校验规则：
-        - 结构块 / 正文 / 标题至少一项非空，否则抛出数值错误（表示构建器契约被破坏）；
-        - 仅有结构块无正文时记录调试日志（聚合摘要依赖正文，提示开发者补全）。
-
-        调用方（事件发送入口）捕获数值错误并记录错误日志，不向上抛——
-        校验失败不得导致收藏/下载/抓取等主业务流程崩溃。
-        """
-        has_blocks = bool(msg.blocks)
-        has_body = bool(msg.body and msg.body.strip())
-        has_title = bool(msg.title and msg.title.strip())
-
-        if not (has_blocks or has_body or has_title):
-            raise ValueError(
-                f"Builder for '{event_type}' produced an empty Message. "
-                "At least one of blocks/body/title must be non-empty."
-            )
-
-        if has_blocks and not has_body:
-            logger.debug("Builder for '%s' has blocks but no body", event_type)
+        """构建器产出契约校验（实现在 `_dispatcher.validate_message`）。"""
+        _dispatcher.validate_message(self, msg, event_type)
 
     def _do_send(self, msg: NotificationMessage, target_channels: list[str], bypass_aggregation: bool = False) -> None:
-        """逐渠道发送：静音期暂存 → 聚合器入队 → 合并后发送。"""
-        if self._is_quiet_hours():
-            self._enqueue_notification(msg, target_channels)
-            return
-        if self.aggregator is not None and not bypass_aggregation:
-            # 仅做「是否聚合」的分支决策，实际聚合全部委托给 AggregateBuffer
-            # （窗口累积、分组、摘要生成都在那边），管理器不重复实现合并逻辑。
-            self.aggregator.enqueue(msg, target_channels, target_id=msg.target_id)
-        else:
-            self._send_now(msg, target_channels)
+        """逐渠道发送：静音暂存 → 聚合入队 → 合并发送（实现在 `_dispatcher.do_send`）。"""
+        _dispatcher.do_send(self, msg, target_channels, bypass_aggregation)
 
     def _send_now(self, msg: NotificationMessage, target_channels: list[str]) -> None:
-        """实际执行发送（写日志 + 渠道推送 + WS 广播）。"""
-        event_type = msg.event_type
-        for ch_name in target_channels:
-            channel = self._channels.get(ch_name)
-            sent_at = datetime.now().isoformat()
-            if channel is None:
-                self._log(
-                    event_type,
-                    ch_name,
-                    msg,
-                    "failed",
-                    t("notification.manager.channel_unavailable").format(ch=ch_name),
-                    sent_at,
-                )
-                continue
-            try:
-                ok = channel.send(msg)
-                # 读取渠道错误详情透传具体原因，无详情时回退默认文案
-                if ok:
-                    err_msg = ""
-                else:
-                    err_msg = getattr(channel, "last_error", "") or t(
-                        "notification.manager.send_failed_no_detail"
-                    )
-                self._log(event_type, ch_name, msg, "success" if ok else "failed", err_msg, sent_at)
-                self._record_delivery(ch_name, ok)
-            except Exception as e:
-                self._log(event_type, ch_name, msg, "failed", str(e), sent_at)
-                self._record_delivery(ch_name, False)
+        """实际执行发送：写日志 + 渠道推送（实现在 `_dispatcher.send_now`）。"""
+        _dispatcher.send_now(self, msg, target_channels)
 
     # ── 投递健康度告警（P0）────────────────────────────────────
 
     def _record_delivery(self, channel: str, ok: bool) -> None:
-        """记录一次投递结果，并在越过阈值时发出"通知投递失败"告警。
+        """记录一次投递结果并在越阈时告警（实现在 `_dispatcher.record_delivery`）。"""
+        _dispatcher.record_delivery(self, channel, ok)
 
-        **不回环**：告警投递期间置 `_sending_delivery_alert`，期间的结果**不再计入健康度**
-        （否则告警失败又触发新告警，无限递归）。见 `_send_delivery_alert`。
-        """
-        if self.delivery_health is None or self._sending_delivery_alert:
-            return
-        self.delivery_health.record(channel, ok)
-        if ok:
-            return
-        verdict = self.delivery_health.evaluate(channel)
-        if verdict is None:
-            return
-        reason, samples, failures = verdict
-        self._send_delivery_alert(channel, reason, samples, failures)
+    def _send_delivery_alert(self, channel: str, reason: str, samples: int, failures: int) -> None:
+        """投递"通知投递失败"告警（实现在 `_dispatcher.send_delivery_alert`）。"""
+        _dispatcher.send_delivery_alert(self, channel, reason, samples, failures)
 
-    def _send_delivery_alert(
-        self, channel: str, reason: str, samples: int, failures: int
-    ) -> None:
-        """投递"通知投递失败"告警。
-
-        目标渠道：**除故障渠道外的所有已启用渠道**——故障渠道很可能是问题本身，
-        优先走旁路。若无旁路可用，仍投向故障渠道（可能也失败，但会在通知日志
-        留下"曾试图告警"的痕迹，好过完全静默）。
-
-        `bypass_aggregation=True`：告警不能等 5 秒聚合窗口（也可能被静默时段压后），
-        与安全告警同理——"通知已经坏了"这件事需要立刻说出来。
-        """
-        self._sending_delivery_alert = True
-        try:
-            targets = [c for c in self._channels if c != channel] or [channel]
-            self.send_event(
-                "notification_delivery_failed",
-                {
-                    "channel": channel,
-                    "reason": reason,
-                    "samples": samples,
-                    "failures": failures,
-                    "consecutive": self.delivery_health.consecutive(channel)
-                    if self.delivery_health
-                    else 0,
-                },
-                bypass_aggregation=True,
-                target_channels=targets,
-            )
-        except Exception as e:  # noqa: BLE001 — 告警失败不得影响正常发送链路
-            logger.warning("通知投递失败告警发送异常: %s", e)
-        finally:
-            self._sending_delivery_alert = False
-
-    # ── 静音时段 ──────────────────────────────────────────────
+    # ── 静音时段（实现在 _suppression_queue；此处保留同名方法作为内部 API）──────
 
     def _is_quiet_hours(self) -> bool:
         """检查当前是否在静音时段内（实现见 `_suppression_queue`）。"""
@@ -377,11 +250,6 @@ class NotificationManager:
         for detail in failures:
             logger.error("补发通知失败: %s", detail)
         return count
-
-    def shutdown(self) -> None:
-        """优雅关闭：刷新聚合器中所有缓冲消息（防止丢失）。"""
-        if self.aggregator is not None:
-            self.aggregator.shutdown()
 
     def _init_event_builders(self) -> None:
         """初始化事件类型 → 消息构建函数的映射表。"""
