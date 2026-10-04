@@ -59,8 +59,8 @@ class TestQuietHours(unittest.TestCase):
 
         cfg.get.side_effect = _cfg_get
         mgr = self.NotificationManager(cfg, MagicMock(), user_id=1)
-        # 直接 patch manager 模块中已导入的 datetime
-        with patch("pilotstd.core.notification.manager.datetime") as mock_dt:
+        # patch 目标随实现迁移：静音判定实现已移至 _suppression_queue（步 C B1）
+        with patch("pilotstd.core.notification._suppression_queue.datetime") as mock_dt:
             fake_now = MagicMock()
             fake_now.time.return_value = __import__("datetime").time(3, 0)
             mock_dt.now.return_value = fake_now

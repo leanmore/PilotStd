@@ -75,7 +75,7 @@ class TestQuietHours:
     def test_cross_midnight(self, mgr):
         mgr._cfg.set("notification.quiet_hours_enabled", True)
         dt = datetime(2026, 1, 15, 23, 30, 0)
-        with patch("pilotstd.core.notification.manager.datetime") as mdt:
+        with patch("pilotstd.core.notification._suppression_queue.datetime") as mdt:
             mdt.now.return_value = dt
             mdt.strptime = datetime.strptime
             assert mgr._is_quiet_hours() is True
@@ -83,7 +83,7 @@ class TestQuietHours:
     def test_daytime(self, mgr):
         mgr._cfg.set("notification.quiet_hours_enabled", True)
         dt = datetime(2026, 1, 15, 12, 0, 0)
-        with patch("pilotstd.core.notification.manager.datetime") as mdt:
+        with patch("pilotstd.core.notification._suppression_queue.datetime") as mdt:
             mdt.now.return_value = dt
             mdt.strptime = datetime.strptime
             assert mgr._is_quiet_hours() is False

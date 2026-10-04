@@ -5,7 +5,7 @@
 | 模块路径 | `pilotstd/core/` |
 | G-031 映射 | `pilotstd/core/`（2026-09-25 落地：`DOC_SYNC_MAP` 已含该条，改任何 core 文件都会要求同步本文件） |
 | 核心类 | `Database` / `ConfigManager` / `CacheManager` / `NotificationManager` |
-| 子模块数 | 87 个 `.py`（新增 `event_spec.py`：41 个通知事件 × 15 字段的规格唯一来源，2026-10-03 步 B）（**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-10-03**；顶层 = 3 个包 config / db / notification + 22 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
+| 子模块数 | 88 个 `.py`（新增 `_suppression_queue.py`：静音时段暂存与补发，2026-10-03 步 C B1）（**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-10-03**；顶层 = 3 个包 config / db / notification + 22 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
 | Schema 版本 | `CURRENT_SCHEMA_VERSION = 61`（`db/_constants.py`） |
 | 状态 | 活跃 |
 
@@ -43,6 +43,7 @@ pilotstd/core/
 │   ├── manager.py             # NotificationManager：事件 → 渠道分发 + 聚合装配（**包根改为惰性导出**，见下行；**构建器注册表由 `event_spec` 派生**，2026-10-03 步 B D2，有效行 481 → 397）
 │   ├── __init__.py            # 包根惰性导出：`NotificationManager` 改为**取用时才 import**（2026-10-03 步 B D3）——此前"导入本包"即拖入通知全栈（构建器/渠道/凭证），`config/defaults` 派生订阅规则时会被牵连；现 import 期只剩 channel/events 链
 │   ├── _manager_ops.py        # 日志/查询/清理/WS 广播（组合式 NotificationOps，2026-09-26 拆出）
+│   ├── _suppression_queue.py  # 静音时段暂存与补发（组合式 SuppressionQueue：判静音/入队/到期补发；2026-10-03 步 C B1 从 manager.py 拆出，manager 保留同名薄转发与白名单再导出）
 │   ├── channels/              # wechat / feishu / dingtalk / telegram 渠道适配
 │   ├── aggregate_buffer.py    # 聚合缓冲（窗口内合并同类事件）
 │   ├── channel.py / events.py / _policy.py / _credentials.py
