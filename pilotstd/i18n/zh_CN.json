@@ -877,5 +877,13 @@
     "notification.channel.wechat.capability_note": "企微交互卡片与回调证据缺口未闭合（缺口 1/2），本轮不启用",
     "notification.channel.api_exception": "Telegram {method} 异常: {error}",
     "notification.channel.api_failed": "Telegram {method} 返回失败: {detail}",
-    "notification.channel.api_unknown_error": "未知错误"
+    "notification.channel.api_unknown_error": "未知错误",
+    "notification.callback.bad_signature": "回调验签失败",
+    "notification.callback.bad_timestamp": "回调时间戳缺失或非法",
+    "notification.callback.stale_timestamp": "回调时间戳超出新鲜度窗口",
+    "notification.callback.secret_missing": "回调验签密钥未配置",
+    "notification.callback.channel_unsupported": "该渠道回调未启用（证据缺口未闭合）",
+    "notification.callback.action_unknown": "回调动作未知",
+    "notification.callback.forbidden": "当前用户无权执行该回调动作",
+    "notification.callback.replayed": "回调事件重复（幂等忽略）"
 }

@@ -873,5 +873,13 @@
     "notification.channel.wechat.capability_note": "WeChat Work card/callback evidence gaps remain (gaps 1-2); not enabled this round",
     "notification.channel.api_exception": "Telegram {method} exception: {error}",
     "notification.channel.api_failed": "Telegram {method} failed: {detail}",
-    "notification.channel.api_unknown_error": "unknown error"
+    "notification.channel.api_unknown_error": "unknown error",
+    "notification.callback.bad_signature": "Callback signature verification failed",
+    "notification.callback.bad_timestamp": "Callback timestamp missing or invalid",
+    "notification.callback.stale_timestamp": "Callback timestamp outside freshness window",
+    "notification.callback.secret_missing": "Callback verification secret is not configured",
+    "notification.callback.channel_unsupported": "Callbacks are not enabled for this channel (evidence gaps remain)",
+    "notification.callback.action_unknown": "Unknown callback action",
+    "notification.callback.forbidden": "The current user may not perform this callback action",
+    "notification.callback.replayed": "Duplicate callback event (idempotent ignore)"
 }
