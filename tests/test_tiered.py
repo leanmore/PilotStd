@@ -64,10 +64,16 @@ class TestContext:
         assert context[tiered.CONTEXT_ELAPSED_KEY] == 45_000.0
         assert context[tiered.CONTEXT_TIER_KEY] == "long"
 
-    def test_build_context_without_elapsed_only_sets_tier(self):
+    def test_build_context_without_elapsed_leaves_context_untouched(self):
+        """无耗时且未声明长阶段 ⇒ **不写任何键**（保持既有落库契约，避免无谓行为变更）。"""
         context = tiered.build_context(None, None)
+        assert context == {}
+        assert tiered.build_context({"biz": 1}, None) == {"biz": 1}
+
+    def test_build_context_declared_long_still_records_tier(self):
+        context = tiered.build_context(None, None, declared_long=True)
+        assert context[tiered.CONTEXT_TIER_KEY] == "long"
         assert tiered.CONTEXT_ELAPSED_KEY not in context
-        assert context[tiered.CONTEXT_TIER_KEY] == "short"
 
     def test_parse_elapsed_round_trip(self):
         context = tiered.build_context({}, 12_345.6)
@@ -160,16 +166,16 @@ class TestStageContextProbe:
         assert context[tiered.CONTEXT_TIER_KEY] == "long"
         assert context[tiered.CONTEXT_ELAPSED_KEY] >= 44_000.0
 
-    def test_first_event_has_no_elapsed_key(self):
+    def test_first_event_leaves_context_untouched(self):
+        """首条事件无上一条可比 ⇒ 不写任何键（原样落库）。"""
         ops = self._ops([])
-        context = ops._with_stage_context("task-1", None)
-        assert tiered.CONTEXT_ELAPSED_KEY not in context
-        assert context[tiered.CONTEXT_TIER_KEY] == "short"
+        assert ops._with_stage_context("task-1", None) == {}
+        assert ops._with_stage_context("task-1", {"biz": 3}) == {"biz": 3}
 
     def test_missing_task_id_skips_elapsed(self):
         ops = self._ops([{"sent_at": datetime.now().isoformat()}])
         context = ops._with_stage_context("", None)
-        assert tiered.CONTEXT_ELAPSED_KEY not in context
+        assert context == {}
 
     def test_probe_failure_does_not_break_logging(self):
         class _Bad:

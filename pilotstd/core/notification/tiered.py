@@ -73,6 +73,10 @@ def build_context(
 ) -> dict:
     """把耗时与档位**并入**既有 task_context（保留原键，不覆盖业务上下文）。"""
     context: dict = dict(existing) if isinstance(existing, dict) else {}
+    if elapsed_ms is None and not declared_long:
+        # **无耗时且未声明长阶段时不写任何键**：保持「task_context 原样落库」的既有契约
+        # （否则会改变所有历史调用方的落库结果，属不必要的行为变更）。
+        return context
     if elapsed_ms is not None:
         context[CONTEXT_ELAPSED_KEY] = round(float(elapsed_ms), 1)
     context[CONTEXT_TIER_KEY] = tier_of(elapsed_ms, declared_long)
