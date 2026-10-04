@@ -35,7 +35,7 @@ def run_check(config: Any, notify_cb: Optional[Callable] = None) -> dict:
     ip = do_detect_ip()
     if not ip:
         result["error"] = "IP 检测失败"
-        _notify(notify_cb, "IP 检测失败", "所有检测源均不可用")
+        _notify(notify_cb, "IP 检测失败", "所有检测源均不可用", status="failed")
         return result
     result["ip"] = ip
 
@@ -50,7 +50,7 @@ def run_check(config: Any, notify_cb: Optional[Callable] = None) -> dict:
     cookie = _get_cookie(config)
     if not cookie:
         result["error"] = "无法获取 Cookie"
-        _notify(notify_cb, "IP 更新失败", "无法获取企业微信 Cookie")
+        _notify(notify_cb, "IP 更新失败", "无法获取企业微信 Cookie", status="failed")
         return result
 
     # 4. 获取应用列表
@@ -75,12 +75,12 @@ def run_check(config: Any, notify_cb: Optional[Callable] = None) -> dict:
         if ok:
             config.set("wechat_ip.last_ip", ip)
             config.save()
-            _notify(notify_cb, "可信 IP 已更新", f"公网 IP 已变更为 {ip}")
+            _notify(notify_cb, "可信 IP 已更新", f"公网 IP 已变更为 {ip}", status="ok")
         else:
-            _notify(notify_cb, "IP 更新部分失败", f"失败: {', '.join(failed[:3])}")
+            _notify(notify_cb, "IP 更新部分失败", f"失败: {', '.join(failed[:3])}", status="failed")
     except BrowserError as e:
         result["error"] = str(e)
-        _notify(notify_cb, "IP 更新失败", str(e))
+        _notify(notify_cb, "IP 更新失败", str(e), status="failed")
 
     return result
 
@@ -111,11 +111,15 @@ def _get_cookie(config: Any) -> Optional[str]:
     return None
 
 
-def _notify(cb: Optional[Callable], title: str, body: str) -> None:
-    """安全调用通知回调，异常静默丢弃。"""
+def _notify(cb: Optional[Callable], title: str, body: str, status: str = "info") -> None:
+    """安全调用通知回调，异常静默丢弃。
+
+    `status` 是**机器可读**的结果标记（`ok` / `failed` / `info`）：级别由它判定，
+    不再由标题里的中文（如"失败"二字）推断——后者会让文案一改就改变通知级别。
+    """
     if cb:
         try:
-            cb(title, body)
+            cb(title, body, status)
         except Exception:
             pass
 

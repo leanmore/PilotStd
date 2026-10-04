@@ -23,9 +23,12 @@ class WechatIPService:
         cfg = self._mgr.cfg
         return cfg.get("wechat_ip.encrypt_secret") or _DEFAULT_ENCRYPT_SECRET
 
-    def _notify(self, title: str, body: str) -> None:
+    def _notify(self, title: str, body: str, status: str = "info") -> None:
+        """发送可信 IP 通知；`status` 为机器可读结果标记（T-39：级别不再由标题中文推断）。"""
         try:
-            self._mgr.notification_mgr.send_event("trust_ip_update", {"title": title, "body": body})
+            self._mgr.notification_mgr.send_event(
+                "trust_ip_update", {"title": title, "body": body, "status": status}
+            )
         except Exception as e:
             logger.warning("可信IP更新通知发送失败: %s", e)
 
@@ -102,7 +105,7 @@ class WechatIPService:
         now_enabled = cfg.get("wechat_ip.enabled", False)
         if now_enabled and not was_enabled:
             interval = int(cfg.get("wechat_ip.interval_hours", 6)) * 3600
-            start_scheduler(cfg, interval, lambda t, b: self._notify(t, b))
+            start_scheduler(cfg, interval, lambda t, b, s: self._notify(t, b, s))
         elif not now_enabled and was_enabled:
             stop_scheduler()
 
@@ -119,7 +122,7 @@ class WechatIPService:
         if cfg.get("wechat_ip.cookie_source", "") == "cookiecloud":
             _get_cookie(cfg)
 
-        result = run_check(cfg, lambda t, b: self._notify(t, b))
+        result = run_check(cfg, lambda t, b, s: self._notify(t, b, s))
         cfg.set("wechat_ip.last_check_at", datetime.now().isoformat())
         cfg.save()
         return result
@@ -161,7 +164,7 @@ class WechatIPService:
 
         cfg = self._mgr.cfg
         interval = int(cfg.get("wechat_ip.interval_hours", 6)) * 3600
-        start_scheduler(cfg, interval, lambda t, b: self._notify(t, b))
+        start_scheduler(cfg, interval, lambda t, b, s: self._notify(t, b, s))
 
     def stop_scheduler(self) -> None:
         """停止定时检测线程（app.py lifespan 用）。"""

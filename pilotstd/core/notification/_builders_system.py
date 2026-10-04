@@ -218,7 +218,8 @@ def _build_trust_ip_update_message(data: dict) -> NotificationMessage:
     # 有额外键值对信息时追加
     for k in extra_keys:
         blocks.append(KeyValueBlock(key=k, value=str(data[k])))
-    level = "warning" if "失败" in title else "info"
+    # 级别按**机器可读**结果判定（T-39）：标题是展示文案，改文案不得改变通知级别
+    level = "warning" if data.get("status", "") == "failed" else "info"
     return NotificationMessage(
         title=title,
         blocks=blocks,
