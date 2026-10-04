@@ -865,5 +865,13 @@
     "notification.channel.dingtalk.token_failed": "DingTalk access token failed: {detail}",
     "notification.channel.dingtalk.card_create_http": "DingTalk card creation HTTP {status}",
     "notification.channel.dingtalk.card_deliver_http": "DingTalk card delivery HTTP {status}",
-    "notification.channel.dingtalk.enterprise_send_failed": "DingTalk enterprise-form send failed: {error}"
+    "notification.channel.dingtalk.enterprise_send_failed": "DingTalk enterprise-form send failed: {error}",
+    "notification.channel.edit_unsupported": "This channel does not support message editing (form/anchor limitation)",
+    "notification.channel.edit_anchor_unsupported": "Unsupported edit anchor: {anchor}",
+    "notification.channel.dingtalk.capability_note": "DingTalk card update API not verified (gap 6); editing unsupported this round",
+    "notification.channel.feishu.capability_note": "Feishu is in bot-webhook form (no message_id); editing needs the self-built app form",
+    "notification.channel.wechat.capability_note": "WeChat Work card/callback evidence gaps remain (gaps 1-2); not enabled this round",
+    "notification.channel.api_exception": "Telegram {method} exception: {error}",
+    "notification.channel.api_failed": "Telegram {method} failed: {detail}",
+    "notification.channel.api_unknown_error": "unknown error"
 }

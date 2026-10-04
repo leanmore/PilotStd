@@ -3,12 +3,15 @@
 
 import json
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from urllib.request import Request, urlopen
 
 from pilotstd.i18n import t
 
 from ..channel import NotificationMessage
+
+if TYPE_CHECKING:  # pragma: no cover - 仅类型检查
+    from ..interaction import ChannelCapabilities
 from ..renderer import FeishuCardRenderer
 from .base import NotificationChannel
 
@@ -81,6 +84,20 @@ class FeishuChannel(NotificationChannel):
         return bool(config.get("webhook_url"))
 
     # ── 渠道契约（第一版修订二：继承自渠道基类的通知渠道接口） ──
+
+    @property
+    def capabilities(self) -> "ChannelCapabilities":
+        """能力自述（阶段 B 如实声明）。
+
+        钉钉/飞书可回调但**不可编辑**（钉钉卡片更新接口未取证=缺口 6；飞书现为 Webhook 形态无
+        message_id）；企微连回调也不启用（缺口 1/2 未闭合）。`note_key` 解释原因，
+        避免把"渠道限制"误判为"系统故障"。
+        """
+        from ..interaction import ChannelCapabilities
+
+        return ChannelCapabilities(
+            supports_callback=True, note_key="notification.channel.feishu.capability_note"
+        )
 
     @property
     def name(self) -> str:

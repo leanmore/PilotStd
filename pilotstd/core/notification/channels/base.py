@@ -14,9 +14,14 @@ channel.py 旧基类保留仅为公共导出兼容（__init__.py），不再被�
 """
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+from pilotstd.i18n import t
 
 from ..channel import NotificationMessage
+
+if TYPE_CHECKING:  # pragma: no cover - 仅类型检查
+    from ..interaction import ChannelCapabilities, MessageHandle
 
 
 class NotificationChannel(ABC):
@@ -33,6 +38,27 @@ class NotificationChannel(ABC):
     @abstractmethod
     def test(self) -> bool:
         """发送一条测试消息验证渠道连通性，返回是否发送成功。"""
+
+    @property
+    def capabilities(self) -> "ChannelCapabilities":
+        """渠道交互能力（默认：不支持回调、不支持编辑）。
+
+        渠道按自身形态覆盖；**不能编辑不等于故障**——四家锚点本就不同（设计 §四 结论 3），
+        缺失是能力事实，`ChannelCapabilities.note_key` 负责解释原因。
+        """
+        from ..interaction import ChannelCapabilities
+
+        return ChannelCapabilities()
+
+    def edit_message(self, handle: "MessageHandle", message: NotificationMessage) -> bool:
+        """按改写句柄更新已发出的消息（默认不支持）。
+
+        默认实现返回 False 并写 `last_error`（与 `send()` 同口径：失败必须可见），
+        由具备能力的渠道覆盖。
+        """
+        del handle, message
+        self.last_error = t("notification.channel.edit_unsupported")
+        return False
 
     @property
     @abstractmethod

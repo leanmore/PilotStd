@@ -5,7 +5,7 @@
 | 模块路径 | `pilotstd/core/` |
 | G-031 映射 | `pilotstd/core/`（2026-09-25 落地：`DOC_SYNC_MAP` 已含该条，改任何 core 文件都会要求同步本文件） |
 | 核心类 | `Database` / `ConfigManager` / `CacheManager` / `NotificationManager` |
-| 子模块数 | 89 个 `.py`（新增 `_dispatcher.py`：发送编排，2026-10-03 步 C B2）（**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-10-03**；顶层 = 3 个包 config / db / notification + 22 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
+| 子模块数 | 90 个 `.py`（新增 `_dispatcher.py`：发送编排，2026-10-03 步 C B2）（**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-10-03**；顶层 = 3 个包 config / db / notification + 22 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
 | Schema 版本 | `CURRENT_SCHEMA_VERSION = 61`（`db/_constants.py`） |
 | 状态 | 活跃 |
 
@@ -43,6 +43,11 @@ pilotstd/core/
 │   ├── manager.py             # NotificationManager：事件 → 渠道分发 + 聚合装配（**包根改为惰性导出**，见下行；**构建器注册表由 `event_spec` 派生**，2026-10-03 步 B D2，有效行 481 → 397）
 │   ├── __init__.py            # 包根惰性导出：`NotificationManager` 改为**取用时才 import**（2026-10-03 步 B D3）——此前"导入本包"即拖入通知全栈（构建器/渠道/凭证），`config/defaults` 派生订阅规则时会被牵连；现 import 期只剩 channel/events 链
 │   ├── _manager_ops.py        # 日志/查询/清理/WS 广播（组合式 NotificationOps，2026-09-26 拆出）
+│   ├── interaction.py — 交互能力底座（阶段 B 基础先行，2026-10-03）
+│   │    `ChannelCapabilities`（能否回调/能否编辑/编辑锚点/说明键）+ `MessageHandle`
+│   │    （渠道无关改写句柄 `(channel, anchor, value)`；锚点闭集 `message_id` / `out_track_id`）。
+│   │    渠道 `capabilities` 如实声明：TG 可回调+可编辑；钉钉/飞书可回调不可编辑（缺口 6 /
+│   │    Webhook 形态无 message_id）；企微两者皆不启用（缺口 1/2 未闭合）。
 │   ├── channels/dingtalk.py — 钉钉渠道：**双读**（阶段 S，2026-10-03）
 │   │    旧形态＝群机器人 Webhook + 可选加签（逐字保留）；企业级形态＝应用凭证 + 机器人编码
 │   │    + 卡片模板 ID + 群会话 ID，经 `/v1.0/oauth2/accessToken` 取令牌后创建并投递互动卡片。

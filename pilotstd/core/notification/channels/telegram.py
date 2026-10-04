@@ -4,13 +4,17 @@
 import json
 import logging
 import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 from pilotstd.i18n import t
 
 from ..channel import NotificationMessage
+from ..interaction import ANCHOR_MESSAGE_ID
+
+if TYPE_CHECKING:  # pragma: no cover - 仅类型检查
+    from ..interaction import ChannelCapabilities, MessageHandle
 from ..renderer import TelegramRenderer
 from .base import NotificationChannel
 
@@ -199,6 +203,65 @@ class TelegramChannel(NotificationChannel):
         self._last_error_key = msg
         self._last_error_time = now
         logger.error(msg)
+
+    # ── 交互能力（阶段 B）──
+
+    @property
+    def capabilities(self) -> "ChannelCapabilities":
+        """Telegram 是四家中唯一形态已就绪的渠道：可回调、可编辑，锚点为 message_id。"""
+        from ..interaction import ChannelCapabilities
+
+        return ChannelCapabilities(
+            supports_callback=True, supports_edit=True, edit_anchor=ANCHOR_MESSAGE_ID
+        )
+
+    def edit_message(self, handle: "MessageHandle", message: NotificationMessage) -> bool:
+        """按 `message_id` 更新已发出的消息（Telegram `editMessageText`）。
+
+        与 `send()` 同口径：失败写 `last_error` 并返回 False；只做**一次**尝试
+        （编辑是低频补偿动作，不引入与发送相同的重试放大）。
+        """
+        self.last_error = ""
+        if handle.anchor != ANCHOR_MESSAGE_ID:
+            self.last_error = t("notification.channel.edit_anchor_unsupported").format(
+                anchor=handle.anchor
+            )
+            return False
+        return self._call_api(
+            "editMessageText",
+            {
+                "chat_id": self._chat_id,
+                "message_id": handle.value,
+                "text": self._renderer.render(message),
+            },
+        )
+
+    def _call_api(self, method: str, payload: dict) -> bool:
+        """调用 Bot API 的单个方法（编辑等低频动作），失败写 last_error 并返回 False。"""
+        url = f"https://api.telegram.org/bot{self._token}/{method}"
+        body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        req = Request(url, data=body, headers={"Content-Type": "application/json"}, method="POST")
+        try:
+            with urlopen(req, timeout=10) as resp:
+                if resp.status != 200:
+                    self.last_error = f"Telegram {method} HTTP {resp.status}"
+                    logger.warning("Telegram %s HTTP %d", method, resp.status)
+                    return False
+                data = json.loads(resp.read().decode("utf-8"))
+        except Exception as e:
+            api_error = t("notification.channel.api_exception").format(method=method, error=e)
+            self.last_error = api_error
+            logger.warning("%s", api_error, exc_info=True)
+            return False
+        if data.get("ok") is True:
+            return True
+        api_error = t("notification.channel.api_failed").format(
+            method=method,
+            detail=data.get("description") or t("notification.channel.api_unknown_error"),
+        )
+        self.last_error = api_error
+        logger.warning("%s", api_error)
+        return False
 
     @staticmethod
     def validate_config(config: dict) -> bool:
