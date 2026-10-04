@@ -397,12 +397,32 @@ class TestSystemBuildersSnapshot:
         assert msg.event_type == "trust_ip_update"
         assert any(isinstance(b, KeyValueBlock) for b in msg.blocks)
 
-    def test_trust_ip_update_failure_keyword(self):
-        msg = _build_trust_ip_update_message({
+    def test_trust_ip_update_failure_status(self):
+        """级别由**机器可读** `status` 判定（T-39：标题里的中文不再参与逻辑）。
+
+        三条断言锁住修复：① `status="failed"` → warning；② 标题含"失败"但无 `status`
+        → **info**（旧实现会判 warning，这正是要根治的"改文案即改级别"）；
+        ③ `status="ok"` → info。
+        """
+        failed = _build_trust_ip_update_message({
+            "title": "可信 IP 更新失败",
+            "body": "连接超时",
+            "status": "failed",
+        })
+        assert failed.level == "warning"
+
+        keyword_only = _build_trust_ip_update_message({
             "title": "可信 IP 更新失败",
             "body": "连接超时",
         })
-        assert msg.level == "warning"
+        assert keyword_only.level == "info"
+
+        ok = _build_trust_ip_update_message({
+            "title": "可信 IP 已更新",
+            "body": "公网 IP 已变更",
+            "status": "ok",
+        })
+        assert ok.level == "info"
 
     # ── _build_worker_error_message ──
 

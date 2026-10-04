@@ -167,8 +167,8 @@ def _e2e_module():
     return _E2E_MODULE
 
 
-def _frontend_event_keys() -> set[str]:
-    """前端事件清单里出现的字面量事件键（用户可勾选的集合）。"""
+def _frontend_literal_event_keys() -> set[str]:
+    """前端源码里**字面量**出现的事件键（D5 后应为空——用于防"硬编码回填"）。"""
     keys = set(ALL_EVENT_KEYS)
     found: set[str] = set()
     for line in VUE_FILE.read_text(encoding="utf-8").splitlines():
@@ -176,6 +176,17 @@ def _frontend_event_keys() -> set[str]:
             if token in keys:
                 found.add(token)
     return found
+
+
+def _frontend_visible_event_keys() -> set[str]:
+    """前端**渲染**的可勾选事件键：D5 起由后端接口派生（前端零硬编码）。
+
+    改前口径＝解析组件里的字面量键；D5 把该清单搬到 `GET /api/notification/spec`
+    （`subscribable=True` 的事件），故此处取**端点实现**的返回值。
+    """
+    from docker.api.notification_config import get_notification_spec
+
+    return set(get_notification_spec()["events"])
 
 
 def _packs() -> dict[str, dict[str, str]]:
@@ -393,10 +404,13 @@ class TestCrossLayerConsistency(unittest.TestCase):
             self.assertEqual(spec.security, expected, spec.key)
 
     def test_subscribable_matches_frontend_list(self):
-        """是否可勾选必须等于前端事件清单的字面量集合（两个字段不同轴）。"""
-        visible = _frontend_event_keys()
+        """是否可勾选必须等于前端渲染集合（D5 后由后端端点派生），且前端不得回填字面量。"""
+        visible = _frontend_visible_event_keys()
         declared = {s.key for s in EVENT_SPECS if s.subscribable}
         self.assertEqual(declared, visible)
+        # D5 回归护栏：组件源码里不得再出现事件键字面量（否则"前端零硬编码"失效）
+        literals = _frontend_literal_event_keys()
+        self.assertEqual(literals, set(), f"前端不应再硬编码事件键：{sorted(literals)[:5]}")
         self.assertTrue({s.key for s in EVENT_SPECS if s.default_channels} - visible, "两字段应不同轴")
 
 
@@ -429,6 +443,9 @@ class TestScopeOfThisSubStep(unittest.TestCase):
             "pilotstd/core/config/defaults.py",
             "pilotstd/core/notification/manager.py",
             "tests/test_notification_e2e.py",
+            # D5：可订阅事件清单改由后端端点下发（前端零硬编码）⇒ 端点与其测试是合法消费方
+            "docker/api/notification_config.py",
+            "tests/test_notification_api.py",
         }
         self_relative = SPEC_FILE.relative_to(ROOT).as_posix()
         this_file = Path(__file__).resolve().relative_to(ROOT).as_posix()
