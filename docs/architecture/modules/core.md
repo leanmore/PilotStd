@@ -43,6 +43,11 @@ pilotstd/core/
 │   ├── manager.py             # NotificationManager：事件 → 渠道分发 + 聚合装配（**包根改为惰性导出**，见下行；**构建器注册表由 `event_spec` 派生**，2026-10-03 步 B D2，有效行 481 → 397）
 │   ├── __init__.py            # 包根惰性导出：`NotificationManager` 改为**取用时才 import**（2026-10-03 步 B D3）——此前"导入本包"即拖入通知全栈（构建器/渠道/凭证），`config/defaults` 派生订阅规则时会被牵连；现 import 期只剩 channel/events 链
 │   ├── _manager_ops.py        # 日志/查询/清理/WS 广播（组合式 NotificationOps，2026-09-26 拆出）
+│   ├── channels/dingtalk.py — 钉钉渠道：**双读**（阶段 S，2026-10-03）
+│   │    旧形态＝群机器人 Webhook + 可选加签（逐字保留）；企业级形态＝应用凭证 + 机器人编码
+│   │    + 卡片模板 ID + 群会话 ID，经 `/v1.0/oauth2/accessToken` 取令牌后创建并投递互动卡片。
+│   │    优先级：企业级字段齐全 ⇒ 企业级；否则回落 Webhook；两者都配 ⇒ 企业级优先（记一行 info）。
+│   │    卡片负载结构在渲染层（`renderer.DingTalkCardRenderer.render_card`），渠道层只负责投递。
 │   ├── notification_aggregator.py（顶层）— 桌面聚合适配层；2026-10-03 新增公开 `topic_of(title, body)`
 │   │                            # （`_extract_topic` 的只读入口），供托盘分档节流与聚合分组**同源**
 │   ├── _suppression_queue.py  # 静音时段暂存与补发（组合式 SuppressionQueue：判静音/入队/到期补发；2026-10-03 步 C B1 从 manager.py 拆出，manager 保留同名薄转发与白名单再导出）

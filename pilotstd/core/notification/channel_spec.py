@@ -183,8 +183,18 @@ CHANNEL_SPECS: tuple[ChannelSpec, ...] = (
         icon="pi pi-bolt",
         enabled_default=False,
         hint_key="",
-        ctor=("webhook_url", "secret"),
-        ctor_required=("webhook_url",),
+        # 双读（方案 A2）：新字段齐全走企业级形态，否则回落旧群机器人；两者都配时新优先。
+        # ctor_required 为空是**有意**的：两种形态各自完整即可，没有单个字段是必需的。
+        ctor=(
+            "webhook_url",
+            "secret",
+            "app_key",
+            "app_secret",
+            "robot_code",
+            "card_template_id",
+            "open_conversation_id",
+        ),
+        ctor_required=(),
         fields=(
             FieldSpec(
                 name="webhook_url",
@@ -205,10 +215,52 @@ CHANNEL_SPECS: tuple[ChannelSpec, ...] = (
                 password=True,
                 placeholder="SEC...",
             ),
+            # ── 企业级互动卡片形态（阶段 S；方案 A1：新增而非替换）──
+            FieldSpec(
+                name="app_key",
+                type="password",
+                label_key="notification.config.dingtalk.app_key_label",
+                badge_key="notification.config.optional_short",
+                mask=True,
+                password=True,
+            ),
+            FieldSpec(
+                name="app_secret",
+                type="password",
+                label_key="notification.config.dingtalk.app_secret_label",
+                badge_key="notification.config.optional_short",
+                mask=True,
+                password=True,
+            ),
+            FieldSpec(
+                name="robot_code",
+                type="string",
+                label_key="notification.config.dingtalk.robot_code_label",
+                badge_key="notification.config.optional_short",
+            ),
+            FieldSpec(
+                name="card_template_id",
+                type="string",
+                label_key="notification.config.dingtalk.card_template_id_label",
+                badge_key="notification.config.optional_short",
+            ),
+            # 投递目标：企业级形态必须有群会话锚点（方案 A1 的 4 个凭证之外的必要项，
+            # 旧形态的等价物是 webhook_url 自身——见提交说明的差异披露）
+            FieldSpec(
+                name="open_conversation_id",
+                type="string",
+                label_key="notification.config.dingtalk.open_conversation_id_label",
+                badge_key="notification.config.optional_short",
+            ),
         ),
         status_rule=StatusRule(
             branches=(
-                StatusBranch(all_of=("webhook_url",), label_key="notification.config.status.configured"),
+                # 企业级形态优先（与双读优先级一致）
+                StatusBranch(
+                    all_of=("app_key", "app_secret", "robot_code", "card_template_id", "open_conversation_id"),
+                    label_key="notification.config.status.app_message",
+                ),
+                StatusBranch(all_of=("webhook_url",), label_key="notification.config.status.group_robot"),
             ),
             fallback_key="notification.config.status.pending",
         ),

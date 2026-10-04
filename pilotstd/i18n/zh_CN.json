@@ -858,5 +858,16 @@
     "task_detail_error": "错误明细：{error}",
     "task_detail_result": "结果明细：{result}",
     "tray_events_disabled": "已关闭桌面托盘事件分流（notification.windows_tray_events=False）",
-    "task_register_failed": "任务记录失败: {error}"
+    "task_register_failed": "任务记录失败: {error}",
+    "notification.config.dingtalk.app_key_label": "应用 AppKey",
+    "notification.config.dingtalk.app_secret_label": "应用 AppSecret",
+    "notification.config.dingtalk.robot_code_label": "机器人编码",
+    "notification.config.dingtalk.card_template_id_label": "卡片模板 ID",
+    "notification.config.dingtalk.open_conversation_id_label": "群会话 ID（openConversationId）",
+    "notification.config.dingtalk.enterprise_hint": "填齐应用凭证即走企业级互动卡片；留空则用上面的群机器人 Webhook",
+    "notification.channel.dingtalk.enterprise_dual_read": "钉钉：企业级形态与群机器人同时配置，按双读优先级使用企业级形态",
+    "notification.channel.dingtalk.token_failed": "钉钉取令牌失败: {detail}",
+    "notification.channel.dingtalk.card_create_http": "钉钉卡片创建 HTTP {status}",
+    "notification.channel.dingtalk.card_deliver_http": "钉钉卡片投递 HTTP {status}",
+    "notification.channel.dingtalk.enterprise_send_failed": "钉钉企业级形态发送失败: {error}"
 }

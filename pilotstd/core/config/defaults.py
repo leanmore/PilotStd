@@ -60,6 +60,12 @@ FACTORY_DEFAULTS = {
     "notification.windows_tray_throttle": True,
     "notification.channels.wechat.enabled": True,
     "notification.channels.wechat.webhook_url": "",
+    # 阶段 S：钉钉企业级形态（方案 A1/A2——新增而非替换，旧 webhook_url/secret 保留）
+    "notification.channels.dingtalk.app_key": "",
+    "notification.channels.dingtalk.app_secret": "",
+    "notification.channels.dingtalk.robot_code": "",
+    "notification.channels.dingtalk.card_template_id": "",
+    "notification.channels.dingtalk.open_conversation_id": "",
     "notification.channels.telegram.enabled": False,
     "notification.channels.telegram.bot_token": "",
     "notification.channels.telegram.chat_id": "",

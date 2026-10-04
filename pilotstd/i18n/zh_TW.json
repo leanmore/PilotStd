@@ -775,5 +775,16 @@
     "task_detail_error": "錯誤明細：{error}",
     "task_detail_result": "結果明細：{result}",
     "tray_events_disabled": "已關閉桌面托盤事件分流（notification.windows_tray_events=False）",
-    "task_register_failed": "任務記錄失敗: {error}"
+    "task_register_failed": "任務記錄失敗: {error}",
+    "notification.config.dingtalk.app_key_label": "應用 AppKey",
+    "notification.config.dingtalk.app_secret_label": "應用 AppSecret",
+    "notification.config.dingtalk.robot_code_label": "機器人編碼",
+    "notification.config.dingtalk.card_template_id_label": "卡片範本 ID",
+    "notification.config.dingtalk.open_conversation_id_label": "群會話 ID（openConversationId）",
+    "notification.config.dingtalk.enterprise_hint": "填齊應用憑證即走企業級互動卡片；留空則用上面的群機器人 Webhook",
+    "notification.channel.dingtalk.enterprise_dual_read": "釘釘：企業級形態與群機器人同時配置，按雙讀優先級使用企業級形態",
+    "notification.channel.dingtalk.token_failed": "釘釘取令牌失敗: {detail}",
+    "notification.channel.dingtalk.card_create_http": "釘釘卡片建立 HTTP {status}",
+    "notification.channel.dingtalk.card_deliver_http": "釘釘卡片投遞 HTTP {status}",
+    "notification.channel.dingtalk.enterprise_send_failed": "釘釘企業級形態傳送失敗: {error}"
 }

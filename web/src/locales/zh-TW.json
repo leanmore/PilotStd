@@ -954,7 +954,13 @@
         "secret_placeholder": "加簽金鑰"
       },
       "dingtalk": {
-        "secret_label": "加簽 Secret"
+        "secret_label": "加簽 Secret",
+        "app_key_label": "應用 AppKey",
+        "app_secret_label": "應用 AppSecret",
+        "robot_code_label": "機器人編碼",
+        "card_template_id_label": "卡片範本 ID",
+        "open_conversation_id_label": "群會話 ID（openConversationId）",
+        "enterprise_hint": "填齊應用憑證即走企業級互動卡片；留空則用上方的群機器人 Webhook"
       },
       "quiet_hours": {
         "title": "靜音時段",

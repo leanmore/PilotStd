@@ -954,7 +954,13 @@
         "secret_placeholder": "Signing key"
       },
       "dingtalk": {
-        "secret_label": "Signing Secret"
+        "secret_label": "Signing Secret",
+        "app_key_label": "App Key",
+        "app_secret_label": "App Secret",
+        "robot_code_label": "Robot Code",
+        "card_template_id_label": "Card Template ID",
+        "open_conversation_id_label": "Group Conversation ID",
+        "enterprise_hint": "Fill the app credentials to use enterprise interactive cards; leave empty to use the group-bot webhook above"
       },
       "quiet_hours": {
         "title": "Quiet Hours",

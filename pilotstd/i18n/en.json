@@ -854,5 +854,16 @@
     "task_detail_error": "Error details: {error}",
     "task_detail_result": "Result details: {result}",
     "tray_events_disabled": "Desktop tray event routing disabled (notification.windows_tray_events=False)",
-    "task_register_failed": "Failed to record the task: {error}"
+    "task_register_failed": "Failed to record the task: {error}",
+    "notification.config.dingtalk.app_key_label": "App Key",
+    "notification.config.dingtalk.app_secret_label": "App Secret",
+    "notification.config.dingtalk.robot_code_label": "Robot Code",
+    "notification.config.dingtalk.card_template_id_label": "Card Template ID",
+    "notification.config.dingtalk.open_conversation_id_label": "Group Conversation ID",
+    "notification.config.dingtalk.enterprise_hint": "Fill the app credentials to use enterprise interactive cards; leave empty to use the group-bot webhook above",
+    "notification.channel.dingtalk.enterprise_dual_read": "DingTalk: both enterprise and group-bot forms are configured; enterprise form takes priority",
+    "notification.channel.dingtalk.token_failed": "DingTalk access token failed: {detail}",
+    "notification.channel.dingtalk.card_create_http": "DingTalk card creation HTTP {status}",
+    "notification.channel.dingtalk.card_deliver_http": "DingTalk card delivery HTTP {status}",
+    "notification.channel.dingtalk.enterprise_send_failed": "DingTalk enterprise-form send failed: {error}"
 }

@@ -418,6 +418,35 @@ class FeishuCardRenderer(BlockRenderer):
 # ═══════════════════════════════════════════════════════════════════════════ 分隔
 
 
+class DingTalkCardRenderer(BlockRenderer):
+    """钉钉互动卡片渲染器（阶段 S）。
+
+    **为什么不用 `render()` 覆盖**：基类 `render()` 声明返回 `str`，返回 dict 的覆盖需要
+    `# type: ignore[override]`（既有 `FeishuCardRenderer` 如此）。本项目禁止类型忽略指令，
+    故本渲染器单独提供 `render_card()`，由渠道层显式调用。
+
+    **模板参数契约**：钉钉卡片模板由**租户自行创建**，其变量名由模板定义；本渲染器统一产出
+    三个参数名（`title` / `content` / `level`），租户建模板时按此命名即可。
+    """
+
+    def render_card(self, message: NotificationMessage) -> dict:
+        """把通知消息渲染为钉钉卡片实例的 `cardData`（`cardParamMap` 形态）。"""
+        blocks: list[NotificationBlock] = getattr(message, "blocks", [])
+        parts: list[str] = []
+        for block in blocks:
+            rendered = self._render_block(block)
+            if isinstance(rendered, str) and rendered:
+                parts.append(rendered)
+        content = "\n\n".join(parts) if parts else (message.body or "")
+        return {
+            "cardParamMap": {
+                "title": message.title or "",
+                "content": content,
+                "level": message.level or "info",
+            }
+        }
+
+
 class DesktopRenderer(BlockRenderer):
     """桌面 Toast 渲染器——极致精简，仅做摘要预览。
 

@@ -23,17 +23,42 @@ from pilotstd.core.notification.channel_spec import (  # noqa: E402
 # 字面量基线（独立于 spec，用于检出 spec 内容的静默变更）
 EXPECTED_FIELD_NAMES = {
     "wechat": {"webhook_url", "corpid", "agentid", "corpsecret", "proxy_url"},
-    "dingtalk": {"webhook_url", "secret"},
+    # 阶段 S（方案 A1）：企业级形态新增 4 凭证 + 1 投递目标；旧两字段保留（双读）
+    "dingtalk": {
+        "webhook_url",
+        "secret",
+        "app_key",
+        "app_secret",
+        "robot_code",
+        "card_template_id",
+        "open_conversation_id",
+    },
     "feishu": {"webhook_url", "secret"},
     "telegram": {"bot_token", "chat_id"},
 }
 EXPECTED_CTOR = {
     "wechat": ("webhook_url",),
-    "dingtalk": ("webhook_url", "secret"),
+    "dingtalk": (
+        "webhook_url",
+        "secret",
+        "app_key",
+        "app_secret",
+        "robot_code",
+        "card_template_id",
+        "open_conversation_id",
+    ),
     "feishu": ("webhook_url", "secret"),
     "telegram": ("bot_token", "chat_id"),
 }
-EXPECTED_MASKED = {"webhook_url", "bot_token", "secret", "corpsecret"}
+EXPECTED_MASKED = {
+    "webhook_url",
+    "bot_token",
+    "secret",
+    "corpsecret",
+    # 阶段 S：应用凭证同样属敏感面（API 响应掩码 + 表单密码控件）
+    "app_key",
+    "app_secret",
+}
 
 
 class TestSpecSelfConsistency(unittest.TestCase):
@@ -97,7 +122,7 @@ class TestSpecLiteralBaseline(unittest.TestCase):
             self.assertEqual(spec.ctor, EXPECTED_CTOR[spec.name], spec.name)
 
     def test_masked_fields_match_baseline(self):
-        """掩码字段集合必须等于既有硬编码四项（安全面零变更）。"""
+        """掩码字段集合必须等于基线（阶段 S 起含钉钉应用凭证：app_key/app_secret）。"""
         self.assertEqual(set(masked_field_names()), EXPECTED_MASKED)
 
     def test_mask_and_password_are_independent(self):
