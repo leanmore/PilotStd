@@ -401,3 +401,14 @@ def test_three_layer_channel_consistency(notif_client_and_db, notif_cookies):
     if fe_keys:
         assert fe_keys == spec_keys, f"前端 {sorted(fe_keys)} 与 spec 不一致——三层漂移"
     assert not (fe_keys - spec_keys), "前端不得出现 spec 未声明的渠道"
+
+
+def test_spec_endpoint_returns_subscribable_events():
+    """D5：可订阅事件清单来自事件规格（前端零硬编码），集合与规格逐条一致。"""
+    from docker.api.notification_config import get_notification_spec
+    from pilotstd.core.notification.event_spec import EVENT_SPECS
+
+    payload = get_notification_spec()
+    expected = [s.key for s in EVENT_SPECS if s.subscribable]
+    assert payload["events"] == expected
+    assert len(payload["events"]) == 35

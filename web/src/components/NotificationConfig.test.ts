@@ -7,11 +7,12 @@ import zhCN from '@/locales/zh-CN.json'
 import en from '@/locales/en.json'
 import NotificationConfig from './NotificationConfig.vue'
 
-const { getNotificationConfigMock, putNotificationConfigMock, testNotificationMock, getNotificationChannelsMock } = vi.hoisted(() => ({
+const { getNotificationConfigMock, putNotificationConfigMock, testNotificationMock, getNotificationChannelsMock, getNotificationSpecMock } = vi.hoisted(() => ({
   getNotificationConfigMock: vi.fn(),
   putNotificationConfigMock: vi.fn(),
   testNotificationMock: vi.fn(),
   getNotificationChannelsMock: vi.fn(),
+  getNotificationSpecMock: vi.fn(),
 }))
 
 vi.mock('@/api/notification', () => ({
@@ -19,6 +20,7 @@ vi.mock('@/api/notification', () => ({
   putNotificationConfig: putNotificationConfigMock,
   testNotification: testNotificationMock,
   getNotificationChannels: getNotificationChannelsMock,
+  getNotificationSpec: getNotificationSpecMock,
 }))
 /** 渠道元数据夹具：形状与 `GET /api/notification/channels` 一致（字段取最小可用集） */
 const CHANNEL_FIXTURE = {
@@ -58,6 +60,26 @@ function makeI18n(locale: 'zh-CN' | 'en' = 'zh-CN') {
   return i18n
 }
 
+/**
+ * 可订阅事件夹具：形状与 `GET /api/notification/spec` 一致。
+ * 取**完整 35 条**（= 后端规格 `subscribable=True` 的集合）——既有用例会断言其中若干条的事件文案，
+ * 故默认夹具必须与生产一致；"零硬编码"的判据由专门用例用**小集合**反向验证。
+ */
+const EVENT_SPEC_FIXTURE = {
+  events: [
+    'archive_complete', 'standard_status_changed', 'standard_first_registered',
+    'announcement_fetch_complete', 'auto_backup', 'announcement_check_complete',
+    'auto_scan_failed', 'batch_download_complete', 'validity_batch_report',
+    'validity_round_summary', 'validity_standard_failed', 'validity_system_failed',
+    'favorite_created', 'download_started', 'download_complete', 'download_failed',
+    'archive_abandoned', 'archive_failed', 'normalize_complete', 'normalize_failed',
+    'scan_complete', 'scan_empty', 'batch_query_summary', 'query_failed', 'query_empty',
+    'expire_standard_moved', 'replacement_not_found', 'announcement_fetch_failed',
+    'announce_fetch_summary', 'date_reminder', 'task_execution_failed', 'quota_exhausted',
+    'trust_ip_update', 'image_update_available', 'worker_error',
+  ],
+}
+
 function mountConfig(locale: 'zh-CN' | 'en' = 'zh-CN') {
   localStorage.clear()
   return mount(NotificationConfig, {
@@ -77,6 +99,7 @@ describe('NotificationConfig', () => {
     vi.clearAllMocks()
     localStorage.clear()
     getNotificationChannelsMock.mockResolvedValue(CHANNEL_FIXTURE)
+    getNotificationSpecMock.mockResolvedValue(EVENT_SPEC_FIXTURE)
     getNotificationConfigMock.mockResolvedValue({
       enabled: true,
       channels: {
@@ -95,6 +118,23 @@ describe('NotificationConfig', () => {
     await wrapper.vm.$nextTick()
 
     expect(wrapper.html()).toContain('启用通知')
+  })
+
+  it('事件选项由 API 返回集合渲染（D5：前端零硬编码）', async () => {
+    // 只给 3 条：若组件仍硬编码，就会渲染出集合外的事件，本用例即红
+    getNotificationSpecMock.mockResolvedValue({ events: ['archive_complete', 'scan_complete', 'trust_ip_update'] })
+    const wrapper = mountConfig()
+    await new Promise(r => setTimeout(r, 10))
+    await wrapper.vm.$nextTick()
+    await wrapper.vm.$nextTick()
+
+    const html = wrapper.html()
+    // 判据：渲染出的选项集合 == API 返回集合
+    for (const ev of ['archive_complete', 'scan_complete', 'trust_ip_update']) {
+      expect(html).toContain(`id="wechat-${ev}"`)
+    }
+    // 未在 API 集合中的事件不得出现（证明不是硬编码渲染）
+    expect(html).not.toContain('id="wechat-validity_batch_report"')
   })
 
   it('渲染四个渠道标签（企业微信/Telegram/飞书/钉钉）', async () => {

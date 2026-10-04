@@ -137,6 +137,16 @@ export interface NotificationChannelsResponse {
 export const getNotificationChannels = (routeTag?: RouteTag): Promise<NotificationChannelsResponse> =>
   http.get('/notification/channels', { routeTag }).then(r => r.data)
 
+// ── 可订阅事件清单（D5 新增）：`GET /api/notification/spec` ──
+// 事件的**唯一事实来源**是后端事件规格（`event_spec.py`）；前端不再硬编码事件清单。
+export interface NotificationSpecResponse {
+  /** 可订阅事件的 `event_type` 原值（顺序即规格声明顺序） */
+  events: string[]
+}
+
+export const getNotificationSpec = (routeTag?: RouteTag): Promise<NotificationSpecResponse> =>
+  http.get('/notification/spec', { routeTag }).then(r => r.data)
+
 export const putNotificationConfig = (data: NotificationConfigUpdate): Promise<{ ok: boolean }> =>
   http.put('/notification/config', data).then(r => r.data)
 

@@ -15,7 +15,7 @@ import Tag from 'primevue/tag'
 import AppCalendar from '@/components/AppCalendar.vue'
 import {
   getNotificationConfig, putNotificationConfig, testNotification,
-  getNotificationChannels, getNotificationPolicies, putNotificationPolicy,
+  getNotificationChannels, getNotificationSpec, getNotificationPolicies, putNotificationPolicy,
   type ChannelFieldSpec, type ChannelSpec, type NotificationConfigUpdate,
 } from '@/api/notification'
 
@@ -50,43 +50,9 @@ const errMsg = ref('')
 const testResults = ref<Record<string, string>>({})
 
 // 可订阅的事件类型（后端 event_type 原值）；文案 key = notification.event.<type>（与日志页共用）
-const EVENTS = [
-  'archive_complete',
-  'standard_status_changed',
-  'standard_first_registered',
-  'announcement_fetch_complete',
-  'auto_backup',
-  'announcement_check_complete',
-  'auto_scan_failed',
-  'batch_download_complete',
-  'validity_batch_report',
-  'validity_round_summary',
-  'validity_standard_failed',
-  'validity_system_failed',
-  'favorite_created',
-  'download_started',
-  'download_complete',
-  'download_failed',
-  'archive_abandoned',
-  'archive_failed',
-  'normalize_complete',
-  'normalize_failed',
-  'scan_complete',
-  'scan_empty',
-  'batch_query_summary',
-  'query_failed',
-  'query_empty',
-  'expire_standard_moved',
-  'replacement_not_found',
-  'announcement_fetch_failed',
-  'announce_fetch_summary',
-  'date_reminder',
-  'task_execution_failed',
-  'quota_exhausted',
-  'trust_ip_update',
-  'image_update_available',
-  'worker_error',
-]
+// 可订阅的事件类型（**来自后端事件规格**，D5：前端零硬编码）；
+// 文案 key = notification.event.<type>（与日志页共用）
+const EVENTS = ref<string[]>([])
 
 /** 渠道折叠状态（按 spec 的渠道名动态构建，不再硬编码 4 键） */
 const channelOpen = ref<Record<string, boolean>>({})
@@ -153,6 +119,7 @@ function statusSeverity(spec: ChannelSpec): 'success' | 'secondary' {
  */
 async function loadChannelSpecs(force = false) {
   const resp = await getNotificationChannels('/settings')
+  EVENTS.value = (await getNotificationSpec('/settings')).events
   if (!force && specHash.value === resp.spec_hash && specs.value.length) return
   specHash.value = resp.spec_hash
   specs.value = resp.channels
@@ -183,7 +150,7 @@ async function loadConfig() {
       form.enabled = Boolean(sc.enabled ?? false)
       for (const f of spec.fields) form.fields[f.name] = String(sc[f.name] ?? '')
       const events: string[] = []
-      for (const ev of EVENTS) {
+      for (const ev of EVENTS.value) {
         if (cfg.rules?.[ev]?.includes(spec.name)) events.push(ev)
       }
       form.events = events
@@ -207,7 +174,7 @@ async function saveConfig() {
   saving.value = true; saved.value = false; errMsg.value = ''
   try {
     const newRules: Record<string, string[]> = {}
-    for (const ev of EVENTS) {
+    for (const ev of EVENTS.value) {
       newRules[ev] = specs.value
         .filter((spec) => ((channels.value[spec.name]?.events ?? []) as string[]).includes(ev))
         .map((spec) => spec.name)

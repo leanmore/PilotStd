@@ -1,5 +1,6 @@
 # 容器//脚本—通知配置与渠道凭据接口（步 C：按职责自 notification.py 拆出）
-"""通知配置与渠道凭据接口：GET/PUT `/api/notification/config`、GET `/api/notification/channels`。
+"""通知配置与渠道凭据接口：GET/PUT `/api/notification/config`、GET `/api/notification/channels`、
+GET `/api/notification/spec`（可订阅事件清单，D5 新增）。
 
 **端点路径与请求/响应 schema 与拆分前逐字一致**（约束 D-1/D-2）；本模块只做搬迁，不改逻辑。
 """
@@ -19,6 +20,7 @@ from pilotstd.core.notification.channel_spec import (
     spec_hash,
     spec_payload,
 )
+from pilotstd.core.notification.event_spec import EVENT_SPECS
 from pilotstd.core.notification.events import ALL_EVENT_KEYS
 from pilotstd.core.notification.security_notifier import client_ip, notify_credential_change
 from pilotstd.i18n import t
@@ -159,6 +161,16 @@ def get_notification_channels() -> dict:
     """
     payload = spec_payload()
     return {"spec_hash": spec_hash(payload), **payload}
+
+
+@router.get("/api/notification/spec")
+def get_notification_spec() -> dict:
+    """可订阅事件清单（**唯一来源＝事件规格**）：供前端渲染事件选项。
+
+    前端不再硬编码事件清单（设计 §1.3 D5）：`subscribable=True` 的事件才可被用户订阅
+    （系统/安全类自动事件除外），顺序即规格声明顺序。
+    """
+    return {"events": [s.key for s in EVENT_SPECS if s.subscribable]}
 
 
 @router.put("/api/notification/config")
