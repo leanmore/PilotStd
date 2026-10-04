@@ -822,5 +822,6 @@
     "notification.channel.dingtalk.http_error": "釘釘 HTTP {status}",
     "notification.channel.dingtalk.api_failed": "釘釘傳回失敗: {detail}",
     "notification.channel.telegram.send_exception": "Telegram 傳送異常: {error}",
-    "notification.channel.telegram.send_failed": "Telegram 傳回失敗: {detail}"
+    "notification.channel.telegram.send_failed": "Telegram 傳回失敗: {detail}",
+    "notification.tiered.throttled": "長階段分檔節流：事件 {event}（主題 {topic}）在視窗內已發過，本次跳過"
 }

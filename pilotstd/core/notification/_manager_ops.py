@@ -93,7 +93,9 @@ class NotificationOps:
                     msg.task_id,
                     msg.notify_event,
                     msg.content_type,
-                    _json_codec.dumps(msg.task_context),
+                    _json_codec.dumps(
+                        self._with_stage_context(msg.task_id, msg.task_context)
+                    ),
                     _json_codec.dumps(specs_to_jsonable(msg.actions)),
                     msg.callback_data,  # 纯字符串，无需编解码
                     _json_codec.dumps(specs_to_jsonable(msg.attachments)),
@@ -104,6 +106,34 @@ class NotificationOps:
             )
         except Exception as e:
             logger.warning("通知日志写入失败: %s", e)
+
+    def _with_stage_context(self, task_id: str, context: object) -> dict:
+        """把本阶段的**实测耗时**并入 task_context（裁决 D2/B3：落 JSON，不开新列）。
+
+        耗时口径：同一 `task_id` 上一条日志与本次写入的时间差（阶段间隔代理量）。
+        取不到上一条（首条）或无 `task_id` 时不写耗时键，只补档位，避免造出无意义的 0。
+        """
+        from . import tiered
+
+        elapsed_ms: float | None = None
+        if task_id:
+            try:
+                rows = self._db.fetchall(
+                    "SELECT sent_at FROM notification_log WHERE task_id = ? "
+                    "ORDER BY sent_at DESC, id DESC LIMIT 1",
+                    (task_id,),
+                )
+            except Exception:  # noqa: BLE001 - 埋点失败不得影响通知主流程
+                rows = []
+            if rows:
+                from datetime import datetime
+
+                try:
+                    prev = datetime.fromisoformat(str(rows[0].get("sent_at") or ""))
+                    elapsed_ms = (datetime.now() - prev).total_seconds() * 1000.0
+                except (TypeError, ValueError):
+                    elapsed_ms = None
+        return tiered.build_context(context, elapsed_ms)
 
     # 分页查询：筛选条件按需拼接（列名是固定字面量、值一律走参数占位符），
     # total 与 items 共用同一个 WHERE，避免“筛选后条数对不上”的经典分页缺陷。

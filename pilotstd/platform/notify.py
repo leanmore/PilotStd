@@ -6,6 +6,10 @@ from typing import Any
 
 from PyQt6.QtWidgets import QSystemTrayIcon
 
+from pilotstd.core.notification.tiered import (
+    LONG_STAGE_THROTTLE_SECONDS as _LONG_STAGE_THROTTLE_SECONDS,
+)
+
 
 class NotifyService:
     """系统通知服务，提供跨模块的 Toast 通知入口。
@@ -20,7 +24,9 @@ class NotifyService:
     _DEDUP_WINDOW = 3.0  # 同标题去重窗口（秒）
     # 长阶段节流窗口（秒，W3）：**必须 > 桌面熔断的"30 秒内 3 条"**，
     # 否则进度类气泡会自己触发熔断暂停（5 分钟），正是分档策略要避免的
-    LONG_STAGE_WINDOW = 60.0
+    # 与 Docker 侧 B3 **同源常量**（分档策略需两端一致）：直接引用核心模块的值，
+    # 避免两端各写一个 60 秒而随改动漂移。
+    LONG_STAGE_WINDOW = _LONG_STAGE_THROTTLE_SECONDS
 
     @classmethod
     def init(cls, tray: QSystemTrayIcon) -> None:

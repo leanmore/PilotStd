@@ -905,5 +905,6 @@
     "notification.channel.dingtalk.http_error": "钉钉 HTTP {status}",
     "notification.channel.dingtalk.api_failed": "钉钉返回失败: {detail}",
     "notification.channel.telegram.send_exception": "Telegram 发送异常: {error}",
-    "notification.channel.telegram.send_failed": "Telegram 返回失败: {detail}"
+    "notification.channel.telegram.send_failed": "Telegram 返回失败: {detail}",
+    "notification.tiered.throttled": "长阶段分档节流：事件 {event}（主题 {topic}）在窗口内已发过，本次跳过"
 }

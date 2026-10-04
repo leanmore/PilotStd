@@ -5,7 +5,7 @@
 | 模块路径 | `pilotstd/core/` |
 | G-031 映射 | `pilotstd/core/`（2026-09-25 落地：`DOC_SYNC_MAP` 已含该条，改任何 core 文件都会要求同步本文件） |
 | 核心类 | `Database` / `ConfigManager` / `CacheManager` / `NotificationManager` |
-| 子模块数 | 96 个 `.py`（新增 `_dispatcher.py`：发送编排，2026-10-03 步 C B2）（**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-10-03**；顶层 = 3 个包 config / db / notification + 22 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
+| 子模块数 | 97 个 `.py`（新增 `_dispatcher.py`：发送编排，2026-10-03 步 C B2）（**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-10-03**；顶层 = 3 个包 config / db / notification + 22 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
 | Schema 版本 | `CURRENT_SCHEMA_VERSION = 61`（`db/_constants.py`） |
 | 状态 | 活跃 |
 
@@ -80,6 +80,11 @@ pilotstd/core/
 │   │    卡片负载结构在渲染层（`renderer.DingTalkCardRenderer.render_card`），渠道层只负责投递。
 │   │    **边界（勿动）**：本表按**数据字典**口径维护——中文是 i18n 真实标题的匹配契约，
 │   │    不是文案；不 i18n 化、不进 G-047 基线、不做逐行豁免（理由见文件头）。
+│   ├── tiered.py — 分档节流与耗时埋点（阶段 B3，2026-10-03）
+│   │    `LONG_STAGE_SECONDS=30`（与桌面熔断窗口同源）/ `LONG_STAGE_THROTTLE_SECONDS=60`
+│   │    （`platform/notify.py` 的 W3 常量**引用本值** ⇒ 两端一致、无第二份 60）；
+│   │    `TieredThrottle`（长阶段同主题 60 秒一条）/ `tier_of`（**只升档不降档**）/\
+│   │    `build_context`（耗时并入 `notification_log.task_context` JSON，**无需迁移号**）。
 │   ├── _topic_index.py（顶层）— 主题索引数据（2026-10-03 从 notification_aggregator 拆出）
 │   │    `_TOPIC_BY_EVENT`（41 条 i18n 标题→主题）+ `_LEGACY_TOPIC_KEYWORDS`（10 组跨语言兜底）。
 │   │    **领域数据字典、非文案、勿 i18n**（详见该文件头）。

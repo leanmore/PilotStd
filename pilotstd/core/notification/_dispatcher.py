@@ -131,13 +131,38 @@ def validate_message(host: Any, msg: NotificationMessage, event_type: str) -> No
         logger.debug("Builder for '%s' has blocks but no body", event_type)
 
 
+def _throttled(host: Any, msg: NotificationMessage) -> bool:
+    """分档节流判定：只有**长阶段**才可能被节流（短阶段一律放行）。"""
+    from . import tiered
+
+    if not tiered.is_enabled(getattr(host, "_cfg", None)):
+        return False
+    elapsed_ms = tiered.parse_elapsed_ms(getattr(msg, "task_context", None))
+    tier = tiered.tier_of(elapsed_ms)
+    if tier != "long":
+        return False
+    throttle = getattr(host, "_tiered_throttle", None)
+    if throttle is None:
+        throttle = tiered.TieredThrottle()
+        host._tiered_throttle = throttle
+    return not throttle.admit(msg.target_id or msg.event_type, True)
+
+
 def do_send(
     host: Any,
     msg: NotificationMessage,
     target_channels: list[str],
     bypass_aggregation: bool = False,
 ) -> None:
-    """逐渠道发送：静音期暂存 → 聚合器入队 → 合并后发送。"""
+    """逐渠道发送：分档节流 → 静音期暂存 → 聚合器入队 → 合并后发送。"""
+    # B3（Docker 分档节流）：**长阶段**按主题 60 秒一条，与 Windows 端 W3 同窗口、同语义。
+    # 短阶段与警告不受影响（警告本就走 bypass）；节流是正常行为 ⇒ 只记 debug，不写日志行
+    # （写行会污染投递健康统计，且让"被节流"看起来像"投递失败"）。
+    if not bypass_aggregation and _throttled(host, msg):
+        logger.debug(
+            t("notification.tiered.throttled").format(event=msg.event_type, topic=msg.target_id or "-")
+        )
+        return
     if host._is_quiet_hours():
         host._enqueue_notification(msg, target_channels)
         return

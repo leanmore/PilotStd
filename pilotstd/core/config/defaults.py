@@ -81,6 +81,8 @@ FACTORY_DEFAULTS = {
     "notification.log_retention_days": 30,
     "notification.log_cleanup_interval_hours": 24,
     # 服务端聚合（同类消息合并，防通知刷屏）
+    # B3：Docker 侧分档节流（长阶段同主题 60 秒一条；关闭即回退为不节流）
+    "notification.tiered_throttle": True,
     "notification.aggregate_enabled": True,
     # 注：窗口按"交互型通知要快"取小值；批量链路（收藏下载链）的刷屏改在源头
     # 解决——链路按批汇总为 1 条，不再逐条发"开始/失败/完成"通知

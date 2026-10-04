@@ -901,5 +901,6 @@
     "notification.channel.dingtalk.http_error": "DingTalk HTTP {status}",
     "notification.channel.dingtalk.api_failed": "DingTalk returned an error: {detail}",
     "notification.channel.telegram.send_exception": "Telegram send exception: {error}",
-    "notification.channel.telegram.send_failed": "Telegram returned an error: {detail}"
+    "notification.channel.telegram.send_failed": "Telegram returned an error: {detail}",
+    "notification.tiered.throttled": "Long-stage tiered throttling: event {event} (topic {topic}) already sent within the window; skipped"
 }
