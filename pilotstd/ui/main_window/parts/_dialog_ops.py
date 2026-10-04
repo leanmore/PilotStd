@@ -109,16 +109,18 @@ def _register_task(self, label: str, total: int, completed: int, failed: int = 0
     try:
         from ....task.models import TaskType
 
+        # 与任务中心展示侧的 5 类业务名对齐（W1 §3.3 指出写入方原先只映射 4 类、缺 expire）
         type_map = {
             "扫描": TaskType.SCAN,
             "查询": TaskType.QUERY,
             "下载": TaskType.DOWNLOAD,
             "规范化": TaskType.ORGANIZE,
+            "过期处理": TaskType.EXPIRE,
         }
         task = self._mgr.task_queue.enqueue(type_map.get(label, TaskType.SCAN), total_items=total)
         self._mgr.task_queue.update_progress(task, completed=completed, failed=failed)
     except Exception as e:
-        logger.warning("任务记录失败: %s", e)
+        logger.warning(_("task_register_failed").format(error=e))
 
 
 # 进度条缓动已迁移至项目..核心._.

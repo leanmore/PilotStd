@@ -142,3 +142,41 @@ class TestTaskQueue(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+class TestTaskWriterMapping(unittest.TestCase):
+    """任务写入方（`_dialog_ops._register_task`）的业务名 → TaskType 映射。"""
+
+    def _run(self, label: str):
+        """用最小窗口替身调用 `_register_task`，返回入队时用的 TaskType。"""
+        from types import SimpleNamespace
+        from unittest.mock import MagicMock
+
+        from pilotstd.ui.main_window.parts._dialog_ops import _register_task
+
+        queue = MagicMock()
+        queue.enqueue.return_value = SimpleNamespace()
+        window = SimpleNamespace(_mgr=SimpleNamespace(task_queue=queue))
+        _register_task(window, label, total=3, completed=3, failed=0)
+        return queue.enqueue.call_args.args[0]
+
+    def test_all_five_business_names_mapped(self):
+        """W1/W4：扫描/查询/下载/规范化/过期处理 五类都必须映射到各自的 TaskType。"""
+        from pilotstd.task.models import TaskType
+
+        expected = {
+            "扫描": TaskType.SCAN,
+            "查询": TaskType.QUERY,
+            "下载": TaskType.DOWNLOAD,
+            "规范化": TaskType.ORGANIZE,
+            "过期处理": TaskType.EXPIRE,
+        }
+        for label, task_type in expected.items():
+            with self.subTest(label=label):
+                self.assertEqual(self._run(label), task_type)
+
+    def test_unknown_label_falls_back_to_scan(self):
+        """未知业务名回退 SCAN（既有兜底口径不变）。"""
+        from pilotstd.task.models import TaskType
+
+        self.assertEqual(self._run("未知操作"), TaskType.SCAN)

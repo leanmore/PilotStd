@@ -774,5 +774,6 @@
     "task_detail_summary": "{business} · {status} · {result} · {time}",
     "task_detail_error": "錯誤明細：{error}",
     "task_detail_result": "結果明細：{result}",
-    "tray_events_disabled": "已關閉桌面托盤事件分流（notification.windows_tray_events=False）"
+    "tray_events_disabled": "已關閉桌面托盤事件分流（notification.windows_tray_events=False）",
+    "task_register_failed": "任務記錄失敗: {error}"
 }
