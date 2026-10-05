@@ -27,6 +27,23 @@ logger = logging.getLogger(__name__)
 # 归档处理器，封装所有归档方法，替代原
 
 
+def _fmt_std_number(p: Any) -> str:
+    """把 `ParsedStdInfo` 拼成**可读的标准完整编号**（如 `GB/T 1234-2020`），供失败明细展示。
+
+    为什么不用 `p.number` 而优先 `raw_number`：`number` 是 int（丢前导零），
+    `raw_number` 保留原始数字串（见 `pilotstd/models.py:16-18`）；两者都空时退回 `"-"`。
+    年度缺失（如 `GB/T 1`）时不追加 `-年份`；样例见
+    `tests/download/adapters/test_openstd_download.py:600`。
+    """
+    code = (getattr(p, "logical_code", "") or "").strip()
+    num = (getattr(p, "raw_number", "") or "").strip() or str(getattr(p, "number", "") or "").strip()
+    year = getattr(p, "year", 0) or 0
+    if not code and not num:
+        return "-"
+    base = f"{code} {num}".strip()
+    return f"{base}-{year}" if year else base
+
+
 def _archive_category_stats(items: list[Any]) -> dict[str, int]:
     """按标准代号分类统计归档条目（C-2：复用 std_utils.classify_std_code）。
 
@@ -120,7 +137,18 @@ class OrganizeHandler:
                 result["failed"] += single.get("failed", 0)
                 if on_result:
                     on_result(i, status)
-            except Exception:
+            except Exception as exc:
+                # 通知聚合 B1-1：失败时**同时**采集逐条明细（需求①：失败要说明"标准号 + 标准名"）。
+                # 4 列口径见 channel.NotificationMessage.failed_items（standard_number / standard_name /
+                # error_type / error_message）；标准名走 ADR-016 回退链，全空时填 '-'。
+                result.setdefault("failed_items", []).append(
+                    {
+                        "standard_number": _fmt_std_number(p),
+                        "standard_name": (p.final_name or p.found_name or p.std_name or "-"),
+                        "error_type": "unknown",
+                        "error_message": str(exc)[:120],
+                    }
+                )
                 if on_result:
                     on_result(i, "归档失败")
                 result["failed"] += 1
