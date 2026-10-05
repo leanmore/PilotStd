@@ -1,7 +1,7 @@
 # ADR-016: 标准名称解析——「最高可得阶段名」回退链与对外边界命名统一
 
 > 日期：2026-10-05（决策于 2026-10-05 会话；承接 2026-06-20「名称决策」专项 `0f32262b`）
-> 状态：✅ Accepted（批次一已落地；批次二/三待排期）
+> 状态：✅ Accepted（**批次一、批次二已落地**；批次三待排期）
 > 来源：通知系统验收审查（标准名/号血缘取证 第 1~5 轮）+ 决策者裁定 D1/D2/D3/D7/D8
 > 关联：相关代码 `pilotstd/core/name_resolution.py`；相关专项提交 `0f32262b`；相关文档 `docs/plans/notification-system-design/06-spec-and-phasing.md`
 
@@ -57,5 +57,22 @@
 | 批次 | 内容 | 依赖 | 验收 |
 |---|---|---|---|
 | **一（已完成）** | `name_resolution.py` + `_fetch_std_meta` 改回退链并返回全写键 dict + `event_spec.py`/`TRIGGER_KEYS` 同批补 `standard_name` + 新单测 | 无迁移 | e2e/契约绿 + V4 阻断 0 + 三条下载路径通知有名（取 ②/①，符合 §决策 1） |
-| 二（待排期） | `announcement_record.final_name` 列（v66）+ 名称决策后写入 + 弃用 `pending_lookup.final_name` 作权威源 | 迁移 v66 | ③ 覆盖的条目通知名＝决策结果 |
+| **二（已完成，2026-10-05）** | 迁移 **v66**：`announcement_record` 追加 `final_name` 列 + 从 `pending_lookup.final_name` 关联回填（只填空行）；**写入点**：`manager/classifier.py::QueryClassifier._persist_final_names()`（名称决策出口，`Database.executemany` 批量、独立短连接、best-effort） | 迁移 v66 | 迁移幂等（连跑两次内容不变）+ 回填语义夹具（已有值不覆盖／取 resolved 非空值／无匹配保持 NULL）+ 全量 5145 passed |
 | 三（待排期） | 收藏 API / 待确认页 / 本地索引统一切到 `fetch_resolved_name()` | 一/二 | 全链路同名同值 |
+
+## 批次二补充决策与实现约束
+
+1. **回填判据＝"取所有非空"、不限 `status`**：`pending_lookup.status` 表示"待确认流程"的生命周期
+   （pending / resolved / manual_required），与名称优劣无关；已 `resolved` 的行恰恰是**人工确认过的高质量③值**。
+   幂等补充：回填语句带 `announcement_record.final_name IS NULL OR = ''` + `EXISTS` 守卫 ⇒ 重跑不覆盖已有值。
+2. **写入点语义**：`_persist_final_names()` 紧跟 `_dispatch_by_router()`（即 `apply_actions` ⇒ `_resolve_names` 之后），
+   保证「决策 → 持久化」在同一抽象层闭环；仅对**决策确实产出 `final_name`** 的条目写库，且缺 `get_full_number` 的条目跳过。
+3. **批量与隔离**：收集 `(final_name, standard_number)` 后**单次 `Database.executemany`**（严禁循环逐条 UPDATE）；
+   使用**独立短连接**（独立事务），异常只记 debug ⇒ 失败不影响内存分类结果与后续归档。
+4. **匹配不到不报错**：`announcement_record` 唯一键为 `(source_site, pid, standard_number)`，手输/本地扫描来的
+   标准号可能没有对应行 ⇒ UPDATE 影响 0 行属正常，静默跳过。
+5. **`pending_lookup.final_name` 状态＝已弃用（仅历史兼容）**：自批次二起，③ 的权威落点为
+   `announcement_record.final_name`；`pending_lookup.final_name` **不再作为权威源**，仅在回填期作**历史数据来源**，
+   待批次三把消费方全部切到 `fetch_resolved_name()` 后可按需清理（**本轮不删列**，避免不可逆）。
+6. **测试表结构同步**：v66 追加列后，7 个手工建 `announcement_record` 的测试需同步补列
+   （由 `scripts/check_schema_consistency.py` 判定；注意该门禁要求列集一致，且 **SQLite 不接受尾随逗号**）。

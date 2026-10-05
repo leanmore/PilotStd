@@ -4,7 +4,7 @@
 from typing import Any, Callable
 
 # 当前期望的表结构版本号（每次新增迁移+1）
-CURRENT_SCHEMA_VERSION = 65  # v65: notification_log 追加 task_kind 列（通知架构重设计阶段 2.5a）
+CURRENT_SCHEMA_VERSION = 66  # v66: announcement_record 追加 final_name 列（名称决策③落库）+ 从 pending_lookup 回填
 
 # 迁移注册表：版本号→迁移函数（接收实例）
 MIGRATIONS: dict[int, Callable[..., Any]] = {}

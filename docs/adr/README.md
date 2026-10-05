@@ -24,7 +24,7 @@
 | 013 | [ADR-013](ADR-013-health-check-decoupling.md) | 健康检查与业务任务解耦轮询机制 | 2026-08-21（A4 提炼） | ✅ Accepted |
 | 014 | [ADR-014](ADR-014-routetag-request-cancellation.md) | 前端 HTTP 请求取消 routeTag 三层机制 | 2026-08-21（A4 提炼） | ✅ Accepted |
 | 015 | [ADR-015](ADR-015-route-engine-v2-funnel.md) | 标准查询路由引擎 v2.0 三级漏斗 | 2026-08-21（A4 提炼） | ✅ Accepted（部分实施） |
-| 016 | [ADR-016](ADR-016-standard-name-resolution.md) | 标准名称解析——「最高可得阶段名」回退链与对外边界命名统一 | 2026-10-05（名称解析统一批次一） | ✅ Accepted（批次一已落地；批次二/三待排期） |
+| 016 | [ADR-016](ADR-016-standard-name-resolution.md) | 标准名称解析——「最高可得阶段名」回退链与对外边界命名统一 | 2026-10-05（名称解析统一批次一/二） | ✅ Accepted（批次一、二已落地；批次三待排期） |
 
 > 注：ADR-011/012 由 Claude Code 迁移计划（A2/A3）归档转化；ADR-013/014/015 由历史会话转录（A4）提炼。新增 ADR 均遵循既有模板与编号连续。
 

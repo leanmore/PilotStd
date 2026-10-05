@@ -149,3 +149,9 @@ from ._migrate_v64_notification_log_interactive import (  # noqa: E402, F401
 from ._migrate_v65_notification_log_task_kind import (  # noqa: E402, F401
     _migrate_v65_notification_log_task_kind,
 )
+
+# 第六十六版：announcement_record 追加 final_name 列（名称决策③结果落库）+ 从 pending_lookup 回填
+# （名称解析统一批次二，函数自带注册装饰器）
+from ._migrate_v66_announcement_record_final_name import (  # noqa: E402, F401
+    _migrate_v66_announcement_record_final_name,
+)

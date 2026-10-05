@@ -122,7 +122,8 @@ class TestQueryAnnouncementStats:
     approved_at TEXT,
     updated_at TEXT DEFAULT 'CURRENT_TIMESTAMP',
     source_type TEXT DEFAULT '网页解析',
-    standard_type TEXT NOT NULL DEFAULT 'Unknown'
+    standard_type TEXT NOT NULL DEFAULT 'Unknown',
+    final_name TEXT
 );"""
         )
         conn.execute(

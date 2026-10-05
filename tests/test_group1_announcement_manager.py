@@ -71,7 +71,8 @@ CREATE TABLE IF NOT EXISTS announcement_record (
     approved_at TEXT,
     updated_at TEXT DEFAULT 'CURRENT_TIMESTAMP',
     source_type TEXT DEFAULT '网页解析',
-    standard_type TEXT NOT NULL DEFAULT 'Unknown'
+    standard_type TEXT NOT NULL DEFAULT 'Unknown',
+    final_name TEXT
 );
 CREATE TABLE IF NOT EXISTS file_index (
     id INTEGER,

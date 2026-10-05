@@ -86,6 +86,9 @@ class QueryClassifier:
         self._write_back_results(items, results)
         self._resolve_cross_site_replaces(items, results, notification_mgr)
         self._dispatch_by_router(items, download_list, expire_list, pending_list)
+        # 名称决策（阶段③）结果落库：download/conflicts 等**已产生 final_name** 的条目，
+        # 批量写入 announcement_record.final_name，供 DB 后消费方（下载通知族等）读取。
+        self._persist_final_names(items)
 
     def _write_back_results(self, items: list, results: list) -> None:
         """将 QueryResult 字段写回 ParsedStdInfo（原地修改）。"""
@@ -141,6 +144,48 @@ class QueryClassifier:
                 p.stage_status = "pending"
         for p in buckets.get("organize", []) + buckets.get("normalize", []):
             p.stage_status = "archive_ready"
+
+    def _persist_final_names(self, items: list) -> None:
+        """把名称决策（阶段③）的结果落库到 `announcement_record.final_name`（best-effort）。
+
+        为什么落在本层：本类是名称决策的**唯一出口**（`_dispatch_by_router` 内调用
+        `PipelineRouter.apply_actions` ⇒ `_resolve_names`），在此处持久化可让
+        「决策 → 落库」在同一抽象层闭环；若上移到 Facade 层，业务语义会泄漏到编排层。
+        DB 后的消费方（下载通知族等）正是靠这一列才能读到③的值。
+
+        为什么必须批量：一次查询可能产生数百条决策结果 ⇒ 收集 (名称, 标准号) 后用
+        `Database.executemany` **单次批量提交**；严禁在循环里逐条 UPDATE（会造成严重往返开销）。
+
+        为什么独立短事务 + 兜异常：本落库属"附带增强"，失败**不得**影响已完成的内存分类结果
+        与后续归档流程 ⇒ 单独开关一个连接（独立连接即独立事务），任何异常只记 debug。
+
+        为什么匹配不到不算错误：`announcement_record` 的唯一键是
+        `(source_site, pid, standard_number)`，手输或本地扫描来的标准号可能没有对应行，
+        UPDATE 影响 0 行属正常 ⇒ 静默跳过（debug 级），不抛错、不告警。
+        """
+        rows = [
+            (str(getattr(p, "final_name", "") or ""), p.get_full_number())
+            for p in items
+            if getattr(p, "final_name", "") and hasattr(p, "get_full_number")
+        ]
+        if not rows:
+            return
+        try:
+            from pilotstd.core.config import get_db_path
+            from pilotstd.core.db.database import Database
+
+            db = Database(get_db_path())
+            try:
+                db.executemany(
+                    "UPDATE announcement_record SET final_name = ? WHERE standard_number = ?",
+                    rows,
+                )
+            finally:
+                db.close()
+        except Exception as e:  # noqa: BLE001 — 落库失败不得影响分类与归档主流程
+            # 诊断文本刻意用 ASCII：本文件受 G-047（Python 侧中文硬编码）基线上限约束，
+            # 新增中文字面量会超基线；注释与 docstring 不计入该基线，故说明仍用中文。
+            logger.debug("persist final_name failed (classification/archive unaffected): %s", e)
 
     def resolve_replaces(self, standard_number: str, notification_mgr: Any = None) -> str:
         """跨站点补查替代关系。遍历所有适配器，由适配器声明能力而非硬编码站点名。"""

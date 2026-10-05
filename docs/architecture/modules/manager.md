@@ -13,6 +13,14 @@
 
 PilotStd 的业务逻辑中枢，作为 CLI / WinUI / Docker 三端的统一后端。所有用户操作（扫描、查询、下载、归档、公告检查、设置管理）均通过 `StandardManager` 门面路由到对应的 Handler 或 Service。三端通用逻辑必须在此层实现，禁止在各端各自实现。
 
+> **名称决策结果落库（2026-10-05，名称解析统一批次二）**：`manager/classifier.py::QueryClassifier.classify()`
+> 在 `_dispatch_by_router()`（＝`PipelineRouter.apply_actions` ⇒ `_resolve_names`，即名称决策出口）**之后**调用
+> `_persist_final_names()`，把决策产出的 `final_name` 用**单次 `Database.executemany`** 批量写入
+> `announcement_record.final_name`（独立短连接＝独立事务、best-effort：失败只记 debug，不影响分类结果与后续归档；
+> 标准号在公告表中无对应行时 UPDATE 影响 0 行属正常，静默跳过）。
+> 该列由**迁移 v66** 引入（并从 `pending_lookup.final_name` 关联回填、只填空行）；DB 后消费方
+> （下载通知族等）经 `pilotstd/core/name_resolution.py::fetch_resolved_name()` 按 **③决策 → ②查询 → ①解析** 读取。
+
 ## 架构
 
 ```
