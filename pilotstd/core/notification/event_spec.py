@@ -218,7 +218,12 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         builder_ref="pilotstd.core.notification._builders_batch:_build_download_failed_message",
         i18n_category="notification.download", default_channels=(), levels=("error",),
         module_key="notification.module.download", trigger_file="pilotstd/tasks/favorite_download.py",
-        payload_keys=frozenset({"error", "standard_number"}), security=False, branch_by=None, subscribable=True,
+        # 名称：载荷携带「当前最高可得阶段名」（③决策→②查询→①解析，见 core/name_resolution.py）。
+        # 生产方 favorite_download.py::_fetch_std_meta 已按该链取值 ⇒ 此声明须与生产方同批，
+        # 否则 tests/test_notification_e2e.py 的正向断言（builder ⊆ trigger）会失败。
+        payload_keys=frozenset(
+            {"error", "standard_name", "standard_number"}
+        ), security=False, branch_by=None, subscribable=True,
         aggregation="aggregate",
     ),
 
@@ -380,7 +385,10 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         builder_ref="pilotstd.core.notification._builders_batch:_build_download_started_message",
         i18n_category="notification.download", default_channels=(), levels=("info",),
         module_key="notification.module.favorite", trigger_file="pilotstd/tasks/favorite_download.py",
-        payload_keys=frozenset({"favorite_id", "standard_number", "user_id"}), security=False, branch_by=None,
+        # 名称：同 download_failed——载荷带「最高可得阶段名」，与生产方 _fetch_std_meta 同批对齐。
+        payload_keys=frozenset(
+            {"favorite_id", "standard_name", "standard_number", "user_id"}
+        ), security=False, branch_by=None,
         subscribable=True, aggregation="aggregate",
     ),
     EventSpec(key="download_complete", notify_event="task_lifecycle", content_type="field_list",
@@ -388,7 +396,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         builder_ref="pilotstd.core.notification._builders_batch:_build_download_complete_message",
         i18n_category="notification.download", default_channels=(), levels=("info",),
         module_key="notification.module.favorite", trigger_file="pilotstd/tasks/favorite_download.py",
-        payload_keys=frozenset({"favorite_id", "local_path", "standard_number", "status", "user_id"}), security=False,
+        payload_keys=frozenset(
+            {"favorite_id", "local_path", "standard_name", "standard_number", "status", "user_id"}
+        ), security=False,
         branch_by=None, subscribable=True, aggregation="aggregate",
     ),
     EventSpec(key="favorite_abandoned_summary", notify_event="batch_summary", content_type="list",

@@ -465,13 +465,14 @@ class TestNotifyDownloadFailed:
 
         with patch(
             "pilotstd.tasks.favorite_download._fetch_std_meta",
-            return_value=("复合钢管超声检测方法", "NationalStd"),
+            return_value={"standard_name": "复合钢管超声检测方法", "standard_type": "NationalStd"},
         ), patch(
             "pilotstd.manager.facade.StandardManager", return_value=mock_sm
         ):
             _notify_download_failed(100, "GB/T 1", "network error", 5)
 
-        # 批次2 载荷契约：含 standard_name/standard_type（_fetch_std_meta 补查）
+        # 载荷契约（2026-10-05 名称解析统一批次一）：_fetch_std_meta 返回**字典**且键名为
+        # 对外边界统一的全写形式（standard_name/standard_type）；名称值由回退链 ③→②→① 取得。
         mock_sm.notification_mgr.send_event.assert_called_once_with(
             "download_failed",
             {

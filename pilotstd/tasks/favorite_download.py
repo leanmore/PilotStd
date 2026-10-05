@@ -8,6 +8,7 @@ from typing import Any, Optional, cast
 
 from pilotstd.core.config import ConfigManager, get_db_path
 from pilotstd.core.db.database import Database
+from pilotstd.core.name_resolution import fetch_resolved_name
 from pilotstd.download.engine import ADOPTED_SKIP_MESSAGE
 from pilotstd.organizer.industry_lookup import build_code_mapping
 from pilotstd.scan.parser import StandardParser
@@ -114,22 +115,31 @@ def _safe_filename(standard_number: str, suffix: str) -> str:
     return f"{safe}_{suffix}.pdf"
 
 
-def _fetch_std_meta(standard_number: str) -> tuple[str, str]:
-    """查询标准名称与分类（通知模板补充信息；查不到时降级为空串，不抛错）。"""
+def _fetch_std_meta(standard_number: str) -> dict[str, str]:
+    """取通知要用的标准元信息（名称 + 分类），键名为**对外边界统一的全写形式**。
+
+    为什么名称要走"回退链"：同一标准的名有多份副本、分属不同阶段
+    （① 解析名 ``announcement_record.std_name`` / ② 查询名（缓存） / ③ 决策名
+    ``announcement_record.final_name``）。历史实现只读 ①，于是"①无对应行或 ① 已过期"
+    时通知就会**空名/旧名**。现统一交给 ``name_resolution.fetch_resolved_name``
+    按 ③→②→① 取「当前可得的最高阶段名」——**不保证**来自 ③（批次一无 v66 迁移时
+    自然回退到 ②/①，属预期行为）。
+
+    为什么返回 dict 且键名用 ``standard_name``/``standard_type``：2026-10-05 命名裁定
+    （D8/D3）要求**对外边界全写**（API 响应键、通知载荷键、spec/契约），而 DB 存储层
+    列名本轮保持不变，转换只发生在这里。
+
+    查不到任何名称时降级为空串、不抛错：通知链路不得因元信息缺失而失败。
+    """
     try:
         db = Database(get_db_path())
         try:
-            row = db.fetchone(
-                "SELECT std_name, standard_type FROM announcement_record WHERE standard_number = ?",
-                (standard_number,),
-            )
-            if row:
-                return (row["std_name"] or ""), (row["standard_type"] or "")
+            name, standard_type = fetch_resolved_name(db, standard_number)
+            return {"standard_name": name, "standard_type": standard_type}
         finally:
             db.close()
     except Exception:
-        pass
-    return "", ""
+        return {"standard_name": "", "standard_type": ""}
 
 
 def _notify_download_failed(
@@ -141,14 +151,14 @@ def _notify_download_failed(
     try:
         from pilotstd.manager.facade import StandardManager  # noqa: E402
 
-        std_name, standard_type = _fetch_std_meta(standard_number)
+        meta = _fetch_std_meta(standard_number)
         StandardManager().notification_mgr.send_event(
             "download_failed",
             {
                 "user_id": user_id,
                 "standard_number": standard_number,
-                "standard_name": std_name,
-                "standard_type": standard_type,
+                "standard_name": meta["standard_name"],
+                "standard_type": meta["standard_type"],
                 "error": error,
                 "favorite_id": favorite_id,
             },
@@ -169,14 +179,14 @@ def _notify_download_started(user_id: int, standard_number: str, favorite_id: in
     try:
         from pilotstd.manager.facade import StandardManager  # noqa: E402
 
-        std_name, standard_type = _fetch_std_meta(standard_number)
+        meta = _fetch_std_meta(standard_number)
         StandardManager().notification_mgr.send_event(
             "download_started",
             {
                 "user_id": user_id,
                 "standard_number": standard_number,
-                "standard_name": std_name,
-                "standard_type": standard_type,
+                "standard_name": meta["standard_name"],
+                "standard_type": meta["standard_type"],
                 "favorite_id": favorite_id,
             },
         )
@@ -198,14 +208,14 @@ def _notify_download_complete(
     try:
         from pilotstd.manager.facade import StandardManager  # noqa: E402
 
-        std_name, standard_type = _fetch_std_meta(standard_number)
+        meta = _fetch_std_meta(standard_number)
         StandardManager().notification_mgr.send_event(
             "download_complete",
             {
                 "user_id": user_id,
                 "standard_number": standard_number,
-                "standard_name": std_name,
-                "standard_type": standard_type,
+                "standard_name": meta["standard_name"],
+                "standard_type": meta["standard_type"],
                 "favorite_id": favorite_id,
                 "local_path": local_path,
                 "status": "success",

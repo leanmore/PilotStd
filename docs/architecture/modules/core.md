@@ -5,7 +5,7 @@
 | 模块路径 | `pilotstd/core/` |
 | G-031 映射 | `pilotstd/core/`（2026-09-25 落地：`DOC_SYNC_MAP` 已含该条，改任何 core 文件都会要求同步本文件） |
 | 核心类 | `Database` / `ConfigManager` / `CacheManager` / `NotificationManager` |
-| 子模块数 | 97 个 `.py`（新增 `_dispatcher.py`：发送编排，2026-10-03 步 C B2）（**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-10-03**；顶层 = 3 个包 config / db / notification + 22 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
+| 子模块数 | 98 个 `.py`（新增 `name_resolution.py`：标准名称「最高可得阶段」回退链 ③→②→①，2026-10-05 名称解析统一批次一）（**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-10-05**；顶层 = 3 个包 config / db / notification + 23 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
 | Schema 版本 | `CURRENT_SCHEMA_VERSION = 61`（`db/_constants.py`） |
 | 状态 | 活跃 |
 
@@ -111,6 +111,7 @@ pilotstd/core/
 │   ├── task_history.py / task_status.py
 │   ├── validity_checker.py / _validity_pipeline.py
 │   ├── file_index.py / _file_index_query.py
+│   ├── name_resolution.py     # 标准名称「最高可得阶段」回退链：③决策名 `final_name` → ②查询名（standard_info_cache.result_json 的 `standard_name`）→ ①解析名 `std_name`；**对外边界统一全写 `standard_name`，DB 存储列名不动**（2026-10-05 名称解析统一批次一；承接 2026-06-20「名称决策」专项的 `source_name`/`normalized_name`/`final_name` 语义）
 │   ├── file_utils.py / download_utils.py / export_utils.py
 │   ├── std_utils.py           # 标准号分类（classify_std_code → "gb" 等）
 │   ├── context.py / logger.py / project.py / settings_utils.py

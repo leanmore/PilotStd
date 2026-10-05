@@ -212,7 +212,9 @@ TRIGGER_KEYS: dict[str, set[str]] = {
     "query_failed": {"standard_number", "error"},
     "query_empty": {"total"},
     "batch_download_complete": {"total", "success", "failed", "skipped"},
-    "download_failed": {"user_id", "standard_number", "error", "favorite_id"},
+    # 下载族三事件自 2026-10-05 起载荷带名称键 standard_name（值＝「最高可得阶段名」，
+    # 由 pilotstd/core/name_resolution.py 回退链取得）⇒ 必须与 event_spec.py 的 payload_keys 同批更新。
+    "download_failed": {"user_id", "standard_number", "standard_name", "error", "favorite_id"},
     "normalize_complete": {"total", "success", "failed"},
     "normalize_failed": {"total", "error"},
     "archive_complete": {"count", "directories", "standard_number", "status", "target_id", "elapsed_ms"},
@@ -242,8 +244,8 @@ TRIGGER_KEYS: dict[str, set[str]] = {
     "date_reminder": {"standard_number", "std_name", "days_before", "remind_type"},
     "trust_ip_update": {"title", "body", "ip", "update_time", "status"},
     "favorite_created": {"user_id", "record_id", "standard_no", "standard_name"},
-    "download_started": {"user_id", "standard_number", "favorite_id"},
-    "download_complete": {"user_id", "standard_number", "favorite_id", "local_path", "status"},
+    "download_started": {"user_id", "standard_number", "standard_name", "favorite_id"},
+    "download_complete": {"user_id", "standard_number", "standard_name", "favorite_id", "local_path", "status"},
     "favorite_abandoned_summary": {
         "total",
         "reasons",
