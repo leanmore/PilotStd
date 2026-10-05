@@ -99,6 +99,11 @@ pilotstd/core/
 │   │   新增 **`user_activity`**（公告拉取 4 事件 + `favorite_created` + `favorite_abandoned_summary`），
 │   │   `normalize_complete` / `archive_complete` 因"按批汇总"改归 `batch_summary`；
 │   │   `mapping.NOTIFY_EVENTS` 同步为 10 成员并**取消"7±1"数量封顶**（改为"清单以 `event_spec.py` 为准"）
+│   ├── （2026-10-05 通知聚合 B1 · 数据结构层）：`channel.py` 的 `NotificationMessage` 新增
+│   │   **`failed_items: list[dict[str, str]]`**（默认空列表 ⇒ 零行为变更）——一次批量导入/汇总的**逐条失败清单**，
+│   │   固定 4 列 `standard_number` / `standard_name`（空 ⇒ `-`）/ `error_type`（枚举键
+│   │   `not_found`/`parse`/`network`/`timeout`/`unknown`）/ `error_message`（≤120 字符）；
+│   │   落库列为 `notification_log.failed_items`（TEXT 存 JSON，迁移 **v67**）
 │   ├── channel.py / events.py / _policy.py / _credentials.py
 │   ├── channel_spec.py        # 四渠道声明的唯一来源（键/字段/掩码/控件形态/状态规则，2026-10-03 步 A C1）
 │   ├── event_spec.py          # 41 个事件声明的唯一来源（15 字段：投影/构建器指针/文案前缀/**模块 i18n 键**/默认渠道/级别/触发文件/载荷键/审计标志/聚合**ASCII 枚举**；2026-10-03 步 B，**D1/D2/D3 均已接入**：mapping / manager / config-defaults）；**2026-10-05 B1 收口**：新增 `LEVEL_ORDER = ("info","warning","error")`（级别**唯一排序口径**，严重度序；`levels` 须为其**保序子序列**，**允许跳级**如 `("info","error")`），断言位于 `tests/test_notification_e2e.py::TestLevelOrder`（全量事件校验）

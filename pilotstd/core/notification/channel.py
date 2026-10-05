@@ -66,6 +66,12 @@ class NotificationMessage:
     # mapping.NOTIFY_EVENTS；数不封顶，新增类别须在 event_spec.py 与 NOTIFY_EVENTS 同步登记）。
     # 为空表示"尚未映射"，阶段 1-3 各消费方回退用 event_type 推导；参与聚合分组属阶段 2.5。
     notify_event: str = ""
+    # 失败明细（B1，2026-10-05）：一次批量导入/汇总的**逐条**失败清单。
+    # 4 列固定口径（见 08-聚合设计.md 与 B1 裁定）：standard_number / standard_name（空 ⇒ '-'）/
+    # error_type（枚举键：not_found / parse / network / timeout / unknown）/ error_message（截断 ≤120 字符）。
+    # 默认空列表 = "现状语义"（无明细）⇒ 对既有字段与全部调用点**零行为变更**；
+    # 落库列 notification_log.failed_items（TEXT 存 JSON，迁移 v67；检索仍走 correlation_id/message_id）。
+    failed_items: list[dict[str, str]] = field(default_factory=list)
     content_type: str = ""  # 主内容类型（text/field_list/status_change/list/task_progress/action_prompt）
     # 任务种类（业务域名词，阶段 2.5a 落地）。值域见 `mapping.TASK_KINDS`。
     # **双 SSOT 约定**：本字段是**通知视角**的"用户交办的是哪类事"；
