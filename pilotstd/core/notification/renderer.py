@@ -40,6 +40,12 @@ _LIST_FIELD_KEYS = {
     "detail": "notification.renderer.field.detail",
     "path": "notification.renderer.field.path",
     "reason": "notification.renderer.field.reason",
+    # 2026-10-05 通知聚合 B1：失败明细的 4 列（**必须登记**，否则渲染为「字段」占位——
+    # `_field_label` 的兜底策略是绝不回退原始键名，见其 docstring）
+    "standard_number": "notification.renderer.field.standard_number",
+    "standard_name": "notification.renderer.field.standard_name",
+    "error_type": "notification.renderer.field.error_type",
+    "error_message": "notification.renderer.field.error_message",
 }
 
 

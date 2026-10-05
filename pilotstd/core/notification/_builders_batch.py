@@ -447,6 +447,46 @@ def _build_archive_abandoned_message(data: dict) -> NotificationMessage:
     )
 
 
+# 失败明细的错误类型枚举 → i18n 键（**构建器侧先翻译再入块**）。
+# 为什么在构建器侧翻译而不是渲染层：`error_type` 是**取值**（not_found/parse/…），
+# 渲染层只负责把"字段名"翻译成列名（`renderer._LIST_FIELD_KEYS`）；取值不翻译就会把
+# 内部枚举直接暴露给用户（渠道降级/G-040 场景同样要求中文可见文案）。
+# 枚举口径（B1 裁定）：not_found / parse / network / timeout / unknown。
+_ERROR_TYPE_KEYS: dict[str, str] = {
+    "not_found": "notification.error_type.not_found",
+    "parse": "notification.error_type.parse",
+    "network": "notification.error_type.network",
+    "timeout": "notification.error_type.timeout",
+    "unknown": "notification.error_type.unknown",
+}
+
+
+def build_failed_items_block(data: dict) -> "ListBlock | None":
+    """把 payload 的 `failed_items` 渲染为 `ListBlock`；无明细时返回 None（调用方不追加块）。
+
+    · **不做行数截断**（`MAX_FAILED_ROWS` 作废，B1 裁定）：全部明细进同一块，
+      超长交给渠道侧按"转义后字符数"分段；
+    · 4 列口径固定：`standard_number` / `standard_name`（空 ⇒ `-`）/ `error_type`（枚举键 → 中文）/
+      `error_message`（上游已截断 ≤120 字符，这里再兜一次）；
+    · `total=len(items)` 让渲染层知道真实条数（`ListBlock.total` 语义见 blocks.py）。
+    """
+    items = data.get("failed_items") or []
+    if not items:
+        return None
+    rows: list[dict[str, str]] = []
+    for it in items:
+        etype = str(it.get("error_type") or "unknown")
+        rows.append(
+            {
+                "standard_number": str(it.get("standard_number") or "-"),
+                "standard_name": str(it.get("standard_name") or "-"),
+                "error_type": t(_ERROR_TYPE_KEYS.get(etype, "notification.error_type.unknown")),
+                "error_message": str(it.get("error_message") or "-")[:120],
+            }
+        )
+    return ListBlock(title=t("notification.failed_items.title"), items=rows, total=len(rows))
+
+
 def _build_normalize_complete_message(data: dict) -> NotificationMessage:
     """原 Mixin 方法，现为模块级纯函数。"""
     total = data.get("total", 0)
@@ -459,6 +499,13 @@ def _build_normalize_complete_message(data: dict) -> NotificationMessage:
             )
         ),
     ]
+    # 2026-10-05 通知聚合 B1：失败明细（payload.failed_items）渲染为列表块。
+    # 为什么在构建器而不是聚合器：构建器是"每条消息长什么样"的唯一出处；
+    # 聚合器只负责把多条消息的 blocks **按到达序拼接**（Z-21），**不做行数截断**——
+    # 超长由渠道侧按"转义后字符数"分段（见分段块）。
+    failed_block = build_failed_items_block(data)
+    if failed_block is not None:
+        blocks.append(failed_block)
     return NotificationMessage(
         title=t("notification.archive.normalize_complete.title"),
         blocks=blocks,

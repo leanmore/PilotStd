@@ -111,6 +111,13 @@ pilotstd/core/
 │   │   `not_found`/`parse`/`network`/`timeout`/`unknown`）/ `error_message`（≤120 字符）；
 │   │   落库列为 `notification_log.failed_items`（TEXT 存 JSON，迁移 **v67**）
 │   ├── channel.py / events.py / _policy.py / _credentials.py
+│   ├── （2026-10-05 通知聚合 B1 · 渲染与 i18n）：两个汇总构建器（`_builders_batch._build_normalize_complete_message`
+│   │   与 `_builders_system._build_archive_complete_message`）把 payload 的 `failed_items` 渲染为
+│   │   **`ListBlock`**（共用 `_builders_batch.build_failed_items_block()`，4 列口径；**不做行数截断**——
+│   │   超长由渠道侧分段）；列名翻译在渲染层 `renderer._LIST_FIELD_KEYS` 登记 4 个字段
+│   │   （`standard_number`/`standard_name`/`error_type`/`error_message`；**不登记会渲染为「字段」占位**）；
+│   │   `error_type` 的**取值**由构建器侧 `_ERROR_TYPE_KEYS` 先翻译（not_found/parse/network/timeout/unknown →
+│   │   i18n 键），i18n 资源已补齐 zh_CN / en / zh_TW
 │   ├── channel_spec.py        # 四渠道声明的唯一来源（键/字段/掩码/控件形态/状态规则，2026-10-03 步 A C1）
 │   ├── event_spec.py          # 41 个事件声明的唯一来源（15 字段：投影/构建器指针/文案前缀/**模块 i18n 键**/默认渠道/级别/触发文件/载荷键/审计标志/聚合**ASCII 枚举**；2026-10-03 步 B，**D1/D2/D3 均已接入**：mapping / manager / config-defaults）；**2026-10-05 B1 收口**：新增 `LEVEL_ORDER = ("info","warning","error")`（级别**唯一排序口径**，严重度序；`levels` 须为其**保序子序列**，**允许跳级**如 `("info","error")`），断言位于 `tests/test_notification_e2e.py::TestLevelOrder`（全量事件校验）
 │   ├── blocks.py / renderer.py / desktop_formatter.py / _format_utils.py
