@@ -1,7 +1,7 @@
 # ADR-016: 标准名称解析——「最高可得阶段名」回退链与对外边界命名统一
 
 > 日期：2026-10-05（决策于 2026-10-05 会话；承接 2026-06-20「名称决策」专项 `0f32262b`）
-> 状态：✅ Accepted（**批次一、批次二已落地**；批次三待排期）
+> 状态：✅ Accepted（**批次一、批次二、批次三均已落地**）
 > 来源：通知系统验收审查（标准名/号血缘取证 第 1~5 轮）+ 决策者裁定 D1/D2/D3/D7/D8
 > 关联：相关代码 `pilotstd/core/name_resolution.py`；相关专项提交 `0f32262b`；相关文档 `docs/plans/notification-system-design/06-spec-and-phasing.md`
 
@@ -58,7 +58,27 @@
 |---|---|---|---|
 | **一（已完成）** | `name_resolution.py` + `_fetch_std_meta` 改回退链并返回全写键 dict + `event_spec.py`/`TRIGGER_KEYS` 同批补 `standard_name` + 新单测 | 无迁移 | e2e/契约绿 + V4 阻断 0 + 三条下载路径通知有名（取 ②/①，符合 §决策 1） |
 | **二（已完成，2026-10-05）** | 迁移 **v66**：`announcement_record` 追加 `final_name` 列 + 从 `pending_lookup.final_name` 关联回填（只填空行）；**写入点**：`manager/classifier.py::QueryClassifier._persist_final_names()`（名称决策出口，`Database.executemany` 批量、独立短连接、best-effort） | 迁移 v66 | 迁移幂等（连跑两次内容不变）+ 回填语义夹具（已有值不覆盖／取 resolved 非空值／无匹配保持 NULL）+ 全量 5145 passed |
-| 三（待排期） | 收藏 API / 待确认页 / 本地索引统一切到 `fetch_resolved_name()` | 一/二 | 全链路同名同值 |
+| 三（已完成，2026-10-05） | 消费方切换：**B3-a** 批量取值 `fetch_resolved_names`；**B3-b** 收藏 API（列表/导出）批量映射 + 对外键名统一；**B3-c** 待确认接口行内零查询回退链 + 旧键清理（并修复"前端已读 `standard_name` 而后端从未返回"的缺陷）；**B3-d** 本地索引展示名对齐回退链（纯内存、不回查 DB） | 一/二 | 全链路同名同值；对外只留 `standard_name` |
+
+## 批次三：消费方切换与「就地升级」裁定
+
+**裁定（就地升级、无过渡期兼容）**：所有消费方统一走回退链取值，**对外 JSON 键名统一为 `standard_name`**，
+旧键 `std_name` 在**边界层**（API 组装处）直接清除，**不设双键过渡期**。
+理由：本次改动范围本就包含前端同批改名，不存在"后端先上、前端后跟"的部署窗口；
+保留双键读取等于在 D8 契约上开洞，必然成为新的技术债 ⇒ **兼容层本身就是需要再次偿还的债**。
+
+| 子批 | 范围 | 关键实现 |
+|---|---|---|
+| B3-a | `pilotstd/core/name_resolution.py` | 批量入口 `fetch_resolved_names()`：**固定两次数据查询 + 内存映射** + 超 900 号分块（SQLite 参数上限余量）；与单条版共用 `_name_from_json` 解析口径 |
+| B3-b | `docker/api/favorites.py` + 前端 `FavoritesView.vue` | `_apply_resolved_names()` 一次批量覆盖；**未命中回退表内原值**（绝不 null/空串）；JSON 与 CSV **共用同一份**解析结果；对外只留 `standard_name` |
+| B3-c | `docker/api/pending.py` + 仪表盘 `PendingItemsCard.vue` | **行内三列零查询**回退链（③`final_name`→②`found_name`→①`std_name`）；保留阶段字段（D4/D5：② 信息不删、语义不动）；清除旧键 `std_name` |
+| B3-d | `pilotstd/core/_file_index_query.py` | 展示名 `std_name` 按回退链重算（**纯内存、不回查 DB、无 N+1**）；`found_name` 保持②查询名语义（D5） |
+
+**范围校验（明确"不改"的部分）**：`web/src/types/api.ts` 与 `web/src/composables/useFavorite.test.ts` 中的
+`std_name` 属 **`AnnouncementRecord`（公告记录）** 类型/夹具，对应公告接口，**不在批次三范围**（避免越界改名）。
+
+**遗留**：`pending_lookup.final_name` 列仍在（仅历史兼容；③ 的权威落点已是 `announcement_record.final_name`）；
+其**物理删除**需独立清理任务 + **新迁移号 v67**，不在批次三范围。
 
 ## 批次二补充决策与实现约束
 

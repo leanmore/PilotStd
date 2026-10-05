@@ -211,6 +211,8 @@ class FileIndexQuery:
                 "year": row["year"],
                 "part": row["part"] if row["part"] != -1 else None,
                 "std_name": row["std_name"],
+                # ③决策名（若上游表/视图提供则带入，供下方回退链优先取用；缺列时为 None 不影响）
+                "final_name": row.get("final_name"),
                 "effect_status": "",
                 "found_name": "",
                 "is_adopted": False,
