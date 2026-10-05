@@ -228,7 +228,9 @@ class TestAggregatorCarriesTaskView(unittest.TestCase):
         agg = NotificationAggregator(lambda m, _ch: sent.append(m), window_seconds=60, batch_size=50)
         for m in msgs:
             agg.enqueue(m, ["wechat"], target_id=m.target_id)
-        agg.flush(msgs[0].event_type, msgs[0].target_id)
+        # 2026-10-05 分组键分层后：②路径的键以 **notify_event**（为空则 event_type）为收敛类，
+        # 因此刷新必须按"收敛类"而不是 event_type（否则 notify_event 非空时找不到桶 ⇒ 不发送）。
+        agg.flush(getattr(msgs[0], "notify_event", "") or msgs[0].event_type, msgs[0].target_id)
         return sent
 
     def test_merged_carries_task_view_from_first(self):

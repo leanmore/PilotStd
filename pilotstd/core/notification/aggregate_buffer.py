@@ -197,13 +197,20 @@ class NotificationAggregator:
         """立即刷新缓冲。
 
         指定 `target_id` 时只刷新该实体的分组；省略时刷新该事件类型的**全部**实体分组。
+        **①批次路径的例外（2026-10-05 分组键分层）**：批次组的键按设计**不含实体**
+        （`_group_entity` 对 `1<SEP>…` 恒返回 `""`），若仍按"实体相等"过滤，这类组**永远刷不出来**。
+        因此：传入 `target_id` 时，**批次组一律视为匹配**（其语义是"整批一条"，本就无实体可筛）。
         """
         with self._lock:
             groups = [
                 g
                 for g in self._buffers
                 if event_type in self._events_in_group(g)
-                and (not target_id or self._group_entity(g) == target_id)
+                and (
+                    not target_id
+                    or self._group_entity(g) == target_id
+                    or g.startswith(f"1{_GROUP_SEP}")  # ①批次组：无实体维度，按实体筛选不适用
+                )
             ]
             drained: list[tuple[str, list[_Entry]]] = []
             for group in groups:
@@ -251,28 +258,47 @@ class NotificationAggregator:
     # ── 分组键 ──
 
     def _group_key(self, msg: NotificationMessage) -> str:
-        """分组键 = 事件类型 + 关联实体（`target_id`）。
+        """分组键 = **模式前缀 + 收敛类/事件类型 + （可选）关联实体**。
 
-        实体维度让"同一事件类型、不同业务对象"的通知各自成组：
-        例如同一批扫描里 task_a 与 task_b 的完成通知不应被合并成一条
-        （否则用户只看到"聚合通知（2 条）"，无法分辨各自结果）。
-
-        回退：`target_id` 缺失（空串或纯空白）时退化为纯事件类型分组——
-        此时同类通知仍聚合，绝不把**不同**实体混为一组。
+        2026-10-05 通知聚合改造（分组键分层，裁定口径）——两条路径**按是否有批次标识分流**：
+        · **①批量导入路径**（`correlation_id` 非空）：键 = `批次 × notify_event`
+          ⇒ 一次导入（同一批次）的查询/下载/规范化/存档通知收敛为**同一条**；
+          **不含 `target_id`**：批次内每个标准的失败明细走 payload 的 `failed_items`（不靠分组键拆分）。
+        · **②日常操作路径**（`correlation_id` 为空）：键 = `notify_event × target_id`
+          ⇒ 保留实体维度（同一事件类型下 task_a / task_b 各自成组，绝不混为一组）。
+        为什么用模式前缀 `1`/`2`：让键可自解释、避免两条路径的键**跨模式撞车**；
+        为什么 `notify_event` 为空时回退 `event_type`：字段契约允许"尚未映射"（见 channel.py 注释），
+        直拼空串会把所有未映射消息并进同一组。
         """
+        notify = (getattr(msg, "notify_event", "") or "").strip() or msg.event_type
         entity = (msg.target_id or "").strip()
-        return f"{msg.event_type}{_GROUP_SEP}{entity}" if entity else msg.event_type
+        batch = (getattr(msg, "correlation_id", "") or "").strip()
+        if batch:
+            return f"1{_GROUP_SEP}{batch}{_GROUP_SEP}{notify}"
+        return f"2{_GROUP_SEP}{notify}{_GROUP_SEP}{entity}" if entity else f"2{_GROUP_SEP}{notify}"
 
     @staticmethod
     def _events_in_group(group: str) -> set[str]:
-        """从分组键还原事件类型集合（无实体时为单元素集合）。"""
-        return {group.split(_GROUP_SEP, 1)[0]}
+        """从分组键还原**收敛类/事件类型**（代表事件与 formatter 查找依赖它）。
+
+        键格式（2026-10-05 分层后）：
+        · ①批次路径 `1<SEP>批次<SEP>收敛类` ⇒ 取**最后一段**（批次号在中间，不是收敛类）；
+        · ②常规路径 `2<SEP>收敛类[<SEP>实体]` ⇒ 取**第 2 段**。
+        为什么按模式分支：两路径的段位语义不同，同一套下标会取到批次号（回归实例见
+        `tests/test_aggregate_buffer.py::test_group_key_batch_path_uses_correlation_id`）。
+        """
+        parts = group.split(_GROUP_SEP)
+        if parts[0] == "1":
+            return {parts[-1]} if len(parts) >= 3 else {group}
+        return {parts[1]} if len(parts) > 1 else {group}
 
     @staticmethod
     def _group_entity(group: str) -> str:
-        """从分组键还原关联实体；无实体分组返回空串。"""
-        _, sep, entity = group.partition(_GROUP_SEP)
-        return entity if sep else ""
+        """从分组键还原关联实体；**②路径的最后一段**才是实体，①路径无实体（返回空串）。"""
+        parts = group.split(_GROUP_SEP)
+        if len(parts) >= 3 and parts[0] == "2":
+            return parts[2]
+        return ""
 
     # ── 内部方法 ──
 

@@ -65,13 +65,38 @@ class TestGroupKeyUsesTargetId:
         assert agg._events_in_group(key_b) == {"scan_complete"}
 
     def test_group_key_fallback_without_target_id(self):
-        """缺失 target_id 时回退为纯事件类型分组（同类型仍可聚合）。"""
+        """缺失 target_id 时退化为"仅收敛类"分组（同类型仍可聚合）——②日常操作路径。
+
+        2026-10-05 分组键分层后，键格式为 `<模式><SEP>[批次<SEP>]<收敛类>[<SEP>实体]`：
+        · 本用例无 correlation_id ⇒ ②路径 ⇒ `2<SEP>scan_complete`（无实体段）；
+        · `_events_in_group` 仍必须还原出 `scan_complete`（代表事件/格式化器依赖它）。
+        """
         agg = self._agg()
         empty = agg._group_key(_make_msg(event_type="scan_complete", target_id=""))
         blank = agg._group_key(_make_msg(event_type="scan_complete", target_id="   "))
-        assert empty == "scan_complete"
-        assert blank == "scan_complete"
+        # 不直接引用私有分隔符（避免测试耦合实现细节）：用两条性质断言代替——
+        # ① 空/纯空白 target_id 得到**同一个**键；② 键以收敛类结尾且可被还原。
+        assert empty == blank
+        assert empty.endswith("scan_complete")
         assert agg._events_in_group(empty) == {"scan_complete"}
+        assert agg._group_entity(empty) == ""
+
+    def test_group_key_batch_path_uses_correlation_id(self):
+        """①批量导入路径：有 correlation_id 时键 = 批次 × 收敛类（**不含 target_id**）。"""
+        agg = self._agg()
+
+        def _msg(event_type: str, batch: str, target: str):
+            m = _make_msg(event_type=event_type, target_id=target)
+            m.correlation_id = batch  # 批次标识：由调用方在导入入口生成后透传（见 B1 设计）
+            return m
+
+        k1 = agg._group_key(_msg("normalize_complete", "batch-1", "task_a"))
+        k2 = agg._group_key(_msg("normalize_complete", "batch-1", "task_b"))
+        k3 = agg._group_key(_msg("normalize_complete", "batch-2", "task_a"))
+        assert k1 == k2, "同批次内不同实体必须收敛进同一组（明细走 payload.failed_items）"
+        assert k1 != k3, "不同批次必须互不合并"
+        assert agg._events_in_group(k1) == {"normalize_complete"}
+        assert agg._group_entity(k1) == "", "①路径不含实体维度"
 
     def test_same_target_id_same_group(self):
         """同一 target_id 的同类型消息必须落进同一分组（否则聚合永远失效）。"""
@@ -356,9 +381,12 @@ class TestNotificationAggregator(unittest.TestCase):
             window_seconds=0.1,
         )
         agg.push(event_type="test", title="T", content="c")
-        # 手动把窗口开始时间调到远超 MAX_WINDOW_SECONDS
-        agg._window_start["test"] = time.monotonic() - 301
-        agg._on_timer("test")
+        # 手动把窗口开始时间调到远超 MAX_WINDOW_SECONDS。
+        # 注意：分组键由 `_group_key()` 生成（2026-10-05 分层后带模式前缀），
+        # 因此键**必须从聚合器内部取**，不能再用字面量 "test"（否则找不到该桶 ⇒ 不发送）。
+        key = next(iter(agg._buffers))
+        agg._window_start[key] = time.monotonic() - 301
+        agg._on_timer(key)
         self.assertEqual(len(self.calls), 1)
         agg.shutdown()
 

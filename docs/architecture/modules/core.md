@@ -93,7 +93,7 @@ pilotstd/core/
 │   ├── _suppression_queue.py  # 静音时段暂存与补发（组合式 SuppressionQueue：判静音/入队/到期补发；2026-10-03 步 C B1 从 manager.py 拆出，manager 保留同名薄转发与白名单再导出）
 │   ├── _dispatcher.py         # 发送编排（模块级函数 send_event/validate_message/do_send/send_now/record_delivery/send_delivery_alert，宿主入参；2026-10-03 步 C B2 从 manager.py 拆出，manager 只留同名一行委托）
 │   ├── channels/              # wechat / feishu / dingtalk / telegram 渠道适配
-│   ├── aggregate_buffer.py    # 聚合缓冲（窗口内合并同类事件）；**2026-10-05 Z-21**：`_send_merged` 由"仅保留首条 blocks 作骨架"改为**全部条目按到达序拼接**（旧实现丢失第 2..N 条明细；新语义支撑聚合需求①②），身份字段（`message_id`/`correlation_id`）显式搬运约束保持不变
+│   ├── aggregate_buffer.py    # 聚合缓冲（窗口内合并同类事件）；**2026-10-05 Z-21**：`_send_merged` 由"仅保留首条 blocks 作骨架"改为**全部条目按到达序拼接**（旧实现丢失第 2..N 条明细；新语义支撑聚合需求①②），身份字段（`message_id`/`correlation_id`）显式搬运约束保持不变；**同日分组键分层（B1-4）**：`_group_key` 按批次标识分流——①有 `correlation_id` ⇒ `1<SEP>批次<SEP>notify_event`（整批一条，**不含 target_id**）／②无 ⇒ `2<SEP>notify_event<SEP>target_id`（`notify_event` 为空回退 `event_type`）；`_events_in_group` **按模式取段**、`_group_entity` 仅 ② 返回实体；`flush()` 对 ①批次组不再按实体筛选（否则永不刷新）。**窗口机制（`_timers`/`_window_start`/`_buffers`）未改动**
 │   ├── （2026-10-05 S-1 分类体系扩展）：`event_spec.py` 的 `notify_event` 由 6 类实值扩为 **10 类全集**——
 │   │   `task_lifecycle` 拆为 **`task_progress`（过程型）/ `task_result`（成功终局）/ `task_failure`（失败终局）**，
 │   │   新增 **`user_activity`**（公告拉取 4 事件 + `favorite_created` + `favorite_abandoned_summary`），
