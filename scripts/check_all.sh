@@ -87,6 +87,12 @@ run_fast() {
         log_fail "G-048 架构文档模块计数"
     fi
 
+    if python scripts/check_g_049_manager_size.py; then
+        log_pass "G-049 manager.py 防膨胀"
+    else
+        log_fail "G-049 manager.py 防膨胀"
+    fi
+
     # G-039: 冲突标记检查（禁止 <<<<<<< / ======= / >>>>>>> 入库）
     # 起因（2026-09-26）：一次合并产生了带冲突标记的提交，却通过了当时全部门禁
     if python scripts/check_no_conflict_markers.py; then

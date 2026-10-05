@@ -31,6 +31,7 @@
 | G-046 | 通知链路审计 | 通知构建器不得出现空文本风险、不得缺空值守卫、不得静默吞错 | 任一发现（`--strict`，零基线） | `scripts/audit_notification_chain.py` | ✅ 已部署 |
 | G-047 | Python 侧 i18n 硬编码检查 | `pilotstd/`、`docker/` 的 **Python 字符串字面量**中不得**新增**写死的中文（**跳过 docstring**——G-012 强制其中文；注释不在 AST 中不计） | 超出 `scripts/i18n_hardcoded_python_baseline.json` 的新增 | `scripts/check_i18n_hardcoded_python.py` | ✅ 已部署 |
 | G-048 | 架构文档模块计数一致性 | `docs/architecture/modules/core.md` 的「子模块数」必须等于 `pilotstd/core/` 递归全部 `.py` 数（含 `__init__.py`，不含 `__pycache__`） | 文档数字与实际文件数不符 | `scripts/check_g_048_core_module_count.py` | ✅ 已部署 |
+| G-049 | manager.py 防膨胀门禁 | `pilotstd/core/notification/manager.py` **有效代码行 ≤ 340**（口径与 G-010 一致：排除空行与纯注释行） | 有效行 > 340（输出当前值与超出量） | `scripts/check_g_049_manager_size.py` | ✅ 已部署 |
 | repo-compliance | 入仓合规检查 | 五条入仓标准 | 违规 | `.github/scripts/check-repo-compliance.sh` | ✅ 已部署 |
 
 ---
@@ -543,6 +544,7 @@ A 类管"**事件**是否齐备"（数据完备性）；B 类管"同一事实在
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
+| v1.83 | 2026-10-05 | 新增 **G-049**（`manager.py` 防膨胀门禁：有效行 ≤ 340，口径与 G-010 一致）；来源 `04-refactor-P.md` §3.1 **P4 判据**（P2 步 C 收口）。阈值余量：实测有效行 **287** ⇒ 余量 **53** 行 |
 | v1.82 | 2026-10-03 | **G-045 脚本按 G-010 压缩**：`audit_notification_coverage.py` 有效行 **408 → 314**（曾越 400 警告线，源于步 B D6 后半段新增的规格读取助手）——四个助手（`spec_declarations` / `spec_closed_sets` / `_builder_defs` / `spec_field_problems`）抽为兄弟模块 `scripts/_notification_spec_read.py`（109 有效行），门禁行为不变（仍只 `ast.parse` 不 import 被检对象，检查项 45/45、阻断 0）|
 | v1.81 | 2026-10-03 | **步 B D4 完整形态 + D6 后半段：e2e 契约由规格派生，G-045 四字段升为校验**。① `tests/test_notification_e2e.py` 的 `EVENTS` 由 439 行手写元数据改为**由 `event_spec.EVENT_SPECS` 派生**（8 字段直取 + 构建器反射），逐条比对 41×7 字段零不一致；② G-045 的"契约"维度改以**规格声明**为源（`spec_declarations()`/`spec_field_problems()`，仍只 `ast.parse` 不 import 被检对象）：校验 `levels` 升序、`module_key` 三语齐备、`aggregation` 闭集、`payload_keys` 形态、`builder_ref` 指向真实构建器函数 + `trigger_file` 物理存在；③ 检查项仍 **45/45、阻断 0**（沿用途维度行不新增计数的做法），「未覆盖说明」同步改为"四字段已由规格侧校验"；④ 判别力实证：注入越界 `aggregation` → exit 1 并点名该事件 |
 | v1.80 | 2026-10-03 | **步 B D6：G-045 的"事件 → 构建器"读取源由 `manager.py` 的字面量字典改为 `event_spec.py` 的 `EventSpec(...)` 静态字面量（`key` + `builder_ref` 取冒号后段）** —— 为步 B D2（manager 注册表派生）解除门禁侧阻塞；**仍不 import 被检对象**（只 `ast.parse`）。改造前后逐条比对 41 条一致、键集与 `ALL_EVENT_KEYS` 一致、检查项仍 45/45 阻断 0。同批背景：步 B D1（`mapping.EVENT_MAPPINGS` 派生）、D3（`defaults` 订阅规则派生 + `pilotstd/core/notification/__init__.py` 惰性化切断反向耦合） |
