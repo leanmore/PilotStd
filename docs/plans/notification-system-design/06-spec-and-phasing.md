@@ -2,7 +2,7 @@
 
 > ## ✅ 本方案已定稿（2026-10-03）
 > **定稿依据**：五项待确认（N1–N5）**全部裁决**（§三 1）；两处补充澄清（e2e 构成、工作量依据）**已完成并实证**（§1.6）；spec 字段清单经澄清后由 **15 → 16**（§1.1.1）；判据 1/2/5 达成路径明确（§2.2）；三步原子性边界明确（§1.4）。
-> **遗留事项**：3 项，已标注"遗留到实施设计阶段"（§三 2），不阻塞定稿。
+> **遗留事项**：**5 项**，已标注"遗留到实施设计阶段"（§三 2），不阻塞定稿。（**2026-10-05 A0 核实更正**：本节原写"3 项"，实测 §三 2 为 5 项表——1 `levels`/`aggregation` 序列化 · 2 `channel_spec.schema` 对接 · 3 三语文案工时 · 4 `spec_hash` 算法与放置 · 5 D6 门禁编号；逐项状态见该表"状态"列。）
 >
 > **本轮性质**：只澄清 + 定案，**不实施**、**不含步 A 实施设计**。
 > **上游**：[05-refactor-decision.md](05-refactor-decision.md)（目标优先评估）、[04-refactor-P.md](04-refactor-P.md)（P 阶段拆分设计）
@@ -225,7 +225,7 @@
 
 | 步 | 最大不确定项 | 依据 | 风险增量 |
 |---|---|---|---|
-| **A** | **前端 4 模板块 → schema 驱动表单**（约 120 行重写 + 拉取/缓存/hash） | **无历史锚点**（阶段 0 只改了 `useNotification.ts` 的轮询） | **+0.5 ～ 1 天**（Vue 类型/`vue-tsc` 摩擦） |
+| **A** | ✅ **已实施（2026-10-05 A0 核实闭环）**：前端 4 模板块 → schema 驱动表单 | **原估"约 120 行重写"已不成立**——实测 `NotificationConfig.vue` 早已 schema 驱动：`:291 v-for="ch in specs"`、`:306 <template v-for="f in ch.fields" :key="f.name">`、`:37`「键为 spec 的 field.name」；且缓存失效亦已实现：`:45 specHash`、`:123 if (!force && specHash.value === resp.spec_hash && specs.value.length) return`（**内容级缓存失效** ✅）。后端侧同步就绪：`GET /api/notification/channels`（`docker/api/notification_config.py:152`）返回 `{spec_hash, channels}` | **+0**（原估 +0.5～1 天，**已随 A0 核实取消**） |
 | **B** | **门禁 D6**（读 spec + 覆盖摘要 + 判别力测试） | **有摩擦史**：`notification_coverage.md:142-151` 记"三处门禁共用，改动须同步三处"，契约由 `tests/test_gate_coverage_summary.py`（12 例）锁定 | **+0.5 ～ 1 天** |
 | **B** | spec 41 × 16 = **656 数据点搬运与核对** | 数据量大但机械 | +0 ～ 0.5 天 |
 | **C** | 纯重构（无同类锚点） | 按 [04](04-refactor-P.md) 既有估算 | 保持 2 天 |
@@ -339,17 +339,17 @@ pilotstd/core/notification/
 | **N2** | spec 模块数：2 vs 1 | ✅ **2 模块**（`events.py` 保轻 + `event_spec.py`） |
 | **N3** | 前端清单更新：API 拉取 vs 构建期生成物 | ✅ **运行时 API 拉取** |
 | **N4** | `payload_keys`：先显式 vs 直接自动派生 | ✅ **先显式声明**，后续自动化 |
-| **N5** | 步 A 是否顺带修 `NotificationLogsView.vue:107-112` 漏 dingtalk | ✅ **顺带修** |
+| **N5** | 步 A 是否顺带修 `NotificationLogsView.vue:107-112` 漏 dingtalk | ✅ **顺带修** —— **且已闭环（2026-10-05 A0 核实）**：`NotificationLogsView.vue:110-111` 注释「渠道元数据（**后端 channel_spec 派生**）：筛选下拉与显示名都由它构建，**不再硬编码渠道清单**」+ `:14` 引入 `getNotificationChannels`；同页 `:132` 自述"此前漏过 dingtalk，见 C1 报告" ⇒ **无需再修** |
 
 ## 三 2、遗留到实施设计阶段的事项（**不阻塞定稿**）
 
-| # | 事项 | 归属 | 说明 |
-|---|---|---|---|
-| 1 | `levels` 与 `aggregation` 的**序列化约定**（固定顺序元组 / 斜杠连接 / 排序规则） | 步 B1 实施设计 | 实测 `level` 6 个唯一值排序不统一（`info/error` vs `info/warning/error`），须定一个并同批改这 6 个字面值 |
-| 2 | `channel_spec.py` 的 `schema` 字段如何与 `get_config_schema()` 对接（直接引用实现 vs 声明后校验） | 步 A 实施设计 | 涉及"声明 vs 实现"是否加断言（延伸 [00](00-framework.md) §七 #9 的门禁议题） |
-| 3 | **三语文案的撰写工时**（每新事件 3–6 键 × 3 语言） | 所有步 | 本方案的时间表**不含人工翻译**；现 240 个 `notification.*` 键为存量 |
-| 4 | `spec_hash` 的具体算法与放置位置（body / header） | 步 A 实施设计 | 仅影响缓存失效机制 |
-| 5 | D6 门禁的**名称与编号**（是否沿用 G-045 还是新增 G-048） | 步 B 实施设计 | 与 [04](04-refactor-P.md) §3.7 的防膨胀门禁 G-048 编号存在潜在冲突，须一并决定 |
+| # | 事项 | 归属 | 说明 | 状态（2026-10-05 A0 核实） |
+|---|---|---|---|---|
+| 1 | `levels` 与 `aggregation` 的**序列化约定**（固定顺序元组 / 斜杠连接 / 排序规则） | 步 B1 实施设计 | 实测 `level` 6 个唯一值排序不统一（`info/error` vs `info/warning/error`），须定一个并同批改这 6 个字面值 | ⏳ 未动（归步 B） |
+| 2 | `channel_spec.py` 的 `schema` 字段如何与 `get_config_schema()` 对接（直接引用实现 vs 声明后校验） | 步 A 实施设计 | 涉及"声明 vs 实现"是否加断言（延伸 [00](00-framework.md) §七 #9 的门禁议题） | **桥已存在** ✅：`channel_spec.py:14`「`get_config_schema()` 的兼容形状用」+ `:376`「产出既有 `get_config_schema()` 的兼容形状」+ 端点 `docker/api/notification_config.py:152` ⇒ **仅"断言门禁**待评估**（本次不实施，避免范围蔓延） |
+| 3 | **三语文案的撰写工时**（每新事件 3–6 键 × 3 语言） | 所有步 | 本方案的时间表**不含人工翻译**；现 240 个 `notification.*` 键为存量 | ⏳ 横切计量（按每批实增事件计） |
+| 4 | `spec_hash` 的具体算法与放置位置（body / header） | 步 A 实施设计 | 仅影响缓存失效机制 | ✅ **已实施**：置于**响应体**（`docker/api/notification_config.py:163 return {"spec_hash": spec_hash(payload), **payload}`）；算法＝负载本体规范化 JSON 的 **SHA-256 前 16 位**（`channel_spec.py:445`；`:438` 说明产出负载不含 hash）；契约与判别力测试 `tests/test_notification_api.py:317-318`、`:357-358` |
+| 5 | D6 门禁的**名称与编号**（是否沿用 G-045 还是新增 G-048） | 步 B 实施设计 | 与 [04](04-refactor-P.md) §3.7 的防膨胀门禁 G-048 编号存在潜在冲突，须一并决定 | ⚠️ **冲突已成事实**：`G-048` 已被"core 子模块计数"占用（2026-10-05 实测）；**待分配新号，候选 `G-049`**（全库 grep 零命中 ✅；`gates.md` 已用最大号＝G-048）⇒ **不得沿用 G-045** |
 
 ---
 
