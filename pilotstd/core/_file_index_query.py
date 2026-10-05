@@ -11,6 +11,7 @@ from typing import Any, Optional, cast
 
 from pilotstd.models import ParsedStdInfo
 
+from .name_resolution import resolve_name
 from .status import Status
 
 # 核心表名常量，统一管理避免硬编码字符串散布
@@ -140,9 +141,15 @@ class FileIndexQuery:
             cached = json.loads(result_json)
             if cached.get("match_status") == "exact":
                 info.effect_status = cached.get("status", "")
-                info.found_name = cached.get("standard_name", "")
+                info.found_name = cached.get("standard_name", "")  # 阶段②语义：查询名（D5，勿改其含义）
                 info.is_adopted = cached.get("is_adopted", False)
                 info.match_status = "exact"
+                # 展示名统一（B3-d）：③决策名 > ②查询名 > ①解析名 ⇒ 取「最高可得阶段名」。
+                # 为什么纯内存算而**不**回查 DB：③ 若已存在则在本对象上、② 在缓存里、① 在索引行里，
+                # 三者都已在手边；回查既无必要，也会在批量场景制造 N+1。found_name 的②语义保持不变。
+                info.std_name = resolve_name(
+                    getattr(info, "final_name", ""), info.found_name, info.std_name
+                )
         except (json.JSONDecodeError, TypeError):
             pass
 
@@ -222,7 +229,11 @@ class FileIndexQuery:
                 try:
                     cached = json.loads(cache_json)
                     info["effect_status"] = cached.get("status", "")
-                    info["found_name"] = cached.get("standard_name", "")
+                    info["found_name"] = cached.get("standard_name", "")  # 阶段②语义（D5，勿改其含义）
+                    # 展示名统一（B3-d）：同上，纯内存回退链（③→②→①），不回查 DB ⇒ 无 N+1
+                    info["std_name"] = resolve_name(
+                        info.get("final_name"), info["found_name"], info.get("std_name")
+                    )
                     info["is_adopted"] = cached.get("is_adopted", False)
                     info["match_status"] = cached.get("match_status", "")
                 except (json.JSONDecodeError, TypeError):

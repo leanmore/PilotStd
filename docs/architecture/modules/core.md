@@ -110,7 +110,7 @@ pilotstd/core/
 │   ├── cache_manager.py       # 版本驱动失效策略缓存
 │   ├── task_history.py / task_status.py
 │   ├── validity_checker.py / _validity_pipeline.py
-│   ├── file_index.py / _file_index_query.py
+│   ├── file_index.py / _file_index_query.py  # 本地索引与查询；**批次三 B3-d**：缓存命中后**展示名** `std_name` 按回退链 ③决策→②查询→①解析 重算（**纯内存、不回查 DB、无 N+1**），`found_name` 保持「②查询名」语义不变（D5）
 │   ├── name_resolution.py     # 标准名称「最高可得阶段」回退链：③决策名 `final_name` → ②查询名（standard_info_cache.result_json 的 `standard_name`）→ ①解析名 `std_name`；**对外边界统一全写 `standard_name`，DB 存储列名不动**（2026-10-05 名称解析统一批次一；承接 2026-06-20「名称决策」专项的 `source_name`/`normalized_name`/`final_name` 语义）；**批次三 B3-a 增批量入口 `fetch_resolved_names()`**（固定两次数据查询 + 内存映射 + 超 900 号自动分块，供收藏列表/导出等接口避免 N+1）
 │   ├── file_utils.py / download_utils.py / export_utils.py
 │   ├── std_utils.py           # 标准号分类（classify_std_code → "gb" 等）
