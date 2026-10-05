@@ -8,7 +8,6 @@ from __future__ import annotations
 import json
 import logging
 import os
-import uuid
 import warnings
 from typing import TYPE_CHECKING, Any, Optional, cast
 
@@ -16,6 +15,7 @@ from pilotstd.core import status as status_dict
 from pilotstd.core.status import Status
 
 from ...core.notification import EVENT_ARCHIVE_COMPLETE
+from ...core.notification.batch import ensure_batch_key
 from ...core.std_utils import classify_std_code
 from ...i18n import t
 from ...models import ParsedStdInfo
@@ -205,7 +205,8 @@ class OrganizeHandler:
         total = len(items)
         # 通知聚合 B1 · E1：**一次归档 = 一个批次**。批次键驱动聚合器走①批次键
         # （`correlation_id × notify_event`）⇒ 本次归档的完成通知收敛为一条（失败明细在 payload）。
-        archive_batch_key = f"arch-{uuid.uuid4().hex[:8]}"
+        # 若外层有导入上下文（`notification.batch.batch_scope`），则**共用**该次导入的键 ⇒ 与其它阶段合成一条。
+        archive_batch_key = ensure_batch_key("arch")
         backfilled = 0
         for i, p in enumerate(items):
             orig = p.std_name
@@ -390,7 +391,8 @@ class OrganizeHandler:
 
         # 通知聚合 B1 · E1：**一次规范化 = 一个批次**（与归档同款；键随 payload 透传，
         # 使本批的完成通知走①批次键收敛成一条，失败明细在 payload.failed_items）。
-        normalize_batch_key = f"norm-{uuid.uuid4().hex[:8]}"
+        # 外层若有导入上下文则共用其键（一次导入的查询/下载/规范化/存档合成一条）。
+        normalize_batch_key = ensure_batch_key("norm")
         results: list[dict[str, Any]] = []
         total = len(parsed_list)
         batch: list[tuple[int, ParsedStdInfo, str]] = []

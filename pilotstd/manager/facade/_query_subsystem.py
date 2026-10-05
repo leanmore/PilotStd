@@ -13,7 +13,6 @@
 from __future__ import annotations
 
 import logging
-import uuid
 from typing import Any, Callable, cast
 
 import requests
@@ -21,6 +20,7 @@ import requests
 from pilotstd.core import status as status_dict
 from pilotstd.core.status import Status
 
+from ...core.notification.batch import ensure_batch_key
 from ...core.std_utils import GB_CODES, classify_std_code
 from ...query.models import BatchQueryStats, QueryResult
 
@@ -208,7 +208,8 @@ class QuerySubsystem:
         """统计 + 分类路由 + 待确认持久化 + 汇总报告。"""
         # 通知聚合 B1 · E1：**一次批量查询 = 一个批次**。批次键让本次查询汇总通知走①批次键
         # （`correlation_id × notify_event`）收敛成一条；为空则退化 ②日常键（按实体分组）。
-        query_batch_key = f"qry-{uuid.uuid4().hex[:8]}"
+        # 外层若有导入上下文（batch_scope）则共用其键 ⇒ 与下载/规范化/存档合成一条。
+        query_batch_key = ensure_batch_key("qry")
         self._core.query_results = results
         stats = BatchQueryStats()
         stats.total = len(items)

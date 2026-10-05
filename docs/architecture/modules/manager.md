@@ -127,6 +127,13 @@ StandardManager (BaseFacade)
 
 ## 近期变更
 
+- **2026-10-05（B1 · E1 批次键 + 跨阶段共用）**：批次键改为经 `core/notification/batch.py` 的**上下文**
+  取用（`ensure_batch_key(prefix)`）——**导入入口用 `with batch_scope("imp")` 包住整段流程**时，查询/下载/
+  规范化/存档四个阶段**自动共用同一个键** ⇒ 一次导入的四类通知被聚合器收敛成**一条**（需求①"一次导入 = 1 条"）；
+  没有外层作用域时退化为"一次操作 = 一个批次"（与接线前行为一致，零行为变更）。上下文用 `contextvars`
+  实现（线程/异步任务隔离，不串批次）。
+  **边界（如实）**：桌面 `on_import_download` 与 `POST /api/download/import` 两个入口**尚未**打开该作用域
+  （接线待下一批）；当前生产行为仍是"一次操作一个批次"。
 - **2026-10-05（B1 · E1 批次键）**：三条路径的**批次标识**在入口生成并随 payload 透传——
   `facade/_organize.py::archive_standards` ⇒ `arch-<uuid8>`；`facade/_organize.py::normalize_files_stream`
   ⇒ `norm-<uuid8>`；`facade/_query_subsystem.py::_finalize_query` ⇒ `qry-<uuid8>`（一次操作 = 一个批次）。

@@ -169,9 +169,26 @@ def test_download_batch_generates_batch_key_and_passes_it() -> None:
     src = (Path(__file__).resolve().parents[1] / "pilotstd" / "download" / "engine.py").read_text(
         encoding="utf-8"
     )
-    assert '_batch_key = f"dl-{_uuid.uuid4().hex[:8]}"' in src, "批次键必须在入口生成"
+    assert '_ensure_batch_key("dl")' in src, "批次键必须在入口取用（优先共用导入上下文键）"
     assert 'self._notify_download_complete(notification_mgr, stats, _batch_key)' in src, "批次键必须透传"
     assert '"correlation_id": correlation_id' in src, "批次键必须进 payload（供分发层搬运）"
+
+
+def test_batch_scope_shares_one_key_across_stages() -> None:
+    """需求①"一次导入 = 一个批次"：导入作用域内，各阶段取到**同一个**批次键。
+
+    注意：`ensure_batch_key` 会把键**记住在当前上下文**，因此其它用例先跑过就可能留下一个键 ⇒
+    这里用**相对断言**（进入作用域取到新键、退出后恢复到进入前的值），不假设"初始必为空"。
+    """
+    from pilotstd.core.notification.batch import batch_scope, current_batch_key, ensure_batch_key
+
+    before = current_batch_key()
+    with batch_scope("imp") as key:
+        assert key.startswith("imp-")
+        assert key != before, "作用域必须给出新键（否则会与其它导入串批次）"
+        # 查询/下载/规范化/存档四阶段的生产者都必须拿到同一个键 ⇒ 才会被聚合器收敛成一条
+        assert {ensure_batch_key(p) for p in ("qry", "dl", "norm", "arch")} == {key}
+    assert current_batch_key() == before, "退出作用域必须复位到进入前的值（避免串批次）"
 
 
 def test_dispatcher_carries_batch_key_into_message() -> None:

@@ -274,11 +274,11 @@ class DownloadEngine:
     ) -> tuple[List[DownloadTask], BatchDownloadStats]:
         """批量下载，支持网络失败自动重试。"""
         import time as _time
-        import uuid as _uuid
 
-        # 通知聚合 B1 · E1：**一次批量下载 = 一个批次**。批次键在入口生成一次并向下透传
-        # （取 uuid 前 8 位，够唯一且短；语义见 docs/plans/notification-redesign/08-聚合设计.md §E1）。
-        _batch_key = f"dl-{_uuid.uuid4().hex[:8]}"
+        # 通知聚合 B1 · E1：**一次批量下载 = 一个批次**（与"一次导入"共用上下文键时即整条导入的阶段之一）。
+        from pilotstd.core.notification.batch import ensure_batch_key as _ensure_batch_key
+
+        _batch_key = _ensure_batch_key("dl")
 
         _dl_t0 = _time.monotonic()
         _total = len(tasks)

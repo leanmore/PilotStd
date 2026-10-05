@@ -1,8 +1,13 @@
 # 下载流程（openstd 国家标准全文公开系统）
 
 > 本文是 `pilotstd/download/adapters/openstd_download.py` 的"文字映射"：描述**当前代码实际执行的下载链路**、两个历史事故点、以及守护这条链路的防回归测试。
-> **2026-10-05（通知聚合 B1 · E1/E2）批次键**：**一次批量下载 = 一个批次**。`batch_download()` 在入口生成
-> `dl-<uuid8>` 形式的批次键并透传给 `_notify_download_complete(..., correlation_id=...)`，进入
+> **2026-10-05（通知聚合 B1 · E1/E2）批次键**：**一次批量下载 = 一个批次**。`batch_download()` 现在通过
+> `pilotstd/core/notification/batch.py::ensure_batch_key("dl")` 取键——**若外层有导入作用域**
+> （导入入口 `with batch_scope("imp")`），则与查询/规范化/存档**共用同一个键**，整次导入收敛成一条；
+> 没有作用域时按前缀生成（`dl-<uuid8>`，一次操作一个批次）。键经 `_notify_download_complete(..., correlation_id=...)`
+> 进 `batch_download_complete` payload，再由 `notification._dispatcher.send_event` 搬到消息字段。
+> 契约不变量由 `tests/test_notification_failed_items.py` 断言锁定（取用／透传／搬运／作用域共用四处缺一即红）。
+> **旧描述（保留为沿革）**：`dl-<uuid8>` 形式的批次键并透传给 `_notify_download_complete(..., correlation_id=...)`，进入
 > `batch_download_complete` 的 payload；`pilotstd/core/notification/_dispatcher.py::send_event` 把 payload 的
 > `correlation_id` 搬到 `NotificationMessage`（空值＝非批次路径）。该键驱动聚合器的**①批次键**
 > （`correlation_id × notify_event`），使整批通知收敛为**同一条**；无键时走 **②日常键**（`notify_event × target_id`）。
