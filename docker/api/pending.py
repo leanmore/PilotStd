@@ -2,33 +2,39 @@
 from fastapi import Body, Depends
 from fastapi.routing import APIRouter
 
-from pilotstd.core.name_resolution import resolve_name
+from pilotstd.core.db.database import Database
+from pilotstd.core.name_resolution import fetch_resolved_names, resolve_name
 from pilotstd.core.status import status_key
 
 from ..manager import get_manager_dep
+
+# 复用收藏模块已定义的"请求级 Database 依赖"（请求结束自动关闭连接），避免在多个路由模块
+# 里各自实现连接口径（双口径易产生连接泄漏与事务差异）。
+from .favorites import get_db
 
 router = APIRouter(tags=["pending"])
 
 
 @router.get("/api/pending")
-def get_pending(mgr=Depends(get_manager_dep)):
+def get_pending(db: Database = Depends(get_db), mgr=Depends(get_manager_dep)):
     """获取所有待确认项（来自 pending_lookup 表；名称统一为「最高可得阶段名」）。
 
-    为什么在接口层再算一次：`pending_lookup` 行内同时存着 ①`std_name`（解析名）、
-    ②`found_name`（查询名）、③`final_name`（决策名）。前端各页面只应关心"这个标准现在
-    该叫什么" ⇒ 在此按 **③→②→①** 算出**唯一**对外名 `standard_name`。
+    为什么在接口层取回退链：本表行内只有 ①`std_name`（解析名）与 ②`found_name`（查询名）；
+    ③决策名的**权威落点是 `announcement_record.final_name`**（迁移 v66 引入，批次二写入点负责落库）。
+    自 **v67-a** 起本接口**不再读取本表的 `final_name`**（该列已解耦，仅历史兼容保留），
+    改为经 `fetch_resolved_names()` **一次批量**取「③→②→①」（B3-a：固定两条数据查询，严禁 N+1）。
 
-    为什么零成本：三个字段**就在本行内**，无需任何 DB 往返，也不存在 N+1。
-
-    为什么保留 ③/② 等原键：待确认页要**并列展示**"解析名 vs 查询名"供人工判断，
-    它们是**不同语义的字段**，不是同一名称的重复键；而 `std_name` 作为对外展示名属阶段①化石
-    ⇒ 按 D8 覆盖为 `standard_name` 后 `pop` 掉旧键。
+    为什么还要保留行内回退：批量映射只覆盖"公告表中查得到"的标准号；查不到的号必须沿用
+    行内 ②/① ⇒ 展示名**绝不返回 None/空串**（前端名称列不空白的最后防线）。
     """
     items = mgr.get_pending_items()
+    numbers = [str(item.get("standard_number") or "") for item in items]
+    resolved = fetch_resolved_names(db, numbers)  # 一次批量（内部已降级，不抛）
     for item in items:
-        # 回退链：③ 决策名 > ② 查询名 > ① 解析名（取第一个非空；全空则为空串）
-        item["standard_name"] = resolve_name(
-            item.get("final_name"), item.get("found_name"), item.get("std_name")
+        number = str(item.get("standard_number") or "")
+        # 权威源命中 ⇒ 用回退链结果；否则回退行内 ②查询名 → ①解析名
+        item["standard_name"] = resolved.get(number) or resolve_name(
+            item.get("found_name"), item.get("std_name")
         )
         item.pop("std_name", None)  # D8：对外不再暴露旧键
     return {"items": items}

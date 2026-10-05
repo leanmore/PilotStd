@@ -18,6 +18,9 @@ PilotStd 的业务逻辑中枢，作为 CLI / WinUI / Docker 三端的统一后�
 > `_persist_final_names()`，把决策产出的 `final_name` 用**单次 `Database.executemany`** 批量写入
 > `announcement_record.final_name`（独立短连接＝独立事务、best-effort：失败只记 debug，不影响分类结果与后续归档；
 > 标准号在公告表中无对应行时 UPDATE 影响 0 行属正常，静默跳过）。
+> **v67-a 解耦（2026-10-05）**：`manager/pending_service.py::record_pending()` 的 INSERT **不再写**
+> `pending_lookup.final_name`（③ 权威落点已在 `announcement_record.final_name`）；该旧列自此**运行时零读写**，
+> 仅作历史数据保留（物理删除属 v67-b，需先实测迁移链兼容性）。
 > 该列由**迁移 v66** 引入（并从 `pending_lookup.final_name` 关联回填、只填空行）；DB 后消费方
 > （下载通知族等）经 `pilotstd/core/name_resolution.py::fetch_resolved_name()` 按 **③决策 → ②查询 → ①解析** 读取。
 

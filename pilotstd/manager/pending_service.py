@@ -46,10 +46,13 @@ class PendingService:
             if existing:
                 continue
             self._db.execute(
+                # v67-a 解耦：**不再写入** final_name——③ 决策名的权威落点是
+                # announcement_record.final_name（批次二写入点负责落库），本表只保留
+                # ①std_name / ②found_name 等过程字段；旧列仅为历史兼容保留，运行时不再读写。
                 "INSERT INTO pending_lookup (standard_number, std_name, found_name, "
                 "found_number, match_status, effect_status, score, source_site, "
-                "file_path, source_name, final_name, reason, status, created_at) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)",
+                "file_path, source_name, reason, status, created_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)",
                 (
                     std_num,
                     parsed.std_name,
@@ -61,7 +64,6 @@ class PendingService:
                     getattr(parsed, "found_source_site", ""),
                     parsed.source_path or "",
                     getattr(parsed, "source_name", "") or "",
-                    getattr(parsed, "final_name", "") or "",
                     getattr(parsed, "stage_status", "") or "",
                     now,
                 ),

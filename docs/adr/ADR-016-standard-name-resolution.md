@@ -77,8 +77,10 @@
 **范围校验（明确"不改"的部分）**：`web/src/types/api.ts` 与 `web/src/composables/useFavorite.test.ts` 中的
 `std_name` 属 **`AnnouncementRecord`（公告记录）** 类型/夹具，对应公告接口，**不在批次三范围**（避免越界改名）。
 
-**遗留**：`pending_lookup.final_name` 列仍在（仅历史兼容；③ 的权威落点已是 `announcement_record.final_name`）；
-其**物理删除**需独立清理任务 + **新迁移号 v67**，不在批次三范围。
+**遗留**：`pending_lookup.final_name` 列仍在（**自 v67-a 起运行时既不写也不读**；③ 的权威落点已是
+`announcement_record.final_name`）；其**物理删除（v67-b）**须先实测"删列 + 全链跑迁移"是否触发
+v66 迁移对该列的引用报错——因**已执行迁移源码不可变**（P-106 校验和门禁），若必然报错则**放弃删列**，
+将其降级为"已知可接受的历史列（保留列 + 文档标注）"。
 
 ## 批次二补充决策与实现约束
 
@@ -91,8 +93,9 @@
    使用**独立短连接**（独立事务），异常只记 debug ⇒ 失败不影响内存分类结果与后续归档。
 4. **匹配不到不报错**：`announcement_record` 唯一键为 `(source_site, pid, standard_number)`，手输/本地扫描来的
    标准号可能没有对应行 ⇒ UPDATE 影响 0 行属正常，静默跳过。
-5. **`pending_lookup.final_name` 状态＝已弃用（仅历史兼容）**：自批次二起，③ 的权威落点为
-   `announcement_record.final_name`；`pending_lookup.final_name` **不再作为权威源**，仅在回填期作**历史数据来源**，
-   待批次三把消费方全部切到 `fetch_resolved_name()` 后可按需清理（**本轮不删列**，避免不可逆）。
+5. **`pending_lookup.final_name` 状态＝已弃用（运行时零读写）**：自批次二起，③ 的权威落点为
+   `announcement_record.final_name`；**自 v67-a 起**本表的该列**既不写**（`record_pending` 的 INSERT
+   已移除该列）**也不读**（`GET /api/pending` 的③改为经 `fetch_resolved_names()` 批量取自公告表），
+   仅作**历史数据**保留；其物理删除属 v67-b，需按上文"先实测、必要时放弃"的结论处理。
 6. **测试表结构同步**：v66 追加列后，7 个手工建 `announcement_record` 的测试需同步补列
    （由 `scripts/check_schema_consistency.py` 判定；注意该门禁要求列集一致，且 **SQLite 不接受尾随逗号**）。
