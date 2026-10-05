@@ -7,6 +7,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from pilotstd.core.notification._builders_batch import (
     _ERROR_TYPE_KEYS,
     _build_normalize_complete_message,
@@ -131,7 +133,30 @@ def test_failed_items_json_roundtrip() -> None:
     assert loads_list("[]") == []
 
 
-# ── 四、分组键两条路径（聚合器）──────────────────────────────────────────────
+# ── 五、批次键（E1/E2）：入口生成 + 分发层搬运（源码级契约，防回归）───────────────
+
+
+def test_download_batch_generates_batch_key_and_passes_it() -> None:
+    """一次批量下载 = 一个批次：键在 `download_batch` 入口生成一次，并透传到完成通知。
+
+    用源码级断言（与 `test_notification_e2e.py` 的契约表同思路）：这三行是"批次键不丢"的最小不变量，
+    任何重构只要漏掉其一，①批次路径就会静默退化为 ②（用户看到的就不是"整批一条"）。
+    """
+    src = (Path(__file__).resolve().parents[1] / "pilotstd" / "download" / "engine.py").read_text(
+        encoding="utf-8"
+    )
+    assert '_batch_key = f"dl-{_uuid.uuid4().hex[:8]}"' in src, "批次键必须在入口生成"
+    assert 'self._notify_download_complete(notification_mgr, stats, _batch_key)' in src, "批次键必须透传"
+    assert '"correlation_id": correlation_id' in src, "批次键必须进 payload（供分发层搬运）"
+
+
+def test_dispatcher_carries_batch_key_into_message() -> None:
+    """分发层把 payload 的 `correlation_id` 搬到 `NotificationMessage`（空值＝非批次路径）。"""
+    src = (
+        Path(__file__).resolve().parents[1] / "pilotstd" / "core" / "notification" / "_dispatcher.py"
+    ).read_text(encoding="utf-8")
+    assert 'msg.correlation_id = str(event_data.get("correlation_id") or "")' in src
+
 
 
 def _agg() -> NotificationAggregator:

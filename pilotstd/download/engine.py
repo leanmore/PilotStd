@@ -241,14 +241,23 @@ class DownloadEngine:
                 stats.errors += 1
 
     @staticmethod
-    def _notify_download_complete(notification_mgr: Any, stats: BatchDownloadStats) -> None:
-        """发送批量下载完成通知。"""
+    def _notify_download_complete(
+        notification_mgr: Any, stats: BatchDownloadStats, correlation_id: str = ""
+    ) -> None:
+        """发送批量下载完成通知。
+
+        `correlation_id`：**一次批量下载 = 一个批次**（通知聚合 B1 · E1）。
+        由 `download_batch` 在入口生成一次并透传——通知聚合器据此走①批次键
+        （`correlation_id × notify_event`），把整批的下载/规范化/存档通知收敛成**同一条**；
+        为空则退化为 ②日常键（按实体分组）。
+        """
         if not notification_mgr:
             return
         try:
             notification_mgr.send_event(
                 "batch_download_complete",
                 {
+                    "correlation_id": correlation_id,
                     "total": stats.total,
                     "success": stats.success,
                     "failed": stats.failed + stats.errors,
@@ -265,6 +274,11 @@ class DownloadEngine:
     ) -> tuple[List[DownloadTask], BatchDownloadStats]:
         """批量下载，支持网络失败自动重试。"""
         import time as _time
+        import uuid as _uuid
+
+        # 通知聚合 B1 · E1：**一次批量下载 = 一个批次**。批次键在入口生成一次并向下透传
+        # （取 uuid 前 8 位，够唯一且短；语义见 docs/plans/notification-redesign/08-聚合设计.md §E1）。
+        _batch_key = f"dl-{_uuid.uuid4().hex[:8]}"
 
         _dl_t0 = _time.monotonic()
         _total = len(tasks)
@@ -294,7 +308,7 @@ class DownloadEngine:
 
         completed = [r for r in results if r is not None]
         self._collect_batch_stats(completed, stats)
-        self._notify_download_complete(notification_mgr, stats)
+        self._notify_download_complete(notification_mgr, stats, _batch_key)
 
         return completed, stats
 

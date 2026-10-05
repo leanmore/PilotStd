@@ -1,6 +1,12 @@
 # 下载流程（openstd 国家标准全文公开系统）
 
 > 本文是 `pilotstd/download/adapters/openstd_download.py` 的"文字映射"：描述**当前代码实际执行的下载链路**、两个历史事故点、以及守护这条链路的防回归测试。
+> **2026-10-05（通知聚合 B1 · E1/E2）批次键**：**一次批量下载 = 一个批次**。`batch_download()` 在入口生成
+> `dl-<uuid8>` 形式的批次键并透传给 `_notify_download_complete(..., correlation_id=...)`，进入
+> `batch_download_complete` 的 payload；`pilotstd/core/notification/_dispatcher.py::send_event` 把 payload 的
+> `correlation_id` 搬到 `NotificationMessage`（空值＝非批次路径）。该键驱动聚合器的**①批次键**
+> （`correlation_id × notify_event`），使整批通知收敛为**同一条**；无键时走 **②日常键**（`notify_event × target_id`）。
+> 契约不变量由 `tests/test_notification_failed_items.py` 源码级断言锁定（生成／透传／搬运三处缺一即红）。
 > **2026-10-05（通知聚合 B1-1/B1-3）补充**：批量下载的**失败明细采集**落在 `pilotstd/download/engine.py`
 > （`_collect_batch_stats` 的 `DownloadStatus.FAILED` 分支）——4 列口径 `standard_number`（`models.py:24`）/
 > `standard_name`（取自 `task.query_result`，取不到填 `-`）/ `error_type`（由 `task.error_message` 关键词映射到

@@ -94,6 +94,12 @@ def send_event(
         return
 
     msg = host._build_message(event_type, event_data)
+    # 批次键透传（通知聚合 B1 · E2，2026-10-05）：构建器**不感知批次**（它是"单条消息长什么样"的出处），
+    # 批次标识由**调用方在导入/批量入口生成**后经 payload 传入，这里只做搬运——
+    # 落在 `NotificationMessage.correlation_id` 上，供聚合器的①批次键（`correlation_id × notify_event`）
+    # 把整批通知收敛成一条。空值语义＝"非批次路径" ⇒ 走 ②日常聚合键（`notify_event × target_id`）。
+    if not msg.correlation_id:
+        msg.correlation_id = str(event_data.get("correlation_id") or "")
     # 三层模型投影回填（阶段 2b-接入）：默认 stage=1 → 不生效，行为零变化。
     # 实现在 _manager_ops（并入本模块会超 G-010 的 500 阻断线）。
     host.ops.apply_mapping(msg, event_type, event_data)
