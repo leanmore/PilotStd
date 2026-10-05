@@ -39,7 +39,8 @@ function favorite(over: Record<string, unknown>) {
   return {
     id: 1,
     standard_number: 'GB 1-2026',
-    std_name: '测试标准',
+    // 键名对齐 D8（B3-b）：收藏接口对外只暴露 standard_name（值＝回退链结果；此处夹具值不变）
+    standard_name: '测试标准',
     standard_type: 'NationalStd',
     status: 'pending',
     local_path: null,

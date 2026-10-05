@@ -12,7 +12,7 @@ const toast = useToast()
 interface FavoriteItem {
   id: number
   standard_number: string
-  std_name: string | null
+  standard_name: string | null
   standard_type: string
   status: string
   local_path: string | null
@@ -128,7 +128,7 @@ onMounted(loadFavorites)
         <TabPanel v-for="tab in typeTabs" :key="tab.key" :value="tab.key">
           <DataTable :value="filtered" :loading="loading" striped-rows size="small" dataKey="id">
             <Column field="standard_number" :header="t('favorites.col_standard_number')" style="min-width: 180px" />
-            <Column field="std_name" :header="t('favorites.col_name')" style="min-width: 220px" />
+            <Column field="standard_name" :header="t('favorites.col_name')" style="min-width: 220px" />
             <Column :header="t('favorites.col_type')" style="width: 110px">
               <template #body="{ data }">
                 <Tag :value="t(STD_TYPE_LABEL_KEY[data.standard_type] || 'favorites.type.unknown')"

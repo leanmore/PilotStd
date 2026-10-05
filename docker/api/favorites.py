@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 
 from pilotstd.core.config import get_db_path
 from pilotstd.core.db.database import Database
+from pilotstd.core.name_resolution import fetch_resolved_names
 
 from ..auth import get_current_user_id
 from ..manager import get_manager_dep
@@ -18,6 +19,38 @@ from ..manager import get_manager_dep
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+# ════════════════════════════════════════════════════════════════ 分隔
+# 名称统一：把阶段①解析名升级为「最高可得阶段名」，并按 D8 统一对外键名
+# ════════════════════════════════════════════════════════════════ 分隔
+
+
+def _apply_resolved_names(db: Database, records: List[dict]) -> None:
+    """就地统一记录中的标准名称，并改名为对外键 `standard_name`。
+
+    为什么要统一：`announcement_record.std_name` 是**阶段①解析名**（文件名/公告解析），
+    而 DB 后其余消费方（下载通知等）读的是回退链结果（③`final_name` → ②查询缓存 → ①`std_name`）
+    ⇒ 同一标准在不同页面可能显示不同的名（P3）。此处用**一次批量映射**消除该分裂。
+
+    为什么必须批量：列表/导出一次可达数百条，逐条调用单条版即 N+1。`fetch_resolved_names`
+    内部固定两次数据查询 + 内存映射，并已自降级（任何异常都不抛）。
+
+    为什么未命中要回退表内原值：批量映射只覆盖"在库中查得到"的标准号；命中不到的号必须
+    沿用原值 ⇒ **绝不返回 None/空串**，否则前端名称列会空白。这是接口层的最后一道防线。
+
+    边界契约（D8）：对外键名**只能是 `standard_name`** ⇒ 覆盖后 `pop` 掉 `std_name`，
+    既不新增 `std_name`/`resolved_name` 等冗余字段，也不保留旧键。
+    """
+    if not records:
+        return
+    numbers = [str(r.get("standard_number") or "") for r in records]
+    resolved = fetch_resolved_names(db, numbers)  # 一次批量（内部已降级，不抛）
+    for record in records:
+        number = str(record.get("standard_number") or "")
+        name = resolved.get(number) or str(record.get("std_name") or "")  # 未命中 ⇒ 回退原值
+        record["standard_name"] = name
+        record.pop("std_name", None)
 
 
 # ════════════════════════════════════════════════════════════════ 分隔
@@ -291,7 +324,10 @@ def list_favorites(
     sql += " ORDER BY f.created_at DESC"
 
     rows = db.fetchall(sql, params)
-    return {"favorites": [dict(r) for r in rows]}
+    records = [dict(r) for r in rows]
+    # 名称统一（B3-b）：一次批量映射 ⇒ 值＝回退链结果、键＝standard_name（D8）
+    _apply_resolved_names(db, records)
+    return {"favorites": records}
 
 
 # ════════════════════════════════════════════════════════════════ 分隔
@@ -379,11 +415,13 @@ def export_favorites(
     sql += " ORDER BY f.created_at DESC"
 
     rows = db.fetchall(sql, params)
+    # 名称统一（B3-b）：JSON 与 CSV 两个分支**共用同一份**已解析结果，避免"JSON 新名 / CSV 旧名"分裂
+    records = [dict(r) for r in rows]
+    _apply_resolved_names(db, records)
 
     if format == "json":
-        items = [dict(r) for r in rows]
         return StreamingResponse(
-            iter([_json.dumps({"favorites": items}, ensure_ascii=False, indent=2)]),
+            iter([_json.dumps({"favorites": records}, ensure_ascii=False, indent=2)]),
             media_type="application/json",
             headers={"Content-Disposition": "attachment; filename=favorites.json"},
         )
@@ -398,10 +436,10 @@ def export_favorites(
              "status", "local_path", "publish_date", "created_at", "updated_at", "source_site"]
         )
         yield buffer.getvalue()
-        for r in rows:
+        for r in records:
             row = _io.StringIO()
             _csv.writer(row).writerow([
-                r["id"], r["standard_number"], r["std_name"] or "", r["standard_type"],
+                r["id"], r["standard_number"], r.get("standard_name") or "", r["standard_type"],
                 r["status"], r["local_path"] or "", r["publish_date"] or "",
                 r["created_at"], r["updated_at"], r["source_site"] or "",
             ])
