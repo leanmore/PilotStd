@@ -15,7 +15,7 @@ from ..interaction import ANCHOR_MESSAGE_ID
 
 if TYPE_CHECKING:  # pragma: no cover - 仅类型检查
     from ..interaction import ChannelCapabilities, MessageHandle
-from ..renderer import TelegramRenderer
+from ..renderer import TelegramRenderer, split_for_channel
 from .base import NotificationChannel
 
 logger = logging.getLogger(__name__)
@@ -91,6 +91,16 @@ class TelegramChannel(NotificationChannel):
         # 使用电报渲染2文本
         # 标准号已由构建器渲染进正文（批次2 尾部重复行消除），发送层不再追加
         text = self._renderer.render(message)
+        # 2026-10-05 通知聚合 B1（分段）：按**转义后**长度判定；超过渠道上限时切分为多段发送，
+        # 段间由 split_for_channel 标注「续 N/M」；未超限时该函数原样返回单元素列表（零行为变更）。
+        segments = split_for_channel(text, "telegram")
+        for seg in segments:
+            if not self._send_segment(seg):
+                return False
+        return True
+
+    def _send_segment(self, text: str) -> bool:
+        """发送**单个分段**（原 send() 的重试逻辑，按段落独立重试；失败即整体失败）。"""
         for attempt in range(1, _MAX_ATTEMPTS + 1):
             ok, retryable = self._post_once(text)
             if ok:

@@ -806,6 +806,7 @@
     "notification.error_type.network": "网络错误",
     "notification.error_type.timeout": "超时",
     "notification.error_type.unknown": "未知错误",
+    "notification.segment.continued": "（续 {n}/{total}）",
     "notification.system.security_login_failed.title": "登录失败告警",
     "notification.system.security_login_failed.body.count": "同一来源在 {minutes} 分钟内连续失败 {n} 次登录",
     "notification.system.security_login_failed.body.account": "目标账号",

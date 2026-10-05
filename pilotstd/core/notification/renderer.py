@@ -65,6 +65,97 @@ def _field_label(key: str) -> str:
     return resolved
 
 
+# 各渠道「单条消息」上限（上限值, 计数口径）；来源与口径逐条写在注释里——
+# **不写成字符串**：G-047（Python 侧 i18n 硬编码检查）只拦"新增中文字面量"，说明性文字放注释即可。
+#   · telegram 4096 字符 —— Telegram Bot API 官方：sendMessage.text 0-4096 字符（转义后仍是同一字符串）；
+#   · wecom 2048 字节 —— 企业微信应用消息文本的官方口径是**字节**，故本仓按 UTF-8 字节数计；
+#   · feishu 4096 字符 —— **未验证**：飞书按 UTF-16 单元计数、官方数字本轮未取到 ⇒ 取保守值；
+#   · dingtalk 4000 字符 —— **未验证**：仅有社区口径，官方 API 条款本轮未取到 ⇒ 取保守值。
+CHANNEL_TEXT_LIMITS: dict[str, tuple[int, str]] = {
+    "telegram": (4096, "chars"),
+    "wecom": (2048, "bytes"),
+    "feishu": (4096, "chars"),
+    "dingtalk": (4000, "chars"),
+}
+
+# 分段后追加的「续 N/M」标记模板（第 2 段起）；i18n 键见 notification.segment.continued
+_SEGMENT_SUFFIX_KEY = "notification.segment.continued"
+
+
+def _text_size(text: str, unit: str) -> int:
+    """按渠道口径计算"文本长度"：字符数或 UTF-8 字节数（企微是字节口径）。"""
+    return len(text.encode("utf-8")) if unit == "bytes" else len(text)
+
+
+def split_for_channel(text: str, channel: str) -> list[str]:
+    """把渲染后的文本按**渠道上限**切分为若干段（不丢信息；段间标「续 N/M」）。
+
+    设计取舍（为什么这样切）：
+    · **优先在换行处切**（参考 MoviePilot `telegram._split_plain_text` 的做法）：消息由"块/行"组成，
+      在行间断开不会把一行拆成两半，用户看到的是完整条目；
+      找不到换行（超长单行）才硬切，保证**每段都不超限**（宁可难看，不能超限被渠道拒收）。
+    · **不做行数截断**（`MAX_FAILED_ROWS` 已作废）：条数由 payload 决定，长度由本函数负责。
+    · 追加「续 N/M」只加在**第 2 段起**的末尾：不占用第 1 段的长度预算，且明确告知用户这是续段。
+    · 若单段预算小于后缀本身（极端小上限），退化为"不加上限校验的硬切"会超限 ⇒ 此处直接返回原文本，
+      由调用方按渠道错误处理（不静默丢弃信息）。
+    """
+    limit, unit = CHANNEL_TEXT_LIMITS.get(channel, (4096, "chars"))
+    if _text_size(text, unit) <= limit:
+        return [text]
+
+    suffix_probe = _size_probe_suffix(limit, unit)
+    budget = limit - _text_size(suffix_probe, unit)
+    if budget <= 0:
+        return [text]
+
+    segments: list[str] = []
+    remaining = text
+    while remaining and _text_size(remaining, unit) > budget:
+        cut = _find_cut(remaining, budget, unit)
+        segments.append(remaining[:cut].rstrip("\n"))
+        remaining = remaining[cut:].lstrip("\n")
+    if remaining:
+        segments.append(remaining)
+
+    total = len(segments)
+    if total > 1:
+        # 「续 N/M」：第 2 段起标注，保证读者知道还有后续
+        segments = [segments[0]] + [
+            f"{seg}\n{suffix}" for seg, suffix in zip(segments[1:], _suffixes(total))
+        ]
+    return segments
+
+
+def _size_probe_suffix(limit: int, unit: str) -> str:
+    """预留后缀长度用的探针（取最长的「续 M/M」形态，避免最后一段超限）。"""
+    probe = t(_SEGMENT_SUFFIX_KEY).format(n=99, total=99)
+    del limit, unit  # 仅为签名对称，预留值由调用方按同一口径计算
+    return probe
+
+
+def _suffixes(total: int) -> list[str]:
+    """生成第 2..M 段的后缀文案（i18n：notification.segment.continued）。"""
+    return [t(_SEGMENT_SUFFIX_KEY).format(n=i, total=total) for i in range(2, total + 1)]
+
+
+def _find_cut(text: str, budget: int, unit: str) -> int:
+    """在 `budget` 内寻找切点：优先换行；否则硬切（返回字符下标）。"""
+    if unit == "bytes":
+        # 字节口径：逐字符累加，避免把多字节字符切坏
+        used = 0
+        best_newline = -1
+        for idx, ch in enumerate(text):
+            used += len(ch.encode("utf-8"))
+            if used > budget:
+                return best_newline if best_newline > 0 else max(idx, 1)
+            if ch == "\n":
+                best_newline = idx + 1
+        return len(text)
+    window = text[:budget]
+    pos = window.rfind("\n")
+    return pos + 1 if pos > 0 else max(budget, 1)
+
+
 class BlockRenderer:
     """Block 渲染器基类——将结构化 Block 列表渲染为纯文本。
 

@@ -723,6 +723,7 @@
     "notification.error_type.network": "網路錯誤",
     "notification.error_type.timeout": "逾時",
     "notification.error_type.unknown": "未知錯誤",
+    "notification.segment.continued": "（續 {n}/{total}）",
     "notification.system.security_login_failed.title": "登入失敗告警",
     "notification.system.security_login_failed.body.count": "同一來源在 {minutes} 分鐘內連續失敗 {n} 次登入",
     "notification.system.security_login_failed.body.account": "目標帳號",
