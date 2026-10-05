@@ -127,6 +127,12 @@ StandardManager (BaseFacade)
 
 ## 近期变更
 
+- **2026-10-05（B1 · E1 批次键）**：三条路径的**批次标识**在入口生成并随 payload 透传——
+  `facade/_organize.py::archive_standards` ⇒ `arch-<uuid8>`；`facade/_organize.py::normalize_files_stream`
+  ⇒ `norm-<uuid8>`；`facade/_query_subsystem.py::_finalize_query` ⇒ `qry-<uuid8>`（一次操作 = 一个批次）。
+  该键经 `notification._dispatcher.send_event` 搬到 `NotificationMessage.correlation_id`，驱动聚合器走
+  **①批次键**（`correlation_id × notify_event`）把本次操作的通知收敛成一条；为空则走 **②日常键**。
+  **注意**：这三处是"各自操作一个批次"；跨阶段（导入→查询→下载→规范化→存档）共用同一批次键尚未接线。
 - **2026-10-05（B1-3 同批）**：把已采集的失败明细**接入各汇总事件的 payload**，满足 G-045 契约（"声明的 key 必须由触发方提供"）。
   - `facade/_organize.py`：`archive_complete` 的 payload 追加 `"failed_items": result.get("failed_items", [])`；
     `normalize_complete` 的 payload 追加 `"failed_items"`（该路径按整批一条发送；逐条采集见 `organize_stream` 失败分支）。

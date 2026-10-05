@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import uuid
 import warnings
 from typing import TYPE_CHECKING, Any, Optional, cast
 
@@ -202,6 +203,9 @@ class OrganizeHandler:
         """统一归档入口：所有端（CLI/Web/WinUI）均通过此方法归档。"""
         items = parsed_list if parsed_list is not None else self._core.parsed_results
         total = len(items)
+        # 通知聚合 B1 · E1：**一次归档 = 一个批次**。批次键驱动聚合器走①批次键
+        # （`correlation_id × notify_event`）⇒ 本次归档的完成通知收敛为一条（失败明细在 payload）。
+        archive_batch_key = f"arch-{uuid.uuid4().hex[:8]}"
         backfilled = 0
         for i, p in enumerate(items):
             orig = p.std_name
@@ -250,6 +254,8 @@ class OrganizeHandler:
                         "count": moved,
                         "directories": directories,
                         "category_stats": _archive_category_stats(items),
+                        # 通知聚合 B1 · E2：批次键随 payload 透传（分发层搬到消息字段）
+                        "correlation_id": archive_batch_key,
                         # 通知聚合 B1-1：失败明细（4 列口径；本方法内 result 来自 organize() 的返回值，
                         # 无该键时降级为空列表 ⇒ 契约（G-045：声明的 key 必须由生产者提供）得到满足）
                         "failed_items": result.get("failed_items", []),
@@ -382,6 +388,9 @@ class OrganizeHandler:
         """流式规范化（线程安全）。"""
         from ...organizer.industry_lookup import get_folder_name
 
+        # 通知聚合 B1 · E1：**一次规范化 = 一个批次**（与归档同款；键随 payload 透传，
+        # 使本批的完成通知走①批次键收敛成一条，失败明细在 payload.failed_items）。
+        normalize_batch_key = f"norm-{uuid.uuid4().hex[:8]}"
         results: list[dict[str, Any]] = []
         total = len(parsed_list)
         batch: list[tuple[int, ParsedStdInfo, str]] = []
@@ -426,7 +435,8 @@ class OrganizeHandler:
                     # 通知聚合 B1-1：失败明细键（4 列口径）。本路径（规范化）当前按"整批一条"发送，
                     # 逐条失败采集见 organize_stream 的 except 分支；此处先以空列表满足
                     # G-045 契约（声明的 key 必须由生产者提供），后续细化时改为该分支的真实清单。
-                    {"total": total, "success": len(results), "failed": 0, "failed_items": []},
+                    {"total": total, "success": len(results), "failed": 0, "failed_items": [],
+                     "correlation_id": normalize_batch_key},
                 )
         except Exception as e:
             logger.warning("规范化完成通知发送失败: %s", e)

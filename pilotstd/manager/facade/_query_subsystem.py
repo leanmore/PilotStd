@@ -13,6 +13,7 @@
 from __future__ import annotations
 
 import logging
+import uuid
 from typing import Any, Callable, cast
 
 import requests
@@ -205,6 +206,9 @@ class QuerySubsystem:
         self, items: list[Any], results: list[QueryResult]
     ) -> tuple[list[QueryResult], BatchQueryStats]:
         """统计 + 分类路由 + 待确认持久化 + 汇总报告。"""
+        # 通知聚合 B1 · E1：**一次批量查询 = 一个批次**。批次键让本次查询汇总通知走①批次键
+        # （`correlation_id × notify_event`）收敛成一条；为空则退化 ②日常键（按实体分组）。
+        query_batch_key = f"qry-{uuid.uuid4().hex[:8]}"
         self._core.query_results = results
         stats = BatchQueryStats()
         stats.total = len(items)
@@ -256,6 +260,7 @@ class QuerySubsystem:
                             "found": stats.found,
                             "pending": pending_count,
                             "failed_items": [],
+                            "correlation_id": query_batch_key,
                         },
                     )
         except Exception as e:

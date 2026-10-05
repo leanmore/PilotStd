@@ -15,6 +15,21 @@ from pilotstd.models import ParsedStdInfo
 # ── Fixtures ──
 
 
+def _assert_payload_contains(mgr, event: str, expected: dict) -> None:
+    """断言存在一次该事件的调用，且载荷**包含**（而非等于）expected 的键值。
+
+    为什么不用 `assert_any_call(event, {...})` 精确比较：2026-10-05 通知聚合 B1 之后，
+    汇总事件的载荷会**动态**带批次键 `correlation_id`（值形如 `arch-xxxxxxxx`）与失败明细
+    `failed_items`，精确相等必然失败；而本用例真正要锁的是"事件名与静态统计键是否正确"。
+    """
+    for call in mgr.send_event.call_args_list:
+        if call.args and call.args[0] == event:
+            payload = call.args[1]
+            if all(payload.get(k) == v for k, v in expected.items()):
+                return
+    raise AssertionError(f"未找到 {event} 的匹配调用；期望载荷包含 {expected}")
+
+
 @pytest.fixture
 def handler(mock_core):
     return OrganizeHandler(mock_core)
@@ -112,7 +127,9 @@ class TestArchiveStandards:
         handler._core.organizer_svc.organize.assert_called_once_with(
             items, None, overwrite=False
         )
-        handler._core.notification_mgr.send_event.assert_any_call(
+        # 载荷会动态带批次键（correlation_id）与失败明细（failed_items）⇒ 用"包含"断言而非精确相等
+        _assert_payload_contains(
+            handler._core.notification_mgr,
             EVENT_ARCHIVE_COMPLETE,
             {"count": 2, "directories": [], "category_stats": {"国标": 1}},
         )
@@ -186,7 +203,8 @@ class TestArchiveStandards:
             if c.args[0] == "expire_standard_moved"
         ]
         assert len(expire_calls) == 0
-        handler._core.notification_mgr.send_event.assert_any_call(
+        _assert_payload_contains(
+            handler._core.notification_mgr,
             EVENT_ARCHIVE_COMPLETE,
             {"count": 0, "directories": [], "category_stats": {"国标": 1}},
         )
@@ -384,8 +402,10 @@ class TestNormalizeFilesStream:
         ):
             handler.normalize_files_stream(items)
 
-        handler._core.notification_mgr.send_event.assert_any_call(
-            "normalize_complete", {"total": 1, "success": 1, "failed": 0}
+        _assert_payload_contains(
+            handler._core.notification_mgr,
+            "normalize_complete",
+            {"total": 1, "success": 1, "failed": 0},
         )
 
 
