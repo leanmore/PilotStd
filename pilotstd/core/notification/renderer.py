@@ -46,6 +46,8 @@ _LIST_FIELD_KEYS = {
     "standard_name": "notification.renderer.field.standard_name",
     "error_type": "notification.renderer.field.error_type",
     "error_message": "notification.renderer.field.error_message",
+    # 需求①的第四列＝"总数"（按 类型 × 标准号 × 标准名 归并后的条数）
+    "count": "notification.renderer.field.count",
 }
 
 

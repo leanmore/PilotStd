@@ -801,6 +801,7 @@
     "notification.renderer.field.standard_name": "标准名",
     "notification.renderer.field.error_type": "错误类型",
     "notification.renderer.field.error_message": "说明",
+    "notification.renderer.field.count": "总数",
     "notification.error_type.not_found": "未找到",
     "notification.error_type.parse": "解析失败",
     "notification.error_type.network": "网络错误",

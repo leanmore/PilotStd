@@ -718,6 +718,7 @@
     "notification.renderer.field.standard_name": "標準名",
     "notification.renderer.field.error_type": "錯誤類型",
     "notification.renderer.field.error_message": "說明",
+    "notification.renderer.field.count": "總數",
     "notification.error_type.not_found": "未找到",
     "notification.error_type.parse": "解析失敗",
     "notification.error_type.network": "網路錯誤",

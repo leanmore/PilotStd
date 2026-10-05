@@ -74,6 +74,30 @@ def test_no_failed_items_means_no_block() -> None:
     assert _failed_block_of(msg) is None
 
 
+def test_failed_items_grouped_with_counts() -> None:
+    """需求①口径：按「失败类型 × 标准号 × 标准名」**归并计数**，同组合只出一行 + 总数列。
+
+    这是需求原文的硬要求（"各自总数有多少"）；若退化成"一条失败一行"，批量导入时会刷出成百上千行。
+    """
+    items = [
+        {"standard_number": "GB/T 1234-2020", "standard_name": "甲", "error_type": "not_found"},
+        {"standard_number": "GB/T 1234-2020", "standard_name": "甲", "error_type": "not_found"},
+        {"standard_number": "GB/T 1234-2020", "standard_name": "甲", "error_type": "not_found"},
+        {"standard_number": "GB 9999-2020", "standard_name": "乙", "error_type": "timeout"},
+    ]
+    block = build_failed_items_block({"failed_items": items})
+    assert block is not None
+    # 组数 = 2（不是 4 行）；total = 失败条数总和 = 4
+    assert len(block.items) == 2
+    assert block.total == 4
+    # 条数多的组合排在前
+    top = block.items[0]
+    assert top["standard_number"] == "GB/T 1234-2020"
+    assert top["count"] == "3"
+    assert top["error_type"] == t("notification.error_type.not_found")
+    assert block.items[1]["count"] == "1"
+
+
 def test_error_type_enum_is_closed_set() -> None:
     """枚举取值集合与 B1 裁定一致（新增取值必须同批登记 i18n，否则会退回 unknown 文案）。"""
     assert set(_ERROR_TYPE_KEYS) == {"not_found", "parse", "network", "timeout", "unknown"}
@@ -161,6 +185,31 @@ def test_dispatcher_carries_batch_key_into_message() -> None:
 
 def _agg() -> NotificationAggregator:
     return NotificationAggregator(lambda _m, _ch: None, window_seconds=999.0)
+
+
+def test_group_key_daily_user_activity_converges_without_entity() -> None:
+    """需求②：日常动作（`user_activity`）按收敛类成组、**不带实体** ⇒ 时间窗内合成一条。
+
+    公告拉取 / 收藏 都归 `user_activity`；若键里带 `target_id`，同类不同条目会各发一条
+    （正是需求②要消除的"短时间内连发多条"）。信息不丢由 Z-21 的"全量块保留"保证。
+    """
+    agg = _agg()
+
+    def _daily(event_type: str, target: str) -> NotificationMessage:
+        return NotificationMessage(
+            title="t", event_type=event_type, notify_event="user_activity", target_id=target
+        )
+
+    a = _daily("announcement_fetch_complete", "std-a")
+    b = _daily("announcement_check_complete", "std-b")
+    c = _daily("favorite_created", "std-c")
+    keys = {agg._group_key(m) for m in (a, b, c)}
+    assert len(keys) == 1, "同类日常动作必须落进同一组（否则会连发多条）"
+    assert agg._group_entity(next(iter(keys))) == ""
+    # 反例对照：任务终局类仍保留实体维度（不同对象的结果不应混为一条）
+    t1 = NotificationMessage(title="t", event_type="download_complete", notify_event="task_result", target_id="std-a")
+    t2 = NotificationMessage(title="t", event_type="download_complete", notify_event="task_result", target_id="std-b")
+    assert agg._group_key(t1) != agg._group_key(t2)
 
 
 def test_group_key_batch_path_and_daily_path() -> None:

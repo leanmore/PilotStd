@@ -93,6 +93,12 @@ pilotstd/core/
 │   ├── _suppression_queue.py  # 静音时段暂存与补发（组合式 SuppressionQueue：判静音/入队/到期补发；2026-10-03 步 C B1 从 manager.py 拆出，manager 保留同名薄转发与白名单再导出）
 │   ├── _dispatcher.py         # 发送编排（模块级函数 send_event/validate_message/do_send/send_now/record_delivery/send_delivery_alert，宿主入参；2026-10-03 步 C B2 从 manager.py 拆出，manager 只留同名一行委托）
 │   ├── channels/              # wechat / feishu / dingtalk / telegram 渠道适配
+│   ├── （2026-10-05 需求①/②收口）：①**失败明细分组合计**——`build_failed_items_block` 按
+│   │   `(error_type, standard_number, standard_name)` **归并**，每行"总数"列为该组合条数、
+│   │   `ListBlock.total` 为失败条数**总和**（需求原文"各自总数有多少"；退化成逐条一行会刷屏）；
+│   │   ②**日常动作跨实体收敛**——`_group_key` 的②路径对 `notify_event == "user_activity"`
+│   │   （公告拉取/收藏）**不带实体**成组 ⇒ 时间窗内合成一条（需求②"不要短时间内连发多条"），
+│   │   信息不丢由 Z-21 的"全量块保留"保证；其余类别（`task_*` 终局）仍按实体分组
 │   ├── （2026-10-05 通知聚合 B1 · E2 批次键搬运）：`_dispatcher.py::send_event` 在构建消息后把 payload 的
 │   │   **`correlation_id`** 搬进 `NotificationMessage.correlation_id`（空值＝"非批次路径"）——构建器**不感知批次**，
 │   │   批次标识由调用方在导入/批量入口生成（如 `download_batch()` 的 `dl-<uuid8>`）；该键决定聚合器走

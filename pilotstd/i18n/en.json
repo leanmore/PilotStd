@@ -797,6 +797,7 @@
     "notification.renderer.field.standard_name": "Standard name",
     "notification.renderer.field.error_type": "Error type",
     "notification.renderer.field.error_message": "Message",
+    "notification.renderer.field.count": "Count",
     "notification.error_type.not_found": "Not found",
     "notification.error_type.parse": "Parse error",
     "notification.error_type.network": "Network error",

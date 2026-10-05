@@ -464,27 +464,47 @@ _ERROR_TYPE_KEYS: dict[str, str] = {
 def build_failed_items_block(data: dict) -> "ListBlock | None":
     """把 payload 的 `failed_items` 渲染为 `ListBlock`；无明细时返回 None（调用方不追加块）。
 
-    · **不做行数截断**（`MAX_FAILED_ROWS` 作废，B1 裁定）：全部明细进同一块，
-      超长交给渠道侧按"转义后字符数"分段；
-    · 4 列口径固定：`standard_number` / `standard_name`（空 ⇒ `-`）/ `error_type`（枚举键 → 中文）/
-      `error_message`（上游已截断 ≤120 字符，这里再兜一次）；
-    · `total=len(items)` 让渲染层知道真实条数（`ListBlock.total` 语义见 blocks.py）。
+    **按需求①原文口径分组计数**：「失败部分：按『失败类型 × 标准号 × 标准名 × **总数**』列明细」——
+    因此这里先按 `(error_type, standard_number, standard_name)` **归并**，每组的条数作为"总数"列，
+    而不是"一条失败一行"（后者在批量导入里会出现成百上千行，且同一组合重复出现）。
+    `error_message` 不占列（需求只要 4 列）；它仍保留在 payload / 落库列里供排查，
+    组内多条时取**首条**消息作为代表（同一组合的失败原因通常同类）。
+
+    其他口径：
+    · **不做行数截断**（`MAX_FAILED_ROWS` 作废）：条数由 payload 决定，超长交给渠道侧分段；
+    · `total=len(items)` ＝ **失败条数总和**（不是组数），供"共 M 条失败"的口径使用。
     """
     items = data.get("failed_items") or []
     if not items:
         return None
-    rows: list[dict[str, str]] = []
+    # 分组键 = (错误类型枚举, 标准号, 标准名)；值为 [条数, 首条消息]
+    groups: dict[tuple[str, str, str], list] = {}
     for it in items:
         etype = str(it.get("error_type") or "unknown")
+        key = (
+            etype,
+            str(it.get("standard_number") or "-"),
+            str(it.get("standard_name") or "-"),
+        )
+        if key in groups:
+            groups[key][0] += 1
+        else:
+            groups[key] = [1, str(it.get("error_message") or "-")[:120]]
+    rows: list[dict[str, str]] = []
+    # 稳定排序：失败条数多的组合在前（用户先看主要问题），同数量按类型/标准号字典序
+    for (etype, std_no, std_name), (count, _msg) in sorted(
+        groups.items(), key=lambda kv: (-kv[1][0], kv[0][0], kv[0][1])
+    ):
         rows.append(
             {
-                "standard_number": str(it.get("standard_number") or "-"),
-                "standard_name": str(it.get("standard_name") or "-"),
+                "standard_number": std_no,
+                "standard_name": std_name,
                 "error_type": t(_ERROR_TYPE_KEYS.get(etype, "notification.error_type.unknown")),
-                "error_message": str(it.get("error_message") or "-")[:120],
+                "count": str(count),
             }
         )
-    return ListBlock(title=t("notification.failed_items.title"), items=rows, total=len(rows))
+    # total = **失败条数总和**（不是组数）：供"共 M 条失败"的口径；行数为组数（见 docstring）
+    return ListBlock(title=t("notification.failed_items.title"), items=rows, total=len(items))
 
 
 def _build_normalize_complete_message(data: dict) -> NotificationMessage:
