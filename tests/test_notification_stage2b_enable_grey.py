@@ -79,13 +79,18 @@ SAMPLES: dict[str, tuple[str, str, dict]] = {
 
 # 通知事件 → 该类的代表业务事件（覆盖性断言用）
 _CATEGORY_REPRESENTATIVE = {
-    "task_lifecycle": "scan_complete",
+    "task_progress": "download_started",
+    "task_result": "scan_complete",
+    "task_failure": "download_failed",
+    "user_activity": "favorite_created",
     "batch_summary": "announcement_check_complete",
     "anomaly_alert": "task_execution_failed",
     "security_alert": "security_token_refreshed",
     "schedule_reminder": "date_reminder",
     "system_health": "notification_delivery_failed",
 }
+# 说明（2026-10-05 S-1 分类扩展）：原 task_lifecycle 已拆为 task_progress / task_result / task_failure，
+# 并新增 user_activity；manual_test 无业务事件承接（仅 POST /api/notification/test），故不在此表内。
 
 _LEGACY_COLUMNS = [
     "event_type",
@@ -284,7 +289,9 @@ class GreySamplingReport(unittest.TestCase):
         现在是 26 列且必须有。
         """
         self._run_stage("2")  # 采样会记录本次库的列集
-        self.assertEqual(len(self.schema_columns), 26)
+        # v67（2026-10-05 通知聚合 B1）新增 failed_items 列 ⇒ 27；
+        # 本断言只锁"本表列数"这一契约快照，改列时必须同步改本数字（先例：4ee9028d 之后同类测试不再锁绝对版本号）。
+        self.assertEqual(len(self.schema_columns), 27)
         for col in ("message_id", "task_context", "actions", "channel_message_ids", "content_type", "task_kind"):
             self.assertIn(col, self.schema_columns)
 

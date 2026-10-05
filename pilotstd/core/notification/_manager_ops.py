@@ -72,8 +72,8 @@ class NotificationOps:
                 "message_id, correlation_id, delivery_status, ack_status, "
                 "task_id, notify_event, content_type, task_context, "
                 "actions, callback_data, attachments, channel_message_ids, "
-                "task_kind) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "task_kind, failed_items) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     event_type,
                     channel,
@@ -102,6 +102,8 @@ class NotificationOps:
                     _json_codec.dumps(msg.channel_message_ids),
                     # 阶段 2.5a：task_kind 是标量字符串，直接落库（不经 _json_codec）
                     msg.task_kind,
+                    # 通知聚合 B1-2：失败明细（list[dict[str,str]]）走 JSON 文本列（先例见 task_context 等）
+                    _json_codec.dumps(msg.failed_items),
                 ),
             )
         except Exception as e:

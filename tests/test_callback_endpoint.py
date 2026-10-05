@@ -35,7 +35,8 @@ class _Db:
                 correlation_id TEXT, delivery_status TEXT, ack_status TEXT DEFAULT '',
                 task_id TEXT, notify_event TEXT, content_type TEXT, task_context TEXT,
                 actions TEXT, callback_data TEXT, attachments TEXT,
-                channel_message_ids TEXT, task_kind TEXT
+                channel_message_ids TEXT, task_kind TEXT,
+                failed_items TEXT NOT NULL DEFAULT '[]'
             );
             -- 与生产 users 表列集一致（Schema 一致性门禁要求测试表不得缺列）
             CREATE TABLE users (

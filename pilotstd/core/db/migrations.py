@@ -155,3 +155,9 @@ from ._migrate_v65_notification_log_task_kind import (  # noqa: E402, F401
 from ._migrate_v66_announcement_record_final_name import (  # noqa: E402, F401
     _migrate_v66_announcement_record_final_name,
 )
+
+# 第六十七版：notification_log 追加 failed_items 列（批量导入/汇总的逐条失败明细落库，TEXT 存 JSON）
+# （通知聚合 B1-2，函数自带注册装饰器；幂等：列已存在即跳过）
+from ._migrate_v67_notification_log_failed_items import (  # noqa: E402, F401
+    _migrate_v67_notification_log_failed_items,
+)

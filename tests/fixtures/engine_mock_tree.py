@@ -97,7 +97,8 @@ CREATE TABLE IF NOT EXISTS notification_log (
     callback_data TEXT NOT NULL DEFAULT '',
     attachments TEXT NOT NULL DEFAULT '',
     channel_message_ids TEXT NOT NULL DEFAULT '',
-    task_kind TEXT NOT NULL DEFAULT ''
+    task_kind TEXT NOT NULL DEFAULT '',
+    failed_items TEXT NOT NULL DEFAULT '[]'
 );
 
 CREATE TABLE IF NOT EXISTS notification_queue (

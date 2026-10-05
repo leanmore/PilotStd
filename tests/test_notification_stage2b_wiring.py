@@ -49,7 +49,8 @@ _STAGE_1C_COLUMNS = ["actions", "callback_data", "attachments", "channel_message
 # 2b 之前（1c 起）INSERT 的完整列集合——本批 stage=1 下必须逐列相同
 _SNAPSHOT_BEFORE_2B = _LEGACY_COLUMNS + _STAGE_1A_COLUMNS + _STAGE_1B_COLUMNS + _STAGE_1C_COLUMNS
 # 阶段 2.5a：INSERT 再增 task_kind 一列（标量，非 JSON）
-_SNAPSHOT_AFTER_2_5A = _SNAPSHOT_BEFORE_2B + ["task_kind"]
+# v67（2026-10-05 通知聚合 B1）：再增 failed_items 一列（TEXT 存 JSON，批量导入失败明细）
+_SNAPSHOT_AFTER_2_5A = _SNAPSHOT_BEFORE_2B + ["task_kind", "failed_items"]
 
 _PAYLOAD = {"total": 3, "success": 3, "failed": 0, "failed_files": []}
 

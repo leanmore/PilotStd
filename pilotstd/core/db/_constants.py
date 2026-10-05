@@ -4,7 +4,7 @@
 from typing import Any, Callable
 
 # 当前期望的表结构版本号（每次新增迁移+1）
-CURRENT_SCHEMA_VERSION = 66  # v66: announcement_record 追加 final_name 列（名称决策③落库）+ 从 pending_lookup 回填
+CURRENT_SCHEMA_VERSION = 67  # v67: notification_log 追加 failed_items 列（批量导入失败明细，TEXT 存 JSON，默认 '[]'）
 
 # 迁移注册表：版本号→迁移函数（接收实例）
 MIGRATIONS: dict[int, Callable[..., Any]] = {}
