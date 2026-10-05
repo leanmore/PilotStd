@@ -6,7 +6,7 @@ import http from '@/api/http'
 
 const { t } = useI18n()
 
-interface PendingItem { id: number; standard_number: string; std_name?: string; status?: string; source_site?: string }
+interface PendingItem { id: number; standard_number: string; standard_name?: string; status?: string; source_site?: string }
 
 const items = ref<PendingItem[]>([])
 const total = ref(0)
@@ -43,7 +43,7 @@ onMounted(async () => {
         <div class="row-tag">{{ item.source_site || 'STD' }}</div>
         <div class="row-info">
           <div class="row-name">{{ item.standard_number }}</div>
-          <div class="row-date">{{ item.std_name || '' }}</div>
+          <div class="row-date">{{ item.standard_name || '' }}</div>
         </div>
         <i class="pi pi-chevron-right row-arrow" />
       </div>
