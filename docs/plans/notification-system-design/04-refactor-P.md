@@ -304,14 +304,14 @@ NotificationManager（宿主，仍是唯一对外类）
 
 ## 3.1 实施步骤
 
-| 步 | 内容 | 独立可交付 |
-|---|---|---|
-| **P0** | **基线固化**：跑全量测试并记录 `(passed, failed, skipped)`；跑 `bash scripts/check_all.sh --fast`；记录 28 个文件的 G-010 有效行快照（脚本输出） | 是（仅记录） |
-| **P1** | **新建 `_event_registry.py`**：搬导入块与三个纯函数 + 映射表构建；`manager.py` **暂不切换**（新文件此刻无人引用） | 是 |
-| **P2** | **切换构建器块**：`manager.py` 删除 `:18-61` 导入块与 `_build_message`/`_validate_message`/`_init_event_builders`/`_format_…_aggregated` 的方法体，改为薄方法 + `self._EVENT_BUILDERS = build_registry()` | 是 |
-| **P3** | **新建 `_suppression_queue.py` + 切换静音块**：搬 4 个成员并再导出 `_QUEUE_MESSAGE_FIELDS`；`release_suppressed_notifications` 改为传宿主回调 `self._send_now` | 是 |
-| **P4** | **回归与核对**：全量测试三元组与 P0 比对；有效行核对（`manager.py` ≤ 340）；签名快照比对 | 是 |
-| **P5** | **防膨胀门禁上线**（G-048，见 §3.7）：脚本 + 挂载 `check_all.sh` + 登记 `docs/governance/gates.md`；若改了治理文档，须跑 `python scripts/generate_capabilities.py` 并把 `capabilities_registry.md` 纳入同一 commit | 是 |
+| 步 | 内容 | 独立可交付 | **实测状态（2026-10-05 界定）** |
+|---|---|---|---|
+| **P0** | **基线固化**：跑全量测试并记录 `(passed, failed, skipped)`；跑 `bash scripts/check_all.sh --fast`；记录 28 个文件的 G-010 有效行快照（脚本输出） | 是（仅记录） | ✅ 已由步 A/B 的多次全量基线覆盖（末次 5170 passed） |
+| **P1** | **新建 `_event_registry.py`**：搬导入块与三个纯函数 + 映射表构建；`manager.py` **暂不切换**（新文件此刻无人引用） | 是 | ❌ **经评估跳过**（`_event_registry.py` 不存在；P2 已以 `EVENT_SPECS` 派生达成同一目标） |
+| **P2** | **切换构建器块**：`manager.py` 删除 `:18-61` 导入块与 `_build_message`/`_validate_message`/`_init_event_builders`/`_format_…_aggregated` 的方法体，改为薄方法 + `self._EVENT_BUILDERS = build_registry()` | 是 | ✅ **实质已完成**：`manager.py:22` 已无手写导入块；`:351/355` 薄方法 + `_EVENT_BUILDERS = {s.key: s.builder for s in EVENT_SPECS}`；`:357/359` `_build_message` 为薄查找 |
+| **P3** | **新建 `_suppression_queue.py` + 切换静音块**：搬 4 个成员并再导出 `_QUEUE_MESSAGE_FIELDS`；`release_suppressed_notifications` 改为传宿主回调 `self._send_now` | 是 | ✅ **已完成**：`_suppression_queue.py`（`core.md:93`，2026-10-03 步 C B1 拆出） |
+| **P4** | **回归与核对**：全量测试三元组与 P0 比对；有效行核对（`manager.py` ≤ 340）；签名快照比对 | 是 | ✅ **达标**：`manager.py` 实测 **340** 物理行（判据 ≤340）；全量回归见步 B（5170 passed） |
+| **P5** | **防膨胀门禁上线**（G-048，见 §3.7）：脚本 + 挂载 `check_all.sh` + 登记 `docs/governance/gates.md`；若改了治理文档，须跑 `python scripts/generate_capabilities.py` 并把 `capabilities_registry.md` 纳入同一 commit | 是 | ⚠️ **未上线 + 编号冲突**：原计划写 `G-048`，该号已被 "core 子模块计数" 占用 ⇒ 待独立子批另取新号 |
 
 ## 3.2 验收判据（零行为变更，逐条可断言）
 

@@ -149,7 +149,9 @@
 |---|---|---|---|
 | **步 A（渠道）** | **原子** | `tests/test_notification_stage1c_fields.py:418`（硬断言 4 渠道名）+ `:424-426`（**双向**断言 `set(CHANNEL_KEY_WHITELIST) == set(_CHANNEL_CLASSES)`） | 否（可同批改） |
 | **步 B（事件）** | **原子**（B1） | `tests/test_notification_e2e.py:739` `assert len(EVENTS) == 41` 是硬编码数字；EVENTS 改派生后该断言 + 门禁 `[覆盖摘要]` 文案（`notification_coverage.md:142-151`）+ 9 步清单（`:119-129`）必须同批 | **是**（[03](../notification-redesign/03-实施路径.md) §3.5 已记录） |
-| **步 C（拆分）** | **可渐进**（按块） | [04](04-refactor-P.md) §3.1 的 P1/P2/P3 各可独立交付 | 否 |
+| **步 C（拆分）** | ✅ **主体已完成（2026-10-05 界定核实）**：P2/P3/P4 达标；**P1 经评估跳过**；P5 待独立子批上线 | [04](04-refactor-P.md) §3.1 的 P1/P2/P3 各可独立交付（**其中 P3 已完成、P2 以派生形态完成**） | 否 |
+> **2026-10-05 步 C 界定结论（只读取证）**：步 C 与步 A/B 同型——**主体已在 2026-10-03 隐式落地** ✅。证据：编排独立（`_dispatcher.py`，步 C B2）、静音块拆出（`_suppression_queue.py`，步 C B1）见 `docs/architecture/modules/core.md:93/:94`；构建器块已改为**薄方法 + `EVENT_SPECS` 派生**（`manager.py:22/351/355/357/359`）；**P4 行数判据达标**（`manager.py` 实测 **340** 行）；SSOT 补全由步 B 完成（`event_spec.py`）。**剩余**：P1（独立 `_event_registry.py`）经评估**跳过**（P2 已达成同一功能目标，纯物理整理收益不抵风险）；**P5 防膨胀门禁**待独立子批上线（原计划写 `G-048`，该号已被 "core 子模块计数" 占用 ⇒ 需另取新号）。
+
 
 **顺序**：步 A ∥ 步 B1 → 步 B2（前端事件清单）→ 步 C；**D6 必须在 D4 之后**。
 **回滚**：步 A/B 各 `git revert`（无 schema 变更、无迁移号）；步 C 按块 revert。
