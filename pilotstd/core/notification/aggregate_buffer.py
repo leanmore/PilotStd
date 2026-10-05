@@ -384,8 +384,15 @@ class NotificationAggregator:
         count = len(entries)
         first_msg, target_channels, _first_ts = entries[0]
 
-        # 1. 保留第一条消息的结构块作为骨架（单条/多条统一）
-        merged_blocks = first_msg.blocks or []
+        # 1. 合并**全部**条目的结构块（按到达序拼接）——Z-21 裁定（2026-10-05）。
+        # 为什么不再"只保留第一条作为骨架"：旧实现在此处丢弃第 2..N 条的 blocks，仅留 first_msg 的块，
+        # 于是聚合后用户**只看得到第一条的明细** ⇒ 需求①（失败明细：失败类型×标准号×标准名×总数）
+        # 与需求②（时间窗内合并但不得丢信息）双双落空（现状取证见 08-聚合设计.md §七 K-2）。
+        # 为什么不会产生 N 个标题：标题来自 NotificationMessage.title 字段并在渲染层单独渲染
+        # （见 renderer.py 的标题渲染），blocks 只承载正文块 ⇒ 全量拼接不会重复标题。
+        # 来源可追溯：顺序＝entries 的到达序（块与其来源消息的对应由该顺序隐含表达；
+        # 如需显式溯源标注，属后续增强，见 08-聚合设计.md §E8）。
+        merged_blocks = [blk for entry_msg, _ch, _ts in entries for blk in (entry_msg.blocks or [])]
 
         # 2. 生成标准化摘要（事件特定格式化器优先，否则基于结构块渲染）
         formatter = self._formatters.get(event_type)

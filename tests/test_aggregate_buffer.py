@@ -488,7 +488,11 @@ class TestAggregateContract(unittest.TestCase):
     # ── 场景 3：多条聚合（blocks 非空）→ blocks 保留 + 摘要含每条首行 ──
 
     def test_multiple_items_blocks_preserved_and_summary_has_each_first_line(self) -> None:
-        """多条聚合：merged.blocks 保留首条骨架，摘要 body 包含每条渲染首行。"""
+        """多条聚合：merged.blocks **保留全部条目**的块（按到达序），摘要 body 包含每条渲染首行。
+
+        Z-21（2026-10-05）语义变更：旧实现只留**首条**骨架（第 2..N 条明细丢失，卡死需求①②），
+        现改为全量拼接；本用例随之更新为"全部在场"的期望（不是绕过，是契约本身被裁定修改）。
+        """
         now = time.monotonic()
         entries = [
             (
@@ -516,7 +520,11 @@ class TestAggregateContract(unittest.TestCase):
         merged, _ = self.calls[0]
 
         # blocks 保留首条骨架
-        self.assertEqual(merged.blocks, entries[0][0].blocks)
+        # Z-21：合并消息的 blocks ＝ 全部条目的块**按到达序**拼接（不再是"仅首条骨架"）。
+        self.assertEqual(
+            merged.blocks,
+            list(entries[0][0].blocks) + list(entries[1][0].blocks),
+        )
         self.assertGreater(len(merged.blocks), 0)
         self.assertEqual(merged.aggregated_count, 2)
         # 摘要包含统计头与每条渲染首行（渲染顺序：title 在前 → 首行即标题）
