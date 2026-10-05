@@ -71,7 +71,10 @@ def _find_send_event_calls(event_name: str) -> list[tuple[str, int]]:
                     if isinstance(arg0, ast.Constant) and isinstance(arg0.value, str):
                         ev = arg0.value
                     elif isinstance(arg0, ast.Name):
-                        ev = getattr(_events_mod, arg0.id, None)
+                        # [Test-Fix] 既存 mypy 标注缺失（非本批引入，经授权修复）：
+                        # `getattr` 返回 Any|None，故显式收窄为 str 后再比较，语义不变。
+                        _ev_any = getattr(_events_mod, arg0.id, None)
+                        ev = _ev_any if isinstance(_ev_any, str) else ""
                     else:
                         continue
                     if ev == event_name:
@@ -98,7 +101,13 @@ def _extract_builder_keys(file_path: str, method_name: str) -> set[str]:
                         and isinstance(sub.func.value, ast.Name)
                         and sub.func.value.id == "data"
                     ):
-                        if sub.args and isinstance(sub.args[0], ast.Constant):
+                        # [Test-Fix] 既存 mypy 标注缺失（非本批引入，经授权修复）：
+                        # 先收窄为 str 再入集合（`data.get("key")` 的键本就是字符串）。
+                        if (
+                            sub.args
+                            and isinstance(sub.args[0], ast.Constant)
+                            and isinstance(sub.args[0].value, str)
+                        ):
                             keys.add(sub.args[0].value)
     return keys
 
@@ -567,3 +576,56 @@ def _make_sample_data(event_name: str, keys: set[str]) -> dict:
         else:
             sample[k] = f"sample_{k}"
     return sample
+
+# ════════════════════════════════════════════════════════════════
+# LEVEL_ORDER 保序子序列断言（遗留项 1，2026-10-05 B1 收口）
+# 为什么放在本文件：本文件是计划内的"规格消费方"（D4 契约派生），
+# `test_event_spec.py` 的接入白名单只允许 5 个消费方 import 规格 ⇒
+# 新建独立测试文件会（正确地）被守卫拦截。
+# ════════════════════════════════════════════════════════════════
+
+
+class TestLevelOrder:
+    """`levels` 必须按 LEVEL_ORDER 的严重度升序**保序**书写（允许跳级，不允许倒序）。"""
+
+    def test_level_order_is_severity_order(self):
+        from pilotstd.core.notification.event_spec import LEVEL_ORDER
+
+        assert LEVEL_ORDER == ("info", "warning", "error"), "顺序口径固定为严重度升序"
+
+    def test_all_events_levels_are_ordered_subsequences(self):
+        """★ 遍历**全部**事件逐个校验（非抽样）；失败时一次性列出全部违规项。"""
+        from pilotstd.core.notification.event_spec import LEVEL_ORDER
+
+        bad: list[str] = []
+        for s in _event_specs():
+            levels = tuple(s.levels)
+            if not levels:
+                bad.append(f"{s.key}: levels 为空")
+                continue
+            if len(set(levels)) != len(levels):
+                bad.append(f"{s.key}: levels 有重复 {levels}")
+                continue
+            unknown = [lv for lv in levels if lv not in LEVEL_ORDER]
+            if unknown:
+                bad.append(f"{s.key}: 含未知级别 {unknown}")
+                continue
+            idx = [LEVEL_ORDER.index(lv) for lv in levels]
+            if idx != sorted(idx):
+                bad.append(f"{s.key}: 顺序违反 LEVEL_ORDER ⇒ {levels}")
+        assert not bad, "以下事件的 levels 未按 LEVEL_ORDER 保序书写：\n  " + "\n  ".join(bad)
+
+    def test_coverage_is_full(self):
+        """断言"全部事件都被检查过"，避免将来被改成抽样而漏检。"""
+        specs = _event_specs()
+        assert len(specs) == len({s.key for s in specs}), "事件 key 必须唯一"
+        assert len(specs) >= 41, f"覆盖事件数应 ≥41（实测 {len(specs)}）⇒ 新增事件自动纳入"
+
+    def test_skip_level_allowed_but_reorder_forbidden(self):
+        """把裁定写进用例：跳级（info→error）合法；倒序（error→info）非法。"""
+        from pilotstd.core.notification.event_spec import LEVEL_ORDER
+
+        ok = [LEVEL_ORDER.index(lv) for lv in ("info", "error")]
+        assert ok == sorted(ok), "跳级合法"
+        ng = [LEVEL_ORDER.index(lv) for lv in ("error", "info")]
+        assert ng != sorted(ng), "倒序必须被判非法"

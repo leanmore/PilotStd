@@ -345,11 +345,11 @@ pilotstd/core/notification/
 
 | # | 事项 | 归属 | 说明 | 状态（2026-10-05 A0 核实） |
 |---|---|---|---|---|
-| 1 | `levels` 与 `aggregation` 的**序列化约定**（固定顺序元组 / 斜杠连接 / 排序规则） | 步 B1 实施设计 | 实测 `level` 6 个唯一值排序不统一（`info/error` vs `info/warning/error`），须定一个并同批改这 6 个字面值 | ⏳ 未动（归步 B） |
+| 1 | `levels` 与 `aggregation` 的**序列化约定**（固定顺序元组 / 斜杠连接 / 排序规则） | 步 B1 实施设计 | 实测 `level` 6 个唯一值排序不统一（`info/error` vs `info/warning/error`），须定一个并同批改这 6 个字面值 | ✅ **已实施（2026-10-05 B1）**：`event_spec.py` 定义 `LEVEL_ORDER = ("info","warning","error")`（严重度序，置于全部 import 之后）；断言落在 **`tests/test_notification_e2e.py::TestLevelOrder`**（计划内 D4 契约消费方）——全量事件**保序子序列**校验（跳级合法、倒序非法、未知级别非法、key 唯一、覆盖 ≥41）；e2e 的 6 处字面值**已随 D4 派生消失**，无需改动 |
 | 2 | `channel_spec.py` 的 `schema` 字段如何与 `get_config_schema()` 对接（直接引用实现 vs 声明后校验） | 步 A 实施设计 | 涉及"声明 vs 实现"是否加断言（延伸 [00](00-framework.md) §七 #9 的门禁议题） | **桥已存在** ✅：`channel_spec.py:14`「`get_config_schema()` 的兼容形状用」+ `:376`「产出既有 `get_config_schema()` 的兼容形状」+ 端点 `docker/api/notification_config.py:152` ⇒ **仅"断言门禁**待评估**（本次不实施，避免范围蔓延） |
 | 3 | **三语文案的撰写工时**（每新事件 3–6 键 × 3 语言） | 所有步 | 本方案的时间表**不含人工翻译**；现 240 个 `notification.*` 键为存量 | ⏳ 横切计量（按每批实增事件计） |
 | 4 | `spec_hash` 的具体算法与放置位置（body / header） | 步 A 实施设计 | 仅影响缓存失效机制 | ✅ **已实施**：置于**响应体**（`docker/api/notification_config.py:163 return {"spec_hash": spec_hash(payload), **payload}`）；算法＝负载本体规范化 JSON 的 **SHA-256 前 16 位**（`channel_spec.py:445`；`:438` 说明产出负载不含 hash）；契约与判别力测试 `tests/test_notification_api.py:317-318`、`:357-358` |
-| 5 | D6 门禁的**名称与编号**（是否沿用 G-045 还是新增 G-048） | 步 B 实施设计 | 与 [04](04-refactor-P.md) §3.7 的防膨胀门禁 G-048 编号存在潜在冲突，须一并决定 | ⚠️ **冲突已成事实**：`G-048` 已被"core 子模块计数"占用（2026-10-05 实测）；**待分配新号，候选 `G-049`**（全库 grep 零命中 ✅；`gates.md` 已用最大号＝G-048）⇒ **不得沿用 G-045** |
+| 5 | D6 门禁的**名称与编号**（是否沿用 G-045 还是新增 G-048） | 步 B 实施设计 | 与 [04](04-refactor-P.md) §3.7 的防膨胀门禁 G-048 编号存在潜在冲突，须一并决定 | ✅ **已收口（2026-10-05 B1 核实）：沿用 `G-045`，无需新号**。依据：`docs/governance/gates.md:30` 的 **G-045 条目原文已含 B1–B4**——「**B1–B4**：渠道声明的实现类/自洽性/后端无字面量/前端硬编码棘轮与三层集合一致」，执行脚本 `scripts/audit_notification_coverage.py`（配 `scripts/_notification_spec_audit.py`（AST）与 `scripts/_frontend_channel_scan.py`（源码文本））⇒ **"渠道派生一致性"族早已登记在 G-045 名下**，本项**不新增编号**（`G-048` 亦无须让位；`G-049` 保持未占用） |
 
 ---
 

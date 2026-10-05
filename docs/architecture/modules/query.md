@@ -19,6 +19,7 @@
 |--------|------|------|------|
 | 国家标准 | `StdGovAdapter` | openstd.samr.gov.cn | 190 |
 | 南京标准 | `Njbz365Adapter` | njbz365.cn | 385 |
+> **2026-10-05 类型标注级修正（G-031 联动，P2 步 B B1 收口）**：pilotstd/query/adapters/_njbz365_session_manager.py 的两处 params 由 dict[str, str] 标注为 **dict[str, Any]**（含 rom typing import Any），以消除 mypy 因**跟随 import 链**对 Session.post(json=...) 值类型协变不兼容的判定；**运行期行为零变化**（纯标注）。该传递性扫描口径问题已登记 docs/technical-debt.md:419。
 | 标准资源网 | `CsresAdapter` | csres.com | 252 |
 | 安徽标准 | `AhbzAdapter` | ahbz.org.cn | 156 |
 | 河北标准 | `HbbaAdapter` | hbba.org.cn | 163 |

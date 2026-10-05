@@ -67,7 +67,7 @@ class Njz365SessionManager:
         新机制：POST login_status_refresh → 响应 JSON 的 "token" 字段包含 JWT。
         """
         url = f"{_get_base_api()}/user_center/user/login_status_refresh"
-        params = {
+        params: dict[str, Any] = {
             "org_id": "", "api": "gbtitle_gl", "time_str": str(int(time.time() * 1000)),
             "fws_source": "nj_std", "check_login_device": "", "c_s": "pc",
             "is_web": "1", "source": "gbtitle_gl", "token2": "", "_router_": "website/index", "token": "",
@@ -227,7 +227,7 @@ class Njz365SessionManager:
         }
 
         for attempt in range(3):
-            params = self._build_base_params(search_term)
+            params: dict[str, Any] = self._build_base_params(search_term)
             params["sign"] = self._compute_sign(params)
 
             try:

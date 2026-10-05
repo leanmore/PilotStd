@@ -96,7 +96,7 @@ pilotstd/core/
 │   ├── aggregate_buffer.py    # 聚合缓冲（窗口内合并同类事件）
 │   ├── channel.py / events.py / _policy.py / _credentials.py
 │   ├── channel_spec.py        # 四渠道声明的唯一来源（键/字段/掩码/控件形态/状态规则，2026-10-03 步 A C1）
-│   ├── event_spec.py          # 41 个事件声明的唯一来源（15 字段：投影/构建器指针/文案前缀/**模块 i18n 键**/默认渠道/级别/触发文件/载荷键/审计标志/聚合**ASCII 枚举**；2026-10-03 步 B，**D1/D2/D3 均已接入**：mapping / manager / config-defaults）
+│   ├── event_spec.py          # 41 个事件声明的唯一来源（15 字段：投影/构建器指针/文案前缀/**模块 i18n 键**/默认渠道/级别/触发文件/载荷键/审计标志/聚合**ASCII 枚举**；2026-10-03 步 B，**D1/D2/D3 均已接入**：mapping / manager / config-defaults）；**2026-10-05 B1 收口**：新增 `LEVEL_ORDER = ("info","warning","error")`（级别**唯一排序口径**，严重度序；`levels` 须为其**保序子序列**，**允许跳级**如 `("info","error")`），断言位于 `tests/test_notification_e2e.py::TestLevelOrder`（全量事件校验）
 │   ├── blocks.py / renderer.py / desktop_formatter.py / _format_utils.py
 │   ├── _builders_batch.py / _builders_system.py / _builders_validity.py
 │   ├── _builders_task_results.py  # 扫描/查询/归档/规范化/状态迁移/公告抓取类模板（2026-09-26 拆出）

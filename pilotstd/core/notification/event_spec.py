@@ -39,6 +39,15 @@ from typing import Any, Callable
 
 from .events import ALL_EVENTS
 
+# 级别的**唯一排序口径**（设计 06 §三 2 遗留项 1，2026-10-05 落地）。
+# 为什么用严重度序而非字母序：级别是给人看、给策略判定的语义标签，字母序
+# （error/info/warning）会误导读者，也与端到端契约的斜杠连接字面值（"info/warning/error"）不同序。
+# 为什么允许"跳级"：`("info", "error")` 是真实业务事实（该事件不产生 warning）⇒
+# 校验只要求**保序**，不要求连续覆盖——统一的是**顺序口径**，不是**值集合**。
+# 校验位置：`tests/test_notification_e2e.py` 的 D4 契约测试类（该文件是计划内的规格消费方；
+# 新建独立测试文件会被 `test_event_spec.py` 的"接入白名单"守卫正确拦截）。
+LEVEL_ORDER: tuple[str, ...] = ("info", "warning", "error")
+
 __all__ = [
     "AGGREGATION_VALUES",
     "EVENT_SPECS",
@@ -53,7 +62,6 @@ __all__ = [
 AGGREGATION_VALUES: tuple[str, ...] = ("aggregate", "bypass")
 
 # 级别值域闭集，按严重度升序——声明里的级别序列必须按本次序书写
-LEVEL_ORDER: tuple[str, ...] = ("info", "warning", "error")
 
 
 @dataclass(frozen=True)
