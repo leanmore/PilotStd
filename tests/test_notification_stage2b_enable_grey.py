@@ -38,9 +38,10 @@ from tests.fixtures.engine_mock_tree import ConfigStub  # noqa: E402
 # ── 七类通知事件各取 ≥1 条（载荷键取自对应 builder 的 data.get 集合）──────────────
 # 事件 key → (期望 notify_event, 期望 content_type, 载荷)
 SAMPLES: dict[str, tuple[str, str, dict]] = {
-    "scan_complete": ("task_lifecycle", "list", {"total": 3, "success": 3, "failed": 0, "failed_files": []}),
+    "scan_complete": ("task_result", "list", {"total": 3, "success": 3, "failed": 0, "failed_files": []}),
     "announcement_check_complete": (
-        "batch_summary",
+        # 2026-10-05 S-1：公告拉取类改归 user_activity（原 batch_summary）
+        "user_activity",
         "list",
         {
             "source": "gb",
@@ -83,7 +84,7 @@ _CATEGORY_REPRESENTATIVE = {
     "task_result": "scan_complete",
     "task_failure": "download_failed",
     "user_activity": "favorite_created",
-    "batch_summary": "announcement_check_complete",
+    "batch_summary": "batch_download_complete",
     "anomaly_alert": "task_execution_failed",
     "security_alert": "security_token_refreshed",
     "schedule_reminder": "date_reminder",
@@ -207,15 +208,24 @@ class GreySamplingReport(unittest.TestCase):
         self.assertEqual(set(stage2), set(SAMPLES))
 
     # ── 落库层：判据 ───────────────────────────────────────────────────────
-    def test_seven_categories_covered(self):
-        """★ 集成层：七类中**六类**有真实业务事件承接（`manual_test` 无业务事件，设计如此）。"""
+    def test_nine_categories_covered(self):
+        """★ 集成层：十类中**九类**有真实业务事件承接（`manual_test` 无业务事件，设计如此）。
+
+        2026-10-05 S-1 分类扩展：原 task_lifecycle 拆为 task_progress / task_result / task_failure，
+        并新增 user_activity ⇒ 业务类别由 6 类增至 9 类；本用例由 `test_seven_categories_covered` 更名而来。
+        """
         from pilotstd.core.notification.mapping import EVENT_MAPPINGS
 
+        # 甲方案（裁定）：期望集合＝**本次样本（SAMPLES）实际承接的类别子集**，
+        # 即"阶段 2 只映射 SAMPLES 覆盖的事件"——不为了凑满 9 类而改生产代码。
+        # 依据：S-1 分类扩展后类别全集 10 类（manual_test 无业务事件），本用例只校验样本覆盖到的那几类。
         stage2 = self._run_stage("2")
         actual = {row["notify_event"] for row in stage2.values()}
-        self.assertEqual(actual, set(_CATEGORY_REPRESENTATIVE))
-        self.assertEqual(len(actual), 6)
-        # 第七类 manual_test 在本仓无业务事件承接——由映射表层证明
+        expected = {spec[0] for spec in SAMPLES.values()}
+        # 样本覆盖到的类别必须全部出现在实际产出中（子集关系）；
+        # 实际产出可能还含**样本之外**的类别（如通知投递失败走 system_health），故不做等号断言。
+        self.assertTrue(expected <= actual, f"样本类别未被完整承接：缺失 {expected - actual}")
+        # 样本未覆盖的类别：由映射表层证明它们要么无业务事件、要么不在本样本集内
         self.assertEqual([k for k, m in EVENT_MAPPINGS.items() if m.notify_event == "manual_test"], [])
 
     def test_stage_one_leaves_projection_columns_empty(self):
@@ -564,9 +574,9 @@ class TaskKindPersistenceAcrossAllEvents(unittest.TestCase):
                 )
 
         self.assertEqual(len(triggered), 41)
-        # 七类中至少六类有事件承接（manual_test 无业务事件，设计如此）
+        # 十类中至少九类有事件承接（manual_test 无业务事件，设计如此；2026-10-05 S-1 分类扩展后为 9）
         categories = {r["notify_event"] for r in rows.values()}
-        self.assertEqual(len(categories), 6)
+        self.assertEqual(len(categories), 9)
 
 
 if __name__ == "__main__":

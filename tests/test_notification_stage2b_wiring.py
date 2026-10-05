@@ -159,7 +159,7 @@ class TestStageTwoAppliesProjection(_SendEventHarness):
         mgr, db = self._make()
         self._send(mgr, stage="2")
         _cols, row = self._log_insert(db)
-        self.assertEqual(row["notify_event"], "task_lifecycle")
+        self.assertEqual(row["notify_event"], "task_result")
         self.assertEqual(row["content_type"], "list")
 
     def test_legacy_columns_unchanged_under_stage_two(self):
@@ -179,7 +179,7 @@ class TestStageTwoAppliesProjection(_SendEventHarness):
                 self.assertEqual(row1[col], row2[col], f"{col} 在启用投影后被改变了")
         # 三列投影字段按预期改变，且都在 1b/2b 的列里
         self.assertEqual(row1["notify_event"], "")
-        self.assertEqual(row2["notify_event"], "task_lifecycle")
+        self.assertEqual(row2["notify_event"], "task_result")
         self.assertEqual(row1["content_type"], "")
         self.assertEqual(row2["content_type"], "list")
 
@@ -219,7 +219,7 @@ class TestDefaultStageEnablesMapping(_SendEventHarness):
         mgr, db = self._make()
         self._send(mgr)  # 不设环境变量 → 默认 2
         _cols, row = self._log_insert(db)
-        self.assertEqual(row["notify_event"], "task_lifecycle")
+        self.assertEqual(row["notify_event"], "task_result")
         self.assertEqual(row["content_type"], "list")
 
     def test_default_still_keeps_legacy_columns(self):
