@@ -41,6 +41,10 @@ NAME_STAGE_ORDER: tuple[str, ...] = ("final_name", "found_name", "std_name")
 # 站点优先级默认值：国标站点字段最全，同名多站点时优先取它。
 DEFAULT_PREFERRED_SITE = "std_gov"
 
+# 单次 `IN (?,?,…)` 的占位符上限：SQLite 默认 `SQLITE_MAX_VARIABLE_NUMBER=999`，留安全余量后分块。
+# 为什么需要：收藏/待确认列表一次可达数百条，批量查询必须切块，否则会撞 "too many SQL variables"。
+_MAX_SQL_VARS = 900
+
 
 def resolve_name(*candidates: Any) -> str:
     """按传入顺序返回**第一个非空**名称（调用方须按 ③→②→① 的质量降序传参）。
@@ -84,22 +88,12 @@ def _has_column(db: Any, table: str, column: str) -> bool:
     return False
 
 
-def _cached_query_name(db: Any, standard_number: str, preferred_site: str) -> str:
-    """从**阶段②**缓存（``standard_info_cache.result_json``）取名称。
+def _name_from_json(raw: Any) -> str:
+    """从缓存 JSON 文本中取阶段②名称（``standard_name``）；损坏/非字典一律降级为空串。
 
-    为什么按"优先站点 + cached_at 倒序"：同一标准号可能有**多个站点**的缓存行，
-    国标站点（默认 ``std_gov``）字段最全 ⇒ 先取它；同一站点有多行时取最新。
-    为什么 JSON 解析要兜异常：缓存内容是**外部写入**的 JSON，损坏时不得让通知链路抛错。
+    为什么单独抽出来：**单条版**（``_cached_query_name``）与**批量版**（``fetch_resolved_names``）
+    必须共用同一解析口径，否则两条路径对同一条缓存可能给出不同结果。
     """
-    try:
-        row = db.fetchone(
-            "SELECT result_json FROM standard_info_cache WHERE standard_number = ? "
-            "ORDER BY (source_site != ?), cached_at DESC LIMIT 1",
-            (standard_number, preferred_site),
-        )
-    except Exception:  # noqa: BLE001 - 缓存表可能尚未建表（懒建）
-        return ""
-    raw = _row_get(row, "result_json")
     if not raw:
         return ""
     try:
@@ -109,6 +103,37 @@ def _cached_query_name(db: Any, standard_number: str, preferred_site: str) -> st
     if not isinstance(data, dict):
         return ""
     return resolve_name(data.get("standard_name"))
+
+
+def _sql_chunks(items: list[str], size: int | None = None):
+    """按 SQLite 参数上限把标准号列表切块（供 ``IN (?,?,…)`` 批量查询使用）。
+
+    为什么 `size` 在**运行期**解析而不是写成默认参数值：默认参数在导入时即绑定，
+    会使 `_MAX_SQL_VARS` 无法被替换（测试与将来的动态调优都会失效）。
+    """
+    limit = _MAX_SQL_VARS if size is None else size
+    for start in range(0, len(items), limit):
+        yield items[start : start + limit]
+
+
+def _cached_query_name(db: Any, standard_number: str, preferred_site: str) -> str:
+    """**单条版**：从阶段②缓存（``standard_info_cache.result_json``）取名称。
+
+    批量场景（列表接口）请改用 ``fetch_resolved_names``：本函数每条标准号要发一次查询，
+    在循环里调用即形成 N+1；批量版固定两次数据查询 + 内存映射。
+
+    为什么按"优先站点 + cached_at 倒序"：同一标准号可能有**多个站点**的缓存行，
+    国标站点（默认 ``std_gov``）字段最全 ⇒ 先取它；同一站点有多行时取最新。
+    """
+    try:
+        row = db.fetchone(
+            "SELECT result_json FROM standard_info_cache WHERE standard_number = ? "
+            "ORDER BY (source_site != ?), cached_at DESC LIMIT 1",
+            (standard_number, preferred_site),
+        )
+    except Exception:  # noqa: BLE001 - 缓存表可能尚未建表（懒建）
+        return ""
+    return _name_from_json(_row_get(row, "result_json"))
 
 
 def fetch_resolved_name(
@@ -157,3 +182,68 @@ def fetch_resolved_name(
     if not name:
         name = resolve_name(parsed_name)
     return name, standard_type
+
+
+def fetch_resolved_names(
+    db: Any,
+    standard_numbers: list[str],
+    *,
+    preferred_site: str = DEFAULT_PREFERRED_SITE,
+) -> dict[str, str]:
+    """**批量版**：一次取多个标准的「最高可得阶段名」，返回 ``{标准号: 名称}``。
+
+    为什么需要批量版：收藏列表 / 待确认列表 / 导出接口一次可达数百条，逐条调用
+    ``fetch_resolved_name`` 会形成 **N+1 查询**（每条 2 次 SQL）。本函数固定 **两次数据查询**
+    （``announcement_record``、``standard_info_cache``，必要时按 ``_MAX_SQL_VARS`` 分块）
+    + **内存映射**；另做一次 ``PRAGMA table_info`` 列探测（结构自省，非数据查询）。
+
+    取值口径与单条版**完全一致**：③ ``final_name`` → ② 缓存 ``standard_name`` → ① ``std_name``。
+    **取不到名称的标准号不会出现在结果里**（调用方以 ``.get(number, "")`` 兜底），
+    不用空串污染映射。任何一步异常都降级为"该步无数据"，绝不向上抛——列表接口不得因名称缺失而失败。
+    """
+    numbers = [n for n in dict.fromkeys(standard_numbers) if n]  # 去重 + 跳过空号（并保持稳定顺序）
+    if not numbers:
+        return {}
+
+    # ── ① / ③：一次 IN 查询取「解析名 + 决策名」（final_name 做列探测，兼容未迁移库）──
+    has_final = _has_column(db, "announcement_record", "final_name")
+    columns = "standard_number, std_name" + (", final_name" if has_final else "")
+    parsed: dict[str, Any] = {}
+    try:
+        for chunk in _sql_chunks(numbers):
+            placeholders = ", ".join("?" * len(chunk))
+            for row in db.fetchall(
+                f"SELECT {columns} FROM announcement_record WHERE standard_number IN ({placeholders})",
+                tuple(chunk),
+            ):
+                parsed[str(_row_get(row, "standard_number"))] = row
+    except Exception:  # noqa: BLE001 - 表缺失/DB 异常 ⇒ 降级为"该步无数据"（仍可尝试 ②）
+        parsed = {}
+
+    # ── ②：一次 IN 查询取查询缓存名（同号多站点：优先站点 + cached_at 倒序 ⇒ 每号取首条）──
+    cached: dict[str, str] = {}
+    try:
+        for chunk in _sql_chunks(numbers):
+            placeholders = ", ".join("?" * len(chunk))
+            for row in db.fetchall(
+                "SELECT standard_number, result_json FROM standard_info_cache "
+                f"WHERE standard_number IN ({placeholders}) "
+                "ORDER BY (source_site != ?), cached_at DESC",
+                tuple(chunk) + (preferred_site,),
+            ):
+                number = str(_row_get(row, "standard_number"))
+                if number in cached:
+                    continue  # 已取到该号优先级最高的缓存行（排序已保证）
+                cached[number] = _name_from_json(_row_get(row, "result_json"))
+    except Exception:  # noqa: BLE001 - 缓存表懒建/异常 ⇒ 降级
+        cached = {}
+
+    # ── 组装：③ > ② > ① ──
+    resolved: dict[str, str] = {}
+    for number in numbers:
+        row = parsed.get(number)
+        final_name = _row_get(row, "final_name") if has_final else None
+        name = resolve_name(final_name) or cached.get(number, "") or resolve_name(_row_get(row, "std_name"))
+        if name:
+            resolved[number] = name
+    return resolved
