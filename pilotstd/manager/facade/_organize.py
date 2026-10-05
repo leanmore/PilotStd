@@ -250,6 +250,9 @@ class OrganizeHandler:
                         "count": moved,
                         "directories": directories,
                         "category_stats": _archive_category_stats(items),
+                        # 通知聚合 B1-1：失败明细（4 列口径；本方法内 result 来自 organize() 的返回值，
+                        # 无该键时降级为空列表 ⇒ 契约（G-045：声明的 key 必须由生产者提供）得到满足）
+                        "failed_items": result.get("failed_items", []),
                     },
                 )
         except Exception as e:
@@ -420,7 +423,10 @@ class OrganizeHandler:
             if self._core.notification_mgr:
                 self._core.notification_mgr.send_event(
                     "normalize_complete",
-                    {"total": total, "success": len(results), "failed": 0},
+                    # 通知聚合 B1-1：失败明细键（4 列口径）。本路径（规范化）当前按"整批一条"发送，
+                    # 逐条失败采集见 organize_stream 的 except 分支；此处先以空列表满足
+                    # G-045 契约（声明的 key 必须由生产者提供），后续细化时改为该分支的真实清单。
+                    {"total": total, "success": len(results), "failed": 0, "failed_items": []},
                 )
         except Exception as e:
             logger.warning("规范化完成通知发送失败: %s", e)

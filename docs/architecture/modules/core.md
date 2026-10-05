@@ -99,6 +99,12 @@ pilotstd/core/
 │   │   新增 **`user_activity`**（公告拉取 4 事件 + `favorite_created` + `favorite_abandoned_summary`），
 │   │   `normalize_complete` / `archive_complete` 因"按批汇总"改归 `batch_summary`；
 │   │   `mapping.NOTIFY_EVENTS` 同步为 10 成员并**取消"7±1"数量封顶**（改为"清单以 `event_spec.py` 为准"）
+│   ├── （2026-10-05 通知聚合 B1-3）：`event_spec.py` 的 4 个汇总事件（`batch_query_summary` /
+│   │   `batch_download_complete` / `normalize_complete` / `archive_complete`）的 `payload_keys` 追加
+│   │   **`failed_items`**；其中 `archive_complete` **按实现对齐**为 `{"category_stats","count","directories","failed_items"}`
+│   │   （移除从未传入的 `elapsed_ms`/`standard_number`/`status`/`target_id`）。契约方向：
+│   │   `payload_keys`（声明）必须被触发方实际提供，验证见 `tests/test_notification_e2e.py` 的
+│   │   `TRIGGER_KEYS` 表（已同批更新 4 条）
 │   ├── （2026-10-05 通知聚合 B1 · 数据结构层）：`channel.py` 的 `NotificationMessage` 新增
 │   │   **`failed_items: list[dict[str, str]]`**（默认空列表 ⇒ 零行为变更）——一次批量导入/汇总的**逐条失败清单**，
 │   │   固定 4 列 `standard_number` / `standard_name`（空 ⇒ `-`）/ `error_type`（枚举键

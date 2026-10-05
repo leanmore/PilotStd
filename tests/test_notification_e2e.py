@@ -217,16 +217,19 @@ TRIGGER_KEYS: dict[str, set[str]] = {
     "scan_complete": {"count", "failed"},
     "scan_empty": set(),
     "auto_scan_failed": {"path", "error"},
-    "batch_query_summary": {"total", "found", "pending", "results"},
+    "batch_query_summary": {"total", "found", "pending", "results", "failed_items"},
     "query_failed": {"standard_number", "error"},
     "query_empty": {"total"},
-    "batch_download_complete": {"total", "success", "failed", "skipped"},
+    "batch_download_complete": {"total", "success", "failed", "skipped", "failed_items"},
     # 下载族三事件自 2026-10-05 起载荷带名称键 standard_name（值＝「最高可得阶段名」，
     # 由 pilotstd/core/name_resolution.py 回退链取得）⇒ 必须与 event_spec.py 的 payload_keys 同批更新。
     "download_failed": {"user_id", "standard_number", "standard_name", "error", "favorite_id"},
-    "normalize_complete": {"total", "success", "failed"},
+    "normalize_complete": {"total", "success", "failed", "failed_items"},
     "normalize_failed": {"total", "error"},
-    "archive_complete": {"count", "directories", "standard_number", "status", "target_id", "elapsed_ms"},
+    # 2026-10-05 B1-3：按**实现**对齐——`_organize.py::archive_standards` 实际只传
+    # count / directories / category_stats（原列出的 standard_number/status/target_id/elapsed_ms 从未传入），
+    # 并新增 failed_items（批量导入失败明细）。
+    "archive_complete": {"count", "directories", "category_stats", "failed_items"},
     "archive_failed": {"count", "error"},
     "archive_abandoned": {"standard_info", "error"},
     "expire_standard_moved": {"standard_number", "target_path"},

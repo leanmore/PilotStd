@@ -249,7 +249,14 @@ class QuerySubsystem:
                 else:
                     self._core.notification_mgr.send_event(
                         "batch_query_summary",
-                        {"total": stats.total, "found": stats.found, "pending": pending_count},
+                        # 通知聚合 B1-1：失败明细键（4 列口径）。查询失败为**整批一条**（已查实），
+                        # 逐条明细此处暂无 ⇒ 先以空列表满足 G-045 契约（声明的 key 必须由生产者提供）。
+                        {
+                            "total": stats.total,
+                            "found": stats.found,
+                            "pending": pending_count,
+                            "failed_items": [],
+                        },
                     )
         except Exception as e:
             logger.warning("查询汇总通知发送失败: %s", e)

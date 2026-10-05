@@ -127,6 +127,12 @@ StandardManager (BaseFacade)
 
 ## 近期变更
 
+- **2026-10-05（B1-3 同批）**：把已采集的失败明细**接入各汇总事件的 payload**，满足 G-045 契约（"声明的 key 必须由触发方提供"）。
+  - `facade/_organize.py`：`archive_complete` 的 payload 追加 `"failed_items": result.get("failed_items", [])`；
+    `normalize_complete` 的 payload 追加 `"failed_items"`（该路径按整批一条发送；逐条采集见 `organize_stream` 失败分支）。
+  - `facade/_query_subsystem.py`：`batch_query_summary` 的 payload 追加 `"failed_items"`（查询失败为**整批一条**，明细暂为空列表）。
+  - 契约表 `tests/test_notification_e2e.py::TRIGGER_KEYS` 已同批补 4 条；`archive_complete` 按实现对齐为
+    `{"category_stats","count","directories","failed_items"}`。
 - **2026-10-05**：`facade/_organize.py` 的**失败采集**接入通知聚合 B1-1（需求①「批量导入失败要说明标准号 + 标准名」）。
   `organize_stream` 的失败分支由 `except Exception` 改为 `except Exception as exc`，在累加 `result["failed"]` 的同时向
   `result["failed_items"]` 追加 4 列明细（`standard_number` / `standard_name` / `error_type` / `error_message`）；

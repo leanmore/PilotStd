@@ -46,3 +46,7 @@ class BatchDownloadStats:
     skipped_adopted: int = 0  # 采标跳过
     skipped_exists: int = 0  # 文件已存在跳过
     errors: int = 0
+    # 通知聚合 B1-1：批量下载的**逐条失败明细**（4 列口径：standard_number / standard_name /
+    # error_type / error_message）。默认空列表 = 现状语义，供 `batch_download_complete` 的
+    # payload（G-045 契约要求声明的 key 必须由生产者提供）与聚合渲染使用。
+    failed_items: list[dict[str, str]] = field(default_factory=list)

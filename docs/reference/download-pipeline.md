@@ -1,6 +1,12 @@
 # 下载流程（openstd 国家标准全文公开系统）
 
 > 本文是 `pilotstd/download/adapters/openstd_download.py` 的"文字映射"：描述**当前代码实际执行的下载链路**、两个历史事故点、以及守护这条链路的防回归测试。
+> **2026-10-05（通知聚合 B1-1/B1-3）补充**：批量下载的**失败明细采集**落在 `pilotstd/download/engine.py`
+> （`_collect_batch_stats` 的 `DownloadStatus.FAILED` 分支）——4 列口径 `standard_number`（`models.py:24`）/
+> `standard_name`（取自 `task.query_result`，取不到填 `-`）/ `error_type`（由 `task.error_message` 关键词映射到
+> `timeout`/`network`/`parse`/`not_found`/`unknown`）/ `error_message`（≤120 字符）；载体为
+> `BatchDownloadStats.failed_items`（`models.py`，默认空列表 ⇒ 零行为变更），经 `_notify_download_complete` 的
+> `batch_download_complete` payload 传出，最终落库 `notification_log.failed_items`（迁移 **v67**，TEXT 存 JSON）。
 > G-031 映射：`pilotstd/download/` → 本文（改该目录下任何文件都必须同批同步本文，见 `docs/governance/gates.md` G-031）。
 >
 > 代码基准：`pilotstd/download/adapters/openstd_download.py`（395 行，HEAD = `ba9af616`）。

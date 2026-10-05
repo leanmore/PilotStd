@@ -195,7 +195,8 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         builder_ref="pilotstd.core.notification._builders_batch:_build_batch_query_summary_message",
         i18n_category="notification.query", default_channels=(), levels=("info", "warning"),
         module_key="notification.module.query", trigger_file="pilotstd/manager/facade/_query_subsystem.py",
-        payload_keys=frozenset({"found", "pending", "results", "total"}), security=False, branch_by=None,
+        payload_keys=frozenset({"failed_items", "found", "pending", "results", "total"}), security=False,
+        branch_by=None,
         subscribable=True, aggregation="aggregate",
     ),
     EventSpec(key="query_failed", notify_event="task_failure", content_type="text", task_kind="query",
@@ -209,7 +210,8 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         builder_ref="pilotstd.core.notification._builders_task_results:_build_query_empty_message",
         i18n_category="notification.query", default_channels=(), levels=("warning",),
         module_key="notification.module.query", trigger_file="pilotstd/manager/facade/_query_subsystem.py",
-        payload_keys=frozenset({"total"}), security=False, branch_by=None, subscribable=True, aggregation="aggregate",
+        payload_keys=frozenset({"total"}), security=False, branch_by=None, subscribable=True,
+        aggregation="aggregate",
     ),
 
     # ── 下载（2）──
@@ -218,7 +220,8 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         builder_ref="pilotstd.core.notification._builders_batch:_build_batch_download_complete_message",
         i18n_category="notification.download", default_channels=("wechat",), levels=("info", "warning"),
         module_key="notification.module.download", trigger_file="pilotstd/download/engine.py",
-        payload_keys=frozenset({"failed", "skipped", "success"}), security=False, branch_by=None, subscribable=True,
+        payload_keys=frozenset({"failed", "failed_items", "skipped", "success"}), security=False, branch_by=None,
+        subscribable=True,
         aggregation="aggregate",
     ),
     EventSpec(key="download_failed", notify_event="task_failure", content_type="text",
@@ -240,7 +243,8 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         builder_ref="pilotstd.core.notification._builders_batch:_build_normalize_complete_message",
         i18n_category="notification.archive", default_channels=(), levels=("info",),
         module_key="notification.module.normalize", trigger_file="pilotstd/manager/facade/_organize.py",
-        payload_keys=frozenset({"failed", "success", "total"}), security=False, branch_by=None, subscribable=True,
+        payload_keys=frozenset({"failed", "failed_items", "success", "total"}), security=False, branch_by=None,
+        subscribable=True,
         aggregation="aggregate",
     ),
     EventSpec(key="normalize_failed", notify_event="task_failure", content_type="text", task_kind="normalize",
@@ -256,7 +260,10 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         builder_ref="pilotstd.core.notification._builders_system:_build_archive_complete_message",
         i18n_category="notification.archive", default_channels=("wechat",), levels=("info",),
         module_key="notification.module.archive", trigger_file="pilotstd/manager/facade/_organize.py",
-        payload_keys=frozenset({"count", "directories", "elapsed_ms", "standard_number", "status", "target_id"}),
+        # 2026-10-05 B1-3：按**实现**对齐——`_organize.py::archive_standards` 实际只传
+        # count / directories / category_stats（原声明的 elapsed_ms / standard_number / status / target_id 从未传入）；
+        # 并追加 failed_items（批量导入失败明细，需求①）。
+        payload_keys=frozenset({"category_stats", "count", "directories", "failed_items"}),
         security=False, branch_by=None, subscribable=True, aggregation="aggregate",
     ),
     EventSpec(key="archive_failed", notify_event="task_failure", content_type="text", task_kind="organize",

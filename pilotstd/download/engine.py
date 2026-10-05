@@ -213,6 +213,30 @@ class DownloadEngine:
                 stats.skipped_adopted += 1
             elif task.status == DownloadStatus.FAILED:
                 stats.failed += 1
+                # 通知聚合 B1-1：置 FAILED 时采集**逐条失败明细**（4 列口径）。
+                # · standard_name：从 task.query_result 取（`download/models.py:27` 的关联查询结果）；
+                #   取不到一律填 "-"（不猜、不报错）。
+                # · error_type：按 task.error_message 的关键词映射到既定枚举
+                #   （not_found / parse / network / timeout / unknown）；映射不出即 unknown。
+                _err = (getattr(task, "error_message", "") or "").lower()
+                if "timeout" in _err or "timed out" in _err:
+                    _etype = "timeout"
+                elif any(k in _err for k in ("connect", "network", "ssl", "dns", "refused")):
+                    _etype = "network"
+                elif any(k in _err for k in ("parse", "decode", "invalid")):
+                    _etype = "parse"
+                elif any(k in _err for k in ("not found", "404")):
+                    _etype = "not_found"
+                else:
+                    _etype = "unknown"
+                stats.failed_items.append(
+                    {
+                        "standard_number": getattr(task, "standard_number", "") or "-",
+                        "standard_name": getattr(getattr(task, "query_result", None), "std_name", "") or "-",
+                        "error_type": _etype,
+                        "error_message": (getattr(task, "error_message", "") or "")[:120] or "-",
+                    }
+                )
             else:
                 stats.errors += 1
 
@@ -229,6 +253,8 @@ class DownloadEngine:
                     "success": stats.success,
                     "failed": stats.failed + stats.errors,
                     "skipped": stats.skipped_adopted,
+                    # 通知聚合 B1-1：失败明细（4 列口径；G-045 契约要求声明的 key 由生产者提供）
+                    "failed_items": stats.failed_items,
                 },
             )
         except Exception as e:
