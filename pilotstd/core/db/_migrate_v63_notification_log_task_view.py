@@ -3,7 +3,7 @@
 #
 # 背景：通知此前只有"事件类型"，没有"这属于哪个任务"的概念。本批加 4 列承载任务视角：
 #   task_id       关联 Task 实体（投影自 task_queue.task_id）
-#   notify_event  通知事件（三层模型 7 类之一，如 task_lifecycle/batch_summary）
+#   notify_event  通知事件（三层模型 10 类之一，如 task_progress/task_result/task_failure/user_activity）
 #   content_type  主内容类型（text/field_list/status_change/list/task_progress/action_prompt）
 #   task_context  任务上下文快照（JSON 文本）
 #

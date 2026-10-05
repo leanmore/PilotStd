@@ -7,7 +7,7 @@
 业务事件（41 个，内部语义，代码直呼）          ← events.py 的 ALL_EVENTS
       │  project(event_type, data)            ← **本模块**
       ▼
-通知事件（7 类，用户视角）                     ← NOTIFY_EVENTS
+通知事件（10 类，用户视角）                     ← NOTIFY_EVENTS
       │
       ▼
 内容类型（决定"长什么样"）                     ← CONTENT_TYPES（及 renderer 的 Block）
@@ -53,18 +53,22 @@ __all__ = [
     "project",
 ]
 
-# ── 通知事件（7 类，用户视角）────────────────────────────────────────────────
+# ── 通知事件（10 类，用户视角）────────────────────────────────────────────────
 # 定义见 docs/plans/notification-redesign/02-目标架构.md §2.1。
-# 设计约束：数量封顶 7±1；新增一类的准入条件是"现有 7 类没有任何一类的
-# 默认渠道 + 默认 level + 交互需求三者能容纳它"。
+# 类别清单以 pilotstd/core/notification/event_spec.py 为准；数不封顶。
+# 新增类别须同时在本元组与 event_spec.py 登记（否则 project() 的
+# "notify_event 必须取自 NOTIFY_EVENTS"契约被破坏，见下方 EventMapping.notify_event 注释）。
 NOTIFY_EVENTS: tuple[str, ...] = (
-    "task_lifecycle",  # 我交办的事有进展/有结果了
+    "task_progress",  # 我交办的事正在进行（过程型快照）
+    "task_result",  # 我交办的事成功了（终局·可展示结果）
+    "task_failure",  # 我交办的事失败了（终局·需说明原因）
+    "user_activity",  # 我自己触发的日常动作（公告拉取/收藏/收藏转下载）
     "batch_summary",  # 这批活干完了，结果如何
     "anomaly_alert",  # 出问题了，可能需要你处理
     "security_alert",  # 有人动了你的配置/凭证
     "schedule_reminder",  # 到时间了，该做这件事
     "system_health",  # 系统自己出状况了
-    "manual_test",  # 手动测试消息
+    "manual_test",  # 手动测试消息（非业务类别，供手动测试路径使用）
 )
 
 # ── 内容类型（6 种）───────────────────────────────────────────────────────────

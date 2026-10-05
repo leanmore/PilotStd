@@ -61,7 +61,9 @@ class NotificationMessage:
     # ── 任务视角（阶段 1b，2026-10-02）───────────────────────────────────────
     # 与 1a 同款约定：默认值即"现状语义"，故追加这些字段对既有 17 个字段与全部调用点零行为变更。
     task_id: str = ""  # 关联 Task 实体（投影自 task_queue.task_id）；进度型通知的原地更新锚点
-    # 通知事件（三层模型中的 7 类之一，如 task_lifecycle/batch_summary/anomaly_alert）。
+    # 通知事件（三层模型中的 10 类之一，如 task_progress/task_result/task_failure/user_activity）。
+    # **类别清单以 pilotstd/core/notification/event_spec.py 为准**（本字段取值必须属于
+    # mapping.NOTIFY_EVENTS；数不封顶，新增类别须在 event_spec.py 与 NOTIFY_EVENTS 同步登记）。
     # 为空表示"尚未映射"，阶段 1-3 各消费方回退用 event_type 推导；参与聚合分组属阶段 2.5。
     notify_event: str = ""
     content_type: str = ""  # 主内容类型（text/field_list/status_change/list/task_progress/action_prompt）

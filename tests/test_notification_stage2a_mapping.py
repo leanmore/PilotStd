@@ -7,7 +7,7 @@
 
 1. **41 个已注册事件全部有归属**（表驱动，事件清单取自 `events.py::ALL_EVENTS` 本身，
    而不是手抄的 41 个字符串——手抄会在增删事件时静默失效）；
-2. **11 个终局事件逐条断言**落在 `task_lifecycle` / `batch_summary`；
+2. **11 个终局事件逐条断言**落在 `task_result` / `task_failure` / `batch_summary`（2026-10-05 S-1 拆分后）；
 3. **未知事件回退**：`notify_event=""`（接入方据此走原有行为，**不得抛错**）；
 4. **字段值域合法**：`notify_event ∈ NOTIFY_EVENTS`、`content_type ∈ CONTENT_TYPES`、
    `task_kind ∈ TASK_KINDS ∪ {""}`；
@@ -35,20 +35,18 @@ from pilotstd.core.notification.mapping import (  # noqa: E402
 )
 
 # 用户 2026-10-02 裁决明确点名的 11 个终局事件（**逐条断言**）
-_TERMINAL_TO_TASK_LIFECYCLE = (
+_TERMINAL_TO_TASK_RESULT = (
     "download_complete",
-    "download_failed",
-    "archive_complete",
-    "archive_failed",
-    "normalize_complete",
-    "normalize_failed",
     "scan_complete",
 )
+_TERMINAL_TO_TASK_FAILURE = (
+    "download_failed",
+    "archive_failed",
+    "normalize_failed",
+)
 _TERMINAL_TO_BATCH_SUMMARY = (
-    "favorite_abandoned_summary",
-    "batch_download_complete",
-    "query_empty",
-    "batch_query_summary",
+    "archive_complete",
+    "normalize_complete",
 )
 
 
@@ -93,8 +91,11 @@ class TestTableCompleteness(unittest.TestCase):
 
         actual = collections.Counter(m.notify_event for m in EVENT_MAPPINGS.values())
         expected = {
-            "task_lifecycle": 15,
-            "batch_summary": 11,
+            "task_progress": 1,
+            "task_result": 6,
+            "task_failure": 5,
+            "user_activity": 6,
+            "batch_summary": 8,
             "anomaly_alert": 7,
             "security_alert": 5,
             "schedule_reminder": 2,
@@ -115,29 +116,50 @@ class TestTableCompleteness(unittest.TestCase):
 class TestTerminalEvents(unittest.TestCase):
     """11 个终局事件逐条断言（用户裁决点名的清单）。"""
 
-    def test_seven_to_task_lifecycle(self):
-        for key in _TERMINAL_TO_TASK_LIFECYCLE:
+    def test_terminal_result_and_failure_and_summary(self):
+        # 2026-10-05 S-1：原 task_lifecycle 已按需求拆为 task_result / task_failure，
+        # 且"按批汇总"的终局（archive_complete / normalize_complete）归入 batch_summary。
+        for key in _TERMINAL_TO_TASK_RESULT:
             with self.subTest(event=key):
-                self.assertEqual(project(key, {}).notify_event, "task_lifecycle")
-
-    def test_four_to_batch_summary(self):
+                self.assertEqual(project(key, {}).notify_event, "task_result")
+        for key in _TERMINAL_TO_TASK_FAILURE:
+            with self.subTest(event=key):
+                self.assertEqual(project(key, {}).notify_event, "task_failure")
         for key in _TERMINAL_TO_BATCH_SUMMARY:
             with self.subTest(event=key):
                 self.assertEqual(project(key, {}).notify_event, "batch_summary")
 
-    def test_terminal_lists_are_disjoint_and_are_eleven(self):
-        self.assertEqual(len(_TERMINAL_TO_TASK_LIFECYCLE), 7)
-        self.assertEqual(len(_TERMINAL_TO_BATCH_SUMMARY), 4)
-        self.assertEqual(set(_TERMINAL_TO_TASK_LIFECYCLE) & set(_TERMINAL_TO_BATCH_SUMMARY), set())
+    def test_batch_terminal_and_user_activity(self):
+        # 既有批量汇总事件保持 batch_summary；收藏放弃汇总改归 user_activity（D-5=A）。
+        for key in ("batch_download_complete", "query_empty", "batch_query_summary"):
+            with self.subTest(event=key):
+                self.assertEqual(project(key, {}).notify_event, "batch_summary")
+        with self.subTest(event="favorite_abandoned_summary"):
+            self.assertEqual(project("favorite_abandoned_summary", {}).notify_event, "user_activity")
+
+    def test_terminal_lists_are_disjoint(self):
+        # 拆分后三组终局互不相交（避免"同一事件被两条口径都认领"）。
+        a = set(_TERMINAL_TO_TASK_RESULT)
+        b = set(_TERMINAL_TO_TASK_FAILURE)
+        c = set(_TERMINAL_TO_BATCH_SUMMARY)
+        self.assertEqual(a & b, set())
+        self.assertEqual(a & c, set())
+        self.assertEqual(b & c, set())
+        self.assertEqual(len(a) + len(b) + len(c), 7)
 
     def test_classification_principle(self):
-        """分类原则："单条任务终局" → task_lifecycle；"一次批量运行的总结" → batch_summary。"""
-        # 单条：一个标准/一个收藏的终局
-        for key in ("download_complete", "archive_complete", "normalize_complete"):
+        """分类原则（2026-10-05 S-1 后）：单条成功终局 → task_result；单条失败终局 → task_failure；
+        一次批量运行的总结 → batch_summary。"""
+        # 单条成功终局
+        for key in ("download_complete", "scan_complete"):
             with self.subTest(event=key):
-                self.assertEqual(project(key, {}).notify_event, "task_lifecycle")
-        # 批量：一批运行的汇总
-        for key in ("batch_download_complete", "batch_query_summary"):
+                self.assertEqual(project(key, {}).notify_event, "task_result")
+        # 单条失败终局
+        for key in ("download_failed", "archive_failed", "normalize_failed"):
+            with self.subTest(event=key):
+                self.assertEqual(project(key, {}).notify_event, "task_failure")
+        # 批量汇总（含"规范化/存档完成"这两个按批调用的事件）
+        for key in ("batch_download_complete", "batch_query_summary", "archive_complete", "normalize_complete"):
             with self.subTest(event=key):
                 self.assertEqual(project(key, {}).notify_event, "batch_summary")
 
@@ -165,7 +187,7 @@ class TestFallbackSemantics(unittest.TestCase):
     def test_case_sensitive(self):
         """映射大小写敏感（避免"看着像"就误命中）。"""
         self.assertEqual(project("Scan_Complete", {}).notify_event, "")
-        self.assertEqual(project("scan_complete", {}).notify_event, "task_lifecycle")
+        self.assertEqual(project("scan_complete", {}).notify_event, "task_result")
 
 
 class TestDataParameterForFutureBranches(unittest.TestCase):

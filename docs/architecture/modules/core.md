@@ -94,6 +94,11 @@ pilotstd/core/
 │   ├── _dispatcher.py         # 发送编排（模块级函数 send_event/validate_message/do_send/send_now/record_delivery/send_delivery_alert，宿主入参；2026-10-03 步 C B2 从 manager.py 拆出，manager 只留同名一行委托）
 │   ├── channels/              # wechat / feishu / dingtalk / telegram 渠道适配
 │   ├── aggregate_buffer.py    # 聚合缓冲（窗口内合并同类事件）；**2026-10-05 Z-21**：`_send_merged` 由"仅保留首条 blocks 作骨架"改为**全部条目按到达序拼接**（旧实现丢失第 2..N 条明细；新语义支撑聚合需求①②），身份字段（`message_id`/`correlation_id`）显式搬运约束保持不变
+│   ├── （2026-10-05 S-1 分类体系扩展）：`event_spec.py` 的 `notify_event` 由 6 类实值扩为 **10 类全集**——
+│   │   `task_lifecycle` 拆为 **`task_progress`（过程型）/ `task_result`（成功终局）/ `task_failure`（失败终局）**，
+│   │   新增 **`user_activity`**（公告拉取 4 事件 + `favorite_created` + `favorite_abandoned_summary`），
+│   │   `normalize_complete` / `archive_complete` 因"按批汇总"改归 `batch_summary`；
+│   │   `mapping.NOTIFY_EVENTS` 同步为 10 成员并**取消"7±1"数量封顶**（改为"清单以 `event_spec.py` 为准"）
 │   ├── channel.py / events.py / _policy.py / _credentials.py
 │   ├── channel_spec.py        # 四渠道声明的唯一来源（键/字段/掩码/控件形态/状态规则，2026-10-03 步 A C1）
 │   ├── event_spec.py          # 41 个事件声明的唯一来源（15 字段：投影/构建器指针/文案前缀/**模块 i18n 键**/默认渠道/级别/触发文件/载荷键/审计标志/聚合**ASCII 枚举**；2026-10-03 步 B，**D1/D2/D3 均已接入**：mapping / manager / config-defaults）；**2026-10-05 B1 收口**：新增 `LEVEL_ORDER = ("info","warning","error")`（级别**唯一排序口径**，严重度序；`levels` 须为其**保序子序列**，**允许跳级**如 `("info","error")`），断言位于 `tests/test_notification_e2e.py::TestLevelOrder`（全量事件校验）
