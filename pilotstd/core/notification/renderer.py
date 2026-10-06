@@ -8,10 +8,6 @@ _escape() 由子类覆盖做渠道特殊字符转义。
 
 from __future__ import annotations
 
-import logging
-import re
-from typing import Any
-
 from pilotstd.i18n import t
 
 from .blocks import (
@@ -22,19 +18,54 @@ from .blocks import (
     TextBlock,
 )
 from .channel import NotificationMessage
+from .renderer_base import CHANNEL_TEXT_LIMITS
 from .renderer_links import action_label as _action_label
 from .renderer_links import link_actions
 
-logger = logging.getLogger(__name__)
+# ── 共享基座与 Telegram 渲染器（实现在 `renderer_base.py` / `renderer_telegram.py`；
+#    T-41/3 拆分，此处**再导出**保持公开面）──
+__all__ = [
+    "CHANNEL_TEXT_LIMITS",
+    "DesktopRenderer",
+    "DingTalkCardRenderer",
+    "FeishuCardRenderer",
+    "MarkdownRenderer",
+    "BlockRenderer",
+    "TelegramRenderer",
+    "_LIST_FIELD_KEYS",
+    "_SEGMENT_SUFFIX_KEY",
+    "_TELEGRAM_CALLBACK_DATA_LIMIT",
+    "_TELEGRAM_ESCAPE_CHARS",
+    "_TELEGRAM_LIST_SEP",
+    "_fallback_text",
+    "_field_label",
+    "_find_cut",
+    "_size_probe_suffix",
+    "_suffixes",
+    "_text_size",
+    "logger",
+    "split_for_channel",
+]
 
-
-def _fallback_text() -> str:
-    """渲染兜底占位文案（消息无结构块、无正文、无标题时用）。
-
-    调用期取 t()：模块级常量会把语言固化在 import 时刻。
-    """
-    return t("notification.renderer.empty")
-
+from .renderer_base import (  # noqa: E402
+    _LIST_FIELD_KEYS,
+    _SEGMENT_SUFFIX_KEY,
+    BlockRenderer,
+    _fallback_text,
+    _field_label,
+    _find_cut,
+    _size_probe_suffix,
+    _suffixes,
+    _text_size,
+    logger,
+    split_for_channel,
+)
+from .renderer_telegram import (  # noqa: E402
+    _TELEGRAM_CALLBACK_DATA_LIMIT,
+    _TELEGRAM_ESCAPE_CHARS,
+    _TELEGRAM_LIST_SEP,
+    TelegramRenderer,
+)
 
 # `link_actions()` / `action_label()` 已迁至 `renderer_links.py`（四渠道渲染器共用；
 # 留在本文件会越过 G-010 的 500 有效行上限）。此处经顶部 import 复用其实现。
@@ -43,38 +74,8 @@ def _fallback_text() -> str:
 # ListBlock.items 的字段名 → i18n 键（渲染期取 t()：字段名是**数据键**，
 # 直接当展示文本会让中文用户看到 number / name 这类英文键名）。
 # 未登记的字段走 _field_label 的兜底，绝不回退成原始键名。
-_LIST_FIELD_KEYS = {
-    "number": "notification.renderer.field.number",
-    "name": "notification.renderer.field.name",
-    "status": "notification.renderer.field.status",
-    "detail": "notification.renderer.field.detail",
-    "path": "notification.renderer.field.path",
-    "reason": "notification.renderer.field.reason",
-    # 2026-10-05 通知聚合 B1：失败明细的 4 列（**必须登记**，否则渲染为「字段」占位——
-    # `_field_label` 的兜底策略是绝不回退原始键名，见其 docstring）
-    "standard_number": "notification.renderer.field.standard_number",
-    "standard_name": "notification.renderer.field.standard_name",
-    "error_type": "notification.renderer.field.error_type",
-    "error_message": "notification.renderer.field.error_message",
-    # 需求①的第四列＝"总数"（按 类型 × 标准号 × 标准名 归并后的条数）
-    "count": "notification.renderer.field.count",
-}
 
 
-def _field_label(key: str) -> str:
-    """把 ListBlock 条目的数据字段名翻译为可展示的表头/前缀文本。
-
-    兜底：未登记或翻译缺失时返回通用占位「字段」（`_field_label_unknown`），
-    **不回退为原始键名**——暴露 number/name 这类内部字段名正是本函数要消除的问题。
-    """
-    i18n_key = _LIST_FIELD_KEYS.get(key)
-    if not i18n_key:
-        return t("notification.renderer.field.unknown")
-    resolved = t(i18n_key)
-    # t() 缺键时 fail-loud 返回键本身；此处不能把键名当表头，故再兜一层
-    if not resolved or resolved == i18n_key:
-        return t("notification.renderer.field.unknown")
-    return resolved
 
 
 # 各渠道「单条消息」上限（上限值, 计数口径）；来源与口径逐条写在注释里——
@@ -83,195 +84,22 @@ def _field_label(key: str) -> str:
 #   · wecom 2048 字节 —— 企业微信应用消息文本的官方口径是**字节**，故本仓按 UTF-8 字节数计；
 #   · feishu 4096 字符 —— **未验证**：飞书按 UTF-16 单元计数、官方数字本轮未取到 ⇒ 取保守值；
 #   · dingtalk 4000 字符 —— **未验证**：仅有社区口径，官方 API 条款本轮未取到 ⇒ 取保守值。
-CHANNEL_TEXT_LIMITS: dict[str, tuple[int, str]] = {
-    "telegram": (4096, "chars"),
-    "wecom": (2048, "bytes"),
-    "feishu": (4096, "chars"),
-    "dingtalk": (4000, "chars"),
-}
 
 # 分段后追加的「续 N/M」标记模板（第 2 段起）；i18n 键见 notification.segment.continued
-_SEGMENT_SUFFIX_KEY = "notification.segment.continued"
 
 # Telegram `callback_data` 上限：**64 字节**（官方限制；本仓 notification_log.callback_data 列注释同口径）
-_TELEGRAM_CALLBACK_DATA_LIMIT = 64
 
 
-def _text_size(text: str, unit: str) -> int:
-    """按渠道口径计算"文本长度"：字符数或 UTF-8 字节数（企微是字节口径）。"""
-    return len(text.encode("utf-8")) if unit == "bytes" else len(text)
 
 
-def split_for_channel(text: str, channel: str) -> list[str]:
-    """把渲染后的文本按**渠道上限**切分为若干段（不丢信息；段间标「续 N/M」）。
-
-    设计取舍（为什么这样切）：
-    · **优先在换行处切**（参考 MoviePilot `telegram._split_plain_text` 的做法）：消息由"块/行"组成，
-      在行间断开不会把一行拆成两半，用户看到的是完整条目；
-      找不到换行（超长单行）才硬切，保证**每段都不超限**（宁可难看，不能超限被渠道拒收）。
-    · **不做行数截断**（`MAX_FAILED_ROWS` 已作废）：条数由 payload 决定，长度由本函数负责。
-    · 追加「续 N/M」只加在**第 2 段起**的末尾：不占用第 1 段的长度预算，且明确告知用户这是续段。
-    · 若单段预算小于后缀本身（极端小上限），退化为"不加上限校验的硬切"会超限 ⇒ 此处直接返回原文本，
-      由调用方按渠道错误处理（不静默丢弃信息）。
-    """
-    limit, unit = CHANNEL_TEXT_LIMITS.get(channel, (4096, "chars"))
-    if _text_size(text, unit) <= limit:
-        return [text]
-
-    suffix_probe = _size_probe_suffix(limit, unit)
-    budget = limit - _text_size(suffix_probe, unit)
-    if budget <= 0:
-        return [text]
-
-    segments: list[str] = []
-    remaining = text
-    while remaining and _text_size(remaining, unit) > budget:
-        cut = _find_cut(remaining, budget, unit)
-        segments.append(remaining[:cut].rstrip("\n"))
-        remaining = remaining[cut:].lstrip("\n")
-    if remaining:
-        segments.append(remaining)
-
-    total = len(segments)
-    if total > 1:
-        # 「续 N/M」：第 2 段起标注，保证读者知道还有后续
-        segments = [segments[0]] + [
-            f"{seg}\n{suffix}" for seg, suffix in zip(segments[1:], _suffixes(total))
-        ]
-    return segments
 
 
-def _size_probe_suffix(limit: int, unit: str) -> str:
-    """预留后缀长度用的探针（取最长的「续 M/M」形态，避免最后一段超限）。"""
-    probe = t(_SEGMENT_SUFFIX_KEY).format(n=99, total=99)
-    del limit, unit  # 仅为签名对称，预留值由调用方按同一口径计算
-    return probe
 
 
-def _suffixes(total: int) -> list[str]:
-    """生成第 2..M 段的后缀文案（i18n：notification.segment.continued）。"""
-    return [t(_SEGMENT_SUFFIX_KEY).format(n=i, total=total) for i in range(2, total + 1)]
 
 
-def _find_cut(text: str, budget: int, unit: str) -> int:
-    """在 `budget` 内寻找切点：优先换行；否则硬切（返回字符下标）。"""
-    if unit == "bytes":
-        # 字节口径：逐字符累加，避免把多字节字符切坏
-        used = 0
-        best_newline = -1
-        for idx, ch in enumerate(text):
-            used += len(ch.encode("utf-8"))
-            if used > budget:
-                return best_newline if best_newline > 0 else max(idx, 1)
-            if ch == "\n":
-                best_newline = idx + 1
-        return len(text)
-    window = text[:budget]
-    pos = window.rfind("\n")
-    return pos + 1 if pos > 0 else max(budget, 1)
 
 
-class BlockRenderer:
-    """Block 渲染器基类——将结构化 Block 列表渲染为纯文本。
-
-    子类实现: _render_text, _render_key_value, _render_status_change, _render_list。
-    可选覆盖: _escape 渠道转义, _render_title 标题, _block_separator 块分隔符。
-    """
-
-    # ──公开接口──
-
-    def render(self, message: NotificationMessage) -> str:
-        """将通知消息渲染为渠道文本。
-
-        消息若带结构块则逐块渲染；
-        若仅有正文则回退为纯文本输出。
-
-        最终兜底：任何路径下渲染结果都不为空字符串——
-        空结果回退标题，标题也空则使用固定占位文案。
-        """
-        blocks: list[NotificationBlock] = getattr(message, "blocks", [])
-        if not blocks:
-            # 回退：降级为纯文本
-            text = message.body if message.body else ""
-        else:
-            parts: list[str] = []
-            title_part = self._render_title(message.title)
-            if title_part:
-                parts.append(title_part)
-
-            for block in blocks:
-                rendered = self._render_block(block)
-                if rendered:
-                    parts.append(rendered)
-
-            text = self._block_separator().join(parts)
-
-        # 最终防线：永不返回空字符串（聚合消息 blocks 丢失等历史缺陷的兜底）
-        text = text.strip()
-        if not text:
-            text = message.title or _fallback_text()
-        return text
-
-    # ── 渲染调度 ──
-
-    def _render_block(self, block: NotificationBlock) -> str:
-        """按类型分发渲染。"""
-        if isinstance(block, TextBlock):
-            return self._render_text(block)
-        if isinstance(block, KeyValueBlock):
-            return self._render_key_value(block)
-        if isinstance(block, StatusChangeBlock):
-            return self._render_status_change(block)
-        if isinstance(block, ListBlock):
-            return self._render_list(block)
-        return str(block)
-
-    # ── 子类需实现的方法 ──
-
-    def _render_text(self, block: TextBlock) -> str:
-        """渲染纯文本块。"""
-        return self._escape(block.text)
-
-    def _render_key_value(self, block: KeyValueBlock) -> str:
-        """渲染键值对块，默认格式 'key: value'。"""
-        return f"{self._escape(block.key)}: {self._escape(block.value)}"
-
-    def _render_status_change(self, block: StatusChangeBlock) -> str:
-        """渲染状态变更块，默认格式 'label: old → new'。"""
-        return f"{self._escape(block.label)}: {self._escape(block.old_value)} → {self._escape(block.new_value)}"
-
-    def _render_list(self, block: ListBlock) -> str:
-        """渲染列表块——标题 + 逐行条目的默认格式。"""
-        total = block.total if block.total is not None else len(block.items)
-        lines: list[str] = [
-            f"{self._escape(block.title)}{t('notification.renderer.list_count').format(total=total)}"
-        ]
-
-        for item in block.items:
-            parts: list[str] = []
-            for key, value in item.items():
-                # 字段名经 i18n 翻译（原实现直接暴露 number: 这类数据键）
-                parts.append(f"{_field_label(key)}: {value}")
-            lines.append("  - " + " | ".join(self._escape(p) for p in parts))
-
-        if block.detail_url:
-            lines.append(self._escape(block.detail_url))
-
-        return "\n".join(lines)
-
-    # ── 可选覆盖的方法 ──
-
-    def _render_title(self, title: str) -> str:
-        """渲染消息标题。"""
-        return self._escape(title) if title else ""
-
-    def _block_separator(self) -> str:
-        """Block 之间的分隔符。"""
-        return "\n\n"
-
-    def _escape(self, text: str) -> str:
-        """转义渠道特殊字符。基类默认不做转义，子类按需覆盖。"""
-        return text
 
 
 # ═══════════════════════════════════════════════════════════════════════════ 分隔
@@ -279,128 +107,12 @@ class BlockRenderer:
 # ═══════════════════════════════════════════════════════════════════════════ 分隔
 
 # 电报2中必须反斜杠转义的字符
-_TELEGRAM_ESCAPE_CHARS = re.compile(r"([_*\[\]()~`>#+\-=|{}.!])")
 
 # 列表条目的字段分隔符（**已转义**形态）。
 # 不能把它拼在"已转义的值"之后再行转义——那会连值一起二次转义；
 # 故这里预先给出转义后的字面量，供 `_render_list` 直接 join。
-_TELEGRAM_LIST_SEP = " \\| "
 
 
-class TelegramRenderer(BlockRenderer):
-    """Telegram MarkdownV2 渲染器——先转义用户数据，再施加格式标记。"""
-
-    def build_reply_markup(self, message: "Any") -> dict[str, Any] | None:
-        """由 `message.actions` 生成 `inline_keyboard`；**无动作/无 token 时返回 `None`**。
-
-        **设计决策（显式记录，勿"修"成每段都挂）**：按钮**只挂在最后一段**——分段是"消息太长"的
-        物理切分，同一条通知被切成 N 段时，动作属于**这条通知**而非某一段；若每段都挂按钮，
-        用户会看到 N 组重复按钮、且点任意一组效果相同（更糟的是 Telegram 会把每组都当成一次交互机会）。
-        故调用方（`channels/telegram.py`）只对最后一段传 `reply_markup`。
-
-        **`callback_data` 长度**：Telegram 限 **≤ 64 字节**（本仓 `notification_log.callback_data`
-        的列注释亦写明该上限）。这里采用 `"<action>:<token>"`（`callback.py::_split_action` 的解析口径），
-        token 形如 `<log_id>:<user_id>` ⇒ 实测长度约 10–20 字节，**远低于上限**；
-        仍做防御：逐条校验字节长度，超限则**跳过该按钮并告警**（不发出必然被 Telegram 拒收的载荷）。
-
-        **fail-safe**：`message.callback_data` 为空时**不下发回调按钮**（宁可不出按钮，也不发"点了没反应"的按钮）；
-        但**链接型动作**（站内入口，见 `link_actions()`）**不依赖 token** ⇒ 即使没有 token 也应正常渲染。
-        """
-        from .callback import SUPPORTED_ACTIONS
-
-        actions = list(getattr(message, "actions", []) or [])
-        token = str(getattr(message, "callback_data", "") or "")
-        row: list[dict[str, str]] = []
-        # ① 链接型动作（站内入口）：TG 原生 URL 按钮，无需 token
-        for spec in link_actions(message):
-            args = getattr(spec, "args", None) or {}
-            row.append({"text": _action_label(spec), "url": str(args.get("url") or "")})
-        # ② 回调型动作（阶段 3）：需要签名 token；**无 token 一律跳过**（fail-safe）
-        for spec in actions if token else []:
-            action = str(getattr(spec, "action", "") or "")
-            if action not in SUPPORTED_ACTIONS:
-                continue
-            if isinstance(getattr(spec, "args", None), dict) and spec.args.get("url"):
-                continue  # 链接型动作已在 ① 渲染，避免重复
-            data = f"{action}:{token}"
-            if len(data.encode("utf-8")) > _TELEGRAM_CALLBACK_DATA_LIMIT:
-                # 开发者日志用 ASCII（G-047 只允许用户可见文案走 i18n）
-                logger.warning(
-                    "telegram callback_data too long (%d bytes > %d); button skipped",
-                    len(data.encode("utf-8")),
-                    _TELEGRAM_CALLBACK_DATA_LIMIT,
-                )
-                continue
-            label_key = str(getattr(spec, "label_key", "") or "")
-            row.append({"text": t(label_key) if label_key else action, "callback_data": data})
-        return {"inline_keyboard": [row]} if row else None
-
-    # ── 标题 ──
-
-    def _render_title(self, title: str) -> str:
-        if not title:
-            return ""
-        return f"*{self._escape(title)}*"
-
-    # ──锁渲染──
-
-    def _render_text(self, block: TextBlock) -> str:
-        return self._escape(block.text)
-
-    def _render_key_value(self, block: KeyValueBlock) -> str:
-        return f"{self._escape(block.key)}: {self._escape(block.value)}"
-
-    def _render_status_change(self, block: StatusChangeBlock) -> str:
-        return f"{self._escape(block.label)}: {self._escape(block.old_value)} → {self._escape(block.new_value)}"
-
-    def _render_list(self, block: ListBlock) -> str:
-        """Telegram 列表：📋 标题 + • 条目，number 加粗。"""
-        total = block.total if block.total is not None else len(block.items)
-        lines: list[str] = [
-            f"📋 *{self._escape(block.title)}*{t('notification.renderer.list_count').format(total=total)}"
-        ]
-
-        for item in block.items:
-            parts: list[str] = []
-            # 标准号/编号字段加粗展示，其余字段普通拼接
-            for key, value in item.items():
-                escaped_value = self._escape(value)
-                if key == "number":
-                    parts.append(f"*{escaped_value}*")
-                else:
-                    parts.append(escaped_value)
-            # 分隔符本身也必须转义：`parts` 已各自转义，但分隔符是在**转义之后**拼入的，
-            # 若直接用 `" | "`，`|` 会以未转义形态进入 MarkdownV2 → Telegram 返回
-            # `HTTP 400: can't parse entities: Character '|' is reserved`。
-            # 生产实测：`standard_first_registered` 因此**连续 7 次全部失败**（从未成功过）。
-            lines.append(f"• {_TELEGRAM_LIST_SEP.join(parts)}")
-
-        if block.detail_url:
-            lines.append(self._escape(block.detail_url))
-
-        return "\n".join(lines)
-
-    # ──2转义──
-
-    def _escape(self, text: str) -> str:
-        """对 Telegram MarkdownV2 的 18 个特殊字符做反斜杠转义。
-
-        转义范围：_ * [ ] ( ) ~ ` > # + - = | { } . !
-        注意：此方法只转义用户数据，不应在已加好格式标记的字符串上调用。
-        """
-        if not text:
-            return ""
-        return _TELEGRAM_ESCAPE_CHARS.sub(r"\\\1", text)
-
-    def _block_separator(self) -> str:
-        """Telegram 消息块间用单空行分隔。"""
-        return "\n\n"
-
-    def _bold(self, text: str) -> str:
-        return f"*{text}*"
-
-    def _mono(self, text: str) -> str:
-        return f"`{text}`"
 
 
 # ═══════════════════════════════════════════════════════════════════════════ 分隔
