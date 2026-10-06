@@ -164,7 +164,7 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
     # ── 下载（2）──
     EventSpec(key="batch_download_complete", notify_event="batch_summary", content_type="list",
         task_kind="favorite_download",
-        builder_ref="pilotstd.core.notification._builders_batch:_build_batch_download_complete_message",
+        builder_ref="pilotstd.core.notification._builders_batch_download:_build_batch_download_complete_message",
         i18n_category="notification.download", default_channels=("wechat",), levels=("info", "warning"),
         module_key="notification.module.download", trigger_file="pilotstd/download/engine.py",
         payload_keys=frozenset({"failed", "failed_items", "skipped", "success"}), security=False, branch_by=None,
@@ -176,7 +176,7 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
     ),
     EventSpec(key="download_failed", notify_event="task_failure", content_type="text",
         task_kind="favorite_download",
-        builder_ref="pilotstd.core.notification._builders_batch:_build_download_failed_message",
+        builder_ref="pilotstd.core.notification._builders_batch_download:_build_download_failed_message",
         i18n_category="notification.download", default_channels=(), levels=("error",),
         module_key="notification.module.download", trigger_file="pilotstd/tasks/favorite_download.py",
         # 名称：载荷携带「当前最高可得阶段名」（③决策→②查询→①解析，见 core/name_resolution.py）。
@@ -422,7 +422,7 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
     ),
     EventSpec(key="download_started", notify_event="task_progress", content_type="field_list",
         task_kind="favorite_download",
-        builder_ref="pilotstd.core.notification._builders_batch:_build_download_started_message",
+        builder_ref="pilotstd.core.notification._builders_batch_download:_build_download_started_message",
         i18n_category="notification.download", default_channels=(), levels=("info",),
         module_key="notification.module.favorite", trigger_file="pilotstd/tasks/favorite_download.py",
         # 名称：同 download_failed——载荷带「最高可得阶段名」，与生产方 _fetch_std_meta 同批对齐。
@@ -436,7 +436,7 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
     ),
     EventSpec(key="download_complete", notify_event="task_result", content_type="field_list",
         task_kind="favorite_download",
-        builder_ref="pilotstd.core.notification._builders_batch:_build_download_complete_message",
+        builder_ref="pilotstd.core.notification._builders_batch_download:_build_download_complete_message",
         i18n_category="notification.download", default_channels=(), levels=("info",),
         module_key="notification.module.favorite", trigger_file="pilotstd/tasks/favorite_download.py",
         payload_keys=frozenset(

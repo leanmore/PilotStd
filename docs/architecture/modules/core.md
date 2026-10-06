@@ -5,7 +5,7 @@
 | 模块路径 | `pilotstd/core/` |
 | G-031 映射 | `pilotstd/core/`（2026-09-25 落地：`DOC_SYNC_MAP` 已含该条，改任何 core 文件都会要求同步本文件） |
 | 核心类 | `Database` / `ConfigManager` / `CacheManager` / `NotificationManager` |
-| 子模块数 | 114 个 `.py`（新增 `aggregate_keys.py`：聚合分组键语义（**T-41/4** 拆分以守 G-010；以**纯函数（组合）**形式提供，`NotificationAggregator` 用薄委托调用并**再导出** `_GROUP_SEP`/`agg_key_mode`）。上一轮新增 `renderer_base.py`（渲染器共享基座）与 `renderer_telegram.py`（Telegram 渲染器）——**T-41/3** 拆分以守 G-010；`renderer.py` 保留 Markdown/飞书/钉钉/桌面渲染器并**再导出**迁出名字。上一轮新增 `event_spec_data.py`：事件声明数据（**T-41/1** 拆分以守 G-010；`event_spec.py` 保留数据类/工厂/值域闭集，并按声明原位置**延迟导入** `EVENT_SPECS`）；再上一轮新增 `channel_spec_data.py`：渠道声明数据（阶段 3 · Step 4 ③ 拆分以守 G-010；`channel_spec.py` 保留数据类与再导出））（**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-10-06**；顶层 = 3 个包 config / db / notification + 23 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
+| 子模块数 | 116 个 `.py`（新增 `_builders_common.py`（构建器共享助手）与 `_builders_batch_download.py`（下载族构建器）——**T-41/5** 拆分以守 G-010；主模块 `_builders_batch.py` **再导出**迁出名字。上一轮新增 `aggregate_keys.py`：聚合分组键语义（**T-41/4** 拆分以守 G-010；以**纯函数（组合）**形式提供，`NotificationAggregator` 用薄委托调用并**再导出** `_GROUP_SEP`/`agg_key_mode`）。上一轮新增 `renderer_base.py`（渲染器共享基座）与 `renderer_telegram.py`（Telegram 渲染器）——**T-41/3** 拆分以守 G-010；`renderer.py` 保留 Markdown/飞书/钉钉/桌面渲染器并**再导出**迁出名字。上一轮新增 `event_spec_data.py`：事件声明数据（**T-41/1** 拆分以守 G-010；`event_spec.py` 保留数据类/工厂/值域闭集，并按声明原位置**延迟导入** `EVENT_SPECS`）；再上一轮新增 `channel_spec_data.py`：渠道声明数据（阶段 3 · Step 4 ③ 拆分以守 G-010；`channel_spec.py` 保留数据类与再导出））（**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-10-06**；顶层 = 3 个包 config / db / notification + 23 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
 | Schema 版本 | `CURRENT_SCHEMA_VERSION = 66`（`db/_constants.py`；v66＝announcement_record 追加 `final_name` 列 + 从 pending_lookup 回填，2026-10-05 名称解析统一批次二） |
 | 状态 | 活跃 |
 
@@ -206,6 +206,16 @@ pilotstd/core/
 │   │   "层结构变了 ⇒ `spec_hash` 必变 ⇒ 前端内容级缓存必失效"（用户裁定：单一版本源优于另立层版本字段）。
 │   │   `docker/api/notification_policy.py::PolicyUpdateRequest` 增 `event_classes` 并转发给
 │   │   `save_policy(...)`（4a 已支持该参数，两层互不覆盖：`None`＝不动该层、`[]`＝清空）
+│   ├── （2026-10-06 · **T-41/5（1/2）：`_builders_batch.py` 拆分**守 G-010）：下载族四条构建器
+│   │   （`batch_download_complete`/`download_failed`/`download_started`/`download_complete`）迁至
+│   │   `_builders_batch_download.py`；共享助手（`_make_link`/`_std_type_text`/`_expected_download_date`
+│   │   + `_STD_TYPE_LABEL_KEYS`）迁至 `_builders_common.py`；主模块**再导出** + `__all__`。
+│   │   **依赖图先行**：两新模块均只依赖标准库/`i18n`/`_format_utils`/`blocks`/`channel` ⇒ 单向、无环；
+│   │   `_builders_system` 对 `_builders_batch.build_failed_items_block` 的**函数内惰性导入**不受影响。
+│   │   ⚠️ 关键联动（实测）：G-045 的构建器解析**只认本模块内的 `def`**，再导出不算 ⇒ 迁出的 4 条
+│   │   `builder_ref` 必须改指新模块（首轮漏改 ⇒ 审计掉到 `e2e 38/42`、退出码 1；改后回到 **42/42**）。
+│   │   ⚠️ 再次踩到 T-41/3 的教训：`ruff --fix` 会删除**未被 `__all__` 收录**的再导出（本次冒烟即发现
+│   │   `download_started` 构建器解析失败）⇒ 再导出名一律登记 `__all__`。
 │   ├── （2026-10-06 · **T-41/4：`aggregate_buffer.py` 拆分**守 G-010）：578 → 500 原始行
 │   │   （**有效行退出 >400 列表**）。分组键语义（`_group_key`/`_events_in_group`/`_group_entity`）连同
 │   │   `_GROUP_SEP`、`agg_key_mode()`（及 `logger`/`_warned_bad_key` 依赖）迁至 `aggregate_keys.py`，

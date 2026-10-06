@@ -7,12 +7,17 @@
 # 模板重写（批次2）：统一"标准号/名称/类型"行结构；错误经翻译映射；
 # 标准号不再依赖发送层追加（电报渠道去重），由构建器正文完整承载。
 
-import os
-from datetime import date, timedelta
 
 from pilotstd.i18n import t
 
-from ._format_utils import translate_error_message
+# ── 共享助手与下载族构建器（实现在 `_builders_common.py` / `_builders_batch_download.py`；
+#    T-41/5 拆分，此处**再导出**保持既有导入方与 `builder_ref` 解析兼容）──
+from ._builders_common import (  # noqa: E402
+    _STD_TYPE_LABEL_KEYS,  # noqa: E402  (T-41/5 再导出)
+    _expected_download_date,
+    _make_link,
+    _std_type_text,
+)
 from .blocks import (
     ListBlock,
     NotificationBlock,
@@ -20,14 +25,38 @@ from .blocks import (
 )
 from .channel import NotificationMessage
 
+# `__all__` 必须收录**再导出名**：否则 `ruff --fix` 会按「未使用」删除它们（T-41/3、T-41/5 两次实测）。
+__all__ = [
+    "_ABANDON_REASON_KEYS",
+    "_STD_TYPE_LABEL_KEYS",
+    "_build_announcement_fetch_complete_message",
+    "_build_archive_abandoned_message",
+    "_build_auto_scan_failed_message",
+    "_build_batch_query_summary_message",
+    "_build_favorite_abandoned_summary_message",
+    "_build_favorite_created_message",
+    "_build_normalize_complete_message",
+    "_build_notification_delivery_failed_message",
+    "build_failed_items_block",
+    "_build_batch_download_complete_message",
+    "_build_download_complete_message",
+    "_build_download_failed_message",
+    "_build_download_started_message",
+    "_expected_download_date",
+    "_make_link",
+    "_std_type_text",
+]
+
+from ._builders_batch_download import (  # noqa: E402
+    _build_batch_download_complete_message,
+    _build_download_complete_message,
+    _build_download_failed_message,
+    _build_download_started_message,
+)
+
 # 标准类型 → 多语言键（收藏/下载模板共用）。
 # 只存键、渲染时再取翻译：模块级直接求值会把语言固化在导入时刻，
 # 运行时切换语言后标准类型名不会跟着变。
-_STD_TYPE_LABEL_KEYS = {
-    "NationalStd": "notification.common.std_type.national",
-    "IndustryStd": "notification.common.std_type.industry",
-    "LocalStd": "notification.common.std_type.local",
-}
 
 # 收藏放弃的**类别 key → 文案键**。
 # 分类在 `favorite_chain_processor._classify_abandon_reason` 里只产出 key（不写死中文），
@@ -43,34 +72,10 @@ _ABANDON_REASON_KEYS = {
 }
 
 
-def _std_type_text(standard_type: str) -> str:
-    """标准类型标签（未知类型返回空串，模板中省略该行）。"""
-    key = _STD_TYPE_LABEL_KEYS.get(standard_type or "")
-    return t(key) if key else ""
 
 
-def _expected_download_date(publish_date: str) -> str:
-    """预计自动下载日期 = 发布日期 + 冷却期天数。
-
-    冷却期与收藏下载链同源（ARCHIVE_COOLDOWN_DAYS 环境变量，默认 28），
-    避免双源漂移；日期无法解析时返回空串（模板回退为通用提示）。
-    """
-    if not publish_date:
-        return ""
-    try:
-        d = date.fromisoformat(str(publish_date)[:10])
-        cooldown = int(os.environ.get("ARCHIVE_COOLDOWN_DAYS", "28"))
-        return (d + timedelta(days=cooldown)).isoformat()
-    except (ValueError, TypeError):
-        return ""
 
 
-def _make_link(standard_number: str | None) -> str | None:
-    """根据标准号生成跳转链接（与 _builders_system 同款，避免跨模块依赖）。
-
-    链接用于站内跳转到标准详情页；标准号为空时返回 None（消息不含跳转）。
-    """
-    return f"/standards/{standard_number}" if standard_number else None
 
 
 def _build_announcement_fetch_complete_message(data: dict) -> NotificationMessage:
@@ -111,34 +116,6 @@ def _build_announcement_fetch_complete_message(data: dict) -> NotificationMessag
     )
 
 
-def _build_batch_download_complete_message(data: dict) -> NotificationMessage:
-    """批量下载完成（标题 + 统计行 + 可选明细预览）。
-
-    details：非成功项明细（收藏链运行汇总传入），最多展示 5 条 —— 汇总只有计数时
-    用户无法知道"哪条失败了"，明细是这批通知里唯一可执行的信息。
-    """
-    success = data.get("success", 0)
-    failed = data.get("failed", 0)
-    skipped = data.get("skipped", 0)
-    stats = t("notification.download.batch_download_complete.body.stats").format(
-        success=success, failed=failed, skipped=skipped
-    )
-    title_key = (
-        "notification.download.batch_download_complete.title.success"
-        if failed == 0
-        else "notification.download.batch_download_complete.title.with_failure"
-    )
-    blocks: list[NotificationBlock] = [TextBlock(text=stats)]
-    details = [str(d) for d in (data.get("details") or []) if d][:5]
-    if details:
-        blocks.append(TextBlock(text="\n".join(details)))
-    return NotificationMessage(
-        title=t(title_key),
-        blocks=blocks,
-        level="info" if failed == 0 else "warning",
-        event_type="batch_download_complete",
-        icon="pi pi-download",
-    )
 
 
 def _build_favorite_abandoned_summary_message(data: dict) -> NotificationMessage:
@@ -304,31 +281,6 @@ def _build_auto_scan_failed_message(data: dict) -> NotificationMessage:
     )
 
 
-def _build_download_failed_message(data: dict) -> NotificationMessage:
-    """原 Mixin 方法，现为模块级纯函数。"""
-    std_no = data.get("standard_number", "")
-    blocks: list[NotificationBlock] = []
-    if std_no:
-        blocks.append(TextBlock(text=t("notification.common.std_no").format(s=std_no)))
-    std_name = data.get("standard_name", "")
-    if std_name:
-        blocks.append(TextBlock(text=t("notification.common.std_name").format(s=std_name)))
-    std_type_text = _std_type_text(data.get("standard_type", ""))
-    if std_type_text:
-        blocks.append(TextBlock(text=t("notification.common.std_type").format(t=std_type_text)))
-    # 错误信息经翻译映射统一口径（业务消息映射），避免技术细节直出
-    blocks.append(
-        TextBlock(text=t("notification.common.error").format(e=translate_error_message(data.get("error", ""))))
-    )
-    return NotificationMessage(
-        title=t("notification.download.download_failed.title"),
-        blocks=blocks,
-        level="error",
-        standard_number=std_no or None,
-        event_type="download_failed",
-        link=_make_link(std_no) if std_no else None,
-        icon="pi pi-download",
-    )
 
 
 def _build_favorite_created_message(data: dict) -> NotificationMessage:
@@ -372,55 +324,8 @@ def _build_favorite_created_message(data: dict) -> NotificationMessage:
     )
 
 
-def _build_download_started_message(data: dict) -> NotificationMessage:
-    """下载开始事件构建器：告知用户标准文件开始自动下载。
-
-    cron 处理器扫描到待下载收藏并调用 download_to_inbox 时触发，
-    表明下载流程已进入执行阶段（区别于收藏时的排队阶段）。
-    """
-    std_no = data.get("standard_number", "")
-    blocks: list[NotificationBlock] = [TextBlock(text=t("notification.common.std_no").format(s=std_no))]
-    # 下载开始仅告知执行阶段，不承诺成功结果（成败由完成/失败事件分别表达）
-    return NotificationMessage(
-        title=t("notification.download.download_started.title"),
-        blocks=blocks,
-        level="info",
-        standard_number=std_no or None,
-        event_type="download_started",
-        link=_make_link(std_no) if std_no else None,
-        icon="pi pi-download",
-    )
 
 
-def _build_download_complete_message(data: dict) -> NotificationMessage:
-    """下载完成事件构建器：告知用户标准文件已下载并归档。
-
-    文件落盘并进入标准库 file_index 后触发；local_path 为归档后
-    的实际存储路径，便于用户直接定位文件。
-    """
-    std_no = data.get("standard_number", "")
-    local_path = data.get("local_path", "")
-    blocks: list[NotificationBlock] = []
-    if std_no:
-        blocks.append(TextBlock(text=t("notification.common.std_no").format(s=std_no)))
-    std_name = data.get("standard_name", "")
-    if std_name:
-        blocks.append(TextBlock(text=t("notification.common.std_name").format(s=std_name)))
-    std_type_text = _std_type_text(data.get("standard_type", ""))
-    if std_type_text:
-        blocks.append(TextBlock(text=t("notification.common.std_type").format(t=std_type_text)))
-    # 文件已归档到标准库，附上实际路径便于用户直接定位
-    if local_path:
-        blocks.append(TextBlock(text=t("notification.download.download_complete.body.file_path").format(p=local_path)))
-    return NotificationMessage(
-        title=t("notification.download.download_complete.title"),
-        blocks=blocks,
-        level="info",
-        standard_number=std_no or None,
-        event_type="download_complete",
-        link=_make_link(std_no) if std_no else None,
-        icon="pi pi-check-circle",
-    )
 
 
 def _build_archive_abandoned_message(data: dict) -> NotificationMessage:
