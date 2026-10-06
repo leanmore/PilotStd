@@ -15,6 +15,7 @@ from PyQt6.QtWidgets import QFileDialog, QMessageBox, QTableWidget
 if TYPE_CHECKING:
     from ....core.config import ConfigManager
 
+from ....core.notification.batch import batch_scope
 from ....i18n import _
 from ...qt_lifecycle import stop_worker_gracefully
 from ...workers import DownloadWorker, RowUpdate
@@ -142,7 +143,10 @@ class DownloadUIHandler:
             return
 
         self._status_cb(_("download_in_progress"))
-        _tasks, stats = self._mgr.download_by_numbers(lines)
+        # 通知聚合 B1 · E1：**一次导入 = 一个批次**——用 batch_scope 包住"查询 + 下载"阶段，
+        # 使这两个阶段的通知共用同一个批次键 ⇒ 被聚合器收敛成一条（需求①"一次导入汇总成 1 条"）。
+        with batch_scope("imp"):
+            _tasks, stats = self._mgr.download_by_numbers(lines)
         msg = (
             f"{_('download_results_total')}: {stats.total}\n"
             f"{_('download_results_success')}: {stats.success}\n"

@@ -4,6 +4,8 @@ from typing import Optional
 from fastapi import Body, Depends, File, Form, HTTPException, UploadFile
 from fastapi.routing import APIRouter
 
+from pilotstd.core.notification.batch import batch_scope
+
 from ..manager import get_manager_dep
 
 router = APIRouter(tags=["download"])
@@ -109,7 +111,10 @@ async def import_downloads(
         }
 
     # 提交有效标准号到下载引擎
-    tasks, stats = mgr.download_by_numbers(parsed["valid"])
+    # 通知聚合 B1 · E1：**一次导入 = 一个批次**——用 batch_scope 包住"查询 + 下载"阶段，
+    # 使两阶段通知共用同一批次键 ⇒ 聚合器收敛成一条（需求①"一次导入汇总成 1 条"）。
+    with batch_scope("imp"):
+        tasks, stats = mgr.download_by_numbers(parsed["valid"])
     return {
         "valid": parsed["valid"],
         "invalid": parsed["invalid"],
