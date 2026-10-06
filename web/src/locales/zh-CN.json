@@ -933,6 +933,24 @@
       "optional_short": "选填",
       "enable_channel": "启用此渠道",
       "events_label": "事件订阅：",
+      "error_type": {
+        "not_found": "未找到",
+        "parse": "解析失败",
+        "network": "网络错误",
+        "timeout": "超时",
+        "unknown": "未知错误"
+      },
+      "failed_items": {
+        "open": "查看失败明细",
+        "title": "失败明细",
+        "empty": "该批次没有失败明细",
+        "total": "共 {total} 条",
+        "load_failed": "失败明细加载失败",
+        "col_number": "标准号",
+        "col_name": "标准名",
+        "col_type": "错误类型",
+        "col_message": "说明"
+      },
       "classes_label": "类别订阅（10 类）：",
       "classes_hint": "类别层非空时优先生效；留空则按下方高级层（按业务事件）投递。",
       "advanced_label": "高级：按业务事件细分（41 项）",

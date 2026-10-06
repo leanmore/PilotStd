@@ -933,6 +933,24 @@
       "optional_short": "optional",
       "enable_channel": "Enable this channel",
       "events_label": "Event subscriptions:",
+      "error_type": {
+        "not_found": "Not found",
+        "parse": "Parse error",
+        "network": "Network error",
+        "timeout": "Timeout",
+        "unknown": "Unknown error"
+      },
+      "failed_items": {
+        "open": "View failure details",
+        "title": "Failure details",
+        "empty": "No failure details for this batch",
+        "total": "{total} in total",
+        "load_failed": "Failed to load failure details",
+        "col_number": "Standard No.",
+        "col_name": "Standard name",
+        "col_type": "Error type",
+        "col_message": "Message"
+      },
       "classes_label": "Category subscriptions (10 classes):",
       "classes_hint": "The category layer wins when non-empty; if empty, the advanced layer (per business event) below applies.",
       "advanced_label": "Advanced: per business event (41)",

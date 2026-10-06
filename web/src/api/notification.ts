@@ -74,7 +74,34 @@ export interface NotificationLog {
   aggregated_count?: number
   link?: string | null
   icon?: string | null
+  /** 失败明细**条数**（P3 新增：只给条数，明细按需另取——避免列表响应体爆炸） */
+  failed_count: number
 }
+
+/** 失败明细单条（4 列口径 + 服务端已脱敏的说明） */
+export interface FailedItem {
+  standard_number: string
+  standard_name: string
+  /** 枚举取值：not_found / parse / network / timeout / unknown（前端负责翻译，未知回退 unknown） */
+  error_type: string
+  /** 已脱敏的说明（URL 查询串/绝对路径/长令牌/邮箱手机号均已收敛，≤120 字符） */
+  error_message: string
+}
+
+export interface FailedItemsResponse {
+  total: number
+  page: number
+  page_size: number
+  items: FailedItem[]
+}
+
+/** 取某条通知日志的失败明细（**按需加载 + 服务端分页 + 已脱敏**） */
+export const getNotificationFailedItems = (
+  logId: number,
+  page = 1,
+  pageSize = 20,
+): Promise<FailedItemsResponse> =>
+  http.get(`/notification/logs/${logId}/failed-items`, { params: { page, page_size: pageSize } }).then(r => r.data)
 
 export interface NotificationLogResponse {
   total: number
@@ -162,8 +189,7 @@ export const testNotification = (
 ): Promise<{ ok: boolean; error?: string }> =>
   http.post('/notification/test', { channel, params }).then(r => r.data)
 
-export const getNotificationLogs = (params: {
-  page?: number
+export const getNotificationLogs = (params: {  page?: number
   page_size?: number
   channel?: string
   status?: string

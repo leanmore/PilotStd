@@ -11,8 +11,8 @@ import Tag from 'primevue/tag'
 import Dialog from 'primevue/dialog'
 import Message from 'primevue/message'
 import {
-  getNotificationLogs, deleteNotificationLogs, getNotificationChannels,
-  type NotificationLog, type ChannelSpec,
+  getNotificationLogs, deleteNotificationLogs, getNotificationChannels, getNotificationFailedItems,
+  type NotificationLog, type ChannelSpec, type FailedItem,
 } from '@/api/notification'
 import { getItem, setItem } from '@/lib/storage'
 
@@ -85,6 +85,38 @@ const highlightId = ref<number | null>(null)
 // 详情弹窗
 const detailVisible = ref(false)
 const detailItem = ref<NotificationLog | null>(null)
+
+// P3：失败明细（**按需加载**——不随列表拉取；自身分页；服务端已脱敏）
+const failedItems = ref<FailedItem[]>([])
+const failedTotal = ref(0)
+const failedPage = ref(1)
+const failedPageSize = 20
+const failedLoaded = ref(false)
+const failedError = ref(false)
+
+async function loadFailedItems(page = 1) {
+  const item = detailItem.value
+  if (!item) return
+  failedError.value = false
+  try {
+    const resp = await getNotificationFailedItems(item.id, page, failedPageSize)
+    failedItems.value = resp.items ?? []
+    failedTotal.value = resp.total ?? 0
+    failedPage.value = resp.page ?? page
+    failedLoaded.value = true
+  } catch (e) {
+    // 吞错可见化：失败必须可见（不静默显示"没有明细"）
+    failedError.value = true
+    failedLoaded.value = false
+    console.warn('[notification] failed-items load failed', e)
+  }
+}
+
+/** 技术枚举 → 用户可读文案；未知取值回退 `unknown` 文案（**不暴露原始码**） */
+function errorTypeLabel(raw: string): string {
+  const key = `notification.config.error_type.${raw}`
+  return te(key) ? t(key) : t('notification.config.error_type.unknown')
+}
 
 // 清理日志弹窗
 const cleanupVisible = ref(false)
@@ -333,6 +365,54 @@ onBeforeUnmount(() => {
         <div class="detail-row"><span>{{ t('notification.logs.field.title') }}</span><span>{{ detailItem.title }}</span></div>
         <div class="detail-body"><span>{{ t('notification.logs.field.body') }}</span><pre>{{ detailItem.body }}</pre></div>
         <div v-if="detailItem.error_msg" class="detail-row"><span>{{ t('notification.logs.field.error') }}</span><span class="err">{{ detailItem.error_msg }}</span></div>
+
+        <!-- P3：失败明细（**按需加载 + 自身分页 + 服务端已脱敏**；文案键与通知配置页共用 notification.config 命名空间） -->
+        <div v-if="detailItem.failed_count > 0" class="failed-items">
+          <Button
+            :label="t('notification.config.failed_items.open')"
+            size="small"
+            severity="secondary"
+            text
+            @click="loadFailedItems(1)"
+          />
+          <p v-if="failedError" class="err" style="margin:6px 0 0">{{ t('notification.config.failed_items.load_failed') }}</p>
+          <div v-else-if="failedLoaded" style="margin-top:6px">
+            <p style="font-size:12px;color:var(--text-dim);margin:0 0 6px">
+              {{ t('notification.config.failed_items.title') }} · {{ t('notification.config.failed_items.total', { total: failedTotal }) }}
+            </p>
+            <table v-if="failedItems.length" class="failed-table">
+              <thead>
+                <tr>
+                  <th>{{ t('notification.config.failed_items.col_number') }}</th>
+                  <th>{{ t('notification.config.failed_items.col_name') }}</th>
+                  <th>{{ t('notification.config.failed_items.col_type') }}</th>
+                  <th>{{ t('notification.config.failed_items.col_message') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(it, idx) in failedItems" :key="idx">
+                  <td>{{ it.standard_number }}</td>
+                  <td>{{ it.standard_name }}</td>
+                  <!-- 技术枚举**必须翻译**后展示；未知取值回退 unknown 文案（不暴露原始码） -->
+                  <td>{{ errorTypeLabel(it.error_type) }}</td>
+                  <td class="err">{{ it.error_message }}</td>
+                </tr>
+              </tbody>
+            </table>
+            <p v-else style="font-size:12px;color:var(--text-dim)">{{ t('notification.config.failed_items.empty') }}</p>
+            <div v-if="failedTotal > failedPageSize" style="display:flex;gap:8px;align-items:center;margin-top:6px">
+              <Button label="‹" size="small" text :disabled="failedPage <= 1" @click="loadFailedItems(failedPage - 1)" />
+              <span style="font-size:12px;color:var(--text-dim)">{{ failedPage }}</span>
+              <Button
+                label="›"
+                size="small"
+                text
+                :disabled="failedPage * failedPageSize >= failedTotal"
+                @click="loadFailedItems(failedPage + 1)"
+              />
+            </div>
+          </div>
+        </div>
       </div>
     </Dialog>
 

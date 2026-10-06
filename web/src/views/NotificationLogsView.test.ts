@@ -15,8 +15,11 @@ const mockGetLogs = vi.fn().mockResolvedValue({
   page: 1,
   page_size: 20,
 })
+// P3：失败明细按需加载（默认空；个别用例覆盖）
+const mockGetFailedItems = vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, page_size: 20 })
 vi.mock('@/api/notification', () => ({
   getNotificationLogs: (...args: any[]) => mockGetLogs(...args),
+  getNotificationFailedItems: (...args: any[]) => mockGetFailedItems(...args),
   NotificationLog: {} as any,
 }))
 
@@ -181,5 +184,80 @@ describe('NotificationLogsView', () => {
     // 统一前日志页显示短版本「公告抓取」，现与配置页一致用「公告抓取完成」
     expect(wrapper.find('tbody tr').text()).toContain('公告抓取完成')
     expect(wrapper.find('tbody tr').text()).not.toContain('公告抓取 ')
+  })
+
+  // ── P3：失败明细按需加载 + 技术枚举翻译 + 吞错可见化 ────────────────────────────
+
+  it('失败明细**按需**加载（列表不拉明细），且技术枚举被翻译、未知取值不暴露原始码', async () => {
+    mockGetLogs.mockResolvedValueOnce({
+      items: [
+        { id: 42, event_type: 'normalize_complete', channel: 'wechat', title: 'T', body: 'B', standard_number: null, status: 'failed', error_msg: null, sent_at: '2026-10-05T10:00:00', is_read: false, failed_count: 2 },
+      ],
+      total: 1, page: 1, page_size: 20,
+    })
+    mockGetFailedItems.mockResolvedValueOnce({
+      items: [
+        { standard_number: 'GB/T 1234-2020', standard_name: '甲', error_type: 'not_found', error_message: '源文件不存在' },
+        // 未知技术码（如 SMTP_AUTH_FAILED）⇒ 必须回退 unknown 文案，绝不显示原始码
+        { standard_number: 'GB 9-2020', standard_name: '-', error_type: 'SMTP_AUTH_FAILED', error_message: '…/file.pdf' },
+      ],
+      total: 2, page: 1, page_size: 20,
+    })
+
+    const wrapper = mountComponent()
+    await nextTick(); await nextTick(); await nextTick()
+
+    // 列表阶段**未**调用明细接口（按需）
+    expect(mockGetFailedItems).not.toHaveBeenCalled()
+
+    // 打开详情（Button 是 stub：label 在 props 上，故按 props 定位而不是文本）
+    const buttons = wrapper.findAllComponents({ name: 'Button' })
+    const viewBtn = buttons.find(b => String(b.props('label') ?? '').includes('查看'))
+    expect(viewBtn).toBeTruthy()
+    await viewBtn!.trigger('click')
+    await nextTick()
+
+    // 详情里出现"查看失败明细"入口 ⇒ 点击触发按需加载
+    const detailBtn = wrapper
+      .findAllComponents({ name: 'Button' })
+      .find(b => String(b.props('label') ?? '').includes('查看失败明细'))
+    expect(detailBtn).toBeTruthy()
+    await detailBtn!.trigger('click')
+    await nextTick(); await nextTick()
+
+    expect(mockGetFailedItems).toHaveBeenCalledWith(42, 1, 20)
+    const html = wrapper.html()
+    expect(html).toContain('未找到')            // not_found 已翻译
+    expect(html).not.toContain('not_found')     // 不暴露原始枚举
+    expect(html).toContain('未知错误')          // 未知技术码回退
+    expect(html).not.toContain('SMTP_AUTH_FAILED')
+  })
+
+  it('失败明细加载失败 ⇒ 明确提示（不静默显示"没有明细"）', async () => {
+    mockGetLogs.mockResolvedValueOnce({
+      items: [
+        { id: 7, event_type: 'normalize_complete', channel: 'wechat', title: 'T', body: 'B', standard_number: null, status: 'failed', error_msg: null, sent_at: '2026-10-05T10:00:00', is_read: false, failed_count: 3 },
+      ],
+      total: 1, page: 1, page_size: 20,
+    })
+    mockGetFailedItems.mockRejectedValueOnce(new Error('api down'))
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    const wrapper = mountComponent()
+    await nextTick(); await nextTick(); await nextTick()
+    const viewBtn = wrapper
+      .findAllComponents({ name: 'Button' })
+      .find(b => String(b.props('label') ?? '').includes('查看'))
+    await viewBtn!.trigger('click')
+    await nextTick()
+    const detailBtn = wrapper
+      .findAllComponents({ name: 'Button' })
+      .find(b => String(b.props('label') ?? '').includes('查看失败明细'))
+    await detailBtn!.trigger('click')
+    await nextTick(); await nextTick()
+
+    expect(wrapper.html()).toContain('失败明细加载失败')
+    expect(warnSpy).toHaveBeenCalled()
+    warnSpy.mockRestore()
   })
 })

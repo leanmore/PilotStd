@@ -933,6 +933,24 @@
       "optional_short": "選填",
       "enable_channel": "啟用此管道",
       "events_label": "事件訂閱：",
+      "error_type": {
+        "not_found": "未找到",
+        "parse": "解析失敗",
+        "network": "網路錯誤",
+        "timeout": "逾時",
+        "unknown": "未知錯誤"
+      },
+      "failed_items": {
+        "open": "查看失敗明細",
+        "title": "失敗明細",
+        "empty": "該批次沒有失敗明細",
+        "total": "共 {total} 條",
+        "load_failed": "失敗明細載入失敗",
+        "col_number": "標準號",
+        "col_name": "標準名",
+        "col_type": "錯誤類型",
+        "col_message": "說明"
+      },
       "classes_label": "類別訂閱（10 類）：",
       "classes_hint": "類別層非空時優先生效；留空則按下方高階層（按業務事件）投遞。",
       "advanced_label": "高階：按業務事件細分（41 項）",
