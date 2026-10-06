@@ -11,6 +11,7 @@
 
 from __future__ import annotations
 
+from .manager import TaskManager
 from .model import Task, TaskItem, TaskProgress
 
-__all__ = ["Task", "TaskItem", "TaskProgress"]
+__all__ = ["Task", "TaskItem", "TaskManager", "TaskProgress"]

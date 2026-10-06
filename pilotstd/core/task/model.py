@@ -18,8 +18,16 @@ from dataclasses import dataclass, field
 
 # ── 常量（口径集中，避免散落魔法值）───────────────────────────────────────────
 
-# 任务**终局**状态集合：终局必须推送（进度节流对终局不生效）
-TERMINAL_STATUSES: frozenset[str] = frozenset({"succeeded", "partial", "failed", "abandoned"})
+# 任务**终局**状态集合：终局必须推送（进度节流对终局不生效）。
+# ⚠️ **两套词表都要认**（2026-10-05 P4b-2 调查发现的真实差异，勿删任何一侧）：
+#   · 设计词表（`02-目标架构.md §2.3`）：succeeded / partial / failed / abandoned；
+#   · **实际词表**（`pilotstd/task/models.py::TaskStatus`）：pending / running / paused /
+#     **completed** / failed / **cancelled**。
+#   两个词表**并存**：设计词表是通知视角的目标语义，实际词表是 `task_queue` 现有取值。
+#   若只认一侧，真实数据上的终局会被判成"非终局" ⇒ 终局通知被节流闸拦住（静默丢通知）。
+TERMINAL_STATUSES: frozenset[str] = frozenset(
+    {"succeeded", "partial", "failed", "abandoned", "completed", "cancelled"}
+)
 
 # 进度推送阈值：百分比较上次推送**变化 ≥ 该值**才推（`02-目标架构.md §2.3` 的节流口径）
 PROGRESS_PUSH_DELTA: int = 10
