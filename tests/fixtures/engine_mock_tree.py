@@ -117,6 +117,7 @@ CREATE TABLE IF NOT EXISTS notification_policy (
     channel TEXT NOT NULL,
     enabled INTEGER DEFAULT 1,
     events TEXT NOT NULL DEFAULT '[]',
+    event_classes TEXT NOT NULL DEFAULT '[]',
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(user_id, channel)

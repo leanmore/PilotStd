@@ -211,6 +211,13 @@ Handler 通过构造函数显式注入依赖，所有方法通过 `self._handler
 
 > **v60 死列删除**（2026-09-26，技术债 #16 残留）：`archive_retry_count`/`last_archive_attempt` 的**唯一读取方**是 `/api/favorites/{record_id}/status` 的 5 个旧响应键（`local_path`/`error_message`/`in_cooldown`/`abandoned`/`archive_retry_count`），这些键已于 #16（TD-16，2026-09-25）删除；此后两列在生产代码中零读取（`pilotstd/` + `docker/` 全量 grep 仅命中 `_migrate_*` 历史迁移）。v60（`pilotstd/core/db/_migrate_v60_drop_favorite_retry_columns.py`）幂等 `ALTER TABLE ... DROP COLUMN` 删除两列，`CURRENT_SCHEMA_VERSION` 59 → 60；新库走完整迁移链（v36/v52/v59 补列 → v60 删列）同样收敛到"无此列"。两列不存在于任何索引/约束，且零读取，故回滚只需重新 `ADD COLUMN`（无数据依赖）。
 
+> **v68 通知策略类别层**（2026-10-05，阶段 4 · P6 · 4a）：`notification_policy` 新增 `event_classes TEXT NOT NULL DEFAULT '[]'`
+> （TEXT 存 JSON），用于把订阅粒度从"41 个原始业务事件"升级为"**10 类**（`notify_event`）"，与既有 `events` 列**双层并存**。
+> 迁移 `_migrate_v68_notification_policy_event_classes.py` 幂等补列（`PRAGMA table_info` 探测），`CURRENT_SCHEMA_VERSION` 67 → 68；
+> **不改 `events` 语义、不搬迁数据** ⇒ 旧行语义＝"未设置类别"。读侧 `_policy.py` **双读**：`event_classes` 非空 ⇒ 只用类别层
+> （新字段优先，非并集）；为空 ⇒ 回退 `events`——这条回退路径是第 1 层回滚开关（`NOTIFY_REDESIGN_STAGE=3`）的技术前提。
+> 回滚：应用层开关回退阶段 3（无需改代码）；数据层靠迁移前全表快照恢复（禁改已执行迁移，P-106）。
+
 **下载进度**：`favorite_downloads` 为事实来源，`status` 取值 `pending/downloading/archiving/done/failed/abandoned`（6 值全集；"采标跳过"等业务终态也落 `abandoned`，不入 `skipped`）。
 
 **API 端点**：

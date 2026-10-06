@@ -25,7 +25,7 @@ from typing import TYPE_CHECKING, Any
 from ..db import Database
 from . import _json_codec
 from .channel import NotificationMessage
-from .mapping import project
+from .mapping import EVENT_MAPPINGS, project
 from .specs import specs_to_jsonable
 from .stage import is_mapping_enabled
 
@@ -238,4 +238,17 @@ class NotificationOps:
         msg.notify_event = projection.notify_event
         msg.content_type = projection.content_type
         msg.task_kind = projection.task_kind
+
+
+def notify_event_of(event_type: str) -> str:
+    """取某业务事件所属的 `notify_event` 类别（10 类之一）；未知事件返回空串。
+
+    **为什么放在本模块**：防腐测试
+    `tests/test_notification_stage2b_wiring.py::TestWiringBoundaries::test_mapping_module_not_imported_elsewhere`
+    规定"除 `mapping.py` / `stage.py` / 本模块外，生产代码不得 import mapping"——策略层（`_policy.py`）
+    做"按类别订阅"匹配时需要"事件 → 类别"，**必须经本模块**转一手；否则就会出现第二处 mapping 接入点，
+    正是那条防腐规则要防的事。
+    """
+    entry = EVENT_MAPPINGS.get(event_type)
+    return str(getattr(entry, "notify_event", "") or "")
 

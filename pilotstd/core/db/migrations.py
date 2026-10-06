@@ -161,3 +161,9 @@ from ._migrate_v66_announcement_record_final_name import (  # noqa: E402, F401
 from ._migrate_v67_notification_log_failed_items import (  # noqa: E402, F401
     _migrate_v67_notification_log_failed_items,
 )
+
+# 第六十八版：notification_policy 追加 event_classes 列（阶段 4 · P6 · 4a：订阅粒度升级为 10 类，
+# 与既有 events（41 个原始事件）**双层并存**；读侧"新字段非空优先、否则回退旧字段"＝回滚前提）
+from ._migrate_v68_notification_policy_event_classes import (  # noqa: E402, F401
+    _migrate_v68_notification_policy_event_classes,
+)

@@ -5,7 +5,7 @@
 | 模块路径 | `pilotstd/core/` |
 | G-031 映射 | `pilotstd/core/`（2026-09-25 落地：`DOC_SYNC_MAP` 已含该条，改任何 core 文件都会要求同步本文件） |
 | 核心类 | `Database` / `ConfigManager` / `CacheManager` / `NotificationManager` |
-| 子模块数 | 104 个 `.py`（新增 `_migrate_v66_announcement_record_final_name.py`：名称决策③结果落库，2026-10-05 名称解析统一批次二）（**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-10-05**；顶层 = 3 个包 config / db / notification + 23 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
+| 子模块数 | 105 个 `.py`（新增 `_migrate_v66_announcement_record_final_name.py`：名称决策③结果落库，2026-10-05 名称解析统一批次二）（**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-10-05**；顶层 = 3 个包 config / db / notification + 23 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
 | Schema 版本 | `CURRENT_SCHEMA_VERSION = 66`（`db/_constants.py`；v66＝announcement_record 追加 `final_name` 列 + 从 pending_lookup 回填，2026-10-05 名称解析统一批次二） |
 | 状态 | 活跃 |
 
@@ -102,6 +102,15 @@ pilotstd/core/
 │   │   承载原请求与响应判定（**任一段失败即整体失败，不静默丢段**）；未超长时单段（零行为变更）。
 │   │   **飞书**（卡片 `elements[]`，需按元素分片）**待接**，见统筹日程 P2 备注
 │   ├── channels/              # wechat / feishu / dingtalk / telegram 渠道适配
+│   ├── （2026-10-05 阶段 4 · P6 · **4a：策略双读**）：`notification_policy` 新增 **`event_classes`** 列
+│   │   （迁移 **v68**，TEXT 存 JSON，默认 `'[]'`；编号实证空闲，`CURRENT_SCHEMA_VERSION` 67→68）。
+│   │   `_policy.py` 读侧**双读**（裁定 4 甲"新字段优先"）：`event_classes` 非空 ⇒ **只用类别层**（按
+│   │   `notify_event` 10 类匹配，**不并入** `events`——并集会让"关闭某类"失效）；为空 ⇒ 回退 `events`
+│   │   （逐事件匹配）——**这条回退路径是第 1 层回滚开关 `NOTIFY_REDESIGN_STAGE=3` 的技术前提**。
+│   │   `get_policies` 两层原样返回；`save_policy` 新增可选参 `event_classes`，**两层互不覆盖**
+│   │   （传 `None`＝不动该层，传 `[]`＝清空）。JSON 解析一律走防御式 `_loads_str_list`（坏值回退 `[]`）。
+│   │   **防腐**："事件→类别"查询经 `_manager_ops.notify_event_of()` 转一手——mapping 只允许有一个
+│   │   集成点（`tests/test_notification_stage2b_wiring.py::TestWiringBoundaries` 会拦下第二处）
 │   ├── task/                  # **任务视角投影（2026-10-05 P4b-1）**：`model.py` 定义 `Task`/`TaskItem`/
 │   │   # `TaskProgress`（纯数据 + 纯计算，**不 import DB**）；权威状态源仍是既有 `task_queue`，
 │   │   # 本包**不新建主表、不写任务状态**（避免双源/双写）。口径来源 `02-目标架构.md §2.3`：
