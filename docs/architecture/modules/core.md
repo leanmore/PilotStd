@@ -5,7 +5,7 @@
 | 模块路径 | `pilotstd/core/` |
 | G-031 映射 | `pilotstd/core/`（2026-09-25 落地：`DOC_SYNC_MAP` 已含该条，改任何 core 文件都会要求同步本文件） |
 | 核心类 | `Database` / `ConfigManager` / `CacheManager` / `NotificationManager` |
-| 子模块数 | 113 个 `.py`（新增 `renderer_base.py`（渲染器共享基座）与 `renderer_telegram.py`（Telegram 渲染器）——**T-41/3** 拆分以守 G-010；`renderer.py` 保留 Markdown/飞书/钉钉/桌面渲染器并**再导出**迁出名字。上一轮新增 `event_spec_data.py`：事件声明数据（**T-41/1** 拆分以守 G-010；`event_spec.py` 保留数据类/工厂/值域闭集，并按声明原位置**延迟导入** `EVENT_SPECS`）；再上一轮新增 `channel_spec_data.py`：渠道声明数据（阶段 3 · Step 4 ③ 拆分以守 G-010；`channel_spec.py` 保留数据类与再导出））（**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-10-06**；顶层 = 3 个包 config / db / notification + 23 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
+| 子模块数 | 114 个 `.py`（新增 `aggregate_keys.py`：聚合分组键语义（**T-41/4** 拆分以守 G-010；以**纯函数（组合）**形式提供，`NotificationAggregator` 用薄委托调用并**再导出** `_GROUP_SEP`/`agg_key_mode`）。上一轮新增 `renderer_base.py`（渲染器共享基座）与 `renderer_telegram.py`（Telegram 渲染器）——**T-41/3** 拆分以守 G-010；`renderer.py` 保留 Markdown/飞书/钉钉/桌面渲染器并**再导出**迁出名字。上一轮新增 `event_spec_data.py`：事件声明数据（**T-41/1** 拆分以守 G-010；`event_spec.py` 保留数据类/工厂/值域闭集，并按声明原位置**延迟导入** `EVENT_SPECS`）；再上一轮新增 `channel_spec_data.py`：渠道声明数据（阶段 3 · Step 4 ③ 拆分以守 G-010；`channel_spec.py` 保留数据类与再导出））（**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-10-06**；顶层 = 3 个包 config / db / notification + 23 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
 | Schema 版本 | `CURRENT_SCHEMA_VERSION = 66`（`db/_constants.py`；v66＝announcement_record 追加 `final_name` 列 + 从 pending_lookup 回填，2026-10-05 名称解析统一批次二） |
 | 状态 | 活跃 |
 
@@ -206,6 +206,17 @@ pilotstd/core/
 │   │   "层结构变了 ⇒ `spec_hash` 必变 ⇒ 前端内容级缓存必失效"（用户裁定：单一版本源优于另立层版本字段）。
 │   │   `docker/api/notification_policy.py::PolicyUpdateRequest` 增 `event_classes` 并转发给
 │   │   `save_policy(...)`（4a 已支持该参数，两层互不覆盖：`None`＝不动该层、`[]`＝清空）
+│   ├── （2026-10-06 · **T-41/4：`aggregate_buffer.py` 拆分**守 G-010）：578 → 500 原始行
+│   │   （**有效行退出 >400 列表**）。分组键语义（`_group_key`/`_events_in_group`/`_group_entity`）连同
+│   │   `_GROUP_SEP`、`agg_key_mode()`（及 `logger`/`_warned_bad_key` 依赖）迁至 `aggregate_keys.py`，
+│   │   **以纯函数（组合）形式**提供（`group_key`/`events_in_group`/`group_entity`）；主模块三方法改为
+│   │   **薄委托**（`@staticmethod` 原样保留）并**再导出** `_GROUP_SEP`/`agg_key_mode` + `__all__`。
+│   │   ⚠️ **首次尝试（Mixin）被架构护栏拦下并整批回滚**：本仓 `ADR-010` 明令禁止新增 Mixin
+│   │   （`tests/test_architecture_mixin_guard.py::test_no_new_mixins`）⇒ 改用**组合（纯函数）**形态；
+│   │   另有两条工艺教训：② 用 AST 行区间搬迁/删除带装饰器的对象时，**起点必须取装饰器行**
+│   │   （否则丢/漂移 `@staticmethod`，实测使 `_on_timer` 变静态方法、定时器强制发送失效）；
+│   │   ③ 同一文件的多段替换必须**按行号逆序**执行，否则后续偏移失效（实测产生语法错误）。
+│   │   迁移函数去 `self` 一事亦踩到（`group_key(self, msg)` ⇒ 调用缺参）⇒ 通过冒烟即刻发现并修正。
 │   ├── （2026-10-06 · **T-41/3：`renderer.py` 拆分**守 G-010）：`renderer.py` 由 473 有效行降到
 │   │   **< 400**（原始 676 → 399 行）。拆出 `renderer_base.py`（**共享基座**：`BlockRenderer`、
 │   │   分段/尺寸/标签助手、`CHANNEL_TEXT_LIMITS` 等常量）与 `renderer_telegram.py`（Telegram 渲染器
