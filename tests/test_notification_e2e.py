@@ -193,6 +193,13 @@ SECURITY_EVENTS_BY_DESIGN_UNTRIGGERED: frozenset[str] = frozenset(
     }
 )
 
+# 平台层事件（阶段 4 · P6 · 4c）：由 **L2 桌面协调层直构消息**投递，生产侧没有 `send_event` 调用。
+# 唯一产出点：`pilotstd/core/notification_aggregator.py` 的 `push(event_type="desktop_toast", ...)`
+# （该调用把消息推给 L1 聚合器的分组能力，不经 `NotificationManager.send_event`）。
+# ⇒ `test_trigger_exists` 对它们不适用；其构建器（`_builders_system._build_desktop_toast_message`）
+# 与三语 i18n 键由 G-045 与 `tests/test_notification_desktop_toast.py` 覆盖。
+PLATFORM_EVENTS_BY_DESIGN_UNTRIGGERED: frozenset[str] = frozenset({"desktop_toast"})
+
 # 安全事件中**确实**走 send_event 留痕的一个：登录失败告警由 docker/auth.py 触发，
 # 既发 send_event（写入 notification_log + WS 广播），也由其直连投递（auth 未认证、
 # 无用户凭证上下文，走 manager 已足够）。故它**不**在豁免集内。
@@ -216,6 +223,9 @@ TRIGGER_KEYS: dict[str, set[str]] = {
     "validity_system_failed": {"error"},
     "scan_complete": {"count", "failed"},
     "scan_empty": set(),
+    # 平台层（阶段 4 · P6 · 4c）：桌面弹层**直构消息**（不经 `send_event`，故无 payload 键）；
+    # 登记它是为了消除 G-045 盲区（旧处置＝方案 B 显式声明未覆盖）。
+    "desktop_toast": set(),
     "auto_scan_failed": {"path", "error"},
     "batch_query_summary": {"total", "found", "pending", "results", "failed_items"},
     "query_failed": {"standard_number", "error"},
@@ -307,8 +317,9 @@ EVENTS: list[dict[str, Any]] = [
 from pilotstd.core.notification.user_moments import all_attributable_events
 
 covered = {case["name"] for case in EVENTS}
-# 期望集合 = 可追溯到用户时刻的事件 ∪ Windows 专属（worker_error）
-expected_visible = all_attributable_events() | {"worker_error"}
+# 期望集合 = 可追溯到用户时刻的事件 ∪ 平台层/端专属（`worker_error`＝Windows 专属；
+# `desktop_toast`＝L2 桌面协调层的平台层回显，阶段 4 · P6 · 4c 正式登记）
+expected_visible = all_attributable_events() | {"worker_error", "desktop_toast"}
 assert covered == expected_visible, (
     f"e2e 覆盖与用户时刻闭包不一致: 缺 {sorted(expected_visible - covered)}; "
     f"多 {sorted(covered - expected_visible)}"
@@ -375,6 +386,10 @@ class TestNotificationTriggerPoints:
         name = event["name"]
         if name in SECURITY_EVENTS_BY_DESIGN_UNTRIGGERED:
             # 投递路径已由 tests/test_p0_security_endpoints.py 覆盖（含"不得走 send_event"断言）
+            return
+        if name in PLATFORM_EVENTS_BY_DESIGN_UNTRIGGERED:
+            # 平台层事件：由 L2 桌面协调层**直构消息**投递（见该集合的注释），
+            # 生产侧没有 `send_event` 调用 ⇒ 本用例不适用；构建器/i18n 由其余用例与 G-045 覆盖。
             return
         calls = _find_send_event_calls(name)
         assert len(calls) > 0, f"{name}: 未找到任何 send_event 调用\n预期触发文件: {event['trigger_file']}"

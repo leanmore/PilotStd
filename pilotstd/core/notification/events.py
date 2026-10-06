@@ -76,6 +76,15 @@ EVENT_SECURITY_PASSWORD_CHANGED = "security_password_changed"
 EVENT_SECURITY_TOKEN_REFRESHED = "security_token_refreshed"
 EVENT_SECURITY_LOGIN_FAILED = "security_login_failed"
 
+# ── 平台层事件（阶段 4 · P6 · 4c）──
+# `desktop_toast` 是 **L2 桌面协调层**向 L1 聚合器投递时使用的标签（唯一产出点
+# `pilotstd/core/notification_aggregator.py` 的 `push(event_type="desktop_toast", ...)`）。
+# 它此前**未登记进本清单**（G-045 盲区，旧处置＝方案 B"显式声明未覆盖"）；
+# 用户裁决 Q10（2026-10-02）＝**借阶段 4 正式登记**（方案 A），本批执行。
+# 语义：平台层回显（同一条通知在桌面端的本地呈现），**不是**新的业务事件 ⇒ 归 `system_health`、
+# `subscribable=False`（不进用户配置入口，与 `notification_delivery_failed` 同口径）。
+EVENT_DESKTOP_TOAST = "desktop_toast"
+
 # ── 唯一数据源：所有事件定义（全部经第二层聚合器，无绕过） ──
 
 ALL_EVENTS: list[EventDef] = [
@@ -120,6 +129,8 @@ ALL_EVENTS: list[EventDef] = [
     EventDef(EVENT_SECURITY_PASSWORD_CHANGED),
     EventDef(EVENT_SECURITY_TOKEN_REFRESHED),
     EventDef(EVENT_SECURITY_LOGIN_FAILED),
+    # 平台层（阶段 4 · P6 · 4c）：桌面弹层回显，登记以消除 G-045 盲区
+    EventDef(EVENT_DESKTOP_TOAST),
 ]
 
 # ── 派生变量（供各模块引用，避免硬编码重复） ──

@@ -386,6 +386,18 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         branch_by=None, subscribable=False, aggregation="aggregate",
     ),
 
+    # ── 平台层（1）──（阶段 4 · P6 · 4c：登记 `desktop_toast`，消除 G-045 盲区）
+    # 与 `notification_delivery_failed` 同口径：归 `system_health`、`subscribable=False`（不进用户配置入口）、
+    # `task_kind=""`（不是用户交办的任务）。**trigger_file 指向真实产出点**——桌面协调层的
+    # `push(event_type="desktop_toast", ...)`（走 L2→L1 直构消息，**不经 `send_event`** ⇒ `payload_keys` 为空集，
+    # 与 `scan_empty` 同例；声明非空键会让 G-045 的"触发方须提供该键"永远无法满足）。
+    EventSpec(key="desktop_toast", notify_event="system_health", content_type="text", task_kind="",
+        builder_ref="pilotstd.core.notification._builders_system:_build_desktop_toast_message",
+        i18n_category="notification.system", default_channels=(), levels=("info", "warning", "error"),
+        module_key="notification.module.system", trigger_file="pilotstd/core/notification_aggregator.py",
+        payload_keys=frozenset(), security=False, branch_by=None, subscribable=False, aggregation="aggregate",
+    ),
+
     # ── 收藏链（4）──
     EventSpec(key="favorite_created", notify_event="user_activity", content_type="field_list",
         task_kind="favorite_download",

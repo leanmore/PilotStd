@@ -479,3 +479,34 @@ def _build_security_login_failed_message(data: dict) -> NotificationMessage:
         event_type="security_login_failed",
         icon="pi pi-lock",
     )
+
+
+def _build_desktop_toast_message(data: dict) -> NotificationMessage:
+    """平台层：桌面弹层回显（阶段 4 · P6 · 4c 登记 `desktop_toast`）。
+
+    **为什么单独有构建器**：登记前该事件"标题继承上游事件、无独立构建器与 i18n 键"，
+    G-045 只能靠覆盖摘要显式声明"未覆盖"；正式登记后它必须与其它事件同规格（i18n 三语 + 构建器 + 触发文件）。
+
+    **输入口径**：L2 桌面协调层直构消息（**不经 `send_event`**），故 `payload_keys` 为空集；
+    但为了可测与可复用，这里按"事件数据字典"实现：优先取 `title` / `content`（L2 的实际字段名），
+    缺失时回退 i18n 文案；`level` 决定严重度（默认 `info`）。**不静默吞空**（G-046）：
+    `title` 与 `content` 都缺时给出兜底文案，而不是产出空标题。
+    """
+    # **空值守卫必须在"读取表达式本身"上**（G-046 的 [P2] missing_null_guard 是 AST 静态判定：
+    # 只认 `data.get("f", DEFAULT)` / `data.get("f") or ...` / 直接 `str(data.get("f") ...)` 等形态；
+    # 先赋值给局部变量再 `if not 变量:` **不被认作**守卫）。故此处与既有构建器同款三重保护。
+    title = str(data.get("title", "") or "")
+    if not title:
+        title = t("notification.system.desktop_toast.title")
+    content = str(data.get("content", "") or "")
+    if not content:
+        content = t("notification.system.desktop_toast.body")
+    level = str(data.get("level", "") or "") or "info"
+    blocks: list[NotificationBlock] = [TextBlock(text=content)]
+    return NotificationMessage(
+        title=title,
+        blocks=blocks,
+        level=level,
+        event_type="desktop_toast",
+        icon="pi pi-bell",
+    )

@@ -102,6 +102,14 @@ pilotstd/core/
 │   │   承载原请求与响应判定（**任一段失败即整体失败，不静默丢段**）；未超长时单段（零行为变更）。
 │   │   **飞书**（卡片 `elements[]`，需按元素分片）**待接**，见统筹日程 P2 备注
 │   ├── channels/              # wechat / feishu / dingtalk / telegram 渠道适配
+│   ├── （2026-10-05 阶段 4 · P6 · **4c：平台层事件登记**）：`desktop_toast` 由"方案 B 显式声明未覆盖"
+│   │   转为**正式登记**（Q10 裁决）——`events.py` 新增常量 + `ALL_EVENTS` 条目（**41 → 42**）、
+│   │   `event_spec.py` 新增规格（归 `system_health`、`task_kind=""`、`subscribable=False`、
+│   │   `payload_keys=frozenset()`、`trigger_file` 指向真实产出点 `notification_aggregator.py`）、
+│   │   新增构建器 `_builders_system._build_desktop_toast_message`（空值兜底，不产空文本）与三语键
+│   │   `notification.system.desktop_toast.*`。**双清单生死线**：两侧必须同改，
+│   │   `event_spec.py` 的导入期断言会拦下"只改一侧"——反向验证见
+│   │   `tests/test_notification_desktop_toast.py::test_one_sided_change_fails_at_import`（子进程内制造不一致）
 │   ├── （2026-10-05 阶段 4 · P6 · **4a：策略双读**）：`notification_policy` 新增 **`event_classes`** 列
 │   │   （迁移 **v68**，TEXT 存 JSON，默认 `'[]'`；编号实证空闲，`CURRENT_SCHEMA_VERSION` 67→68）。
 │   │   `_policy.py` 读侧**双读**（裁定 4 甲"新字段优先"）：`event_classes` 非空 ⇒ **只用类别层**（按

@@ -22,6 +22,7 @@ from ._builders_system import (
     _build_announcement_fetch_failed_message,
     _build_archive_complete_message,
     _build_auto_backup_message,
+    _build_desktop_toast_message,
     _build_fallback_message,
     _build_image_update_available_message,
     _build_notification_credential_changed_message,

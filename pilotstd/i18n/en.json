@@ -805,6 +805,8 @@
     "notification.error_type.unknown": "Unknown error",
     "notification.segment.continued": "(continued {n}/{total})",
     "notification.system.security_login_failed.title": "Login Failure Alert",
+    "notification.system.desktop_toast.title": "Desktop notification",
+    "notification.system.desktop_toast.body": "(no body)",
     "notification.system.security_login_failed.body.count": "{n} consecutive login failures from the same source within {minutes} minute(s)",
     "notification.system.security_login_failed.body.account": "Target account",
     "notification.system.security_login_failed.body.from_ip": "Source address",

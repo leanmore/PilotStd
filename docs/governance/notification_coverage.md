@@ -281,13 +281,17 @@ B4 的**全阻断**状态（基线 0）在 `检查口径` 与 `未覆盖说明` 
 | 4 | B-1 术语登记率 40/221、B-2 EVENTS 元数据无校验、B-3 测试为事件级非渠道级 | §三 |
 | 5 | ~~`audit_notification_chain.py` 未接入 CI~~ | ✅ **已修复**（L-08，第 13 批）：判定逻辑修复后问题数 **79 → 0**，已接入 `ci.yml` 与 `check_all.sh` 为 **G-046**（零基线） |
 | 6 | `DesktopRenderer` 字段名前缀（第 7 批论证不应加） | 待裁决 |
-| 7 | **`desktop_toast` 未登记进 `ALL_EVENTS`**（G-045 盲区） | 见下方 L-22 专项 |
+| 7 | ~~**`desktop_toast` 未登记进 `ALL_EVENTS`**（G-045 盲区）~~ | ✅ **已修复**（阶段 4 · P6 · 4c，2026-10-05）：见下方 L-22 专项（**方案 A 已实施**） |
 
-### L-22：`desktop_toast` 未登记进 `ALL_EVENTS`
+### L-22：`desktop_toast` 正式登记进 `ALL_EVENTS`（**已闭环 ✅**，2026-10-05）
 
-- **性质**：`desktop_toast` 是 L2 桌面协调层向 L1 服务端聚合器投递时使用的标签（唯一产出点 `pilotstd/core/notification_aggregator.py:537` 的 `self._new.push(...)`），**不经 `manager.send_event`**，且**无独立构建器与 i18n 键**——其标题/正文由上游传入（如 `pilotstd/ui/core/handlers/_download.py:286` 传 `_("download_results_title")`），故多语言能力**继承自上游事件**，而非"没有 i18n 支持"。
-- **当前处置：方案 B（不登记）**——G-045 的 `[覆盖摘要]` 中显式声明该事件未覆盖，使 PASS 不再掩盖此盲区。不登记的理由：登记会**必然即红**（无 e2e `EVENTS` 条目 → G-045 阻断；无构建器 → i18n 维度判 False；`assert len(EVENTS)` 硬编码），需一次性改 6 个文件并引入"平台层事件"新分类。
-- **方案 A 触发条件**（满足任一即须实施）：
-  1. 引入**第 2 个平台层事件**时——否则每加一个都要改摘要声明，声明本身会腐化；
-  2. 当 G-045 的覆盖度矩阵需要**按投递入口分组统计**时（方案 B 无法区分"`send_event` 产出"与"平台层直接构造"）。
-- **方案 A 成本**：约 34 行 / 6 文件（`events.py` ×2、`test_notification_e2e.py` ×3 处、`audit_notification_coverage.py`、本文件）。
+- **性质**：`desktop_toast` 是 L2 桌面协调层向 L1 服务端聚合器投递时使用的标签（唯一产出点 `pilotstd/core/notification_aggregator.py` 的 `self._new.push(event_type="desktop_toast", ...)`），**不经 `manager.send_event`**，且登记前**无独立构建器与 i18n 键**——其标题/正文由上游传入，故多语言能力**继承自上游事件**，而非"没有 i18n 支持"。
+- **处置演进**：先前为**方案 B（不登记 + 摘要显式声明未覆盖）**；用户裁决 **Q10（2026-10-02）＝同意方案 A（借阶段 4 登记）** ⇒ 本批（4c）实施完毕：
+  - `events.py`：新增常量 `EVENT_DESKTOP_TOAST` + `ALL_EVENTS` 条目（**41 → 42**）；
+  - `event_spec.py`：新增 `EventSpec`（`notify_event="system_health"`、`task_kind=""`、`subscribable=False`、`task_kind` 非任务、`payload_keys=frozenset()`、`trigger_file="pilotstd/core/notification_aggregator.py"`）；
+  - 新构建器 `pilotstd/core/notification/_builders_system.py::_build_desktop_toast_message`（含空值兜底，不产空标题/空正文 ⇒ G-046）；
+  - i18n 三语键 `notification.system.desktop_toast.{title,body}`；
+  - `tests/test_notification_e2e.py`：`TRIGGER_KEYS` 增条目 + 双向闭包期望集合加入平台层事件 + 新增**有理由的例外** `PLATFORM_EVENTS_BY_DESIGN_UNTRIGGERED`（与安全类例外同机制）；
+  - `scripts/audit_notification_coverage.py`：覆盖摘要文案由"方案 B 未覆盖"改写为"方案 A 已登记"。
+- **反向验证（防误拆双清单）**：`tests/test_notification_desktop_toast.py::test_one_sided_change_fails_at_import` —— 在子进程里只改一侧（`ALL_EVENTS` 去掉 `desktop_toast`）后重载 `event_spec`，断言进程**必须失败**（导入期护栏 `assert set(EVENT_SPEC_KEYS) == {e.key for e in ALL_EVENTS}` 生效）。
+- **遗留（非阻断）**：G-044 术语表提示 `desktop_toast` 的 2 个文案键未登记术语表——与另外 6 个既有事件同状态（审计 46/46 通过、0 阻断），属**既有 advisory**，需要时统一登记。
