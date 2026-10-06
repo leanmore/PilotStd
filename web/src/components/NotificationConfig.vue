@@ -577,7 +577,7 @@ onMounted(() => {
 .field label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
 .required { color: var(--danger); font-size: 10px; }
 .optional { color: var(--text-dim); font-size: 10px; }
-.field-sep { font-size: 11px; color: var(--text-dim); border-top: 1px dashed var(--border; padding-top: 8px; margin: 8px 0 6px; }
+.field-sep { font-size: 11px; color: var(--text-dim); border-top: 1px dashed var(--border); padding-top: 8px; margin: 8px 0 6px; }
 /* 阶段 3 · Step 2：形态分区标题与提示（仅带 `forms` 声明的渠道出现） */
 .form-section { border-top: 1px dashed var(--border); padding-top: 8px; margin: 10px 0 6px; }
 .form-section-title { font-size: 12px; font-weight: 600; color: var(--text); }
