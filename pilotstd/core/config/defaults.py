@@ -54,6 +54,10 @@ FACTORY_DEFAULTS = {
     "file.clear_readonly": True,
     "watchdog.enabled": False,
     "notification.enabled": False,
+    # 站内页面**对外基址**（公网域名或内网可达域名），供通知里的"查看详情/打开日志"入口使用。
+    # 留空 ⇒ 通知里**不生成任何链接**，改为纯文本提示（"请前往 Web 端查看"）；
+    # 回环地址（localhost/127.x/0.0.0.0/::1）会被**主动拒绝**——聊天接收方在别的机器上，点不开。
+    "notification.web_base_url": "",
     # W2 分流开关：桌面端是否把业务事件弹成托盘气泡（关闭即回退到"本端无可见信号"）
     "notification.windows_tray_events": True,
     # W3 分档节流开关：托盘事件是否遵守"长阶段 60 秒/主题"（关闭即回退为不节流）

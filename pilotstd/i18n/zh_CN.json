@@ -809,6 +809,7 @@
     "notification.error_type.unknown": "未知错误",
     "notification.callback.action_expired": "该操作已过期或数据已被清理",
     "notification.action.view_detail": "查看详情",
+    "notification.link.web_hint": "（未配置站内访问地址，请前往 Web 端「通知日志」查看详情）",
     "notification.action.open_logs": "打开日志",
     "notification.action.retry": "重试",
     "notification.action.ignore": "忽略",

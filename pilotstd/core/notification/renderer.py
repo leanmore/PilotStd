@@ -34,6 +34,42 @@ def _fallback_text() -> str:
     return t("notification.renderer.empty")
 
 
+def link_actions(message: Any) -> list[Any]:
+    """取消息里**带 URL 的动作**（阶段 3 · Step 1：站内入口按钮/链接的唯一来源）。
+
+    约定：`ActionSpec.args["url"]` 存在即为"链接型动作"（不需要 `callback_data`，也不参与回调），
+    各渠道按自身能力渲染：
+
+    | 渠道 | 形态 | 依据 |
+    |---|---|---|
+    | Telegram | `inline_keyboard` 的 `url` 按钮 | 平台原生支持 URL 按钮 |
+    | 飞书 | 卡片的 `action` 元素 + `button.url` | 平台原生支持 |
+    | 企微（webhook）/钉钉（webhook） | **Markdown 链接** | 两者 webhook 均只能发 markdown，无法带按钮 |
+    | 钉钉（互动卡片） | 链接写进 `cardParamMap.content` | 卡片按钮由**租户模板**定义，我方模板契约只有
+      title/content/level |
+
+    **注意**：这类动作**不带 token**，故不会与阶段 3 的"回调按钮"混在一起
+    （后者需要 `callback_data`）。
+    """
+    out: list[Any] = []
+    for spec in list(getattr(message, "actions", []) or []):
+        args = getattr(spec, "args", None) or {}
+        url = str(args.get("url") or "").strip() if isinstance(args, dict) else ""
+        if url:
+            out.append(spec)
+    return out
+
+
+def _action_label(spec: Any) -> str:
+    """动作展示文案（`label_key` 经 i18n；缺键回退动作名，绝不显示空按钮）。"""
+    key = str(getattr(spec, "label_key", "") or "")
+    if key:
+        label = t(key)
+        if label and label != key:
+            return label
+    return str(getattr(spec, "action", "") or "")
+
+
 # ListBlock.items 的字段名 → i18n 键（渲染期取 t()：字段名是**数据键**，
 # 直接当展示文本会让中文用户看到 number / name 这类英文键名）。
 # 未登记的字段走 _field_label 的兜底，绝不回退成原始键名。
@@ -297,20 +333,25 @@ class TelegramRenderer(BlockRenderer):
         token 形如 `<log_id>:<user_id>` ⇒ 实测长度约 10–20 字节，**远低于上限**；
         仍做防御：逐条校验字节长度，超限则**跳过该按钮并告警**（不发出必然被 Telegram 拒收的载荷）。
 
-        **fail-safe**：`message.callback_data` 为空（当前尚无生产者，见 P5b 报告）时返回 `None`
-        ⇒ 宁可不显示按钮，也不发出"点了没反应"的按钮。
+        **fail-safe**：`message.callback_data` 为空时**不下发回调按钮**（宁可不出按钮，也不发"点了没反应"的按钮）；
+        但**链接型动作**（站内入口，见 `link_actions()`）**不依赖 token** ⇒ 即使没有 token 也应正常渲染。
         """
         from .callback import SUPPORTED_ACTIONS
 
         actions = list(getattr(message, "actions", []) or [])
         token = str(getattr(message, "callback_data", "") or "")
-        if not actions or not token:
-            return None
         row: list[dict[str, str]] = []
-        for spec in actions:
+        # ① 链接型动作（站内入口）：TG 原生 URL 按钮，无需 token
+        for spec in link_actions(message):
+            args = getattr(spec, "args", None) or {}
+            row.append({"text": _action_label(spec), "url": str(args.get("url") or "")})
+        # ② 回调型动作（阶段 3）：需要签名 token；**无 token 一律跳过**（fail-safe）
+        for spec in actions if token else []:
             action = str(getattr(spec, "action", "") or "")
             if action not in SUPPORTED_ACTIONS:
                 continue
+            if isinstance(getattr(spec, "args", None), dict) and spec.args.get("url"):
+                continue  # 链接型动作已在 ① 渲染，避免重复
             data = f"{action}:{token}"
             if len(data.encode("utf-8")) > _TELEGRAM_CALLBACK_DATA_LIMIT:
                 # 开发者日志用 ASCII（G-047 只允许用户可见文案走 i18n）
@@ -400,6 +441,22 @@ class TelegramRenderer(BlockRenderer):
 class MarkdownRenderer(BlockRenderer):
     """通用 Markdown 渲染器——钉钉/企业微信 markdown。不转义特殊字符。"""
 
+    def render(self, message: NotificationMessage) -> str:
+        """正文 + **站内入口 Markdown 链接**。
+
+        为什么是链接而不是按钮：**企微 webhook 与钉钉 webhook 只支持 markdown**（无法带按钮），
+        故按用户裁定"企微 Webhook 渲染为 Markdown 链接"；同一个渲染器也服务钉钉 webhook 形态。
+        """
+        text = super().render(message)
+        links = link_actions(message)
+        if links:
+            rendered = " | ".join(
+                f"[{_action_label(spec)}]({str((getattr(spec, 'args', None) or {}).get('url') or '')})"
+                for spec in links
+            )
+            text = f"{text}\n\n{rendered}" if text else rendered
+        return text
+
     # ── 标题 ──
 
     def _render_title(self, title: str) -> str:
@@ -472,6 +529,21 @@ class FeishuCardRenderer(BlockRenderer):
                     elements.extend(rendered)
                 elif rendered:
                     elements.append(rendered)
+
+        # 阶段 3 · Step 1：链接型动作（站内入口）渲染为卡片的 **URL 按钮**——
+        # 此前 `render()` **完全不消费 `message.actions`**，故飞书卡片上的按钮从未出现过。
+        links = link_actions(message)
+        if links:
+            buttons = [
+                {
+                    "tag": "button",
+                    "text": {"tag": "plain_text", "content": _action_label(spec)},
+                    "type": "default",
+                    "url": str((getattr(spec, "args", None) or {}).get("url") or ""),
+                }
+                for spec in links
+            ]
+            elements.append({"tag": "action", "actions": buttons})
 
         return {
             "header": {
@@ -584,6 +656,15 @@ class DingTalkCardRenderer(BlockRenderer):
             if isinstance(rendered, str) and rendered:
                 parts.append(rendered)
         content = "\n\n".join(parts) if parts else (message.body or "")
+        # 阶段 3 · Step 1：卡片按钮由**租户模板**定义（我方模板契约只有 title/content/level）
+        # ⇒ 站内入口以 **Markdown 链接**写进 content（无需租户改模板即可用）。
+        links = link_actions(message)
+        if links:
+            rendered = " | ".join(
+                f"[{_action_label(spec)}]({str((getattr(spec, 'args', None) or {}).get('url') or '')})"
+                for spec in links
+            )
+            content = f"{content}\n\n{rendered}" if content else rendered
         return {
             "cardParamMap": {
                 "title": message.title or "",

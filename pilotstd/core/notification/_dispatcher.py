@@ -23,6 +23,7 @@ from typing import Any
 
 from pilotstd.i18n import t
 
+from ._links import attach_web_actions
 from .channel import NotificationMessage
 
 logger = logging.getLogger(__name__)
@@ -225,6 +226,10 @@ def send_now(host: Any, msg: NotificationMessage, target_channels: list[str]) ->
             token = f"{log_id}:{owner_id}"
             msg.callback_data = token
             host.ops.update_log_fields(log_id, callback_data=token)
+        # ③ 站内入口（阶段 3 · Step 1）：按系统配置的 Base URL 挂 `view_detail`（+有失败明细时
+        #    `open_logs`）为**链接型动作**；地址不可用 ⇒ 自动降级为纯文本提示（绝不生成 localhost）。
+        #    放在铸 token **之后**：token 只服务于"回调型动作"，不因站内链接而铸发。
+        attach_web_actions(msg, getattr(host, "_cfg", None))
         try:
             ok = channel.send(msg)
             # 读取渠道错误详情透传具体原因，无详情时回退默认文案

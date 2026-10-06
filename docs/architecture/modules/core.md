@@ -5,7 +5,7 @@
 | 模块路径 | `pilotstd/core/` |
 | G-031 映射 | `pilotstd/core/`（2026-09-25 落地：`DOC_SYNC_MAP` 已含该条，改任何 core 文件都会要求同步本文件） |
 | 核心类 | `Database` / `ConfigManager` / `CacheManager` / `NotificationManager` |
-| 子模块数 | 106 个 `.py`（新增 `_migrate_v66_announcement_record_final_name.py`：名称决策③结果落库，2026-10-05 名称解析统一批次二）（**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-10-05**；顶层 = 3 个包 config / db / notification + 23 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
+| 子模块数 | 107 个 `.py`（新增 `_links.py`：站内入口链接解析与动作挂载，阶段 3 · Step 1）（**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-10-06**；顶层 = 3 个包 config / db / notification + 23 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
 | Schema 版本 | `CURRENT_SCHEMA_VERSION = 66`（`db/_constants.py`；v66＝announcement_record 追加 `final_name` 列 + 从 pending_lookup 回填，2026-10-05 名称解析统一批次二） |
 | 状态 | 活跃 |
 
@@ -102,6 +102,17 @@ pilotstd/core/
 │   │   承载原请求与响应判定（**任一段失败即整体失败，不静默丢段**）；未超长时单段（零行为变更）。
 │   │   **飞书**（卡片 `elements[]`，需按元素分片）**待接**，见统筹日程 P2 备注
 │   ├── channels/              # wechat / feishu / dingtalk / telegram 渠道适配
+│   ├── （2026-10-06 · **阶段 3 · Step 1：站内入口接线（`view_detail`/`open_logs`）**）：这两个动作此前
+│   │   **只有词表与三语文案、全库无生产者** ⇒ 任何渠道都不出现入口。现新增 `_links.py`：
+│   │   ①`resolve_web_base()` 从配置 `notification.web_base_url` 取站内基址并**校验**——必须 `http(s)://`
+│   │   绝对地址，且**主动拒绝回环地址**（`localhost`/`127.x`/`0.0.0.0`/`::1`：聊天接收方在别的机器上，
+│   │   装了也点不开，用户明确要求"绝不能生成 `http://localhost`"）；②`attach_web_actions()` 常态挂
+│   │   `view_detail`，**仅当有失败明细**时另挂 `open_logs`（语义：那一步的下一步就是去日志页看细节）；
+│   │   ③地址不可用 ⇒ **不挂动作**、改为追加纯文本提示块（按钮→提示的降级）。
+│   │   渲染（按渠道能力）：**TG**＝`inline_keyboard` 的 `url` 按钮（不携带 `callback_data`）；**飞书**＝卡片
+│   │   `action` 元素 + `button.url`（该渲染器此前**完全不消费 `message.actions`**，现补齐）；**企微 webhook /
+│   │   钉钉 webhook**＝Markdown 链接（两者 webhook 无法带按钮）；**钉钉互动卡片**＝链接写进
+│   │   `cardParamMap.content`（卡片按钮由租户模板定义）。接线点在 `_dispatcher.send_now`（铸 token **之后**）
 │   ├── （2026-10-06 · **阶段 3 收尾：`retry` 真正重投落地**）：`callback_service._retry` 由**占位实现**
 │   │   （只写 `ack_status='retry_requested'`，docstring 却称"经渠道再发一次"）改为**真投**：
 │   │   ① 按 `channel_spec.spec_for(channel)` 的 `ctor` / `ctor_required` **重建渠道实例**

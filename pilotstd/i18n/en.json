@@ -805,6 +805,7 @@
     "notification.error_type.unknown": "Unknown error",
     "notification.callback.action_expired": "This action has expired or its data has been cleaned up",
     "notification.action.view_detail": "View details",
+    "notification.link.web_hint": "(Web base URL is not configured; please open the Notification Logs page in the web UI)",
     "notification.action.open_logs": "Open logs",
     "notification.action.retry": "Retry",
     "notification.action.ignore": "Ignore",

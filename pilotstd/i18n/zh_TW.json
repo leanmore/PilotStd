@@ -726,6 +726,7 @@
     "notification.error_type.unknown": "未知錯誤",
     "notification.callback.action_expired": "此操作已過期或資料已被清理",
     "notification.action.view_detail": "查看詳情",
+    "notification.link.web_hint": "（未設定站內存取網址，請前往 Web 端「通知日誌」查看詳情）",
     "notification.action.open_logs": "開啟日誌",
     "notification.action.retry": "重試",
     "notification.action.ignore": "忽略",
