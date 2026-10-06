@@ -137,13 +137,11 @@ def test_send_button_callback_executes_action(tmp_path, monkeypatch) -> None:
     db.close()
 
 
-def test_retry_action_marks_request_and_returns_ok(tmp_path, monkeypatch) -> None:
-    """`retry` 动作：返回 200 并把该行标为 `retry_requested`。
+def test_retry_action_really_resends_and_records_outcome(tmp_path, monkeypatch) -> None:
+    """`retry` **真正重投**：重建渠道 → 真发（HTTP 请求体 +1）→ 真发结果写回同一行。
 
-    ⚠️ **实证发现（已登记，不在本批越界修）**：`callback_service._retry` 目前是**占位实现**——
-    它重建了渠道类却立刻 `del`，只写 `ack_status='retry_requested'`，**并未真正重投**；
-    而它的 docstring 写的是"经渠道再发一次" ⇒ **文档与实现不一致**。
-    故本用例按**实际行为**断言（P-105：先实测再断言），并在报告中把"重投落地"列为待办。
+    这是阶段 3 收尾的验收点：此前 `_retry` 是占位实现（只写 `retry_requested`，docstring 却称
+    "经渠道再发一次"）；现在必须**真的发出去**，且把结果如实写回。
     """
     mgr, db = _make(str(tmp_path))
     bodies = _capture_telegram(monkeypatch)
@@ -153,21 +151,28 @@ def test_retry_action_marks_request_and_returns_ok(tmp_path, monkeypatch) -> Non
     msg.body = "正文"
     msg.actions = [ActionSpec(action="retry", label_key="notification.action.retry")]
     mgr._send_now(msg, ["telegram"])
+    before = len(bodies)
     callback_data = bodies[-1]["reply_markup"]["inline_keyboard"][0][0]["callback_data"]
     log_id = int(callback_data.split(":")[1])
+    db.execute("UPDATE notification_log SET status = 'failed' WHERE id = ?", (log_id,))
 
     payload = {"callback_query": {"id": "cb-2", "data": callback_data, "from": {"id": "42"}}}
+    # 重投要按 `spec.ctor` 重建渠道（telegram: bot_token + chat_id）
+    full_creds = {"secret": secret, "bot_token": "1:x", "chat_id": "42"}
     outcome = handle_callback(
         db,
         "telegram",
         {"X-Telegram-Bot-Api-Secret-Token": secret},
         json.dumps(payload).encode("utf-8"),
-        lambda user_id, channel: {"secret": secret},
+        lambda user_id, channel: full_creds,
     )
-    assert outcome.status == 200, f"retry 应被受理，实测 {outcome.status} {outcome.reason_key}"
-    row = db.fetchone("SELECT ack_status FROM notification_log WHERE id = ?", (log_id,))
+    assert outcome.status == 200, f"retry 应成功，实测 {outcome.status} {outcome.reason_key}"
+    assert len(bodies) == before + 1, "重投必须真的走了一次渠道发送（HTTP 请求体 +1）"
+    row = db.fetchone("SELECT ack_status, status, error_msg FROM notification_log WHERE id = ?", (log_id,))
     assert row is not None
-    assert row["ack_status"] == "retry_requested", "当前实现只做标记，未真正重投（已登记）"
+    assert row["ack_status"] == "retry_requested"
+    assert row["status"] == "success", "真发成功必须把 status 回写为 success"
+    assert row["error_msg"] == ""
     db.close()
 
 

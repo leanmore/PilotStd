@@ -102,6 +102,15 @@ pilotstd/core/
 │   │   承载原请求与响应判定（**任一段失败即整体失败，不静默丢段**）；未超长时单段（零行为变更）。
 │   │   **飞书**（卡片 `elements[]`，需按元素分片）**待接**，见统筹日程 P2 备注
 │   ├── channels/              # wechat / feishu / dingtalk / telegram 渠道适配
+│   ├── （2026-10-06 · **阶段 3 收尾：`retry` 真正重投落地**）：`callback_service._retry` 由**占位实现**
+│   │   （只写 `ack_status='retry_requested'`，docstring 却称"经渠道再发一次"）改为**真投**：
+│   │   ① 按 `channel_spec.spec_for(channel)` 的 `ctor` / `ctor_required` **重建渠道实例**
+│   │   （与 `manager._init_channels` 同一驱动，避免两处各写一份构造规则）；② 用日志行的
+│   │   标题/正文/事件类型重建最小 `NotificationMessage` 并**真发**；③ 结果写回**同一行**——
+│   │   `status`（success/failed）＋`error_msg`（渠道 `last_error` 或异常文本）；
+│   │   ④ 行不存在 / 凭证不全 / 渠道停用 ⇒ 返回 `False`（端点据此 403）且**不改写 status**
+│   │   （不把"没发出去"记成成功）；渠道异常被就地捕获（**不得**让回调端点 500）。
+│   │   ⇒ 为此 `_execute_action` 的入参由 `secret` 改为**完整（已解密）凭证字典**（重投需要它构造渠道）
 │   ├── （2026-10-05 · **P5b 收尾：按钮 token 铸发（方案甲）**）：投递改为**两阶段写**——
 │   │   **INSERT(占位) → 铸 token → 发送(最后一段带按钮) → UPDATE(落真)**。
 │   │   ① 占位状态取最保守的 `failed` + "无详情"文案（防"没发出去却显示成功"；进程中途崩溃也不会假成功）；

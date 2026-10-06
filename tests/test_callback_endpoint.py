@@ -112,7 +112,11 @@ def _dingtalk_headers(secret: str = SECRET) -> dict[str, str]:
 
 
 def _creds(user_id: int, channel: str) -> dict[str, str]:
-    return {"secret": SECRET}
+    """该用户该渠道的**完整**凭证（重投要按 `spec.ctor` 重建渠道 ⇒ 只有 `secret` 不够）。
+
+    `bot_token`/`chat_id` 是 telegram 的构造必需字段（`channel_spec` 的 `ctor_required`）。
+    """
+    return {"secret": SECRET, "bot_token": "1:x", "chat_id": "42"}
 
 
 class TestCallbackService:
@@ -167,12 +171,32 @@ class TestCallbackService:
         assert row["ack_status"] == "ignored"
 
     def test_snooze_and_retry_paths(self):
+        """`snooze` 落 `snoozed`；`retry` **真正重投**（打桩渠道发送）并把结果写回同一行。
+
+        `retry` 自阶段 3 收尾起会真实重建渠道并发送 ⇒ 本用例把 `channel_class` 打桩为
+        "发送成功"的假渠道，避免单测打真实网络；渠道**构造口径**本身由 `channel_spec` 的 `ctor` 驱动。
+        """
+        from unittest.mock import patch
+
+        class _FakeChannel:
+            last_error = ""
+
+            def __init__(self, *args: object) -> None:
+                self.args = args
+
+            def send(self, msg: object) -> bool:
+                return True
+
         db = _Db()
         db.seed_notification()
         assert self._handle(db, body=_telegram_body(action="snooze", event_id="e-s")).status == 200
         assert db.fetchone("SELECT ack_status FROM notification_log WHERE id = 7")["ack_status"] == "snoozed"
-        assert self._handle(db, body=_telegram_body(action="retry", event_id="e-r")).status == 200
-        assert db.fetchone("SELECT ack_status FROM notification_log WHERE id = 7")["ack_status"] == "retry_requested"
+
+        with patch("pilotstd.core.notification.channel_spec.channel_class", lambda spec: _FakeChannel):
+            assert self._handle(db, body=_telegram_body(action="retry", event_id="e-r")).status == 200
+        row = db.fetchone("SELECT ack_status, status FROM notification_log WHERE id = 7")
+        assert row["ack_status"] == "retry_requested"
+        assert row["status"] == "success", "重投成功必须把真发结果写回同一行"
 
     def test_replay_is_idempotent(self):
         """同一事件号第二次到达：返回 200，但**动作不重复执行**。"""

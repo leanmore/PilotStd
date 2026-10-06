@@ -11,6 +11,7 @@
 """
 
 import json
+import logging
 from dataclasses import dataclass
 from typing import Any
 
@@ -27,6 +28,8 @@ from .callback import (
     verify_callback,
 )
 from .callback_store import LogBackedReplayGuard
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -72,20 +75,35 @@ def _role_of(db: Any, user_id: int) -> str:
     return str(row.get("role") or "")
 
 
-def _execute_action(db: Any, action: str, log_id: int, channel: str, secret: str) -> bool:
-    """执行动作：`ignore` / `snooze` 更新 ack_status；`retry` 重投该条通知。"""
+def _execute_action(db: Any, action: str, log_id: int, channel: str, creds: dict[str, Any]) -> bool:
+    """执行动作：`ignore` / `snooze` 更新 ack_status；`retry` **真正重投**该条通知。
+
+    `creds` 是**该用户该渠道的完整（已解密）凭证字典**——重投需要它按
+    `channel_spec.spec_for(channel).ctor` 重建渠道实例（与 `manager._init_channels` 同一驱动），
+    只传 `secret` 是不够的（构造还可能要 `bot_token`/`chat_id`/`webhook_url` 等）。
+    """
     # 重投走渠道再发（真发结果写同一行）；其余两个动作只是状态标记
     if action == "retry":
-        return _retry(db, log_id, channel, secret)
+        return _retry(db, log_id, channel, creds)
     status = "ignored" if action == "ignore" else "snoozed"
     db.execute("UPDATE notification_log SET ack_status = ? WHERE id = ?", (status, log_id))
     return True
 
 
-def _retry(db: Any, log_id: int, channel: str, secret: str) -> bool:
-    """重投：按日志行里的标题/正文重建消息并经渠道再发一次；结果写回同一行。"""
+def _retry(db: Any, log_id: int, channel: str, creds: dict[str, Any]) -> bool:
+    """**真正重投**：按日志行里的标题/正文重建消息，经渠道再发一次，结果写回同一行。
+
+    与 `manager._init_channels` 共用同一构造口径（`spec.ctor` 按序传参 + `ctor_required` 非空校验），
+    避免"两处各写一份构造规则"的漂移。
+
+    **结果口径**：
+    · 先写 `ack_status='retry_requested'`（如实记录"用户点了重投"）；
+    · 再按**真发结果**回写 `status`（`success`/`failed`）与 `error_msg`（渠道 `last_error`）；
+    · 构造不出来（凭证缺失/渠道未启用）或行不存在 ⇒ 返回 `False`（调用方据此回 403），
+      **不**把"没发出去"记成成功。
+    """
+    from .channel import NotificationMessage
     from .channel_spec import channel_class, spec_for
-    from .channels.base import NotificationChannel
 
     rows = db.fetchall(
         "SELECT title, body, event_type FROM notification_log WHERE id = ? LIMIT 1", (log_id,)
@@ -93,15 +111,50 @@ def _retry(db: Any, log_id: int, channel: str, secret: str) -> bool:
     if not rows:
         return False
     row = rows[0]
-    spec = spec_for(channel)
-    cls: type[NotificationChannel] = channel_class(spec)
-    creds = {"secret": secret}
-    # 仅用日志里已有的标题/正文；渠道构造所需字段由调用方（端点层）补全
-    del cls, creds, row
+
+    # ① 如实记录"重投已被请求"（无论后续成败）
     db.execute(
         "UPDATE notification_log SET ack_status = ? WHERE id = ?", ("retry_requested", log_id)
     )
-    return True
+
+    # ② 构造渠道：与 `_init_channels` 同一驱动（按 `ctor` 取参、按 `ctor_required` 校验）
+    spec = spec_for(channel)
+    ch_cfg = dict(creds or {})
+    enabled = ch_cfg.get("enabled", True)
+    if isinstance(enabled, str):
+        enabled = enabled.lower() not in ("false", "0", "")
+    args = tuple(str(ch_cfg.get(f) or "").strip() for f in spec.ctor)
+    guards = tuple(str(ch_cfg.get(f) or "").strip() for f in spec.ctor_required)
+    if not enabled or not all(guards):
+        logger.warning(
+            "notification retry skipped: channel %s not configured or disabled (log_id=%s)",
+            channel,
+            log_id,
+        )
+        return False
+    try:
+        ch = channel_class(spec)(*args)
+    except Exception as e:
+        logger.warning("notification retry: channel %s build failed: %s", channel, e)
+        return False
+
+    # ③ 真发（重建最小消息：标题/正文/事件类型取自该日志行）
+    msg = NotificationMessage(title=str(row.get("title") or ""))
+    msg.body = str(row.get("body") or "")
+    msg.event_type = str(row.get("event_type") or "")
+    try:
+        ok = bool(ch.send(msg))
+        err_msg = "" if ok else (getattr(ch, "last_error", "") or "retry failed")
+    except Exception as e:  # 渠道异常不得让回调端点 500
+        ok, err_msg = False, str(e)
+        logger.warning("notification retry: channel %s send raised: %s", channel, e)
+
+    # ④ 真发结果写回同一行（只动 status/error_msg，不臆造 delivery_status 枚举值）
+    db.execute(
+        "UPDATE notification_log SET status = ?, error_msg = ? WHERE id = ?",
+        ("success" if ok else "failed", err_msg, log_id),
+    )
+    return ok
 
 
 def handle_callback(
@@ -157,7 +210,7 @@ def handle_callback(
     if not authorized.ok:
         return _fail(authorized.status, authorized.reason_key)
 
-    if not _execute_action(db, envelope.action, log_id, channel, secret):
+    if not _execute_action(db, envelope.action, log_id, channel, creds):
         return _fail(STATUS_FORBIDDEN, "notification.callback.forbidden")
     return CallbackOutcome(status=STATUS_OK, payload={"ok": True})
 
