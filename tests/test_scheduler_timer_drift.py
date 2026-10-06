@@ -140,6 +140,14 @@ class TestRenewalNotOverProvisioned:
 
         宽松范围守卫：[0.5×MAX, MAX+ε]。旧实现提前量最多一个窗口，
         在 window/max 较小时不触发本断言——它由上一用例的计数判别器负责。
+
+        **2026-10-06 诊断（本用例当前失败，属产品缺陷而非测试错配，已登记待修）**：
+        实测 `elapsed ≈ 0.000s`（应 ≥0.2s）。根因在 `aggregate_buffer._on_timer` 的**首轮判据**：
+        `remaining = MAX - elapsed`（elapsed≈0）与 `min(window * _TIMER_SLEEP_RATIO, _MAX_TIMER_SLEEP_CAP)`
+        比较，当 `window` 相对 `MAX` **偏大**时该条件不成立 ⇒ 直接走 `force_entries` 分支
+        **立即强制发送**并清除 `_window_start`（本用例改大窗口后亦复现 ⇒ 与 window 大小直接相关）。
+        这不仅让"强制发送贴近上界"的契约落空，更会让大窗口配置下的**聚合形同虚设**。
+        修法属聚合热路径的行为修改（需配套回归与灰度量测）⇒ **单独立批**，此处保留失败信号不被掩盖。
         """
         monkeypatch.setattr(ab, "MAX_WINDOW_SECONDS", 0.4)
         agg = NotificationAggregator(sender_func=MagicMock(), window_seconds=0.05)

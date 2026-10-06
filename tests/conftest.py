@@ -55,14 +55,25 @@ def ensure_data_dir():
 
 @pytest.fixture(autouse=True)
 def _isolate_fernet_db(tmp_path, monkeypatch):
-    """全局隔离 Fernet/数据库：get_db_path 指向每测试独立的临时空库。
+    """全局隔离 Fernet/数据库：`get_db_path` 指向每测试独立的临时空库。
 
     本地开发库 data/pilotstd.db 含加密旧凭证，_get_fernet 在 Key 缺失时会触发
     防呆 RuntimeError（CI 干净环境无此问题）；重定向到空库使其走"全新安装"
     分支自动生成 Key。测试内的局部 patch/注入会覆盖本值并自动还原，互不冲突。
     注意：不重写 ConfigManager.__init__ 等构造器，避免影响显式传参的测试。
+
+    **2026-10-06 修复（全量套件 65 项"既有失败"的根因）**：原先只 patch
+    `pilotstd.core.config.paths.get_db_path`，但多处以
+    `from pilotstd.core.config import get_db_path` **绑定名字**后使用 ⇒ 那些调用点读到的是
+    **未打补丁的原函数**，于是在全量运行中**直连开发库 data/pilotstd.db**：多个测试互相写同一库、
+    并让后跑的用例读到前者的残留（实测现象：迁移 checksum 报错、docker_api/manager/cli/health
+    等 60+ 项在"全量顺序"下失败、**单独跑却全绿**）。
+    修法：把**所有导入别名**一并重定向（`paths` 模块属性 + 包级再导出），保持"每测试独立空库"的口径。
     """
-    monkeypatch.setattr("pilotstd.core.config.paths.get_db_path", lambda: str(tmp_path / "pilotstd.db"))
+    db_path = str(tmp_path / "pilotstd.db")
+    monkeypatch.setattr("pilotstd.core.config.paths.get_db_path", lambda: db_path)
+    # 包级再导出（`from pilotstd.core.config import get_db_path` 的绑定目标）
+    monkeypatch.setattr("pilotstd.core.config.get_db_path", lambda: db_path, raising=False)
 
 
 @pytest.fixture(autouse=True)

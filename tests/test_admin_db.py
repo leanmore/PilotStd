@@ -171,9 +171,19 @@ def test_timeout_progress_handler():
 
 
 def _reload_admin_db():
-    """重新加载 admin_db 模块，返回 router。"""
-    import docker.api.admin_db as _adm
+    """重新加载 admin_db 模块，返回 router。
 
+    **2026-10-06 修正**：本文件用例通常只 patch `pilotstd.core.config.paths.get_db_path`，
+    而生产代码多以 `from pilotstd.core.config import get_db_path` **绑定包级别名**使用
+    ⇒ 两处不一致时，被 reload 的模块读到**未打补丁**的那份（旧行为下恰好读开发库、库里有
+    `users` 表 ⇒ 用例"为错误的理由而通过"，一旦启用测试库隔离就暴露为 500）。
+    此处做**绑定桥接**：让包级别名与测试实际 patch 的那份**取同一个函数**（与 conftest 同口径）。
+    """
+    import docker.api.admin_db as _adm
+    import pilotstd.core.config as _cfg
+    import pilotstd.core.config.paths as _paths
+
+    _cfg.get_db_path = _paths.get_db_path
     _il.reload(_adm)
     return _adm.router
 
