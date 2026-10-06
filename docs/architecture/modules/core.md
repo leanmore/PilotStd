@@ -92,6 +92,10 @@ pilotstd/core/
 │   │                            # （`_extract_topic` 的只读入口），供托盘分档节流与聚合分组**同源**
 │   ├── _suppression_queue.py  # 静音时段暂存与补发（组合式 SuppressionQueue：判静音/入队/到期补发；2026-10-03 步 C B1 从 manager.py 拆出，manager 保留同名薄转发与白名单再导出）
 │   ├── _dispatcher.py         # 发送编排（模块级函数 send_event/validate_message/do_send/send_now/record_delivery/send_delivery_alert，宿主入参；2026-10-03 步 C B2 从 manager.py 拆出，manager 只留同名一行委托）
+│   ├── （2026-10-05 P2 分段接入 · 二）：**飞书**（`channels/feishu.py`）已接入——卡片是 `elements[]`，
+│   │   故 `_split_card()` **按元素装填**成多张卡片（单元素超预算时对该元素 `content` 走
+│   │   `split_for_channel`），第 2 张起在末元素追加「续 N/M」；`_send_card()` 承载原请求/判定。
+│   │   ⇒ **四渠道（telegram / wecom / dingtalk / feishu）全部接入分段**，超长不再整条发出去
 │   ├── （2026-10-05 P2 分段接入 · 一）：**企业微信**（`channels/wechat.py`，**2048 字节**口径）
 │   │   与**钉钉群机器人**（`channels/dingtalk.py::_send_webhook`，4000 字符保守值）已接入
 │   │   `split_for_channel`——`send()` 内按段循环、抽出 `_send_segment` / `_send_webhook_text`

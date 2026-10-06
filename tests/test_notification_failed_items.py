@@ -1,4 +1,4 @@
-﻿"""通知聚合 B1 的失败明细链路测试：渲染快照、分段边界、落库 JSON 往返、分组键两条路径。
+"""通知聚合 B1 的失败明细链路测试：渲染快照、分段边界、落库 JSON 往返、分组键两条路径。
 
 为什么单独成文件：该链路横跨"采集 payload → 构建器渲染 → 渠道分段 → 落库"四层，
 原先分散在 stage1x/stage2b 各用例里只覆盖单层；本文件用**真实标准号格式**与
@@ -211,6 +211,36 @@ def test_dingtalk_splits_long_message(monkeypatch) -> None:
     assert len(seen) > 1
     assert all(len(s) <= 4000 for s in seen)
     assert _all_lines_present("".join(seen))
+
+
+def test_feishu_splits_long_card_by_elements(monkeypatch) -> None:
+    """飞书：超长**卡片**按元素切成多张卡片，每张不超上限、第 2 张起带「续 N/M」。
+
+    为什么不能切字符串：卡片是 `elements[]`，从中间切会让 markdown 标记断裂 ⇒ 按元素装填。
+    """
+    from pilotstd.core.notification.channels.feishu import FeishuChannel
+
+    ch = FeishuChannel("https://example.invalid/hook")
+    card = {
+        "header": {"title": {"tag": "plain_text", "content": "标题"}},
+        "elements": [
+            {"tag": "markdown", "content": "A" * 3000},
+            {"tag": "markdown", "content": "B" * 3000},
+        ],
+    }
+    monkeypatch.setattr(ch._renderer, "render", lambda _m: card, raising=False)
+    seen: list[dict] = []
+    monkeypatch.setattr(ch, "_send_card", lambda one: seen.append(one) is None or True, raising=False)
+
+    assert ch.send(NotificationMessage(title="t")) is True
+    assert len(seen) > 1, "超长卡片必须切成多张"
+    limit = CHANNEL_TEXT_LIMITS["feishu"][0]
+    for page in seen:
+        total = sum(len(str(e.get("content") or "")) for e in page["elements"])
+        assert total <= limit, "每张卡片的内容都不得超过飞书上限"
+    assert t("notification.segment.continued").split("{")[0] in str(seen[-1]["elements"][-1]["content"])
+    # 短卡片不受影响：单张原样返回
+    assert len(ch._split_card({"header": {}, "elements": [{"tag": "markdown", "content": "x"}]})) == 1
 
 
 def test_short_message_is_single_segment(monkeypatch) -> None:

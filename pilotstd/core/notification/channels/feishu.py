@@ -16,7 +16,7 @@ from ..channel import NotificationMessage
 
 if TYPE_CHECKING:  # pragma: no cover - 仅类型检查
     from ..interaction import ChannelCapabilities
-from ..renderer import FeishuCardRenderer
+from ..renderer import CHANNEL_TEXT_LIMITS, FeishuCardRenderer, split_for_channel
 from .base import NotificationChannel
 
 logger = logging.getLogger(__name__)
@@ -56,10 +56,77 @@ class FeishuChannel(NotificationChannel):
             self.last_error = t("notification.channel.not_configured_webhook")
             return False
         try:
-            # 使用飞书渲染卡片（标准号由构建器渲染进正文，发送层不再追加，
-            # 与电报渠道同口径——见提交 57f58a6c 的尾部重复行消除）
+            # 分段（P2，2026-10-05）：飞书卡片超长时必须**按元素切成多张卡片**——
+            # 卡片是 `elements[]` 数组，若把 markdown 字符串从中间切开，`**加粗**` 之类标记会跨段断裂；
+            # 按元素装填既保持卡片结构合法，又能用「续 N/M」明确告知还有后续。
+            # 未超限时 `_split_card` 原样返回单张（零行为变更）。
             card = self._renderer.render(message)
+            for one in self._split_card(card):
+                if not self._send_card(one):
+                    return False
+            return True
+        except Exception as e:
+            # 外层兜底：渲染或分片本身出错（卡片投递内的异常由 `_send_card` 自行处理）
+            self.last_error = str(e)
+            logger.warning("飞书通知异常（分片外层）: %s", e, exc_info=True)
+            return False
 
+    def _split_card(self, card: dict) -> list[dict]:
+        """按飞书上限把一张卡片切成多张；**未超限时原样返回 `[card]`**。
+
+        · 上限取 `CHANNEL_TEXT_LIMITS["feishu"]`（4096 字符；飞书按 UTF-16 单元计数、官方数字本轮未取证
+          ⇒ 取保守值，口径见 `renderer.CHANNEL_TEXT_LIMITS` 注释）；
+        · **按元素装填**：累计内容长度不超"上限 − 标题长度"就留在同一张卡；
+        · **单元素自身超预算**：对该元素 `content` 走 `split_for_channel`，保证任何一张都不超限；
+        · 第 2 张起在**末元素**追加「续 N/M」（i18n `notification.segment.continued`），
+          与纯文本渠道同口径，读者能看出还有后续。
+        """
+        limit = CHANNEL_TEXT_LIMITS.get("feishu", (4096, "chars"))[0]
+        header = card.get("header") or {}
+        title = str(((header.get("title") or {}).get("content")) or "")
+        budget = limit - len(title)
+        elements = list(card.get("elements") or [])
+        if not elements or budget <= 0:
+            return [card]
+
+        pages: list[list[dict]] = []
+        current: list[dict] = []
+        used = 0
+        for el in elements:
+            content = str(el.get("content") or "")
+            if len(content) > budget:
+                # 单元素就超预算：先收束当前页，再把这个元素本身切成若干独立页
+                if current:
+                    pages.append(current)
+                    current, used = [], 0
+                for piece in split_for_channel(content, "feishu"):
+                    # 显式标注元素类型：`dict` 与 `dict[Any, Any]` 的差异会让 mypy 报列表推导类型不符
+                    piece_el: dict = {**el, "content": piece}
+                    pages.append([piece_el])
+                continue
+            if used + len(content) > budget:
+                pages.append(current)
+                current, used = [], 0
+            current.append(el)
+            used += len(content)
+        if current:
+            pages.append(current)
+
+        total = len(pages)
+        if total == 1:
+            return [card]
+        out: list[dict] = []
+        for idx, page in enumerate(pages, start=1):
+            els = [dict(e) for e in page]
+            if idx > 1 and els:
+                suffix = t("notification.segment.continued").format(n=idx, total=total)
+                els[-1]["content"] = f"{els[-1].get('content', '')}\n{suffix}"
+            out.append({"header": header, "elements": els})
+        return out
+
+    def _send_card(self, card: dict) -> bool:
+        """投递**一张**卡片（原 send() 的请求与异常处理逻辑；分段后按卡片独立判定成败）。"""
+        try:
             # 变量名避开 except 分支里的 `body`（那是 str，同名会让 mypy 报类型冲突）
             request_body: dict[str, Any] = {
                 "msg_type": "interactive",
