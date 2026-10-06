@@ -11,9 +11,10 @@ from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
+from pilotstd.core.notification._json_codec import loads_list as _loads_list
 from pilotstd.i18n import t
 
-from .notification_deps import _get_notification_mgr
+from .notification_deps import _get_notification_mgr, _get_user_id
 
 logger = logging.getLogger(__name__)
 # tags 由聚合模块 `notification.py` 在 include_router 时注入——
@@ -63,9 +64,40 @@ def get_logs(
                 "error_msg": r["error_msg"],
                 "sent_at": r["sent_at"],
                 "is_read": r.get("is_read", 0),
+                # P3：只给**条数**（前端据此决定是否显示"查看失败明细"入口）。
+                # **不**把明细本体并进列表：一批次可能上千条 ⇒ 响应体爆炸（P3 风险 2）。
+                # 解析只作用于**当前页**（≤100 行），成本可忽略；解析失败按 0 处理（防御式）。
+                "failed_count": len(_loads_list(r.get("failed_items"))),
             }
             for r in result["items"]
         ],
+    }
+
+
+@router.get("/api/notification/logs/{log_id}/failed-items")
+def get_failed_items(
+    log_id: int,
+    request: Request,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    nmgr=Depends(_get_notification_mgr),
+    user_id: int = Depends(_get_user_id),
+):
+    """取某条通知日志的**失败明细**（按需加载 + 服务端分页 + 展示侧脱敏）。
+
+    设计（P3）：
+    · **不并入列表接口**：一批次的失败明细可能上千条，并进列表会让响应体爆炸 ⇒ 独立端点按需取；
+    · **强制分页**：`page_size` 上限 100（与日志列表同口径），服务端解析 JSON 后分页；
+    · **脱敏**：`error_message` 在透出前收敛（URL 查询串/绝对路径/长令牌/邮箱手机号），
+      见 `pilotstd/core/notification/_redact.py`（落库存真、展示脱敏）；
+    · **归属过滤**：按当前用户过滤（列存在时生效，与日志列表的鉴权口径一致）。
+    """
+    result = nmgr.ops.get_failed_items(log_id, page=page, size=page_size, user_id=user_id)
+    return {
+        "total": result["total"],
+        "page": result["page"],
+        "page_size": result["size"],
+        "items": result["items"],
     }
 
 

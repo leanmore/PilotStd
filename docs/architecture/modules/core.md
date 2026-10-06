@@ -5,7 +5,7 @@
 | 模块路径 | `pilotstd/core/` |
 | G-031 映射 | `pilotstd/core/`（2026-09-25 落地：`DOC_SYNC_MAP` 已含该条，改任何 core 文件都会要求同步本文件） |
 | 核心类 | `Database` / `ConfigManager` / `CacheManager` / `NotificationManager` |
-| 子模块数 | 105 个 `.py`（新增 `_migrate_v66_announcement_record_final_name.py`：名称决策③结果落库，2026-10-05 名称解析统一批次二）（**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-10-05**；顶层 = 3 个包 config / db / notification + 23 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
+| 子模块数 | 106 个 `.py`（新增 `_migrate_v66_announcement_record_final_name.py`：名称决策③结果落库，2026-10-05 名称解析统一批次二）（**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-10-05**；顶层 = 3 个包 config / db / notification + 23 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
 | Schema 版本 | `CURRENT_SCHEMA_VERSION = 66`（`db/_constants.py`；v66＝announcement_record 追加 `final_name` 列 + 从 pending_lookup 回填，2026-10-05 名称解析统一批次二） |
 | 状态 | 活跃 |
 
@@ -102,6 +102,12 @@ pilotstd/core/
 │   │   承载原请求与响应判定（**任一段失败即整体失败，不静默丢段**）；未超长时单段（零行为变更）。
 │   │   **飞书**（卡片 `elements[]`，需按元素分片）**待接**，见统筹日程 P2 备注
 │   ├── channels/              # wechat / feishu / dingtalk / telegram 渠道适配
+│   ├── （2026-10-05 · **P3 失败明细读侧**）：新增 `_redact.py::redact_message()`——**展示侧脱敏**
+│   │   （落库存真、展示脱敏）：URL 查询串/片段折叠为 `?…`、绝对路径只留末段、≥24 位长令牌与
+│   │   ≥32 位十六进制掩码、邮箱保留首字符与域名、手机号整段掩码、超长截断（默认 120，与 4 列口径一致）；
+│   │   **纯函数、永不抛**（脏输入 ⇒ 空串）。API：`GET /api/notification/logs/{id}/failed-items?page&page_size`
+│   │   （**按需加载 + 服务端分页 ≤100**，逐条过脱敏）；日志列表新增 `failed_count`（只给条数，
+│   │   **不把明细并进列表**——一批次可能上千条）
 │   ├── （2026-10-05 阶段 4 · P6 · **收口：配置粒度切档开关**）：`stage.py` 新增
 │   │   `is_config_layers_enabled()`（**阶段 ≥ 4 为真**）——策略层"类别层优先"的**整档开关**：
 │   │   为真时 `_policy.get_channels_for_event()` 对 `event_classes` 非空的行只用类别层；

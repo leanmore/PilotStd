@@ -185,6 +185,56 @@ class NotificationOps:
             "size": size,
         }
 
+    def get_failed_items(
+        self, log_id: int, page: int = 1, size: int = 20, user_id: int | None = None
+    ) -> dict[str, Any]:
+        """取某条通知日志的**失败明细**（服务端解析 + 脱敏 + 分页）。
+
+        **为什么不把明细并进列表接口**（P3 风险 2）：一个批次的失败明细可能上千条，
+        并进列表会让响应体爆炸；故明细**按需取**、服务端分页（`size` 由 API 层限幅 ≤100）。
+
+        **脱敏**（P3 风险 1）：解析出的每条 `error_message` 一律过 `redact_message()`
+        ——落库存真、展示脱敏；URL 查询串/绝对路径/长令牌/邮箱手机号都会被收敛。
+
+        `user_id` 非空时按其归属过滤（列存在才加条件：老库/测试替身可能没有该列）。
+        """
+        from ._redact import redact_message
+
+        db = self._db
+        cols = {r["name"] for r in db.fetchall("PRAGMA table_info(notification_log)")}
+        conditions = ["id = ?"]
+        params: list[Any] = [log_id]
+        if user_id is not None and "user_id" in cols:
+            conditions.append("user_id = ?")
+            params.append(user_id)
+        row = db.fetchone(
+            f"SELECT failed_items FROM notification_log WHERE {' AND '.join(conditions)}",
+            tuple(params),
+        )
+        raw = row.get("failed_items") if row else None
+        items = _json_codec.loads_list(raw) if raw else []
+
+        # 逐条脱敏（保持 4 列口径：standard_number / standard_name / error_type / error_message）
+        safe: list[dict[str, str]] = []
+        for it in items:
+            safe.append(
+                {
+                    "standard_number": str(it.get("standard_number") or "-"),
+                    "standard_name": str(it.get("standard_name") or "-"),
+                    "error_type": str(it.get("error_type") or "unknown"),
+                    "error_message": redact_message(it.get("error_message")),
+                }
+            )
+
+        total = len(safe)
+        start = max(0, (max(1, page) - 1) * size)
+        return {
+            "total": total,
+            "page": max(1, page),
+            "size": size,
+            "items": safe[start : start + size],
+        }
+
     # ids 为空表示“全部标记已读”，此时返回 0——调用方据此区分“按条计数”与“全量操作”。
     def mark_logs_read(self, ids: list[int] | None = None) -> int:
         """标记通知日志为已读（单条或全部），供 API 层调用。"""
