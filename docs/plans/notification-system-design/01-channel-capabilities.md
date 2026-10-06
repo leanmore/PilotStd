@@ -131,7 +131,7 @@
 | 2 | **企微回调配置细节**（是否需要 Token/EncodingAESKey、事件回调类型） | ✅ **2026-10-06 起有第三方实现证据**：MoviePilot `VerifyURL(msg_signature,timestamp,nonce,echostr)`＝**SHA1(Token,ts,nonce,echostr)** ＋ **AES 解密**（`EncodingAESKey`/`ReceiveId`），XML 信封含 `MsgSignature` ⇒ **需 Token + EncodingAESKey + ReceiveId 三件套，且是 XML 形态**（非 JSON+header 签名） | 见 [`14-MoviePilot源码侦查报告.md`](../notification-redesign/14-MoviePilot源码侦查报告.md) §2.1（[实现] 证据，附 `文件:行号`） |
 | 3 | **企微消息更新能力** | 无 | 同上 |
 | 4 | **企微审批门槛** | 无 | 管理后台文档 |
-| 5 | **飞书卡片回调请求/响应格式** | 官方 URL（`feishu-cards/handle-card-callbacks`）+ 凭证含验签字段 | 同上 |
+| 5 | **飞书卡片回调请求/响应格式** | ✅ **2026-10-06 起有第三方实现证据**：回调事件 `card.action.trigger`（`operator{open_id,user_id}` / `action{value,name}` / `context{open_message_id,open_chat_id}`）；**消息编辑**可用 `PATCH /open-apis/im/v1/messages/{message_id}`（`tenant_access_token`，**无需官方 SDK**）⇒ "编辑的前提"在**自建应用形态**下成立（我方当前 webhook 形态仍不可编辑） | 见 [`14-MoviePilot源码侦查报告.md`](../notification-redesign/14-MoviePilot源码侦查报告.md) §2.3 与 [`15-MoviePilot插件语料侦查报告.md`](../notification-redesign/15-MoviePilot插件语料侦查报告.md) §2.1 |
 | 6 | ~~**钉钉卡片更新接口**~~ ✅ **已闭合（2026-10-05，P5a）** | **存在且在维护**：`PUT /v1.0/im/interactiveCards`（`outTrackId` + `cardData.cardParamMap` / `privateData` 按用户按钮 + `cardOptions.update*ByKey` 增量/覆盖；权限＝会话管理权限，企业内部应用支持；返回 `{"success":"true"}`） | 见 [`13-阶段3渠道交互取证报告.md`](../notification-redesign/13-阶段3渠道交互取证报告.md) §二（[全文] 证据） |
 | 7 | **钉钉/企微/飞书的调用频率限制** | 仅 Telegram 有数字 | 各自"频率限制"文档正文（钉钉 `help.dingtalk.io/zh/open/development/call-frequency-limit` 正文未取到） |
 | 8 | **四个企业级形态的完整字段级凭证清单** | 钉钉（正文）、企微/飞书（代码实测） | 官方凭证文档 |
