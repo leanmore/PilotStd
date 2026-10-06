@@ -102,6 +102,12 @@ pilotstd/core/
 │   │   承载原请求与响应判定（**任一段失败即整体失败，不静默丢段**）；未超长时单段（零行为变更）。
 │   │   **飞书**（卡片 `elements[]`，需按元素分片）**待接**，见统筹日程 P2 备注
 │   ├── channels/              # wechat / feishu / dingtalk / telegram 渠道适配
+│   ├── （2026-10-05 阶段 4 · P6 · **收口：配置粒度切档开关**）：`stage.py` 新增
+│   │   `is_config_layers_enabled()`（**阶段 ≥ 4 为真**）——策略层"类别层优先"的**整档开关**：
+│   │   为真时 `_policy.get_channels_for_event()` 对 `event_classes` 非空的行只用类别层；
+│   │   为假（回滚档 ≤ 3）时对**所有行**按旧 `events` 逐事件匹配 ⇒ `NOTIFY_REDESIGN_STAGE=3`
+│   │   能**完整复原**阶段 3 行为（第 1 层回滚开关不再只是改数字）。`_policy` 经 `_manager_ops`
+│   │   （唯一集成点）取该谓词，故 `stage`/`mapping` 仍只被允许的模块引用
 │   ├── （2026-10-05 阶段 4 · P6 · **4b-2：前端双层 + 吞错可见化**）：前端 `NotificationConfig.vue` 以
 │   │   **类别层（10 类）为主入口**、把 41 项业务事件收进折叠的"高级"层；保存时**两层都写**
 │   │   （`putNotificationPolicy` 带 `event_classes`）；**吞错可见化**——策略读/写失败一律 `console.warn`

@@ -53,6 +53,7 @@ __all__ = [
     "KNOWN_STAGES",
     "current_stage",
     "is_aggregation_key_v2",
+    "is_config_layers_enabled",
     "is_interaction_enabled",
     "is_mapping_enabled",
 ]
@@ -110,3 +111,13 @@ def is_aggregation_key_v2() -> bool:
 def is_interaction_enabled() -> bool:
     """交互能力（回调端点 + 动作）是否启用——阶段 3 起为真。"""
     return current_stage() >= 3.0
+
+
+def is_config_layers_enabled() -> bool:
+    """**配置粒度切换**（类别层 10 类优先于高级层 41 事件）是否生效——阶段 4 起为真。
+
+    这是阶段 4 的**唯一行为开关**：为真时 `_policy.get_channels_for_event()` 对
+    `event_classes` 非空的行**只用类别层**；为假（回滚档 → 阶段 3）时对**所有行**按旧的
+    `events` 逐事件匹配 ⇒ `NOTIFY_REDESIGN_STAGE=3` 能完整复原改造前行为（第 1 层回滚开关）。
+    """
+    return current_stage() >= 4.0

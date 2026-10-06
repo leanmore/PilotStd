@@ -46,6 +46,13 @@ def _notify_event_of(event_type: str) -> str:
     return notify_event_of(event_type)
 
 
+def _config_layers_enabled() -> bool:
+    """阶段 4 的"配置粒度切换"是否生效（**经 `_manager_ops` 转手**，见其 docstring 说明）。"""
+    from ._manager_ops import config_layers_enabled
+
+    return config_layers_enabled()
+
+
 class NotificationPolicyHelper:
     """通知策略表读写辅助类（组合模式，非 Mixin）。
 
@@ -59,12 +66,12 @@ class NotificationPolicyHelper:
     def get_channels_for_event(self, user_id: int, event_type: str) -> list[str]:
         """从 notification_policy 表查询该事件应发送到哪些渠道（按用户隔离）。
 
-        **双读（阶段 4 · P6 · 4a，裁定 4 甲：新字段优先）**：
-        · 该行 `event_classes` **非空** ⇒ **只用类别层**（事件所属 `notify_event` 命中即订阅）；
-          不并入 `events`——并集会让"关闭某类"无法表达；
-        · `event_classes` **为空** ⇒ 回退旧字段 `events`（逐事件匹配）。
-        这条回退路径是**第 1 层回滚开关**（`NOTIFY_REDESIGN_STAGE=3`）的技术前提：
-        旧行为必须能原样工作，回滚才不需要改代码。
+        **双读（阶段 4 · P6 · 4a/收口，裁定 4 甲：新字段优先）**：
+        · **阶段 4 生效时**（`NOTIFY_REDESIGN_STAGE` ≥ 4）：该行 `event_classes` **非空** ⇒
+          **只用类别层**（事件所属 `notify_event` 命中即订阅）；不并入 `events`——并集会让"关闭某类"无法表达；
+        · **回滚档（阶段 ≤ 3）或该行 `event_classes` 为空** ⇒ 回退旧字段 `events`（逐事件匹配）。
+        这条"整档回退"是**第 1 层回滚开关**（`NOTIFY_REDESIGN_STAGE=3`）的技术前提：
+        关掉开关即完整复原阶段 3 行为，不需要改代码。
         """
         try:
             rows = self._db.fetchall(
@@ -75,10 +82,11 @@ class NotificationPolicyHelper:
             if rows:
                 channels = []
                 event_class = _notify_event_of(event_type)
+                layers_on = _config_layers_enabled()
                 for r in rows:
                     # 兼容"未跑 v68 的库/测试替身"：行里没有该键时按空串处理，等价于"未设置类别"
                     raw_classes = r["event_classes"] if "event_classes" in r.keys() else ""
-                    classes = _loads_str_list(raw_classes)
+                    classes = _loads_str_list(raw_classes) if layers_on else []
                     if classes:
                         matched = bool(event_class) and event_class in classes
                     else:

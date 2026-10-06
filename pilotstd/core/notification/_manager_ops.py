@@ -27,7 +27,7 @@ from . import _json_codec
 from .channel import NotificationMessage
 from .mapping import EVENT_MAPPINGS, NOTIFY_EVENTS, project
 from .specs import specs_to_jsonable
-from .stage import is_mapping_enabled
+from .stage import is_config_layers_enabled, is_mapping_enabled
 
 if TYPE_CHECKING:
     from .manager import NotificationManager
@@ -269,4 +269,15 @@ def notify_layers() -> tuple[list[str], dict[str, str]]:
         for key, entry in sorted(EVENT_MAPPINGS.items())
     }
     return classes, mapping
+
+
+def config_layers_enabled() -> bool:
+    """**配置粒度切换**（阶段 4）是否生效——策略层"类别层优先"的开关。
+
+    **为什么放在本模块**：防腐测试禁止 `mapping`/`stage` 被其它生产模块直接 import
+    （唯一集成点就是本模块）⇒ 策略层（`_policy.py`）判断"是否走类别层"必须经此转手。
+    回滚：`NOTIFY_REDESIGN_STAGE=3` ⇒ 本函数为假 ⇒ 策略层对**所有行**按旧的 `events` 匹配
+    （即完整复原阶段 3 行为）。
+    """
+    return is_config_layers_enabled()
 

@@ -86,8 +86,9 @@ def test_legacy_row_without_column_key_still_falls_back(helper_factory) -> None:
 # ── ② 新字段优先（非并集）───────────────────────────────────────────────────
 
 
-def test_non_empty_event_classes_takes_priority_over_events(helper_factory) -> None:
-    """`event_classes` 非空 ⇒ **只用类别层**：旧字段即使含该事件也不订阅（证明非并集）。"""
+def test_non_empty_event_classes_takes_priority_over_events(helper_factory, monkeypatch) -> None:
+    """**阶段 4 生效时**：`event_classes` 非空 ⇒ **只用类别层**（旧字段即使含该事件也不订阅，证明非并集）。"""
+    monkeypatch.setenv("NOTIFY_REDESIGN_STAGE", "4")
     # download_complete 属 task_result 类；类别层只订 task_failure ⇒ 不订阅
     helper, _ = helper_factory(
         [_row(events='["download_complete"]', event_classes='["task_failure"]')]
@@ -100,11 +101,27 @@ def test_non_empty_event_classes_takes_priority_over_events(helper_factory) -> N
     assert helper2.get_channels_for_event(1, "download_complete") == ["telegram"]
 
 
-def test_class_layer_works_with_empty_events(helper_factory) -> None:
-    """旧字段为空、类别层非空 ⇒ 类别层独立生效（高级层可留空）。"""
+def test_class_layer_works_with_empty_events(helper_factory, monkeypatch) -> None:
+    """**阶段 4 生效时**：旧字段为空、类别层非空 ⇒ 类别层独立生效（高级层可留空）。"""
+    monkeypatch.setenv("NOTIFY_REDESIGN_STAGE", "4")
     helper, _ = helper_factory([_row(events="[]", event_classes='["batch_summary"]')])
     # archive_complete 属 batch_summary 类 ⇒ 命中类别层
     assert helper.get_channels_for_event(1, "archive_complete") == ["telegram"]
+
+
+def test_rollback_stage_ignores_class_layer(helper_factory, monkeypatch) -> None:
+    """**回滚档（阶段 3）**：类别层整档不生效 ⇒ 完整复原旧行为（第 1 层回滚开关的技术前提）。
+
+    这是"收口"新增的守门断言：若把默认阶段提升到 4 而忘了给读侧加档位开关，
+    回滚开关就只会改数字、不改行为（静默失效）。
+    """
+    monkeypatch.setenv("NOTIFY_REDESIGN_STAGE", "3")
+    # 类别层订了 task_result，但回滚档下必须**只看 events**
+    helper, _ = helper_factory([_row(events='["download_complete"]', event_classes='["task_result"]')])
+    assert helper.get_channels_for_event(1, "download_complete") == ["telegram"], "回滚档应按 events 匹配"
+    # 类别层命中、events 未含该事件 ⇒ 回滚档下**不订阅**（证明类别层确实被关掉）
+    helper2, _ = helper_factory([_row(events="[]", event_classes='["batch_summary"]')])
+    assert helper2.get_channels_for_event(1, "archive_complete") == []
 
 
 # ── ③ 防御式解析 ────────────────────────────────────────────────────────────
