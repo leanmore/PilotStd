@@ -335,8 +335,8 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         payload_keys=frozenset({"count", "error"}), security=False, branch_by=None, subscribable=True,
         aggregation="aggregate",
 
-        verify="manual",
-        verify_reason="real_chain_only",
+        verify="e2e",
+        verify_reason="",
     ),
     EventSpec(key="archive_abandoned", notify_event="task_result", content_type="text",
         task_kind="favorite_download",

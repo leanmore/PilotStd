@@ -206,6 +206,13 @@ pilotstd/core/
 │   │   "层结构变了 ⇒ `spec_hash` 必变 ⇒ 前端内容级缓存必失效"（用户裁定：单一版本源优于另立层版本字段）。
 │   │   `docker/api/notification_policy.py::PolicyUpdateRequest` 增 `event_classes` 并转发给
 │   │   `save_policy(...)`（4a 已支持该参数，两层互不覆盖：`None`＝不动该层、`[]`＝清空）
+│   ├── （2026-10-06 · **P6/P7 · 高优事件可验证性接线（子批 1/3）**）：`archive_failed` 的 `verify`
+│   │   由 `manual`/`real_chain_only` 升为 **`e2e`**——新增真链路用例
+│   │   `tests/integration/test_notification_high_value_events.py::TestArchiveFailed`（3 例：OS 边界移动失败
+│   │   ⇒ `failed > 0` ⇒ 发事件；**成功路径反向验证**不得发；无源文件不计失败）。桩纯度：以 `FileMover`
+│   │   **子类**替换移动这一步（OS 文件操作协作者本身），`OrganizerService` 的去重/索引/汇总逻辑全真实执行，
+│   │   未桩任何业务方法。提案见 `docs/plans/notification-redesign/18-高优事件接线提案.md`（含 §〇-附
+│   │   取舍依据：**7 行 = 6 纳入 + 1 保留 + 0 排除**）
 │   ├── （2026-10-06 · **P6/P7 甲案：事件「声明式可验证性」**）：`EventSpec` 新增 **`verify`（无默认值 ⇒
 │   │   漏填在 import 期直接 `TypeError`）** 与 `verify_reason`（机器可读枚举码）——用户裁定：防漂移门禁
 │   │   必须**声明式**（注册即必填）而非**过程式**（不必每次跑全量插桩），且**不要求 42/42 运行时覆盖**
