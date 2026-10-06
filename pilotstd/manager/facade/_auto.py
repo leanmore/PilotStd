@@ -7,6 +7,8 @@ import logging
 import time as _time
 from typing import TYPE_CHECKING, Any
 
+from ...core.notification.batch import batch_scope
+
 if TYPE_CHECKING:
     from ._core import ManagerCore
     from ._download import DownloadHandler
@@ -41,6 +43,14 @@ class AutoPipeline:
         """一键自动运行：扫描 → 查询 → 下载 → 归类。
         _adapter: DI 注入，可传入 mock 适配器链覆盖默认适配器。
         """
+        # 通知聚合 B1 · E1：一次"一键处理"（扫描→查询→下载→规范化→归档）= **一个批次** ⇒
+        # 四阶段通知共用同一批次键，被聚合器按①批次键收敛为**一条**（需求①"一次导入汇总成 1 条"）。
+        # 用作用域而非层层传参：见 pilotstd/core/notification/batch.py 的模块 docstring。
+        with batch_scope("imp"):
+            return self._auto_run_impl(root_path, _adapter)
+
+    def _auto_run_impl(self, root_path: str, _adapter: Any = None) -> dict[str, int]:
+        """`auto_run` 的实际实现（批次作用域由入口负责打开，见 `auto_run` 的注释）。"""
         report: dict[str, int] = {
             "scan": 0,
             "query_found": 0,
@@ -184,6 +194,37 @@ class AutoPipeline:
     ) -> dict[str, int]:
         """流式自动管线（线程安全）。
         _adapter: DI 注入，可传入 mock 适配器链覆盖默认适配器。
+        """
+        # 通知聚合 B1 · E1：流式"一键处理"同样是**一个批次**（与 auto_run 同款作用域），
+        # 四阶段通知共用批次键 ⇒ 收敛为一条（需求①）。
+        with batch_scope("imp"):
+            return self._auto_run_stream_impl(
+                root_path,
+                on_scan_batch=on_scan_batch,
+                on_scan_progress=on_scan_progress,
+                on_query_progress=on_query_progress,
+                on_query_result=on_query_result,
+                on_download_progress=on_download_progress,
+                on_download_result=on_download_result,
+                on_archive_result=on_archive_result,
+                on_stage_change=on_stage_change,
+            )
+
+    def _auto_run_stream_impl(
+        self,
+        root_path: str,
+        on_scan_batch: Any = None,
+        on_scan_progress: Any = None,
+        on_query_progress: Any = None,
+        on_query_result: Any = None,
+        on_download_progress: Any = None,
+        on_download_result: Any = None,
+        on_archive_result: Any = None,
+        on_stage_change: Any = None,
+    ) -> dict[str, int]:
+        """`auto_run_stream` 的实际实现（批次作用域由入口 `auto_run_stream` 负责打开）。
+
+        参数与入口一一对应（入口只做"开作用域 + 委托"）；四阶段进度与结果均经回调上报。
         """
         report: dict[str, int] = {
             "scan": 0,
