@@ -206,6 +206,14 @@ pilotstd/core/
 │   │   "层结构变了 ⇒ `spec_hash` 必变 ⇒ 前端内容级缓存必失效"（用户裁定：单一版本源优于另立层版本字段）。
 │   │   `docker/api/notification_policy.py::PolicyUpdateRequest` 增 `event_classes` 并转发给
 │   │   `save_policy(...)`（4a 已支持该参数，两层互不覆盖：`None`＝不动该层、`[]`＝清空）
+│   ├── （2026-10-06 · **P6/P7 · 高优事件可验证性接线（子批 2~3/3 完成）**）：新增真链路用例覆盖
+│   │   `normalize_complete`（真文件流）、`query_failed`（**外部子系统网关 `core.query_engine`** 打桩，
+│   │   并断言门面内部统计/回写/分类路由真实执行）、`download_started`（复用 e2e 夹具真实驱动任务）、
+│   │   `batch_download_complete`（真实批量入口 + 空库反向验证）、`standard_status_changed`（真实库 +
+│   │   真实 `ValidityChecker.update_status` 并断言状态写库）。**声明升级 5 项**（`archive_failed`、
+│   │   `download_started`、`normalize_complete`、`standard_status_changed`、`query_failed`）
+│   │   由 `manual/real_chain_only` ⇒ **`e2e`**；`batch_download_complete` 原本即 `e2e`（提案曾误记，已更正）。
+│   │   实测：`e2e` 12 → **17**，`real_chain_only` 15 → **10**。全部为**测试批次**，零业务代码改动
 │   ├── （2026-10-06 · **P6/P7 · 高优事件可验证性接线（子批 1/3）**）：`archive_failed` 的 `verify`
 │   │   由 `manual`/`real_chain_only` 升为 **`e2e`**——新增真链路用例
 │   │   `tests/integration/test_notification_high_value_events.py::TestArchiveFailed`（3 例：OS 边界移动失败

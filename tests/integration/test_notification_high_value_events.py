@@ -274,3 +274,142 @@ class TestNormalizeComplete:
         # 规范化只产出"名称"，不落地文件 ⇒ 库根目录应保持为空（无残留）
         assert list(library_root.iterdir()) == [], "规范化不应在库根目录留下文件"
         assert str(tmp_path) in str(source), "所有产物均在 pytest tmp_path 内，框架负责清理"
+
+
+# ── 子批 3/3 ────────────────────────────────────────────────────────────────
+
+
+class TestDownloadStarted:
+    """`download_started`（提案 §一 第 1 项；接线点 `tasks/favorite_download.py:184`）。
+
+    **复用既有 e2e 夹具**（`_run`）：它真实驱动任务 `download_to_inbox`，并把
+    `pilotstd.manager.facade.StandardManager`（**应用容器边界**）替换为带真实下载引擎的替身，
+    站点交互由 `_FakeOpenstdAdapter`（**站点适配器边界**）承担 ⇒ 任务内部的校验/状态机/落库全部真实执行。
+    """
+
+    def test_real_task_fires_download_started(self, tmp_path: Path) -> None:
+        """真实任务链路 ⇒ 发 `download_started`，载荷含用户/标准号/收藏 id。"""
+        from tests.integration.test_favorite_download_chain_e2e import (  # noqa: PLC0415
+            _FakeOpenstdAdapter,
+            _run,
+        )
+
+        fav_id, mgr, *_rest = _run(tmp_path, _FakeOpenstdAdapter())
+
+        calls = mgr.notification_mgr.send_event.call_args_list
+        events = [c.args[0] for c in calls]
+        assert "download_started" in events, f"未发出事件：{events}"
+        payload = next(c.args[1] for c in calls if c.args[0] == "download_started")
+        assert payload["user_id"] == 1, f"载荷缺少用户：{payload}"
+        assert payload["standard_number"] == "GB/T 1234-2020", f"载荷标准号异常：{payload}"
+        assert payload["favorite_id"] == fav_id, f"载荷收藏 id 异常：{payload}"
+
+
+class TestBatchDownloadComplete:
+    """`batch_download_complete`（提案 §一 第 2 项；接线点 `services/favorite_chain_processor.py:240`）。
+
+    真链路：真实 `process_pending_downloads(notify_per_record=False)`（cron 批量路径）+
+    真实临时库记录 + 真实逐条处理函数；仅把 **下载引擎**（外部子系统入口）替换为边界桩，
+    并把 `StandardManager`（应用容器）替换为记录用的替身。
+    """
+
+    def test_real_batch_run_fires_summary(self, tmp_path: Path) -> None:
+        """一次真实批量运行结束 ⇒ 发 `batch_download_complete`，载荷为三计数 + 明细。"""
+        from unittest.mock import patch
+
+        from pilotstd.services import favorite_chain_processor as fcp
+        from tests.integration.test_favorite_download_chain_e2e import (  # noqa: PLC0415
+            _FakeOpenstdAdapter,
+            _seed,
+        )
+
+        db_path = str(tmp_path / "batch.db")
+        _seed(db_path)
+        notifier = _RecordingNotifier()
+        mgr = SimpleNamespace(notification_mgr=notifier)
+        adapter = _FakeOpenstdAdapter()
+        inbox = tmp_path / "inbox"
+        found_path = str(tmp_path / "library" / "GBT 1234-2020.pdf")
+
+        with patch("pilotstd.tasks.favorite_download.get_db_path", return_value=db_path), patch(
+            "pilotstd.tasks.favorite_download._get_inbox_dir", return_value=inbox
+        ), patch(
+            "pilotstd.tasks.favorite_download._load_cached_query_result",
+            return_value=MagicMock(hcno="HC123", is_adopted=False),
+        ), patch(
+            "pilotstd.manager.facade.StandardManager", return_value=mgr
+        ), patch(
+            "pilotstd.tasks.favorite_download._find_in_file_index",
+            side_effect=[None, found_path],
+        ), patch(
+            "pilotstd.tasks.favorite_download.time.sleep"
+        ), patch.object(
+            fcp, "get_db_path", return_value=db_path
+        ):
+            fcp.process_pending_downloads(download_engine=None, notify_per_record=False)
+
+        del adapter  # 站点交互由 download_to_inbox 内部经 StandardManager 走引擎（本用例聚焦批量汇总）
+        assert "batch_download_complete" in notifier.events(), f"未发出事件：{notifier.events()}"
+        payload = next(p for n, p in notifier.calls if n == "batch_download_complete")
+        for key in ("success", "failed", "skipped", "details"):
+            assert key in payload, f"载荷缺少 {key}：{payload}"
+
+
+    def test_empty_run_does_not_fire(self, tmp_path: Path) -> None:
+            """反向验证：**无待处理记录**时批量运行不发汇总（防"永远发"的假绿，证明上例非空转）。"""
+            from unittest.mock import patch
+
+            from pilotstd.services import favorite_chain_processor as fcp
+
+            db_path = str(tmp_path / "empty.db")
+            from pilotstd.core.db import Database
+
+            Database(db_path).close()  # 只建库、不塞记录
+            notifier = _RecordingNotifier()
+            mgr = SimpleNamespace(notification_mgr=notifier)
+
+            with patch.object(fcp, "get_db_path", return_value=db_path), patch(
+                "pilotstd.manager.facade.StandardManager", return_value=mgr
+            ):
+                processed = fcp.process_pending_downloads(download_engine=None, notify_per_record=False)
+
+            assert processed == 0, f"空库不应处理任何记录：{processed}"
+            assert "batch_download_complete" not in notifier.events(), f"空库误发事件：{notifier.events()}"
+
+
+class TestStandardStatusChanged:
+    """`standard_status_changed`（提案 §一 第 4 项；接线点 `core/validity_checker.py:100`）。
+
+    真链路：真实 `Database`（走迁移链建表）+ 真实 `ValidityChecker.update_status()`；
+    通知管理器为**边界桩**（应用外部依赖）。`update_status` 内部的 SQL 写入、时间戳与
+    `is_expired` 推导全部真实执行。
+    """
+
+    def test_real_status_change_fires_event(self, tmp_path: Path) -> None:
+        """真实状态变更 ⇒ 发事件，载荷含旧/新状态与 `is_expired` 推导。"""
+        from pilotstd.core.db import Database  # noqa: PLC0415
+        from pilotstd.core.status import Status  # noqa: PLC0415
+        from pilotstd.core.validity_checker import ValidityChecker  # noqa: PLC0415
+
+        db = Database(str(tmp_path / "validity.db"))
+        try:
+            db.execute(
+                "INSERT INTO standard_validity (standard_number, status, created_at, updated_at)"
+                " VALUES (?, ?, datetime('now'), datetime('now'))",
+                ("GB/T 1.1-2020", Status.ACTIVE.value),
+            )
+            notifier = _RecordingNotifier()
+            checker = ValidityChecker(db)
+
+            checker.update_status("GB/T 1.1-2020", Status.WITHDRAWN_NORMALIZED.value, notification_mgr=notifier)
+
+            assert "standard_status_changed" in notifier.events(), f"未发出事件：{notifier.events()}"
+            payload = next(p for n, p in notifier.calls if n == "standard_status_changed")
+            assert payload["old_status"] == Status.ACTIVE.value
+            assert payload["new_status"] == Status.WITHDRAWN_NORMALIZED.value
+            assert payload["is_expired"] is True, "废止状态应推导为已过期"
+            # 真实副作用：状态已落库
+            row = db.fetchone("SELECT status FROM standard_validity WHERE standard_number=?", ("GB/T 1.1-2020",))
+            assert row["status"] == Status.WITHDRAWN_NORMALIZED.value, "状态未真实写库"
+        finally:
+            db.close()

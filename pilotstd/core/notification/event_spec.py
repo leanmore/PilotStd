@@ -127,8 +127,8 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         payload_keys=frozenset({"changed_at", "is_expired", "new_status", "old_status", "standard_number"}),
         security=False, branch_by=None, subscribable=True, aggregation="aggregate",
 
-        verify="manual",
-        verify_reason="real_chain_only",
+        verify="e2e",
+        verify_reason="",
     ),
     EventSpec(key="standard_first_registered", notify_event="task_result", content_type="list",
         task_kind="validity_check",
@@ -247,8 +247,8 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         payload_keys=frozenset({"error", "standard_number"}), security=False, branch_by=None, subscribable=True,
         aggregation="aggregate",
 
-        verify="manual",
-        verify_reason="real_chain_only",
+        verify="e2e",
+        verify_reason="",
     ),
     EventSpec(key="query_empty", notify_event="batch_summary", content_type="text", task_kind="query",
         builder_ref="pilotstd.core.notification._builders_task_results:_build_query_empty_message",
@@ -300,8 +300,8 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         subscribable=True,
         aggregation="aggregate",
 
-        verify="manual",
-        verify_reason="real_chain_only",
+        verify="e2e",
+        verify_reason="",
     ),
     EventSpec(key="normalize_failed", notify_event="task_failure", content_type="text", task_kind="normalize",
         builder_ref="pilotstd.core.notification._builders_task_results:_build_normalize_failed_message",
@@ -531,8 +531,8 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         ), security=False, branch_by=None,
         subscribable=True, aggregation="aggregate",
 
-        verify="manual",
-        verify_reason="real_chain_only",
+        verify="e2e",
+        verify_reason="",
     ),
     EventSpec(key="download_complete", notify_event="task_result", content_type="field_list",
         task_kind="favorite_download",
