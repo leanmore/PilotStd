@@ -544,6 +544,7 @@ A 类管"**事件**是否齐备"（数据完备性）；B 类管"同一事实在
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
+| v1.85 | 2026-10-05 | **阶段 4 · P6 · 4d（第一增量）：新增"类别层契约一致性"门禁级测试** `tests/test_notification_class_layer_contract.py`（4 例）——①前端负载的类别清单与 `mapping.NOTIFY_EVENTS` **同序同集**；②事件→类别映射与 `EVENT_MAPPINGS` **逐项相等**；③每类至少一个事件承接（`manual_test` 例外，设计如此）；④**`spec_hash` 对层级结构敏感**（增删类别/改映射必致哈希变化 ⇒ 前端内容级缓存必失效）。它补的是 G-045 事件级四维度之外的**层级结构维度**；`audit_notification_coverage.py` 的脚本侧维度扩展另行排期 |
 | v1.84 | 2026-10-05 | **阶段 4 · P6 · 4c：`desktop_toast` 正式登记（方案 A）+ 审计摘要改写**。`scripts/audit_notification_coverage.py` 的「未覆盖说明」由"方案 B 显式声明未覆盖"改为"方案 A 已登记"（含新构建器 `_builders_system._build_desktop_toast_message`、三语键 `notification.system.desktop_toast.*`、以及 e2e 的平台层例外 `PLATFORM_EVENTS_BY_DESIGN_UNTRIGGERED`）；同时 G-046（`audit_notification_chain.py`）实测由 **1 项 P2** 收敛为 **问题总数 0**——新构建器的空值守卫按 AST 判定口径改写为"读取表达式本身带守卫"（`data.get("f", "") or ""` 三重保护），此口径已写入构建器注释备查 |
 | v1.83 | 2026-10-05 | 新增 **G-049**（`manager.py` 防膨胀门禁：有效行 ≤ 340，口径与 G-010 一致）；来源 `04-refactor-P.md` §3.1 **P4 判据**（P2 步 C 收口）。阈值余量：实测有效行 **287** ⇒ 余量 **53** 行 |
 | v1.82 | 2026-10-03 | **G-045 脚本按 G-010 压缩**：`audit_notification_coverage.py` 有效行 **408 → 314**（曾越 400 警告线，源于步 B D6 后半段新增的规格读取助手）——四个助手（`spec_declarations` / `spec_closed_sets` / `_builder_defs` / `spec_field_problems`）抽为兄弟模块 `scripts/_notification_spec_read.py`（109 有效行），门禁行为不变（仍只 `ast.parse` 不 import 被检对象，检查项 45/45、阻断 0）|
