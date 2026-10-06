@@ -438,8 +438,24 @@ def spec_payload() -> dict[str, Any]:
     """产出渠道元数据负载（**不含 `spec_hash`**——哈希正是对本体计算的）。
 
     与 `CHANNEL_SPECS` 同序，故响应键序稳定；负载中不含任何凭证值。
+
+    **层级结构签名（2026-10-05 阶段 4 · P6 · 4b，用户裁定"扩 spec_hash"）**：
+    负载额外携带"通知层级结构"两块——
+      · `notify_events`：订阅类别层的 10 类（`mapping.NOTIFY_EVENTS`）；
+      · `event_class_map`：每个业务事件 → 其类别（`mapping.EVENT_MAPPINGS`）。
+    为什么放进**被哈希的负载**而不是另立版本号：单一版本源（`spec_hash`）才能保证"层结构变了 ⇒ 前端缓存必失效"；
+    若另立 `config_layers_version`，每加一层都要同步维护两个版本号，迟早不同步（用户裁定理由原话）。
+    前端据此渲染类别层与高级层，并在 `spec_hash` 变化时重建表单（`NotificationConfig.loadChannelSpecs`）。
     """
-    return {"channels": [_channel_dict(s) for s in CHANNEL_SPECS]}
+    from .mapping import EVENT_MAPPINGS, NOTIFY_EVENTS
+
+    return {
+        "channels": [_channel_dict(s) for s in CHANNEL_SPECS],
+        "notify_events": list(NOTIFY_EVENTS),
+        "event_class_map": {
+            key: entry.notify_event for key, entry in sorted(EVENT_MAPPINGS.items())
+        },
+    }
 
 
 def spec_hash(payload: dict[str, Any]) -> str:

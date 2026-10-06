@@ -24,11 +24,19 @@ router = APIRouter()
 
 
 class PolicyUpdateRequest(BaseModel):
-    """通知策略更新请求体：渠道名、启用状态和订阅事件列表。"""
+    """通知策略更新请求体：渠道名、启用状态、**两层订阅**（类别层 + 高级事件层）。
+
+    两层语义（阶段 4 · P6 · 4b）：
+    · `event_classes`＝**类别层**（10 类，`notify_event`），主入口；
+    · `events`＝**高级层**（41 个业务事件），保留原有表达力。
+    两者**互不覆盖**：传 `None` 表示"本次不动该层"（向后兼容既有调用方），传 `[]` 表示"清空该层"。
+    读侧优先类别层（非空则只用它），见 `_policy.get_channels_for_event`。
+    """
 
     channel: str
     enabled: bool | None = None
     events: list[str] | None = None
+    event_classes: list[str] | None = None
 
 
 @router.get("/api/notification/policy")
@@ -51,7 +59,7 @@ def put_policy(
 ):
     """更新通知策略（仅管理员，按用户隔离）。"""
     try:
-        nmgr.save_policy(user_id, data.channel, data.enabled, data.events)
+        nmgr.save_policy(user_id, data.channel, data.enabled, data.events, data.event_classes)
         return {"ok": True}
     except Exception as e:
         logger.exception(t("notification.api.log_save_policy_failed"))

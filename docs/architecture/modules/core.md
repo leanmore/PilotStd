@@ -102,6 +102,12 @@ pilotstd/core/
 │   │   承载原请求与响应判定（**任一段失败即整体失败，不静默丢段**）；未超长时单段（零行为变更）。
 │   │   **飞书**（卡片 `elements[]`，需按元素分片）**待接**，见统筹日程 P2 备注
 │   ├── channels/              # wechat / feishu / dingtalk / telegram 渠道适配
+│   ├── （2026-10-05 阶段 4 · P6 · **4b-1：层级结构进 spec_hash + 策略 PUT 双层**）：
+│   │   `channel_spec.spec_payload()` 增两块——`notify_events`（类别层 10 类，取自 `mapping.NOTIFY_EVENTS`）
+│   │   与 `event_class_map`（事件→类别，取自 `EVENT_MAPPINGS`）；二者**进入被哈希的负载** ⇒
+│   │   "层结构变了 ⇒ `spec_hash` 必变 ⇒ 前端内容级缓存必失效"（用户裁定：单一版本源优于另立层版本字段）。
+│   │   `docker/api/notification_policy.py::PolicyUpdateRequest` 增 `event_classes` 并转发给
+│   │   `save_policy(...)`（4a 已支持该参数，两层互不覆盖：`None`＝不动该层、`[]`＝清空）
 │   ├── （2026-10-05 阶段 4 · P6 · **4c：平台层事件登记**）：`desktop_toast` 由"方案 B 显式声明未覆盖"
 │   │   转为**正式登记**（Q10 裁决）——`events.py` 新增常量 + `ALL_EVENTS` 条目（**41 → 42**）、
 │   │   `event_spec.py` 新增规格（归 `system_health`、`task_kind=""`、`subscribable=False`、

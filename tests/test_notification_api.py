@@ -314,8 +314,13 @@ def test_channels_endpoint_shape(notif_client_and_db, notif_cookies):
 
     client, _ = notif_client_and_db
     body = _get_channels(client, notif_cookies)
-    assert set(body) == {"spec_hash", "channels"}
+    # 阶段 4 · P6 · 4b：负载新增"通知层级结构签名"两块（进哈希 ⇒ 层结构变化必致缓存失效）
+    assert set(body) == {"spec_hash", "channels", "notify_events", "event_class_map"}
     assert isinstance(body["spec_hash"], str) and len(body["spec_hash"]) == 16
+    assert isinstance(body["notify_events"], list) and body["notify_events"], "类别层清单不得为空"
+    assert isinstance(body["event_class_map"], dict) and body["event_class_map"], "事件→类别映射不得为空"
+    # 映射值必须落在类别清单内（前端据此渲染两层，错值会让类别层勾选失效）
+    assert set(body["event_class_map"].values()) <= set(body["notify_events"])
     assert len(body["channels"]) == len(CHANNEL_SPECS)
     for ch in body["channels"]:
         assert set(ch) == _CHANNEL_TOP_KEYS, f"{ch['name']} 顶层键不符"
