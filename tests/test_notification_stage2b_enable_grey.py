@@ -480,8 +480,10 @@ EXPECTED_TASK_KIND: dict[str, str] = {
     "quota_exhausted": "",
     "validity_standard_failed": "validity_check",
     "validity_system_failed": "validity_check",
-    # system_health（1）
+    # system_health（2：含阶段 4 · P6 · 4c 登记的平台层事件）
     "notification_delivery_failed": "",
+    # 平台层：L2 桌面弹层回显，不是用户交办的任务 ⇒ task_kind 为空
+    "desktop_toast": "",
     # schedule_reminder（2）
     "date_reminder": "",
     "standard_status_changed": "validity_check",
@@ -573,7 +575,8 @@ class TaskKindPersistenceAcrossAllEvents(unittest.TestCase):
                     task_kind_to_task_type(EXPECTED_TASK_KIND[ev]),
                 )
 
-        self.assertEqual(len(triggered), 41)
+        # 42 = 原 41 + `desktop_toast`（阶段 4 · P6 · 4c 登记的平台层事件）
+        self.assertEqual(len(triggered), 42)
         # 十类中至少九类有事件承接（manual_test 无业务事件，设计如此；2026-10-05 S-1 分类扩展后为 9）
         categories = {r["notify_event"] for r in rows.values()}
         self.assertEqual(len(categories), 9)

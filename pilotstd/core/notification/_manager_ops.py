@@ -25,7 +25,7 @@ from typing import TYPE_CHECKING, Any
 from ..db import Database
 from . import _json_codec
 from .channel import NotificationMessage
-from .mapping import EVENT_MAPPINGS, project
+from .mapping import EVENT_MAPPINGS, NOTIFY_EVENTS, project
 from .specs import specs_to_jsonable
 from .stage import is_mapping_enabled
 
@@ -251,4 +251,22 @@ def notify_event_of(event_type: str) -> str:
     """
     entry = EVENT_MAPPINGS.get(event_type)
     return str(getattr(entry, "notify_event", "") or "")
+
+
+def notify_layers() -> tuple[list[str], dict[str, str]]:
+    """返回**通知层级结构签名**：`(类别清单, 事件→类别映射)`。
+
+    用途（阶段 4 · P6 · 4b）：渠道元数据负载（`channel_spec.spec_payload()`）需要把它放进
+    **被 `spec_hash` 哈希的本体**里，使"层结构变化 ⇒ 前后端缓存必失效"。
+
+    **为什么放在本模块**：与 `notify_event_of` 同因——mapping 只允许一个集成点
+    （防腐测试 `TestWiringBoundaries::test_mapping_module_not_imported_elsewhere`）；
+    其它模块要层级结构必须经本模块转一手，不得各自 `import mapping`。
+    """
+    classes = [str(name) for name in NOTIFY_EVENTS]
+    mapping = {
+        key: str(getattr(entry, "notify_event", "") or "")
+        for key, entry in sorted(EVENT_MAPPINGS.items())
+    }
+    return classes, mapping
 

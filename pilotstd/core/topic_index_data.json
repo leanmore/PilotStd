@@ -41,7 +41,8 @@
     "favorite_created": "download",
     "favorite_abandoned_summary": "download",
     "download_started": "download",
-    "announcement_check_complete": "announce"
+    "announcement_check_complete": "announce",
+    "desktop_toast": "desktop"
   },
   "legacy_topic_keywords": [
     [

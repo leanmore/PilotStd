@@ -447,14 +447,13 @@ def spec_payload() -> dict[str, Any]:
     若另立 `config_layers_version`，每加一层都要同步维护两个版本号，迟早不同步（用户裁定理由原话）。
     前端据此渲染类别层与高级层，并在 `spec_hash` 变化时重建表单（`NotificationConfig.loadChannelSpecs`）。
     """
-    from .mapping import EVENT_MAPPINGS, NOTIFY_EVENTS
+    from ._manager_ops import notify_layers
 
+    classes, class_map = notify_layers()
     return {
         "channels": [_channel_dict(s) for s in CHANNEL_SPECS],
-        "notify_events": list(NOTIFY_EVENTS),
-        "event_class_map": {
-            key: entry.notify_event for key, entry in sorted(EVENT_MAPPINGS.items())
-        },
+        "notify_events": classes,
+        "event_class_map": class_map,
     }
 
 

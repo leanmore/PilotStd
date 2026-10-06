@@ -7,12 +7,19 @@ import zhCN from '@/locales/zh-CN.json'
 import en from '@/locales/en.json'
 import NotificationConfig from './NotificationConfig.vue'
 
-const { getNotificationConfigMock, putNotificationConfigMock, testNotificationMock, getNotificationChannelsMock, getNotificationSpecMock } = vi.hoisted(() => ({
+const {
+  getNotificationConfigMock, putNotificationConfigMock, testNotificationMock,
+  getNotificationChannelsMock, getNotificationSpecMock,
+  getNotificationPoliciesMock, putNotificationPolicyMock,
+} = vi.hoisted(() => ({
   getNotificationConfigMock: vi.fn(),
   putNotificationConfigMock: vi.fn(),
   testNotificationMock: vi.fn(),
   getNotificationChannelsMock: vi.fn(),
   getNotificationSpecMock: vi.fn(),
+  // 阶段 4 · P6 · 4b：双层订阅与"吞错可见化"回归需要它们（默认值在 beforeEach 里给）
+  getNotificationPoliciesMock: vi.fn(),
+  putNotificationPolicyMock: vi.fn(),
 }))
 
 vi.mock('@/api/notification', () => ({
@@ -21,6 +28,8 @@ vi.mock('@/api/notification', () => ({
   testNotification: testNotificationMock,
   getNotificationChannels: getNotificationChannelsMock,
   getNotificationSpec: getNotificationSpecMock,
+  getNotificationPolicies: getNotificationPoliciesMock,
+  putNotificationPolicy: putNotificationPolicyMock,
 }))
 /** 渠道元数据夹具：形状与 `GET /api/notification/channels` 一致（字段取最小可用集） */
 const CHANNEL_FIXTURE = {
@@ -110,6 +119,8 @@ describe('NotificationConfig', () => {
       },
       rules: {},
     })
+    getNotificationPoliciesMock.mockResolvedValue({ policies: [] })
+    putNotificationPolicyMock.mockResolvedValue({ ok: true })
   })
 
   it('渲染总开关', async () => {
@@ -193,5 +204,82 @@ describe('NotificationConfig', () => {
     const html = wrapper.html()
     expect(html).toContain('公告抓取完成')
     expect(html).not.toContain('>公告抓取<')
+  })
+
+  // ── 阶段 4 · P6 · 4b：双层订阅与缓存判据（用户点名的两条回归）────────────────────
+
+  /** 带层级结构的渠道夹具：`notify_events` + `event_class_map` 随 spec_hash 一起变化 */
+  function layerFixture(hash: string, classes: string[]) {
+    return {
+      ...CHANNEL_FIXTURE,
+      spec_hash: hash,
+      notify_events: classes,
+      event_class_map: Object.fromEntries(classes.map(c => [`ev_for_${c}`, c])),
+    }
+  }
+
+  it('层结构变化（spec_hash 变）⇒ 表单重建、新类别层可见；哈希未变则不重建', async () => {
+    getNotificationChannelsMock.mockResolvedValue(layerFixture('hash-1', ['task_result']))
+    const wrapper = mountConfig()
+    await new Promise(r => setTimeout(r, 10))
+    await wrapper.vm.$nextTick()
+    await wrapper.vm.$nextTick()
+    expect(wrapper.html()).toContain('id="wechat-cls-task_result"')
+
+    // ① 哈希未变 + 类别层变了（异常情形）⇒ 命中内容级缓存早退，**不重建**（证明缓存判据存在）
+    getNotificationChannelsMock.mockResolvedValue(layerFixture('hash-1', ['task_result', 'security_alert']))
+    await (wrapper.vm as unknown as { saveConfig: () => Promise<void> }).saveConfig()
+    await wrapper.vm.$nextTick()
+    expect(wrapper.html()).not.toContain('id="wechat-cls-security_alert"')
+
+    // ② 哈希变化（层结构签名进哈希）=⇒ 重建，新类别层可见（这正是 4b-1 让层签名进 hash 的目的）
+    getNotificationChannelsMock.mockResolvedValue(layerFixture('hash-2', ['task_result', 'security_alert']))
+    await (wrapper.vm as unknown as { saveConfig: () => Promise<void> }).saveConfig()
+    await wrapper.vm.$nextTick()
+    await wrapper.vm.$nextTick()
+    expect(wrapper.html()).toContain('id="wechat-cls-security_alert"')
+  })
+
+  it('策略层写入失败 ⇒ UI 可见且不谎报（两类文案区分）', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    putNotificationPolicyMock.mockRejectedValue(new Error('policy api down'))
+    const wrapper = mountConfig()
+    await new Promise(r => setTimeout(r, 10))
+    await wrapper.vm.$nextTick()
+    await (wrapper.vm as unknown as { saveConfig: () => Promise<void> }).saveConfig()
+    await wrapper.vm.$nextTick()
+    await wrapper.vm.$nextTick()
+
+    const html = wrapper.html()
+    // 用户可见：明确点出"哪些渠道的策略层未落库"，不谎报全部成功
+    expect(html).toContain('策略层未落库的渠道')
+    // 开发者可见：ASCII console.warn（G-040 只允许用户文案走 t()）
+    expect(warnSpy).toHaveBeenCalled()
+    expect(String(warnSpy.mock.calls[0][0])).toContain('policy layer write failed')
+    warnSpy.mockRestore()
+  })
+
+  it('策略读取失败 ⇒ 提示"策略服务读取失败"，与"策略为空"文案不同', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    getNotificationPoliciesMock.mockRejectedValue(new Error('policy api down'))
+    const wrapper = mountConfig()
+    await new Promise(r => setTimeout(r, 10))
+    await wrapper.vm.$nextTick()
+    await wrapper.vm.$nextTick()
+
+    const html = wrapper.html()
+    expect(html).toContain('策略服务读取失败')
+    // "策略为空"时不得出现该失败提示（空策略是正常状态，默认 mock 即返回空）
+    expect(warnSpy).toHaveBeenCalled()
+    warnSpy.mockRestore()
+
+    warnSpy.mockClear()
+    // 恢复正常返回（"策略为空"是正常状态）——先前的 mockRejectedValue 会一直生效到本次重置
+    getNotificationPoliciesMock.mockResolvedValue({ policies: [] })
+    const ok = mountConfig()
+    await new Promise(r => setTimeout(r, 10))
+    await ok.vm.$nextTick()
+    await ok.vm.$nextTick()
+    expect(ok.html()).not.toContain('策略服务读取失败')
   })
 })

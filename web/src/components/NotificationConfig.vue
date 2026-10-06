@@ -29,12 +29,18 @@ function eventLabel(type: string): string {
 
 /**
  * 表单状态：字段集合由渠道 spec 动态决定（不再是"每渠道 8 字段超集"的硬编码），
- * 故用索引签名承载；`enabled`/`events` 是不属于 spec 字段的固定槽位。
+ * 故用索引签名承载；`enabled`/`events`/`eventClasses` 是不属于 spec 字段的固定槽位。
+ *
+ * **两层订阅（阶段 4 · P6 · 4b）**：
+ * · `eventClasses`＝**类别层**（10 类，主入口；非空时后端读侧优先用它）；
+ * · `events`＝**高级层**（41 个业务事件，保留原有表达力）。
+ * 二者在 UI 上并列呈现、在后端互不覆盖。
  */
 interface ChannelFormState {
   enabled: boolean
   events: string[]
-  /** 渠道字段值（键为 spec 的 field.name）；与 enabled/events 分离以保持类型精确 */
+  eventClasses: string[]
+  /** 渠道字段值（键为 spec 的 field.name）；与 enabled/events/eventClasses 分离以保持类型精确 */
   fields: Record<string, string>
 }
 
@@ -43,11 +49,27 @@ const enabled = ref(false)
 const specs = ref<ChannelSpec[]>([])
 const channels = ref<Record<string, ChannelFormState>>({})
 const specHash = ref('')
+/** 类别层清单（10 类 `notify_event`）+ 事件→类别映射：与渠道元数据同源下发（进 spec_hash ⇒ 层变即缓存失效） */
+const NOTIFY_EVENTS = ref<string[]>([])
+const EVENT_CLASS_MAP = ref<Record<string, string>>({})
+/** 策略层加载状态：区分"策略 API 失败"与"策略为空"（用户裁定：吞错必须可见，且两者不可混淆） */
+const policyLoadFailed = ref(false)
+/** 保存时策略层写入失败的渠道名（非空 ⇒ UI 明确提示"未落库"，不谎报已保存） */
+const policySaveFailures = ref<string[]>([])
 const loading = ref(false)
 const saving = ref(false)
 const saved = ref(false)
 const errMsg = ref('')
 const testResults = ref<Record<string, string>>({})
+
+/**
+ * 类别层标签：文案 key = `notification.class.<cls>`（与后端 `mapping.NOTIFY_EVENTS` 的 10 类一一对应）。
+ * 与 `eventLabel` 同款兜底：i18n 缺键时回退显示原始类别名，**不显示空白**。
+ */
+function classLabel(cls: string): string {
+  const key = `notification.class.${cls}`
+  return te(key) ? t(key) : cls
+}
 
 // 可订阅的事件类型（后端 event_type 原值）；文案 key = notification.event.<type>（与日志页共用）
 // 可订阅的事件类型（**来自后端事件规格**，D5：前端零硬编码）；
@@ -123,10 +145,18 @@ async function loadChannelSpecs(force = false) {
   if (!force && specHash.value === resp.spec_hash && specs.value.length) return
   specHash.value = resp.spec_hash
   specs.value = resp.channels
+  // 层级结构随渠道元数据同源下发；它**进了 spec_hash** ⇒ 层变时上面的早退不会命中（表单会重建）
+  NOTIFY_EVENTS.value = resp.notify_events ?? []
+  EVENT_CLASS_MAP.value = resp.event_class_map ?? {}
   const next: Record<string, ChannelFormState> = {}
   const open: Record<string, boolean> = {}
   for (const spec of resp.channels) {
-    const form: ChannelFormState = { enabled: spec.enabled_default, events: [], fields: {} }
+    const form: ChannelFormState = {
+      enabled: spec.enabled_default,
+      events: [],
+      eventClasses: [],
+      fields: {},
+    }
     for (const f of spec.fields) form.fields[f.name] = ''
     next[spec.name] = form
     open[spec.name] = channelOpen.value[spec.name] ?? false
@@ -156,14 +186,24 @@ async function loadConfig() {
       form.events = events
     }
 
-    // 尝试从策略 API 加载事件订阅（优先于 config.json rules）
+    // 尝试从策略 API 加载**两层**订阅（优先于 config.json rules）
+    // **吞错可见化（用户裁定）**：失败时置 `policyLoadFailed` 并 `console.warn`，
+    // 但**不**把它与"策略为空"混为一谈——前者是故障、后者是正常状态。
+    policyLoadFailed.value = false
     try {
       const { policies } = await getNotificationPolicies()
       for (const p of policies ?? []) {
         const form = channels.value[p.channel]
-        if (form) form.events = [...p.events]
+        if (!form) continue
+        form.events = [...(p.events ?? [])]
+        form.eventClasses = [...(p.event_classes ?? [])]
       }
-    } catch { /* 策略 API 不可用时保持 config.json rules */ }
+    } catch (e: unknown) {
+      policyLoadFailed.value = true
+      // 开发者日志用 ASCII：G-040（前端 i18n 硬编码检查）只允许用户可见文案走 t()，
+      // 这条是给开发者看的诊断 ⇒ 不进 locales（用户可见提示见模板里的 policy_load_failed）。
+      console.warn('[notification] policy API read failed; fell back to config.json rules', e)
+    }
   } catch (e: unknown) {
     const err = e as { response?: { data?: { error?: string } } }
     errMsg.value = err.response?.data?.error || t('notification.config.load_failed')
@@ -182,7 +222,7 @@ async function saveConfig() {
     // P1 修复：**需掩码**字段增量提交——掩码回显值（含 *）或空值不提交，保留 DB 原值。
     // "是否需掩码"来自 spec 的 `field.mask`（后端同一份声明），不再硬编码字段名清单。
     const cleanChannel = (spec: ChannelSpec): Record<string, unknown> => {
-      const form = channels.value[spec.name] ?? { enabled: false, events: [], fields: {} }
+      const form = channels.value[spec.name] ?? { enabled: false, events: [], eventClasses: [], fields: {} }
       const cleaned: Record<string, unknown> = {}
       for (const f of spec.fields) {
         const v = form.fields[f.name]
@@ -203,14 +243,23 @@ async function saveConfig() {
       channels: payloadChannels as NotificationConfigUpdate['channels'],
       rules: newRules,
     })
-    // 同时保存事件订阅到策略表（按 spec 的渠道名遍历）
+    // 同时保存**两层**订阅到策略表（按 spec 的渠道名遍历）
+    // **吞错可见化（用户裁定）**：失败不再静默——`console.warn` + 收集失败渠道名，
+    // 由模板显示"未落库"提示，避免"看起来保存成功、实际类别层没落库"。
+    policySaveFailures.value = []
     for (const spec of specs.value) {
+      const form = channels.value[spec.name]
       try {
         await putNotificationPolicy({
           channel: spec.name,
-          events: (channels.value[spec.name]?.events ?? []) as string[],
+          events: (form?.events ?? []) as string[],
+          event_classes: (form?.eventClasses ?? []) as string[],
         })
-      } catch { /* 策略 API 不可用时静默降级 */ }
+      } catch (e: unknown) {
+        policySaveFailures.value = [...policySaveFailures.value, spec.name]
+        // ASCII 开发者日志（同 policyLoadFailed 的理由）；用户可见提示走 i18n 的 policy_save_failed
+        console.warn(`[notification] policy layer write failed for channel ${spec.name}`, e)
+      }
     }
     // spec 可能已变（哈希变则重建表单并回填）；未变时本调用不做任何事
     await loadChannelSpecs()
@@ -278,6 +327,13 @@ onMounted(() => {
 <template>
   <div>
     <Message v-if="errMsg" severity="error" :closable="false">{{ errMsg }}</Message>
+    <!-- 吞错可见化（用户裁定）：**策略 API 失败** 与 **策略为空** 是两件事，文案必须区分、不得混为一谈 -->
+    <Message v-if="policyLoadFailed" severity="warn" :closable="false">
+      {{ t('notification.config.policy_load_failed') }}
+    </Message>
+    <Message v-if="policySaveFailures.length" severity="warn" :closable="false">
+      {{ t('notification.config.policy_save_failed', { channels: policySaveFailures.join('、') }) }}
+    </Message>
     <Message v-if="saved" severity="success" :closable="false">{{ t('notification.config.saved') }}</Message>
 
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
@@ -326,13 +382,31 @@ onMounted(() => {
             <label style="font-size:12px;color:var(--text-dim)">{{ t('notification.config.enable_channel') }}</label>
           </div>
 
+          <!-- ① 类别层（10 类）：订阅主入口；非空时后端读侧优先用它 -->
           <div class="events-row">
-            <label class="events-label">{{ t('notification.config.events_label') }}</label>
-            <div v-for="ev in EVENTS" :key="ev" class="checkbox-field">
-              <Checkbox v-model="channels[ch.name].events" :value="ev" :input-id="`${ch.name}-${ev}`" />
-              <label :for="`${ch.name}-${ev}`">{{ eventLabel(ev) }}</label>
+            <label class="events-label">{{ t('notification.config.classes_label') }}</label>
+            <div v-for="cls in NOTIFY_EVENTS" :key="cls" class="checkbox-field">
+              <Checkbox v-model="channels[ch.name].eventClasses" :value="cls" :input-id="`${ch.name}-cls-${cls}`" />
+              <label :for="`${ch.name}-cls-${cls}`">{{ classLabel(cls) }}</label>
             </div>
+            <p style="font-size:11px;color:var(--text-dim);margin:4px 0 0">
+              {{ t('notification.config.classes_hint') }}
+            </p>
           </div>
+
+          <!-- ② 高级层（41 个业务事件）：默认折叠，保留原有表达力 -->
+          <details class="events-advanced">
+            <summary style="font-size:12px;color:var(--text-dim);cursor:pointer">
+              {{ t('notification.config.advanced_label') }}
+            </summary>
+            <div class="events-row">
+              <label class="events-label">{{ t('notification.config.events_label') }}</label>
+              <div v-for="ev in EVENTS" :key="ev" class="checkbox-field">
+                <Checkbox v-model="channels[ch.name].events" :value="ev" :input-id="`${ch.name}-${ev}`" />
+                <label :for="`${ch.name}-${ev}`">{{ eventLabel(ev) }}</label>
+              </div>
+            </div>
+          </details>
           </div>
         </transition>
       </div>

@@ -66,7 +66,8 @@ class TestTableCompleteness(unittest.TestCase):
     def test_registry_covers_exactly_the_registered_events(self):
         """映射表的键集合必须与事件注册表**双向**一致（多一个孤儿键也算失败）。"""
         self.assertEqual(set(EVENT_MAPPINGS), set(ALL_EVENT_KEYS))
-        self.assertEqual(len(EVENT_MAPPINGS), 41, "已注册事件应为 41 个")
+        # 42 = 原 41 + `desktop_toast`（阶段 4 · P6 · 4c 正式登记的平台层事件；Q10 裁决）
+        self.assertEqual(len(EVENT_MAPPINGS), 42, "已注册事件应为 42 个")
 
     def test_field_value_domains(self):
         for key, m in EVENT_MAPPINGS.items():
@@ -99,14 +100,17 @@ class TestTableCompleteness(unittest.TestCase):
             "anomaly_alert": 7,
             "security_alert": 5,
             "schedule_reminder": 2,
-            "system_health": 1,
+            # system_health：1 → **2**（阶段 4 · P6 · 4c 登记平台层事件 `desktop_toast`，与
+            # `notification_delivery_failed` 同属"系统自身/平台层"桶）
+            "system_health": 2,
             "manual_test": 0,  # 无业务事件承接（仅 POST /api/notification/test 用）
         }
         for name, want in expected.items():
             with self.subTest(notify_event=name):
                 self.assertEqual(actual.get(name, 0), want)
         self.assertEqual(sum(actual.values()), len(ALL_EVENT_KEYS))
-        self.assertEqual(sum(expected.values()), 41)
+        # 42 = 原 41 + `desktop_toast`（平台层事件，2026-10-05 · 4c）
+        self.assertEqual(sum(expected.values()), 42)
 
     def test_no_event_mapped_to_manual_test(self):
         """`manual_test` 不得承接任何业务事件（它是测试专用类型）。"""

@@ -933,6 +933,23 @@
       "optional_short": "optional",
       "enable_channel": "Enable this channel",
       "events_label": "Event subscriptions:",
+      "classes_label": "Category subscriptions (10 classes):",
+      "classes_hint": "The category layer wins when non-empty; if empty, the advanced layer (per business event) below applies.",
+      "advanced_label": "Advanced: per business event (41)",
+      "policy_load_failed": "Policy service read failed: fell back to config-file rules; layer subscriptions were not loaded (this differs from \"policy is empty\" — please check the service).",
+      "policy_save_failed": "Policy layer not persisted for: {channels}; the config file was saved, but the category layer is not in effect.",
+      "class": {
+        "task_progress": "Task in progress",
+        "task_result": "Task succeeded",
+        "task_failure": "Task failed",
+        "user_activity": "Daily activity",
+        "batch_summary": "Batch summary",
+        "anomaly_alert": "Anomaly alert",
+        "security_alert": "Security alert",
+        "schedule_reminder": "Scheduled reminder",
+        "system_health": "System health",
+        "manual_test": "Manual test"
+      },
       "status": {
         "disabled": "Disabled",
         "configured": "Configured",

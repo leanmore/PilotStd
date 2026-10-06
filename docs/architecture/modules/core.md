@@ -102,6 +102,13 @@ pilotstd/core/
 │   │   承载原请求与响应判定（**任一段失败即整体失败，不静默丢段**）；未超长时单段（零行为变更）。
 │   │   **飞书**（卡片 `elements[]`，需按元素分片）**待接**，见统筹日程 P2 备注
 │   ├── channels/              # wechat / feishu / dingtalk / telegram 渠道适配
+│   ├── （2026-10-05 阶段 4 · P6 · **4b-2：前端双层 + 吞错可见化**）：前端 `NotificationConfig.vue` 以
+│   │   **类别层（10 类）为主入口**、把 41 项业务事件收进折叠的"高级"层；保存时**两层都写**
+│   │   （`putNotificationPolicy` 带 `event_classes`）；**吞错可见化**——策略读/写失败一律 `console.warn`
+│   │   （**ASCII**，G-040 只管用户文案）+ UI 提示，且**区分"策略 API 失败"与"策略为空"**。
+│   │   缓存判据由 4b-1 的 `spec_hash` 承载（层结构变化 ⇒ 前端内容级缓存自动失效重建）。
+│   │   另：`pilotstd/core/topic_index_data.json` 登记 `desktop_toast → desktop`（新主题，聚合分组用；
+│   │   主题是内部数据串、无 i18n 文案）
 │   ├── （2026-10-05 阶段 4 · P6 · **4b-1：层级结构进 spec_hash + 策略 PUT 双层**）：
 │   │   `channel_spec.spec_payload()` 增两块——`notify_events`（类别层 10 类，取自 `mapping.NOTIFY_EVENTS`）
 │   │   与 `event_class_map`（事件→类别，取自 `EVENT_MAPPINGS`）；二者**进入被哈希的负载** ⇒

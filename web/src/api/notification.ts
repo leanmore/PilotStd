@@ -129,9 +129,15 @@ export interface ChannelSpec {
 }
 
 export interface NotificationChannelsResponse {
-  /** 负载本体的规范化 JSON 哈希（前 16 位）：变化即需重建表单（内容级缓存失效） */
+  /** 负载本体的规范化 JSON 哈希（前 16 位）：变化即需重建表单（内容级缓存失效）。
+   * **阶段 4 · P6 · 4b**：哈希输入含**层级结构签名**（`notify_events` + `event_class_map`）
+   * ⇒ 层结构变化必然改变该值，前端"内容级缓存早退"会正确失效。 */
   spec_hash: string
   channels: ChannelSpec[]
+  /** 类别层：可订阅的 `notify_event` 10 类（订阅主入口；顺序即后端声明顺序） */
+  notify_events: string[]
+  /** 事件 → 类别映射（前端据此把高级层的 41 项归到类别下） */
+  event_class_map: Record<string, string>
 }
 
 export const getNotificationChannels = (routeTag?: RouteTag): Promise<NotificationChannelsResponse> =>
@@ -174,7 +180,10 @@ export interface NotificationPolicy {
   id: number
   channel: string
   enabled: boolean
+  /** 高级层：41 个业务事件（保留原有表达力） */
   events: string[]
+  /** 类别层：`notify_event` 10 类（**非空时读侧优先用它**，见后端 `_policy.get_channels_for_event`） */
+  event_classes: string[]
   updated_at: string
 }
 
@@ -185,6 +194,8 @@ export const putNotificationPolicy = (data: {
   channel: string
   enabled?: boolean
   events?: string[]
+  /** 类别层（10 类）；`undefined`＝本次不动该层，`[]`＝清空该层 */
+  event_classes?: string[]
 }): Promise<{ ok: boolean }> =>
   http.put('/notification/policy', data).then(r => r.data)
 
