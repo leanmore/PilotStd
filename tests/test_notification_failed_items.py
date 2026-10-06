@@ -229,6 +229,29 @@ def test_group_key_daily_user_activity_converges_without_entity() -> None:
     assert agg._group_key(t1) != agg._group_key(t2)
 
 
+def test_group_key_daily_bucket_covers_all_three_scenarios() -> None:
+    """需求②三场景（公告拉取 / 收藏 / 收藏转下载）必须落进**同一个"日常桶"** ⇒ 窗口内合成一条。
+
+    前两者 `notify_event == "user_activity"`；第三者是收藏链的下载事件（`task_kind == "favorite_download"`，
+    类别属 `task_*`）——若按类别分组就会各发一条，正是需求②要消除的连发。
+    """
+    agg = _agg()
+    announcement = NotificationMessage(
+        title="t", event_type="announcement_fetch_complete", notify_event="user_activity", target_id="std-a"
+    )
+    favorite = NotificationMessage(
+        title="t", event_type="favorite_created", notify_event="user_activity", target_id="std-b"
+    )
+    # 收藏转下载：类别属 task_result，但 task_kind 标示它属于收藏链 ⇒ 必须与上面两者同桶
+    favorite_download = NotificationMessage(
+        title="t", event_type="download_complete", notify_event="task_result", target_id="std-c"
+    )
+    favorite_download.task_kind = "favorite_download"
+    keys = {agg._group_key(m) for m in (announcement, favorite, favorite_download)}
+    assert len(keys) == 1, "需求②三场景必须同组（否则仍会连发多条）"
+    assert agg._group_entity(next(iter(keys))) == ""
+
+
 def test_group_key_batch_path_and_daily_path() -> None:
     """①批次路径 = 批次 × 收敛类（不含实体）；②日常路径 = 收敛类 × 实体。"""
     agg = _agg()

@@ -96,9 +96,10 @@ pilotstd/core/
 │   ├── （2026-10-05 需求①/②收口）：①**失败明细分组合计**——`build_failed_items_block` 按
 │   │   `(error_type, standard_number, standard_name)` **归并**，每行"总数"列为该组合条数、
 │   │   `ListBlock.total` 为失败条数**总和**（需求原文"各自总数有多少"；退化成逐条一行会刷屏）；
-│   │   ②**日常动作跨实体收敛**——`_group_key` 的②路径对 `notify_event == "user_activity"`
-│   │   （公告拉取/收藏）**不带实体**成组 ⇒ 时间窗内合成一条（需求②"不要短时间内连发多条"），
-│   │   信息不丢由 Z-21 的"全量块保留"保证；其余类别（`task_*` 终局）仍按实体分组
+│   │   ②**日常场景共用"日常桶"**——`_group_key` 的②路径对 `notify_event == "user_activity"`
+│   │   （公告拉取/收藏）**或 `task_kind == "favorite_download"`**（收藏转下载，类别属 `task_*`）
+│   │   一律返回 `2<SEP>daily` ⇒ 需求②三场景在同一时间窗内**合成一条**（信息不丢由 Z-21 全量块保留保证）；
+│   │   其余类别（非收藏链的任务终局/告警）仍按 `notify_event × target_id` 分组
 │   ├── （2026-10-05 通知聚合 B1 · E2 批次键搬运）：`_dispatcher.py::send_event` 在构建消息后把 payload 的
 │   │   **`correlation_id`** 搬进 `NotificationMessage.correlation_id`（空值＝"非批次路径"）——构建器**不感知批次**，
 │   │   批次标识由调用方在导入/批量入口生成（如 `download_batch()` 的 `dl-<uuid8>`）；该键决定聚合器走

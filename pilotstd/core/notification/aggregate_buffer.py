@@ -275,13 +275,17 @@ class NotificationAggregator:
         batch = (getattr(msg, "correlation_id", "") or "").strip()
         if batch:
             return f"1{_GROUP_SEP}{batch}{_GROUP_SEP}{notify}"
-        # ②日常路径：`user_activity`（公告拉取 / 收藏 等日常动作）**按收敛类成组、不带实体**——
-        # 需求②原文"公告拉取/收藏/收藏转下载 → 时间窗内聚合成 1 条，不要短时间内连发多条"；
-        # 若带实体，同一类下的不同标准/条目会各发一条，正是需求②要消除的"连发"。
+        # ②日常路径（需求②原文："公告拉取/收藏/收藏转下载 → 时间窗内聚合成 1 条，不要短时间内连发多条"）：
+        # 这三类场景刻意**共用一个"日常桶"**（`2<SEP>daily`）——
+        #   · 公告拉取/收藏 ⇒ `notify_event == "user_activity"`；
+        #   · 收藏转下载 ⇒ `task_kind == "favorite_download"`（同一业务链，跨 `task_*` 类别）。
+        # 若按 `notify_event × target_id` 分组，这三类会各发一条（正是需求②要消除的"连发"）；
         # 信息不丢：聚合器按 Z-21 保留**全部条目**的 blocks（不再只留首条）。
-        # 其余类别（task_* 等任务终局）**保留实体维度**：不同对象的结果混成一条会误导用户。
-        if notify == "user_activity":
-            return f"2{_GROUP_SEP}{notify}"
+        # 其余类别（非收藏链的任务终局/告警等）仍按 `notify_event × target_id` 分组——不同对象/不同业务链
+        # 的结果混成一条会误导用户。
+        task_kind = (getattr(msg, "task_kind", "") or "").strip()
+        if notify == "user_activity" or task_kind == "favorite_download":
+            return f"2{_GROUP_SEP}daily"
         return f"2{_GROUP_SEP}{notify}{_GROUP_SEP}{entity}" if entity else f"2{_GROUP_SEP}{notify}"
 
     @staticmethod
