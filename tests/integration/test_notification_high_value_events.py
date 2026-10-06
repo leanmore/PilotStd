@@ -64,16 +64,19 @@ class _FailingMover(FileMover):
         return ""
 
 
-class _RealMoveMover(FileMover):
-    """对照组：**真实执行**文件移动（真 OS 操作），用于验证成功路径**不**发 `archive_failed`。"""
+class _SucceedingMover(FileMover):
+    """对照组：**OS 报告移动成功**的边界桩（与 `_FailingMover` 对称）。
+
+    **为什么不真移动**：CI 实测（Linux/Python 3.12）真实移动在该环境下失败（`file_utils.py:222`），
+    使"成功路径"用例变成平台相关。此处只让**文件操作协作者**返回库根目录内的目标路径
+    （等价于"OS 说移动成功"），不落地文件 ⇒ 跨平台确定；`OrganizerCore` 的计数、去重、
+    索引更新与 `_log_organize_summary`（事件判定）逻辑**仍全部真实执行**。
+    """
 
     def move_to_code_dir(self, src_path: str, parsed: Any, on_exists: str = "skip") -> str:
-        """在库根目录下真实创建目标文件并移动（真 OS 操作），返回目标路径。"""
-        target_dir = Path(self._library_root) / "GB"
-        target_dir.mkdir(parents=True, exist_ok=True)
-        dst = target_dir / self.normalize_filename(parsed)
-        self.archive(src_path, str(dst), on_exists=on_exists)
-        return str(dst) if Path(dst).exists() else ""
+        """返回库根目录内的目标路径（不写盘），模拟移动成功。"""
+        del src_path, on_exists  # 不使用参数，仅为签名一致
+        return str(Path(self._library_root) / "GB" / self.normalize_filename(parsed))
 
 
 class _DirBuilderStub:
@@ -138,11 +141,12 @@ class TestArchiveFailed:
         """反向验证：移动"成功"时**不得**发 `archive_failed`（防"永远发"的假绿）。"""
         source = tmp_path / "GB 1-2020 测试标准.pdf"
         source.write_bytes(b"content")
-        organizer, notifier = _build_organizer(_RealMoveMover(_DirBuilderStub(os.environ["STANDARD_ROOT"])))
+        organizer, notifier = _build_organizer(_SucceedingMover(_DirBuilderStub(os.environ["STANDARD_ROOT"])))
 
         result = organizer.organize([_make_parsed(source)])
 
         assert result["failed"] == 0, f"成功路径不应有失败计数：{result}"
+        assert result["moved"] == 1, f"成功分支未被计入 moved：{result}"
         assert "archive_failed" not in notifier.events(), f"成功路径误发事件：{notifier.events()}"
 
     def test_missing_source_is_not_a_failure(self, tmp_path: Path, library_root: Path) -> None:
