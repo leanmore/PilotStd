@@ -5,7 +5,7 @@
 | 模块路径 | `pilotstd/core/` |
 | G-031 映射 | `pilotstd/core/`（2026-09-25 落地：`DOC_SYNC_MAP` 已含该条，改任何 core 文件都会要求同步本文件） |
 | 核心类 | `Database` / `ConfigManager` / `CacheManager` / `NotificationManager` |
-| 子模块数 | 101 个 `.py`（新增 `_migrate_v66_announcement_record_final_name.py`：名称决策③结果落库，2026-10-05 名称解析统一批次二）（**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-10-05**；顶层 = 3 个包 config / db / notification + 23 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
+| 子模块数 | 103 个 `.py`（新增 `_migrate_v66_announcement_record_final_name.py`：名称决策③结果落库，2026-10-05 名称解析统一批次二）（**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-10-05**；顶层 = 3 个包 config / db / notification + 23 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
 | Schema 版本 | `CURRENT_SCHEMA_VERSION = 66`（`db/_constants.py`；v66＝announcement_record 追加 `final_name` 列 + 从 pending_lookup 回填，2026-10-05 名称解析统一批次二） |
 | 状态 | 活跃 |
 
@@ -102,6 +102,13 @@ pilotstd/core/
 │   │   承载原请求与响应判定（**任一段失败即整体失败，不静默丢段**）；未超长时单段（零行为变更）。
 │   │   **飞书**（卡片 `elements[]`，需按元素分片）**待接**，见统筹日程 P2 备注
 │   ├── channels/              # wechat / feishu / dingtalk / telegram 渠道适配
+│   ├── task/                  # **任务视角投影（2026-10-05 P4b-1）**：`model.py` 定义 `Task`/`TaskItem`/
+│   │   # `TaskProgress`（纯数据 + 纯计算，**不 import DB**）；权威状态源仍是既有 `task_queue`，
+│   │   # 本包**不新建主表、不写任务状态**（避免双源/双写）。口径来源 `02-目标架构.md §2.3`：
+│   │   # `Task.derive_correlation_id()` ＝ `{task_kind}:{started_at[:19]}`（`started_at` 空 ⇒ 空串，
+│   │   # 避免未开始的任务被误判为"批次"而走①批次聚合）；`TaskProgress.should_push` 为进度节流闸
+│   │   # （首推/跨 10% 阈值/换阶段/终局 ⇒ True），`mark_pushed()` 保证同一进度不重复推
+│   │   # （支撑"同一 message_id 反复 edit"）。`manager.py`（投影入口）待 P4b-2
 │   ├── （2026-10-05 P1 灰度开关）：`aggregate_buffer.agg_key_mode()` 读 `NOTIFY_AGG_KEY`——
 │   │   `v2`（默认）＝分层键；`v1`＝**旧键**（`事件类型[<SEP>实体]`）供回滚/灰度；
 │   │   未设置 ⇒ v2（不告警）；**非法值 ⇒ 回退 v2 并 `logger.warning`**（按取值去重，避免刷日志）——
