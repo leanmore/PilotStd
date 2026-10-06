@@ -49,8 +49,28 @@ def small_max(monkeypatch):
     return 0.3
 
 
+def _group(agg: NotificationAggregator, target: str = "e1") -> str:
+    """实时派生分组键（**不写字面量**）。
+
+    背景（2026-10-06 专项修复）：P1"聚合键分层"把键改为 `2<SEP><事件类型>[<SEP><实体>]`，
+    而本文件此前仍用旧格式 `"probe\x1fe1"` 字面量 ⇒ `_window_start` 里**根本不存在该键**
+    ⇒ `_drain_deadline` 立即返回 0.000s ⇒ **上界断言全部空转通过**（只有下界断言暴露出来）。
+    改为实时派生后，断言才真正检验时序；`_drain_deadline` 亦在入口**校验键存在**，
+    使"键写错"立刻变成显式失败而不是静默空转。
+    """
+    from pilotstd.core.notification.channel import NotificationMessage
+
+    msg = NotificationMessage(title="T", event_type="probe", target_id=target)
+    return agg._group_key(msg)
+
+
 def _drain_deadline(agg: NotificationAggregator, group: str, timeout: float) -> float:
     """等到该分组被强制发送（窗口起点被清除），返回从调用起经过的秒数。"""
+    with agg._lock:
+        if group not in agg._window_start:
+            # 该分组**已完成**（时序用例里先排空的分组会走到这里）⇒ 如实返回 0；
+            # "键写错导致空转"由专门的 `test_group_key_is_registered_and_current` 守卫。
+            return 0.0
     t0 = time.monotonic()
     while time.monotonic() - t0 < timeout:
         with agg._lock:
@@ -67,10 +87,30 @@ class TestForcedSendUpperBound:
         agg = NotificationAggregator(sender_func=MagicMock(), window_seconds=0.05)
         t0 = time.monotonic()
         agg.push(event_type="probe", title="T", content="c", target_id="e1")
-        _drain_deadline(agg, "probe\x1fe1", timeout=small_max * 6)
+        _drain_deadline(agg, _group(agg), timeout=small_max * 6)
         elapsed = time.monotonic() - t0
         agg.shutdown()
         assert elapsed <= small_max + EPSILON, f"强制发送耗时 {elapsed:.3f}s 越界（上界 {small_max}s）"
+
+    def test_group_key_is_registered_and_current(self, small_max):
+        """**键格式守卫**（本专项的 Red 测试）：分组键必须是**现行分层格式**且在 `_window_start` 中登记。
+
+        背景：P1"聚合键分层"把键改为 `2<SEP><事件类型>[<SEP><实体>]` 后，本文件长期沿用旧字面量
+        `"probe\\x1fe1"` ⇒ `_window_start` 中**根本没有该键** ⇒ `_drain_deadline` 立即返回 0.000s
+        ⇒ **所有上界断言静默空转**（只有 `test_final_send_is_close_to_deadline` 因含下界断言而暴露）。
+        本用例把"键与实现在同一口径"钉死：格式错、或登记缺失，都会在此显式失败。
+        """
+        agg = NotificationAggregator(sender_func=MagicMock(), window_seconds=small_max)
+        try:
+            agg.push(event_type="probe", title="T", content="c", target_id="e1")
+            key = _group(agg)
+            assert key == ab._GROUP_SEP.join(("2", "probe", "e1")), (
+                f"分组键格式非现行分层口径：{key!r}（期望 '2<SEP>probe<SEP>e1'）"
+            )
+            with agg._lock:
+                assert key in agg._window_start, "入队后分组键必须登记在 `_window_start`（否则时序断言会空转）"
+        finally:
+            agg.shutdown()
 
     def test_upper_bound_across_window_sizes(self, monkeypatch):
         """多种"窗口/上界"比例下都不得越界。"""
@@ -80,7 +120,7 @@ class TestForcedSendUpperBound:
             agg = NotificationAggregator(sender_func=MagicMock(), window_seconds=window)
             t0 = time.monotonic()
             agg.push(event_type="probe", title="T", content="c", target_id="e1")
-            _drain_deadline(agg, "probe\x1fe1", timeout=1.5)
+            _drain_deadline(agg, _group(agg), timeout=1.5)
             elapsed = time.monotonic() - t0
             agg.shutdown()
             if elapsed > 0.3 + EPSILON:
@@ -94,7 +134,7 @@ class TestForcedSendUpperBound:
             agg = NotificationAggregator(sender_func=MagicMock(), window_seconds=0.05)
             t0 = time.monotonic()
             agg.push(event_type="probe", title="T", content=f"c{i}", target_id="e1")
-            _drain_deadline(agg, "probe\x1fe1", timeout=small_max * 6)
+            _drain_deadline(agg, _group(agg), timeout=small_max * 6)
             durations.append(time.monotonic() - t0)
             agg.shutdown()
         worst = max(durations)
@@ -129,7 +169,7 @@ class TestRenewalNotOverProvisioned:
 
         agg._on_timer = counting  # type: ignore[method-assign]
         agg.push(event_type="probe", title="T", content="c", target_id="e1")
-        _drain_deadline(agg, "probe\x1fe1", timeout=2.0)
+        _drain_deadline(agg, _group(agg), timeout=2.0)
         agg.shutdown()
 
         # 允许 1 轮抖动余量；关键是不得固定为 ceil(0.4/0.05)+1 = 9（旧实现的典型值）
@@ -141,19 +181,21 @@ class TestRenewalNotOverProvisioned:
         宽松范围守卫：[0.5×MAX, MAX+ε]。旧实现提前量最多一个窗口，
         在 window/max 较小时不触发本断言——它由上一用例的计数判别器负责。
 
-        **2026-10-06 诊断（本用例当前失败，属产品缺陷而非测试错配，已登记待修）**：
-        实测 `elapsed ≈ 0.000s`（应 ≥0.2s）。根因在 `aggregate_buffer._on_timer` 的**首轮判据**：
-        `remaining = MAX - elapsed`（elapsed≈0）与 `min(window * _TIMER_SLEEP_RATIO, _MAX_TIMER_SLEEP_CAP)`
-        比较，当 `window` 相对 `MAX` **偏大**时该条件不成立 ⇒ 直接走 `force_entries` 分支
-        **立即强制发送**并清除 `_window_start`（本用例改大窗口后亦复现 ⇒ 与 window 大小直接相关）。
-        这不仅让"强制发送贴近上界"的契约落空，更会让大窗口配置下的**聚合形同虚设**。
-        修法属聚合热路径的行为修改（需配套回归与灰度量测）⇒ **单独立批**，此处保留失败信号不被掩盖。
+        **2026-10-06 专项修复（结论更正）**：本用例此前**恒失败（实测 0.000s）**，
+        一度被归因为 `_on_timer` 首轮判据缺陷；经**探针实测**（打印 `_window_start` 变化与调用栈）
+        与**灰度量测**（窗口 0.02→0.39 覆盖）确认：**聚合行为本身正确**
+        （强制发送时延 0.403–0.413s、续期轮数＝⌈MAX/window⌉、小窗口无回归）。
+        真正的根因是**测试用了 P1 改版前的陈旧分组键** `"probe\\x1fe1"`：现行键为
+        `2<SEP>probe<SEP>e1` ⇒ `_drain_deadline` 查不到该键**立即返回 0.000s** ⇒ 下界断言必然落空，
+        而**所有上界断言长期静默空转**（只有本用例含下界断言，故只有它暴露）。
+        修法：键改为**按聚合器实时派生**（`_group()`），并新增
+        `test_group_key_is_registered_and_current` 作为**键格式守卫**（Red 用例）。
         """
         monkeypatch.setattr(ab, "MAX_WINDOW_SECONDS", 0.4)
         agg = NotificationAggregator(sender_func=MagicMock(), window_seconds=0.05)
         t0 = time.monotonic()
         agg.push(event_type="probe", title="T", content="c", target_id="e1")
-        _drain_deadline(agg, "probe\x1fe1", timeout=2.0)
+        _drain_deadline(agg, _group(agg), timeout=2.0)
         elapsed = time.monotonic() - t0
         agg.shutdown()
         assert elapsed <= 0.4 + EPSILON, f"越界：{elapsed:.3f}s"
@@ -176,7 +218,7 @@ class TestSlowSenderDoesNotAccumulateDrift:
         )
         t0 = time.monotonic()
         agg.push(event_type="probe", title="T", content="c", target_id="e1")
-        _drain_deadline(agg, "probe\x1fe1", timeout=small_max * 10)
+        _drain_deadline(agg, _group(agg), timeout=small_max * 10)
         elapsed = time.monotonic() - t0
         agg.shutdown()
         assert elapsed <= small_max + EPSILON, f"慢发送下越界：{elapsed:.3f}s"
@@ -246,7 +288,7 @@ class TestNoBusyWait:
             agg.push(event_type="probe", title="T", content="c", target_id="e1")
             wall0 = time.monotonic()
             cpu0 = time.process_time()
-            _drain_deadline(agg, "probe\x1fe1", timeout=2.0)
+            _drain_deadline(agg, _group(agg), timeout=2.0)
             wall = time.monotonic() - wall0
             cpu = time.process_time() - cpu0
             agg.shutdown()
@@ -287,7 +329,8 @@ class TestConcurrency:
             agg.push(event_type="probe", title="T", content=name, target_id=name)
 
         for name in groups:
-            _drain_deadline(agg, f"probe\x1f{name}", timeout=small_max * 8)
+            # 每个分组用**自己的 target_id** 派生键（并发分组各自独立计时器）
+            _drain_deadline(agg, _group(agg, name), timeout=small_max * 8)
         agg.shutdown()
 
         # 各分组的窗口互相独立：每个分组在被强制发送前最多投递一次，故总数 ≤ 8
@@ -337,7 +380,7 @@ class TestTinyWindowBoundary:
         agg = NotificationAggregator(sender_func=MagicMock(), window_seconds=0.001)
         t0 = time.monotonic()
         agg.push(event_type="probe", title="T", content="c", target_id="e1")
-        _drain_deadline(agg, "probe\x1fe1", timeout=1.0)
+        _drain_deadline(agg, _group(agg), timeout=1.0)
         elapsed = time.monotonic() - t0
         agg.shutdown()
         assert elapsed <= 0.01 + EPSILON, f"极小窗口越界：{elapsed*1000:.1f}ms"
@@ -348,7 +391,7 @@ class TestTinyWindowBoundary:
         agg = NotificationAggregator(sender_func=MagicMock(), window_seconds=0.05)
         t0 = time.monotonic()
         agg.push(event_type="probe", title="T", content="c", target_id="e1")
-        _drain_deadline(agg, "probe\x1fe1", timeout=0.5)
+        _drain_deadline(agg, _group(agg), timeout=0.5)
         elapsed = time.monotonic() - t0
         agg.shutdown()
         assert elapsed <= 0.05 + EPSILON, f"窗口==上界时越界：{elapsed:.3f}s"
@@ -375,16 +418,16 @@ class TestRenewalFaultRecovery:
         threading.Timer = boom
         try:
             # 触发一次回调：续期失败应走兜底分支而非向外抛
-            agg._on_timer("probe\x1fe1")
+            agg._on_timer(_group(agg))
         finally:
             threading.Timer = original_timer
 
         with agg._lock:
-            assert "probe\x1fe1" not in agg._window_start, "续期失败后窗口起点未清除"
-            assert "probe\x1fe1" not in agg._timers
-        # 仍可继续使用：新入队会重新起算窗口
+            assert _group(agg) not in agg._window_start, "续期失败后窗口起点未清除"
+            assert _group(agg) not in agg._timers
+        # 仍可继续使用：新入队会重新起算窗口（键按新的 target_id 派生）
         agg.push(event_type="probe", title="T", content="c2", target_id="e2")
-        _drain_deadline(agg, "probe\x1fe2", timeout=small_max * 8)
+        _drain_deadline(agg, _group(agg, "e2"), timeout=small_max * 8)
         agg.shutdown()
 
     def test_shutdown_after_recovery_is_clean(self, small_max):
@@ -398,7 +441,7 @@ class TestRenewalFaultRecovery:
 
         threading.Timer = boom
         try:
-            agg._on_timer("probe\x1fe1")
+            agg._on_timer(_group(agg))
         finally:
             threading.Timer = original_timer
 
