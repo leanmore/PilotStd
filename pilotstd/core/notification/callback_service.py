@@ -18,6 +18,7 @@ from pilotstd.i18n import t
 
 from .callback import (
     STATUS_FORBIDDEN,
+    STATUS_GONE,
     STATUS_OK,
     STATUS_UNAUTHORIZED,
     ActionVerdictLike,
@@ -123,7 +124,12 @@ def handle_callback(
     envelope = parse_envelope(channel, payload, event_id="", now=now)
     target = _resolve_target(db, channel, envelope.callback_data)
     if target is None:
-        # 未知 token：与验签失败同码，不给出可探测的差异
+        # 区分两类（阶段 3 · P5b 用户裁定）：
+        #   ① **畸形/缺失 token** ⇒ 仍与验签失败同码（401）：不给攻击者一个可枚举的探针面；
+        #   ② **格式合法但记录已不存在**（日志按保留策略清理后用户点了旧按钮）⇒ **410 优雅降级**，
+        #      提示"操作已失效"，而不是 500/无响应，也不是语焉不详的"签名错误"。
+        if _is_wellformed_token(envelope.callback_data):
+            return _fail(STATUS_GONE, "notification.callback.action_expired")
         return _fail(STATUS_UNAUTHORIZED, "notification.callback.bad_signature")
     log_id, user_id = target
 
@@ -154,6 +160,16 @@ def handle_callback(
     if not _execute_action(db, envelope.action, log_id, channel, secret):
         return _fail(STATUS_FORBIDDEN, "notification.callback.forbidden")
     return CallbackOutcome(status=STATUS_OK, payload={"ok": True})
+
+
+def _is_wellformed_token(token: str) -> bool:
+    """token 是否形如 `"<log_id>:<user_id>"`（两段纯数字）。
+
+    仅用于**区分降级提示的措辞**（410 与 401），**不构成任何信任**：身份仍由验签 + DB 角色决定。
+    畸形/缺失一律按 401，避免把"哪些 id 存在"变成可枚举信息。
+    """
+    head, sep, tail = token.partition(":")
+    return bool(sep) and head.isdigit() and tail.isdigit()
 
 
 def describe_outcome(outcome: CallbackOutcome) -> str:

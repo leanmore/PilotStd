@@ -803,6 +803,7 @@
     "notification.error_type.network": "Network error",
     "notification.error_type.timeout": "Timeout",
     "notification.error_type.unknown": "Unknown error",
+    "notification.callback.action_expired": "This action has expired or its data has been cleaned up",
     "notification.action.view_detail": "View details",
     "notification.action.open_logs": "Open logs",
     "notification.action.retry": "Retry",

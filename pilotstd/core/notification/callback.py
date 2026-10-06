@@ -44,6 +44,10 @@ _REPLAY_WINDOW_SECONDS = 86400.0
 STATUS_OK = 200
 STATUS_UNAUTHORIZED = 401
 STATUS_FORBIDDEN = 403
+# 410：按钮对应记录已不存在（如日志按保留策略被清理）⇒ **优雅降级**，与鉴权失败区分。
+# 依据：阶段 3 · P5b 用户裁定——"未成功回填/已失效的按钮点击时应给出可读提示，
+# 而不是抛 500 或无响应"。畸形/缺失 token 仍按 401（避免变成可探测的枚举面）。
+STATUS_GONE = 410
 STATUS_UNSUPPORTED = 501
 
 

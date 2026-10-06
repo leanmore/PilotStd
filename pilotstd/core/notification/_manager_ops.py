@@ -63,10 +63,15 @@ class NotificationOps:
         status: str,
         error_msg: str,
         sent_at: str,
-    ) -> None:
-        """写入通知发送日志到 notification_log 表（静默失败）。"""
+    ) -> int | None:
+        """写入通知发送日志到 notification_log 表（静默失败）。
+
+        **返回新行的 `id`**（失败返回 `None`）：阶段 3 · P5b 的按钮 token 需要"先落库拿到
+        `log_id`、再铸 token、再发送"（用户裁定方案甲）⇒ 必须把 id 交回调用方。
+        既有调用方忽略返回值，故本改动后向兼容。
+        """
         try:
-            self._db.execute(
+            cur = self._db.execute(
                 "INSERT INTO notification_log (event_type, channel, title, body, "
                 "standard_number, status, error_msg, sent_at, aggregated_count, link, icon, "
                 "message_id, correlation_id, delivery_status, ack_status, "
@@ -106,8 +111,58 @@ class NotificationOps:
                     _json_codec.dumps(msg.failed_items),
                 ),
             )
+            return int(getattr(cur, "lastrowid", 0) or 0) or None
         except Exception as e:
             logger.warning("通知日志写入失败: %s", e)
+            return None
+
+    def update_log_fields(
+        self,
+        log_id: int,
+        status: str | None = None,
+        error_msg: str | None = None,
+        callback_data: str | None = None,
+    ) -> bool:
+        """按 `log_id` 更新日志行的**结果字段**（阶段 3 · P5b，用户裁定方案甲）。
+
+        为什么需要它：按钮 token 形如 `<log_id>:<user_id>`，而 `log_id` 要等 INSERT 之后才有
+        ⇒ 顺序必须是 **INSERT(占位) → 铸 token → 发送(最后一段) → UPDATE(落真)**。
+        本方法承担其中的两次写入（token 回填、结果回填）。
+
+        **失败口径（用户裁定）**：投递成功但 UPDATE 失败属小概率 ⇒ 只记 warning，
+        **绝不回滚/重发消息**；未回填 token 的行其按钮仍可用（token 指向真实 log_id），
+        仅审计上缺少"发过哪个 token"的记录。
+        """
+        sets: list[str] = []
+        params: list[object] = []
+        if status is not None:
+            sets.append("status = ?")
+            params.append(status)
+        if error_msg is not None:
+            sets.append("error_msg = ?")
+            params.append(error_msg)
+        if callback_data is not None:
+            sets.append("callback_data = ?")
+            params.append(callback_data)
+        if not sets:
+            return False
+        params.append(log_id)
+        try:
+            cur = self._db.execute(
+                f"UPDATE notification_log SET {', '.join(sets)} WHERE id = ?", tuple(params)
+            )
+            # **校验命中行数**：`log_id` 为 None/不存在时 SQLite 不报错但 0 行受影响，
+            # 若只看"没抛异常"就会把"没写进去"当成功（实测教训：`manager._log` 曾丢掉返回 id，
+            # 本校验会把该 bug 当场暴露，而不是等到状态列读出来不对才发现）。
+            affected = int(getattr(cur, "rowcount", 0) or 0)
+            if affected <= 0:
+                logger.warning("notification log update affected 0 rows (id=%s)", log_id)
+                return False
+            return True
+        except Exception as e:
+            # ASCII 开发者日志（G-047 只管用户可见文案走 i18n）
+            logger.warning("notification log update failed (id=%s): %s", log_id, e)
+            return False
 
     def _with_stage_context(self, task_id: str, context: object) -> dict:
         """把本阶段的**实测耗时**并入 task_context（裁决 D2/B3：落 JSON，不开新列）。

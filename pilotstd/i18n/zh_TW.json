@@ -724,6 +724,7 @@
     "notification.error_type.network": "網路錯誤",
     "notification.error_type.timeout": "逾時",
     "notification.error_type.unknown": "未知錯誤",
+    "notification.callback.action_expired": "此操作已過期或資料已被清理",
     "notification.action.view_detail": "查看詳情",
     "notification.action.open_logs": "開啟日誌",
     "notification.action.retry": "重試",

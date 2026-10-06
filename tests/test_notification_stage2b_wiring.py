@@ -74,6 +74,9 @@ class _SendEventHarness(unittest.TestCase):
         db = MagicMock()
         db.fetchone.return_value = None
         db.fetchall.return_value = []
+        # 阶段 3 · P5b（方案甲）：落库改为两阶段，`_log` 需返回新行 id 才能铸按钮 token。
+        # 桩 DB 必须给出真实的 `lastrowid`（否则 `int(MagicMock)` 抛错 ⇒ 回退旧序、并多写一行 INSERT）。
+        db.execute.return_value.lastrowid = 1
         mgr = NotificationManager(cfg, db, 1)
         mgr._enabled = enabled
         mgr._channels = {"wechat": MagicMock(send=MagicMock(return_value=True))}
@@ -87,6 +90,22 @@ class _SendEventHarness(unittest.TestCase):
                 cols = [c.strip() for c in sql.split("(", 1)[1].split(")", 1)[0].split(",")]
                 return cols, dict(zip(cols, call[0][1]))
         self.fail("未捕获到 notification_log 的 INSERT")
+
+    def _log_update(self, db) -> dict:
+        """取最后一次 `UPDATE notification_log ...` 的 `{列: 值}`（两阶段写的**回填**阶段）。
+
+        阶段 3 · P5b（方案甲）：INSERT 先落**占位**（状态取最保守的 failed），发送后用 UPDATE 回填真值
+        ⇒ 断言"最终状态"必须看 UPDATE，而不是 INSERT。
+        """
+        last: dict | None = None
+        for call in db.execute.call_args_list:
+            sql = call[0][0]
+            if "UPDATE notification_log SET" in sql:
+                sets = sql.split("SET", 1)[1].split("WHERE", 1)[0]
+                names = [part.strip().split("=")[0].strip() for part in sets.split(",")]
+                last = dict(zip(names, call[0][1]))
+        assert last is not None, "未捕获到 notification_log 的 UPDATE"
+        return last
 
     def _send(self, mgr, stage: str | None = None):
         env = {k: v for k, v in os.environ.items() if k != "NOTIFY_REDESIGN_STAGE"}
@@ -112,8 +131,12 @@ class TestZeroChangeBaseline(_SendEventHarness):
         self.assertEqual(row["event_type"], "scan_complete")
         self.assertEqual(row["channel"], "wechat")
         self.assertEqual(row["title"], "扫描完成，全部识别成功")
-        self.assertEqual(row["status"], "success")
-        self.assertEqual(row["error_msg"], "")
+        # 阶段 3 · P5b（方案甲，用户裁定）：落库改为两阶段 ⇒ INSERT 落**占位**（最保守的 failed，
+        # 防"没发出去却显示成功"），发送成功后由 UPDATE 回填 `success` 与空 error_msg。
+        self.assertEqual(row["status"], "failed", "INSERT 必须是占位状态（最保守）")
+        final = self._log_update(db)
+        self.assertEqual(final["status"], "success")
+        self.assertEqual(final["error_msg"], "")
         self.assertIsNotNone(row["sent_at"])
         self.assertEqual(row["aggregated_count"], 1)
         self.assertIsNone(row["link"])
@@ -229,7 +252,8 @@ class TestDefaultStageEnablesMapping(_SendEventHarness):
         _cols, row = self._log_insert(db)
         self.assertEqual(row["event_type"], "scan_complete")
         self.assertEqual(row["title"], "扫描完成，全部识别成功")
-        self.assertEqual(row["status"], "success")
+        # 两阶段（P5b 方案甲）：最终状态看 UPDATE 回填（INSERT 为占位 failed）
+        self.assertEqual(self._log_update(db)["status"], "success")
         self.assertEqual(row["aggregated_count"], 1)
 
     def test_rollback_by_env_restores_zero_change(self):

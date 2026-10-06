@@ -181,7 +181,15 @@ def do_send(
 
 
 def send_now(host: Any, msg: NotificationMessage, target_channels: list[str]) -> None:
-    """实际执行发送（写日志 + 渠道推送）。"""
+    """实际执行发送（**先落库占位 → 铸按钮 token → 发送 → 回填结果**）。
+
+    顺序依据（阶段 3 · P5b，用户裁定方案甲）：按钮 token 形如 `<log_id>:<user_id>`，
+    而 `log_id` 只有 INSERT 之后才存在 ⇒ 必须先落库才能铸出可用的 token；
+    又因为**发送是不可回滚的外部 IO**，故结果（status/error_msg）在发送后回填。
+
+    **崩溃/回填失败时的口径**：占位状态用 `failed` + "无详情"文案（**最保守**——不会出现
+    "实际没发出去却显示成功"）；回填失败只记 warning，**绝不重发/回滚**（用户裁定）。
+    """
     event_type = msg.event_type
     for ch_name in target_channels:
         channel = host._channels.get(ch_name)
@@ -196,6 +204,27 @@ def send_now(host: Any, msg: NotificationMessage, target_channels: list[str]) ->
                 sent_at,
             )
             continue
+        # ① 两阶段写（真实宿主）／回退旧序（不支持 `ops.update_log_fields` 的宿主，如受限测试替身）
+        #    能力探测放在**落库之前**：否则占位行会与旧序的日志行重复。
+        two_phase = callable(getattr(getattr(host, "ops", None), "update_log_fields", None))
+        log_id: int | None = None
+        if two_phase:
+            log_id = host._log(
+                event_type,
+                ch_name,
+                msg,
+                "failed",
+                t("notification.manager.send_failed_no_detail"),
+                sent_at,
+            )
+        # ② 铸 token：仅在"消息带动作"时（无动作的通知保持 callback_data 为空，语义不变）
+        # `_user_id` 用 getattr 兜底：宿主（含测试替身）可能不声明该属性；取不到就**不铸 token**
+        # ⇒ 渲染器按 fail-safe 不出按钮（不产生"点了没反应"的按钮）。
+        owner_id = getattr(host, "_user_id", None)
+        if two_phase and log_id and getattr(msg, "actions", None) and isinstance(owner_id, int):
+            token = f"{log_id}:{owner_id}"
+            msg.callback_data = token
+            host.ops.update_log_fields(log_id, callback_data=token)
         try:
             ok = channel.send(msg)
             # 读取渠道错误详情透传具体原因，无详情时回退默认文案
@@ -205,10 +234,17 @@ def send_now(host: Any, msg: NotificationMessage, target_channels: list[str]) ->
                 err_msg = getattr(channel, "last_error", "") or t(
                     "notification.manager.send_failed_no_detail"
                 )
-            host._log(event_type, ch_name, msg, "success" if ok else "failed", err_msg, sent_at)
+            # ③ 回填结果（失败只告警，不回滚/重发）
+            if log_id:
+                host.ops.update_log_fields(log_id, status="success" if ok else "failed", error_msg=err_msg)
+            else:
+                host._log(event_type, ch_name, msg, "success" if ok else "failed", err_msg, sent_at)
             host._record_delivery(ch_name, ok)
         except Exception as e:
-            host._log(event_type, ch_name, msg, "failed", str(e), sent_at)
+            if log_id:
+                host.ops.update_log_fields(log_id, status="failed", error_msg=str(e))
+            else:
+                host._log(event_type, ch_name, msg, "failed", str(e), sent_at)
             host._record_delivery(ch_name, False)
 
 

@@ -143,13 +143,19 @@ class TestErrorPropagation:
 
         mgr._channels = {"telegram": channel}
         mgr._log = MagicMock()
+        # 显式给出 `ops.update_log_fields` ⇒ 走**两阶段**路径（`spec=` 的替身不含实例属性，
+        # 不显式设置会落到"宿主不支持 ⇒ 回退旧序"分支，测的就变成旧契约了）
+        mgr.ops = MagicMock()
 
         NotificationManager._send_now(mgr, msg, ["telegram"])
 
         mgr._log.assert_called_once()
         args = mgr._log.call_args.args
         assert args[3] == "failed"
-        assert args[4] == "HTTP 404: Not Found"  # 透传渠道错误
+        # 两阶段（P5b 方案甲）：渠道错误详情在**回填**阶段落库；占位行为"无详情"文案
+        kwargs = mgr.ops.update_log_fields.call_args.kwargs
+        assert kwargs.get("status") == "failed"
+        assert kwargs.get("error_msg") == "HTTP 404: Not Found"  # 透传渠道错误
 
     def test_send_now_fallback_when_no_last_error(self):
         """channel.send() 返回 False 且无 last_error → 回退默认文案。"""
@@ -174,6 +180,9 @@ class TestErrorPropagation:
 
         mgr._channels = {"telegram": channel}
         mgr._log = MagicMock()
+        # 显式给出 `ops.update_log_fields` ⇒ 走**两阶段**路径（`spec=` 的替身不含实例属性，
+        # 不显式设置会落到"宿主不支持 ⇒ 回退旧序"分支，测的就变成旧契约了）
+        mgr.ops = MagicMock()
 
         NotificationManager._send_now(mgr, msg, ["telegram"])
 
@@ -203,12 +212,19 @@ class TestErrorPropagation:
 
         mgr._channels = {"telegram": channel}
         mgr._log = MagicMock()
+        # 显式给出 `ops.update_log_fields` ⇒ 走**两阶段**路径（`spec=` 的替身不含实例属性，
+        # 不显式设置会落到"宿主不支持 ⇒ 回退旧序"分支，测的就变成旧契约了）
+        mgr.ops = MagicMock()
 
         NotificationManager._send_now(mgr, msg, ["telegram"])
 
+        # 阶段 3 · P5b（用户裁定方案甲）：落库改为**两阶段**——① 占位 INSERT（状态取最保守的
+        # `failed`，防"没发出去却显示成功"）② 发送 ③ 回填真值。故此处先断言占位，再断言回填。
         args = mgr._log.call_args.args
-        assert args[3] == "success"
-        assert args[4] == ""
+        assert args[3] == "failed", "占位状态必须是最保守的 failed（避免假成功）"
+        kwargs = mgr.ops.update_log_fields.call_args.kwargs
+        assert kwargs.get("status") == "success"
+        assert kwargs.get("error_msg") == ""
 
     def test_telegram_channel_sets_last_error_on_http_404(self):
         """TelegramChannel.send() 遇 HTTP 404 → last_error 含具体描述。"""

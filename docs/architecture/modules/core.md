@@ -102,6 +102,17 @@ pilotstd/core/
 │   │   承载原请求与响应判定（**任一段失败即整体失败，不静默丢段**）；未超长时单段（零行为变更）。
 │   │   **飞书**（卡片 `elements[]`，需按元素分片）**待接**，见统筹日程 P2 备注
 │   ├── channels/              # wechat / feishu / dingtalk / telegram 渠道适配
+│   ├── （2026-10-05 · **P5b 收尾：按钮 token 铸发（方案甲）**）：投递改为**两阶段写**——
+│   │   **INSERT(占位) → 铸 token → 发送(最后一段带按钮) → UPDATE(落真)**。
+│   │   ① 占位状态取最保守的 `failed` + "无详情"文案（防"没发出去却显示成功"；进程中途崩溃也不会假成功）；
+│   │   ② token ＝ `"<log_id>:<user_id>"`，仅在**消息带动作**时铸发（无动作的通知 `callback_data` 保持空 ⇒
+│   │   渲染器 fail-safe 不出按钮）；③ 发送后回填 `status/error_msg`。执行主体在
+│   │   `_dispatcher.send_now`，写入原语在 `_manager_ops.log`（**返回新行 id**）与
+│   │   `_manager_ops.update_log_fields`（**校验 rowcount**：0 行受影响即判失败并告警——此校验曾当场
+│   │   暴露 `manager._log` 丢掉返回 id 的 bug）。回填失败的口径（用户裁定）：**只告警，不回滚/重发**。
+│   │   另：`callback_service` 对**格式合法但记录已不存在**的 token 返回 **410**（`notification.callback.action_expired`
+│   │   ＝"操作已失效或数据已丢失"）——日志按保留策略清理后用户的旧按钮能拿到可读提示；
+│   │   **畸形/缺失 token 仍按 401**，避免把"哪些 id 存在"变成可枚举信息
 │   ├── （2026-10-05 · **P5b：Telegram 交互按钮闭环（出站侧）**）：`renderer.TelegramRenderer.build_reply_markup()`
 │   │   由 `NotificationMessage.actions` 生成 `inline_keyboard`，`callback_data` 采用 `"<action>:<token>"`
 │   │   （与 `callback._split_action` 解析口径一致；token 形如 `<log_id>:<user_id>`）。两条硬约束：

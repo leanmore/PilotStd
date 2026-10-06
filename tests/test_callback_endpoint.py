@@ -130,8 +130,20 @@ class TestCallbackService:
     def test_unknown_token_rejected(self):
         db = _Db()
         db.seed_notification(log_id=7)
+        # 阶段 3 · P5b（用户裁定）：**格式合法但记录已不存在**（如日志被保留策略清理）
+        # ⇒ **410 优雅降级**（"操作已失效或数据已丢失"），而不是语焉不详的"签名错误"，
+        # 也不是 500/无响应。畸形 token 仍按 401 处理（见下一条用例），以免变成可枚举面。
         outcome = self._handle(db, body=_telegram_body(token="999:1"))
-        assert outcome.status == 401
+        assert outcome.status == 410
+        assert outcome.reason_key == "notification.callback.action_expired"
+
+    def test_malformed_token_rejected_as_unauthorized(self):
+        """畸形/缺失 token ⇒ 仍与验签失败同码（401），不给攻击者一个可枚举的探针面。"""
+        db = _Db()
+        db.seed_notification(log_id=7)
+        for bad in ("not-a-token", "", "abc:def", "999", ":1"):
+            outcome = self._handle(db, body=_telegram_body(token=bad))
+            assert outcome.status == 401, f"token={bad!r} 应为 401"
 
     def test_bad_signature_rejected(self):
         db = _Db()

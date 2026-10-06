@@ -373,9 +373,9 @@ class NotificationManager:
 
     def _log(
         self, event_type: str, channel: str, msg: NotificationMessage, status: str, error_msg: str, sent_at: str
-    ) -> None:
-        """写通知发送日志（委托 NotificationOps.log）。"""
-        self.ops.log(event_type, channel, msg, status, error_msg, sent_at)
+    ) -> int | None:
+        """写通知发送日志（委托 NotificationOps.log）；**返回新行 id**（阶段 3 · P5b 两阶段写依赖它）。"""
+        return self.ops.log(event_type, channel, msg, status, error_msg, sent_at)
 
 
     # ── 测试发送 ──────────────────────────────────────────────
