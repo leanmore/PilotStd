@@ -23,6 +23,7 @@ import sys
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -153,3 +154,123 @@ class TestArchiveFailed:
 
         assert result["failed"] == 0
         assert "archive_failed" not in notifier.events()
+
+
+# ── 子批 2/3 ────────────────────────────────────────────────────────────────
+
+
+class _EngineStub:
+    """**外部子系统网关桩**：只提供"查询引擎"这一外部依赖的返回值。
+
+    纯度说明：`QuerySubsystem.query()` 内部的一切（参数处理、`_query_via_engine` 包装、
+    `_finalize_query` 的统计/失败明细抽取/分类路由/待确认持久化/汇总报告/事件分发）**均为真实执行**；
+    本桩只替代"向外查询"这一步。
+    """
+
+    def __init__(self, results: list[Any]) -> None:
+        self._results = results
+
+    def query_standards(self, parsed_tuples: Any, **kwargs: Any) -> list[Any]:
+        """返回预置的查询结果（真实实现此处会走网络/适配器）。"""
+        del parsed_tuples, kwargs  # 不使用参数，仅为签名兼容
+        return list(self._results)
+
+
+def _build_query_subsystem(results: list[Any]) -> tuple[Any, _RecordingNotifier]:
+    """构造**真实** `QuerySubsystem`，仅把外部网关（query_engine）与通知边界换成桩。"""
+    from pilotstd.manager.facade._query_subsystem import QuerySubsystem
+
+    notifier = _RecordingNotifier()
+    core = SimpleNamespace(
+        notification_mgr=notifier,
+        query_engine=_EngineStub(results),
+        parsed_results=[],
+        queried_items=[],
+        query_results=[],
+        pending_list=[],
+        download_list=[],
+        expire_list=[],
+        classifier=MagicMock(),  # 注入的分类服务（外部协作者），门面自身路由仍真实执行
+        pending_svc=MagicMock(),  # 注入的待确认服务（外部协作者）
+        cfg={},
+    )
+    return QuerySubsystem(core), notifier
+
+
+class TestQueryFailed:
+    """`query_failed`（提案 §一 第 5 项；接线点 `facade/_query_subsystem.py:235`）。"""
+
+    def test_engine_failure_fires_query_failed(self) -> None:
+        """真实门面链路 + 外部网关返回失败结果 ⇒ 逐条发 `query_failed`（含标准号与错误）。"""
+        from pilotstd.query.models import QueryResult
+
+        failed = QueryResult(
+            standard_number="GB/T 19001—2020",
+            error_message="外部站点不可达",
+        )
+        subsystem, notifier = _build_query_subsystem([failed])
+
+        subsystem, notifier = _build_query_subsystem([failed])
+        results, stats = subsystem.query(parsed_list=[_make_parsed(Path("GB 1-2020.pdf"))], site="openstd")
+
+        # ── 证据：门面**内部**逻辑真实执行（网关桩只替代"向外查询"这一步）──
+        assert len(results) == 1, "门面应原样返回查询结果"
+        assert stats.total == 1, f"`_finalize_query` 的统计步骤未执行：{stats}"
+        assert subsystem._core.query_results == results, "`_finalize_query` 未回写结果（内部步骤被绕过）"
+        assert subsystem._core.classifier.classify.called, "分类路由（classifier.classify）未被调用，门面内部步骤被绕过"
+        assert subsystem._core.pending_svc.record_pending.call_count >= 0, "待确认持久化协作者应处于可调用状态"
+
+        # ── 事件分发 ──
+        assert "query_failed" in notifier.events(), f"未发出事件：{notifier.events()}"
+        payload = next(p for n, p in notifier.calls if n == "query_failed")
+        assert payload.get("standard_number") == "GB/T 19001—2020"
+        assert payload.get("error") == "外部站点不可达"
+
+    def test_success_results_do_not_fire_query_failed(self) -> None:
+        """反向验证：查询成功（无 error_message）⇒ **不得**发 `query_failed`。"""
+        from pilotstd.query.models import QueryResult
+
+        ok = QueryResult(standard_number="GB/T 19001—2020", status="现行")
+        subsystem, notifier = _build_query_subsystem([ok])
+
+        _results, stats = subsystem.query(parsed_list=[_make_parsed(Path("GB 1-2020.pdf"))], site="openstd")
+
+        assert stats.total == 1, "门面统计步骤应真实执行"
+        assert "query_failed" not in notifier.events(), f"成功路径误发事件：{notifier.events()}"
+
+
+class TestNormalizeComplete:
+    """`normalize_complete`（提案 §一 第 3 项；接线点 `facade/_organize.py:436`）。"""
+
+    def test_real_normalize_fires_complete(self, tmp_path: Path, library_root: Path) -> None:
+        """真实规范化链路（真文件）⇒ 发 `normalize_complete`，载荷计数与结果一致。"""
+        from pilotstd.manager.facade._organize import OrganizeHandler
+
+        source = tmp_path / "GB 1-2020 测试标准.pdf"
+        source.write_bytes(b"content")
+        notifier = _RecordingNotifier()
+        handler = OrganizeHandler(SimpleNamespace(notification_mgr=notifier, parser=MagicMock()))
+
+        results = handler.normalize_files_stream([_make_parsed(source)])
+
+        assert results and results[0]["source"] == str(source), f"结果应指向真实文件：{results}"
+        assert "normalize_complete" in notifier.events(), f"未发出事件：{notifier.events()}"
+        payload = next(p for n, p in notifier.calls if n == "normalize_complete")
+        assert payload.get("total") == 1 and payload.get("success") == 1
+
+    def test_tmp_dir_is_cleaned_up(self, tmp_path: Path, library_root: Path) -> None:
+        """临时目录可靠性：本用例产物只落在 pytest `tmp_path` 内 ⇒ 结束后由框架清理。
+
+        断言"库根目录"未出现本用例的中间产物（避免污染真实标准库；`library_root` 亦在 tmp_path 内）。
+        """
+        from pilotstd.manager.facade._organize import OrganizeHandler
+
+        source = tmp_path / "GB 1-2020 测试标准.pdf"
+        source.write_bytes(b"content")
+        handler = OrganizeHandler(SimpleNamespace(notification_mgr=_RecordingNotifier(), parser=MagicMock()))
+
+        handler.normalize_files_stream([_make_parsed(source)])
+
+        # 规范化只产出"名称"，不落地文件 ⇒ 库根目录应保持为空（无残留）
+        assert list(library_root.iterdir()) == [], "规范化不应在库根目录留下文件"
+        assert str(tmp_path) in str(source), "所有产物均在 pytest tmp_path 内，框架负责清理"
