@@ -252,6 +252,33 @@ def test_group_key_daily_bucket_covers_all_three_scenarios() -> None:
     assert agg._group_entity(next(iter(keys))) == ""
 
 
+def test_group_key_v1_mode_restores_legacy_behavior(monkeypatch) -> None:
+    """P1 灰度开关：`NOTIFY_AGG_KEY=v1` ⇒ 回到旧键（`event_type × target_id`，无模式前缀）。
+
+    这是"已改行为可回滚"的证据；同时校验**非法值/未设置 = v2**（确定性优先，不静默换语义）。
+    """
+    from pilotstd.core.notification.aggregate_buffer import agg_key_mode
+
+    agg = _agg()
+    msg = NotificationMessage(title="t", event_type="scan_complete", notify_event="task_result", target_id="std-a")
+
+    monkeypatch.setenv("NOTIFY_AGG_KEY", "v1")
+    assert agg_key_mode() == "v1"
+    key_v1 = agg._group_key(msg)
+    assert key_v1.startswith("scan_complete"), "v1 必须是旧键形态（事件类型开头）"
+    assert key_v1 == "scan_complete\u001fstd-a"
+    assert agg._events_in_group(key_v1) == {"scan_complete"}, "v1 下键还原仍要能取回事件类型"
+
+    monkeypatch.setenv("NOTIFY_AGG_KEY", "v2")
+    assert agg._group_key(msg).startswith("2\u001f"), "v2 为分层键（模式前缀 2）"
+
+    monkeypatch.setenv("NOTIFY_AGG_KEY", "写错了")
+    assert agg_key_mode() == "v2", "非法值必须回退 v2"
+
+    monkeypatch.delenv("NOTIFY_AGG_KEY", raising=False)
+    assert agg_key_mode() == "v2", "未设置时默认 v2"
+
+
 def test_group_key_batch_path_and_daily_path() -> None:
     """①批次路径 = 批次 × 收敛类（不含实体）；②日常路径 = 收敛类 × 实体。"""
     agg = _agg()

@@ -93,6 +93,10 @@ pilotstd/core/
 │   ├── _suppression_queue.py  # 静音时段暂存与补发（组合式 SuppressionQueue：判静音/入队/到期补发；2026-10-03 步 C B1 从 manager.py 拆出，manager 保留同名薄转发与白名单再导出）
 │   ├── _dispatcher.py         # 发送编排（模块级函数 send_event/validate_message/do_send/send_now/record_delivery/send_delivery_alert，宿主入参；2026-10-03 步 C B2 从 manager.py 拆出，manager 只留同名一行委托）
 │   ├── channels/              # wechat / feishu / dingtalk / telegram 渠道适配
+│   ├── （2026-10-05 P1 灰度开关）：`aggregate_buffer.agg_key_mode()` 读 `NOTIFY_AGG_KEY`——
+│   │   `v2`（默认）＝分层键；`v1`＝**旧键**（`事件类型[<SEP>实体]`）供回滚/灰度；
+│   │   非法值或未设置**一律按 v2**（确定性优先）。`_events_in_group`/`_group_entity` 同步**分模式取段**
+│   │   （v1 取第 1/第 2 段；v2 ①取末段、②取第 2/第 3 段）——否则 v1 下按实体刷新会失效
 │   ├── （2026-10-05 需求①/②收口）：①**失败明细分组合计**——`build_failed_items_block` 按
 │   │   `(error_type, standard_number, standard_name)` **归并**，每行"总数"列为该组合条数、
 │   │   `ListBlock.total` 为失败条数**总和**（需求原文"各自总数有多少"；退化成逐条一行会刷屏）；

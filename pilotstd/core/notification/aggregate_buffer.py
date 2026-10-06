@@ -52,6 +52,19 @@ DEFAULT_BATCH_SIZE = 50  # 对应 aggregate_max_events
 # 才能保证 split 结果确定。
 _GROUP_SEP = "\x1f"
 
+
+def agg_key_mode() -> str:
+    """聚合键模式（`NOTIFY_AGG_KEY`）：`v1`＝旧键、`v2`＝分层键（默认）。
+
+    · 只认 `v1` / `v2`（大小写不敏感、去空白）；**其余（含未设置）一律 `v2`**——
+      确定性优先：不因为拼错环境变量就悄悄换了聚合语义。
+    · 供回滚/灰度：`NOTIFY_AGG_KEY=v1` 时聚合行为回到 2026-10-05 之前的"事件类型 × 实体"。
+    """
+    import os
+
+    raw = (os.environ.get("NOTIFY_AGG_KEY") or "").strip().lower()
+    return "v1" if raw == "v1" else "v2"
+
 # 续期阈值（时序专项），随窗口缩放而非固定值：
 # - `_TIMER_SLEEP_RATIO`：剩余时间超过 `窗口 × 该比例` 才值得再开一轮定时器。
 #   固定阈值不可用——相对 `MAX_WINDOW_SECONDS` 很小的窗口（如测试用 0.05s）下，
@@ -273,6 +286,14 @@ class NotificationAggregator:
         notify = (getattr(msg, "notify_event", "") or "").strip() or msg.event_type
         entity = (msg.target_id or "").strip()
         batch = (getattr(msg, "correlation_id", "") or "").strip()
+        # ── 灰度开关（P1，2026-10-05）：`NOTIFY_AGG_KEY` ──────────────────────────
+        # `v2`（默认）＝本次分层键（①批次×收敛类 / ②日常桶 / ②收敛类×实体）；
+        # `v1`＝**旧行为**（`event_type × target_id`），供回滚与灰度对照；
+        # **非法值或缺失一律按 v2**——保证"没有配置"时行为确定（不静默落到第三种语义）。
+        # 为什么必须留这个开关：键语义一变，用户在聚合里看到的分组就变；没有回滚开关的线上行为
+        # 属"改了就没退路"，与本簿"两件可独立回滚的事不绑一个变量"的设计相悖（见 `03-实施路径.md:41`）。
+        if agg_key_mode() == "v1":
+            return f"{msg.event_type}{_GROUP_SEP}{entity}" if entity else msg.event_type
         if batch:
             return f"1{_GROUP_SEP}{batch}{_GROUP_SEP}{notify}"
         # ②日常路径（需求②原文："公告拉取/收藏/收藏转下载 → 时间窗内聚合成 1 条，不要短时间内连发多条"）：
@@ -294,19 +315,28 @@ class NotificationAggregator:
 
         键格式（2026-10-05 分层后）：
         · ①批次路径 `1<SEP>批次<SEP>收敛类` ⇒ 取**最后一段**（批次号在中间，不是收敛类）；
-        · ②常规路径 `2<SEP>收敛类[<SEP>实体]` ⇒ 取**第 2 段**。
-        为什么按模式分支：两路径的段位语义不同，同一套下标会取到批次号（回归实例见
-        `tests/test_aggregate_buffer.py::test_group_key_batch_path_uses_correlation_id`）。
+        · ②常规路径 `2<SEP>收敛类[<SEP>实体]` ⇒ 取**第 2 段**；
+        · **v1 模式（灰度回滚）** 旧键 `事件类型[<SEP>实体]` ⇒ 取**第 1 段**（无模式前缀）。
+        为什么按模式分支：三种键的段位语义不同，同一套下标会取到批次号或实体
+        （回归实例见 `tests/test_aggregate_buffer.py::test_group_key_batch_path_uses_correlation_id`
+        与 `tests/test_notification_failed_items.py::test_group_key_v1_mode_restores_legacy_behavior`）。
         """
         parts = group.split(_GROUP_SEP)
+        if agg_key_mode() == "v1":
+            return {parts[0]} if parts else {group}
         if parts[0] == "1":
             return {parts[-1]} if len(parts) >= 3 else {group}
         return {parts[1]} if len(parts) > 1 else {group}
 
     @staticmethod
     def _group_entity(group: str) -> str:
-        """从分组键还原关联实体；**②路径的最后一段**才是实体，①路径无实体（返回空串）。"""
+        """从分组键还原关联实体；**②路径的最后一段**才是实体，①路径无实体（返回空串）。
+
+        v1 模式下旧键是 `事件类型[<SEP>实体]` ⇒ 实体在**第 2 段**（否则按实体筛选刷新会失效）。
+        """
         parts = group.split(_GROUP_SEP)
+        if agg_key_mode() == "v1":
+            return parts[1] if len(parts) > 1 else ""
         if len(parts) >= 3 and parts[0] == "2":
             return parts[2]
         return ""
