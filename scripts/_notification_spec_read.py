@@ -13,6 +13,22 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 NOTIF = ROOT / "pilotstd" / "core" / "notification"
 
+# ── 声明式可验证性的闭集（2026-10-06 · P6/P7 甲案）────────────────────────────
+# `verify`：该事件的触发点**如何被验证**。**不要求 42/42 运行时覆盖**——极难在正常运行中
+# 触发的环境相关事件（凭证轮换、库损坏类告警）显式声明为 `manual`/`ui_only` 即可。
+VERIFY_VALUES: tuple[str, ...] = ("e2e", "manual", "ui_only")
+# `verify_reason`：非 `e2e` 时必须给出**机器可读枚举码**（避免自由文本漂移；文案在报告 17）。
+VERIFY_REASON_CODES: tuple[str, ...] = (
+    "env_dependent",  # 需真实环境/凭证/用户动作（含解密上下文、风控阈值）
+    "external_state",  # 依赖外部系统状态（站点、公告源、镜像仓库、配额）
+    "external_event",  # 依赖外部事件推送（如企微可信 IP 变更）
+    "time_based",  # 依赖真实时钟/定时任务
+    "data_condition",  # 依赖特定数据条件（空结果、废止无替换等）
+    "chaos_condition",  # 依赖故障场景（如数据库损坏类告警）
+    "real_chain_only",  # 真实链路完成才触发（现有测试以桩替代）
+    "ui_only",  # 仅桌面 UI 层触发
+)
+
 
 # 规格声明字段的**唯一读取口**：只认字面量实参（常量 / 元组 / frozenset），
 # 非字面量取值被忽略——让"把值算出来"的写法在门禁侧显形（门禁要能看见声明，而不是执行它）。
@@ -131,4 +147,23 @@ def spec_field_problems(
             problems.append(f"builder_ref 指向未知构建器模块 -> {module_name}")
         elif func_name not in builder_defs[short]:
             problems.append(f"builder_ref 指向不存在的函数 -> {ref}")
+
+    # ── 声明式可验证性（2026-10-06 · P6/P7 甲案）────────────────────────────
+    # **设计口径（用户裁定）**：防漂移门禁必须是"声明式"（注册时必填字段）而非"过程式"
+    # （每次跑一遍全量插桩）。`verify` 无默认值 ⇒ 漏填在 import 期即 TypeError（第一道）；
+    # 此处为第二道：取值落**闭集**、非 `e2e` 必带**机器可读枚举理由**（避免自由文本漂移），
+    # 且 `e2e` 不得带理由（防止用理由掩盖真实分类）。
+    # **不要求 42/42 运行时覆盖**：极难触发的环境相关事件（凭证轮换/库损坏类告警）显式声明即可。
+    verify = meta.get("verify")
+    reason = meta.get("verify_reason")
+    if verify not in VERIFY_VALUES:
+        problems.append(f"verify 越界 -> {verify!r}（闭集 {VERIFY_VALUES}）")
+    elif verify == "e2e":
+        if reason:
+            problems.append(f"verify=e2e 不应带理由 -> {reason!r}")
+    else:
+        if not isinstance(reason, str) or not reason:
+            problems.append(f"verify={verify} 必须带 verify_reason（机器可读枚举码）")
+        elif reason not in VERIFY_REASON_CODES:
+            problems.append(f"verify_reason 越界 -> {reason!r}（闭集 {VERIFY_REASON_CODES}）")
     return problems

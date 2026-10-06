@@ -65,6 +65,9 @@ EXPECTED_FIELDS = (
     "branch_by",
     "subscribable",
     "aggregation",
+    # 2026-10-06 · P6/P7 甲案：**声明式可验证性**（注册时必填，见 `EventSpec.verify` 注释）
+    "verify",
+    "verify_reason",
 )
 # 42 = 原 41 + `desktop_toast`（阶段 4 · P6 · 4c 正式登记的平台层事件；用户裁决 Q10）
 EXPECTED_EVENT_COUNT = 42
@@ -204,14 +207,14 @@ class TestSpecSelfConsistency(unittest.TestCase):
         self.assertEqual(len(set(EVENT_SPEC_KEYS)), EXPECTED_EVENT_COUNT, "事件键不得重复")
         self.assertEqual(set(EVENT_SPEC_KEYS), set(ALL_EVENT_KEYS))
 
-    def test_declares_exactly_fifteen_fields(self):
-        """每条声明必须恰好有 15 个字段（互斥说明已按裁决移出规格）。"""
+    def test_declares_exactly_seventeen_fields(self):
+        """每条声明必须恰好有 17 个字段（原 15 + 2026-10-06 新增 `verify`/`verify_reason`）。"""
         names = tuple(f.name for f in dataclasses.fields(EventSpec))
         self.assertEqual(names, EXPECTED_FIELDS)
         self.assertNotIn("mutual", names, "互斥说明是设计文档内容，不进规格")
 
     def test_every_field_is_populated(self):
-        """15 个字段必须全部有值；除分支判据外不得为 None（无缺字段）。"""
+        """17 个字段必须全部有值；除分支判据外不得为 None（无缺字段）。"""
         for spec in EVENT_SPECS:
             for field in dataclasses.fields(EventSpec):
                 value = getattr(spec, field.name)
@@ -298,12 +301,12 @@ class TestSpecStaticLiteralAST(unittest.TestCase):
         tree = ast.parse(_spec_source())
         self.assertIsInstance(tree, ast.Module)
 
-    def test_every_entry_has_fifteen_keywords_and_literal_values(self):
-        """41 条声明各带 15 个关键字实参，且取值只能是字面量/元组/集合字面量。"""
+    def test_every_entry_has_seventeen_keywords_and_literal_values(self):
+        """42 条声明各带 17 个关键字实参，且取值只能是字面量/元组/集合字面量。"""
         calls = _spec_calls()
         self.assertEqual(len(calls), EXPECTED_EVENT_COUNT)
         for call in calls:
-            self.assertEqual(len(call.keywords), 15, f"关键字实参数量异常: {ast.dump(call)[:60]}")
+            self.assertEqual(len(call.keywords), 17, f"关键字实参数量异常: {ast.dump(call)[:60]}")
             self.assertEqual({kw.arg for kw in call.keywords}, set(EXPECTED_FIELDS))
             for kw in call.keywords:
                 if isinstance(kw.value, ast.Call):
@@ -454,6 +457,11 @@ class TestScopeOfThisSubStep(unittest.TestCase):
             # 4c（用户裁决 Q10）：`desktop_toast` 登记后，其专项用例需读取事件规格以锁定
             # "`ALL_EVENTS` 与 `EVENT_SPECS` 双侧必须同时登记"的不变量（只读事件键，不派生文案/渠道）
             "tests/test_notification_desktop_toast.py",
+            # P6/P7 甲案（2026-10-06）：**按需运行时校验工具**需要读取事件规格，以把
+            # `verify` 声明与实测触发点做对照（只读 `key`/`verify`，不派生文案与渠道；本工具不进快闸）
+            "scripts/audit_notification_trigger_map.py",
+            # 同批新增的"声明式可验证性"契约用例（只读 `verify`/`verify_reason` 并断言闭集自洽）
+            "tests/test_event_verify_declaration.py",
         }
         self_relative = SPEC_FILE.relative_to(ROOT).as_posix()
         this_file = Path(__file__).resolve().relative_to(ROOT).as_posix()

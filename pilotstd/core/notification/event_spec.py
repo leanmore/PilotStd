@@ -83,6 +83,14 @@ class EventSpec:
     branch_by: Callable[[dict[str, Any]], str] | None
     subscribable: bool
     aggregation: str
+    # ── 声明式可验证性（2026-10-06 · P6/P7 甲案；**注册时必填**）────────────────
+    # `verify` 为**必填**（无默认值 ⇒ 漏填在 import 期直接 TypeError，属"声明式"门禁，零过程式负担）：
+    #   · "e2e"            —— 由 e2e/集成链路驱动，可由 `scripts/audit_notification_trigger_map.py` 运行时校验；
+    #   · "manual:<理由>"  —— 环境相关、极难在正常运行中触发（如凭证轮换、库损坏类告警），需人工/场景验证；
+    #   · "ui_only:<理由>" —— 仅桌面 UI 触发。
+    # `verify_reason`：`verify` 非 "e2e" 时**必须非空**（由 G-045 的静态维度校验）。
+    verify: str
+    verify_reason: str = ""
 
     @property
     def builder(self) -> Callable[[dict[str, Any]], Any]:
@@ -118,6 +126,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         module_key="notification.module.validity", trigger_file="pilotstd/core/validity_checker.py",
         payload_keys=frozenset({"changed_at", "is_expired", "new_status", "old_status", "standard_number"}),
         security=False, branch_by=None, subscribable=True, aggregation="aggregate",
+
+        verify="manual",
+        verify_reason="real_chain_only",
     ),
     EventSpec(key="standard_first_registered", notify_event="task_result", content_type="list",
         task_kind="validity_check",
@@ -126,6 +137,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         module_key="notification.module.validity", trigger_file="pilotstd/core/validity_checker.py",
         payload_keys=frozenset({"detail_url", "elapsed_ms", "name", "standard_number", "standards"}), security=False,
         branch_by=None, subscribable=True, aggregation="aggregate",
+
+        verify="manual",
+        verify_reason="real_chain_only",
     ),
     EventSpec(key="validity_batch_report", notify_event="batch_summary", content_type="list",
         task_kind="validity_check",
@@ -134,6 +148,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         module_key="notification.module.validity", trigger_file="pilotstd/core/_validity_pipeline.py",
         payload_keys=frozenset({"adapter_status", "changed", "count", "failed"}), security=False, branch_by=None,
         subscribable=True, aggregation="aggregate",
+
+        verify="manual",
+        verify_reason="real_chain_only",
     ),
     EventSpec(key="validity_round_summary", notify_event="batch_summary", content_type="list",
         task_kind="validity_check",
@@ -142,6 +159,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         module_key="notification.module.validity", trigger_file="pilotstd/core/_validity_pipeline.py",
         payload_keys=frozenset({"change_list", "round", "total_changes", "total_checks", "total_failures"}),
         security=False, branch_by=None, subscribable=True, aggregation="aggregate",
+
+        verify="manual",
+        verify_reason="real_chain_only",
     ),
     EventSpec(key="validity_standard_failed", notify_event="anomaly_alert", content_type="text",
         task_kind="validity_check",
@@ -150,6 +170,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         module_key="notification.module.validity", trigger_file="pilotstd/core/_validity_pipeline.py",
         payload_keys=frozenset({"error", "standard_number"}), security=False, branch_by=None, subscribable=True,
         aggregation="aggregate",
+
+        verify="manual",
+        verify_reason="real_chain_only",
     ),
     EventSpec(key="validity_system_failed", notify_event="anomaly_alert", content_type="text",
         task_kind="validity_check",
@@ -157,6 +180,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         i18n_category="notification.validity", default_channels=("wechat",), levels=("error",),
         module_key="notification.module.validity", trigger_file="pilotstd/core/_validity_pipeline.py",
         payload_keys=frozenset({"error"}), security=False, branch_by=None, subscribable=True, aggregation="aggregate",
+
+        verify="manual",
+        verify_reason="chaos_condition",
     ),
 
     # ── 用户交互（1）──
@@ -166,6 +192,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         module_key="notification.module.interaction", trigger_file="pilotstd/tasks/date_reminder.py",
         payload_keys=frozenset({"days_before", "remind_type", "standard_number", "std_name"}), security=False,
         branch_by=None, subscribable=True, aggregation="aggregate",
+
+        verify="manual",
+        verify_reason="time_based",
     ),
 
     # ── 扫描/导入（3）──
@@ -175,12 +204,18 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         module_key="notification.module.scan", trigger_file="pilotstd/manager/facade/_scan.py",
         payload_keys=frozenset({"count", "failed"}), security=False, branch_by=None, subscribable=True,
         aggregation="aggregate",
+
+        verify="e2e",
+        verify_reason="",
     ),
     EventSpec(key="scan_empty", notify_event="task_result", content_type="text", task_kind="scan",
         builder_ref="pilotstd.core.notification._builders_task_results:_build_scan_empty_message",
         i18n_category="notification.scan", default_channels=(), levels=("info",),
         module_key="notification.module.scan", trigger_file="pilotstd/manager/facade/_scan.py",
         payload_keys=frozenset(), security=False, branch_by=None, subscribable=True, aggregation="aggregate",
+
+        verify="e2e",
+        verify_reason="",
     ),
     EventSpec(key="auto_scan_failed", notify_event="batch_summary", content_type="text", task_kind="scan",
         builder_ref="pilotstd.core.notification._builders_batch:_build_auto_scan_failed_message",
@@ -188,6 +223,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         module_key="notification.module.scan", trigger_file="pilotstd/manager/facade/_scan.py",
         payload_keys=frozenset({"error", "path"}), security=False, branch_by=None, subscribable=True,
         aggregation="aggregate",
+
+        verify="manual",
+        verify_reason="external_state",
     ),
 
     # ── 查询（3）──
@@ -198,6 +236,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         payload_keys=frozenset({"failed_items", "found", "pending", "results", "total"}), security=False,
         branch_by=None,
         subscribable=True, aggregation="aggregate",
+
+        verify="e2e",
+        verify_reason="",
     ),
     EventSpec(key="query_failed", notify_event="task_failure", content_type="text", task_kind="query",
         builder_ref="pilotstd.core.notification._builders_task_results:_build_query_failed_message",
@@ -205,6 +246,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         module_key="notification.module.query", trigger_file="pilotstd/manager/facade/_query_subsystem.py",
         payload_keys=frozenset({"error", "standard_number"}), security=False, branch_by=None, subscribable=True,
         aggregation="aggregate",
+
+        verify="manual",
+        verify_reason="real_chain_only",
     ),
     EventSpec(key="query_empty", notify_event="batch_summary", content_type="text", task_kind="query",
         builder_ref="pilotstd.core.notification._builders_task_results:_build_query_empty_message",
@@ -212,6 +256,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         module_key="notification.module.query", trigger_file="pilotstd/manager/facade/_query_subsystem.py",
         payload_keys=frozenset({"total"}), security=False, branch_by=None, subscribable=True,
         aggregation="aggregate",
+
+        verify="manual",
+        verify_reason="real_chain_only",
     ),
 
     # ── 下载（2）──
@@ -223,6 +270,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         payload_keys=frozenset({"failed", "failed_items", "skipped", "success"}), security=False, branch_by=None,
         subscribable=True,
         aggregation="aggregate",
+
+        verify="e2e",
+        verify_reason="",
     ),
     EventSpec(key="download_failed", notify_event="task_failure", content_type="text",
         task_kind="favorite_download",
@@ -236,6 +286,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
             {"error", "standard_name", "standard_number"}
         ), security=False, branch_by=None, subscribable=True,
         aggregation="aggregate",
+
+        verify="e2e",
+        verify_reason="",
     ),
 
     # ── 规范化（2）──
@@ -246,6 +299,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         payload_keys=frozenset({"failed", "failed_items", "success", "total"}), security=False, branch_by=None,
         subscribable=True,
         aggregation="aggregate",
+
+        verify="manual",
+        verify_reason="real_chain_only",
     ),
     EventSpec(key="normalize_failed", notify_event="task_failure", content_type="text", task_kind="normalize",
         builder_ref="pilotstd.core.notification._builders_task_results:_build_normalize_failed_message",
@@ -253,6 +309,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         module_key="notification.module.normalize", trigger_file="pilotstd/manager/facade/_organize.py",
         payload_keys=frozenset({"error", "total"}), security=False, branch_by=None, subscribable=True,
         aggregation="aggregate",
+
+        verify="manual",
+        verify_reason="real_chain_only",
     ),
 
     # ── 归档（3）──
@@ -265,6 +324,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         # 并追加 failed_items（批量导入失败明细，需求①）。
         payload_keys=frozenset({"category_stats", "count", "directories", "failed_items"}),
         security=False, branch_by=None, subscribable=True, aggregation="aggregate",
+
+        verify="e2e",
+        verify_reason="",
     ),
     EventSpec(key="archive_failed", notify_event="task_failure", content_type="text", task_kind="organize",
         builder_ref="pilotstd.core.notification._builders_task_results:_build_archive_failed_message",
@@ -272,6 +334,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         module_key="notification.module.archive", trigger_file="pilotstd/manager/organize/organizer.py",
         payload_keys=frozenset({"count", "error"}), security=False, branch_by=None, subscribable=True,
         aggregation="aggregate",
+
+        verify="manual",
+        verify_reason="real_chain_only",
     ),
     EventSpec(key="archive_abandoned", notify_event="task_result", content_type="text",
         task_kind="favorite_download",
@@ -280,6 +345,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         module_key="notification.module.archive", trigger_file="pilotstd/services/favorite_chain_processor.py",
         payload_keys=frozenset({"error", "standard_info"}), security=False, branch_by=None, subscribable=True,
         aggregation="aggregate",
+
+        verify="manual",
+        verify_reason="data_condition",
     ),
 
     # ── 废止处理（2）──
@@ -289,6 +357,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         module_key="notification.module.expire", trigger_file="pilotstd/manager/facade/_organize.py",
         payload_keys=frozenset({"standard_number", "target_path"}), security=False, branch_by=None, subscribable=True,
         aggregation="aggregate",
+
+        verify="manual",
+        verify_reason="data_condition",
     ),
     EventSpec(key="replacement_not_found", notify_event="task_failure", content_type="text", task_kind="query",
         builder_ref="pilotstd.core.notification._builders_task_results:_build_replacement_not_found_message",
@@ -296,6 +367,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         module_key="notification.module.expire", trigger_file="pilotstd/manager/classifier.py",
         payload_keys=frozenset({"searched_sources", "standard_number"}), security=False, branch_by=None,
         subscribable=True, aggregation="aggregate",
+
+        verify="manual",
+        verify_reason="data_condition",
     ),
 
     # ── 公告抓取（4）──
@@ -306,6 +380,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         module_key="notification.module.announce", trigger_file="docker/api/announce.py",
         payload_keys=frozenset({"count", "source"}), security=False, branch_by=None, subscribable=True,
         aggregation="aggregate",
+
+        verify="manual",
+        verify_reason="real_chain_only",
     ),
     EventSpec(key="announcement_check_complete", notify_event="user_activity", content_type="list",
         task_kind="announce_fetch",
@@ -316,6 +393,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
             {"db_count", "failures", "gb_count", "hb_count", "source", "total_announcements", "total_standards"}
         ),
          security=False, branch_by=None, subscribable=True, aggregation="aggregate",
+
+        verify="manual",
+        verify_reason="real_chain_only",
     ),
     EventSpec(key="announcement_fetch_failed", notify_event="user_activity", content_type="text",
         task_kind="announce_fetch",
@@ -324,6 +404,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         module_key="notification.module.announce", trigger_file="pilotstd/announce/notifier.py",
         payload_keys=frozenset({"error", "source"}), security=False, branch_by=None, subscribable=True,
         aggregation="aggregate",
+
+        verify="manual",
+        verify_reason="real_chain_only",
     ),
     EventSpec(key="announce_fetch_summary", notify_event="user_activity", content_type="list",
         task_kind="announce_fetch",
@@ -332,6 +415,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         module_key="notification.module.announce", trigger_file="pilotstd/announce/notifier.py",
         payload_keys=frozenset({"adapters", "has_error", "total_count"}), security=False, branch_by=None,
         subscribable=True, aggregation="aggregate",
+
+        verify="manual",
+        verify_reason="real_chain_only",
     ),
 
     # ── 系统运维（7）──
@@ -341,6 +427,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         module_key="notification.module.system", trigger_file="docker/scheduler.py",
         payload_keys=frozenset({"backup_path", "error", "size_mb", "success"}), security=False, branch_by=None,
         subscribable=True, aggregation="aggregate",
+
+        verify="manual",
+        verify_reason="time_based",
     ),
     EventSpec(key="image_update_available", notify_event="anomaly_alert", content_type="text",
         task_kind="image_update",
@@ -349,6 +438,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         module_key="notification.module.system", trigger_file="docker/api/system.py",
         payload_keys=frozenset({"error", "new_digest", "old_digest", "release_notes"}), security=False,
         branch_by=None, subscribable=True, aggregation="aggregate",
+
+        verify="e2e",
+        verify_reason="",
     ),
     EventSpec(key="trust_ip_update", notify_event="security_alert", content_type="field_list", task_kind="",
         builder_ref="pilotstd.core.notification._builders_system:_build_trust_ip_update_message",
@@ -356,6 +448,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         module_key="notification.module.system", trigger_file="pilotstd/manager/wechat_ip_service.py",
         payload_keys=frozenset({"body", "ip", "status", "title", "update_time"}), security=False, branch_by=None,
         subscribable=True, aggregation="aggregate",
+
+        verify="manual",
+        verify_reason="external_event",
     ),
     EventSpec(key="worker_error", notify_event="anomaly_alert", content_type="text", task_kind="",
         builder_ref="pilotstd.core.notification._builders_system:_build_worker_error_message",
@@ -363,6 +458,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         module_key="notification.module.system", trigger_file="pilotstd/ui/pending_query_dialog.py",
         payload_keys=frozenset({"error", "traceback", "worker"}), security=False, branch_by=None, subscribable=True,
         aggregation="aggregate",
+
+        verify="ui_only",
+        verify_reason="ui_only",
     ),
     EventSpec(key="task_execution_failed", notify_event="anomaly_alert", content_type="text", task_kind="",
         builder_ref="pilotstd.core.notification._builders_system:_build_task_execution_failed_message",
@@ -370,6 +468,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         module_key="notification.module.system", trigger_file="docker/scheduler.py",
         payload_keys=frozenset({"error", "task_name"}), security=False, branch_by=None, subscribable=True,
         aggregation="aggregate",
+
+        verify="e2e",
+        verify_reason="",
     ),
     EventSpec(key="quota_exhausted", notify_event="anomaly_alert", content_type="text", task_kind="",
         builder_ref="pilotstd.core.notification._builders_system:_build_quota_exhausted_message",
@@ -377,6 +478,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         module_key="notification.module.system", trigger_file="pilotstd/query/daily_quota.py",
         payload_keys=frozenset({"quota_limit", "reset_time", "site_name"}), security=False, branch_by=None,
         subscribable=True, aggregation="aggregate",
+
+        verify="manual",
+        verify_reason="external_state",
     ),
     EventSpec(key="notification_delivery_failed", notify_event="system_health", content_type="text", task_kind="",
         builder_ref="pilotstd.core.notification._builders_batch:_build_notification_delivery_failed_message",
@@ -384,6 +488,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         module_key="notification.module.system", trigger_file="pilotstd/core/notification/manager.py",
         payload_keys=frozenset({"channel", "consecutive", "failures", "reason", "samples"}), security=False,
         branch_by=None, subscribable=False, aggregation="aggregate",
+
+        verify="manual",
+        verify_reason="chaos_condition",
     ),
 
     # ── 平台层（1）──（阶段 4 · P6 · 4c：登记 `desktop_toast`，消除 G-045 盲区）
@@ -396,6 +503,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         i18n_category="notification.system", default_channels=(), levels=("info", "warning", "error"),
         module_key="notification.module.system", trigger_file="pilotstd/core/notification_aggregator.py",
         payload_keys=frozenset(), security=False, branch_by=None, subscribable=False, aggregation="aggregate",
+
+        verify="ui_only",
+        verify_reason="ui_only",
     ),
 
     # ── 收藏链（4）──
@@ -406,6 +516,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         module_key="notification.module.favorite", trigger_file="docker/api/favorites.py",
         payload_keys=frozenset({"record_id", "standard_name", "standard_no", "user_id"}), security=False,
         branch_by=None, subscribable=True, aggregation="aggregate",
+
+        verify="e2e",
+        verify_reason="",
     ),
     EventSpec(key="download_started", notify_event="task_progress", content_type="field_list",
         task_kind="favorite_download",
@@ -417,6 +530,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
             {"favorite_id", "standard_name", "standard_number", "user_id"}
         ), security=False, branch_by=None,
         subscribable=True, aggregation="aggregate",
+
+        verify="manual",
+        verify_reason="real_chain_only",
     ),
     EventSpec(key="download_complete", notify_event="task_result", content_type="field_list",
         task_kind="favorite_download",
@@ -427,6 +543,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
             {"favorite_id", "local_path", "standard_name", "standard_number", "status", "user_id"}
         ), security=False,
         branch_by=None, subscribable=True, aggregation="aggregate",
+
+        verify="e2e",
+        verify_reason="",
     ),
     EventSpec(key="favorite_abandoned_summary", notify_event="user_activity", content_type="list",
         task_kind="favorite_download",
@@ -435,6 +554,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         module_key="notification.module.favorite", trigger_file="pilotstd/services/favorite_chain_processor.py",
         payload_keys=frozenset({"details", "reasons", "retryable", "total"}), security=False, branch_by=None,
         subscribable=False, aggregation="aggregate",
+
+        verify="e2e",
+        verify_reason="",
     ),
 
     # ── 安全告警（4）──
@@ -444,6 +566,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         module_key="notification.module.security", trigger_file="docker/api/notification_config.py",
         payload_keys=frozenset({"changed_keys", "from_ip", "rules_changed", "services"}), security=True,
         branch_by=None, subscribable=False, aggregation="bypass",
+
+        verify="manual",
+        verify_reason="env_dependent",
     ),
     EventSpec(key="security_password_changed", notify_event="security_alert", content_type="list", task_kind="",
         builder_ref="pilotstd.core.notification._builders_system:_build_security_password_changed_message",
@@ -451,6 +576,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         module_key="notification.module.security", trigger_file="docker/api/users.py",
         payload_keys=frozenset({"from_ip", "sessions_revoked", "user_id"}), security=True, branch_by=None,
         subscribable=False, aggregation="bypass",
+
+        verify="e2e",
+        verify_reason="",
     ),
     EventSpec(key="security_token_refreshed", notify_event="security_alert", content_type="text", task_kind="",
         builder_ref="pilotstd.core.notification._builders_system:_build_security_token_refreshed_message",
@@ -458,6 +586,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         module_key="notification.module.security", trigger_file="docker/api/settings.py",
         payload_keys=frozenset({"db_synced", "from_ip", "rotated_at"}), security=True, branch_by=None,
         subscribable=False, aggregation="bypass",
+
+        verify="manual",
+        verify_reason="env_dependent",
     ),
     EventSpec(key="security_login_failed", notify_event="security_alert", content_type="field_list", task_kind="",
         builder_ref="pilotstd.core.notification._builders_system:_build_security_login_failed_message",
@@ -465,6 +596,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         module_key="notification.module.security", trigger_file="docker/auth.py",
         payload_keys=frozenset({"failures", "from_ip", "username", "window_seconds"}), security=True, branch_by=None,
         subscribable=False, aggregation="aggregate",
+
+        verify="manual",
+        verify_reason="env_dependent",
     ),
 )
 
