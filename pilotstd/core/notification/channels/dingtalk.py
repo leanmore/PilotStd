@@ -24,7 +24,7 @@ from ..channel import NotificationMessage
 
 if TYPE_CHECKING:  # pragma: no cover - 仅类型检查
     from ..interaction import ChannelCapabilities
-from ..renderer import DingTalkCardRenderer, MarkdownRenderer
+from ..renderer import DingTalkCardRenderer, MarkdownRenderer, split_for_channel
 from .base import NotificationChannel
 
 logger = logging.getLogger(__name__)
@@ -107,15 +107,32 @@ class DingTalkChannel(NotificationChannel):
             # 拼接加签参数到链接
             url = self._url + self._sign()
 
-            # 使用渲染消息体（标准号由构建器渲染进正文，发送层不再追加，
-            # 与电报渠道同口径——见提交 57f58a6c 的尾部重复行消除）
+            # 分段（P2，2026-10-05）：钉钉 markdown.text 上限按 **4000 字符**取保守值
+            # （官方条款本轮未取证，口径见 renderer.CHANNEL_TEXT_LIMITS 的注释）⇒ 超长整条会被拒收，
+            # 先切分；未超限时 `split_for_channel` 原样返回单段（零行为变更）。
+            # 逐段独立发送，任一段最终失败即整体失败（**不静默丢段**）。
             rendered = self._renderer.render(message)
+            for seg in split_for_channel(rendered, "dingtalk"):
+                if not self._send_webhook_text(url, message.title[:50], seg):
+                    return False
+            return True
+        except Exception as e:
+            # 外层兜底：签名计算或分段循环本身出错（分段内的异常由 `_send_webhook_text` 自行处理）
+            self.last_error = str(e)
+            logger.warning("钉钉通知异常（分段外层）: %s", e, exc_info=True)
+            return False
 
+    def _send_webhook_text(self, url: str, title: str, rendered: str) -> bool:
+        """发送**单个分段**的 markdown 文本（原 `_send_webhook` 的请求与响应判定逻辑）。
+
+        `title` 由调用方按钉钉上限（50 字符）截断；这里只管**一段**文本的投递与成败判定。
+        """
+        try:
             payload = json.dumps(
                 {
                     "msgtype": "markdown",
                     "markdown": {
-                        "title": message.title[:50],  # 钉钉标题上限 50 字符
+                        "title": title,  # 钉钉标题上限 50 字符（由调用方截断）
                         "text": rendered,
                     },
                 }

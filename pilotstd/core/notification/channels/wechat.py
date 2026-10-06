@@ -12,7 +12,7 @@ from ..channel import NotificationMessage
 
 if TYPE_CHECKING:  # pragma: no cover - 仅类型检查
     from ..interaction import ChannelCapabilities
-from ..renderer import MarkdownRenderer
+from ..renderer import MarkdownRenderer, split_for_channel
 from .base import NotificationChannel
 
 logger = logging.getLogger(__name__)
@@ -28,15 +28,24 @@ class WechatChannel(NotificationChannel):
         self.last_error: str = ""
 
     def send(self, message: NotificationMessage) -> bool:
+        """发送通知；超长按**企业微信 2048 字节**上限分段（P2）。"""
         # 每次发送前重置错误详情，避免上次失败残留
         self.last_error = ""
         if not self._url:
             self.last_error = t("notification.channel.not_configured_webhook")
             return False
+        # 分段（P2，2026-10-05）：企业微信文本上限是 **2048 字节**（官方口径，本仓按 UTF-8 计）⇒
+        # 超长整条会被拒收，必须先切分；未超限时 `split_for_channel` 原样返回单段（零行为变更）。
+        # 逐段独立发送，任一段最终失败即整体失败（**不静默丢段**）。
+        rendered = self._renderer.render(message)
+        for seg in split_for_channel(rendered, "wecom"):
+            if not self._send_segment(seg):
+                return False
+        return True
+
+    def _send_segment(self, rendered: str) -> bool:
+        """发送**单个分段**（原 send() 的请求与异常处理逻辑；分段后按段独立判定成败）。"""
         try:
-            # 使用渲染消息体（标准号由构建器渲染进正文，发送层不再追加，
-            # 与电报渠道同口径——见提交 57f58a6c 的尾部重复行消除）
-            rendered = self._renderer.render(message)
             payload = json.dumps(
                 {
                     "msgtype": "markdown",

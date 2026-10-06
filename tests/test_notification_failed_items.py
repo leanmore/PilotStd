@@ -1,4 +1,4 @@
-"""通知聚合 B1 的失败明细链路测试：渲染快照、分段边界、落库 JSON 往返、分组键两条路径。
+﻿"""通知聚合 B1 的失败明细链路测试：渲染快照、分段边界、落库 JSON 往返、分组键两条路径。
 
 为什么单独成文件：该链路横跨"采集 payload → 构建器渲染 → 渠道分段 → 落库"四层，
 原先分散在 stage1x/stage2b 各用例里只覆盖单层；本文件用**真实标准号格式**与
@@ -157,7 +157,74 @@ def test_failed_items_json_roundtrip() -> None:
     assert loads_list("[]") == []
 
 
-# ── 五、批次键（E1/E2）：入口生成 + 分发层搬运（源码级契约，防回归）───────────────
+# ── 六、渠道分段接入（P2）：企微（字节）与钉钉（字符）─────────────────────────
+
+
+def _long_text(lines: int = 200) -> str:
+    """构造超长文本：每行带**唯一编号**（`L000`…）便于"信息不丢"做精确断言。
+
+    为什么不用 `行0` 这类子串：它会同时匹配 `行0`、`行000`、`行099` ⇒ 计数天然不等于行数，
+    断言会假红（首轮即踩到：期望 200、实得 100）。
+    """
+    return "\n".join(f"L{i:03d} " + "字" * 40 for i in range(lines))
+
+
+def _all_lines_present(joined: str, lines: int = 200) -> bool:
+    """切分后拼接的文本里，每一行的唯一编号都必须存在（段间「续 N/M」后缀不影响该判定）。"""
+    return all(f"L{i:03d}" in joined for i in range(lines))
+
+
+def test_wechat_splits_long_message_by_bytes(monkeypatch) -> None:
+    """企业微信：超长必须切分为多次投递，且**每段 ≤ 2048 字节**、信息零丢失。
+
+    用替身拦在 `_send_segment` 上：本用例只验证"分段与路由"，
+    真实 HTTP 由既有的渠道用例覆盖（避免把网络细节混进分段契约）。
+    """
+    from pilotstd.core.notification.channels.wechat import WechatChannel
+
+    ch = WechatChannel("https://example.invalid/hook")
+    big = _long_text()
+    monkeypatch.setattr(ch._renderer, "render", lambda _m: big, raising=False)
+    seen: list[str] = []
+    monkeypatch.setattr(ch, "_send_segment", lambda text: seen.append(text) is None or True, raising=False)
+
+    assert ch.send(NotificationMessage(title="t")) is True
+    assert len(seen) > 1, "超长必须分成多段"
+    assert all(len(s.encode("utf-8")) <= 2048 for s in seen), "每段都不得超过企微 2048 字节上限"
+    assert _all_lines_present("".join(seen)), "切分不得丢行"
+
+
+def test_dingtalk_splits_long_message(monkeypatch) -> None:
+    """钉钉（群机器人形态）：超长切成多段，每段 ≤ 4000 字符，信息零丢失。"""
+    from pilotstd.core.notification.channels.dingtalk import DingTalkChannel
+
+    ch = DingTalkChannel(webhook_url="https://example.invalid/hook")
+    big = _long_text()
+    monkeypatch.setattr(ch._renderer, "render", lambda _m: big, raising=False)
+    monkeypatch.setattr(ch, "_sign", lambda: "", raising=False)
+    seen: list[str] = []
+    monkeypatch.setattr(
+        ch, "_send_webhook_text", lambda url, title, text: seen.append(text) is None or True, raising=False
+    )
+
+    assert ch.send(NotificationMessage(title="t")) is True
+    assert len(seen) > 1
+    assert all(len(s) <= 4000 for s in seen)
+    assert _all_lines_present("".join(seen))
+
+
+def test_short_message_is_single_segment(monkeypatch) -> None:
+    """未超限时**只投递一次**（零行为变更：分段只在超长时生效）。"""
+    from pilotstd.core.notification.channels.wechat import WechatChannel
+
+    ch = WechatChannel("https://example.invalid/hook")
+    monkeypatch.setattr(ch._renderer, "render", lambda _m: "短消息", raising=False)
+    seen: list[str] = []
+    monkeypatch.setattr(ch, "_send_segment", lambda text: seen.append(text) is None or True, raising=False)
+
+    assert ch.send(NotificationMessage(title="t")) is True
+    assert seen == ["短消息"]
+
 
 
 def test_download_batch_generates_batch_key_and_passes_it() -> None:
