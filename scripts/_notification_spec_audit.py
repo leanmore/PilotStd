@@ -64,11 +64,15 @@ def _find_assignment(tree: ast.Module, name: str) -> ast.AST | None:
 
 
 def _spec_calls(root: Path) -> tuple[list[ast.Call], ast.Module]:
-    """AST 解析 `channel_spec.py`，返回 `ChannelSpec(...)` 调用列表与语法树。
+    """AST 解析**渠道声明模块**，返回 `ChannelSpec(...)` 调用列表与语法树。
 
     用 AST 而非 import：门禁不执行被检对象，避免 import 副作用与路径依赖。
+
+    **2026-10-06（阶段 3 · Step 4 ③）**：声明块由 `channel_spec.py` 迁至 `channel_spec_data.py`
+    （守 G-010 的 500 有效行上限）⇒ 本函数改读声明模块；`channel_spec.py` 仍**再导出**
+    `CHANNEL_SPECS`/`spec_for` 等，故其它消费方与契约测试不受影响。
     """
-    path = root / "pilotstd/core/notification/channel_spec.py"
+    path = root / "pilotstd/core/notification/channel_spec_data.py"
     tree = ast.parse(path.read_text(encoding="utf-8"))
     node = _find_assignment(tree, "CHANNEL_SPECS")
     if not isinstance(node, ast.Tuple):

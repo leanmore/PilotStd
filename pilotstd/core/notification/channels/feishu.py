@@ -13,6 +13,7 @@ from urllib.request import Request, urlopen
 from pilotstd.i18n import t
 
 from ..channel import NotificationMessage
+from ..interaction import ANCHOR_MESSAGE_ID, MessageHandle
 
 if TYPE_CHECKING:  # pragma: no cover - 仅类型检查
     from ..interaction import ChannelCapabilities
@@ -23,18 +24,186 @@ logger = logging.getLogger(__name__)
 
 
 class FeishuChannel(NotificationChannel):
-    """飞书机器人 Webhook。"""
+    """飞书渠道：**机器人 Webhook** 与**企业自建应用**两种形态（阶段 3 · Step 4 ③）。
 
-    def __init__(self, webhook_url: str, secret: str = ""):
+    | 形态 | 必需参数 | 能力 |
+    |---|---|---|
+    | 机器人 Webhook | `webhook_url`（可选 `secret` 加签） | 发交互式卡片；**拿不到 `message_id`
+      ⇒ 不能编辑** |
+    | 企业自建应用 | `app_id` + `app_secret` + `receive_id` | 发卡片并**留存 `message_id`**
+      ⇒ 可 **`PATCH` 编辑已发消息** |
+
+    两者都配好时**优先应用形态**（与 `channel_spec.status_rule` 分支序一致）。
+
+    **端点取证（[实现] 等级）**：第三方插件 `ui-beam-9/MoviePilot-Plugins` 的
+    `plugins.v2/larkmessager/client.py`：
+    · token `POST /open-apis/auth/v3/tenant_access_token/internal`（`:49-60`）；
+    · 发送 `POST /open-apis/im/v1/messages?receive_id_type=…`
+      （字段 `receive_id`/`msg_type`/`content`（**JSON 字符串**））（`:125-146`）；
+    · 编辑 `PATCH /open-apis/im/v1/messages/{message_id}`
+      （`{"content": <JSON 字符串>}`，`code==0` 为成功）（`:437-489`）。
+    `content` 必须是**JSON 字符串**（不是对象）——与 Webhook 形态（`card` 直接给对象）最易错的一处差异。
+    """
+
+    # 开放平台基址（飞书中国站）；如需 Lark 国际站可在此改（第三方实现用的是 larksuite.com）
+    _API_BASE = "https://open.feishu.cn/open-apis"
+
+    def __init__(
+        self,
+        webhook_url: str,
+        secret: str = "",
+        app_id: str = "",
+        app_secret: str = "",
+        receive_id: str = "",
+        receive_id_type: str = "open_id",
+    ):
         # 签名校验密钥（大阶段 5 起**真正生效**；此前仅声明未实现——见提交说明）。
         # 注意与钉钉的差异：钉钉 `_sign()` 把密钥当 HMAC **key**、把 "timestamp\nsecret"
         # 当消息；飞书反过来——把 "timestamp\nsecret" 当 **key**、且没有独立消息。
         # 两种口径不可互相套用。
         self._url = webhook_url
         self._secret = secret
+        self._app_id = app_id
+        self._app_secret = app_secret
+        self._receive_id = receive_id
+        self._receive_id_type = receive_id_type or "open_id"
         self._renderer = FeishuCardRenderer()
+        # 应用形态的 tenant_access_token 缓存（官方有效期 7200 秒，留余量）
+        self._token = ""
+        self._token_expire_at = 0.0
         # 错误详情透传给管理层（发送日志记录使用）
         self.last_error: str = ""
+
+    # ── 应用形态（阶段 3 · Step 4 ③）────────────────────────────────────────────
+
+    @property
+    def _app_configured(self) -> bool:
+        """应用形态是否配置完整（app_id + app_secret + receive_id）。"""
+        return bool(self._app_id and self._app_secret and self._receive_id)
+
+    def _api_base(self) -> str:
+        """开放平台基址（默认飞书中国站；如需 Lark 国际站可改类属性）。"""
+        return self._API_BASE
+
+    def _tenant_token(self) -> str:
+        """取 `tenant_access_token`（7200 秒缓存；失败返回空串并记录原因）。"""
+        now = time.time()
+        if self._token and now < self._token_expire_at:
+            return self._token
+        payload = json.dumps({"app_id": self._app_id, "app_secret": self._app_secret}).encode("utf-8")
+        req = Request(
+            f"{self._api_base()}/auth/v3/tenant_access_token/internal",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+        )
+        try:
+            with urlopen(req, timeout=10) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+        except Exception as e:
+            self.last_error = str(e)
+            return ""
+        if int(data.get("code", -1)) != 0 or not data.get("tenant_access_token"):
+            self.last_error = t("notification.channel.feishu.token_failed")
+            return ""
+        self._token = str(data["tenant_access_token"])
+        self._token_expire_at = now + 6900
+        return self._token
+
+    def _post_app_message(self, card: dict) -> str:
+        """经应用端点发送一张卡片，返回 `message_id`（失败返回空串）。"""
+        token = self._tenant_token()
+        if not token:
+            return ""
+        payload = json.dumps(
+            {
+                "receive_id": self._receive_id,
+                # `content` 必须是 **JSON 字符串**（实测第三方实现口径）
+                "msg_type": "interactive",
+                "content": json.dumps(card, ensure_ascii=False),
+            }
+        ).encode("utf-8")
+        url = f"{self._api_base()}/im/v1/messages?receive_id_type={self._receive_id_type}"
+        req = Request(
+            url,
+            data=payload,
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {token}"},
+        )
+        try:
+            with urlopen(req, timeout=15) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+        except Exception as e:
+            self.last_error = str(e)
+            logger.warning("feishu app message failed: %s", e)
+            return ""
+        if int(data.get("code", -1)) != 0:
+            self.last_error = t("notification.channel.feishu.api_failed").format(
+                detail=data.get("msg", "")
+            )
+            return ""
+        return str((data.get("data") or {}).get("message_id") or "")
+
+    def edit_message(self, handle: "MessageHandle", message: NotificationMessage) -> bool:
+        """按 `message_id` 更新已发出的消息（飞书 `PATCH /im/v1/messages/{message_id}`）。
+
+        **契约与 Telegram 同款**（`channels/base.py::edit_message(handle, message)`）：用渠道无关的
+        `MessageHandle`（`anchor == ANCHOR_MESSAGE_ID`、`value == message_id`）定位消息，
+        内容由 `message` 重新渲染（与 `send()` 共用渲染器 ⇒ 编辑后的卡片与初次发送同构）。
+
+        只做**一次**尝试（编辑是低频补偿动作，不引入与发送相同的重试放大）。
+        Webhook 形态**天然不支持**（拿不到 `message_id`）⇒ 如实返回 False 并写 `last_error`。
+        """
+        self.last_error = ""
+        if handle.anchor != ANCHOR_MESSAGE_ID:
+            self.last_error = t("notification.channel.edit_anchor_unsupported").format(
+                anchor=handle.anchor
+            )
+            return False
+        if not self._app_configured:
+            self.last_error = t("notification.channel.feishu.not_configured_app")
+            return False
+        if not handle.value:
+            self.last_error = t("notification.channel.feishu.missing_message_id")
+            return False
+        return self._patch_message(handle.value, self._renderer.render(message))
+
+    def _patch_message(self, message_id: str, card: dict) -> bool:
+        """`PATCH /im/v1/messages/{message_id}`（`{"content": <JSON 字符串>}`，`code==0` 为成功）。"""
+        token = self._tenant_token()
+        if not token:
+            return False
+        payload = json.dumps({"content": json.dumps(card, ensure_ascii=False)}).encode("utf-8")
+        req = Request(
+            f"{self._api_base()}/im/v1/messages/{message_id}",
+            data=payload,
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {token}"},
+            method="PATCH",
+        )
+        try:
+            with urlopen(req, timeout=15) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+        except Exception as e:
+            self.last_error = str(e)
+            logger.warning("feishu edit message failed: %s", e)
+            return False
+        if int(data.get("code", -1)) != 0:
+            self.last_error = t("notification.channel.feishu.api_failed").format(
+                detail=data.get("msg", "")
+            )
+            return False
+        return True
+
+    def _send_app(self, message: NotificationMessage) -> bool:
+        """应用形态发送：逐张卡片经应用端点投递，并**把 `message_id` 留存到消息上**。"""
+        card = self._renderer.render(message)
+        for one in self._split_card(card):
+            message_id = self._post_app_message(one)
+            if not message_id:
+                return False
+            # 只记首张：编辑场景针对"这条通知的主卡片"（分段续卡不参与后续编辑）
+            ids = getattr(message, "channel_message_ids", None)
+            if isinstance(ids, dict) and "feishu" not in ids:
+                ids["feishu"] = message_id
+        return True
 
     def _sign(self) -> dict[str, str]:
         """飞书自定义机器人签名（官方口径）。
@@ -49,9 +218,16 @@ class FeishuChannel(NotificationChannel):
         return {"timestamp": timestamp, "sign": base64.b64encode(digest).decode("utf-8")}
 
     def send(self, message: NotificationMessage) -> bool:
-        """发送交互式卡片通知到飞书群。"""
+        """发送卡片通知：应用形态（可留存 `message_id`）优先；否则走机器人 Webhook。"""
         # 每次发送前重置错误详情，避免上次失败残留
         self.last_error = ""
+        if self._app_configured:
+            try:
+                return self._send_app(message)
+            except Exception as e:
+                self.last_error = str(e)
+                logger.warning("feishu app send raised: %s", e, exc_info=True)
+                return False
         if not self._url:
             self.last_error = t("notification.channel.not_configured_webhook")
             return False

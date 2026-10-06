@@ -997,7 +997,11 @@
       },
       "feishu": {
         "secret_label": "簽名校驗金鑰",
-        "secret_placeholder": "加簽金鑰"
+        "secret_placeholder": "加簽金鑰",
+        "app_id": "應用 App ID",
+        "app_secret": "應用 App Secret",
+        "receive_id": "接收方 ID",
+        "receive_id_type": "接收方 ID 類型（open_id / user_id / chat_id）"
       },
       "dingtalk": {
         "secret_label": "加簽 Secret",

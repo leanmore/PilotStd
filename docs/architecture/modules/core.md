@@ -5,7 +5,7 @@
 | 模块路径 | `pilotstd/core/` |
 | G-031 映射 | `pilotstd/core/`（2026-09-25 落地：`DOC_SYNC_MAP` 已含该条，改任何 core 文件都会要求同步本文件） |
 | 核心类 | `Database` / `ConfigManager` / `CacheManager` / `NotificationManager` |
-| 子模块数 | 109 个 `.py`（新增 `renderer_links.py`（四渠道共享的链接助手）与 `renderer_wecom_card.py`（企微模板卡片渲染器）——阶段 3 · Step 1/Step 4 ① 拆分以守 G-010）（**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-10-06**；顶层 = 3 个包 config / db / notification + 23 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
+| 子模块数 | 110 个 `.py`（新增 `channel_spec_data.py`：渠道声明数据（阶段 3 · Step 4 ③ 拆分以守 G-010；`channel_spec.py` 保留数据类与再导出））（**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-10-06**；顶层 = 3 个包 config / db / notification + 23 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
 | Schema 版本 | `CURRENT_SCHEMA_VERSION = 66`（`db/_constants.py`；v66＝announcement_record 追加 `final_name` 列 + 从 pending_lookup 回填，2026-10-05 名称解析统一批次二） |
 | 状态 | 活跃 |
 
@@ -102,6 +102,19 @@ pilotstd/core/
 │   │   承载原请求与响应判定（**任一段失败即整体失败，不静默丢段**）；未超长时单段（零行为变更）。
 │   │   **飞书**（卡片 `elements[]`，需按元素分片）**待接**，见统筹日程 P2 备注
 │   ├── channels/              # wechat / feishu / dingtalk / telegram 渠道适配
+│   ├── （2026-10-06 · **阶段 3 · Step 4 ③：飞书企业应用形态 + 消息编辑**）：此前飞书**只有机器人 Webhook**
+│   │   （可发卡片但**拿不到 `message_id`** ⇒ 不能编辑）。本次按第三方实证（`ui-beam-9/larkmessager/client.py`）
+│   │   补齐应用形态：
+│   │   ①`FeishuChannel` 构造签名扩为 `(webhook_url, secret, app_id, app_secret, receive_id, receive_id_type)`
+│   │   （与 `channel_spec.ctor` 同序；`ctor_required=()`）；
+│   │   ②发送：`POST /open-apis/auth/v3/tenant_access_token/internal` 取 token（6900 秒缓存）→
+│   │   `POST /open-apis/im/v1/messages?receive_id_type=…`（**`content` 必须是 JSON 字符串**）⇒
+│   │   **留存 `message_id` 到 `msg.channel_message_ids["feishu"]`**（沿用阶段 1c 既有列，不新增存储）；
+│   │   ③编辑：**遵循基类契约** `edit_message(MessageHandle, NotificationMessage)`（与 Telegram 同款，
+│   │   用 `ANCHOR_MESSAGE_ID` 定位）→ `PATCH /open-apis/im/v1/messages/{message_id}`（`code==0` 为成功）；
+│   │   ④两形态都配好 ⇒ **优先应用形态**（与 `status_rule` 分支序、前端提示同源）；
+│   │   ⑤**G-010 拆分**：`channel_spec.py` 因双形态声明涨到 542 行 ⇒ 声明块迁至 `channel_spec_data.py`
+│   │   （数据类留在 `channel_spec.py`，末尾**延迟导入**声明以避免循环；对外 API 与 B 类审计改读声明模块）
 │   ├── （2026-10-06 · **阶段 3 · Step 4 ①：企微应用形态 + 模板卡片**）：实测发现企微渠道**此前只实现了
 │   │   Webhook 形态**（`WechatChannel(webhook_url)`），spec 里声明的 `corpid/agentid/corpsecret`
 │   │   **从未被构造使用** ⇒ 本次补齐应用形态：

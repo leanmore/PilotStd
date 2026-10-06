@@ -997,7 +997,11 @@
       },
       "feishu": {
         "secret_label": "Signature Verification Key",
-        "secret_placeholder": "Signing key"
+        "secret_placeholder": "Signing key",
+        "app_id": "App ID",
+        "app_secret": "App Secret",
+        "receive_id": "Receive ID",
+        "receive_id_type": "Receive ID type (open_id / user_id / chat_id)"
       },
       "dingtalk": {
         "secret_label": "Signing Secret",

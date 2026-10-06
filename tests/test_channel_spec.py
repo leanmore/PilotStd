@@ -34,7 +34,7 @@ EXPECTED_FIELD_NAMES = {
         "card_template_id",
         "open_conversation_id",
     },
-    "feishu": {"webhook_url", "secret"},
+    "feishu": {"webhook_url", "secret", "app_id", "app_secret", "receive_id", "receive_id_type"},
     "telegram": {"bot_token", "chat_id"},
 }
 EXPECTED_CTOR = {
@@ -49,7 +49,7 @@ EXPECTED_CTOR = {
         "card_template_id",
         "open_conversation_id",
     ),
-    "feishu": ("webhook_url", "secret"),
+    "feishu": ("webhook_url", "secret", "app_id", "app_secret", "receive_id", "receive_id_type"),
     "telegram": ("bot_token", "chat_id"),
 }
 EXPECTED_MASKED = {

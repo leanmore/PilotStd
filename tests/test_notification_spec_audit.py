@@ -96,7 +96,10 @@ def build_tree(tmp_path: Path, *, spec: str = GOOD_SPEC, alpha: str = GOOD_CHANN
     """
     notif = tmp_path / "pilotstd/core/notification"
     (notif / "channels").mkdir(parents=True)
-    (notif / "channel_spec.py").write_text(spec, encoding="utf-8")
+    # 阶段 3 · Step 4 ③：声明块已迁至 `channel_spec_data.py`（守 G-010）⇒ 假树的声明写在该文件；
+    # `channel_spec.py` 只保留"数据类 + 再导出"，门禁不再解析它。
+    (notif / "channel_spec_data.py").write_text(spec, encoding="utf-8")
+    (notif / "channel_spec.py").write_text("from .channel_spec_data import CHANNEL_SPECS\n", encoding="utf-8")
     (notif / "channels/alpha.py").write_text(alpha, encoding="utf-8")
     (notif / "channels/beta.py").write_text(beta, encoding="utf-8")
     (notif / "manager.py").write_text(manager, encoding="utf-8")
