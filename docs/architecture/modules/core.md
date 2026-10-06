@@ -102,6 +102,15 @@ pilotstd/core/
 │   │   承载原请求与响应判定（**任一段失败即整体失败，不静默丢段**）；未超长时单段（零行为变更）。
 │   │   **飞书**（卡片 `elements[]`，需按元素分片）**待接**，见统筹日程 P2 备注
 │   ├── channels/              # wechat / feishu / dingtalk / telegram 渠道适配
+│   ├── （2026-10-05 · **P5b：Telegram 交互按钮闭环（出站侧）**）：`renderer.TelegramRenderer.build_reply_markup()`
+│   │   由 `NotificationMessage.actions` 生成 `inline_keyboard`，`callback_data` 采用 `"<action>:<token>"`
+│   │   （与 `callback._split_action` 解析口径一致；token 形如 `<log_id>:<user_id>`）。两条硬约束：
+│   │   ① **`callback_data` ≤ 64 字节**（Telegram 官方限制，本仓 `notification_log.callback_data` 列注释同口径）
+│   │   ——实测十余字节，仍逐条校验，超限则**跳过该按钮并 ASCII 告警**；② **按钮只挂最后一段**
+│   │   （分段是"消息太长"的物理切分，动作属于整条通知；每段都挂会出现 N 组重复按钮）——该决策与
+│   │   理由写在渲染器 docstring，防后续维护者误当 bug"修复"。`channels/telegram.py` 有 `reply_markup`
+│   │   才写该键 ⇒ **无按钮时请求体逐字节不变**（既有回归用例锁定）。fail-safe：动作或 token 为空
+│   │   ⇒ 不产生按钮（宁可不显示，也不发"点了没反应"的按钮）。另补 `notification.action.*` 三语文案
 │   ├── （2026-10-05 · **P3 失败明细读侧**）：新增 `_redact.py::redact_message()`——**展示侧脱敏**
 │   │   （落库存真、展示脱敏）：URL 查询串/片段折叠为 `?…`、绝对路径只留末段、≥24 位长令牌与
 │   │   ≥32 位十六进制掩码、邮箱保留首字符与域名、手机号整段掩码、超长截断（默认 120，与 4 列口径一致）；

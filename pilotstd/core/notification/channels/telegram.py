@@ -93,16 +93,23 @@ class TelegramChannel(NotificationChannel):
         text = self._renderer.render(message)
         # 2026-10-05 通知聚合 B1（分段）：按**转义后**长度判定；超过渠道上限时切分为多段发送，
         # 段间由 split_for_channel 标注「续 N/M」；未超限时该函数原样返回单元素列表（零行为变更）。
+        # P5b（交互按钮）：`reply_markup` **只挂最后一段**——决策与理由见
+        # `renderer.TelegramRenderer.build_reply_markup()` docstring（勿改为每段都挂）。
         segments = split_for_channel(text, "telegram")
-        for seg in segments:
-            if not self._send_segment(seg):
+        reply_markup = self._renderer.build_reply_markup(message)
+        last = len(segments) - 1
+        for idx, seg in enumerate(segments):
+            if not self._send_segment(seg, reply_markup if idx == last else None):
                 return False
         return True
 
-    def _send_segment(self, text: str) -> bool:
-        """发送**单个分段**（原 send() 的重试逻辑，按段落独立重试；失败即整体失败）。"""
+    def _send_segment(self, text: str, reply_markup: dict | None = None) -> bool:
+        """发送**单个分段**（原 send() 的重试逻辑，按段落独立重试；失败即整体失败）。
+
+        `reply_markup` 非空时随该段一起投递（仅最后一段会带，见 `send()` 的说明）。
+        """
         for attempt in range(1, _MAX_ATTEMPTS + 1):
-            ok, retryable = self._post_once(text)
+            ok, retryable = self._post_once(text, reply_markup)
             if ok:
                 # 成功后清除错误去重状态
                 self._last_error_key = ""
@@ -123,19 +130,24 @@ class TelegramChannel(NotificationChannel):
             time.sleep(delay)
         return False
 
-    def _post_once(self, text: str) -> tuple[bool, bool]:
+    def _post_once(self, text: str, reply_markup: dict | None = None) -> tuple[bool, bool]:
         """单次投递，返回 (是否成功, 是否可重试)；失败原因写入 last_error。
 
         可重试口径：网络类异常（含连接重置/握手超时）与 HTTP 429/5xx。
         401/404 属配置错误（token 无效/撤销），重试无意义。
+
+        `reply_markup` 非空时写入请求体（Telegram 交互按钮；未携带时请求体**逐字节不变**）。
         """
-        payload = json.dumps(
-            {
-                "chat_id": self._chat_id,
-                "text": text,
-                "parse_mode": "MarkdownV2",
-            }
-        ).encode("utf-8")
+        # 变量名用 `payload_body`：**避开 except 分支里的 `body`（那是 str）**——
+        # 同名会让 mypy 报类型冲突（该文件既有的同名教训见 feishu.py 的同款注释）。
+        payload_body: dict[str, object] = {
+            "chat_id": self._chat_id,
+            "text": text,
+            "parse_mode": "MarkdownV2",
+        }
+        if reply_markup:
+            payload_body["reply_markup"] = reply_markup
+        payload = json.dumps(payload_body).encode("utf-8")
         url = f"https://api.telegram.org/bot{self._token}/sendMessage"
         req = Request(url, data=payload, headers={"Content-Type": "application/json"})
         try:

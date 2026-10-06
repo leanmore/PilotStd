@@ -82,7 +82,7 @@ class TestSendBackoff(unittest.TestCase):
         """让 `_post_once` 始终失败，捕获每次 `time.sleep` 的入参。"""
         sleeps: list = []
 
-        def _post_once(_text):
+        def _post_once(_text, _reply_markup=None):
             self.ch.last_error = error
             return False, retryable
 
@@ -142,7 +142,7 @@ class TestSendBackoff(unittest.TestCase):
         sleeps: list = []
         calls = {"n": 0}
 
-        def _post_once(_text):
+        def _post_once(_text, _reply_markup=None):
             calls["n"] += 1
             if calls["n"] == 1:
                 self.ch.last_error = "HTTP 429: Too Many Requests: retry after 11"

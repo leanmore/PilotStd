@@ -8,7 +8,9 @@ _escape() 由子类覆盖做渠道特殊字符转义。
 
 from __future__ import annotations
 
+import logging
 import re
+from typing import Any
 
 from pilotstd.i18n import t
 
@@ -20,6 +22,8 @@ from .blocks import (
     TextBlock,
 )
 from .channel import NotificationMessage
+
+logger = logging.getLogger(__name__)
 
 
 def _fallback_text() -> str:
@@ -82,6 +86,9 @@ CHANNEL_TEXT_LIMITS: dict[str, tuple[int, str]] = {
 
 # 分段后追加的「续 N/M」标记模板（第 2 段起）；i18n 键见 notification.segment.continued
 _SEGMENT_SUFFIX_KEY = "notification.segment.continued"
+
+# Telegram `callback_data` 上限：**64 字节**（官方限制；本仓 notification_log.callback_data 列注释同口径）
+_TELEGRAM_CALLBACK_DATA_LIMIT = 64
 
 
 def _text_size(text: str, unit: str) -> int:
@@ -276,6 +283,46 @@ _TELEGRAM_LIST_SEP = " \\| "
 
 class TelegramRenderer(BlockRenderer):
     """Telegram MarkdownV2 渲染器——先转义用户数据，再施加格式标记。"""
+
+    def build_reply_markup(self, message: "Any") -> dict[str, Any] | None:
+        """由 `message.actions` 生成 `inline_keyboard`；**无动作/无 token 时返回 `None`**。
+
+        **设计决策（显式记录，勿"修"成每段都挂）**：按钮**只挂在最后一段**——分段是"消息太长"的
+        物理切分，同一条通知被切成 N 段时，动作属于**这条通知**而非某一段；若每段都挂按钮，
+        用户会看到 N 组重复按钮、且点任意一组效果相同（更糟的是 Telegram 会把每组都当成一次交互机会）。
+        故调用方（`channels/telegram.py`）只对最后一段传 `reply_markup`。
+
+        **`callback_data` 长度**：Telegram 限 **≤ 64 字节**（本仓 `notification_log.callback_data`
+        的列注释亦写明该上限）。这里采用 `"<action>:<token>"`（`callback.py::_split_action` 的解析口径），
+        token 形如 `<log_id>:<user_id>` ⇒ 实测长度约 10–20 字节，**远低于上限**；
+        仍做防御：逐条校验字节长度，超限则**跳过该按钮并告警**（不发出必然被 Telegram 拒收的载荷）。
+
+        **fail-safe**：`message.callback_data` 为空（当前尚无生产者，见 P5b 报告）时返回 `None`
+        ⇒ 宁可不显示按钮，也不发出"点了没反应"的按钮。
+        """
+        from .callback import SUPPORTED_ACTIONS
+
+        actions = list(getattr(message, "actions", []) or [])
+        token = str(getattr(message, "callback_data", "") or "")
+        if not actions or not token:
+            return None
+        row: list[dict[str, str]] = []
+        for spec in actions:
+            action = str(getattr(spec, "action", "") or "")
+            if action not in SUPPORTED_ACTIONS:
+                continue
+            data = f"{action}:{token}"
+            if len(data.encode("utf-8")) > _TELEGRAM_CALLBACK_DATA_LIMIT:
+                # 开发者日志用 ASCII（G-047 只允许用户可见文案走 i18n）
+                logger.warning(
+                    "telegram callback_data too long (%d bytes > %d); button skipped",
+                    len(data.encode("utf-8")),
+                    _TELEGRAM_CALLBACK_DATA_LIMIT,
+                )
+                continue
+            label_key = str(getattr(spec, "label_key", "") or "")
+            row.append({"text": t(label_key) if label_key else action, "callback_data": data})
+        return {"inline_keyboard": [row]} if row else None
 
     # ── 标题 ──
 
