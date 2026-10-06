@@ -132,7 +132,7 @@
 | 3 | **企微消息更新能力** | 无 | 同上 |
 | 4 | **企微审批门槛** | 无 | 管理后台文档 |
 | 5 | **飞书卡片回调请求/响应格式** | 官方 URL（`feishu-cards/handle-card-callbacks`）+ 凭证含验签字段 | 同上 |
-| 6 | **钉钉卡片更新接口** | `outTrackId` 锚点已取证 | 钉钉"更新互动卡片"接口文档 |
+| 6 | ~~**钉钉卡片更新接口**~~ ✅ **已闭合（2026-10-05，P5a）** | **存在且在维护**：`PUT /v1.0/im/interactiveCards`（`outTrackId` + `cardData.cardParamMap` / `privateData` 按用户按钮 + `cardOptions.update*ByKey` 增量/覆盖；权限＝会话管理权限，企业内部应用支持；返回 `{"success":"true"}`） | 见 [`13-阶段3渠道交互取证报告.md`](../notification-redesign/13-阶段3渠道交互取证报告.md) §二（[全文] 证据） |
 | 7 | **钉钉/企微/飞书的调用频率限制** | 仅 Telegram 有数字 | 各自"频率限制"文档正文（钉钉 `help.dingtalk.io/zh/open/development/call-frequency-limit` 正文未取到） |
 | 8 | **四个企业级形态的完整字段级凭证清单** | 钉钉（正文）、企微/飞书（代码实测） | 官方凭证文档 |
 
