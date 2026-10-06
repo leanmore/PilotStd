@@ -27,6 +27,7 @@ from pilotstd.core.notification.stage import (  # noqa: E402
     KNOWN_STAGES,
     current_stage,
     is_aggregation_key_v2,
+    is_config_layers_enabled,
     is_interaction_enabled,
     is_mapping_enabled,
 )
@@ -42,9 +43,10 @@ class TestCurrentStage(unittest.TestCase):
         """2b-启用批把默认值提为 2（映射生效）；回滚 = 设 `NOTIFY_REDESIGN_STAGE=1`。
 
         演化：2a 纯新增时为 1（映射不生效）→ 2b-接入仍为 1（接入但不生效）→
-        2b-启用提为 **2**（本批的行为变更点）。
+        2b-启用提为 **2** → **2026-10-05（阶段 4 · P6 收口）提为 4**（配置粒度切换启用；
+        提升前已核实 `is_interaction_enabled()` 无消费者，故不会连带启用阶段 3 交互能力）。
         """
-        self.assertEqual(HIGHEST_STABLE_STAGE, 2.0)
+        self.assertEqual(HIGHEST_STABLE_STAGE, 4.0)
 
     def test_known_stages_set(self):
         self.assertEqual(set(KNOWN_STAGES), {0.0, 1.0, 2.0, 2.5, 3.0, 4.0})
@@ -107,16 +109,21 @@ class TestPredicates(unittest.TestCase):
                     self.assertEqual(is_aggregation_key_v2(), agg_v2)
                     self.assertEqual(is_interaction_enabled(), interaction)
 
-    def test_default_enables_mapping_only(self):
-        """★ 默认档（2）下的安全性：只开"映射"这一项，聚合键 v2 / 交互仍关闭。
+    def test_default_enables_mapping_and_config_layers_only(self):
+        """★ 默认档（**4**，2026-10-05 收口）的谓词真值：映射 / 配置粒度切换 / 聚合键 v2 皆为真。
 
-        这是 2b-启用批的行为边界——启用映射**不得**顺带开启后续阶段的能力。
+        **实际影响面**（实测，见提交与 `stage.py` docstring）：
+        · `is_mapping_enabled()`（≥2）与 `is_config_layers_enabled()`（≥4）**确有效果**；
+        · `is_aggregation_key_v2()`（≥2.5）与 `is_interaction_enabled()`（≥3）**全库无消费者**
+          ——聚合键的实际开关是 `NOTIFY_AGG_KEY`（P1），交互能力尚未接线（阶段 3 剩余项在日程 P5）。
+        本用例把这条边界钉死：**档位提升不得被理解为"顺带启用了未接线能力"**。
         """
         with patch.dict(os.environ, {}, clear=False):
             os.environ.pop(ENV_STAGE, None)
             self.assertTrue(is_mapping_enabled())
-            self.assertFalse(is_aggregation_key_v2())
-            self.assertFalse(is_interaction_enabled())
+            self.assertTrue(is_config_layers_enabled())
+            self.assertTrue(is_aggregation_key_v2())
+            self.assertTrue(is_interaction_enabled())
 
     def test_rollback_to_one_disables_mapping(self):
         """★ 一键回滚：`NOTIFY_REDESIGN_STAGE=1` 即可让映射不生效（无需回滚代码）。"""

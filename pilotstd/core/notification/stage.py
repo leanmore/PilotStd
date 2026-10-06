@@ -16,14 +16,16 @@
 |------|------|
 | `0` | 通知链路完全按改造前的现状 |
 | `1` | 阶段 1 已交付（新字段写入 `notification_log`），映射不生效 |
-| `2` | 阶段 2 映射生效（`notify_event` / `content_type` 回填）← **当前默认** |
-| `2.5` | 聚合键切 `notify_event × correlation_id × target_id` |
-| `3` | 交互能力启用（回调端点 + 动作） |
-| `4` | 三层模型全面生效（配置粒度切换） |
+| `2` | 阶段 2 映射生效（`notify_event` / `content_type` 回填） |
+| `2.5` | 聚合键切 `notify_event × correlation_id × target_id`（**实际由 `NOTIFY_AGG_KEY` 控制**，见 P1） |
+| `3` | 交互能力启用（回调端点 + 动作）——**当前无消费者**（`is_interaction_enabled()` 未被引用） |
+| `4` | 三层模型全面生效（**配置粒度切换**：类别层优先）← **当前默认** |
 
 **默认值 = 最高稳定阶段**：阶段 2b-接入期间为 `1`（接入但不生效，行为零变化）；
-**2b-启用批把默认值提为 `2`**——这是"启用"这个行为变更点，独立提交以便单独回滚
-（回滚 = 把 `HIGHEST_STABLE_STAGE` 改回 `1.0` 或设 `NOTIFY_REDESIGN_STAGE=1`）。
+2b-启用批提为 `2`；**2026-10-05（阶段 4 · P6 收口）提为 `4`**——这是"启用配置粒度切换"这个行为变更点，
+独立提交以便单独回滚（回滚 = 把 `HIGHEST_STABLE_STAGE` 改回 `2.0` 或设 `NOTIFY_REDESIGN_STAGE=3`）。
+**提升到 4 的实际影响面（实测）**：只影响 `is_config_layers_enabled()`（策略层"类别层优先"）；
+`is_mapping_enabled()`（≥2）本就为真；`is_interaction_enabled()`（≥3）**全库无消费者** ⇒ 不会被连带启用。
 
 ## 非法值处理（判断依据）
 
@@ -66,7 +68,7 @@ KNOWN_STAGES: tuple[float, ...] = (0.0, 1.0, 2.0, 2.5, 3.0, 4.0)
 # 当前"最高稳定阶段"：随批次推进而人工提升（每次交付同批改这里 + 本文件表格）。
 # 2a 交付后为 1（纯新增）；2b-接入交付后仍为 1（接入但不生效，行为零变化）；
 # **2b-启用批提为 2**——映射生效，这是可独立回滚的行为变更点。
-HIGHEST_STABLE_STAGE: float = 2.0
+HIGHEST_STABLE_STAGE: float = 4.0
 
 
 def current_stage() -> float:
