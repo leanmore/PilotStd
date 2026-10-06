@@ -259,8 +259,7 @@ describe('NotificationConfig', () => {
     warnSpy.mockRestore()
   })
 
-  it('策略读取失败 ⇒ 提示"策略服务读取失败"，与"策略为空"文案不同', async () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+  it('策略读取失败 ⇒ 提示"策略服务读取失败"，与"策略为空"文案不同', async () => {    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
     getNotificationPoliciesMock.mockRejectedValue(new Error('policy api down'))
     const wrapper = mountConfig()
     await new Promise(r => setTimeout(r, 10))
@@ -281,5 +280,108 @@ describe('NotificationConfig', () => {
     await ok.vm.$nextTick()
     await ok.vm.$nextTick()
     expect(ok.html()).not.toContain('策略服务读取失败')
+  })
+
+  // ── 阶段 3 · Step 2：形态分区展示 + 互斥校验 + 参数提示 ──────────────────────
+
+  /** 双形态夹具（企微）：`forms` 声明序为 webhook→app，但 `status_rule` 分支序为 app→webhook，
+   *  即"两者都配好时后端优先自建应用"——前端提示必须与之一致。 */
+  function dualFormFixture() {
+    return {
+      ...CHANNEL_FIXTURE,
+      channels: [
+        {
+          ...CHANNEL_FIXTURE.channels[0],
+          name: 'wechat',
+          fields: [
+            { name: 'webhook_url', type: 'string', label_key: '', label: 'Webhook URL', required: false, mask: true, password: false, placeholder: '', placeholder_key: '', badge_key: '', divider_key: '', form: 'webhook' },
+            { name: 'corpid', type: 'string', label_key: '', label: 'CorpID', required: false, mask: false, password: false, placeholder: '', placeholder_key: '', badge_key: '', divider_key: '', form: 'app' },
+            { name: 'agentid', type: 'string', label_key: '', label: 'AgentID', required: false, mask: false, password: false, placeholder: '', placeholder_key: '', badge_key: '', divider_key: '', form: 'app' },
+            { name: 'corpsecret', type: 'text_password', label_key: '', label: 'Secret', required: false, mask: true, password: true, placeholder: '', placeholder_key: '', badge_key: '', divider_key: '', form: 'app' },
+          ],
+          forms: [
+            { key: 'webhook', label_key: 'notification.config.form.webhook', hint_key: 'notification.config.form.webhook_hint', required: ['webhook_url'], extra: [] },
+            { key: 'app', label_key: 'notification.config.form.app', hint_key: 'notification.config.form.app_hint', required: ['corpid', 'agentid', 'corpsecret'], extra: [] },
+          ],
+          status_rule: {
+            branches: [
+              { all_of: ['corpid', 'agentid', 'corpsecret'], label_key: 'notification.config.status.configured' },
+              { all_of: ['webhook_url'], label_key: 'notification.config.status.configured' },
+            ],
+            fallback_key: 'notification.config.status.pending',
+          },
+        },
+      ],
+    }
+  }
+
+  async function mountDual(fill: Record<string, string>) {
+    getNotificationChannelsMock.mockResolvedValue(dualFormFixture())
+    const wrapper = mountConfig()
+    await new Promise(r => setTimeout(r, 10))
+    await wrapper.vm.$nextTick()
+    const vm = wrapper.vm as unknown as {
+      channels: Record<string, { fields: Record<string, string> }>
+      formIssues: (ch: unknown) => string[]
+      fieldsOfForm: (ch: unknown, key: string) => unknown[]
+    }
+    Object.assign(vm.channels.wechat.fields, fill)
+    await wrapper.vm.$nextTick()
+    const ch = (getNotificationChannelsMock.mock.results[0].value as Promise<unknown>) && dualFormFixture().channels[0]
+    return { wrapper, vm, ch }
+  }
+
+  it('双形态渠道：按形态分区渲染标题与提示（不是一条分隔线）', async () => {
+    getNotificationChannelsMock.mockResolvedValue(dualFormFixture())
+    const wrapper = mountConfig()
+    await new Promise(r => setTimeout(r, 10))
+    await wrapper.vm.$nextTick()
+    const html = wrapper.html()
+    expect(html).toContain('form-section-title')
+    expect(html).toContain('群机器人（Webhook）')
+    expect(html).toContain('企业应用（自建应用）')
+    expect(html).toContain('Webhook') // 形态提示文案
+  })
+
+  it('双形态渠道：只填一半 ⇒ 明确提示还缺哪些字段', async () => {
+    getNotificationChannelsMock.mockResolvedValue(dualFormFixture())
+    const wrapper = mountConfig()
+    await new Promise(r => setTimeout(r, 10))
+    await wrapper.vm.$nextTick()
+    const vm = wrapper.vm as unknown as {
+      channels: Record<string, { fields: Record<string, string> }>
+      formIssues: (ch: unknown) => string[]
+    }
+    vm.channels.wechat.fields.corpid = 'ww123'
+    await wrapper.vm.$nextTick()
+    const issues = vm.formIssues(dualFormFixture().channels[0])
+    expect(issues.join(' ')).toContain('还缺')
+    expect(issues.join(' ')).toContain('AgentID')
+  })
+
+  it('双形态渠道：两者都配全 ⇒ 提示优先使用的形态与后端分支序一致（自建应用）', async () => {
+    getNotificationChannelsMock.mockResolvedValue(dualFormFixture())
+    const wrapper = mountConfig()
+    await new Promise(r => setTimeout(r, 10))
+    await wrapper.vm.$nextTick()
+    const vm = wrapper.vm as unknown as {
+      channels: Record<string, { fields: Record<string, string> }>
+      formIssues: (ch: unknown) => string[]
+    }
+    Object.assign(vm.channels.wechat.fields, { webhook_url: 'https://qyapi/x', corpid: 'ww', agentid: '1', corpsecret: 's' })
+    await wrapper.vm.$nextTick()
+    const issues = vm.formIssues(dualFormFixture().channels[0]).join(' ')
+    expect(issues).toContain('优先使用')
+    expect(issues).toContain('企业应用（自建应用）')
+  })
+
+  it('双形态渠道：一个都没配全 ⇒ 提示不会被启用（如实告知，不谎报可用）', async () => {
+    getNotificationChannelsMock.mockResolvedValue(dualFormFixture())
+    const wrapper = mountConfig()
+    await new Promise(r => setTimeout(r, 10))
+    await wrapper.vm.$nextTick()
+    const vm = wrapper.vm as unknown as { formIssues: (ch: unknown) => string[] }
+    const issues = vm.formIssues(dualFormFixture().channels[0]).join(' ')
+    expect(issues).toContain('尚未配置完成')
   })
 })

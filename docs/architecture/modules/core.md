@@ -102,6 +102,17 @@ pilotstd/core/
 │   │   承载原请求与响应判定（**任一段失败即整体失败，不静默丢段**）；未超长时单段（零行为变更）。
 │   │   **飞书**（卡片 `elements[]`，需按元素分片）**待接**，见统筹日程 P2 备注
 │   ├── channels/              # wechat / feishu / dingtalk / telegram 渠道适配
+│   ├── （2026-10-06 · **阶段 3 · Step 2：形态选择产品化**）：`channel_spec` 增两类**机器可读**声明——
+│   │   ①`FieldSpec.form`（字段归属形态：`webhook` / `app` / 空串＝通用字段）；
+│   │   ②`ChannelSpec.forms`（`FormSpec(key, label_key, hint_key, required, extra)`，声明式给出各形态的
+│   │   标题/提示/必需与可选字段）。企微与钉钉声明**双形态**（webhook + app），飞书/TG 仍单形态（`forms=()`）。
+│   │   两者进渠道元数据负载（`_field_dict`/`_channel_dict`）⇒ 前端不再靠 `divider_key` 文案猜形态。
+│   │   前端 `NotificationConfig.vue`：带 `forms` 的渠道**按形态分区渲染**（标题 + 提示），并给出三类校验
+│   │   结论——「某形态只填一半 ⇒ 点名还缺哪些字段」「两形态都配全 ⇒ 提示优先使用的形态」
+│   │   「一个都没配全 ⇒ 提示不会被启用」（如实告知，不阻断分步保存）。
+│   │   **优先级判定以后端为准**：用 `status_rule.branches` 的分支序（而非 `forms` 声明序）确定"实际生效形态"
+│   │   ——两者可能不同（企微：分支序 app→webhook）⇒ 前端提示与后端取用**必须同源**，不得各写一套。
+│   │   契约容错：后端未下发 `forms`/`form` 时前端按"通用字段"渲染（行为与改造前一致，支持灰度）
 │   ├── （2026-10-06 · **阶段 3 · Step 1：站内入口接线（`view_detail`/`open_logs`）**）：这两个动作此前
 │   │   **只有词表与三语文案、全库无生产者** ⇒ 任何渠道都不出现入口。现新增 `_links.py`：
 │   │   ①`resolve_web_base()` 从配置 `notification.web_base_url` 取站内基址并**校验**——必须 `http(s)://`

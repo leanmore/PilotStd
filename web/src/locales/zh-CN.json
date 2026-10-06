@@ -933,6 +933,16 @@
       "optional_short": "选填",
       "enable_channel": "启用此渠道",
       "events_label": "事件订阅：",
+      "form": {
+        "shared": "通用设置",
+        "webhook": "群机器人（Webhook）",
+        "app": "企业应用（自建应用）",
+        "webhook_hint": "只需一个 Webhook 地址，配置最简单；能力受平台限制（通常无法交互/无法编辑已发消息）。",
+        "app_hint": "需要在平台侧创建企业应用并取得应用凭证；能力更完整（可按用户下发按钮、可编辑消息），但配置与审批要求更高。",
+        "partial": "「{form}」还缺：{fields}",
+        "both_configured": "两种形态都配置完整，系统将**优先使用「{form}」**（与后端「已配置」判定顺序一致）。",
+        "none_configured": "尚未配置完成：请至少把「{forms}」中的一种配全，否则该渠道不会被启用。"
+      },
       "error_type": {
         "not_found": "未找到",
         "parse": "解析失败",

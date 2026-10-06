@@ -933,6 +933,16 @@
       "optional_short": "optional",
       "enable_channel": "Enable this channel",
       "events_label": "Event subscriptions:",
+      "form": {
+        "shared": "Shared settings",
+        "webhook": "Group robot (Webhook)",
+        "app": "Enterprise app",
+        "webhook_hint": "Only a webhook URL is required and setup is simplest; capabilities are limited by the platform (usually no interaction and no message editing).",
+        "app_hint": "You must create an enterprise app and obtain its credentials; capabilities are richer (per-user buttons, message editing) but setup and approval requirements are higher.",
+        "partial": "\"{form}\" is still missing: {fields}",
+        "both_configured": "Both forms are fully configured; the system will **prefer \"{form}\"** (matching the backend's configuration-order rule).",
+        "none_configured": "Not configured yet: complete at least one of \"{forms}\", otherwise this channel will not be enabled."
+      },
       "error_type": {
         "not_found": "Not found",
         "parse": "Parse error",

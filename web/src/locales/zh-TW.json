@@ -933,6 +933,16 @@
       "optional_short": "選填",
       "enable_channel": "啟用此管道",
       "events_label": "事件訂閱：",
+      "form": {
+        "shared": "通用設定",
+        "webhook": "群機器人（Webhook）",
+        "app": "企業應用（自建應用）",
+        "webhook_hint": "只需一個 Webhook 網址，設定最簡單；能力受平台限制（通常無法互動、無法編輯已送出的訊息）。",
+        "app_hint": "需在平台側建立企業應用並取得應用憑證；能力較完整（可依使用者下發按鈕、可編輯訊息），但設定與審批要求較高。",
+        "partial": "「{form}」還缺：{fields}",
+        "both_configured": "兩種形態都設定完整，系統將**優先使用「{form}」**（與後端「已設定」判定順序一致）。",
+        "none_configured": "尚未設定完成：請至少把「{forms}」中的一種設定完整，否則該渠道不會啟用。"
+      },
       "error_type": {
         "not_found": "未找到",
         "parse": "解析失敗",

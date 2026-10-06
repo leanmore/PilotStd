@@ -131,6 +131,8 @@ export interface ChannelFieldSpec {
   placeholder: string
   placeholder_key: string
   badge_key: string
+  /** 形态归属（阶段 3 · Step 2）；空串＝与形态无关的通用字段（渲染进"通用"区） */
+  form: string
   divider_key: string
 }
 
@@ -145,6 +147,17 @@ export interface ChannelStatusRule {
   fallback_key: string
 }
 
+/** 渠道的一种**接入形态**声明（阶段 3 · Step 2）：前端据此分区展示与互斥校验。
+ *  `required` 为该形态可用所需的最少字段；`extra` 为可选字段（填了更好）。 */
+export interface ChannelFormSpec {
+  /** 形态标识，与 `ChannelFieldSpec.form` 对应（如 `webhook` / `app`） */
+  key: string
+  label_key: string
+  hint_key: string
+  required: string[]
+  extra: string[]
+}
+
 export interface ChannelSpec {
   name: string
   label_key: string
@@ -152,6 +165,8 @@ export interface ChannelSpec {
   enabled_default: boolean
   hint_key: string
   fields: ChannelFieldSpec[]
+  /** 形态声明；**空数组＝单形态渠道**（前端按原样渲染，不做分区与互斥校验） */
+  forms: ChannelFormSpec[]
   status_rule: ChannelStatusRule
 }
 

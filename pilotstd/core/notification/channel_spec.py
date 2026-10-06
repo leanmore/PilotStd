@@ -62,6 +62,29 @@ class FieldSpec:
     placeholder_key: str = ""
     badge_key: str = ""
     divider_key: str = ""
+    # 形态归属（阶段 3 · Step 2）：同一渠道可能有两种接入形态（如企微"群机器人 / 自建应用"、
+    # 钉钉"webhook / 企业应用"）。空串表示"与形态无关的通用字段"（如 proxy_url）。
+    # **为什么不是靠 divider_key 判断**：divider 只是展示用的分隔文案，前端无法据此做
+    # "分区展示 + 互斥校验"（那是行为，不是文案）。
+    form: str = ""
+
+
+@dataclass(frozen=True)
+class FormSpec:
+    """渠道的**一种接入形态**声明（阶段 3 · Step 2：前端"按形态分区 + 互斥校验 + 参数提示"的数据源）。
+
+    字段语义：
+    · `key`：形态标识（与 `FieldSpec.form` 对应，如 `webhook` / `app`）；
+    · `label_key` / `hint_key`：分区标题与**该形态的配置提示**（i18n 键，由前端渲染）；
+    · `required`：该形态**可用**所需的最少字段（全非空才算"这一形态配好了"）；
+    · `extra`：可选字段（填了更好，不填不影响可用）——用于提示"哪些是可选的"。
+    """
+
+    key: str
+    label_key: str
+    hint_key: str
+    required: tuple[str, ...]
+    extra: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -99,6 +122,9 @@ class ChannelSpec:
     ctor_required: tuple[str, ...]
     fields: tuple[FieldSpec, ...]
     status_rule: StatusRule
+    # 形态声明（阶段 3 · Step 2）：供前端"按形态分区展示 + 互斥校验 + 参数提示"。
+    # 单形态渠道（如 telegram）留空 ⇒ 前端按"无分区"渲染，行为与改造前一致。
+    forms: tuple[FormSpec, ...] = ()
 
 
 # ── 渠道声明 ──────────────────────────────────────────────────────────────────
@@ -127,6 +153,7 @@ CHANNEL_SPECS: tuple[ChannelSpec, ...] = (
                 password=False,
                 placeholder="https://qyapi.weixin.qq.com/...",
                 badge_key="notification.config.wechat.group_robot_badge",
+                form="webhook",
             ),
             FieldSpec(
                 name="corpid",
@@ -135,6 +162,7 @@ CHANNEL_SPECS: tuple[ChannelSpec, ...] = (
                 placeholder="ww...",
                 badge_key="notification.config.optional",
                 divider_key="notification.config.wechat.app_sep",
+                form="app",
             ),
             FieldSpec(
                 name="agentid",
@@ -142,6 +170,7 @@ CHANNEL_SPECS: tuple[ChannelSpec, ...] = (
                 label_key="notification.config.wechat.agentid",
                 placeholder="1000001",
                 badge_key="notification.config.optional",
+                form="app",
             ),
             FieldSpec(
                 name="corpsecret",
@@ -151,6 +180,7 @@ CHANNEL_SPECS: tuple[ChannelSpec, ...] = (
                 mask=True,
                 password=True,
                 placeholder="...",
+                form="app",
             ),
             FieldSpec(
                 name="proxy_url",
@@ -158,6 +188,23 @@ CHANNEL_SPECS: tuple[ChannelSpec, ...] = (
                 label_key="notification.config.wechat.proxy_url",
                 placeholder="http://proxy:8080",
                 badge_key="notification.config.optional",
+            ),
+        ),
+        forms=(
+            # 两形态**二选一**；两者都配好时后端按 status_rule 的**分支顺序**优先自建应用
+            # ⇒ 前端的提示语必须与之一致（不能让用户以为"两个都会发"）。
+            FormSpec(
+                key="webhook",
+                label_key="notification.config.form.webhook",
+                hint_key="notification.config.form.webhook_hint",
+                required=("webhook_url",),
+            ),
+            FormSpec(
+                key="app",
+                label_key="notification.config.form.app",
+                hint_key="notification.config.form.app_hint",
+                required=("corpid", "agentid", "corpsecret"),
+                extra=("proxy_url",),
             ),
         ),
         status_rule=StatusRule(
@@ -204,6 +251,7 @@ CHANNEL_SPECS: tuple[ChannelSpec, ...] = (
                 mask=True,
                 password=False,
                 placeholder="https://oapi.dingtalk.com/robot/...",
+                form="webhook",
             ),
             FieldSpec(
                 name="secret",
@@ -214,6 +262,7 @@ CHANNEL_SPECS: tuple[ChannelSpec, ...] = (
                 mask=True,
                 password=True,
                 placeholder="SEC...",
+                form="webhook",
             ),
             # ── 企业级互动卡片形态（阶段 S；方案 A1：新增而非替换）──
             FieldSpec(
@@ -223,6 +272,7 @@ CHANNEL_SPECS: tuple[ChannelSpec, ...] = (
                 badge_key="notification.config.optional_short",
                 mask=True,
                 password=True,
+                form="app",
             ),
             FieldSpec(
                 name="app_secret",
@@ -231,18 +281,21 @@ CHANNEL_SPECS: tuple[ChannelSpec, ...] = (
                 badge_key="notification.config.optional_short",
                 mask=True,
                 password=True,
+                form="app",
             ),
             FieldSpec(
                 name="robot_code",
                 type="string",
                 label_key="notification.config.dingtalk.robot_code_label",
                 badge_key="notification.config.optional_short",
+                form="app",
             ),
             FieldSpec(
                 name="card_template_id",
                 type="string",
                 label_key="notification.config.dingtalk.card_template_id_label",
                 badge_key="notification.config.optional_short",
+                form="app",
             ),
             # 投递目标：企业级形态必须有群会话锚点（方案 A1 的 4 个凭证之外的必要项，
             # 旧形态的等价物是 webhook_url 自身——见提交说明的差异披露）
@@ -251,6 +304,29 @@ CHANNEL_SPECS: tuple[ChannelSpec, ...] = (
                 type="string",
                 label_key="notification.config.dingtalk.open_conversation_id_label",
                 badge_key="notification.config.optional_short",
+                form="app",
+            ),
+        ),
+        forms=(
+            # 两形态**二选一**；都配好时后端按 status_rule 分支顺序**优先企业级形态**（与双读一致）
+            FormSpec(
+                key="webhook",
+                label_key="notification.config.form.webhook",
+                hint_key="notification.config.form.webhook_hint",
+                required=("webhook_url",),
+                extra=("secret",),
+            ),
+            FormSpec(
+                key="app",
+                label_key="notification.config.form.app",
+                hint_key="notification.config.form.app_hint",
+                required=(
+                    "app_key",
+                    "app_secret",
+                    "robot_code",
+                    "card_template_id",
+                    "open_conversation_id",
+                ),
             ),
         ),
         status_rule=StatusRule(
@@ -413,11 +489,19 @@ def _field_dict(f: FieldSpec) -> dict[str, Any]:
         "placeholder_key": f.placeholder_key,
         "badge_key": f.badge_key,
         "divider_key": f.divider_key,
+        # 形态归属（阶段 3 · Step 2）；空串＝与形态无关的通用字段（前端归入"通用"区）
+        "form": f.form,
     }
 
 
 def _channel_dict(spec: ChannelSpec) -> dict[str, Any]:
-    """单个渠道的前端视图（键序固定，保证响应稳定可比对）。"""
+    """单个渠道的前端视图（键序固定，保证响应稳定可比对）。
+
+    **阶段 3 · Step 2** 增补两块（供前端"按形态分区 + 互斥校验 + 参数提示"）：
+    · 每个字段带 `form`（空串＝与形态无关的通用字段）；
+    · `forms` 按声明序给出各形态的标题/提示/必需与可选字段（单形态渠道为空列表）。
+    两者都是**声明**，不含任何凭证值。
+    """
     return {
         "name": spec.name,
         "label_key": spec.label_key,
@@ -425,6 +509,16 @@ def _channel_dict(spec: ChannelSpec) -> dict[str, Any]:
         "enabled_default": spec.enabled_default,
         "hint_key": spec.hint_key,
         "fields": [_field_dict(f) for f in spec.fields],
+        "forms": [
+            {
+                "key": f.key,
+                "label_key": f.label_key,
+                "hint_key": f.hint_key,
+                "required": list(f.required),
+                "extra": list(f.extra),
+            }
+            for f in spec.forms
+        ],
         "status_rule": {
             "branches": [
                 {"all_of": list(b.all_of), "label_key": b.label_key} for b in spec.status_rule.branches

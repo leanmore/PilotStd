@@ -281,6 +281,8 @@ _CHANNEL_TOP_KEYS = {
     "enabled_default",
     "hint_key",
     "fields",
+    # 阶段 3 · Step 2：形态声明（前端"按形态分区 + 互斥校验"的数据源；单形态渠道为空列表）
+    "forms",
     "status_rule",
 }
 _FIELD_KEYS = {
@@ -295,6 +297,8 @@ _FIELD_KEYS = {
     "placeholder_key",
     "badge_key",
     "divider_key",
+    # 阶段 3 · Step 2：形态归属（空串＝与形态无关的通用字段）
+    "form",
 }
 # 后端实现细节：**不得**出现在面向前端的元数据里（`ctor` 由裁决 2 明确移除）
 _IMPL_KEYS = {"ctor", "ctor_required", "cls_name", "module", "legacy_label_key"}
@@ -327,6 +331,18 @@ def test_channels_endpoint_shape(notif_client_and_db, notif_cookies):
         assert isinstance(ch["fields"], list) and ch["fields"]
         for field in ch["fields"]:
             assert set(field) == _FIELD_KEYS, f"{ch['name']}.{field.get('name')} 字段键不符"
+        # 阶段 3 · Step 2：形态声明自洽——每个形态的 required/extra 都必须是该渠道的真实字段，
+        # 且字段的 `form` 必须指向已声明的形态（错值会让前端分区渲染出现"孤儿字段"）。
+        declared_forms = {f["key"] for f in ch["forms"]}
+        field_names = {f["name"] for f in ch["fields"]}
+        for form in ch["forms"]:
+            assert set(form) == {"key", "label_key", "hint_key", "required", "extra"}
+            assert form["required"], "形态必须声明最少必需字段（否则前端无法做完整性校验）"
+            assert set(form["required"]) | set(form["extra"]) <= field_names
+        for field in ch["fields"]:
+            assert field["form"] == "" or field["form"] in declared_forms, (
+                f"{ch['name']}.{field['name']} 的 form={field['form']!r} 未在 forms 中声明"
+            )
         rule = ch["status_rule"]
         assert set(rule) == {"branches", "fallback_key"}
         for branch in rule["branches"]:

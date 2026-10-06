@@ -104,6 +104,69 @@ function fieldDivider(f: ChannelFieldSpec): string {
   return f.divider_key && te(f.divider_key) ? t(f.divider_key) : ''
 }
 
+/** 取某形态的字段（`form` 为空串＝通用字段）；顺序沿用 spec 声明序。
+ *  **契约容错**：后端若尚未下发 `forms`/`form`（灰度期）⇒ 一律视作通用字段，行为与改造前一致。 */
+function fieldsOfForm(ch: ChannelSpec, formKey: string): ChannelFieldSpec[] {
+  return (ch.fields ?? []).filter(f => (f.form ?? '') === formKey)
+}
+
+/** 形态校验：返回**用户可读**的问题清单（空数组＝无问题）。
+ *
+ * 三条规则与后端行为**严格对齐**（不能让前端提示与后端实际取用不一致）：
+ * ① 某形态**填了一部分**（有字段非空但必需项未齐）⇒ 提示还缺哪些字段；
+ * ② 两种形态**都配全**⇒ 提示"系统将优先使用企业级/自建应用形态"（依据 `status_rule` 的分支顺序）；
+ * ③ **一种都没配全**⇒ 提示尚未配置完成（此时该渠道不会被初始化，属如实告知，不阻断保存——
+ *    用户可能正在分步填写）。
+ */
+function formIssues(ch: ChannelSpec): string[] {
+  const values = channels.value[ch.name]?.fields ?? {}
+  const filled = (name: string) => String(values[name] ?? '').trim() !== ''
+  const issues: string[] = []
+  const complete: string[] = []
+  for (const form of ch.forms ?? []) {
+    const missing = form.required.filter(n => !filled(n))
+    const anyFilled = form.required.some(n => filled(n)) || form.extra.some(n => filled(n))
+    if (missing.length === 0) {
+      complete.push(t(form.label_key))
+    } else if (anyFilled) {
+      const labels = missing.map(n => fieldLabel(ch.fields.find(f => f.name === n) ?? ({ name: n } as ChannelFieldSpec)))
+      issues.push(t('notification.config.form.partial', { form: t(form.label_key), fields: labels.join('、') }))
+    }
+  }
+  if (complete.length > 1) {
+    // **优先级以后端为准**：`status_rule` 的分支是"已配置"判定的真实顺序（靠前者优先），
+    // 而非 `forms` 的声明顺序——两者可能不同（如企微：分支序 app→webhook）。
+    issues.push(t('notification.config.form.both_configured', { form: activeFormLabel(ch, filled) }))
+  } else if (complete.length === 0 && !issues.length) {
+    const names = (ch.forms ?? []).map(f => t(f.label_key)).join(' / ')
+    issues.push(t('notification.config.form.none_configured', { forms: names }))
+  }
+  return issues
+}
+
+/** 实际生效的形态名（按后端 `status_rule.branches` 顺序找第一个"字段全非空"的分支）。
+ *
+ *  分支的 `all_of` 是**字段名列表**，与形态的 `required` 可能不完全相同（企业级形态分支还含
+ *  投递目标字段）⇒ 用"分支的字段集是否归属同一形态"来判定，判不出就回退第一个形态名。
+ */
+function activeFormLabel(ch: ChannelSpec, filled: (name: string) => boolean): string {
+  const formOf = new Map<string, string>()
+  for (const form of ch.forms ?? []) {
+    for (const name of [...form.required, ...form.extra]) formOf.set(name, form.key)
+  }
+  for (const branch of ch.status_rule?.branches ?? []) {
+    if (!branch.all_of.every(n => filled(n))) continue
+    const keys = new Set(branch.all_of.map(n => formOf.get(n)).filter(Boolean) as string[])
+    if (keys.size === 1) {
+      const key = [...keys][0]
+      const form = (ch.forms ?? []).find(f => f.key === key)
+      if (form) return t(form.label_key)
+    }
+  }
+  const first = (ch.forms ?? [])[0]
+  return first ? t(first.label_key) : ''
+}
+
 /** 渠道级提示段落 */
 function channelHint(spec: ChannelSpec): string {
   return spec.hint_key && te(spec.hint_key) ? t(spec.hint_key) : ''
@@ -357,19 +420,57 @@ onMounted(() => {
         </div>
         <transition name="collapsible">
           <div v-show="channelOpen[ch.name]" class="collapsible-content">
-          <!-- 字段表单：完全由 GET /api/notification/channels 的 spec 驱动（渠道无关） -->
+          <!-- 字段表单：完全由 GET /api/notification/channels 的 spec 驱动（渠道无关）
+               阶段 3 · Step 2：带 `forms` 声明的渠道**按形态分区**渲染（分区标题 + 形态提示 + 互斥校验）；
+               单形态渠道保持原样（`divider_key` 分隔线机制不变，避免视觉回归） -->
           <p v-if="channelHint(ch)" style="font-size:11px;color:var(--text-dim);margin:0 0 10px">{{ channelHint(ch) }}</p>
-          <template v-for="f in ch.fields" :key="f.name">
-            <div v-if="fieldDivider(f)" class="field-sep">{{ fieldDivider(f) }}</div>
-            <div class="field">
-              <label>
-                {{ fieldLabel(f) }}
-                <span v-if="f.required" class="required">{{ t('notification.config.required') }}</span>
-                <span v-else class="optional">{{ fieldBadge(f) }}</span>
-              </label>
-              <Password v-if="f.type === 'password'" v-model="channels[ch.name].fields[f.name]" class="w-full" :placeholder="fieldPlaceholder(f)" size="small" toggleMask :feedback="false" />
-              <InputText v-else v-model="channels[ch.name].fields[f.name]" class="w-full" :placeholder="fieldPlaceholder(f)" size="small" :type="f.type === 'text_password' ? 'password' : 'text'" />
-            </div>
+          <template v-if="(ch.forms ?? []).length">
+            <template v-for="form in (ch.forms ?? [])" :key="form.key">
+              <div class="form-section">
+                <div class="form-section-title">{{ t(form.label_key) }}</div>
+                <div class="form-section-hint">{{ t(form.hint_key) }}</div>
+              </div>
+              <div v-for="f in fieldsOfForm(ch, form.key)" :key="f.name" class="field">
+                <label>
+                  {{ fieldLabel(f) }}
+                  <span v-if="form.required.includes(f.name)" class="required">{{ t('notification.config.required') }}</span>
+                  <span v-else class="optional">{{ fieldBadge(f) }}</span>
+                </label>
+                <Password v-if="f.type === 'password'" v-model="channels[ch.name].fields[f.name]" class="w-full" :placeholder="fieldPlaceholder(f)" size="small" toggleMask :feedback="false" />
+                <InputText v-else v-model="channels[ch.name].fields[f.name]" class="w-full" :placeholder="fieldPlaceholder(f)" size="small" :type="f.type === 'text_password' ? 'password' : 'text'" />
+              </div>
+            </template>
+            <template v-if="fieldsOfForm(ch, '').length">
+              <div class="form-section">
+                <div class="form-section-title">{{ t('notification.config.form.shared') }}</div>
+              </div>
+              <div v-for="f in fieldsOfForm(ch, '')" :key="f.name" class="field">
+                <label>
+                  {{ fieldLabel(f) }}
+                  <span class="optional">{{ fieldBadge(f) }}</span>
+                </label>
+                <Password v-if="f.type === 'password'" v-model="channels[ch.name].fields[f.name]" class="w-full" :placeholder="fieldPlaceholder(f)" size="small" toggleMask :feedback="false" />
+                <InputText v-else v-model="channels[ch.name].fields[f.name]" class="w-full" :placeholder="fieldPlaceholder(f)" size="small" :type="f.type === 'text_password' ? 'password' : 'text'" />
+              </div>
+            </template>
+            <!-- 形态校验结论（缺字段 / 两者都配好时的优先级说明 / 一个都没配好） -->
+            <Message v-if="formIssues(ch).length" severity="warn" :closable="false" style="margin-top:8px">
+              <div v-for="(issue, idx) in formIssues(ch)" :key="idx" style="font-size:12px">{{ issue }}</div>
+            </Message>
+          </template>
+          <template v-else>
+            <template v-for="f in ch.fields" :key="f.name">
+              <div v-if="fieldDivider(f)" class="field-sep">{{ fieldDivider(f) }}</div>
+              <div class="field">
+                <label>
+                  {{ fieldLabel(f) }}
+                  <span v-if="f.required" class="required">{{ t('notification.config.required') }}</span>
+                  <span v-else class="optional">{{ fieldBadge(f) }}</span>
+                </label>
+                <Password v-if="f.type === 'password'" v-model="channels[ch.name].fields[f.name]" class="w-full" :placeholder="fieldPlaceholder(f)" size="small" toggleMask :feedback="false" />
+                <InputText v-else v-model="channels[ch.name].fields[f.name]" class="w-full" :placeholder="fieldPlaceholder(f)" size="small" :type="f.type === 'text_password' ? 'password' : 'text'" />
+              </div>
+            </template>
           </template>
           <div style="margin-top:8px">
             <Button :label="t('notification.config.test')" size="small" severity="secondary" @click="testChannel(ch)" />
@@ -476,7 +577,11 @@ onMounted(() => {
 .field label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
 .required { color: var(--danger); font-size: 10px; }
 .optional { color: var(--text-dim); font-size: 10px; }
-.field-sep { font-size: 11px; color: var(--text-dim); border-top: 1px dashed var(--border); padding-top: 8px; margin: 8px 0 6px; }
+.field-sep { font-size: 11px; color: var(--text-dim); border-top: 1px dashed var(--border; padding-top: 8px; margin: 8px 0 6px; }
+/* 阶段 3 · Step 2：形态分区标题与提示（仅带 `forms` 声明的渠道出现） */
+.form-section { border-top: 1px dashed var(--border); padding-top: 8px; margin: 10px 0 6px; }
+.form-section-title { font-size: 12px; font-weight: 600; color: var(--text); }
+.form-section-hint { font-size: 11px; color: var(--text-dim); margin-top: 2px; line-height: 1.5; }
 .w-full { width: 100%; }
 .flex-1 { flex: 1; }
 .test-result { font-size: 12px; margin-top: 6px; color: var(--text-dim); }
