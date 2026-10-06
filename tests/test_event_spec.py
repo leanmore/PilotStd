@@ -66,7 +66,8 @@ EXPECTED_FIELDS = (
     "subscribable",
     "aggregation",
 )
-EXPECTED_EVENT_COUNT = 41
+# 42 = 原 41 + `desktop_toast`（阶段 4 · P6 · 4c 正式登记的平台层事件；用户裁决 Q10）
+EXPECTED_EVENT_COUNT = 42
 EXPECTED_MODULE_KEYS = {
     "notification.module.validity",
     "notification.module.interaction",
@@ -226,7 +227,8 @@ class TestSpecSelfConsistency(unittest.TestCase):
         counts = {
             value: sum(1 for s in EVENT_SPECS if s.aggregation == value) for value in AGGREGATION_VALUES
         }
-        self.assertEqual(counts, {"aggregate": 38, "bypass": 3})
+        # 42 事件：aggregate 39 + bypass 3（4c 新增的 `desktop_toast` 走 aggregate）
+        self.assertEqual(counts, {"aggregate": 39, "bypass": 3})
 
     def test_levels_are_ordered_subsequences(self):
         """级别集合必须非空、无重复，且按严重度升序（序列化约定的前提）。"""
@@ -449,6 +451,9 @@ class TestScopeOfThisSubStep(unittest.TestCase):
             # C：用户时刻清单（第二 SSOT）与事件规格的**双向闭包**需要事件键集合 ⇒
             # 本用例是闭包断言方（只读事件键，不派生文案/渠道），属计划内的契约消费方
             "tests/test_user_moments.py",
+            # 4c（用户裁决 Q10）：`desktop_toast` 登记后，其专项用例需读取事件规格以锁定
+            # "`ALL_EVENTS` 与 `EVENT_SPECS` 双侧必须同时登记"的不变量（只读事件键，不派生文案/渠道）
+            "tests/test_notification_desktop_toast.py",
         }
         self_relative = SPEC_FILE.relative_to(ROOT).as_posix()
         this_file = Path(__file__).resolve().relative_to(ROOT).as_posix()

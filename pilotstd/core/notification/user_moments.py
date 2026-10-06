@@ -51,7 +51,11 @@ DECLARED_EVENTS_WITHOUT_MOMENT: tuple[str, ...] = (
     "standard_first_registered",
     "normalize_complete",
     "download_started",
-)  # 裁决 1(b)
+    # 阶段 4 · P6 · 4c（用户裁决 Q10）：`desktop_toast` 是**平台层事件**（L2 桌面协调层
+    # 直构消息投递，不经 `send_event`），它不是"用户交办的一件事"，故**不归属任何用户时刻**。
+    # 这里按"显式声明例外"的口径登记（而非放宽断言）：本行与测试同批改动才生效。
+    "desktop_toast",
+)  # 裁决 1(b) + Q10
 
 # 【次要事件】与某时刻同刻的其它事件：设计 §1.3 的重复 5 + 粒度错配 7，
 # 外加 §1.1 #9 的同刻补充（download_complete 由 batch_download_complete 承接）。

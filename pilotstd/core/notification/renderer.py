@@ -22,6 +22,8 @@ from .blocks import (
     TextBlock,
 )
 from .channel import NotificationMessage
+from .renderer_links import action_label as _action_label
+from .renderer_links import link_actions
 
 logger = logging.getLogger(__name__)
 
@@ -34,40 +36,8 @@ def _fallback_text() -> str:
     return t("notification.renderer.empty")
 
 
-def link_actions(message: Any) -> list[Any]:
-    """取消息里**带 URL 的动作**（阶段 3 · Step 1：站内入口按钮/链接的唯一来源）。
-
-    约定：`ActionSpec.args["url"]` 存在即为"链接型动作"（不需要 `callback_data`，也不参与回调），
-    各渠道按自身能力渲染：
-
-    | 渠道 | 形态 | 依据 |
-    |---|---|---|
-    | Telegram | `inline_keyboard` 的 `url` 按钮 | 平台原生支持 URL 按钮 |
-    | 飞书 | 卡片的 `action` 元素 + `button.url` | 平台原生支持 |
-    | 企微（webhook）/钉钉（webhook） | **Markdown 链接** | 两者 webhook 均只能发 markdown，无法带按钮 |
-    | 钉钉（互动卡片） | 链接写进 `cardParamMap.content` | 卡片按钮由**租户模板**定义，我方模板契约只有
-      title/content/level |
-
-    **注意**：这类动作**不带 token**，故不会与阶段 3 的"回调按钮"混在一起
-    （后者需要 `callback_data`）。
-    """
-    out: list[Any] = []
-    for spec in list(getattr(message, "actions", []) or []):
-        args = getattr(spec, "args", None) or {}
-        url = str(args.get("url") or "").strip() if isinstance(args, dict) else ""
-        if url:
-            out.append(spec)
-    return out
-
-
-def _action_label(spec: Any) -> str:
-    """动作展示文案（`label_key` 经 i18n；缺键回退动作名，绝不显示空按钮）。"""
-    key = str(getattr(spec, "label_key", "") or "")
-    if key:
-        label = t(key)
-        if label and label != key:
-            return label
-    return str(getattr(spec, "action", "") or "")
+# `link_actions()` / `action_label()` 已迁至 `renderer_links.py`（四渠道渲染器共用；
+# 留在本文件会越过 G-010 的 500 有效行上限）。此处经顶部 import 复用其实现。
 
 
 # ListBlock.items 的字段名 → i18n 键（渲染期取 t()：字段名是**数据键**，

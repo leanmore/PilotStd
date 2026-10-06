@@ -141,8 +141,12 @@ CHANNEL_SPECS: tuple[ChannelSpec, ...] = (
         icon="pi pi-comments",
         enabled_default=True,
         hint_key="notification.config.wechat.hint",
-        ctor=("webhook_url",),
-        ctor_required=("webhook_url",),
+        # 构造顺序**必须与 `WechatChannel.__init__` 的签名一致**（`manager._init_channels` 按序位置传参）：
+        # (webhook_url, corpid, agentid, corpsecret, proxy_url, touser)
+        ctor=("webhook_url", "corpid", "agentid", "corpsecret", "proxy_url", "touser"),
+        # 现在两种形态都**真正实现了**（阶段 3 · Step 4 ①）：webhook 走 markdown、应用形态走模板卡片
+        # ⇒ 不再有"单字段必需"；可用性由 `forms` / `status_rule` 判定。
+        ctor_required=(),
         fields=(
             FieldSpec(
                 name="webhook_url",
@@ -189,6 +193,14 @@ CHANNEL_SPECS: tuple[ChannelSpec, ...] = (
                 placeholder="http://proxy:8080",
                 badge_key="notification.config.optional",
             ),
+            FieldSpec(
+                name="touser",
+                type="string",
+                label_key="notification.config.wechat.touser",
+                placeholder="@all",
+                badge_key="notification.config.optional",
+                form="app",
+            ),
         ),
         forms=(
             # 两形态**二选一**；两者都配好时后端按 status_rule 的**分支顺序**优先自建应用
@@ -204,7 +216,7 @@ CHANNEL_SPECS: tuple[ChannelSpec, ...] = (
                 label_key="notification.config.form.app",
                 hint_key="notification.config.form.app_hint",
                 required=("corpid", "agentid", "corpsecret"),
-                extra=("proxy_url",),
+                extra=("touser", "proxy_url"),
             ),
         ),
         status_rule=StatusRule(

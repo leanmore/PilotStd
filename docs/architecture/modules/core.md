@@ -5,7 +5,7 @@
 | 模块路径 | `pilotstd/core/` |
 | G-031 映射 | `pilotstd/core/`（2026-09-25 落地：`DOC_SYNC_MAP` 已含该条，改任何 core 文件都会要求同步本文件） |
 | 核心类 | `Database` / `ConfigManager` / `CacheManager` / `NotificationManager` |
-| 子模块数 | 107 个 `.py`（新增 `_links.py`：站内入口链接解析与动作挂载，阶段 3 · Step 1）（**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-10-06**；顶层 = 3 个包 config / db / notification + 23 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
+| 子模块数 | 109 个 `.py`（新增 `renderer_links.py`（四渠道共享的链接助手）与 `renderer_wecom_card.py`（企微模板卡片渲染器）——阶段 3 · Step 1/Step 4 ① 拆分以守 G-010）（**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-10-06**；顶层 = 3 个包 config / db / notification + 23 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
 | Schema 版本 | `CURRENT_SCHEMA_VERSION = 66`（`db/_constants.py`；v66＝announcement_record 追加 `final_name` 列 + 从 pending_lookup 回填，2026-10-05 名称解析统一批次二） |
 | 状态 | 活跃 |
 
@@ -102,6 +102,21 @@ pilotstd/core/
 │   │   承载原请求与响应判定（**任一段失败即整体失败，不静默丢段**）；未超长时单段（零行为变更）。
 │   │   **飞书**（卡片 `elements[]`，需按元素分片）**待接**，见统筹日程 P2 备注
 │   ├── channels/              # wechat / feishu / dingtalk / telegram 渠道适配
+│   ├── （2026-10-06 · **阶段 3 · Step 4 ①：企微应用形态 + 模板卡片**）：实测发现企微渠道**此前只实现了
+│   │   Webhook 形态**（`WechatChannel(webhook_url)`），spec 里声明的 `corpid/agentid/corpsecret`
+│   │   **从未被构造使用** ⇒ 本次补齐应用形态：
+│   │   ①`WechatChannel` 构造签名扩为 `(webhook_url, corpid, agentid, corpsecret, proxy_url, touser)`
+│   │   （与 `channel_spec.ctor` **逐项同序**；`ctor_required=()` ⇒ 可用性由 `forms`/`status_rule` 判定）；
+│   │   ②应用形态：`cgi-bin/gettoken` 取 `access_token`（6900 秒缓存）→ `cgi-bin/message/send`
+│   │   （`msgtype=template_card` + `touser` + `agentid`）；**卡片被平台拒收时降级为文本消息**
+│   │   （`msgtype=text`，绝不静默丢消息）；
+│   │   ③`renderer.WeChatCardRenderer`：产出**已被实证**的 `news_notice` 结构
+│   │   （`source`/`main_title`/`vertical_content_list`/`jump_list`/`card_action`；取证＝第三方插件
+│   │   `AWdress/awembypush:950-984`）——**不实现** `text_notice`（无语料，不猜字段）、
+│   │   **不臆造** `card_image`（无图时省略，是否必填官方正文未取到）；站内入口（Step 1）在此变成
+│   │   `jump_list` 跳转按钮；
+│   │   ④两形态都配好时**优先应用形态**（与 `status_rule` 分支序一致）；统一请求入口 `_open()`
+│   │   使 `proxy_url` 对两形态都生效（Webhook 路径行为不变，仅改为经同一入口）
 │   ├── （2026-10-06 · **阶段 3 · Step 2：形态选择产品化**）：`channel_spec` 增两类**机器可读**声明——
 │   │   ①`FieldSpec.form`（字段归属形态：`webhook` / `app` / 空串＝通用字段）；
 │   │   ②`ChannelSpec.forms`（`FormSpec(key, label_key, hint_key, required, extra)`，声明式给出各形态的

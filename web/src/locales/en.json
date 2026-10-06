@@ -992,6 +992,7 @@
         "corpid": "Corp ID (corpid)",
         "agentid": "App Agent ID",
         "corpsecret": "App Secret",
+        "touser": "Recipients (touser)",
         "proxy_url": "Proxy URL"
       },
       "feishu": {

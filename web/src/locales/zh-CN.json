@@ -992,6 +992,7 @@
         "corpid": "企业 ID (corpid)",
         "agentid": "应用 Agent ID",
         "corpsecret": "应用 Secret",
+        "touser": "接收成员（touser）",
         "proxy_url": "代理地址"
       },
       "feishu": {

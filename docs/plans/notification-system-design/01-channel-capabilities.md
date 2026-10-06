@@ -156,8 +156,8 @@
 
 | 维度 | 企微 | 钉钉 | 飞书 | Telegram |
 |---|---|---|---|---|
-| **形态（B）** | Webhook ✅ + 应用字段 ✅（**缺卡片渲染**） | Webhook ✅ + 企业应用 ✅（含 `card_template_id`） | Webhook ✅（**应用形态未建模**） | Bot ✅（平台仅此一形态） |
-| **结构化卡片（C）** | ❌ **仅 markdown** ⇒ **今日最大缺口** | ✅ 卡片（`cardData`）+ webhook markdown | ✅ 交互卡片（`elements`/`table`/`button`） | ⚠️ 平台无"卡片"概念 ⇒ 用 **MarkdownV2 + inline keyboard** 等价 |
+| **形态（B）** | Webhook ✅ + **应用形态 ✅（含模板卡片，2026-10-06 落地）** | Webhook ✅ + 企业应用 ✅（含 `card_template_id`） | Webhook ✅（**应用形态未建模**） | Bot ✅（平台仅此一形态） |
+| **结构化卡片（C）** | ✅ **2026-10-06 起已实现模板卡片**（应用形态；`news_notice`，取证 self §7.5）——Webhook 形态仍为 markdown（平台限制） | ✅ 卡片（`cardData`）+ webhook markdown | ✅ 交互卡片（`elements`/`table`/`button`） | ⚠️ 平台无"卡片"概念 ⇒ 用 **MarkdownV2 + inline keyboard** 等价 |
 | **按钮（出站）** | ⚠️ Webhook 不支持 ⇒ **Markdown 链接** | ⚠️ Webhook 同左；卡片按钮由**租户模板**定义 | ✅ 卡片 `button` | ✅ `inline_keyboard` |
 | **回调（入站）** | ❌ 未启用（需 **XML + SHA1 + AES** 三件套，见 §五 缺口 2 / [14 报告](../notification-redesign/14-MoviePilot源码侦查报告.md) §2.1） | ✅ 已实现（验签 = `HMAC-SHA256(secret, "<ts>\n<secret>")`，已被第三方实现佐证） | ✅ 已实现（`card.action.trigger` 结构见 [14 报告](../notification-redesign/14-MoviePilot源码侦查报告.md) §2.3） | ✅ 已闭环（P5b） |
 | **消息编辑** | ❌（应用消息可更新卡片，前置=卡片形态落地） | ⚠️ 官方有 `PUT /v1.0/im/interactiveCards`（[P5a 已取证](../notification-redesign/13-阶段3渠道交互取证报告.md) §二）；平台侧**需卡片模板 + `outTrackId`** | ⚠️ `PATCH /open-apis/im/v1/messages/{message_id}`（第三方实证）⇒ 需**自建应用形态** | ✅ `editMessageText`（平台支持） |
@@ -168,13 +168,43 @@
 
 | 优先级 | 缺口 | 现状 | 备注 |
 |---|---|---|---|
-| **①（先做）** | **企微模板卡片** | 字段已建模（`corpid`/`agentid`/`corpsecret`），**渲染器只有 markdown** | 交互闭环还需 XML+AES 回调链路（可分批：先"卡片出站"，后"回调入站"） |
+| **①（先做）** | ~~**企微模板卡片**~~ | ✅ **2026-10-06 已落地**（应用形态：`template_card`/`news_notice` + 文本降级；见 §7.5） | 剩余：**回调入站**（XML+AES 链路，需单独立批）——当前卡片上的按钮是**跳转**（`jump_list`），不是回调 |
 | **③（后做）** | **飞书企业应用形态** | 未建模（无 `app_id`/`app_secret`）；编辑端点已实证 | 落地顺序：字段 → 取 `message_id` → `PATCH` 编辑 |
 | 已闭环 | 站内入口接线（`view_detail`/`open_logs`） | ✅ Step 1（四渠道 + URL 降级；配置键 `notification.web_base_url`） | 未配置/回环地址 ⇒ 不生成链接，改纯文本提示 |
 | 已闭环 | 形态选择产品化 | ✅ Step 2（`forms`/`form` 声明 + 前端分区/互斥校验/提示） | 后端 `status_rule` 分支序 = 前端提示的优先级依据（不得各写一套） |
 | 不做 | 企微回调（现阶段） | 需 XML+AES 新链路 | 取证已闭合（第三方实现），但**须单独立批** |
 
-### 7.4 与其它文档的关系
+### 7.5 企微模板卡片取证与实现（**2026-10-06 闭环**）
+
+**取证（[实现] 等级）**：官方"模板卡片类型"正文仍为 JS 渲染不可取；改为在**第三方插件语料**中取证——
+`AWdress/MoviePilot-Plugins` 的 `plugins/awembypush/__init__.py:950-984` 有真实可用实现：
+
+```python
+url = f".../cgi-bin/message/send?access_token={token}"     # 应用消息端点（群机器人 Webhook 不支持卡片）
+payload = {"touser": <user|@all>, "msgtype": "template_card", "agentid": <id>,
+           "template_card": {"card_type": "news_notice",
+               "source": {"icon_url": …, "desc": …},
+               "main_title": {"title": …, "desc": …},
+               "card_image": {"url": …, "aspect_ratio": 2.25},
+               "vertical_content_list": [{"title": …, "desc": …}],
+               "jump_list": [{"type": 1, "url": …, "title": …}],
+               "card_action": {"type": 1, "url": …}}}
+```
+
+**实现取舍（只做实证过的部分，不猜字段）**：
+
+| 项 | 取值 | 理由 |
+|---|---|---|
+| `card_type` | **`news_notice`** | 有真实样例；`text_notice` 本语料**未见** ⇒ 不实现（待官方正文确认） |
+| `card_image` | **有图才输出** | 我方通知通常无图；"是否必填"未取证 ⇒ 缺失时省略，由渠道层在平台拒收时**降级为文本** |
+| `jump_list` / `card_action` | 由**链接型动作**（Step 1 的站内入口）填充 | "查看详情"在企微里变成**卡片跳转**，不是 markdown 链接 |
+| 形态选择 | 应用形态**优先**（`status_rule` 分支序） | 与后端判定、前端提示**同源** |
+| 失败兜底 | 卡片被拒 ⇒ **改发文本**（`msgtype=text`） | 绝不静默丢消息（与 P2 分段同一条纪律） |
+
+**仍未闭环**：企微**回调入站**（XML + SHA1 + AES 三件套）——需单独立批；在此之前卡片按钮只能**跳转站内页**，
+不能"在聊天里回执动作"。
+
+
 
 - **取证过程**：§三~§六（官方文档）+ [`13-阶段3渠道交互取证报告.md`](../notification-redesign/13-阶段3渠道交互取证报告.md)（P5a）
   + [`14-MoviePilot源码侦查报告.md`](../notification-redesign/14-MoviePilot源码侦查报告.md)（主仓）

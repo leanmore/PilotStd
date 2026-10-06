@@ -1,4 +1,4 @@
-﻿"""阶段 3 收尾：`callback_service._retry` 的**失败口径**单测。
+"""阶段 3 收尾：`callback_service._retry` 的**失败口径**单测。
 
 成功路径（真发 + 结果回写）由端到端用例覆盖（`test_notification_phase3_e2e_loop.py`）；
 本文件专攻"发不出去时的如实性"——这是收尾时最容易写成"假装成功"的地方：

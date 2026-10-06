@@ -22,7 +22,8 @@ from pilotstd.core.notification.channel_spec import (  # noqa: E402
 
 # 字面量基线（独立于 spec，用于检出 spec 内容的静默变更）
 EXPECTED_FIELD_NAMES = {
-    "wechat": {"webhook_url", "corpid", "agentid", "corpsecret", "proxy_url"},
+    # 阶段 3 · Step 4 ①：应用形态落地 ⇒ 新增 touser（接收成员，缺省 @all）
+    "wechat": {"webhook_url", "corpid", "agentid", "corpsecret", "proxy_url", "touser"},
     # 阶段 S（方案 A1）：企业级形态新增 4 凭证 + 1 投递目标；旧两字段保留（双读）
     "dingtalk": {
         "webhook_url",
@@ -37,7 +38,8 @@ EXPECTED_FIELD_NAMES = {
     "telegram": {"bot_token", "chat_id"},
 }
 EXPECTED_CTOR = {
-    "wechat": ("webhook_url",),
+    # 阶段 3 · Step 4 ①：企微补齐应用形态，ctor 与 `WechatChannel.__init__` 逐项同序
+    "wechat": ("webhook_url", "corpid", "agentid", "corpsecret", "proxy_url", "touser"),
     "dingtalk": (
         "webhook_url",
         "secret",

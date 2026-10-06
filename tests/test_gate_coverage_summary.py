@@ -178,9 +178,15 @@ def test_g044_declares_three_layer_scope() -> None:
 
 
 def test_g045_declares_unchecked_fields_and_desktop_toast() -> None:
-    """G-045 须声明未校验的字段与未登记的 desktop_toast（L-22 方案 B 的显式化）。"""
+    """G-045 须声明**未校验的字段**与 `desktop_toast` 的登记状态。
+
+    **2026-10-05 更新（4c · 用户裁决 Q10）**：`desktop_toast` 由"方案 B（显式声明未覆盖）"改为
+    **方案 A（正式登记）**——进 `ALL_EVENTS`/`event_spec` 双清单、补独立构建器与三语键。
+    故断言随裁决更新：摘要须说明**已登记**及其构建器，而不再是方案 B 时代的
+    "无独立构建器与 i18n 键"（该表述已不成立）。
+    """
     block = _summary_block(_run_gate("audit_notification_coverage.py"))
     for keyword in ("level", "module", "aggregation", "builder_keys", "desktop_toast"):
         assert keyword in block, f"G-045 摘要缺少「{keyword}」：\n{block}"
-    # desktop_toast 的表述须说明"无独立构建器与 i18n 键"，而非"没有 i18n 支持"
-    assert "无独立构建器与 i18n 键" in block, f"G-045 对 desktop_toast 的表述不准确：\n{block}"
+    assert "正式登记" in block, f"G-045 未声明 desktop_toast 的登记状态：\n{block}"
+    assert "_build_desktop_toast_message" in block, f"G-045 未记录 desktop_toast 的构建器：\n{block}"
