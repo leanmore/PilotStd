@@ -128,7 +128,7 @@
 | # | 缺口 | 已确认的部分 | 建议补齐方式 |
 |---|---|---|---|
 | 1 | **企微交互卡片（模板卡片）能力** | 官方文档 URL、决策者裁定（支持） | 取官方"模板卡片类型"正文（`developer.work.weixin.qq.com/document/path/101839`） |
-| 2 | **企微回调配置细节**（是否需要 Token/EncodingAESKey、事件回调类型） | 官方"回调配置"URL（`path/90930`） | 同上（正文为 JS 渲染） |
+| 2 | **企微回调配置细节**（是否需要 Token/EncodingAESKey、事件回调类型） | ✅ **2026-10-06 起有第三方实现证据**：MoviePilot `VerifyURL(msg_signature,timestamp,nonce,echostr)`＝**SHA1(Token,ts,nonce,echostr)** ＋ **AES 解密**（`EncodingAESKey`/`ReceiveId`），XML 信封含 `MsgSignature` ⇒ **需 Token + EncodingAESKey + ReceiveId 三件套，且是 XML 形态**（非 JSON+header 签名） | 见 [`14-MoviePilot源码侦查报告.md`](../notification-redesign/14-MoviePilot源码侦查报告.md) §2.1（[实现] 证据，附 `文件:行号`） |
 | 3 | **企微消息更新能力** | 无 | 同上 |
 | 4 | **企微审批门槛** | 无 | 管理后台文档 |
 | 5 | **飞书卡片回调请求/响应格式** | 官方 URL（`feishu-cards/handle-card-callbacks`）+ 凭证含验签字段 | 同上 |
