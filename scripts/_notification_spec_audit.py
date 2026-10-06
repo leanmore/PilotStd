@@ -21,7 +21,8 @@ from pathlib import Path
 from _frontend_channel_scan import FRONTEND_FILES, scan, structural_keys
 
 # B 类检查项数（用于覆盖摘要的"检查项"计数）
-B_RULE_COUNT = 4
+# 2026-10-05（阶段 4 · P6 · 4d 脚本侧）：4 → 5，新增 **B5 类别层一致性**
+B_RULE_COUNT = 5
 # B3 的扫描范围（后端三个落点：渠道构造、配置接口、路由装配）
 # 2026-10-03 步 C 拆分后，API 侧的渠道字面量落点由 notification.py 迁至 notification_config.py，
 # 故三者都扫（装配模块如今无渠道逻辑，保留扫描以防回填）。
@@ -207,8 +208,60 @@ def check_b4(root: Path, keys: set[str]) -> tuple[list[str], list[str], str]:
     return blocking, warnings, state
 
 
+def check_b5(root: Path) -> tuple[list[str], str]:
+    """B5：**类别层一致性**（阶段 4 · P6 · 4d 脚本侧增量）。
+
+    静态核验（只读源码文本 + `ast.parse`，不 import 被检对象）三件事：
+      ① `event_spec.py` 里每个 `EventSpec(notify_event=...)` 的取值必须在 `mapping.py` 的
+         `NOTIFY_EVENTS` 内（否则该事件永不被任何类别订阅命中 ⇒ 静默漏投）；
+      ② 类别清单里**每一类**至少被一个事件承接（`manual_test` 例外——它只服务测试端点）；
+      ③ 类别清单**无重复**（重复会让前端类别层出现重复选项，且计数失去意义）。
+
+    为什么放门禁而非只靠测试：G-045 是"新增事件/新类别"的准入基线，类别层漂移会造成
+    **用户勾了类别却收不到通知**且不报错 ⇒ 必须在门禁层拦住（与
+    `tests/test_notification_class_layer_contract.py` 互补：那边验信号源一致性，这边验集合自洽）。
+    """
+    errs: list[str] = []
+    mapping_src = (root / "pilotstd" / "core" / "notification" / "mapping.py").read_text(encoding="utf-8")
+    spec_src = (root / "pilotstd" / "core" / "notification" / "event_spec.py").read_text(encoding="utf-8")
+
+    classes: list[str] = []
+    for node in ast.parse(mapping_src).body:
+        if isinstance(node, ast.AnnAssign) and getattr(node.target, "id", "") == "NOTIFY_EVENTS":
+            if isinstance(node.value, ast.Tuple):
+                classes = [e.value for e in node.value.elts if isinstance(e, ast.Constant)]
+    if not classes:
+        return ["[派生·B5] 未能解析 NOTIFY_EVENTS（类别层清单为空 ⇒ 类别订阅必然全部失效）"], "❌"
+
+    dup = sorted({c for c in classes if classes.count(c) > 1})
+    if dup:
+        errs.append(f"[派生·B5] 类别清单存在重复：{dup}")
+
+    counts: dict[str, int] = {c: 0 for c in classes}
+    for node in ast.walk(ast.parse(spec_src)):
+        if not isinstance(node, ast.Call) or getattr(node.func, "id", "") != "EventSpec":
+            continue
+        for kw in node.keywords:
+            if kw.arg == "notify_event" and isinstance(kw.value, ast.Constant):
+                value = str(kw.value.value)
+                if value not in counts:
+                    errs.append(
+                        f"[派生·B5] 事件声明了未登记的 notify_event={value!r}（不在 NOTIFY_EVENTS）"
+                    )
+                else:
+                    counts[value] += 1
+
+    empty = sorted(c for c, n in counts.items() if n == 0 and c != "manual_test")
+    if empty:
+        errs.append(f"[派生·B5] 以下类别没有任何事件承接（类别层永远收不到通知）：{empty}")
+
+    if errs:
+        return errs, "❌"
+    return [], f"✅（{len(classes)} 类；除 manual_test 外均有事件承接）"
+
+
 def audit_spec_derivations(root: Path) -> tuple[list[str], list[str], dict[str, str]]:
-    """执行 B1-B4，返回 `(阻断项, 警告项, 逐项状态摘要)`。"""
+    """执行 B1-B5，返回 `(阻断项, 警告项, 逐项状态摘要)`。"""
     calls, _ = _spec_calls(root)
     keys = {str(_const(_kwargs(c).get("name"))) for c in calls}
     blocking: list[str] = []
@@ -219,6 +272,7 @@ def audit_spec_derivations(root: Path) -> tuple[list[str], list[str], dict[str, 
         ("B1 声明类 vs 实现类", check_b1(root)),
         ("B2 spec 自洽性", check_b2(root)),
         ("B3 后端无渠道名字面量", check_b3(root)),
+        ("B5 类别层一致性", check_b5(root)),
     ):
         b, state = result
         blocking.extend(b)

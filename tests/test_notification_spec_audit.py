@@ -115,10 +115,13 @@ def build_tree(tmp_path: Path, *, spec: str = GOOD_SPEC, alpha: str = GOOD_CHANN
 
 
 def test_real_tree_all_passed():
-    """真实仓库：B1-B4 应全部通过且无阻断（回归护栏）。"""
+    """真实仓库：B1-B5 应全部通过且无阻断（回归护栏）。
+
+    **2026-10-05（阶段 4 · P6 · 4d 脚本侧）**：B 类由 4 项增至 **5 项**（新增 B5 类别层一致性）。
+    """
     blocking, _warnings, states = audit_spec_derivations(ROOT)
     assert blocking == [], f"真实仓库不应有 B 类阻断：{blocking}"
-    assert len([k for k in states if k.startswith("B") and "扫描" not in k]) == 4
+    assert len([k for k in states if k.startswith("B") and "扫描" not in k]) == 5
 
 
 class TestB1:
