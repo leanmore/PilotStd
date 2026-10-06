@@ -12,6 +12,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 NOTIF = ROOT / "pilotstd" / "core" / "notification"
+# T-41/1：事件声明的 AST 解析源（拆分后指向数据模块；**唯一出处**，避免多处漂移）
+EVENT_SPEC_SRC = NOTIF / "event_spec_data.py"
+# T-41/1：主模块（数据类/工厂/**值域闭集常量**仍在此）——闭集与构建器注册读这里
+EVENT_SPEC_MAIN_SRC = NOTIF / "event_spec.py"
 
 # ── 声明式可验证性的闭集（2026-10-06 · P6/P7 甲案）────────────────────────────
 # `verify`：该事件的触发点**如何被验证**。**不要求 42/42 运行时覆盖**——极难在正常运行中
@@ -39,7 +43,7 @@ def spec_declarations() -> dict[str, dict]:
     已由事件规格派生（源码里不再有字面量清单）——继续解析契约既无可读字面量、又
     恒等于规格（同源比较恒真）。故本维度以**规格声明**为源：契约只是它的投影。
     """
-    src = (NOTIF / "event_spec.py").read_text(encoding="utf-8")
+    src = EVENT_SPEC_SRC.read_text(encoding="utf-8")
     tree = ast.parse(src)
     out: dict[str, dict] = {}
     for node in ast.walk(tree):
@@ -69,8 +73,13 @@ def spec_declarations() -> dict[str, dict]:
 
 # 值域闭集同样读源而不写死：闭集在规格里增删后，门禁口径自动跟随（免两份漂移）。
 def spec_closed_sets() -> tuple[tuple[str, ...], tuple[str, ...]]:
-    """AST 读规格里的两个值域闭集：`LEVEL_ORDER`（严重度升序）与 `AGGREGATION_VALUES`。"""
-    tree = ast.parse((NOTIF / "event_spec.py").read_text(encoding="utf-8"))
+    """AST 读规格里的两个值域闭集：`LEVEL_ORDER`（严重度升序）与 `AGGREGATION_VALUES`。
+
+    **T-41/1 拆分后的双源口径**：42 条声明迁到 `event_spec_data.py`，而这两个**闭集常量仍留在
+    `event_spec.py`**（属"数据类/工厂"一侧）⇒ 本函数必须读**主模块**；若误读数据模块，
+    闭集为空元组，会让所有事件被判"levels/aggregation 越界"（实测踩到：审计一度报 `e2e 0/42`）。
+    """
+    tree = ast.parse(EVENT_SPEC_MAIN_SRC.read_text(encoding="utf-8"))
     found: dict[str, tuple[str, ...]] = {}
     for node in ast.walk(tree):
         target = getattr(getattr(node, "target", None), "id", None)

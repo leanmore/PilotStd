@@ -227,7 +227,7 @@ def check_b5(root: Path) -> tuple[list[str], str]:
     """
     errs: list[str] = []
     mapping_src = (root / "pilotstd" / "core" / "notification" / "mapping.py").read_text(encoding="utf-8")
-    spec_src = (root / "pilotstd" / "core" / "notification" / "event_spec.py").read_text(encoding="utf-8")
+    spec_src = (root / "pilotstd" / "core" / "notification" / "event_spec_data.py").read_text(encoding="utf-8")
 
     classes: list[str] = []
     for node in ast.parse(mapping_src).body:

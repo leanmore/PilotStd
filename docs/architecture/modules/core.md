@@ -5,7 +5,7 @@
 | 模块路径 | `pilotstd/core/` |
 | G-031 映射 | `pilotstd/core/`（2026-09-25 落地：`DOC_SYNC_MAP` 已含该条，改任何 core 文件都会要求同步本文件） |
 | 核心类 | `Database` / `ConfigManager` / `CacheManager` / `NotificationManager` |
-| 子模块数 | 110 个 `.py`（新增 `channel_spec_data.py`：渠道声明数据（阶段 3 · Step 4 ③ 拆分以守 G-010；`channel_spec.py` 保留数据类与再导出））（**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-10-06**；顶层 = 3 个包 config / db / notification + 23 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
+| 子模块数 | 111 个 `.py`（新增 `event_spec_data.py`：事件声明数据（**T-41/1** 拆分以守 G-010；`event_spec.py` 保留数据类/工厂/值域闭集，并按声明原位置**延迟导入** `EVENT_SPECS`）；上一轮新增 `channel_spec_data.py`：渠道声明数据（阶段 3 · Step 4 ③ 拆分以守 G-010；`channel_spec.py` 保留数据类与再导出））（**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-10-06**；顶层 = 3 个包 config / db / notification + 23 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
 | Schema 版本 | `CURRENT_SCHEMA_VERSION = 66`（`db/_constants.py`；v66＝announcement_record 追加 `final_name` 列 + 从 pending_lookup 回填，2026-10-05 名称解析统一批次二） |
 | 状态 | 活跃 |
 
@@ -206,6 +206,16 @@ pilotstd/core/
 │   │   "层结构变了 ⇒ `spec_hash` 必变 ⇒ 前端内容级缓存必失效"（用户裁定：单一版本源优于另立层版本字段）。
 │   │   `docker/api/notification_policy.py::PolicyUpdateRequest` 增 `event_classes` 并转发给
 │   │   `save_policy(...)`（4a 已支持该参数，两层互不覆盖：`None`＝不动该层、`[]`＝清空）
+│   ├── （2026-10-06 · **T-41/1：`event_spec.py` 拆分**守 G-010）：42 条事件声明迁至
+│   │   `event_spec_data.py`（该文件实测有效行 **417**，仍属 warning 档、未越 500 阻断档；
+│   │   ⇒ 已在提案 §四-附 记入「二级拆分（子批 1b）」待办：把声明按业务族再拆一档以双双低于 400）。
+│   │   `event_spec.py` 由 486 → **126 行**（有效行显著低于 400），保留数据类 `EventSpec`、`builder_callable`、
+│   │   `spec_for`、值域闭集 `LEVEL_ORDER`/`AGGREGATION_VALUES`，并在**声明原位置延迟导入** `EVENT_SPECS`
+│   │   （解开与数据模块的初始化期循环），`EVENT_SPEC_KEYS` 与**导入期护栏断言**位置不变。
+│   │   门禁解析入口同步改为**双源口径**：声明读 `event_spec_data.py`（`_notification_spec_read.EVENT_SPEC_SRC`），
+│   │   值域闭集读主模块（`EVENT_SPEC_MAIN_SRC`）——实测踩坑：只改前者会让闭集读空、审计误报 `e2e 0/42`，
+│   │   故在函数 docstring 写明该口径。跨层护栏用例同步**强化**为双模块断言（主模块只允许依赖
+│   │   `events`/`event_spec_data`；声明模块只允许依赖 `event_spec`）
 │   ├── （2026-10-06 · **P6/P7 · 高优事件可验证性接线（子批 2~3/3 完成）**）：新增真链路用例覆盖
 │   │   `normalize_complete`（真文件流）、`query_failed`（**外部子系统网关 `core.query_engine`** 打桩，
 │   │   并断言门面内部统计/回写/分类路由真实执行）、`download_started`（复用 e2e 夹具真实驱动任务）、

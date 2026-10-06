@@ -40,7 +40,10 @@ from pilotstd.core.notification.mapping import (  # noqa: E402
 )
 
 ROOT = Path(__file__).resolve().parent.parent
-SPEC_FILE = ROOT / "pilotstd" / "core" / "notification" / "event_spec.py"
+# T-41/1：声明已迁至数据模块，AST 基线随之指向它（断言与语义不变）
+SPEC_FILE = ROOT / "pilotstd" / "core" / "notification" / "event_spec_data.py"
+# T-41/1：主模块路径（数据类/工厂/值域闭集在此，护栏需同时校验它的依赖面）
+MAIN_SPEC_FILE = ROOT / "pilotstd" / "core" / "notification" / "event_spec.py"
 EVENTS_FILE = ROOT / "pilotstd" / "core" / "notification" / "events.py"
 E2E_FILE = ROOT / "tests" / "test_notification_e2e.py"
 VUE_FILE = ROOT / "web" / "src" / "components" / "NotificationConfig.vue"
@@ -427,13 +430,25 @@ class TestScopeOfThisSubStep(unittest.TestCase):
         events_tree = ast.parse(EVENTS_FILE.read_text(encoding="utf-8"))
         for node in ast.walk(events_tree):
             self.assertFalse(isinstance(node, ast.ImportFrom) and node.level > 0, "事件注册表出现内部 import")
+        # T-41/1 拆分后：**声明**在 `event_spec_data.py`（只允许依赖数据类模块），
+        # **主模块**仍只允许依赖事件注册表 ⇒ 两条断言一起把"零重依赖"钉得更紧（非放宽）。
         spec_tree = ast.parse(_spec_source())
-        relative = {
+        data_relative = {
             node.module
             for node in ast.walk(spec_tree)
             if isinstance(node, ast.ImportFrom) and node.level > 0
         }
-        self.assertEqual(relative, {"events"})
+        self.assertEqual(data_relative, {"event_spec"}, "声明模块只允许依赖数据类模块")
+
+        main_tree = ast.parse(MAIN_SPEC_FILE.read_text(encoding="utf-8"))
+        main_relative = {
+            node.module
+            for node in ast.walk(main_tree)
+            if isinstance(node, ast.ImportFrom) and node.level > 0
+        }
+        # 主模块需 import `events`（注册表）与 `event_spec_data`（声明，延迟导入）——后者是拆分新增的**同包**
+        # 轻依赖，仍不引入任何重依赖；故允许集合为 {events, event_spec_data}。
+        self.assertEqual(main_relative, {"events", "event_spec_data"}, "主模块不允许出现重依赖")
 
     def test_only_landed_derivation_consumers_import_spec(self):
         """**接入白名单**：三处生产派生 + 一处契约派生。

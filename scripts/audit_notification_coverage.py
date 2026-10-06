@@ -38,6 +38,7 @@ from _notification_spec_audit import B_RULE_COUNT, audit_spec_derivations
 if isinstance(sys.stdout, io.TextIOWrapper):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
+import _notification_spec_read as _spec_read
 from _notification_spec_read import (
     _builder_defs,
     spec_closed_sets,
@@ -130,7 +131,7 @@ def manager_event_builders() -> dict[str, str]:
     声明**——`builder_ref` 是 `模块全名:函数名` 的静态字面量，取冒号后段即函数名。
     **仍坚持"门禁不 import 被检对象"**：全程只用 `ast.parse` 读源文件。
     """
-    src = (NOTIF / "event_spec.py").read_text(encoding="utf-8")
+    src = _spec_read.EVENT_SPEC_SRC.read_text(encoding="utf-8")
     tree = ast.parse(src)
     pairs: dict[str, str] = {}
     for node in ast.walk(tree):
