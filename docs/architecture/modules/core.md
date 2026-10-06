@@ -95,8 +95,10 @@ pilotstd/core/
 │   ├── channels/              # wechat / feishu / dingtalk / telegram 渠道适配
 │   ├── （2026-10-05 P1 灰度开关）：`aggregate_buffer.agg_key_mode()` 读 `NOTIFY_AGG_KEY`——
 │   │   `v2`（默认）＝分层键；`v1`＝**旧键**（`事件类型[<SEP>实体]`）供回滚/灰度；
-│   │   非法值或未设置**一律按 v2**（确定性优先）。`_events_in_group`/`_group_entity` 同步**分模式取段**
-│   │   （v1 取第 1/第 2 段；v2 ①取末段、②取第 2/第 3 段）——否则 v1 下按实体刷新会失效
+│   │   未设置 ⇒ v2（不告警）；**非法值 ⇒ 回退 v2 并 `logger.warning`**（按取值去重，避免刷日志）——
+│   │   不静默吞配置错误（P-107 精神：问题要可见）；该日志为**开发者诊断**，用 ASCII，不进 i18n 资源（G-047）。
+│   │   `_events_in_group`/`_group_entity` 同步**分模式取段**（v1 取第 1/第 2 段；v2 ①取末段、②取第 2 第 3 段）
+│   │   ——否则 v1 下按实体刷新会失效
 │   ├── （2026-10-05 需求①/②收口）：①**失败明细分组合计**——`build_failed_items_block` 按
 │   │   `(error_type, standard_number, standard_name)` **归并**，每行"总数"列为该组合条数、
 │   │   `ListBlock.total` 为失败条数**总和**（需求原文"各自总数有多少"；退化成逐条一行会刷屏）；

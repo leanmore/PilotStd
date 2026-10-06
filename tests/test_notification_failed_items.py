@@ -279,6 +279,26 @@ def test_group_key_v1_mode_restores_legacy_behavior(monkeypatch) -> None:
     assert agg_key_mode() == "v2", "未设置时默认 v2"
 
 
+def test_invalid_agg_key_warns_once(monkeypatch, caplog) -> None:
+    """非法取值必须**告警**（不静默吞配置错误），且同一错值只报一次（不刷日志）。
+
+    背景（审核意见）：静默回退会让运维以为"已切到某模式"而实际没有；但每条通知都告警会淹没日志，
+    故按"不同取值各一次"去重。
+    """
+    import logging as _logging
+
+    from pilotstd.core.notification import aggregate_buffer as ab
+
+    monkeypatch.setattr(ab, "_warned_bad_key", "")
+    monkeypatch.setenv("NOTIFY_AGG_KEY", "v22")
+    with caplog.at_level(_logging.WARNING, logger=ab.__name__):
+        assert ab.agg_key_mode() == "v2"
+        assert ab.agg_key_mode() == "v2"
+    hits = [r for r in caplog.records if "NOTIFY_AGG_KEY" in r.getMessage()]
+    assert len(hits) == 1, "同一非法取值只能告警一次"
+    assert hits[0].levelno == _logging.WARNING
+
+
 def test_group_key_batch_path_and_daily_path() -> None:
     """①批次路径 = 批次 × 收敛类（不含实体）；②日常路径 = 收敛类 × 实体。"""
     agg = _agg()

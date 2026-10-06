@@ -38,6 +38,9 @@ from .renderer import _fallback_text
 
 logger = logging.getLogger(__name__)
 
+# 已告警过的非法 `NOTIFY_AGG_KEY` 取值（按取值去重：同一错值只报一次，避免刷日志）
+_warned_bad_key: str = ""
+
 # 聚合窗口默认值——与 config 的 `notification.aggregate_*` 默认值同口径：
 # defaults.py 声明 aggregate_window_seconds=5 / aggregate_max_events=50，
 # manager 启用聚合时会显式传入这两个值，故本处默认仅在直接构造聚合器
@@ -56,14 +59,30 @@ _GROUP_SEP = "\x1f"
 def agg_key_mode() -> str:
     """聚合键模式（`NOTIFY_AGG_KEY`）：`v1`＝旧键、`v2`＝分层键（默认）。
 
-    · 只认 `v1` / `v2`（大小写不敏感、去空白）；**其余（含未设置）一律 `v2`**——
-      确定性优先：不因为拼错环境变量就悄悄换了聚合语义。
+    · 只认 `v1` / `v2`（大小写不敏感、去空白）；
+    · **未设置** ⇒ `v2`（默认，不告警：默认值不是错误）；
+    · **非法值**（如 `v22`、`V2`、中文） ⇒ 回退 `v2` 并**告警**——不静默吞掉配置错误：
+      静默降级会让运维以为"已切到某模式"而实际没有（本簿 P-107 精神：问题要可见）。
+      告警按**不同取值各一次**（用 `_warned_bad_key` 去重），避免每条通知都刷一行日志。
     · 供回滚/灰度：`NOTIFY_AGG_KEY=v1` 时聚合行为回到 2026-10-05 之前的"事件类型 × 实体"。
     """
+    global _warned_bad_key
     import os
 
-    raw = (os.environ.get("NOTIFY_AGG_KEY") or "").strip().lower()
-    return "v1" if raw == "v1" else "v2"
+    raw = (os.environ.get("NOTIFY_AGG_KEY") or "").strip()
+    if not raw:
+        return "v2"
+    low = raw.lower()
+    if low in ("v1", "v2"):
+        return low
+    if _warned_bad_key != raw:
+        _warned_bad_key = raw
+        # 开发者日志用 ASCII：G-047（Python 侧 i18n 硬编码）把"新增中文字面量"计为新违规，
+        # 而这条是给运维看的配置诊断、不是用户可见文案 ⇒ 不进 i18n 资源。
+        logger.warning(
+            "Invalid NOTIFY_AGG_KEY value %r; falling back to v2 (valid: v1 / v2)", raw
+        )
+    return "v2"
 
 # 续期阈值（时序专项），随窗口缩放而非固定值：
 # - `_TIMER_SLEEP_RATIO`：剩余时间超过 `窗口 × 该比例` 才值得再开一轮定时器。
