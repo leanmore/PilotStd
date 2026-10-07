@@ -17,6 +17,10 @@
   - `exempt_terms`：这些词在任何键内出现都不算禁用词（英文技术标识如 bot_token）；
   - 行内 `_allow_legacy`：值以该标记结尾时跳过（与 check_i18n_hardcoded 的基线策略同源）。
 
+**按语境豁免（第四层，2026-10-07 新增）**：术语条目的 `alias_exempt_keys` 声明"该别名在**这些键的语境**下
+本就是规范用法"（如「消息」在『这是一条测试消息』中指**单条内容**、「保存」在『保存配置』中指**配置写入**）
+⇒ **仅跳过检测 3（别名提示）**，检测 1（禁用词）与检测 2（登记键三语严格相等）**照旧生效**，故不削弱门禁。
+
 作用域：`meta.scope_keys`（当前 `notification.*`，208 键）。界面标签（478 键）的
 用词自由度天然更高，且全量扫描会命中"保存项目/保存CSV"等**正确**用法。
 
@@ -91,7 +95,7 @@ def _check_key(
     exempt_keys: set[str],
     exempt_terms: list[str],
     forbidden: list[tuple[str, str]],
-    aliases: list[tuple[str, str]],
+    aliases: list[tuple[str, str, frozenset[str]]],
     scope_keys: list[str],
 ) -> tuple[list[str], list[str], list[str]]:
     """校验单个键，返回 (阻断项, 提示项, 术语一致性问题)。"""
@@ -115,8 +119,11 @@ def _check_key(
             errors.append(f"命中禁用词「{variant}」— 术语 {term_id}")
 
     # 检测 3：aliases 命中（仅提示）
-    for variant, term_id in aliases:
-        if variant and variant in scrubbed:
+    # **按语境豁免**：术语表某条可用 `alias_exempt_keys` 声明"该别名在这些键的语境下本就是规范用法"
+    # （如「消息」在『这是一条测试消息』中指单条内容、「保存」在『保存配置』中指配置写入）
+    # ⇒ 仅跳过**本提示**；检测 1（禁用词）与检测 2（登记键三语严格相等）**照旧生效**，故不削弱门禁。
+    for variant, term_id, alias_exempt in aliases:
+        if variant and variant in scrubbed and key not in alias_exempt:
             warns.append(f"使用了可接受但不推荐的写法「{variant}」（首选写法见术语 {term_id}）")
     return errors, warns, []
 
@@ -177,6 +184,8 @@ def print_coverage(
     # with_glossary = 有"标准答案"可比对的键；这是与 in_scope 的关键差集，
     # 未在此集合内的键无法做值相等性校验（只能做存在性校验）。
     with_glossary = [k for k in in_scope if k in registered_keys]
+    # 按语境豁免的键数（第四层白名单）：仅跳过检测 3 别名提示，故单列计数并在说明中标注。
+    alias_exempt_total = sum(len(term.get("alias_exempt_keys", [])) for term in terms)
     print_coverage_summary(
         scope="{} 的 {} 前缀键（三语 {}；作用域外 {} 个键不参与）".format(
             I18N_DIR.relative_to(PROJECT_ROOT).as_posix(),
@@ -187,18 +196,26 @@ def print_coverage(
         checked=len(in_scope),
         passed=len(in_scope),
         blocked=blocked,
-        exempted=len(exempt_keys) + len(exempt_terms),
+        exempted=len(exempt_keys) + len(exempt_terms) + alias_exempt_total,
         # 豁免必须以**名单**呈现：exempt_keys 是 16 个具体键路径、exempt_terms 是 10 个
         # 具体术语词。只给计数看不出"豁免了哪些"，仍属 PASS 掩盖空洞。
         exemptions=[
             "豁免键 {}（不参与 G-044 三条检测）".format(key) for key in sorted(exempt_keys)
         ]
-        + ["豁免词 {}（命中该词的文案跳过禁用词检测）".format(term) for term in sorted(exempt_terms)],
+        + ["豁免词 {}（命中该词的文案跳过禁用词检测）".format(term) for term in sorted(exempt_terms)]
+        # 第四层白名单须**逐键**列出（与上面两类同口径）：只给"豁免 6 个键"看不出是哪些键。
+        + [
+            "别名按语境豁免 {}（术语 {}；仅跳过别名提示，禁用词/三语一致性检测照旧）".format(
+                key, term.get("id")
+            )
+            for term in terms
+            for key in term.get("alias_exempt_keys", [])
+        ],
         max_item_len=90,  # i18n 键路径较长，40 字符会截断到不可辨识
         notes=(
             "三语存在性 -> {} 键（全部作用域内键）".format(len(in_scope)),
-            "禁用词 / 别名 -> {} 键（全部作用域内键；另豁免键 {} 个、豁免词 {} 个）".format(
-                len(in_scope), len(exempt_keys), len(exempt_terms)
+            "禁用词 / 别名 -> {} 键（全部作用域内键；另豁免键 {} 个、豁免词 {} 个、别名按语境豁免 {} 个键）".format(
+                len(in_scope), len(exempt_keys), len(exempt_terms), alias_exempt_total
             ),
             "术语三语值与表严格相等 -> {} 键（仅 glossary.json 登记的键）".format(len(with_glossary)),
         ),
@@ -236,16 +253,22 @@ def main(argv: list[str]) -> int:
     forbidden: list[tuple[str, str]] = [
         (variant, term["id"]) for term in terms for variant in term.get("forbidden", [])
     ]
-    aliases: list[tuple[str, str]] = [
-        (variant, term["id"]) for term in terms for variant in term.get("aliases", [])
+    aliases: list[tuple[str, str, frozenset[str]]] = [
+        (variant, term["id"], frozenset(term.get("alias_exempt_keys", [])))
+        for term in terms
+        for variant in term.get("aliases", [])
     ]
+    alias_exempt_total = sum(len(term.get("alias_exempt_keys", [])) for term in terms)
 
     if list_only:
         print(f"术语表: {GLOSSARY}（{len(terms)} 条术语，作用域 {scope_keys}）")
         for term in terms:
             keys = term.get("keys", [])
             print(f"  [{term['id']}] zh_CN={term['zh_CN']!r} 键={len(keys)} 禁用={term.get('forbidden', [])}")
+            if term.get("alias_exempt_keys"):
+                print(f"      别名按语境豁免的键：{term['alias_exempt_keys']}")
         print(f"豁免键 {len(exempt_keys)} 个；豁免词 {len(exempt_terms)} 个")
+        print(f"别名按语境豁免的键合计 {alias_exempt_total} 个（仅跳过别名提示，禁用词/登记键检测照旧）")
         return 0
 
     indexes = {lang: _key_line_index(I18N_DIR / f"{lang}.json") for lang in LANGS}
