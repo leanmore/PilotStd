@@ -118,6 +118,41 @@ python scripts/check_g_011_attr_integrity.py
 | 前端类型检查 | `cd web && npm run type-check` |
 | 前端构建 | `cd web && npm run build` |
 
+## CI/CD 工作流与 Action 版本
+
+工作流位于 `.github/workflows/`，共 4 个：`ci.yml`（主流水线：lint-fast / test-backend / test-frontend /
+test-e2e / frontend-e2e / test-gui-* / e2e-coverage / security-scan / repo-compliance / docker / exe / version）、
+`governance-check.yml`、`gui-race-probe.yml`、`trinity-gate.yml`。
+
+**Action 版本口径（2026-10-07 升级）**：全部 Action 钉在**首个使用 `node24` 运行时的主版本**上，
+以消除平台侧「Node.js 20 is deprecated」告警；当前为：
+
+| Action | 版本 |
+|---|---|
+| `actions/checkout` | `v5` |
+| `actions/setup-python` | `v6` |
+| `actions/setup-node` | `v5` |
+| `actions/upload-artifact` | `v6` |
+| `actions/download-artifact` | `v7` |
+| `docker/build-push-action` | `v7` |
+| `docker/login-action` | `v4` |
+| `docker/setup-buildx-action` | `v4` |
+| `pnpm/action-setup` | `v5` |
+| `softprops/action-gh-release` | `v3` |
+| `actions/github-script` | `v8` |
+
+**为什么钉「首个 node24 主版本」而不是最新版**：升级幅度最小 ⇒ 行为变更面最小；
+**升级前必做两步静态校验**（本项目实测流程）：
+
+1. 读目标版本 `action.yml` 的 `runs.using`，确认是 `node24`（避免「升了版仍在 node20」）；
+2. 把工作流里实际传的 `with:` 参数与目标版本 `inputs` 逐项比对（防「参数被移除」类破坏性变更）。
+
+**注意**：`docker/build-push-action` 与 `docker/setup-buildx-action` 必须**同批升级**（版本互相要求）；
+`actions/upload-artifact` 与 `actions/download-artifact` 也应同批升级（产物格式同代）。
+
+**环境版本声明**：`ci.yml` 顶部 `env` 定义 `PYTHON_VERSION: '3.12'` 与 `NODE_VERSION: '22'`；
+容器基础镜像为 `python:3.12-slim`；`pyproject.toml` 声明 `requires-python >= 3.12`。
+
 ## 相关文档
 
 | 文档 | 路径 |
