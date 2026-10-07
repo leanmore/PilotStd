@@ -102,7 +102,7 @@ class TestDoTestSendChannelExists:
         ch = ChannelStub("telegram", should_succeed=False)
         mgr = _make_mgr(channels={"telegram": ch})
         result = do_test_send(mgr, "telegram", "hello")
-        assert result == {"ok": False, "error": "发送失败"}
+        assert result == {"ok": False, "error": "投递失败"}
 
     def test_channel_exists_send_raises(self):
         ch = MagicMock()

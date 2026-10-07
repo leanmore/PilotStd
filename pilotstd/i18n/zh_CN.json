@@ -524,7 +524,7 @@
 
     "notification.download.favorite_abandoned_summary.title": "收藏已放弃（不会再自动重试）",
 
-    "notification.download.favorite_abandoned_summary.body.total": "本次运行共放弃 {total} 个标准：这些已进入终态，系统不会再自动尝试。",
+    "notification.download.favorite_abandoned_summary.body.total": "本次运行共放弃 {total} 个标准：这些标准已放弃，系统不会再自动尝试。",
 
     "notification.download.favorite_abandoned_summary.body.list_header": "放弃原因分类",
 
@@ -672,7 +672,7 @@
 
     "notification.system.notification_delivery_failed.body.consecutive": "通知渠道「{channel}」已连续 {consecutive} 次投递失败，可能已完全不可用。",
 
-    "notification.system.notification_delivery_failed.body.rate": "通知渠道「{channel}」在最近统计窗口内失败 {failures}/{samples} 条（{percent}%），正在丢失消息。",
+    "notification.system.notification_delivery_failed.body.rate": "通知渠道「{channel}」在最近统计窗口内失败 {failures}/{samples} 条（{percent}%），正在丢失通知。",
 
     "notification.system.notification_delivery_failed.body.advice": "请检查该渠道的凭证与网络。若为限流，可考虑降低发送频率或启用备用渠道——在此期间其他通知可能也未送达。",
     "notification.system.auto_backup.title.success": "自动备份成功",
@@ -741,10 +741,10 @@
     "notification.channel_test.missing_wechat_url": "缺少 webhook_url（群机器人）或 corpid+agentid+corpsecret（应用消息）",
     "notification.channel_test.missing_webhook": "缺少 {ch} 渠道的 webhook_url",
     "notification.channel_test.init_failed": "渠道初始化失败: {e}",
-    "notification.channel_test.send_failed": "发送失败",
+    "notification.channel_test.send_failed": "投递失败",
 
     "notification.manager.channel_unavailable": "渠道 {ch} 未启用或初始化失败",
-    "notification.manager.send_failed_no_detail": "发送失败 (无详细错误)",
+    "notification.manager.send_failed_no_detail": "投递失败 (无详细错误)",
 
     "notification.channel.not_configured_telegram": "渠道未配置 bot_token 或 chat_id",
     "notification.channel.not_configured_webhook": "渠道未配置 webhook_url",
@@ -786,7 +786,7 @@
     "notification.api.credential_notify_no_channel": "未配置任何可用的通知渠道，本次变更未能发出告警。",
     "notification.api.security_notify_failed": "安全告警未能送达：{channels}",
     "notification.api.security_notify_no_channel": "未配置可用的通知渠道，本次变更未发出告警。",
-    "notification.api.security_notify_error": "安全告警发送失败，请查看系统日志。",
+    "notification.api.security_notify_error": "安全告警投递失败，请查看系统日志。",
     "notification.api.token_db_unsynced": "令牌已刷新，但数据库同步失败；重启后新令牌可能失效。",
     "notification.scan.scan_complete.title.clean": "扫描完成，全部识别成功",
     "notification.renderer.field.number": "标准号",
@@ -891,7 +891,7 @@
     "notification.channel.dingtalk.token_failed": "钉钉取令牌失败: {detail}",
     "notification.channel.dingtalk.card_create_http": "钉钉卡片创建 HTTP {status}",
     "notification.channel.dingtalk.card_deliver_http": "钉钉卡片投递 HTTP {status}",
-    "notification.channel.dingtalk.enterprise_send_failed": "钉钉企业级形态发送失败: {error}",
+    "notification.channel.dingtalk.enterprise_send_failed": "钉钉企业级形态投递失败: {error}",
     "notification.channel.edit_unsupported": "该渠道不支持消息编辑（形态/锚点限制）",
     "notification.channel.edit_anchor_unsupported": "改写句柄锚点不受支持: {anchor}",
     "notification.channel.dingtalk.capability_note": "钉钉卡片更新接口未取证（缺口 6），本轮不支持编辑",

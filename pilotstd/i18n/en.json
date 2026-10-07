@@ -520,7 +520,7 @@
 
     "notification.download.favorite_abandoned_summary.title": "Favorites abandoned (no further retries)",
 
-    "notification.download.favorite_abandoned_summary.body.total": "{total} standard(s) were abandoned in this run. They are in a terminal state and will not be retried automatically.",
+    "notification.download.favorite_abandoned_summary.body.total": "{total} standard(s) were abandoned in this run. They will not be retried automatically.",
 
     "notification.download.favorite_abandoned_summary.body.list_header": "Reasons",
 
@@ -668,7 +668,7 @@
 
     "notification.system.notification_delivery_failed.body.consecutive": "Channel \"{channel}\" has failed {consecutive} deliveries in a row and may be completely unavailable.",
 
-    "notification.system.notification_delivery_failed.body.rate": "Channel \"{channel}\" failed {failures}/{samples} deliveries ({percent}%) in the recent window and is losing messages.",
+    "notification.system.notification_delivery_failed.body.rate": "Channel \"{channel}\" failed {failures}/{samples} deliveries ({percent}%) in the recent window and is losing notifications.",
 
     "notification.system.notification_delivery_failed.body.advice": "Check this channel's credentials and network. If it is rate limiting, lower the send rate or enable a backup channel — other notifications may not have been delivered either.",
     "notification.system.auto_backup.title.success": "Auto Backup Succeeded",
@@ -737,10 +737,10 @@
     "notification.channel_test.missing_wechat_url": "Missing webhook_url (group bot) or corpid+agentid+corpsecret (app message)",
     "notification.channel_test.missing_webhook": "Missing webhook_url for channel {ch}",
     "notification.channel_test.init_failed": "Channel initialization failed: {e}",
-    "notification.channel_test.send_failed": "Send failed",
+    "notification.channel_test.send_failed": "Delivery failed",
 
     "notification.manager.channel_unavailable": "Channel {ch} is not enabled or failed to initialize",
-    "notification.manager.send_failed_no_detail": "Send failed (no details)",
+    "notification.manager.send_failed_no_detail": "Delivery failed (no details)",
 
     "notification.channel.not_configured_telegram": "Channel not configured: bot_token or chat_id missing",
     "notification.channel.not_configured_webhook": "Channel not configured: webhook_url missing",
@@ -782,7 +782,7 @@
     "notification.api.credential_notify_no_channel": "No usable notification channel is configured; this change produced no alert.",
     "notification.api.security_notify_failed": "Security alert could not be delivered: {channels}",
     "notification.api.security_notify_no_channel": "No usable notification channel is configured; this change produced no alert.",
-    "notification.api.security_notify_error": "Failed to send the security alert; check the system log.",
+    "notification.api.security_notify_error": "Failed to deliver the security alert; check the system log.",
     "notification.api.token_db_unsynced": "Token rotated, but the database sync failed; the new token may become invalid after a restart.",
     "notification.scan.scan_complete.title.clean": "Scan Complete, All Recognized",
     "notification.renderer.field.number": "Standard No.",
@@ -887,7 +887,7 @@
     "notification.channel.dingtalk.token_failed": "DingTalk access token failed: {detail}",
     "notification.channel.dingtalk.card_create_http": "DingTalk card creation HTTP {status}",
     "notification.channel.dingtalk.card_deliver_http": "DingTalk card delivery HTTP {status}",
-    "notification.channel.dingtalk.enterprise_send_failed": "DingTalk enterprise-form send failed: {error}",
+    "notification.channel.dingtalk.enterprise_send_failed": "DingTalk enterprise-form delivery failed: {error}",
     "notification.channel.edit_unsupported": "This channel does not support message editing (form/anchor limitation)",
     "notification.channel.edit_anchor_unsupported": "Unsupported edit anchor: {anchor}",
     "notification.channel.dingtalk.capability_note": "DingTalk card update API not verified (gap 6); editing unsupported this round",

@@ -441,7 +441,7 @@
 
     "notification.download.favorite_abandoned_summary.title": "收藏已放棄（不會再自動重試）",
 
-    "notification.download.favorite_abandoned_summary.body.total": "本次執行共放棄 {total} 個標準：這些已進入終態，系統不會再自動嘗試。",
+    "notification.download.favorite_abandoned_summary.body.total": "本次執行共放棄 {total} 個標準：這些標準已放棄，系統不會再自動嘗試。",
 
     "notification.download.favorite_abandoned_summary.body.list_header": "放棄原因分類",
 
@@ -589,7 +589,7 @@
 
     "notification.system.notification_delivery_failed.body.consecutive": "通知管道「{channel}」已連續 {consecutive} 次投遞失敗，可能已完全無法使用。",
 
-    "notification.system.notification_delivery_failed.body.rate": "通知管道「{channel}」在最近統計視窗內失敗 {failures}/{samples} 條（{percent}%），正在遺失訊息。",
+    "notification.system.notification_delivery_failed.body.rate": "通知管道「{channel}」在最近統計視窗內失敗 {failures}/{samples} 條（{percent}%），正在遺失通知。",
 
     "notification.system.notification_delivery_failed.body.advice": "請檢查該管道的憑證與網路。若為限流，可考慮降低發送頻率或啟用備用管道——在此期間其他通知可能也未送達。",
     "notification.system.auto_backup.title.success": "自動備份成功",
@@ -658,10 +658,10 @@
     "notification.channel_test.missing_wechat_url": "缺少 webhook_url（群機器人）或 corpid+agentid+corpsecret（應用消息）",
     "notification.channel_test.missing_webhook": "缺少 {ch} 渠道的 webhook_url",
     "notification.channel_test.init_failed": "渠道初始化失敗: {e}",
-    "notification.channel_test.send_failed": "發送失敗",
+    "notification.channel_test.send_failed": "投遞失敗",
 
     "notification.manager.channel_unavailable": "渠道 {ch} 未啟用或初始化失敗",
-    "notification.manager.send_failed_no_detail": "發送失敗 (無詳細錯誤)",
+    "notification.manager.send_failed_no_detail": "投遞失敗 (無詳細錯誤)",
 
     "notification.channel.not_configured_telegram": "渠道未配置 bot_token 或 chat_id",
     "notification.channel.not_configured_webhook": "渠道未配置 webhook_url",
@@ -703,7 +703,7 @@
     "notification.api.credential_notify_no_channel": "未設定任何可用的通知渠道，本次變更未能發出告警。",
     "notification.api.security_notify_failed": "安全告警未能送達：{channels}",
     "notification.api.security_notify_no_channel": "未設定可用的通知渠道，本次變更未發出告警。",
-    "notification.api.security_notify_error": "安全告警發送失敗，請查看系統日誌。",
+    "notification.api.security_notify_error": "安全告警投遞失敗，請查看系統日誌。",
     "notification.api.token_db_unsynced": "權杖已輪換，但資料庫同步失敗；重啟後新權杖可能失效。",
     "notification.scan.scan_complete.title.clean": "掃描完成，全部識別成功",
     "notification.renderer.field.number": "標準號",
@@ -808,7 +808,7 @@
     "notification.channel.dingtalk.token_failed": "釘釘取令牌失敗: {detail}",
     "notification.channel.dingtalk.card_create_http": "釘釘卡片建立 HTTP {status}",
     "notification.channel.dingtalk.card_deliver_http": "釘釘卡片投遞 HTTP {status}",
-    "notification.channel.dingtalk.enterprise_send_failed": "釘釘企業級形態傳送失敗: {error}",
+    "notification.channel.dingtalk.enterprise_send_failed": "釘釘企業級形態投遞失敗: {error}",
     "notification.channel.edit_unsupported": "該渠道不支援訊息編輯（形態/錨點限制）",
     "notification.channel.edit_anchor_unsupported": "改寫句柄錨點不受支援: {anchor}",
     "notification.channel.dingtalk.capability_note": "釘釘卡片更新介面未取證（缺口 6），本輪不支援編輯",

@@ -188,7 +188,7 @@ class TestErrorPropagation:
 
         args = mgr._log.call_args.args
         assert args[3] == "failed"
-        assert args[4] == "发送失败 (无详细错误)"
+        assert args[4] == "投递失败 (无详细错误)"
 
     def test_send_now_success_clears_error(self):
         """channel.send() 返回 True → error_msg 为空。"""

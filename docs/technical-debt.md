@@ -234,6 +234,8 @@
 
 > **状态：存续债务 0 条**（2026-10-01 R14-4d 清空，本批 R14-5 复核仍为 0——#31 / #32 均已闭环并归档到「一」）。**〔本行为 2026-10-01 时点状态，非与下文矛盾；最新状态见紧随其后的 2026-10-03 补记——存续 1 条（T-40）〕**
 >
+> **2026-10-07 补记（G-044 告警溯源与处置）**：经用户裁定，§六「真·观察项复核表」登记——**G-044 `aliases` 提示（12 → 6）**：按「**规范写法优先，仅在规范不适用时才接受同义写法**」的口径，**已改 6 个键 × 三语**（同步更新 2 处测试断言），**保留 6 条规范不适用的语境**（术语表 notes 明文依据）；另登记 **G-044 术语覆盖缺口（B-1，40/346 键）**（覆盖面问题，属术语表扩容课题，本批不动）。
+>
 > **2026-10-07 补记（T-41 专项收官）**：**T-41 已清偿** ⇒ 本节存续债务 **3 条**（T-40 `观察中`、T-42 `待排期`、T-43 `待排期`）。T-41 的 6 个子批与 1b 豁免裁定见其行内详述与 `docs/plans/notification-redesign/20-T41总收官报告.md`。
 >
 > **2026-10-03 补记（通知 SSOT 重建·步 B 第一子步骤收尾）**：新增 **T-39**（分类＝**可偿还**，窗口＝**收尾阶段**，决策者 2026-10-03 裁定）。**同日晚间批次已清偿**（见下表 T-39 行）⇒ 存续债务 **1 条**（T-40，2026-10-03 登记）。
@@ -401,6 +403,9 @@
 | **T-16 `docs_sync_check.py` 严格模式（告警期→阻断期）** | 切阻断需「连续 3~5 次零误报」；**计数已于 R16 归零**（仪器改名：`check_docs_sync.py` → `check_module_doc_mappings.py`，旧样本对新仪器无效）→ 自 R16 推送起重新计时 **0/3~5**（先例：R11-1 / R11-3 两次归零） | 每次推送后读 CI 日志的 `[docs-compliance]` 段 | 每批收尾（≈每 1~2 周） | 计数 +1 或记误报；累计达 3~5 → `.github/workflows/ci.yml` 两处 `--strict` 改 `--strict-block` |
 | **T-21 本地 `vitest run` 偶发「全绿但 exit=1」** | 本地≈2/12 次、CI 0 次，现有证据不足以定位 | 再次出现 | 每季度 | 立即执行 `npx vitest run *> log.txt 2>&1` 保存完整 stdout/stderr，再排查 teardown / 管道提前关闭 |
 | **`event_spec_data.py` 1b 拆分豁免**（有效行 417 / 线 400） | 该文件是**纯静态单表**（一条 `EVENT_SPECS` 元组、42 条同构记录，13 个业务分组）；全库检索 `update(`/`append(`/`setdefault(`/`pop(` **零命中** ⇒ 无隐藏可变状态；**导入扇出 = 1**（仅 `event_spec.py` 延迟导入）⇒ 消费模式高度收敛。拆分会把「线性查找」变成「跨模块跳转 + 心智拼接」，**违背 G-010 降低认知负载的本意** | ① 该文件**突破 500 阻断档**；② 或新增**变动频繁**的业务族（此时先升级门禁读取器以支持组合元组，再拆族） | 每季度 | `python scripts/check_g_010_code_size.py`；裁定与代价分析见 `docs/plans/notification-redesign/20-T41总收官报告.md` §五 |
+| **G-044 `aliases` 提示（12 → 6）** | 门禁**规则 3「`aliases` 命中（仅报告）」**：值内出现**可接受的同义写法**，提示但不阻断（`check_terminology.py` 自述：判定规则三条、**仅前两条阻断**；退出码 0 = 通过且可能带 aliases 提示）。**2026-10-07 处置（用户裁定：规范写法优先）**：凡**规范写法适用于本项目语境**者，一律改用规范写法；**已改 6 个键 × 三语**（zh_CN/zh_TW/en）：`channel_test.send_failed`「发送失败→投递失败」、`manager.send_failed_no_detail`、`api.security_notify_error`、`channel.dingtalk.enterprise_send_failed`（同上→投递失败）、`favorite_abandoned_summary.body.total`「终态→已放弃」、`notification_delivery_failed.body.rate`「丢失消息→丢失通知」⇒ G-044 实测 **12 → 6** 条；同步更新 2 处测试硬断言（`tests/test_format_utils.py`、`tests/test_notification_combo_patch.py`）。**余 6 条保留**（规范写法**不适用**该语境，术语表 notes 有明文依据）：`channel.test.body`/`api.test_body`「测试消息」×2（notes：「『消息』仅在指称**单条内容**时可用（**如测试消息**）」）；`log_save_policy_failed`/`log_channel_config_rejected`「保存」×2（notes：「『保存』单字在『保存项目/保存CSV』中是**正确用法**，故只禁词组『保存完成』」）；`channel.edit_unsupported`/`channel.feishu.missing_message_id`「消息」×2（指称**渠道侧单条消息对象**） | **已处置完毕（6 改 6 留）**；余 6 条若未来语境变化（如「测试消息」改为指称整体通知）再评估 | 每季度 | `python scripts/check_terminology.py --report`（现 **6** 条 aliases 提示、**0 阻断**、346 项检查 346 通过） |
+
+| **G-044 术语覆盖缺口（B-1）：三语严格相等仅覆盖登记键** | 门禁第 2 条（阻断）只作用于术语表 `keys` **登记键**；实测 `--report` 尾部「未覆盖说明」原文：「未覆盖 —— 作用域外 503 个键不检查；**术语三语值与术语表严格相等仅覆盖 40 个登记键**，其余 306 个键的三语值无标准答案可比对（改简体忘改繁体不会被拦）」。另 `docs/governance/notification_coverage.md` 的 **B-1** 已登记同源事实（glossary 只登记 40/221 个 `notification.*` 键） | **保留理由**：扩表属**内容治理**——每条都要定义三语规范值并承担精确匹配误报，成本高、属独立课题；当前门禁已守住「禁用词」与「已登记键」两条硬线，本条属**覆盖面**而非正确性 | **触发条件**＝① 通知文案新增/变更批次（可顺手登记新键）；② 术语表扩容专项立项 | 每季度 | `python scripts/check_terminology.py --report` 的「未覆盖说明」行；`docs/governance/notification_coverage.md` B-1 |
 | **T-31 自动 `chore: bump version` 不触发 CI** | 有 `G-009 CHANGELOG 一致性` 兜底，收益只是"提前发现" | 出现一次版本号/CHANGELOG 不一致 | 每半年 | 查 `pilotstd/__init__.py` 与 `CHANGELOG.md` 顶部版本；确认后可评估改 PAT 触发或加显式校验 |
 
 
