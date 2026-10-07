@@ -150,6 +150,13 @@ test-e2e / frontend-e2e / test-gui-* / e2e-coverage / security-scan / repo-compl
 **注意**：`docker/build-push-action` 与 `docker/setup-buildx-action` 必须**同批升级**（版本互相要求）；
 `actions/upload-artifact` 与 `actions/download-artifact` 也应同批升级（产物格式同代）。
 
+**E2E 可观测性（2026-10-07 补）**：`web/playwright.config.ts` 配置 `reporter: [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }]]` 与 `outputDir: 'test-results'`；
+配合既有的 `use.screenshot: 'only-on-failure'` / `use.trace: 'retain-on-failure'` ⇒
+**汇总视图（HTML 报告）+ 单条用例现场（截图/trace）三者齐备**；CI 的 `frontend-e2e` 作业用
+`actions/upload-artifact` 同时上传 `web/playwright-report/` 与 `web/test-results/`（报告恒产出 ⇒
+不会再出现「No files were found」告警）。**新增 e2e 用例或调整产物路径时，须同步这三处**：
+config 的 `outputFolder`/`outputDir`、工作流上传 `path`、本节说明。
+
 **环境版本声明**：`ci.yml` 顶部 `env` 定义 `PYTHON_VERSION: '3.12'` 与 `NODE_VERSION: '22'`；
 容器基础镜像为 `python:3.12-slim`；`pyproject.toml` 声明 `requires-python >= 3.12`。
 

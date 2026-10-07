@@ -698,7 +698,11 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: playwright-report
-          path: web/playwright-report/
+          # 报告（汇总视图）+ 失败现场（截图/trace，单条用例还原）**一并上传**：
+          # 二者缺一不可；HTML 报告恒产出 ⇒ 不会再出现「No files were found」告警。
+          path: |
+            web/playwright-report/
+            web/test-results/
           retention-days: 7
 
       # Step 7: 清理 backend + frontend 进程
