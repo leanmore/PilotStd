@@ -127,6 +127,16 @@ StandardManager (BaseFacade)
 
 ## 近期变更
 
+- **2026-10-16（查询统计口径单源化 + `force_refresh` 透传）**：`scheduled_service.py::query_by_numbers`
+  此前只填 `BatchQueryStats` 的 `total/found`，而 `/api/query` 会**原样透出** `downloadable`/`not_found`
+  ⇒ 这两项恒为 0，与逐条 `is_downloadable=true` 自相矛盾（现场实测 `2026-10-16T21:22:27+08:00`：
+  `GB 2894-2025` 与 `GB 2894-2008` 两条结果均 `is_downloadable=true`、`is_adopted=false`，
+  而 `stats.downloadable=0`）。同一处还把 `force_refresh` **静默丢弃**
+  （`query_engine.query_standards` 明确支持该参数）⇒ `POST /api/query?force_refresh=true` 从未生效。
+  现改为：统计统一由 `pilotstd/query/models.py::BatchQueryStats.from_results(results)` 产出（**唯一**口径），
+  `facade/_query_subsystem.py::_finalize_query` 亦改用它（原先内联同一套计数），`force_refresh` 已透传。
+  契约由 `tests/unit/manager/test_scheduled_service_query_stats.py` 四例锁定。
+
 - **2026-10-05（B1 · E1 批次键 + 跨阶段共用）**：批次键改为经 `core/notification/batch.py` 的**上下文**
   取用（`ensure_batch_key(prefix)`）——**导入入口用 `with batch_scope("imp")` 包住整段流程**时，查询/下载/
   规范化/存档四个阶段**自动共用同一个键** ⇒ 一次导入的四类通知被聚合器收敛成**一条**（需求①"一次导入 = 1 条"）；

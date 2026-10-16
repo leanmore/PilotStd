@@ -160,14 +160,14 @@ class ScheduledService:
             )
             for n, p in parsed
         ]
-        results = self._query_engine.query_standards(items, use_parallel=True, preferred_site=preferred_site)
-        # 构建兼容的（旧调用方期望）
-        total = len(results)
-        found = sum(1 for r in results if r.is_found())
+        results = self._query_engine.query_standards(
+            items, use_parallel=True, force_refresh=force_refresh, preferred_site=preferred_site
+        )
+        # 统计口径统一由 BatchQueryStats.from_results 负责（勿再只填 total/found：
+        # /api/query 会透出 downloadable/not_found，漏填即恒为 0，与逐条字段矛盾）。
         from ..query.models import BatchQueryStats
 
-        stats = BatchQueryStats(total=total, found=found)
-        return results, stats
+        return results, BatchQueryStats.from_results(results)
 
     def download_by_numbers(self, numbers: List[str]) -> tuple[Any, Any]:
         """按标准号列表下载。先查询获取采标状态，采标标准给提示并跳过。"""

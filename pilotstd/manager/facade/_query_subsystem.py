@@ -211,17 +211,8 @@ class QuerySubsystem:
         # 外层若有导入上下文（batch_scope）则共用其键 ⇒ 与下载/规范化/存档合成一条。
         query_batch_key = ensure_batch_key("qry")
         self._core.query_results = results
-        stats = BatchQueryStats()
-        stats.total = len(items)
-        for r in results:
-            if r.is_found():
-                stats.found += 1
-            if r.is_downloadable:
-                stats.downloadable += 1
-            if getattr(r, "is_adopted", False):
-                stats.adopted_restricted += 1
-            if getattr(r, "match_status", "") == "exact":
-                stats.exact += 1
+        # 统计口径单一来源（BatchQueryStats.from_results），与按号查询入口共用同一套规则
+        stats = BatchQueryStats.from_results(results)
 
         failed_items = [
             (r.standard_number, getattr(r, "error_message", "") or "未知错误")

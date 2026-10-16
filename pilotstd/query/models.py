@@ -3,6 +3,7 @@
 
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any, Sequence
 
 
 @dataclass
@@ -47,6 +48,32 @@ class BatchQueryStats:
     pending: int = 0  # 待确认条数（match_score <= 80，含 mismatch）
     not_found: int = 0
     errors: int = 0
+
+    @classmethod
+    def from_results(cls, results: Sequence[Any]) -> "BatchQueryStats":
+        """按逐条查询结果统计各项计数（**唯一**统计口径，各查询入口共用）。
+
+        ⚠️ 不要退回"只填 total/found"的写法：`/api/query` 会原样透出
+        `downloadable`/`not_found`，漏填即恒为 0，与逐条 `is_downloadable=true`
+        自相矛盾，使用方据此判断会误判（2026-10-16 现场实测：两条结果都
+        `is_downloadable=true`，而 `stats.downloadable=0`）。
+
+        `downloadable` 按 `is_downloadable` 计——未命中项因该字段默认 `True` 也计入，
+        与管道查询 `_finalize_query` 的既有口径保持一致。
+        """
+        stats = cls(total=len(results))
+        for r in results:
+            if r.is_found():
+                stats.found += 1
+            else:
+                stats.not_found += 1
+            if r.is_downloadable:
+                stats.downloadable += 1
+            if getattr(r, "is_adopted", False):
+                stats.adopted_restricted += 1
+            if getattr(r, "match_status", "") == "exact":
+                stats.exact += 1
+        return stats
 
 
 @dataclass
