@@ -19,7 +19,7 @@ from ..core.frozen import is_frozen
 from ..core.path_guard import validate_path_in_root
 from ..core.std_utils import is_gb_code
 from .adapters.base import BaseDownloadAdapter
-from .models import BatchDownloadStats, DownloadStatus, DownloadTask
+from .models import ADOPTED_SKIP_MESSAGE, BatchDownloadStats, DownloadStatus, DownloadTask
 from .session import SessionManager
 
 logger = logging.getLogger(__name__)
@@ -27,9 +27,6 @@ logger = logging.getLogger(__name__)
 # 字节抓取的瞬时故障重试（与原收藏链下载重试的 3 次尝试口径一致）
 _FETCH_MAX_ATTEMPTS = 3
 _FETCH_BACKOFF_SECONDS = (2, 4)
-# 采标标准（版权受限）跳过口径：调用方据此识别"业务终态"而非可重试失败，
-# 统一引用本常量，避免各层各自拼字符串导致判定失配。
-ADOPTED_SKIP_MESSAGE = "采标标准，版权受限，自动跳过"
 # 唯一下载适配器的站点名：查询站点名与下载站点名是两套命名，映射表与按性质
 # 路由都要用它，故提为常量，避免第三个字面量各自漂移。
 _OPENSTD_SITE_NAME = "openstd_download"
@@ -148,6 +145,13 @@ class DownloadEngine:
             return task
 
         if not content:  # None 或空 bytes 均视为失败
+            # 适配器在下载阶段才发现的采标标准（版权闸）→ 归入「采标跳过」，
+            # 与查询阶段就判定的采标同一统计口径（skipped_adopted），
+            # 否则会被计成失败并被链路当成可重试错误。
+            if task.error_message == ADOPTED_SKIP_MESSAGE:
+                task.status = DownloadStatus.SKIPPED
+                logger.info("跳过采标（下载阶段判定）: %s", task.standard_number)
+                return task
             task.status = DownloadStatus.FAILED
             logger.warning(
                 "下载失败(content为空): %s | %s",

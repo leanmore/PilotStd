@@ -18,7 +18,12 @@ import requests
 
 from pilotstd.download.adapters.base import BaseDownloadAdapter
 from pilotstd.download.engine import DownloadEngine
-from pilotstd.download.models import BatchDownloadStats, DownloadStatus, DownloadTask
+from pilotstd.download.models import (
+    ADOPTED_SKIP_MESSAGE,
+    BatchDownloadStats,
+    DownloadStatus,
+    DownloadTask,
+)
 from pilotstd.download.session import DEFAULT_USER_AGENTS, SessionManager
 
 # ── 辅助：模拟 QueryResult ──────────────────────────────
@@ -487,6 +492,39 @@ class TestDownloadEngine(unittest.TestCase):
         task = DownloadTask(standard_number="GB/T 1-2020")
         task = engine.download_single(task)
         self.assertEqual(task.status, DownloadStatus.FAILED)
+
+    def test_adapter_detected_adopted_maps_to_skipped(self):
+        """适配器在下载阶段判定采标（None + ADOPTED_SKIP_MESSAGE）⇒ 记为跳过而非失败。
+
+        2026-10-16：版权闸下沉到下载适配器后（openstd 搜索页"采"标记），
+        单条与批量两条路径都必须把它算成「采标跳过」，否则会被当可重试失败。
+        """
+
+        class AdoptedAdapter(BaseDownloadAdapter):
+            @property
+            def site_name(self):
+                return "adopted"
+
+            def can_handle(self, task):
+                return True
+
+            def download(self, task):
+                task.error_message = ADOPTED_SKIP_MESSAGE
+                return None
+
+        engine = DownloadEngine(
+            adapters=[AdoptedAdapter(self.session_mgr.create_session())],
+            session_manager=self.session_mgr,
+            save_root=self.tmp,
+        )
+
+        single = engine.download_single(DownloadTask(standard_number="GB/T 7584.1-2026"))
+        self.assertEqual(single.status, DownloadStatus.SKIPPED)
+        self.assertEqual(single.error_message, ADOPTED_SKIP_MESSAGE)
+
+        _completed, stats = engine.download_batch([DownloadTask(standard_number="GB/T 7584.1-2026")])
+        self.assertEqual(stats.skipped_adopted, 1)
+        self.assertEqual(stats.failed, 0)
 
     def test_find_adapter_exact_match(self):
         """source_site 精确匹配时优先使用对应适配器。"""

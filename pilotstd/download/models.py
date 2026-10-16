@@ -5,6 +5,13 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Optional
 
+# 采标标准（版权受限）跳过口径：调用方据此识别"业务终态"而非可重试失败，
+# 统一引用本常量，避免各层各自拼字符串导致判定失配。
+# ⚠️ 定义在 models（叶子模块）而非 engine：下载适配器自身也要用它（openstd 的
+# "采"标记判定），若从 engine 反向导入会构成循环导入。
+# i18n-allow: 下载链路业务终态文案，进 API error 字段且各层按文本判定（翻译即失效）
+ADOPTED_SKIP_MESSAGE = "采标标准，版权受限，自动跳过"
+
 
 class DownloadStatus(Enum):
     """下载任务状态枚举：待处理、运行中、成功、失败、跳过、重试中。"""

@@ -16,6 +16,12 @@
   200 + 0 字节（GB/T 5613-2026 对照：跳过下载页 0B / 走完整序列 251,074B PDF）。
   因此本适配器按站点自身 JS 的顺序执行，并在 viewGb 空内容时整轮重试一次。
 
+⚠️ 版权闸在**本适配器**判定（2026-10-16 新增，`parse_search_row`）：openstd 搜索页对采标标准
+打 `<span class="label label-warning">采</span>`，本适配器认这个标记并以 `ADOPTED_SKIP_MESSAGE`
+收口，**不进入验证码阶段**。为什么不能只依赖 `task.query_result.is_adopted`：采标判定逐查询站点
+各写一套，权威判据只在 `std_gov`，而实测作答的 `cssn` 完全不判采标 ⇒ 那些站点答出的采标标准
+`is_adopted=False`，若下载侧不自己认标记，版权闸就会随"哪个站点先答出来"而失效。
+
 ⚠️ 两个历史事故点（都已在现网复现，禁止再改回去）：
 
   A. **端点路径**：2026-09 起 openstd 把下载端点从 `/bzgk/gb/*` 迁到 `/bzgk/std/*`。
@@ -40,13 +46,20 @@ from typing import Callable, Optional, cast
 
 import requests
 
-from ..models import DownloadTask
+from ..models import ADOPTED_SKIP_MESSAGE, DownloadTask
 from .base import BaseDownloadAdapter
 
 logger = logging.getLogger(__name__)
 
 # 搜索页结果行：<a href="javascript:void(0)" onclick="showInfo('9075EE…');">GB/T 5310-2008</a>
 _HCNO_ROW_RE = re.compile(r"showInfo\(\s*['\"]([0-9A-Fa-f]{16,40})['\"]\s*\)\s*;[^>]*>([^<]{2,80})<")
+
+# 搜索页结果行整行（`<tr>`）：采标判定必须看**整行**——"采"标记在标准号单元格之后，
+# 不在锚点文本里（实测 2026-10-16：`<span class="label label-warning" title="该标准采用国际标准">采</span>`）
+_ROW_RE = re.compile(r"<tr[^>]*>.*?</tr>", re.IGNORECASE | re.DOTALL)
+# 采标标记：行内出现 label-warning 且该 span 文本为"采"，或标题属性写明"采用国际标准"
+# i18n-allow: 匹配 openstd 站点页面上的中文标记，翻译即失效
+_ADOPTED_RE = re.compile(r"label-warning[^>]*>\s*采|该标准采用国际标准")
 
 # viewGb 整轮重试次数：会话授权偶发未落地时返回 200 + 0 字节，重开下载页再来一轮即可
 _VIEW_ROUNDS = 2
@@ -69,13 +82,46 @@ def parse_hcno_from_search_page(html: str, standard_number: str) -> str:
     结果（2026-09-26 实测：搜 `GB/T 5310-2008` 时首条是 `GB 2024-2016`），
     取首条会把**别的标准**的全文当成该收藏的下载内容。
     """
+    return parse_search_row(html, standard_number)[0]
+
+
+def parse_search_row(html: str, standard_number: str) -> tuple[str, bool]:
+    """按标准号匹配搜索页结果行，返回 `(hcno, is_adopted)`；未匹配返回 `("", False)`。
+
+    **`is_adopted` 是下载侧唯一的权威版权闸依据**（2026-10-16 新增）：
+    openstd 在采标标准所在行打 `<span class="label label-warning" …>采</span>`，
+    详情页另有"该标准采用了ISO、IEC等……由于涉及版权保护问题，本系统暂不提供在线阅读服务"。
+
+    为什么不能只看查询结果：采标判定是**逐查询站点各写一套**，权威判据只在 `std_gov`
+    （`std_gov.py` 读官方表格的"采"字段），而 `cssn` 等站点根本不判采标 ⇒
+    `QueryResult.is_adopted` 在那些站点作答时为 `False`。实测（部署实例 v0.138.3，
+    2026-10-16T22:07+08:00）：`GB/T 7584.1-2026`、`GB/T 8335-2026`、`GB 20097-2025`、
+    `GB/T 18663.6-2026` 四个在案采标标准全部 `is_adopted=False`、`is_downloadable=True`。
+    故版权闸必须由**下载站点自身**认这个标记，否则"该不该下载"仍取决于哪个站点先答出来。
+    """
     target = _norm_std_no(standard_number)
     if not target:
-        return ""
-    for m in _HCNO_ROW_RE.finditer(html):
-        if _norm_std_no(m.group(2)) == target:
-            return m.group(1)
-    return ""
+        return "", False
+    for block, hcno, label in _iter_search_rows(html):
+        if _norm_std_no(label) == target:
+            return hcno, bool(_ADOPTED_RE.search(block))
+    return "", False
+
+
+def _iter_search_rows(html: str) -> "list[tuple[str, str, str]]":
+    """产出 `(判定块, hcno, 行内标准号)`。
+
+    有 `<tr>` 时按行切分（"采"标记与标准号同行，需整行判定）；没有 `<tr>` 的片段
+    （既有单测夹具即为此形态）退化为**逐锚点**扫描，保持与旧实现完全一致的匹配顺序。
+    """
+    rows = [m.group(0) for m in _ROW_RE.finditer(html)]
+    out: list[tuple[str, str, str]] = []
+    if rows:
+        for block in rows:
+            out.extend((block, m.group(1), m.group(2)) for m in _HCNO_ROW_RE.finditer(block))
+    else:
+        out.extend((html, m.group(1), m.group(2)) for m in _HCNO_ROW_RE.finditer(html))
+    return out
 
 
 class OpenstdDownloadAdapter(BaseDownloadAdapter):
@@ -127,8 +173,8 @@ class OpenstdDownloadAdapter(BaseDownloadAdapter):
     # hcno 解析（下载标识，与查询产出的 pid 无关）
     # ════════════════════════════════════════════════════════════════ 分隔
 
-    def _lookup_hcno(self, standard_number: str) -> str:
-        """到 openstd 搜索页按标准号解析 hcno；失败返回空串（不猜、不回退 pid）。"""
+    def _lookup_hcno(self, standard_number: str) -> tuple[str, bool]:
+        """到 openstd 搜索页按标准号解析 `(hcno, is_adopted)`；失败返回 `("", False)`。"""
         try:
             resp = self._session.get(
                 self.search_url,
@@ -142,30 +188,31 @@ class OpenstdDownloadAdapter(BaseDownloadAdapter):
             )
         except requests.RequestException as e:
             logger.warning("openstd 搜索 hcno 失败 (%s): %s", standard_number, e)
-            return ""
+            return "", False
 
         if resp.status_code != 200:
             logger.warning("openstd 搜索 hcno HTTP %s (%s)", resp.status_code, standard_number)
-            return ""
+            return "", False
 
-        hcno = parse_hcno_from_search_page(resp.text, standard_number)
-        if not hcno:
+        hcno, adopted = parse_search_row(resp.text, standard_number)
+        if not hcno and not adopted:
             logger.warning(
                 "openstd 搜索页未匹配到标准号 %s（可能尚未收录/标准号写法不一致；"
                 "注意 std_gov 的 pid 不是 hcno，禁止回退使用）",
                 standard_number,
             )
-        return hcno
+        return hcno, adopted
 
-    def _resolve_hcno(self, task: DownloadTask) -> str:
-        """hcno 解析顺序：显式传入（`task.extra["hcno"]`，供手工/GUI）→ openstd 搜索页。
+    def _resolve_target(self, task: DownloadTask) -> tuple[str, bool]:
+        """解析 `(hcno, is_adopted)`：显式传入（`task.extra["hcno"]`，供手工/GUI）→ 搜索页。
 
         刻意**不**回退 `task.query_result.hcno`：那是 std_gov 的 pid，openstd 不识别，
         回退后只会让失败推迟到验证码之后并伪装成"验证码问题"（2026-09 事故根因之一）。
+        显式传入的 hcno 无法从搜索页判采标（不额外发一次请求），故 `is_adopted=False`。
         """
         explicit = task.extra.get("hcno", "") if task.extra else ""
         if explicit:
-            return str(explicit)
+            return str(explicit), False
         return self._lookup_hcno(task.standard_number)
 
     # ════════════════════════════════════════════════════════════════ 分隔
@@ -173,8 +220,14 @@ class OpenstdDownloadAdapter(BaseDownloadAdapter):
     # ════════════════════════════════════════════════════════════════ 分隔
 
     def download(self, task: DownloadTask) -> Optional[bytes]:
-        """解析 hcno 后执行下载；解析不到直接失败，不进入验证码阶段。"""
-        hcno = self._resolve_hcno(task)
+        """解析标识后执行下载；采标直接跳过，解析不到直接失败——都不进入验证码阶段。"""
+        hcno, adopted = self._resolve_target(task)
+        if adopted:
+            # 版权闸：与查询阶段的采标跳过同一文案，调用方按 ADOPTED_SKIP_MESSAGE 识别业务终态
+            task.error_message = ADOPTED_SKIP_MESSAGE
+            # i18n-allow: 开发者日志（与既有告警同口径，不进 i18n）
+            logger.info("采标标准，跳过下载（openstd 搜索页「采」标记）: %s", task.standard_number)
+            return None
         if not hcno:
             task.error_message = (
                 f"无法获取下载标识(hcno): {task.standard_number}"

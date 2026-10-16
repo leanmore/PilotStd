@@ -10,8 +10,9 @@ from pytest_httpserver import HTTPServer
 from pilotstd.download.adapters.openstd_download import (
     OpenstdDownloadAdapter,
     parse_hcno_from_search_page,
+    parse_search_row,
 )
-from pilotstd.download.models import DownloadTask
+from pilotstd.download.models import ADOPTED_SKIP_MESSAGE, DownloadTask
 
 BASE = OpenstdDownloadAdapter.BASE_URL
 
@@ -658,6 +659,20 @@ def _row(hcno: str, label: str) -> str:
     return f'<a href="javascript:void(0)" onclick="showInfo(\'{hcno}\');">{label}</a>'
 
 
+def _tr_row(hcno: str, label: str, adopted: bool = False) -> str:
+    """真实 `<tr>` 结果行：标准号单元格之后跟"采"标记单元格（openstd 现网结构）。"""
+    mark = (
+        '<td> <span class="label label-warning" style="font-size:13px;">采</span> </td>'
+        if adopted
+        else "<td></td>"
+    )
+    return (
+        f'<tr> <td>1</td> <td style="text-align: left;">'
+        f'<a href="javascript:void(0)" onclick="showInfo(\'{hcno}\');">{label}</a></td>'
+        f" {mark} <td>2026-02-27</td> </tr>"
+    )
+
+
 class TestHcnoParser:
     """搜索页解析必须"按标准号精确匹配"，任何情况下都不得退化为"取首条"。"""
 
@@ -719,3 +734,71 @@ class TestHcnoParser:
             parse_hcno_from_search_page(html, "GB/T 1234-2020")
             == "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
         )
+
+
+class TestAdoptedMarker:
+    """版权闸：openstd 搜索页行内的"采"标记必须在**下载侧**被认出来。
+
+    背景（2026-10-16 实测，部署实例 v0.138.3）：`GB/T 7584.1-2026` 等采标标准由 `cssn`
+    作答 ⇒ `is_adopted=False`、`is_downloadable=True`（cssn 适配器不判采标），
+    于是版权闸若只信查询结果就会失效；openstd 自己的搜索页行里带"采"标记，
+    且详情页明写"由于涉及版权保护问题，本系统暂不提供在线阅读服务"。
+    """
+
+    HCNO = "6CA667C27C17A2742A519FB7091AE77D"
+
+    def test_adopted_row_detected(self):
+        html = _tr_row(self.HCNO, "GB/T 7584.1-2026", adopted=True)
+        assert parse_search_row(html, "GB/T 7584.1-2026") == (self.HCNO, True)
+        # hcno 解析入口行为不变
+        assert parse_hcno_from_search_page(html, "GB/T 7584.1-2026") == self.HCNO
+
+    def test_normal_row_not_adopted(self):
+        html = _tr_row(self.HCNO, "GB 2894-2025", adopted=False)
+        assert parse_search_row(html, "GB 2894-2025") == (self.HCNO, False)
+
+    def test_picks_the_adopted_row_among_many(self):
+        """多条结果时只按标准号命中的那一行判采标，不受邻行影响。"""
+        html = _tr_row("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "GB 2024-2016", adopted=True) + _tr_row(
+            self.HCNO, "GB/T 7584.1-2026", adopted=False
+        )
+        assert parse_search_row(html, "GB/T 7584.1-2026") == (self.HCNO, False)
+
+    def test_legacy_fragment_without_tr_still_parses(self):
+        """无 `<tr>` 的片段（旧夹具形态）退化为逐锚点扫描，不得回归。"""
+        html = _row("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB", "GB/T 5310-2008")
+        assert parse_search_row(html, "GB/T 5310-2008") == (
+            "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+            False,
+        )
+        assert parse_search_row(html, "GB 2024-2016") == ("", False)
+
+
+class TestAdoptedSkipInDownload:
+    """采标标准不得进入验证码阶段，且以 ADOPTED_SKIP_MESSAGE 收口。"""
+
+    HCNO = "6CA667C27C17A2742A519FB7091AE77D"
+
+    def test_adopted_standard_skips_before_captcha(self, adapter, server):
+        server.expect_request("/std_list_type", method="GET").respond_with_data(
+            f"<html><table>{_tr_row(self.HCNO, 'GB/T 7584.1-2026', adopted=True)}</table></html>",
+            content_type="text/html; charset=utf-8",
+        )
+        task = DownloadTask(standard_number="GB/T 7584.1-2026", source_site="openstd_download", extra={})
+        with patch.object(adapter, "_handle_captcha") as captcha:
+            result = adapter.download(task)
+        assert result is None
+        assert task.error_message == ADOPTED_SKIP_MESSAGE
+        captcha.assert_not_called()
+
+    def test_explicit_hcno_bypasses_search_page(self, adapter, server):
+        """显式传入 hcno（手工/GUI）时不打搜索页，也不判采标（不额外发请求）。"""
+        _register_detail(server)
+        _register_captcha_and_verify(server)
+        _register_viewgb_pdf(server)
+        task = make_task(hcno=self.HCNO)
+        with patch.object(adapter, "_handle_captcha", return_value=None):
+            result = adapter.download(task)
+        assert result is not None
+        assert task.error_message == ""
+

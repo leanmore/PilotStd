@@ -24,7 +24,13 @@
 > 并新增 `_no_adapter_message` 区分错误原因 —— 详见**第七节**。此前国标只有在 `source_site == "std_gov"`
 > 时才可达唯一适配器，其余 20 个查询站点答出的国标一律报"没有匹配的下载适配器"。
 >
-> 代码基准：`pilotstd/download/adapters/openstd_download.py`（395 行，HEAD = `ba9af616`）。
+> **2026-10-16（版权闸下沉到下载侧）**：`openstd_download.py` 新增 `parse_search_row()`
+> 与 `_resolve_target()`，认 openstd 搜索页行内的「采」标记，命中即以 `ADOPTED_SKIP_MESSAGE`
+> 收口、不进入验证码阶段；`engine.py` 把"适配器在下载阶段判定的采标"记为 `SKIPPED`
+> （计 `skipped_adopted`）——详见**第 2.3 节**。起因：实测 4 个在案采标标准因由 `cssn` 作答
+> 而 `is_adopted=False`，版权闸形同虚设。
+>
+> 代码基准：`pilotstd/download/adapters/openstd_download.py`（446 行；上一版 395 行 @ `ba9af616`）。
 
 ---
 
@@ -33,7 +39,7 @@
 下载一条标准的完整链路（代码位置见下文逐条）。下标的"步骤"编号沿用模块 docstring 的说法（那里把 [2]~[4] 拆成"取验证码图 / ddddocr 识别 / 提交 verifyCode"三步，故称 **6 步**）；按函数划分则是 5 步（`_visit_detail` / `_open_download_page` / `_handle_captcha` / `_fetch_view` + hcno 解析），`_do_download` 的 docstring 称"5 步链路"（`:226`）。两种说法指的是同一条链。
 
 ```
-task ──► [0] hcno 解析（openstd 搜索页）        _resolve_hcno / _lookup_hcno / parse_hcno_from_search_page
+task ──► [0] 标识解析 + 版权闸（openstd 搜索页）  _resolve_target / _lookup_hcno / parse_search_row
      ──► [0'] 详情页预访问 newGbInfo?hcno=      _visit_detail
      ──►  ┌─ 每轮（_VIEW_ROUNDS = 2 轮）─────────────────────────────┐
           │ [1] 全文下载页 showGb?type=download   _open_download_page │
@@ -44,7 +50,8 @@ task ──► [0] hcno 解析（openstd 搜索页）        _resolve_hcno / _lo
           └──────────────────────────────────────────────────────────┘
 ```
 
-`hcno` 解析成功之前**不进入**验证码阶段；解析不到直接失败（`download()` :175-187）。
+`hcno` 解析成功之前**不进入**验证码阶段；解析不到直接失败（`download()` 的 `if not hcno` 分支）。
+**采标标准在第 [0] 步就收口**（见 2.3），同样不进入验证码阶段。
 
 ---
 
@@ -56,11 +63,47 @@ task ──► [0] hcno 解析（openstd 搜索页）        _resolve_hcno / _lo
 |------|---------|------|
 | 搜索页 URL | `openstd_download.py:92-98`（`search_url`，装饰器在 `:91`） | 由 `BASE_URL` 派生 → `{BASE_URL}/std_list_type`，即 `https://openstd.samr.gov.cn/bzgk/std/std_list_type` |
 | 查询参数 | `openstd_download.py:133-142` | `p.p1=0&p.p2=<标准号>&p.p90=circulation_date&p.p91=desc` |
-| 逐行解析 | `openstd_download.py:48-49`（`_HCNO_ROW_RE`）、`65-78`（`parse_hcno_from_search_page`） | 匹配 `onclick="showInfo('<hcno>')"` 并**同时取出该行显示的标准号** |
-| 标准号归一 | `openstd_download.py:55-62`（`_norm_std_no`） | 去空白（含全角空格）、`—`/`－`→`-`、`／`→`/`、大写 |
-| 解析入口 | `openstd_download.py:130-158`（`_lookup_hcno`）、`160-169`（`_resolve_hcno`） | 顺序：`task.extra["hcno"]`（显式传入，供手工/GUI）→ openstd 搜索页；解析不到返回空串 |
+| 逐行解析 | `openstd_download.py:48-52`（`_HCNO_ROW_RE` / `_ROW_RE` / `_ADOPTED_RE`）、`76-116`（`parse_search_row` / `parse_hcno_from_search_page` / `_iter_search_rows`） | 匹配 `onclick="showInfo('<hcno>')"` 并**同时取出该行显示的标准号**；有 `<tr>` 时按行切分以取"采"标记，无 `<tr>` 的片段退化为逐锚点扫描 |
+| 标准号归一 | `openstd_download.py:59-66`（`_norm_std_no`） | 去空白（含全角空格）、`—`/`－`→`-`、`／`→`/`、大写 |
+| 解析入口 | `openstd_download.py:169-206`（`_lookup_hcno` / `_resolve_target`） | 顺序：`task.extra["hcno"]`（显式传入，供手工/GUI）→ openstd 搜索页；返回 `(hcno, is_adopted)` |
 
 **必须逐行按标准号匹配，不能取页面第一个 `showInfo(...)`**（`:68-71` 的注释与 `parse_hcno_from_search_page` 的比较逻辑）：搜索页会同时返回多条结果，2026-09-26 实测搜 `GB/T 5310-2008` 时首条是 `GB 2024-2016`——取首条会把**别的标准**的全文当成该收藏的下载内容。
+
+### 2.3 版权闸：采标标准在**下载侧**判定（2026-10-16 新增）
+
+**为什么要下沉到下载侧**：采标判定是**逐查询站点各写一套**，权威判据只在 `std_gov`
+（读官方表格的"采"字段，`std_gov.py:163-177`）；`csres`/`hbba`/`dbba` 只按**名称关键词**启发式
+（`search_strategy.py:240` 的 `ISO/IEC/IDT/MOD/EQV/采标/采用`）；`njbz365` 读 `cybz` 字段；
+**`cssn` 完全不判采标**。而 `/api/query` 走动态路由，实测作答的正是 `cssn`。
+
+**实测（部署实例 v0.138.3，2026-10-16T22:07+08:00）** —— 项目台账在案的采标标准全部漏判：
+
+| 标准号 | 线上 `source_site` | `is_adopted` | `is_downloadable` |
+|---|---|---|---|
+| `GB/T 7584.1-2026`、`GB/T 8335-2026`、`GB 20097-2025`、`GB/T 18663.6-2026` | `cssn` | **`False`** | `True` |
+
+**openstd 自己的权威信号**（同一次请求即可拿到，不增加请求数）：
+
+```
+搜索页结果行： … showInfo('<hcno>');">GB/T 7584.1-2026</a></td>
+                <td><span class="label label-warning" title="该标准采用国际标准">采</span></td> …
+详情页：        该标准采用了ISO、IEC等国际国外组织的标准，由于涉及版权保护问题，本系统暂不提供在线阅读服务。
+```
+
+因此 `parse_search_row()` 返回 `(hcno, is_adopted)`：按标准号命中该行后，**在同一行内**匹配
+`label-warning` + `采`（或 `该标准采用国际标准`）。`download()` 拿到 `adopted=True` 即
+`task.error_message = ADOPTED_SKIP_MESSAGE` 并返回 `None`，**不进入验证码阶段**。
+
+**引擎侧配套**（`engine.py` 的 `download_single`）：适配器返回空内容且错误文案为
+`ADOPTED_SKIP_MESSAGE` 时记为 `DownloadStatus.SKIPPED`（而非 FAILED），
+使批量统计走 `skipped_adopted`、收藏链按"业务终态"处理——与查询阶段就判定采标的路径同口径。
+
+**实测（真实站点，2026-10-16）**：`parse_search_row` 对上述 4 个标准均返回 `adopted=True`，
+对照组 `GB 2894-2025` 返回 `False`；`download()` 对采标标准返回 `None`、错误文案为
+`采标标准，版权受限，自动跳过`、**验证码未被调用**。
+
+> ⚠️ 与 2.2 的分工：2.2 说"不信任查询结果的 pid"；本节说"不单独信任查询结果的 `is_adopted`"。
+> 两者同源——**查询流程与下载流程的判据不共享**，下载侧的判定必须在下载侧自证。
 
 ### 2.2 ⛔ 禁用 `std_gov` 查询结果的 `pid` 当 hcno
 
@@ -72,9 +115,9 @@ task ──► [0] hcno 解析（openstd 搜索页）        _resolve_hcno / _lo
 sha1 = b93e289a82d884a4    响应长度 = 18610 字节（三者一致）
 ```
 
-因此代码**刻意不回退** `task.query_result.hcno`：回退只会让失败推迟到验证码之后，并**伪装成"验证码问题"**（`:160-169` 的 docstring 明写这一点，`:153-157` 的告警文案也点名"std_gov 的 pid 不是 hcno，禁止回退使用"）。
+因此代码**刻意不回退** `task.query_result.hcno`：回退只会让失败推迟到验证码之后，并**伪装成"验证码问题"**（`_resolve_target` 的 docstring 明写这一点，`_lookup_hcno` 的告警文案也点名"std_gov 的 pid 不是 hcno，禁止回退使用"）。
 
-同理，`download()` 在解析不到 hcno 时给出显式错误文案（`:179-182`）：
+同理，`download()` 在解析不到 hcno 时给出显式错误文案（`if not hcno:` 分支）：
 
 ```
 无法获取下载标识(hcno): <标准号>（openstd 搜索页未匹配到该标准号；std_gov 的 pid 不能当 hcno 用）
@@ -343,8 +386,14 @@ GB/T 标准被误判成非国标（已由 `test_slash_codes_are_routable` 钉住
 2. **不要"清理死代码"式删 `_lookup_hcno` / `parse_hcno_from_search_page`**——它们是 `f4f812e7` 删过一次的可用实现（5.2 A）。
 3. **不要把 `BASE_URL` 改回 `/bzgk/gb`**（3 与 5.2 C）。
 4. **不要给 hcno 加 `query_result.hcno` 兜底**（2.2 与 5.2 B）；`TestHcnoResolution::test_query_result_pid_is_not_used_as_hcno` 会拦住。
-5. 修改后至少跑：
+5. **不要把版权闸退回"只信 `query_result.is_adopted`"**（2.3）：采标判定逐查询站点各写一套，
+   权威判据只在 `std_gov`，而动态路由常落到 `cssn`（实测 4/4 漏判）⇒ 下载侧必须自己认
+   openstd 搜索页的「采」标记。回归测试：`TestAdoptedMarker` 与 `TestAdoptedSkipInDownload`。
+6. **`ADOPTED_SKIP_MESSAGE` 的定义在 `pilotstd/download/models.py`**（叶子模块）：适配器要用它，
+   从 `engine` 导入会成环。`engine.ADOPTED_SKIP_MESSAGE` 仍可导入（再导出，向后兼容），
+   既有调用方（`tasks/favorite_download.py` 等）无需改动。
+7. 修改后至少跑：
    ```bash
-   python -m pytest tests/download/adapters/test_openstd_download.py -q
+   python -m pytest tests/download/adapters/test_openstd_download.py tests/test_download.py -q
    python scripts/check_g_031_docs_sync.py
    ```
