@@ -7,6 +7,11 @@
 4. 动作白名单 + **服务端角色**授权（非管理员 403，不信任载荷里的身份）；
 5. 执行动作（`ignore`/`snooze` 更新 `ack_status`；`retry` 重投该条通知）。
 
+**企微（wechat）的结构性差异（T-43）**：加解密凭据是**企业级一套**
+（token / EncodingAESKey / corpid），且载荷是**密文 XML**——"先解密才能知道是谁点了什么"，
+故第 1 步在企微要先做一次企业级解密；此后（验签 → 幂等 → 角色授权 → 执行）与另外三家
+**同一条路径、同一个出口**，`last_error`/原因键口径也一致。
+
 **不含 HTTP**：入参是已解析的头/体，便于单测与复用（端点层只做取值与状态码透传）。
 """
 
@@ -17,6 +22,7 @@ from typing import Any
 
 from pilotstd.i18n import t
 
+from ._credentials import SYSTEM_DEFAULT_USER_ID
 from .callback import (
     STATUS_FORBIDDEN,
     STATUS_GONE,
@@ -28,6 +34,7 @@ from .callback import (
     verify_callback,
 )
 from .callback_store import LogBackedReplayGuard
+from .wechat_crypto import WeChatCrypto, WeChatCryptoError, credentials_from, parse_plain_xml
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +67,49 @@ def _resolve_target(db: Any, channel: str, token: str) -> tuple[int, int] | None
     if not rows:
         return None
     return int(head), int(tail)
+
+
+def _resolve_target_by_actor(db: Any, user_name: str, credentials_for: Any) -> tuple[int, int] | None:
+    """企微专用：由**通道侧用户标识**（`FromUserName` = 企微 userid）定位用户。
+
+    **为什么企微不能复用 `_resolve_target`**：企微的加解密凭据是**企业级一套**
+    （一个企业一个应用一个回调 URL），而四家渠道既有的取密钥口径是"按用户隔离"；
+    企微回调里唯一稳定的通道侧身份是 `<FromUserName>`，故需要一次"企微 userid → 本地用户"反查。
+
+    **为什么按 `users` 表逐行查而不写 SQL 条件**：`touser`（应用消息受众，与 `FromUserName`
+    同口径）存放在 `user_credentials.credentials` 的**加密 JSON** 内，不是独立列 ⇒
+    无法在 SQL 层过滤（反例：写 `WHERE touser = ?` 会因列不存在直接报错）。
+    故只能逐用户调用既有的 `credentials_for(user_id, channel)`（**与另外三家同一取法**）
+    再比对；候选集由 `users` 表给出，是**有界**且不随日志量增长的。
+
+    **身份信任边界不变**：`FromUserName` 只用于"定位该用哪套密钥/哪条记录"，
+    真正的信任仍来自验签（企业级 token/AESKey 只有企微服务器知道）+ DB 角色授权。
+    """
+    wanted = (user_name or "").strip()
+    if not wanted:
+        return None
+    rows = db.fetchall("SELECT id FROM users ORDER BY id")
+    candidates = [int(r["id"]) for r in rows]
+    matched: int | None = None
+    for candidate in candidates:
+        creds = credentials_for(candidate, "wechat") or {}
+        if str(creds.get("touser") or "").strip() == wanted:
+            matched = candidate
+            break
+    # 只要没匹配到就退到唯一用户：单用户部署（本仓默认形态）里 `users` 仅一行，
+    # 而"受众未填/填了别名"不应让回调整体失效——鉴权仍由后续验签 + DB 角色把关。
+    if matched is None and len(candidates) == 1:
+        matched = candidates[0]
+    if matched is None:
+        logger.warning("notification callback: wechat actor not mapped to a local user")
+        return None
+    log_rows = db.fetchall(
+        "SELECT id FROM notification_log WHERE channel = ? AND status = ? ORDER BY id DESC LIMIT 1",
+        ("wechat", "success"),
+    )
+    if not log_rows:
+        return None
+    return int(log_rows[0]["id"]), matched
 
 
 def _role_of(db: Any, user_id: int) -> str:
@@ -157,6 +207,38 @@ def _retry(db: Any, log_id: int, channel: str, creds: dict[str, Any]) -> bool:
     return ok
 
 
+def _parse_wechat_payload(
+    channel: str, headers: dict[str, str], body: bytes, creds: dict[str, Any]
+) -> dict[str, Any] | None:
+    """企微：用**企业级三件套**解密 XML 回调体 → 明文消息 XML → 扁平字典。
+
+    企微的载荷不是 JSON 而是 `<xml><Encrypt>…</Encrypt></xml>`，故**必须先解密**才能知道
+    "是谁点了什么"（`FromUserName`/`EventKey`）；这与另外三家的"先读 JSON 再定位密钥"顺序相反，
+    是本渠道的结构性差异（不是可以靠"少写一行"绕过的选择）。
+
+    解密失败返回 `None`（调用方按 401 处理）；**不得容错放行**。
+    """
+    lowered = {k.lower(): v for k, v in headers.items()}
+    token, encoding_aes_key, corpid = credentials_from(creds)
+    if not (token and encoding_aes_key):
+        logger.warning("notification callback: wechat credentials missing (token/encoding_aes_key)")
+        return None
+    try:
+        crypto = WeChatCrypto(token, encoding_aes_key, corpid)
+        plain_xml = crypto.decrypt_envelope(
+            lowered.get("msg_signature", ""), lowered.get("timestamp", ""), lowered.get("nonce", ""), body
+        )
+    except WeChatCryptoError:
+        # 原因不细分（签名错/密文非法/corpid 不匹配一律 401），且**不回显**给调用方
+        logger.warning("notification callback: wechat payload rejected")
+        return None
+    parsed = parse_plain_xml(plain_xml)
+    if not parsed:
+        logger.warning("notification callback: wechat payload has no usable xml fields")
+        return None
+    return parsed
+
+
 def handle_callback(
     db: Any,
     channel: str,
@@ -165,23 +247,43 @@ def handle_callback(
     credentials_for: Any,
     now: float | None = None,
     guard: Any = None,
+    credentials: dict[str, Any] | None = None,
 ) -> CallbackOutcome:
-    """处理一次渠道回调（完整闭环，见模块 docstring 的安全顺序）。"""
-    try:
-        payload = json.loads(body.decode("utf-8") or "{}")
-    except Exception:
-        return _fail(STATUS_UNAUTHORIZED, "notification.callback.bad_signature")
-    if not isinstance(payload, dict):
-        return _fail(STATUS_UNAUTHORIZED, "notification.callback.bad_signature")
+    """处理一次渠道回调（完整闭环，见模块 docstring 的安全顺序）。
+
+    `credentials`（可选）是调用方**已解析**的渠道凭据；目前只有企微会传
+    （它的加解密凭据是**企业级一套**，不像另外三家按用户隔离）。
+    为空时回落到 `credentials_for(user_id, channel)`（另外三家的既有路径）。
+    """
+    if channel == "wechat":
+        # 企业级三件套：调用方给的优先，否则按默认用户读（单用户部署下即唯一一套）
+        corp_creds: dict[str, Any] = credentials if credentials is not None else (
+            credentials_for(SYSTEM_DEFAULT_USER_ID, channel) or {}
+        )
+        payload = _parse_wechat_payload(channel, headers, body, corp_creds)
+        if payload is None:
+            return _fail(STATUS_UNAUTHORIZED, "notification.callback.bad_signature")
+    else:
+        try:
+            payload = json.loads(body.decode("utf-8") or "{}")
+        except Exception:
+            return _fail(STATUS_UNAUTHORIZED, "notification.callback.bad_signature")
+        if not isinstance(payload, dict):
+            return _fail(STATUS_UNAUTHORIZED, "notification.callback.bad_signature")
 
     envelope = parse_envelope(channel, payload, event_id="", now=now)
-    target = _resolve_target(db, channel, envelope.callback_data)
+    if channel == "wechat":
+        # 企微的按钮载荷里没有 `log_id:user_id`（企业级一套凭据）⇒ 由通道侧身份反查本地用户与记账行
+        target = _resolve_target_by_actor(db, envelope.actor_ref, credentials_for)
+    else:
+        target = _resolve_target(db, channel, envelope.callback_data)
     if target is None:
         # 区分两类（阶段 3 · P5b 用户裁定）：
         #   ① **畸形/缺失 token** ⇒ 仍与验签失败同码（401）：不给攻击者一个可枚举的探针面；
         #   ② **格式合法但记录已不存在**（日志按保留策略清理后用户点了旧按钮）⇒ **410 优雅降级**，
         #      提示"操作已失效"，而不是 500/无响应，也不是语焉不详的"签名错误"。
-        if _is_wellformed_token(envelope.callback_data):
+        # 企微走 ①（其载荷里本就没有我们的 token，只有通道侧身份，故不存在"旧按钮"这一档）。
+        if channel != "wechat" and _is_wellformed_token(envelope.callback_data):
             return _fail(STATUS_GONE, "notification.callback.action_expired")
         return _fail(STATUS_UNAUTHORIZED, "notification.callback.bad_signature")
     log_id, user_id = target
@@ -189,14 +291,28 @@ def handle_callback(
     # 取该用户该渠道的**解密**密钥：密钥本身不落库，解密失败即空字典 ⇒ 验签必然失败
     creds = credentials_for(user_id, channel) or {}
     secret = str(creds.get("secret") or "")
-    verdict = verify_callback(channel, headers, body, secret, now)
+    # 企微是**三重组合**（token/EncodingAESKey/corpid），且签名覆盖的是密文本身 ⇒ 由 credentials 承载；
+    # 另外三家沿用 `secret`（语义与调用口径完全不变）。
+    verdict = verify_callback(
+        channel, headers, body, secret, now, credentials=corp_creds if channel == "wechat" else None
+    )
     if not verdict.ok:
+        if channel == "wechat":
+            # 企微的失败可能是"签名错/密文非法/corpid 不匹配/密钥未配置"四类之一；
+            # 对外一律 401（不细分），但**日志必须留下线索**，否则线上只能靠抓包排查。
+            logger.warning("notification callback: wechat verification failed (reason=%s)", verdict.reason_key)
         return _fail(verdict.status, verdict.reason_key)
 
     event_id = str(
         payload.get("event_id")
         or (payload.get("callback_query") or {}).get("id")
         or (payload.get("header") or {}).get("event_id")
+        # 企微：`MsgId` + `CreateTime` 唯一标识一次事件（企微重投同一条 ⇒ 幂等拦截）
+        or (
+            f"wechat:{payload.get('MsgId')}:{payload.get('CreateTime')}"
+            if channel == "wechat" and payload.get("MsgId")
+            else ""
+        )
         or f"{channel}:{log_id}:{envelope.action}"
     )
     effective_guard = guard if guard is not None else LogBackedReplayGuard(db)
@@ -230,3 +346,42 @@ def describe_outcome(outcome: CallbackOutcome) -> str:
     if outcome.reason_key:
         return f"status={outcome.status} reason={t(outcome.reason_key)}"
     return f"status={outcome.status} ok"
+
+
+def verify_wechat_url(
+    headers: dict[str, str],
+    echostr: str,
+    credentials: dict[str, Any] | None = None,
+    user_id: int = SYSTEM_DEFAULT_USER_ID,
+    credentials_for: Any = None,
+) -> str:
+    """企微 **URL 验证（GET）**：验签 → 解密 `echostr` → 返回**明文**（响应体本体）。
+
+    **为什么单独一个入口**：GET 验证没有"业务载荷"可分发，不需要走
+    `handle_callback` 的幂等/授权/执行链路（那三段对"配置回调 URL"这一步毫无作用，
+    硬塞进去只会让"谁点了什么"的分支污染一次纯粹的密钥确认）。
+    端点据返回值直接以 `text/plain` 回显；失败返回空串 ⇒ 端点 401。
+
+    `headers` 里必须携带 `msg_signature`/`timestamp`/`nonce`——企微把它们放在**查询串**，
+    由端点层拼进 headers（服务层不解析 URL，保持"不含 HTTP"）。
+    """
+    creds: dict[str, Any] = credentials or {}
+    if not creds and credentials_for is not None:
+        creds = credentials_for(user_id, "wechat") or {}
+    token, encoding_aes_key, corpid = credentials_from(creds)
+    if not (token and encoding_aes_key):
+        logger.warning("notification callback: wechat url verification without credentials")
+        return ""
+    lowered = {k.lower(): v for k, v in headers.items()}
+    try:
+        crypto = WeChatCrypto(token, encoding_aes_key, corpid)
+        return crypto.verify_url(
+            lowered.get("msg_signature", ""),
+            lowered.get("timestamp", ""),
+            lowered.get("nonce", ""),
+            echostr,
+        )
+    except WeChatCryptoError:
+        # 失败原因不细分、不回显（与 POST 路径同口径）
+        logger.warning("notification callback: wechat url verification rejected")
+        return ""

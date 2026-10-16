@@ -5,7 +5,7 @@
 | 模块路径 | `pilotstd/core/` |
 | G-031 映射 | `pilotstd/core/`（2026-09-25 落地：`DOC_SYNC_MAP` 已含该条，改任何 core 文件都会要求同步本文件） |
 | 核心类 | `Database` / `ConfigManager` / `CacheManager` / `NotificationManager` |
-| 子模块数 | 117 个 `.py`（新增 `_builders_system_security.py`（安全族构建器）——**T-41/5 (2/2)** 拆分以守 G-010；主模块 `_builders_system.py` **再导出**迁出名字。上一轮新增 `_builders_common.py`（构建器共享助手）与 `_builders_batch_download.py`（下载族构建器）——**T-41/5** 拆分以守 G-010；主模块 `_builders_batch.py` **再导出**迁出名字。上一轮新增 `aggregate_keys.py`：聚合分组键语义（**T-41/4** 拆分以守 G-010；以**纯函数（组合）**形式提供，`NotificationAggregator` 用薄委托调用并**再导出** `_GROUP_SEP`/`agg_key_mode`）。上一轮新增 `renderer_base.py`（渲染器共享基座）与 `renderer_telegram.py`（Telegram 渲染器）——**T-41/3** 拆分以守 G-010；`renderer.py` 保留 Markdown/飞书/钉钉/桌面渲染器并**再导出**迁出名字。上一轮新增 `event_spec_data.py`：事件声明数据（**T-41/1** 拆分以守 G-010；`event_spec.py` 保留数据类/工厂/值域闭集，并按声明原位置**延迟导入** `EVENT_SPECS`）；再上一轮新增 `channel_spec_data.py`：渠道声明数据（阶段 3 · Step 4 ③ 拆分以守 G-010；`channel_spec.py` 保留数据类与再导出））（**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-10-06**；顶层 = 3 个包 config / db / notification + 23 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
+| 子模块数 | 118 个 `.py`（新增 `notification/wechat_crypto.py`（企业微信回调加解密，**T-43**）；上一轮新增 `_builders_system_security.py`（安全族构建器）——**T-41/5 (2/2)** 拆分以守 G-010；主模块 `_builders_system.py` **再导出**迁出名字。上一轮新增 `_builders_common.py`（构建器共享助手）与 `_builders_batch_download.py`（下载族构建器）——**T-41/5** 拆分以守 G-010；主模块 `_builders_batch.py` **再导出**迁出名字。上一轮新增 `aggregate_keys.py`：聚合分组键语义（**T-41/4** 拆分以守 G-010；以**纯函数（组合）**形式提供，`NotificationAggregator` 用薄委托调用并**再导出** `_GROUP_SEP`/`agg_key_mode`）。上一轮新增 `renderer_base.py`（渲染器共享基座）与 `renderer_telegram.py`（Telegram 渲染器）——**T-41/3** 拆分以守 G-010；`renderer.py` 保留 Markdown/飞书/钉钉/桌面渲染器并**再导出**迁出名字。上一轮新增 `event_spec_data.py`：事件声明数据（**T-41/1** 拆分以守 G-010；`event_spec.py` 保留数据类/工厂/值域闭集，并按声明原位置**延迟导入** `EVENT_SPECS`）；再上一轮新增 `channel_spec_data.py`：渠道声明数据（阶段 3 · Step 4 ③ 拆分以守 G-010；`channel_spec.py` 保留数据类与再导出））（**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-10-17**；顶层 = 3 个包 config / db / notification + 23 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
 | Schema 版本 | `CURRENT_SCHEMA_VERSION = 66`（`db/_constants.py`；v66＝announcement_record 追加 `final_name` 列 + 从 pending_lookup 回填，2026-10-05 名称解析统一批次二） |
 | 状态 | 活跃 |
 
@@ -56,14 +56,31 @@ pilotstd/core/
 │   │    授权 → 执行动作（ignore/snooze 写 ack_status；retry 请求重投）。
 │   │    `LogBackedReplayGuard`：复用 `notification_log`（`correlation_id` 存事件号、
 │   │    `event_type='callback'`、`sent_at` 供 TTL 清理）⇒ **无新建表、无迁移号**。
+│   │    **T-43（2026-10-17）企微入站**：`wechat` 支的凭据是**企业级一套**（token/EncodingAESKey/
+│   │    corpid，不是按用户隔离的 `secret`），载荷是**密文 XML** ⇒ 先解密（`_parse_wechat_payload`）
+│   │    再由 `FromUserName` 反查本地用户（`_resolve_target_by_actor`，逐用户比对 `touser`，
+│   │    候选集来自 `users` 表故有界）；此后与本文件其余部分**同一条路径、同一个出口**。
+│   │    `verify_wechat_url`：GET URL 验证（验签 → 解密 echostr → 返回明文），端点直接回显。
+│   ├── wechat_crypto.py — 企业微信回调加解密（WXBizMsgCrypt 等价实现，**T-43**，2026-10-17）
+│   │    `WeChatCrypto(token, encoding_aes_key, receive_id)`：`check_signature`（SHA1 +
+│   │    `hmac.compare_digest` 常量时间）、`decrypt_message`/`encrypt_message`（AES-256-CBC，
+│   │    `iv=key[:16]`，明文 = random(16B)+长度(4B,大端)+msg+receiveid，**PKCS#7 按 32 字节块**）、
+│   │    `verify_url`（GET）、`decrypt_envelope`（从 XML 取 `<Encrypt>` 再验签解密）。
+│   │    解密后**必须**比对 `receiveid`（企微为 corpid），不匹配即拒——否则"发给别的企业的密文"
+│   │    可被重放到本端点。**加密函数是本模块的一部分而非测试专用**：离线无官方测试向量，
+│   │    算法正确性由"自加密→自解密往返"锁定（`tests/unit/core/notification/test_wechat_crypto.py`），
+│   │    且后续"被动回复"（加密 XML 响应）需要它。失败路径一律抛 `WeChatCryptoError` 并记
+│   │    `logger.warning`，绝不静默放行。
 │   ├── user_moments.py — 用户时刻清单（**第二 SSOT**，阶段 C，2026-10-03）
 │   │    36 个 Docker 侧用户时刻（逐行转录自 00-framework §1.1），提供
 │   │    `moments_without_event()` / `events_without_moment()` / `unknown_event_keys()`；
 │   │    声明的例外（#5 无事件、3 个多余事件无时刻）写成常量，放宽必须同时改常量与测试。
 │   ├── callback.py — 回调验签/动作授权/防重放骨架（阶段 B 基础先行，2026-10-03）
-│   │    `verify_callback`（telegram/dingtalk/feishu 逐渠道；企微按缺口 1/2 一律 501 不猜协议）、
+│   │    `verify_callback`（**四家**逐渠道：telegram/dingtalk/feishu 用 `secret`；wechat 用
+│   │    `credentials` 三件套——签名覆盖的是**密文本身**而非报文哈希，T-43 2026-10-17）、
 │   │    `authorize_action`（仅管理员；角色必须来自服务端，不信任载荷身份）、
-│   │    `ReplayGuard`（进程内幂等窗口，接口可换成 DB 实现）、`parse_envelope`（载荷归一）。
+│   │    `ReplayGuard`（进程内幂等窗口，接口可换成 DB 实现）、`parse_envelope`（载荷归一；
+│   │    企微取解密后 XML 的 `TaskId`/`EventKey` + `FromUserName`）。
 │   │    **不含公网端点**：`POST /api/notification/callback/{channel}` 属 B2b（需部署侧定对外地址）。
 │   ├── channels/feishu.py — 飞书渠道：**签名校验已实现**（2026-10-03）
 │   │    配了签名密钥时请求体带 `timestamp`（秒）+ `sign`；算法为

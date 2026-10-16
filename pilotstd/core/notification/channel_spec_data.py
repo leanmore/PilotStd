@@ -88,6 +88,32 @@ CHANNEL_SPECS: tuple[ChannelSpec, ...] = (
                 badge_key="notification.config.optional",
                 form="app",
             ),
+            # T-43：企微**回调入站**的加解密凭据（`Token` + `EncodingAESKey`）。
+            # 为什么归入应用形态：回调只对"企业自建应用"成立（群机器人 Webhook 收不到回调），
+            # 而 `receiveid` 用的正是本分区既有的 `corpid` ⇒ 出站与入站**同源一份配置**。
+            # 两项都在**企微管理后台 → 应用 → 接收消息**里生成；缺任一项回调即无法验签/解密。
+            # 标 optional：不填只是"不启用回调"，不应让整个应用形态显示为未配好。
+            FieldSpec(
+                name="token",
+                type="string",
+                label_key="notification.config.wechat.callback_token",
+                placeholder="Token",
+                badge_key="notification.config.optional",
+                divider_key="notification.config.wechat.callback_sep",
+                form="app",
+            ),
+            FieldSpec(
+                name="encoding_aes_key",
+                type="text_password",
+                label_key="notification.config.wechat.encoding_aes_key",
+                badge_key="notification.config.optional",
+                mask=True,
+                password=True,
+                # 提示文案走 i18n 键（字面中文会触发 G-047：该门禁扫 Python 字符串字面量）
+                placeholder="43-char EncodingAESKey",
+                placeholder_key="notification.config.wechat.encoding_aes_key_placeholder",
+                form="app",
+            ),
         ),
         forms=(
             # 两形态**二选一**；两者都配好时后端按 status_rule 的**分支顺序**优先自建应用
@@ -103,7 +129,7 @@ CHANNEL_SPECS: tuple[ChannelSpec, ...] = (
                 label_key="notification.config.form.app",
                 hint_key="notification.config.form.app_hint",
                 required=("corpid", "agentid", "corpsecret"),
-                extra=("touser", "proxy_url"),
+                extra=("touser", "proxy_url", "token", "encoding_aes_key"),
             ),
         ),
         status_rule=StatusRule(

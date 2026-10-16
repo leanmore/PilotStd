@@ -23,7 +23,17 @@ from pilotstd.core.notification.channel_spec import (  # noqa: E402
 # 字面量基线（独立于 spec，用于检出 spec 内容的静默变更）
 EXPECTED_FIELD_NAMES = {
     # 阶段 3 · Step 4 ①：应用形态落地 ⇒ 新增 touser（接收成员，缺省 @all）
-    "wechat": {"webhook_url", "corpid", "agentid", "corpsecret", "proxy_url", "touser"},
+    # T-43：新增回调入站凭据 token/encoding_aes_key（企微后台"接收消息"两件套）
+    "wechat": {
+        "webhook_url",
+        "corpid",
+        "agentid",
+        "corpsecret",
+        "proxy_url",
+        "touser",
+        "token",
+        "encoding_aes_key",
+    },
     # 阶段 S（方案 A1）：企业级形态新增 4 凭证 + 1 投递目标；旧两字段保留（双读）
     "dingtalk": {
         "webhook_url",
@@ -60,6 +70,8 @@ EXPECTED_MASKED = {
     # 阶段 S：应用凭证同样属敏感面（API 响应掩码 + 表单密码控件）
     "app_key",
     "app_secret",
+    # T-43：回调加解密密钥与"签名校验密钥"同级敏感（能解出回调内容）
+    "encoding_aes_key",
 }
 
 

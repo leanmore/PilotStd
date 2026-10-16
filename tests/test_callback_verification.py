@@ -108,10 +108,20 @@ class TestVerifyPerChannel:
 
 
 class TestVerifyEdgeCases:
-    """验签的边界：企微未启用、缺密钥、时间戳过期/非法。"""
+    """验签的边界：企微缺凭据、缺密钥、时间戳过期/非法。"""
 
-    def test_wechat_unsupported_501(self):
+    def test_wechat_missing_credentials_rejected(self):
+        """企微自 T-43 起**已启用**（不再 501）：缺 `token`/`encoding_aes_key` ⇒ 401。
+
+        501 的前提是"协议未实现"，代码实现后该拒绝路径由**凭证缺失**承担——
+        与另外三家"缺密钥 401"同口径。
+        """
         verdict = verify_callback("wechat", {}, b"{}", SECRET, NOW)
+        assert verdict.ok is False and verdict.status == STATUS_UNAUTHORIZED
+
+    def test_unknown_channel_unsupported_501(self):
+        """未实现协议的渠道仍是 501（企微离开这一档后，501 语义由"未知渠道"承担）。"""
+        verdict = verify_callback("unknown-channel", {}, b"{}", SECRET, NOW)
         assert verdict.ok is False and verdict.status == STATUS_UNSUPPORTED
 
     def test_missing_secret_rejects(self):

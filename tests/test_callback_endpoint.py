@@ -224,13 +224,18 @@ class TestCallbackService:
         )
         assert outcome.status == 200
 
-    def test_wechat_channel_rejected(self):
+    def test_wechat_channel_rejected_without_credentials(self):
+        """企微启用后（T-43）：**缺企业级凭据** ⇒ 401（不再是"协议未实现"的 501）。
+
+        请求体是 JSON（不是企微的密文 XML）且 `_creds` 里没有 `token`/`encoding_aes_key`
+        ⇒ 走"凭据缺失"拒绝路径，且**不得**抛未捕获异常。
+        """
         db = _Db()
         db.seed_notification(channel="wechat")
         outcome = handle_callback(
             db, "wechat", {}, _telegram_body(token="7:1"), _creds, now=NOW
         )
-        assert outcome.status in (401, 501)
+        assert outcome.status == 401
 
 
 class TestPersistentReplayGuard:
@@ -273,7 +278,19 @@ class TestEndpointWiring:
     def test_supported_channel_closure(self):
         from docker.api.notification_callback import SUPPORTED_CALLBACK_CHANNELS
 
-        assert set(SUPPORTED_CALLBACK_CHANNELS) == {"telegram", "dingtalk", "feishu"}
+        # 企微自 T-43 起启用（此前 501）
+        assert set(SUPPORTED_CALLBACK_CHANNELS) == {"telegram", "dingtalk", "feishu", "wechat"}
+
+    def test_wechat_url_verification_route_registered(self):
+        """企微 URL 验证（GET）是企微协议要求的独立路由，必须注册。"""
+        from docker.api.notification_callback import router
+
+        methods = {
+            (route.path, method)
+            for route in router.routes
+            for method in getattr(route, "methods", set())
+        }
+        assert ("/api/notification/callback/wechat", "GET") in methods
 
     def test_app_registers_callback_router(self):
         src = Path("docker/app.py").read_text(encoding="utf-8")

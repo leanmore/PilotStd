@@ -23,7 +23,9 @@ import hashlib
 import hmac
 import time
 from dataclasses import dataclass, field
-from typing import Iterable, Protocol
+from typing import Any, Iterable, Protocol
+
+from .wechat_crypto import WeChatCrypto, WeChatCryptoError, credentials_from, extract_encrypt
 
 # 三个低频动作（设计 §1.2 B 行："低频编辑（状态/回执/汇总）"配套的用户动作）
 ACTION_RETRY = "retry"
@@ -108,19 +110,64 @@ def _verdict(ok: bool, reason_key: str, status: int) -> SignatureVerdict:
     return SignatureVerdict(ok=ok, status=status, reason_key=reason_key)
 
 
+def _verify_wechat(
+    headers: dict[str, str],
+    body: bytes,
+    credentials: dict[str, Any] | None,
+) -> SignatureVerdict:
+    """企微支的验签（自 `verify_callback` 拆出，守 G-010 的单函数逻辑行上限）。
+
+    **为什么读 `credentials` 而不是 `secret`**：企微回调是**三件套**
+    （`token` / `encoding_aes_key` / `corpid`），不是单一共享密钥；且请求体是**密文 XML**，
+    签名覆盖的是密文本身而非"报文哈希"。故该支只从 `credentials` 取参数，
+    对 `secret` 不敏感（另外三家的用法与语义**完全不变**）。
+    验签失败的**原因不细分**：一律 401（与另外三家同口径，不给探测者反馈）。
+    """
+    # 三件套缺一即拒（与"缺密钥 401"同口径，不回显缺了哪一件）
+    if credentials is None:
+        return _verdict(False, "notification.callback.secret_missing", STATUS_UNAUTHORIZED)
+    token, encoding_aes_key, corpid = credentials_from(credentials)
+    if not (token and encoding_aes_key):
+        return _verdict(False, "notification.callback.secret_missing", STATUS_UNAUTHORIZED)
+    msg_signature = headers.get("msg_signature", "")
+    timestamp = headers.get("timestamp", "")
+    nonce = headers.get("nonce", "")
+    if not (msg_signature and timestamp and nonce):
+        return _verdict(False, "notification.callback.bad_signature", STATUS_UNAUTHORIZED)
+    try:
+        crypto = WeChatCrypto(token, encoding_aes_key, corpid)
+    except WeChatCryptoError:
+        # 密钥非法（非 base64 / 长度不对）：属凭证层问题，等同"密钥缺失"
+        return _verdict(False, "notification.callback.secret_missing", STATUS_UNAUTHORIZED)
+    # 签名输入的取值位置按请求形态分派：
+    # · POST（有请求体）⇒ XML 里的 <Encrypt>，取不到密文即无法验签 ⇒ 拒绝；
+    # · GET（URL 验证）⇒ 查询参数 echostr（企微把它放在查询串，由端点层搬进 headers）。
+    try:
+        signed_payload = extract_encrypt(body) if body else headers.get("echostr", "")
+    except WeChatCryptoError:
+        return _verdict(False, "notification.callback.bad_signature", STATUS_UNAUTHORIZED)
+    if crypto.check_signature(msg_signature, timestamp, nonce, signed_payload):
+        return _verdict(True, "", STATUS_OK)
+    return _verdict(False, "notification.callback.bad_signature", STATUS_UNAUTHORIZED)
+
+
 def verify_callback(
     channel: str,
     headers: dict[str, str],
     body: bytes,
     secret: str,
     now: float | None = None,
+    credentials: dict[str, Any] | None = None,
 ) -> SignatureVerdict:
     """逐渠道验签（渠道无关入口）。
 
     已实现的渠道：`telegram`（`X-Telegram-Bot-Api-Secret-Token` 共享密钥头）、
     `dingtalk`（`timestamp` + `sign`，HMAC-SHA256(secret, "timestamp\nsecret") 的 base64）、
-    `feishu`（`X-Lark-Signature` = sha256(timestamp + nonce + encrypt_key + body)）。
-    `wechat` 依能力调查缺口 1/2 **未取证**，此处一律拒绝（501），不猜协议。
+    `feishu`（`X-Lark-Signature` = sha256(timestamp + nonce + encrypt_key + body)）、
+    `wechat`（企业微信 `msg_signature` = sha1(token, timestamp, nonce, encrypt)，**XML + AES**；
+    参数来源与拒绝口径见 `_verify_wechat`）。
+
+    验签失败的**原因不细分**：一律 401（不给探测者反馈）。
     """
     current = time.time() if now is None else now
     lowered = {k.lower(): v for k, v in headers.items()}
@@ -169,7 +216,10 @@ def verify_callback(
             return _verdict(True, "", STATUS_OK)
         return _verdict(False, "notification.callback.bad_signature", STATUS_UNAUTHORIZED)
 
-    # wechat 及其它：能力未启用/未取证，直接拒绝（不猜协议）
+    if channel == "wechat":
+        return _verify_wechat(lowered, body, credentials)
+
+    # 其它：能力未启用/未取证，直接拒绝（不猜协议）
     return _verdict(False, "notification.callback.channel_unsupported", STATUS_UNSUPPORTED)
 
 
@@ -220,8 +270,13 @@ class ReplayGuard:
 def parse_envelope(channel: str, payload: dict, event_id: str = "", now: float | None = None) -> CallbackEnvelope:
     """把各渠道的载荷归一为 `CallbackEnvelope`（只读字段，不做信任判断）。
 
-    渠道载荷结构差异大（TG `callback_query.data`、钉钉 `action`+`outTrackId`、飞书 `action.value`），
-    这里按**我们下发的 `callback_data`** 取值；取不到时返回空动作，由调用方按未知动作拒绝。
+    渠道载荷结构差异大（TG `callback_query.data`、钉钉 `action`+`outTrackId`、飞书 `action.value`、
+    企微**解密后的消息 XML** 的 `EventKey`/`TaskId`），这里按**我们下发的 `callback_data`** 取值；
+    取不到时返回空动作，由调用方按未知动作拒绝。
+
+    `wechat` 的输入是 `wechat_crypto.parse_plain_xml` 得到的扁平字典（XML 字段名 → 文本）：
+    普通菜单/按钮事件用 `EventKey`，模板卡片按钮用 `TaskId`（企微两种形态字段名不同），
+    两者都可能形如 `action:token`（我们的下发口径），故统一走 `_split_action`。
     """
     current = time.time() if now is None else now
     action = ""
@@ -241,6 +296,12 @@ def parse_envelope(channel: str, payload: dict, event_id: str = "", now: float |
         action = str(action_block.get("value", {}).get("action") or "")
         callback_data = str(action_block.get("value", {}).get("token") or "")
         actor_ref = str((payload.get("operator") or {}).get("open_id") or "")
+    elif channel == "wechat":
+        # 两种形态的按钮载荷字段名不同：菜单/普通按钮 = EventKey，模板卡片按钮 = TaskId。
+        # 都取（后者优先，模板卡片事件里 EventKey 可能不存在），交给 `_split_action` 拆动作。
+        raw_data = str(payload.get("TaskId") or payload.get("EventKey") or "")
+        action, callback_data = _split_action(raw_data)
+        actor_ref = str(payload.get("FromUserName") or "")
     return CallbackEnvelope(
         channel=channel,
         action=action,

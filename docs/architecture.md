@@ -246,6 +246,32 @@ Handler 通过构造函数显式注入依赖，所有方法通过 `self._handler
 
 ---
 
+## 通知渠道回调入站端点（B2b-1；企微 T-43，2026-10-17）
+
+`docker/api/notification_callback.py` 是**免鉴权**端点族（渠道服务器无法持我方会话，
+见 `docker/auth_state.py` 白名单注释 `("/api/notification/callback", set())`）——
+唯一安全边界是逐渠道自实现的**验签 + 持久化幂等 + 服务端角色授权**
+（`pilotstd/core/notification/callback*.py`）：
+
+| 端点 | 渠道 | 凭据模型 | 验签输入 | 应答体 |
+|------|------|----------|----------|--------|
+| `POST /api/notification/callback/telegram` | telegram | 按用户（`secret`） | 共享密钥头 | JSON `{"ok": true}` |
+| `POST /api/notification/callback/dingtalk` | dingtalk | 按用户（`secret`） | 查询串 `timestamp`+`sign` | JSON |
+| `POST /api/notification/callback/feishu` | feishu | 按用户（`secret`） | 头 `X-Lark-Signature` | JSON |
+| `POST /api/notification/callback/wechat` | 企业微信 | **企业级一套**（`token`/`encoding_aes_key`/`corpid`） | 查询串 `msg_signature` 覆盖**密文** | 明文 `success` |
+| `GET /api/notification/callback/wechat` | 企业微信 | 同上 | 同上，签名覆盖 `echostr` | 明文 `echostr`（`text/plain`） |
+
+**企微与本族的结构性差异**（T-43）：载荷是 `<xml><Encrypt>…</Encrypt></xml>` 而非 JSON，
+且"先解密才能知道是谁点了什么"（`FromUserName`/`EventKey`）⇒ 该支先用企业级凭据解密、
+再由通道侧身份反查本地用户，之后进入**与另外三家相同**的幂等/授权/执行出口。
+算法为 WXBizMsgCrypt 标准：`sha1(sorted([token, timestamp, nonce, encrypt]))` 常量时间比对、
+`AES-256-CBC`（`iv = key[:16]`）、明文 `random(16B) + 长度(4B 大端) + msg + receiveid`、
+PKCS#7 **按 32 字节块**填充、解密后校验 `receiveid`（企微为 corpid）。
+实现见 `pilotstd/core/notification/wechat_crypto.py`，契约测试
+`tests/unit/core/notification/test_wechat_crypto.py`、`tests/test_callback_wechat_endpoint.py`。
+
+---
+
 ## 相关文档
 
 - [ADR 目录](adr/README.md) — 10 个架构决策记录（2026-08-19 更新：ADR-001~010）

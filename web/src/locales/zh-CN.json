@@ -993,7 +993,11 @@
         "agentid": "应用 Agent ID",
         "corpsecret": "应用 Secret",
         "touser": "接收成员（touser）",
-        "proxy_url": "代理地址"
+        "proxy_url": "代理地址",
+        "callback_sep": "或 接收消息回调（可选）",
+        "callback_token": "回调 Token",
+        "encoding_aes_key": "回调 EncodingAESKey",
+        "encoding_aes_key_placeholder": "43 位 EncodingAESKey"
       },
       "feishu": {
         "secret_label": "签名校验密钥",
