@@ -65,6 +65,16 @@ run_fast() {
         log_fail "G-015 相对导入有效性"
     fi
 
+    # G-005: 日志规范（禁止 _log()、裸 print 与 print(stderr)；pilotstd/templates/ 已排除）
+    # 2026-10-16 接线：该门禁此前**从未被任何入口调用**（check_all.sh / CI / husky 三处零命中），
+    # 于是"rglob 走进 cookiecutter 模板 → ast.parse 崩"的自身缺陷长期不可见。修复后首次跑到
+    # 结尾即报出两处真实违规（pilotstd/ui 下的 print(stderr)，已同批改为 logger）。
+    if python scripts/check_g_005_log_tags.py; then
+        log_pass "G-005 日志规范"
+    else
+        log_fail "G-005 日志规范"
+    fi
+
     # G-012: SQL Schema 完整性
     if python scripts/check_g_012_sql_schema.py; then
         log_pass "G-012 SQL Schema"
