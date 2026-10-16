@@ -20,6 +20,10 @@
 > `batch_download_complete` payload 传出，最终落库 `notification_log.failed_items`（迁移 **v67**，TEXT 存 JSON）。
 > G-031 映射：`pilotstd/download/` → 本文（改该目录下任何文件都必须同批同步本文，见 `docs/governance/gates.md` G-031）。
 >
+> **2026-10-16（下载适配器可达性缺陷）**：`engine.py` 的 `_find_adapter` 增加**按标准性质**路由，
+> 并新增 `_no_adapter_message` 区分错误原因 —— 详见**第七节**。此前国标只有在 `source_site == "std_gov"`
+> 时才可达唯一适配器，其余 20 个查询站点答出的国标一律报"没有匹配的下载适配器"。
+>
 > 代码基准：`pilotstd/download/adapters/openstd_download.py`（395 行，HEAD = `ba9af616`）。
 
 ---
@@ -274,7 +278,66 @@ A + B + C 叠加 = **下载链长时间全量失败**：现场 2026-09-24~26 连
 
 ---
 
-## 七、维护须知
+## 七、适配器路由：按标准性质，不按 `source_site`
+
+> 本节承载 2026-10-16 的下载可达性缺陷（外部使用方通过 `POST /api/download/import` 报入）。
+
+### 7.1 `_find_adapter` 的四步顺序（`engine.py`）
+
+| 顺序 | 判据 | 命中结果 |
+|---|---|---|
+| 1 | `task.source_site` **精确等于**某适配器 `site_name` | 该适配器（供手工/GUI 显式指定） |
+| 2 | `_QUERY_TO_DOWNLOAD_SITE` 映射表（当前**唯一一条**：`std_gov → openstd_download`） | `openstd_download` |
+| 3 | **标准性质**：`is_gb_code(raw_code)` 为真（GB 类） | `openstd_download` |
+| 4 | `adapter.can_handle(task)` 兜底 | 实现为 `source_site == "openstd_download"`，故当前恒不命中 |
+| — | 四步全落空 | `None` + `_no_adapter_message(task)` |
+
+**为什么必须有第 3 步**：`source_site` 是**查询路由的产物**（哪个查询站点先答出来），
+而查询侧共有 21 个适配器（`pilotstd/query/adapters/`，`pilotstd/query/` 全目录不存在
+`openstd_download` 这个值）。把"能否下载"绑在 `source_site` 上 ⇒ **同一部国标因路由落点
+不同而时能下、时不能下**，而 `is_downloadable`（按 `not is_adopted` 算）却始终是 `True`，
+两处判据自相矛盾。
+
+**⛔ 不要退回"把映射表补全成 21 条"的写法**：那样会把 `njbz365`/`iso_gov` 等站点答出的
+**国外标准**也路由到 openstd，使其从"没有匹配的下载适配器"变成"无法获取下载标识(hcno)"，
+破坏 `tests/test_regressions.py::TestDownloadSourceSitePropagation::test_find_adapter_returns_none_for_foreign_standard`
+钉住的"国外标准应返回清晰错误而非缺 hcno"契约。
+
+**⚠️ 代号必须取 `raw_code`**：`_parse_result_number` 的 `code` 字段已去斜杠（`GB/T` → `GBT`），
+而 `GB_CODES`（`pilotstd/core/std_utils.py`）存的是带斜杠的 `GB/T`；用 `code` 会让全部
+GB/T 标准被误判成非国标（已由 `test_slash_codes_are_routable` 钉住）。
+
+### 7.2 无适配器时的错误文案（`_no_adapter_message`）
+
+| 情形 | 文案 |
+|---|---|
+| `task.query_result.is_adopted` | `采标标准版权受限（<标准号>, source_site=<站点>），无下载适配器` |
+| GB 类但适配器未注册 | `国标 <代号> 未匹配到下载适配器（source_site=<站点>）：openstd 下载适配器未注册` |
+| 其余（非国标） | `非国标标准（代号=<代号>, source_site=<站点>），无下载适配器` |
+
+原实现两处（`fetch_bytes` 与 `download_single`）都硬编码"没有匹配的下载适配器"，
+把"路由落在未接下载的站点"与"标准类型本就不支持"混成一句，**掩盖真实原因** —— 这是本次
+缺陷排查耗时的直接原因，故改为可诊断文案。
+
+### 7.3 现场实测与回归测试
+
+- 现场（部署实例 `7c521a7b`，2026-10-16）：`POST /api/query` 对 `GB 2894-2025` 与
+  `GB 2894-2008` **都**返回 `source_site=cssn`、`is_downloadable=True`、`is_adopted=False`；
+  修复前 `_find_adapter(cssn)` → `None`（本地复现：`cssn` → `None`，`std_gov` → `openstd_download`）。
+- **修复后端到端现网实测**（本地新代码 + openstd 真实站点，2026-10-16；部署实例仍是修复前代码，
+  故此项只能在本地跑）：修复前会停在路由闸、永远到不了适配器，修复后
+  ① `GB 2894-2025`（`source_site=cssn`）→ `success`，落盘 `GB 2894-2025 安全色和安全标志.pdf`
+  **48,295,473 字节**（magic `%PDF-1.6`，走完 hcno 解析 → 下载页 → 验证码 OCR → `verifyCode` → `viewGb` 全链）；
+  ② `AQ/T 9007-2019`（`hbba`）→ `非国标标准（代号=AQ/T, source_site=hbba），无下载适配器`（不发起下载）；
+  ③ 采标 `GB/T 7584.1-2026`（`cssn`）→ `采标标准，版权受限，自动跳过`（**版权闸未被本次修复放开**）。
+- 回归测试：`tests/test_regressions.py` 的 `TestDownloadAdapterRoutingByStandardNature`（6 例）
+  与 `TestNoAdapterErrorMessage`（3 例）。
+
+> 实测：`python -m pytest tests/test_regressions.py -q --no-header` → **35 passed**。
+
+---
+
+## 八、维护须知
 
 1. **改 `pilotstd/download/` 必须同批改本文**——G-031 已挂映射（`docs/governance/gates.md` G-031），否则 pre-commit 直接 FAIL。
 2. **不要"清理死代码"式删 `_lookup_hcno` / `parse_hcno_from_search_page`**——它们是 `f4f812e7` 删过一次的可用实现（5.2 A）。

@@ -17,6 +17,7 @@ from ..core.file_utils import (
 )
 from ..core.frozen import is_frozen
 from ..core.path_guard import validate_path_in_root
+from ..core.std_utils import is_gb_code
 from .adapters.base import BaseDownloadAdapter
 from .models import BatchDownloadStats, DownloadStatus, DownloadTask
 from .session import SessionManager
@@ -29,6 +30,9 @@ _FETCH_BACKOFF_SECONDS = (2, 4)
 # 采标标准（版权受限）跳过口径：调用方据此识别"业务终态"而非可重试失败，
 # 统一引用本常量，避免各层各自拼字符串导致判定失配。
 ADOPTED_SKIP_MESSAGE = "采标标准，版权受限，自动跳过"
+# 唯一下载适配器的站点名：查询站点名与下载站点名是两套命名，映射表与按性质
+# 路由都要用它，故提为常量，避免第三个字面量各自漂移。
+_OPENSTD_SITE_NAME = "openstd_download"
 
 
 class DownloadEngine:
@@ -77,7 +81,7 @@ class DownloadEngine:
             return None, ADOPTED_SKIP_MESSAGE
         adapter = self._find_adapter(task)
         if adapter is None:
-            return None, "没有匹配的下载适配器"
+            return None, self._no_adapter_message(task)
 
         last_error = ""
         for attempt in range(1, _FETCH_MAX_ATTEMPTS + 1):
@@ -120,7 +124,7 @@ class DownloadEngine:
         adapter = self._find_adapter(task)
         if adapter is None:
             task.status = DownloadStatus.FAILED
-            task.error_message = "没有匹配的下载适配器"
+            task.error_message = self._no_adapter_message(task)
             return task
 
         self._session_mgr.delay()
@@ -372,13 +376,56 @@ class DownloadEngine:
 
     # 查询站点名→下载适配器名映射（查询和下载的_命名体系不同）
     _QUERY_TO_DOWNLOAD_SITE = {
-        "std_gov": "openstd_download",
+        "std_gov": _OPENSTD_SITE_NAME,
     }
 
+    @staticmethod
+    def _logical_code(task: DownloadTask) -> str:
+        """取任务标准号的标准代号（如 `GB`、`GB/T`、`AQ/T`），解析不出返回空串。
+
+        ⚠️ 必须用 `_parse_result_number` 的 `raw_code`：它的 `code` 字段已去掉斜杠
+        （`GB/T` → `GBT`），而 `GB_CODES` 里存的是带斜杠的 `GB/T`，用 `code` 会把
+        全部 GB/T 标准误判成非国标。
+        """
+        from ..query.search_strategy import _parse_result_number
+
+        parsed = _parse_result_number(task.standard_number)
+        if parsed and parsed.get("raw_code"):
+            return str(parsed["raw_code"])
+        return task.standard_number.split()[0] if " " in task.standard_number else task.standard_number
+
+    def _no_adapter_message(self, task: DownloadTask) -> str:
+        """无适配器时的可诊断错误：带上 source_site 与标准性质。
+
+        原文案统一为"没有匹配的下载适配器"，把"路由落在未接下载的站点"和"标准类型
+        本就不支持"混成一句，掩盖真实原因（2026-10-16 缺陷报告的次要发现）。
+        """
+        # 下面三条文案是 API 下载结果 `error` 字段的中文契约文案，与 ADOPTED_SKIP_MESSAGE
+        # 及本文件既有错误文案同口径（调用方按文本识别业务终态），故不进 i18n。
+        site = task.source_site or "-"
+        code = self._logical_code(task) or "?"
+        if getattr(task.query_result, "is_adopted", False):
+            # i18n-allow: API error 字段的中文契约文案（同 ADOPTED_SKIP_MESSAGE 口径）
+            return f"采标标准版权受限（{task.standard_number}, source_site={site}），无下载适配器"
+        if is_gb_code(code):
+            # i18n-allow: API error 字段的中文契约文案（同 ADOPTED_SKIP_MESSAGE 口径）
+            return f"国标 {code} 未匹配到下载适配器（source_site={site}）：openstd 下载适配器未注册"
+        # i18n-allow: API error 字段的中文契约文案（同 ADOPTED_SKIP_MESSAGE 口径）
+        return f"非国标标准（代号={code}, source_site={site}），无下载适配器"
+
     def _find_adapter(self, task: DownloadTask) -> Optional[BaseDownloadAdapter]:
-        """根据 task.source_site 查找匹配的下载适配器。
-        优先精确匹配，再通过映射表（std_gov→openstd_download），
-        最后回退到 can_handle 兜底。"""
+        """按任务路由到下载适配器：显式指定 → 映射表 → 标准性质 → can_handle 兜底。
+
+        ⚠️ `source_site` 是**查询路由的产物**（哪个查询站点先答出来），与"该标准能否
+        下载"无关：21 个查询适配器都可能答出一条国标，而 `openstd_download` 只出现在
+        下载侧命名里 —— 只看 `source_site` 会让**同一部国标**因路由落点不同而时能下、
+        时不能下，且失败被统一成"没有匹配的下载适配器"（2026-10-16 现场实测：
+        `GB 2894-2025` 与 `GB 2894-2008` 都落在 `cssn`，`is_downloadable=True` 却无法下载）。
+
+        因此显式指定与映射表都落空后，仍按**标准性质**把 GB 类标准兜到唯一适配器上
+        （`favorite_chain_processor.py` 的"类别闸"注释即此语义）；
+        非国标不受影响，仍走 can_handle 并返回清晰的"非国标"错误。
+        """
         if task.source_site:
             # 精确匹配
             for a in self._adapters:
@@ -390,6 +437,11 @@ class DownloadEngine:
                 for a in self._adapters:
                     if a.site_name == mapped:
                         return a
+        # 按标准性质路由（GB 类标准的全文只在 openstd，与哪个查询站点答的无关）
+        if is_gb_code(self._logical_code(task)):
+            for a in self._adapters:
+                if a.site_name == _OPENSTD_SITE_NAME:
+                    return a
         # 回退到_
         for a in self._adapters:
             if a.can_handle(task):

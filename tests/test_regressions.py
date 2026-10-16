@@ -17,7 +17,7 @@ from unittest.mock import MagicMock
 from pilotstd.core.status import Status
 from pilotstd.download.adapters.openstd_download import OpenstdDownloadAdapter
 from pilotstd.download.engine import DownloadEngine
-from pilotstd.download.models import DownloadTask
+from pilotstd.download.models import DownloadStatus, DownloadTask
 from pilotstd.query.adapters.dbba import DbbaAdapter
 from pilotstd.query.adapters.hbba import HbbaAdapter
 from pilotstd.query.adapters.iso_gov import IsoGovAdapter
@@ -305,6 +305,108 @@ class TestDownloadSourceSitePropagation(unittest.TestCase):
         """DownloadTask 可以接受 source_site 参数。"""
         task = DownloadTask(standard_number="GB/T 1-2020", source_site="std_gov")
         self.assertEqual(task.source_site, "std_gov")
+
+
+# ════════════════════════════════════════════════════════════════
+# 4b. 下载适配器按标准性质路由（2026-10-16 缺陷：国标只能被 std_gov 触发）
+# ════════════════════════════════════════════════════════════════
+
+
+class TestDownloadAdapterRoutingByStandardNature(unittest.TestCase):
+    """`source_site` 是查询路由的产物，不能决定国标能否下载。
+
+    现场实测（`http://192.168.1.18:9028`，2026-10-16）：`GB 2894-2025` 与
+    `GB 2894-2008` 都落在 `cssn`，`is_downloadable=True`、`is_adopted=False`，
+    但 `_find_adapter` 返回 None ⇒ "没有匹配的下载适配器"。
+    """
+
+    def _engine(self):
+        return DownloadEngine(adapters=[OpenstdDownloadAdapter()], session_manager=MagicMock())
+
+    def test_national_std_from_non_std_gov_site_is_routable(self):
+        """国标落在 cssn（非 std_gov）也必须路由到 openstd_download。"""
+        task = DownloadTask(standard_number="GB 2894-2025", source_site="cssn")
+        found = self._engine()._find_adapter(task)
+        self.assertIsNotNone(found, "cssn 来源的国标同样有下载适配器")
+        self.assertEqual(found.site_name, "openstd_download")
+
+    def test_slash_codes_are_routable(self):
+        """GB/T、GB/Z 的代号解析保留斜杠，不能被判成非国标。"""
+        for number in ("GB/T 1-2020", "GB/Z 184.1-2026", "GB 2894-2025", "GSB 1-2020"):
+            with self.subTest(number=number):
+                task = DownloadTask(standard_number=number, source_site="ahbz")
+                found = self._engine()._find_adapter(task)
+                self.assertIsNotNone(found, f"{number} 是 GB 类，应可路由")
+                self.assertEqual(found.site_name, "openstd_download")
+
+    def test_empty_source_site_national_std_still_routable(self):
+        """查询未命中时 source_site 为空，国标仍应按性质路由。"""
+        task = DownloadTask(standard_number="GB 2894-2025", source_site="")
+        found = self._engine()._find_adapter(task)
+        self.assertIsNotNone(found)
+        self.assertEqual(found.site_name, "openstd_download")
+
+    def test_non_national_std_still_has_no_adapter(self):
+        """非国标（行业/国外）不得因为本修复而变成可下载。"""
+        for site, number in (("hbba", "AQ/T 9007-2019"), ("njbz365", "API 610-2004"), ("csres", "HJ 1234-2020")):
+            with self.subTest(number=number):
+                self.assertIsNone(self._engine()._find_adapter(DownloadTask(standard_number=number, source_site=site)))
+
+    def test_unregistered_openstd_falls_through_to_can_handle(self):
+        """openstd 未注册时，国标分支必须继续走 can_handle 兜底，不能直接短路成 None。"""
+
+        class AnyAdapter(OpenstdDownloadAdapter):
+            @property
+            def site_name(self):
+                return "other_download"
+
+            def can_handle(self, task):
+                return True
+
+        engine = DownloadEngine(adapters=[AnyAdapter()], session_manager=MagicMock())
+        task = DownloadTask(standard_number="GB 2894-2025", source_site="cssn")
+        found = engine._find_adapter(task)
+        self.assertIsNotNone(found)
+        self.assertEqual(found.site_name, "other_download")
+
+    def test_explicit_site_still_wins(self):
+        """显式指定/映射表优先于标准性质（保留手工与收藏链的既有口径）。"""
+        task = DownloadTask(standard_number="GB 2894-2025", source_site="openstd_download")
+        found = self._engine()._find_adapter(task)
+        self.assertEqual(found.site_name, "openstd_download")
+
+        mapped = DownloadTask(standard_number="GB 2894-2025", source_site="std_gov")
+        self.assertEqual(self._engine()._find_adapter(mapped).site_name, "openstd_download")
+
+
+class TestNoAdapterErrorMessage(unittest.TestCase):
+    """无适配器时的错误信息必须可诊断，区分"非国标"与"国标但适配器未注册"。"""
+
+    def _engine(self):
+        return DownloadEngine(adapters=[OpenstdDownloadAdapter()], session_manager=MagicMock())
+
+    def test_non_national_std_message_names_code_and_site(self):
+        task = DownloadTask(standard_number="AQ/T 9007-2019", source_site="hbba")
+        task = self._engine().download_single(task)
+        self.assertEqual(task.status, DownloadStatus.FAILED)
+        self.assertIn("非国标", task.error_message)
+        self.assertIn("AQ/T", task.error_message)
+        self.assertIn("hbba", task.error_message)
+
+    def test_national_std_message_when_adapter_missing(self):
+        engine = DownloadEngine(adapters=[], session_manager=MagicMock())
+        task = DownloadTask(standard_number="GB 2894-2025", source_site="cssn")
+        task = engine.download_single(task)
+        self.assertEqual(task.status, DownloadStatus.FAILED)
+        self.assertIn("GB", task.error_message)
+        self.assertIn("cssn", task.error_message)
+
+    def test_fetch_bytes_uses_same_message(self):
+        task = DownloadTask(standard_number="AQ/T 9007-2019", source_site="hbba")
+        content, err = self._engine().fetch_bytes(task)
+        self.assertIsNone(content)
+        self.assertIn("非国标", err)
+        self.assertIn("hbba", err)
 
 
 # ════════════════════════════════════════════════════════════════
