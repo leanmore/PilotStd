@@ -18,7 +18,7 @@ from ..interaction import ANCHOR_MESSAGE_ID, MessageHandle
 if TYPE_CHECKING:  # pragma: no cover - 仅类型检查
     from ..interaction import ChannelCapabilities
 from ..renderer import CHANNEL_TEXT_LIMITS, FeishuCardRenderer, split_for_channel
-from .base import NotificationChannel
+from .base import NotificationChannel, is_retryable_http_status, looks_rate_limited
 
 logger = logging.getLogger(__name__)
 
@@ -238,7 +238,8 @@ class FeishuChannel(NotificationChannel):
             # 未超限时 `_split_card` 原样返回单张（零行为变更）。
             card = self._renderer.render(message)
             for one in self._split_card(card):
-                if not self._send_card(one):
+                # 2026-10-17：接入渠道基座的统一重试（此前单次尝试即失败 ⇒ 一次 429/抖动就丢通知）
+                if not self._send_card_with_retry(one):
                     return False
             return True
         except Exception as e:
@@ -300,8 +301,28 @@ class FeishuChannel(NotificationChannel):
             out.append({"header": header, "elements": els})
         return out
 
+    def _send_card_with_retry(self, card: dict) -> bool:
+        """投递一张卡片并按**渠道基座**的统一节奏重试（卡片之间互不影响）。"""
+
+        def _attempt(_attempt_no: int) -> tuple[bool, bool]:
+            return self._post_card_once(card)
+
+        return self._with_retry(_attempt)
+
     def _send_card(self, card: dict) -> bool:
-        """投递**一张**卡片（原 send() 的请求与异常处理逻辑；分段后按卡片独立判定成败）。"""
+        """投递**一张**卡片（兼容入口：单次尝试，不重试）。
+
+        ⚠️ `send()` 走 `_send_card_with_retry`（基座重试）；本方法保留单次语义供既有调用方/测试使用。
+        """
+        ok, _retryable = self._post_card_once(card)
+        return ok
+
+    def _post_card_once(self, card: dict) -> tuple[bool, bool]:
+        """投递一张卡片一次，返回 `(是否成功, 是否可重试)`；失败原因写入 `last_error`。
+
+        可重试口径：HTTP 429/5xx、网络类异常，以及响应文本像限流的业务码
+        （飞书限流码未取证，用基座 `looks_rate_limited` 关键词兜底）。
+        """
         try:
             # 变量名避开 except 分支里的 `body`（那是 str，同名会让 mypy 报类型冲突）
             request_body: dict[str, Any] = {
@@ -318,19 +339,21 @@ class FeishuChannel(NotificationChannel):
                     data = json.loads(resp.read())
                     # 飞书返回=0表示成功
                     if data.get("code") == 0:
-                        return True
+                        return True, False
                     msg = data.get("msg", "")
                     self.last_error = t("notification.channel.feishu.api_failed").format(detail=msg)
                     logger.warning("飞书通知失败: %s", msg)
-                    return False
+                    return False, looks_rate_limited(f"{data.get('code', '')} {msg}")
                 self.last_error = t("notification.channel.feishu.http_error").format(status=resp.status)
-                return False
+                return False, is_retryable_http_status(resp.status)
         except Exception as e:
             # 读取错误响应体用于诊断（回调返回非 200 时的具体错误）
             body = ""
             from urllib.error import HTTPError
 
+            status = 0
             if isinstance(e, HTTPError):
+                status = e.code
                 try:
                     body = e.read().decode("utf-8", errors="replace")[:500]
                 except Exception as read_exc:
@@ -340,7 +363,7 @@ class FeishuChannel(NotificationChannel):
             # 透传具体错误描述
             self.last_error = f"{e}: {body}" if body else str(e)
             logger.warning("飞书通知异常: %s, body=%s", e, body, exc_info=True)
-            return False
+            return False, is_retryable_http_status(status) if status else True
 
     @staticmethod
     def validate_config(config: dict) -> bool:

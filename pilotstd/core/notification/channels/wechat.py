@@ -15,7 +15,7 @@ if TYPE_CHECKING:  # pragma: no cover - 仅类型检查
     from ..interaction import ChannelCapabilities
 from ..renderer import MarkdownRenderer, split_for_channel
 from ..renderer_wecom_card import WeChatCardRenderer
-from .base import NotificationChannel
+from .base import NotificationChannel, is_retryable_http_status, looks_rate_limited
 
 logger = logging.getLogger(__name__)
 
@@ -90,7 +90,8 @@ class WechatChannel(NotificationChannel):
         # 逐段独立发送，任一段最终失败即整体失败（**不静默丢段**）。
         rendered = self._renderer.render(message)
         for seg in split_for_channel(rendered, "wecom"):
-            if not self._send_segment(seg):
+            # 2026-10-17：接入渠道基座的统一重试（此前单次尝试即失败 ⇒ 一次 429/抖动就丢通知）
+            if not self._send_segment_with_retry(seg):
                 return False
         return True
 
@@ -124,53 +125,90 @@ class WechatChannel(NotificationChannel):
         self._token_expire_at = now + 6900
         return self._token
 
+    def _post_app_with_retry(self, msgtype_payload: dict) -> bool:
+        """按应用消息端点投递，并按**渠道基座**统一节奏重试。"""
+
+        def _attempt(_attempt_no: int) -> tuple[bool, bool]:
+            return self._post_app_once(msgtype_payload)
+
+        return self._with_retry(_attempt)
+
     def _post_app(self, msgtype_payload: dict) -> bool:
-        """按应用消息端点投递（`touser`/`agentid` 由本方法补齐）。"""
+        """按应用消息端点投递（兼容入口：单次尝试，不重试）。
+
+        ⚠️ `_send_by_app` / `_send_app_text` 走 `_post_app_with_retry`（基座重试）。
+        """
+        ok, _retryable = self._post_app_once(msgtype_payload)
+        return ok
+
+    def _post_app_once(self, msgtype_payload: dict) -> tuple[bool, bool]:
+        """投递一次，返回 `(是否成功, 是否可重试)`；失败原因写入 `last_error`。
+
+        可重试口径：HTTP 429/5xx、网络类异常，以及响应文本像限流的 `errcode`
+        （企业微信的限流码未逐码取证，用基座 `looks_rate_limited` 兜底）。
+        """
         token = self._access_token()
         if not token:
-            return False
+            # 取令牌失败多为配置/网络问题：无法判定可重试 ⇒ 不重试（避免把配置错误放大 3 次）
+            return False, False
         payload = {"touser": self._touser, "agentid": self._agentid, **msgtype_payload}
         try:
             with self._open(f"{self._SEND_URL}?access_token={token}", payload) as resp:
                 if resp.status != 200:
                     self.last_error = t("notification.channel.wechat.http_error").format(status=resp.status)
-                    return False
+                    return False, is_retryable_http_status(resp.status)
                 body = json.loads(resp.read().decode("utf-8"))
         except Exception as e:
             self.last_error = str(e)
             logger.warning("企业微信应用消息异常: %s", e, exc_info=True)
-            return False
+            return False, True
         errcode = int(body.get("errcode", -1))
-        if errcode != 0:
-            self.last_error = f"errcode={errcode} errmsg={body.get('errmsg', '')}"
-            return False
-        return True
+        if errcode == 0:
+            return True, False
+        errmsg = str(body.get("errmsg", ""))
+        self.last_error = f"errcode={errcode} errmsg={errmsg}"
+        return False, looks_rate_limited(f"{errcode} {errmsg}")
 
     def _send_by_app(self, message: NotificationMessage) -> bool:
         """应用形态：发送 `template_card`（模板卡片）。"""
         card = self._card_renderer.render_card(message)
-        return self._post_app({"msgtype": "template_card", "template_card": card})
+        return self._post_app_with_retry({"msgtype": "template_card", "template_card": card})
 
     def _send_app_text(self, message: NotificationMessage) -> bool:
         """应用形态降级：发送文本消息（卡片被拒收时的兜底，绝不静默丢消息）。"""
         text = self._renderer.render(message) or str(message.title or "")
-        return self._post_app({"msgtype": "text", "text": {"content": text[:2000]}})
+        return self._post_app_with_retry({"msgtype": "text", "text": {"content": text[:2000]}})
+
+    def _send_segment_with_retry(self, rendered: str) -> bool:
+        """发送**单个分段**（Webhook markdown）并按渠道基座统一节奏重试。"""
+
+        def _attempt(_attempt_no: int) -> tuple[bool, bool]:
+            return self._post_segment_once(rendered)
+
+        return self._with_retry(_attempt)
 
     def _send_segment(self, rendered: str) -> bool:
-        """发送**单个分段**（Webhook markdown；走统一请求入口 `_open`，故 `proxy_url` 对两形态都生效）。"""
+        """发送**单个分段**（兼容入口：单次尝试，不重试）。"""
+        ok, _retryable = self._post_segment_once(rendered)
+        return ok
+
+    def _post_segment_once(self, rendered: str) -> tuple[bool, bool]:
+        """投递单个分段一次，返回 `(是否成功, 是否可重试)`（走统一请求入口 `_open`）。"""
         try:
             with self._open(self._url, {"msgtype": "markdown", "markdown": {"content": rendered}}) as resp:
                 if resp.status == 200:
-                    return True
+                    return True, False
                 self.last_error = t("notification.channel.wechat.http_error").format(status=resp.status)
                 logger.warning("企业微信通知失败: HTTP %d", resp.status)
-                return False
+                return False, is_retryable_http_status(resp.status)
         except Exception as e:
             # 读取错误响应体用于诊断（回调返回非 200 时的具体错误）
             body = ""
             from urllib.error import HTTPError
 
+            status = 0
             if isinstance(e, HTTPError):
+                status = e.code
                 try:
                     body = e.read().decode("utf-8", errors="replace")[:500]
                 except Exception as read_exc:
@@ -180,7 +218,8 @@ class WechatChannel(NotificationChannel):
             # 透传具体错误描述
             self.last_error = f"{e}: {body}" if body else str(e)
             logger.warning("企业微信通知异常: %s, body=%s", e, body, exc_info=True)
-            return False
+            # HTTP 429/5xx 或网络类异常（无 HTTPError 即连接/超时类）⇒ 可重试
+            return False, is_retryable_http_status(status) if status else True
 
     @staticmethod
     def validate_config(config: dict) -> bool:

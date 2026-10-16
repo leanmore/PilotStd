@@ -18,9 +18,9 @@ _TG_PATH = "pilotstd.core.notification.channels.telegram.urlopen"
 _FS_PATH = "pilotstd.core.notification.channels.feishu.urlopen"
 _WX_PATH = "pilotstd.core.notification.channels.wechat.urlopen"
 
-# Telegram 瞬时故障重试的退避睡眠（[Test-Fix] 重试为新增行为，
-# 测试中打桩睡眠以免用例被 2s+4s 退避拖慢）
-_TG_SLEEP = "pilotstd.core.notification.channels.telegram.time.sleep"
+# 渠道统一重试的退避睡眠（2026-10-17：重试已从 telegram 提升到 channels/base，
+# 故 patch 目标改为基座模块；测试中打桩睡眠以免用例被 2s+4s 退避拖慢）
+_TG_SLEEP = "pilotstd.core.notification.channels.base.time.sleep"
 
 
 # ── DingTalk ──

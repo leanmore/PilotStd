@@ -25,7 +25,7 @@ from ..channel import NotificationMessage
 if TYPE_CHECKING:  # pragma: no cover - 仅类型检查
     from ..interaction import ChannelCapabilities
 from ..renderer import DingTalkCardRenderer, MarkdownRenderer, split_for_channel
-from .base import NotificationChannel
+from .base import NotificationChannel, is_retryable_http_status, looks_rate_limited
 
 logger = logging.getLogger(__name__)
 
@@ -113,19 +113,30 @@ class DingTalkChannel(NotificationChannel):
             # 逐段独立发送，任一段最终失败即整体失败（**不静默丢段**）。
             rendered = self._renderer.render(message)
             for seg in split_for_channel(rendered, "dingtalk"):
-                if not self._send_webhook_text(url, message.title[:50], seg):
+                # 2026-10-17：接入渠道基座的统一重试（此前单次尝试即失败 ⇒ 一次 429/抖动就丢通知）
+                if not self._send_segment_with_retry(url, message.title[:50], seg):
                     return False
             return True
         except Exception as e:
-            # 外层兜底：签名计算或分段循环本身出错（分段内的异常由 `_send_webhook_text` 自行处理）
+            # 外层兜底：签名计算或分段循环本身出错（分段内的异常由 `_post_segment_once` 自行处理）
             self.last_error = str(e)
             logger.warning("钉钉通知异常（分段外层）: %s", e, exc_info=True)
             return False
 
-    def _send_webhook_text(self, url: str, title: str, rendered: str) -> bool:
-        """发送**单个分段**的 markdown 文本（原 `_send_webhook` 的请求与响应判定逻辑）。
+    def _send_segment_with_retry(self, url: str, title: str, seg: str) -> bool:
+        """投递单段并按**渠道基座**的统一节奏重试（分段之间互不影响）。"""
 
-        `title` 由调用方按钉钉上限（50 字符）截断；这里只管**一段**文本的投递与成败判定。
+        def _attempt(_attempt_no: int) -> tuple[bool, bool]:
+            return self._post_segment_once(url, title, seg)
+
+        return self._with_retry(_attempt)
+
+    def _post_segment_once(self, url: str, title: str, rendered: str) -> tuple[bool, bool]:
+        """投递**单个分段**一次，返回 `(是否成功, 是否可重试)`；失败原因写入 `last_error`。
+
+        可重试口径：HTTP 429/5xx 与网络类异常（瞬时故障），以及响应文本像限流的业务码
+        （钉钉的限流码**未取证**——官方文档正文是 JS 渲染取不到，故用基座的
+        `looks_rate_limited` 关键词兜底；取证到具体 `errcode` 后应改为按码判定）。
         """
         try:
             payload = json.dumps(
@@ -143,21 +154,23 @@ class DingTalkChannel(NotificationChannel):
                 if resp.status != 200:
                     self.last_error = t("notification.channel.dingtalk.http_error").format(status=resp.status)
                     logger.warning("钉钉通知 HTTP %d", resp.status)
-                    return False
+                    return False, is_retryable_http_status(resp.status)
                 data = json.loads(resp.read().decode("utf-8"))
                 # 钉钉返回=0表示成功
                 if data.get("errcode") == 0:
-                    return True
+                    return True, False
                 errmsg = data.get("errmsg") or t("notification.channel.api_unknown_error")
                 self.last_error = t("notification.channel.dingtalk.api_failed").format(detail=errmsg)
                 logger.warning("钉钉通知失败: %s", errmsg)
-                return False
+                return False, looks_rate_limited(f"{data.get('errcode', '')} {errmsg}")
         except Exception as e:
             # 读取错误响应体用于诊断（回调返回非 200 时的具体错误）
             body = ""
             from urllib.error import HTTPError
 
+            status = 0
             if isinstance(e, HTTPError):
+                status = e.code
                 try:
                     body = e.read().decode("utf-8", errors="replace")[:500]
                 except Exception as read_exc:
@@ -167,7 +180,17 @@ class DingTalkChannel(NotificationChannel):
             # 透传具体错误描述
             self.last_error = f"{e}: {body}" if body else str(e)
             logger.warning("钉钉通知异常: %s, body=%s", e, body, exc_info=True)
-            return False
+            # HTTP 429/5xx 或网络类异常（无 HTTPError 即连接/超时类）⇒ 可重试
+            return False, is_retryable_http_status(status) if status else True
+
+    def _send_webhook_text(self, url: str, title: str, rendered: str) -> bool:
+        """发送**单个分段**的 markdown 文本（兼容入口：单次尝试，不重试）。
+
+        ⚠️ `send()` 走的是 `_post_segment_once` + 基座重试；本方法保留**单次**语义仅供
+        既有调用方/测试使用（历史契约：返回 bool）。
+        """
+        ok, _retryable = self._post_segment_once(url, title, rendered)
+        return ok
 
     # ── 企业级形态（阶段 S）──
 

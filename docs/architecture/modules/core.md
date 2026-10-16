@@ -102,6 +102,16 @@ pilotstd/core/
 │   │   承载原请求与响应判定（**任一段失败即整体失败，不静默丢段**）；未超长时单段（零行为变更）。
 │   │   **飞书**（卡片 `elements[]`，需按元素分片）**待接**，见统筹日程 P2 备注
 │   ├── channels/              # wechat / feishu / dingtalk / telegram 渠道适配
+│   │   └── base.py            # **统一重试/限流退避基座**（2026-10-17）：重试此前只长在 telegram
+│   │                          #   （该文件 27 处相关命中），dingtalk/feishu/wechat 各 0~1 处 ⇒
+│   │                          #   同样一次 429/抖动，只有 telegram 退避重试、其余三家当场丢通知。
+│   │                          #   现提升为基座：`_with_retry`（统一节奏 + 最多 3 次 + 成功后清错误去重）、
+│   │                          #   `parse_retry_after`（服务端建议等待优先，上限 60s）、
+│   │                          #   `is_retryable_http_status`（429/5xx）、`looks_rate_limited`（限流关键词兜底）、
+│   │                          #   `_log_dedup`（同错误 120s 内只记一次）。**四家渠道均已接入**；
+│   │                          #   各渠道 `_post_*_once` 为单次尝试的兼容入口，重试只在 send 路径。
+│   │                          #   ⚠️ 限流**错误码未逐家取证**（钉钉官方文档 JS 渲染取不到正文）⇒ 现按关键词
+│   │                          #   兜底；取证到具体 errcode/code 后应改为按码判定。
 │   ├── （2026-10-06 · **阶段 3 · Step 4 ③：飞书企业应用形态 + 消息编辑**）：此前飞书**只有机器人 Webhook**
 │   │   （可发卡片但**拿不到 `message_id`** ⇒ 不能编辑）。本次按第三方实证（`ui-beam-9/larkmessager/client.py`）
 │   │   补齐应用形态：
