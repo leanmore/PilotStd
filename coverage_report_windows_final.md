@@ -43,7 +43,7 @@ TOTAL   22582 stmts   9666 missed   57%
 ## 技术债
 
 全部转为 Linux CI 专属任务，详见：
-→ [tech_debt_linux_ci.md](../tech_debt_linux_ci.md)
+→ [docs/archive/tech_debt_linux_ci.archived.md](docs/archive/tech_debt_linux_ci.archived.md)（**2026-10-16 已归档作废**，原 `tech_debt_linux_ci.md` 已移入 `docs/archive/`）
 
 | 优先级 | 类别 | 文件数 | 根因 | Linux 预期回收 |
 |--------|------|--------|------|---------------|
@@ -59,4 +59,4 @@ TOTAL   22582 stmts   9666 missed   57%
 - 批次日志: `archive/windows_baseline_20260801/`
 - 执行脚本: `archive/windows_baseline_20260801/run_batch_tests.py`
 - 补测快照: `coverage_snapshot_verified.json`
-- Linux 技术债: `tech_debt_linux_ci.md`
+- Linux 技术债: `docs/archive/tech_debt_linux_ci.archived.md`（2026-10-16 归档作废，原根目录 `tech_debt_linux_ci.md`）

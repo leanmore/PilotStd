@@ -5,13 +5,13 @@
 
 | # | 检查项 | 关联章节 | 验收标准 | 状态 |
 |---|--------|----------|----------|------|
-| 1 | BootstrapResult 类型定义包含双版本字段 | §4.2 | version 与 schema_version 语义分离，契约测试覆盖两者独立性 | ⬜ 待办 |
-| 2 | Pre-commit Hook 实现增量校验 + 超时熔断 | §5.2 | 仅校验 --cached --name-only 命中文件；3s 超时输出 WARN 并放行；CI 兜底 Job 已配置 | ⬜ 待办 |
-| 3 | 重试耗尽异常埋点格式对齐可观测性平台 | §4.3 | retry_reason / caller_stack / attempt_details 三字段可被日志系统正确解析与聚合 | ⬜ 待办 |
-| 4 | 契约测试框架搭建 | §4.2 / §7 | tests/test_guardrails_contract.py 可运行，TypedDict 运行时校验通过 | ⬜ 待办 |
-| 5 | CI 治理文档完整性校验 Job 预留 | §5.2 / §7 | CI 流水线中存在独立 Job，对受保护路径执行 git diff --exit-code，失败阻断合并 | ⬜ 待办 |
-| 6 | 原子写入 SDK 调用栈白名单策略定义 | §4.1 | 白名单列表已评审（如仅限 session_bootstrap / cleanup_job）；写入非白名单调用栈时抛出 UnauthorizedWriteError；单元测试覆盖合法/非法调用场景 | ⬜ 待办 |
-| 7 | Phase 1 P0/P1 任务拆分为可执行 Story | §7 | 每个 Story 包含：关联规范章节、验收标准（引用本清单）、预估工时、依赖关系；Story 总数 ≥ 3 项 P0 + 2 项 P1 | ⬜ 待办 |
+| 1 | BootstrapResult 类型定义包含双版本字段 | §4.2 | version 与 schema_version 语义分离，契约测试覆盖两者独立性 | ✅ 已完成（2026-10-16 实测：`src/types/bootstrap.py:29-52` 定义 `BootstrapResult` 四字段，`:38-42` 明文约定 `metadata` 必含 `version`（规范文档版本）/`schema_version`（数据结构版本）且语义分离；契约用例见 `tests/test_guardrails_contract.py`，实跑 21 passed） |
+| 2 | Pre-commit Hook 实现增量校验 + 超时熔断 | §5.2 | 仅校验 --cached --name-only 命中文件；3s 超时输出 WARN 并放行；CI 兜底 Job 已配置 | ⬜ 待办（实测依据 2026-10-16：`scripts/check_all.sh:390`/`:435` 已有 `git diff --cached --name-only` 增量校验；但 `git grep -n "timeout" -- scripts/check_all.sh` **零命中** ⇒ 无 3s 超时熔断；`.husky/pre-commit` 只转发 `check_all.sh --fast --guards --local`，无内联熔断逻辑） |
+| 3 | 重试耗尽异常埋点格式对齐可观测性平台 | §4.3 | retry_reason / caller_stack / attempt_details 三字段可被日志系统正确解析与聚合 | ⬜ 待办（实测依据 2026-10-16：`enforcement/guardrails.py:433-453` 的 `_log_retry_exhaustion()` 中 `retry_reason` **硬编码 `"validation"`**（`:440`），未按失败类型判定；日志字段仅 `reason`/`caller`(hash)/`retries`/`output_preview` ⇒ **缺 `attempt_details`**，`caller_stack` 仅以 md5 前 8 位形式存在） |
+| 4 | 契约测试框架搭建 | §4.2 / §7 | tests/test_guardrails_contract.py 可运行，TypedDict 运行时校验通过 | ✅ 已完成（2026-10-16 实测：`tests/test_guardrails_contract.py` 在册，`python -m pytest tests/test_guardrails_contract.py -q --no-header` ⇒ **21 passed**，EXIT=0） |
+| 5 | CI 治理文档完整性校验 Job 预留 | §5.2 / §7 | CI 流水线中存在独立 Job，对受保护路径执行 git diff --exit-code，失败阻断合并 | ⬜ 待办（实测依据 2026-10-16：`git grep -n "diff --exit-code" -- .github/workflows scripts .husky` **零命中**；受保护路径常量 `PROTECTED_GOVERNANCE_PATHS`（`src/types/bootstrap.py:56-62`）全库仅 3 处引用——定义、契约测试导入、`len >= 5` 断言，**无任何 CI 作业消费该清单**） |
+| 6 | 原子写入 SDK 调用栈白名单策略定义 | §4.1 | 白名单列表已评审（如仅限 session_bootstrap / cleanup_job）；写入非白名单调用栈时抛出 UnauthorizedWriteError；单元测试覆盖合法/非法调用场景 | ✅ 已完成（2026-10-16 实测：`enforcement/guardrails.py:39` `UnauthorizedWriteError`、`:461` `atomic_write_notes()`、`:472` 白名单校验、`:488` `_audit_log_unauthorized()`；白名单 `ALLOWED_CALLERS` 定义于 `src/types/bootstrap.py:65-71`（`claude_code`/`post_execution_hook`/`session_bootstrap`，含验收提到的 `session_bootstrap`）；合法/非法调用用例 `tests/test_guardrails_contract.py:213-229`，实跑 21 passed） |
+| 7 | Phase 1 P0/P1 任务拆分为可执行 Story | §7 | 每个 Story 包含：关联规范章节、验收标准（引用本清单）、预估工时、依赖关系；Story 总数 ≥ 3 项 P0 + 2 项 P1 | ⬜ 待办（实测依据 2026-10-16：`git grep -ln "P0 Story\|Story 总数" -- docs` **仅命中本清单自身**；全库无 Phase 1 Story 拆分产物/看板文件） |
 
 ---
 

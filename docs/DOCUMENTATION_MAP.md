@@ -105,7 +105,7 @@
 | `docs/testing/handler-health-report-2026-08-02.md` | 08-02 | Handler 清理后健康度快照（基准记录） |
 | `docs/superpowers/reports/ci-risk-investigation-2026-08-06.md` | 08-06 | CI 风险调查（门禁设计指导） |
 | `docs/known-issues.md` | — | 安全审计轨迹（SEC-001 已解决） |
-| `docs/tech_debt_linux_ci.md` | 08-01 | Linux CI 技术债专项输入 |
+| `docs/archive/tech_debt_linux_ci.archived.md` | 08-01 | ⚠️ ARCHIVED（2026-10-16；原 `docs/tech_debt_linux_ci.md`／根目录 `tech_debt_linux_ci.md`，Linux CI 技术债专项，原基线与目标线已不成立，仅供追溯） |
 | `docs/analysis/site_classification_partial_v1.0.md` | 08-17 | ⚠️ ARCHIVED（被 v1.1 取代） |
 
 ## 七、历史归档区（Archive）

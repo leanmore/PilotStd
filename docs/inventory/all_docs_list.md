@@ -1,4 +1,4 @@
-﻿.claude/commands/self_review.md
+.claude/commands/self_review.md
 .claude/instructions.md
 .claude/memory.md
 .claude/skills/commit/SKILL.md
@@ -260,7 +260,7 @@ pilotstd_env/Lib/site-packages/zmq/backend/cffi/README.md
 README.md
 scripts/archive/README.md
 STATUS.md
-tech_debt_linux_ci.md
+docs/archive/tech_debt_linux_ci.archived.md
 tests/.pytest_cache/README.md
 web/.pytest_cache/README.md
 web/README.md

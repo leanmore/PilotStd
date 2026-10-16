@@ -292,7 +292,7 @@
 | 257 | README.md | 待确认 - 部分过时 | 保留 | 项目入口 README；⚠️ 数据过时：badge "Tests-942 passed"（历史）、"python-3.12+"（实际 3.14）、"6 个适配器"（实际 22）；✅ 引用路径全部有效（LICENSE/screenshots/desktop-requirements/docker-compose 已验证） |
 | 258 | scripts/archive/README.md | 归档/历史 | 保留 | 归档脚本说明（migrate_preferences 已历史备份，3 行） |
 | 259 | STATUS.md | 待确认 | 保留 | 项目状态（自动生成 generate_status_metrics.py，**未入 git**）；⚠️ 自述"本地状态文件，不入仓库"与自动生成并存；覆盖率 0.0%（生成时机问题）；HEAD commit b043a288 过时 |
-| 260 | tech_debt_linux_ci.md | 分析报告 | 保留 | Linux CI 技术债专项（Windows 覆盖率任务交付物，113 行） |
+| 260 | docs/archive/tech_debt_linux_ci.archived.md | 分析报告 | 归档（2026-10-16） | Linux CI 技术债专项（Windows 覆盖率任务交付物，原文 113 行）；**原基线与目标线已不成立**（57%→48%/门槛 ≥45%、79→70 个 GUI 文件、`--timeout` 15→60），已由根目录移至 `docs/archive/` 并加作废说明 |
 | 261 | tests/.pytest_cache/README.md | 待清理 - 非项目文档 | 排除 | pytest 缓存产物 |
 | 262 | web/.pytest_cache/README.md | 待清理 - 非项目文档 | 排除 | pytest 缓存产物 |
 | 263 | web/README.md | 待清理 | 保留 | ⚠️ **Vite 默认模板 README**（未定制，5 行，Vue3 模板说明与项目无关，未入 git）；建议替换为项目专属说明或删除 |

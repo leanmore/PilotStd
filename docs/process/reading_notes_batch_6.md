@@ -29,7 +29,7 @@
 | docs/testing/handler-health-report-2026-08-02.md | 08-02 | Handler 健康度快照（清理后） | 保留（作为清理基准记录） |
 | docs/testing/project-coverage-survey-2026-07-31.md | 07-31 | 覆盖率现状调查（305 行） | 保留（覆盖率基线参考） |
 | docs/testing/trinity-system-health-survey-2026-07-31.md | 07-31 | 三位一体体系健康度快照（317 行） | 保留 |
-| tech_debt_linux_ci.md | 08-01 | Linux CI 技术债专项（P0 GUI 挂起 79 文件） | 保留（Linux CI 治理输入） |
+| docs/archive/tech_debt_linux_ci.archived.md | 08-01 | Linux CI 技术债专项（P0 GUI 挂起 79 文件） | **已归档（2026-10-16）**：原基线与目标线不成立（实测 70 个 GUI 文件、`--timeout=60`、覆盖率 48%/门槛 ≥45%），由根目录移至 `docs/archive/` 并加作废说明 |
 
 ## 3. 结论
 

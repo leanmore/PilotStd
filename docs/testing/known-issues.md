@@ -3,12 +3,12 @@
 | 属性 | 值 |
 |------|-----|
 | 状态 | 活跃 |
-| 版本 | v1.4 |
+| 版本 | v1.6 |
 | 创建日期 | 2026-07-14 |
-| 最后更新 | 2026-09-26（新增第 8 项：下载链 verifyCode 恒被拒；第 6 项状态改「已关闭」） |
+| 最后更新 | 2026-10-16（第 4 项改判"机制侧已缓解、闭环证据待复测"；第 5/7 项改标已修复；第三节 G-032 设计保留项按实测更正为 17 条；修正 2.1 小节编号） |
 | 关联 | `tests/test_adapters.py`、`tests/test_e2e_adapters.py` |
 
-本文档记录当前已知但尚未修复的问题。已修复的问题不在此列。
+本文档记录**已知问题及其处置状态**（未修复的排在前面，已修复/已关闭的保留在册并标注依据——保留是为了让"这个问题曾经存在、何时怎么修的"可追溯，不再作为待办）。
 
 ## 一、未修复问题
 
@@ -37,10 +37,10 @@
 | 属性 | 值 |
 |------|-----|
 | 问题描述 | 收藏下载链对**每条记录**发送 `download_started` / `download_failed` / `archive_abandoned` 通知，单日 150~200 条，触发 Telegram `HTTP 429 Too Many Requests` 限流；实测近半月 1119 条通知中 **622 条投递失败（55.6%）** |
-| 影响范围 | 通知可达性（用户看不到过半告警）；渠道重试退避只能缓解单条，无法抵消量级 |
-| 当前状态 | 未修复（仅 telegram 渠道有 3 次退避重试） |
-| 证据 | `GET /api/notification/logs` 状态分布 success 497 / failed 622；容器日志 429 提及 3000+ 次 |
-| 计划修复 | 链路通知聚合/限速（started 合并、failed 按批汇总），复用现有通知聚合器 |
+| 影响范围 | 通知可达性（用户看不到过半告警）；原判"渠道重试退避只能缓解单条，无法抵消量级"**已不成立**——发送量侧已接批次聚合（见下） |
+| 当前状态 | **机制侧已缓解（2026-10-16 实测）**：①**渠道层自适应退避**——`pilotstd/core/notification/channels/telegram.py:26-55`（`_parse_retry_after` 优先采用服务端给出的 `retry after`；`_RETRY_AFTER_CAP_SECONDS = 60.0`；实测服务端给 3~44 秒，原本地固定退避仅 2+4 秒 ⇒ 3 次尝试全撞限流）；②**发送量侧批次聚合**——`pilotstd/core/notification/batch.py:51` 的 `batch_scope()`（一次导入共用同一批次键）＋`pilotstd/core/notification/aggregate_keys.py:76-95`（①批次×收敛类；②`2<SEP>daily` 日常桶）⇒ 收藏下载链不再"每条记录一条通知"。**⚠️ 闭环证据未复测**：改善后的成功率**待部署后复测**，触发条件＝**下次通知量统计复核** |
+| 证据 | 原始（2026-09-21）：`GET /api/notification/logs` 状态分布 success 497 / failed 622；容器日志 429 提及 3000+ 次。现状（2026-10-16 代码实测）：`telegram.py:26-55`、`batch.py:51`、`aggregate_keys.py:76-95` |
+| 计划修复 | 机制已落地（见上）；**唯一剩余动作＝部署后复测一次通知成功率**，把 55.6% 换成实测值（复核口径：`GET /api/notification/logs` 状态分布） |
 
 ### 5. 采标标准被当作"失败"重试 7 次（2026-09-21 巡检）
 
@@ -48,9 +48,9 @@
 |------|-----|
 | 问题描述 | 采标标准（版权受限、自动跳过）与"非国标"在 `favorite_download.py` 中以 `FavoriteArchiveError` 抛出，链路按可重试失败处理 → 每条耗尽 7 天重试窗口后才 abandoned，并发出"归档任务放弃"通知 |
 | 影响范围 | 无效重试与通知噪音（实测 6 条 × 7 天）；对用户而言是"永久失败却被反复重试" |
-| 当前状态 | 未修复 |
-| 证据 | 容器日志 `采标标准，版权受限，自动跳过` 6 条/天 × 09-14~09-20 |
-| 计划修复 | 引入业务终态异常类型，链路识别后直接终态并只通知一次 |
+| 当前状态 | **✅ 已修复**（提交 `ea8f57aa` 2026-09-21T20:01:58+08:00）——引入业务终态异常：`pilotstd/tasks/favorite_download.py:26` 新增 `FavoriteSkip(FavoriteArchiveError)`（基类见 `:20`），类别闸/版权闸命中时抛出（`:242` 非国标、`:251` 采标＝`ADOPTED_SKIP_MESSAGE`）；链路侧 `pilotstd/services/favorite_chain_processor.py:330` 捕获 `FavoriteSkip` 直接置终态（`:403` 不写 failed ⇒ 不消耗 7 天重试窗口）。后续 `4a7a6b6c` 2026-10-02T18:41:18+08:00 追加"已放弃"告终汇总与原因分类（`favorite_chain_processor.py:151-169`，采标 → `("copyright", False)`） |
+| 证据 | 原始：容器日志 `采标标准，版权受限，自动跳过` 6 条/天 × 09-14~09-20。现状：上列代码行＋回归用例 `tests/test_favorite_download.py:29-30`（`FavoriteSkip` 继承 `FavoriteArchiveError`）、`tests/test_abandoned_summary.py:52-54`（版权 → 永久／重试无效） |
+| 计划修复 | 已完成（原计划"引入业务终态异常类型，链路识别后直接终态并只通知一次"即所实施项） |
 
 ### 6. `user_favorites.archive_retry_count` 列缺失导致状态接口 500（2026-09-21 巡检）
 
@@ -68,8 +68,9 @@
 |------|-----|
 | 问题描述 | 日志出现 `SQL执行失败: INSERT INTO daily_quota (site_name, query_date, count) VALUES (?, ?, 0)`，09-14 起 1~2 次/天 |
 | 影响范围 | 配额计数可能漏记（不影响下载主流程） |
-| 当前状态 | 未修复 |
-| 计划修复 | 改为 `INSERT OR IGNORE` 或显式处理唯一冲突 |
+| 当前状态 | **✅ 已修复**（提交 `3e23bbdf` 2026-09-21T20:47:30+08:00）——两处补行均改为 `INSERT OR IGNORE`：`pilotstd/query/daily_quota.py:72`（`_ensure_today_rows`）与 `:114`（`record_usage`） |
+| 证据 | 原始：日志 `SQL执行失败: INSERT INTO daily_quota (site_name, query_date, count) VALUES (?, ?, 0)`，09-14 起 1~2 次/天。现状：上列两行＋回归用例 `tests/test_core.py:884-903`（`test_ensure_today_rows_survives_insert_race`，2026-10-16 实跑通过） |
+| 计划修复 | 已完成（原计划"改为 `INSERT OR IGNORE` 或显式处理唯一冲突"即所实施项） |
 
 ### 8. 收藏下载链 verifyCode 恒被拒（2026-09-24~26 现场）
 
@@ -96,7 +97,7 @@
 | `stress_winui.py` | 由 stress_runner.py 显式调用 |
 | `gui/` | GUI 测试需 Qt 环境，CI 中由独立 job 运行 |
 
-### 3. pilotstd/wechat_ip/ — 暂不纳入单元测试覆盖率考核
+### 2.1 pilotstd/wechat_ip/ — 暂不纳入单元测试覆盖率考核
 
 | 属性 | 值 |
 |------|-----|
@@ -109,15 +110,21 @@
 - **当前保障**：`docker/app.py` 中注册为生产 API 路由，可通过集成测试验证；故障影响局限于"企业微信 IP 白名单更新失败"，属于可容忍的边缘功能降级
 - **后续计划**：评估 Playwright E2E 容器化测试替代方案
 
-## 三、G-032 设计保留项（2026-08-21 登记）
+## 三、G-032 设计保留项（2026-08-21 登记；2026-10-16 按实测更正数字）
 
-> 以下 8 条 G-032 警告为**设计保留**（非遗漏），由迁移与治理流程明确裁决，无需修复。运行 `python scripts/check_g_032_doc_health.py` 时仍会显示，属预期行为。
+> 以下 **17 条** G-032 警告为**设计保留**（非遗漏），由迁移与治理流程明确裁决，无需修复。运行 `python scripts/check_g_032_doc_health.py` 时仍会显示，属预期行为。
+> **2026-10-16 实测**：`python scripts/check_g_032_doc_health.py` ⇒ `🟡 G-032 守护通过（有警告）: 17 warning(s)`，EXIT=0。
+> 原登记的"8 条"及分项数字均已按实测更正（第 1 条 21 天 → **20 天**；`gates.md` 失效引用 **9 处**、`trinity-technical-spec-v2.md` **1 处**为新增列出项；原第 2 条 `AGENTS.md` 引用警告**已消失**）。
+> **本批更新后复跑**（同一批内）：`16 warning(s)`、EXIT=0——第 1 条"未更新"警告随本文档本次更新自然消除，其余 16 条保持。
 
 | # | 警告内容 | 保留理由 |
 |---|----------|----------|
-| 1 | `docs/testing/known-issues.md 已 21 天未更新` | 宽限期内（上限 14 天），本文档更新即自然消除 |
-| 2 | `AGENTS.md 引用了不存在的文件: ~/.claude/CLAUDE.md` | 历史来源标注，用户裁决保留（Claude Code 迁移记录） |
-| 3-8 | `STATUS.md:23/49/57-60 含 [legacy-manual] 标记的数值`（6 条） | 设计如此——手动维护数值，标记 `[legacy-manual]` 走宽限期，待自动化指标接管后清除 |
+| 1 | `docs/testing/known-issues.md 已 20 天未更新（核心状态上限 14 天，宽限期内）` | 宽限期内（2026-10-16 实测 20 天；原写 21 天）；本文档本次更新后即自然消除 |
+| 2 | `docs/governance/gates.md` 引用了 **9 处**不存在的文件：`pilotstd/core/_scan.py`、`pilotstd/ui/main_window.py`、`config/service.py`、`action.yml`、`pilotstd/core/i18n.py`、`manager/facade/_scan.py`、`check_i18n_hardcoded.py foo.py`、`_query_exec.py`、`pilotstd/core/parser.py` | 设计如此——G-032 维度 3 从 `gates.md` 的**历史版本行**抽取路径，含已删除文件与示例命令参数（`check_i18n_hardcoded.py foo.py`）；历史行不回溯改写 |
+| 3 | `docs/governance/trinity-technical-spec-v2.md` 引用了不存在的文件: `docs/metrics/data_dictionary_template.md` | 同上（历史引用；规范正文保留） |
+| 4-9 | `STATUS.md:23/49/57-60 含 [legacy-manual] 标记的数值`（6 条） | 设计如此——手动维护数值，标记 `[legacy-manual]` 走宽限期，待自动化指标接管后清除 |
+
+> **历史记录（不删除）**：原登记第 2 条 `AGENTS.md 引用了不存在的文件: ~/.claude/CLAUDE.md`（历史来源标注，用户裁决保留）在 **2026-10-16 实测中已不再出现在警告列表**（`git grep -n "claude/CLAUDE.md" -- AGENTS.md` 零命中）⇒ 该引用已被处理。
 
 ## 四、门禁联动
 
@@ -135,6 +142,7 @@
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
+| v1.6 | 2026-10-16 | 按实测更正：第 4 项（Telegram 429）改判「机制侧已缓解（自适应退避＋批次聚合），闭环证据待部署后复测，触发条件＝下次通知量统计复核」；第 5 项（采标被当失败重试 7 次）改标已修复（`ea8f57aa`，2026-09-21T20:01:58+08:00）；第 7 项（`daily_quota` 偶发写入失败）改标已修复（`3e23bbdf`，2026-09-21T20:47:30+08:00）；第三节 G-032 设计保留项由「8 条」更正为实测 17 条并补齐分项；原 `### 3.` 编号错位修正为 `### 2.1` |
 | v1.5 | 2026-09-26 | 新增第 8 项（下载链 verifyCode 恒被拒，已修复待部署验证）；第 6 项状态改「已关闭」（端点已于 #19 删除）；头部「最后更新」同步 |
 | v1.4 | 2026-09-21 | 新增第 4~7 项（局域网容器巡检结论）：Telegram 429 通知丢失 55.6%、采标被当失败重试 7 次、`archive_retry_count` 缺列致状态接口 500、`daily_quota` 偶发写入失败 |
 | v1.0 | 2026-07-14 | 初始版本，记录 njbz365 match_status 和 StdGovAdapter e2e 两个已知问题 |

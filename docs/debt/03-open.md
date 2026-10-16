@@ -36,6 +36,7 @@
 | **D-3** | **观察项「主题判定改为事件键优先、关键词兜底」** | **建议保持待排期** | 属设计改进而非缺陷；现有 i18n 契约表兜底已被 `tests/test_notification_aggregator_topic_i18n.py` 锁定 |
 | **D-4** | **Phase1 检查项 2（pre-commit 增量校验 + 3s 超时熔断）与检查项 5（受保护路径 `git diff --exit-code` Job）** | **建议关闭为"已接受"** | 检查项 5 的实质目标（防生成物漂移）已由 `check_capabilities_sync.py` 覆盖；检查项 2 属早期阶段的性能优化，当前 pre-commit 全量跑在本机约 3~5 分钟、可接受 |
 | **D-5** | **Phase1 检查项 7（把 Phase 1 拆成 ≥3 P0 + 2 P1 Story）** | **建议关闭为"已过时"** | Phase 1 的交付物已全部落地（检查项 1/4/6 均已实现），再补 Story 文档无收益 |
+| **D-6** | **会话上下文机制无数据落点**：`src/types/bootstrap.py:33` 声称 `context` 是"从 `local-session-notes.md` 解析"的会话上下文快照，`docs/governance/development-flow.md` 也 5 处引用该文件；但 `local-session-notes.md` 实测 **1 字节**（仅换行）、**最后写入 2026-07-27T20:20:00+08:00**（81 天前）、且被 `.gitignore:60` 忽略 ⇒ 该机制当前**没有任何数据** | **建议二者之一**：① 若仍要这个机制 ⇒ 明确"谁来写、何时写"，并把文件从 gitignore 移出（否则随容器/机器丢失）；② 若不再需要 ⇒ **下线**（改掉 `bootstrap.py` 的 docstring 与 `development-flow.md` 的 5 处描述），避免下一个人按文档去找一个空文件 | 本轮实测发现（**子代理在清点中被要求"不要删"**，故保留原状待裁定） |
 
 ## 四、本次（2026-10-16）由我直接裁定关闭的项
 
