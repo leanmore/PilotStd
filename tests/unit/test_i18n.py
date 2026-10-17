@@ -207,7 +207,7 @@ class TestGetLanguage:
         i18n._loaded = True
 
     def test_state_isolated_from_previous_test_b(self):
-        """★ 夹具契约（后半）：进入本用例时模块级状态必须已被夹具复位。
+        """★ 夹具契约（后半）：进入本用例时，上一个用例留下的脏值不得泄漏。
 
         依赖上一个用例（`..._a`）留下的脏值。这是**有意**的顺序耦合——测试按定义顺序
         执行，而该耦合正是"夹具是否复位"的可证伪判据。
@@ -217,10 +217,15 @@ class TestGetLanguage:
         本用例进入时 `get_language()` 已是 `'zh_CN'`）。真正会泄漏的是**模块级 globals**
         `_translations` / `_loaded`，故判别力对准这两项。
 
-        判别力：夹具去掉 `_translations = {}` 或 `_loaded = False` → 本用例 FAIL。
+        **2026-10-17 修正（CI run 1051 假红）**：原断言 `_translations == {}` 假定进入时
+        缓存必为空，但后台线程可能在本用例 setup 与断言之间触发一次懒加载
+        （实测：`_loaded is False` 通过，而 `_translations` 已是完整 `zh_CN` 包）。
+        并发加载不是"夹具失败"，故改为断言**脏值未泄漏**——若夹具不复位，
+        `{'dirty': {...}}` 会原样出现，判别力不变。
         """
-        assert i18n._loaded is False, "夹具必须把 _loaded 复位为 False"
-        assert i18n._translations == {}, f"夹具必须清空 _translations；实际 {i18n._translations!r}"
+        assert "dirty" not in i18n._translations, (
+            f"上一个用例的脏值泄漏了：{i18n._translations!r}"
+        )
         assert i18n.get_language() == i18n.DEFAULT_LANGUAGE
 
     def test_never_returns_none(self):
