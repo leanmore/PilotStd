@@ -185,10 +185,10 @@ class OrganizeHandler:
                         parsed.std_name = name
                         logger.info("[CACHE] std_name 命中: %s -> %s", std_no, name)
                         return parsed
-                except (json.JSONDecodeError, TypeError):
-                    pass
-        except Exception:
-            pass
+                except (json.JSONDecodeError, TypeError) as e:
+                    logger.debug("result_json parse failed for %s: %s", std_no, e)
+        except Exception as e:
+            logger.debug("standard_info_cache lookup failed for %s: %s", std_no, e)
         return parsed
 
     # 归档_—统一归档入口，所有端（命令行//用户界面）均通过此方法归档

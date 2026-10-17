@@ -120,8 +120,8 @@ class OrganizerMirror:
                                     for _f in _fs:
                                         try:
                                             os.chmod(os.path.join(_r, _f), stat.S_IWRITE)
-                                        except OSError:
-                                            pass
+                                        except OSError as e:
+                                            logger.debug("clear readonly failed (%s): %s", _f, e)
                             shutil = __import__("shutil")
                             shutil.move(sub_src, sub_dst)
                             result["moved"] += 1
@@ -135,8 +135,8 @@ class OrganizerMirror:
                 for _f in _fs:
                     try:
                         os.chmod(os.path.join(_r, _f), stat.S_IWRITE)
-                    except OSError:
-                        pass
+                    except OSError as e:
+                        logger.debug("clear readonly failed (%s): %s", _f, e)
         os.makedirs(os.path.dirname(dst), exist_ok=True)
         shutil = __import__("shutil")
         shutil.move(src_dir, dst)

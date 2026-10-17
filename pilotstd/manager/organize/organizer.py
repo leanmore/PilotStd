@@ -214,8 +214,8 @@ class OrganizerCore:
             if self._cfg.get("organize.auto_clean_source", False):
                 try:
                     os.remove(src)
-                except OSError:
-                    pass
+                except OSError as e:
+                    logger.debug("remove source after skipped archive failed (%s): %s", src, e)
         else:
             result["failed"] += 1
 
@@ -274,6 +274,6 @@ class OrganizerCore:
                 try:
                     os.remove(old_path)
                     logger.info("去重清理旧路径: %s", old_path)
-                except OSError:
-                    pass
+                except OSError as e:
+                    logger.debug("remove duplicate old file failed (%s): %s", old_path, e)
             self._file_index.remove(old_path)

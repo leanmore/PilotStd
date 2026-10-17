@@ -90,8 +90,8 @@ class ScanHandler:
             from pilotstd.core.cache_manager import CacheManager, DataSource
 
             CacheManager(self._core.db).invalidate_by_source(DataSource.FILE_INDEX)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("invalidate FILE_INDEX cache failed: %s", e)
 
         return parsed
 
@@ -174,8 +174,8 @@ class ScanHandler:
             from pilotstd.core.cache_manager import CacheManager, DataSource
 
             CacheManager(self._core.db).invalidate_by_source(DataSource.FILE_INDEX)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("invalidate FILE_INDEX cache failed: %s", e)
 
         return parsed
 

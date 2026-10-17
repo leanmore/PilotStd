@@ -76,6 +76,8 @@ StandardManager (BaseFacade)
 
 - **适配器状态读取的失败可见性（2026-10-17，体检 D-8/D-9）**：`AdapterManager.get_adapter_status` 读 `adapter_state` 失败、`frozen_until` 解析失败、`get_all_health` 读失败原先 `except: pass`（状态会误报 `normal`、全量健康返回空列表）；现统一记 warning 后再回退，**接口语义不变**。契约由 `tests/test_silent_error_observability_batch2.py` 锁定。
 
+- **归档/扫描路径的失败可见性（2026-10-17，体检 D-8 第 6 批）**：`expire`/`mirror`/`organizer` 的文件清理 `OSError`、`_backfill_std_name` 的缓存查询与 `result_json` 解析失败、`scan_directory(_stream)` 的缓存失效失败，均由 `pass` 改为 debug（行为不变）；契约由 `tests/test_silent_error_observability_batch6.py` 锁定。
+
 ## 门面模式
 
 - `StandardManager` 是唯一对外暴露的业务入口

@@ -48,11 +48,11 @@ def merge_expire_from_source(cfg: Any, root_dir: str | None, parsed_list: list[A
                     try:
                         _safe_move(src_item, tgt_item, on_exists="skip")
                         merged += 1
-                    except OSError:
-                        pass
+                    except OSError as e:
+                        logger.debug("merge expire file failed (%s -> %s): %s", src_item, tgt_item, e)
             try:
                 if not os.listdir(src_expire):
                     os.rmdir(src_expire)
-            except OSError:
-                pass
+            except OSError as e:
+                logger.debug("rmdir empty expire dir failed (%s): %s", src_expire, e)
     return merged
