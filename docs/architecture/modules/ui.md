@@ -48,6 +48,8 @@ MainWindow (QMainWindow)
 
 - **文件树失败可见性（2026-10-17，体检 D-8 第 5 批）**：`_file_tree_ops` 的驱动器就绪回调在 sip 不可用/树已析构时直接 return（原实现无任何痕迹）、图标设置失败与单条目 `OSError` 被 `pass`；现统一补 debug 日志。契约由 `tests/gui/test_file_tree_ops_logging.py` 锁定。
 
+- **UI 关闭/主题/事件总线的失败可见性（2026-10-17，体检 D-8 第 8 批）**：`_ui_setup_ops` 的 SIGTERM 注册失败、聚合器关闭失败，`event_bus` 的 reset 期 `processEvents` 与重复取消订阅，`_cleanup` 的目录扫描/清只读，`themes` 的 DWM 深色标题栏，均由 `pass` 改 debug/warning；契约由 `tests/gui/test_event_bus_logging.py` 锁定。
+
 ## Windows 端事件分流（W2，2026-10-03）
 
 > 设计见 [notification-system-design/00-framework.md](../../plans/notification-system-design/00-framework.md) §3.5 与

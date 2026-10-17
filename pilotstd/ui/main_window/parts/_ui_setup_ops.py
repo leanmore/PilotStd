@@ -403,8 +403,9 @@ def _setup_auto_save(self) -> None:
     atexit.register(self._on_atexit_save)
     try:
         signal.signal(signal.SIGTERM, lambda *a: self._on_auto_save())
-    except (ValueError, OSError):
-        pass
+    except (ValueError, OSError) as e:
+        # 非主线程注册信号处理器会抛 ValueError：属预期，但要留痕
+        logger.debug("SIGTERM handler not installed: %s", e)
 
 
 # ── 关闭聚合器 ──
@@ -416,5 +417,6 @@ def _on_shutdown_aggregator(self) -> None:
         from pilotstd.core.notification_aggregator import NotificationAggregator
 
         NotificationAggregator().shutdown()
-    except Exception:
-        pass
+    except Exception as e:
+        # 退出路径：关闭失败不能阻断退出，但必须可观测
+        logger.warning("shutdown notification aggregator failed: %s", e)

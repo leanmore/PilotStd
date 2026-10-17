@@ -131,8 +131,8 @@ class CleanupHandler:
                     dir_tree[entry.path] = [c.name for c in children]
                 except OSError:
                     continue
-        except OSError:
-            pass
+        except OSError as e:
+            logger.debug("scan cleanup dir tree failed (%s): %s", path, e)
 
         # ：纯内存分析
         empty_dirs, expire_only = self._engine.scan_empty_dirs(dir_tree, expire_folder_name=expire_folder)
@@ -177,8 +177,8 @@ class CleanupHandler:
                         for _f in _files:
                             try:
                                 os.chmod(os.path.join(_root, _f), _stat.S_IWRITE)
-                            except OSError:
-                                pass
+                            except OSError as e:
+                                logger.debug("clear readonly during cleanup failed (%s): %s", _f, e)
                 try:
                     shutil.rmtree(d, onerror=lambda _func, _path, _excinfo: None)
                     deleted += 1

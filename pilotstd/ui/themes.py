@@ -3,7 +3,10 @@
 # 重构：提取公共模板+配色变量字典，减少重复代码
 
 import ctypes
+import logging
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 # ═══════════════════════════════════════════════════════════ 分隔
 # 配色方案字典（与端脚本保持一致的色值）
@@ -284,8 +287,9 @@ def _set_titlebar_dark_mode(hwnd: int, dark: bool) -> None:
             ctypes.byref(ctypes.c_int(1 if dark else 0)),
             ctypes.sizeof(ctypes.c_int),
         )
-    except (AttributeError, OSError):
-        pass
+    except (AttributeError, OSError) as e:
+        # 非 Windows / DWM 不可用：深色标题栏降级为系统默认，但留痕
+        logger.debug("DWM dark title bar not applied: %s", e)
 
 
 def apply_theme(app: Any, theme_name: str) -> None:

@@ -102,9 +102,9 @@ class EventBus(QObject):
                 app = QCoreApplication.instance()
                 if app is not None:
                     app.processEvents()
-        except RuntimeError:
-            # 实例可能已被 GC 或 QApplication 未就绪，安全忽略
-            pass
+        except RuntimeError as e:
+            # 实例可能已被 GC 或 QApplication 未就绪，安全忽略（但要留痕）
+            logger.debug("processEvents during reset skipped: %s", e)
         finally:
             with cls._lock:
                 cls._resetting = False  # ④ 复位，允许后续 publish 正常入队
@@ -147,8 +147,8 @@ class EventBus(QObject):
             if event in self._subscribers:
                 try:
                     self._subscribers[event].remove(callback)
-                except ValueError:
-                    pass
+                except ValueError as e:
+                    logger.debug("unsubscribe: callback not registered (%s): %s", event, e)
 
     # ── 事件发布 ─────────────────────────────────────────────
 
