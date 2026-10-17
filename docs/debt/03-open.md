@@ -14,7 +14,7 @@
 |---|---|---|---|---|---|
 | **T-40** | V6 wechat 真发未取证 | `观察中`（用户 2026-10-17 裁定：**后续再说**） | 本地 `data/config.json` 的 `notification.channels.wechat` = `{"enabled": true, "webhook_url": ""}`（2026-10-16T22:07 实测）⇒ 非部署环境无法真发；渠道契约/错误映射/签名/i18n 单测已覆盖 | 部署环境补一次真发取证（会真的发一条消息到企微） | 用户择期（本轮不做） |
 | **T-42** | 渠道调用频率限制未逐家实现 | `基座已具备`（2026-10-17） | 实测（2026-10-16）：限流/退避**只长在 telegram**（27 处命中），`dingtalk` 1、`feishu` 1、`wechat` 4、`base.py` **0** ⇒ 一次 429/抖动只有 telegram 退避重试，其余三家当场丢通知。**2026-10-17 已修**：重试/退避提升为渠道基座 `base._with_retry`（统一 3 次、退避 (2,4)、服务端 `retry after` 优先且截顶 60s、429/5xx 与限流关键词兜底、错误 120s 去重），**四家渠道全部接入**（提交 `191b7259`，2026-10-17T06:19:36+08:00；测试 195 passed） | **残留**：各渠道限流的**具体错误码未逐家取证**（钉钉官方文档 JS 渲染取不到正文；飞书/企微未逐码核对）⇒ 现用 `looks_rate_limited` 关键词兜底，取证到 `errcode`/`code` 后改为**按码判定** | 取到任一家官方限流码时 |
-| **T-43** | 企微回调（XML+MsgSignature+AES）未实现 | `实施中`（2026-10-17 开工） | 原 `pilotstd/core/notification/callback.py` 对 wechat 一律 501（该处注释自述"能力调查缺口未取证"）。本日按企业微信 WXBizMsgCrypt 标准实现入站（URL 验证 GET + 消息 POST 解密入分发链路），入口 `docker/api/notification_callback.py` | 实现 + 测试 + G-031/§七 联动后收口 | 用户 2026-10-17 批准（"渠道基础先做好"） |
+| **T-43** | 企微回调（XML+MsgSignature+AES）未实现 | `已实现·待取证`（2026-10-17 更新） | 原 `pilotstd/core/notification/callback.py` 对 wechat 一律 501（注释自述"能力调查缺口未取证"）。**已由 `bc3b4822` 落地**：`wechat_crypto.py`（SHA1 验签 + AES-256-CBC 解密，常量时间比较）、`callback.py`/`callback_service.py` 企微分支并入既有幂等/授权出口、`docker/api/notification_callback.py` 的 GET 回明文 `echostr`、POST 回明文 `success`（原 501）；测试三组 **56 例**（crypto 28 / 服务 16 / 端点 12） | **残留取证**：部署后取一次真实回调报文，确认 `EventKey`/`TaskId`/`FromUserName` 字段假设；`WechatChannel.capabilities().supports_callback` 仍为 `False`（语义是"我方下发消息带可回调按钮"，需前端联动，单独立批） | 部署环境收到首条企微回调时 |
 
 ## 二、可动作项（有明确动作，按"值不值得现在做"排序）
 
