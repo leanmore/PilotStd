@@ -91,7 +91,7 @@ class SettingsConfigIO:
     def _save_general(self) -> None:
         """保存通用设置。"""
         h = self._h
-        data = {"appearance.hyphen_style": True}
+        data: dict[str, Any] = {"appearance.hyphen_style": True}
 
         if h._lang_combo:
             idx = h._lang_combo.currentIndex()

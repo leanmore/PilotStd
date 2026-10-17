@@ -397,3 +397,5 @@ GB/T 标准被误判成非国标（已由 `test_slash_codes_are_routable` 钉住
    python -m pytest tests/download/adapters/test_openstd_download.py tests/test_download.py -q
    python scripts/check_g_031_docs_sync.py
    ```
+
+- **2026-10-18（D-17）**：`download/session.py` 的 `request` 覆写与 `requests.Session.request` 签名不完全一致（仅注入默认 timeout），以 `# type: ignore[override]` 标注；运行行为不变。

@@ -165,7 +165,7 @@ class PendingQueryDialog(QDialog):
             return
         stop_worker_gracefully(
             w,
-            signals=(w.result_ready, w.finished_signal, w.error),
+            signals=(w.result_ready, w.finished_signal, w.error),  # type: ignore[attr-defined]
             timeout_ms=3000,
         )
 
@@ -299,7 +299,7 @@ class PendingQueryDialog(QDialog):
             from ..core.config import ConfigManager
 
             cfg = ConfigManager()
-            return cfg.get("announcement.enabled", False)
+            return bool(cfg.get("announcement.enabled", False))
         except Exception:
             logger.debug("待确认查询公告设置失败", exc_info=True)
             return False

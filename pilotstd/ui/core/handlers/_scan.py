@@ -200,21 +200,21 @@ class ScanUIHandler:
         self._scan_worker = ScanWorker(self._mgr, dir_path, pause_event=self._pause_event, parent=self._parent)
         from PyQt6.QtCore import Qt
 
-        self._scan_worker.batch_ready.connect(self.on_scan_batch_ready, Qt.ConnectionType.QueuedConnection)
-        self._scan_worker.batch_ready.connect(
+        self._scan_worker.batch_ready.connect(self.on_scan_batch_ready, Qt.ConnectionType.QueuedConnection)  # type: ignore[call-arg]
+        self._scan_worker.batch_ready.connect(  # type: ignore[call-arg]
             lambda data: self._publish_event("scan.batch_ready", {"rows": data}),
             Qt.ConnectionType.QueuedConnection,
         )
-        self._scan_worker.progress.connect(self.on_raw_progress, Qt.ConnectionType.QueuedConnection)
-        self._scan_worker.finished_signal.connect(self.on_scan_finished, Qt.ConnectionType.QueuedConnection)
-        self._scan_worker.finished_signal.connect(
+        self._scan_worker.progress.connect(self.on_raw_progress, Qt.ConnectionType.QueuedConnection)  # type: ignore[call-arg]
+        self._scan_worker.finished_signal.connect(self.on_scan_finished, Qt.ConnectionType.QueuedConnection)  # type: ignore[call-arg]
+        self._scan_worker.finished_signal.connect(  # type: ignore[call-arg]
             lambda s, f: self._publish_event("scan.finished", {"success": s, "failed": f}),
             Qt.ConnectionType.QueuedConnection,
         )
-        self._scan_worker.error.connect(
+        self._scan_worker.error.connect(  # type: ignore[call-arg]
             lambda msg: self._status_cb(f"扫描失败: {msg}"), Qt.ConnectionType.QueuedConnection
         )
-        self._scan_worker.error.connect(
+        self._scan_worker.error.connect(  # type: ignore[call-arg]
             lambda msg: self._publish_event("scan.error", {"error": msg}),
             Qt.ConnectionType.QueuedConnection,
         )

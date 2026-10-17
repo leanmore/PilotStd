@@ -43,7 +43,9 @@ class RulesPage(QWidget):
         self.rule_tree.setHeaderLabels([_("header_rule_name"), _("header_task_type"), _("header_url")])
         self.rule_tree.setColumnWidth(0, 120)
         self.rule_tree.setColumnWidth(1, 60)
-        self.rule_tree.header().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        header = self.rule_tree.header()
+        if header is not None:
+            header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
         self.rule_tree.itemDoubleClicked.connect(self._on_edit_rule)
         btn_layout = QVBoxLayout()
         btn_add = QPushButton(_("btn_add"))
@@ -79,9 +81,10 @@ class RulesPage(QWidget):
         raw = self._config.get("sites.rules", "[]")
         if isinstance(raw, str):
             try:
-                return json.loads(raw)
+                parsed = json.loads(raw)
             except json.JSONDecodeError:
                 return []
+            return parsed if isinstance(parsed, list) else []
         # 可能将数据数组反序列化为程序
         if isinstance(raw, list):
             return raw

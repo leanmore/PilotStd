@@ -455,6 +455,41 @@ class TestAPIEndpoints(unittest.TestCase):
         # 校验失败时不应调用 archive_standards
         mock_mgr.archive_standards.assert_not_called()
 
+    def test_archive_rejects_source_path_outside_roots(self):
+        """D-22：客户端指定库外路径（如 /etc/passwd）必须 400，且不得进入归档。"""
+        mock_mgr = MagicMock()
+        mock_mgr.cfg.get.return_value = "/tmp/library"
+        self.client.app.dependency_overrides[get_manager_dep] = lambda: mock_mgr
+        r = self.client.post(
+            "/api/archive",
+            json={
+                "items": [
+                    {
+                        "source_path": "/etc/passwd",
+                        "logical_code": "GB/T 1-2020",
+                        "number": 1,
+                        "year": 2020,
+                    }
+                ],
+                "word_source_root": "",
+                "run_id": "test-run",
+            },
+        )
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("outside allowed roots", r.text)
+        mock_mgr.archive_standards.assert_not_called()
+
+    def test_validate_source_path_helper(self):
+        """D-22：允许根内通过、根外抛 400。"""
+        from fastapi import HTTPException
+
+        from docker.api.archive import _validate_source_path
+
+        _validate_source_path("/inbox/a.pdf", "")  # Docker 固定挂载点内
+        with self.assertRaises(HTTPException) as ctx:
+            _validate_source_path("/etc/passwd", "")
+        self.assertEqual(ctx.exception.status_code, 400)
+
     # ── Query ──
 
     def test_query_standards_returns_results(self):

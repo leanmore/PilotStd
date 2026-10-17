@@ -29,11 +29,15 @@ class _TableOpsAdapter:
 
     def add_table_row(self, data: dict) -> int:
         """将 dict 转换为 RowUpdate 后委托给核心回调，返回行号（当前固定为0）。"""
+        from typing import cast
+
+        from pilotstd.models import ParsedStdInfo
+
         from ..workers import RowUpdate
 
         update = RowUpdate(
             seq=data.get("seq", 0),
-            parsed=data.get("parsed"),
+            parsed=cast(ParsedStdInfo, data.get("parsed")),
             work_status=data.get("work_status", ""),
             total=data.get("total", 0),
         )
@@ -41,7 +45,7 @@ class _TableOpsAdapter:
         return 0
 
     def find_row_by_seq(self, seq: int) -> int:
-        return self._c._find_row_by_seq(seq)
+        return int(self._c._find_row_by_seq(seq))
 
     def clear_table(self) -> None:
         self._c._clear_table()
@@ -73,10 +77,12 @@ class _DialogOpsAdapter:
         from PyQt6.QtWidgets import QMessageBox
 
         result = self._c._question_dlg(title, msg)
-        return result == QMessageBox.StandardButton.Yes
+        return bool(result == QMessageBox.StandardButton.Yes)
 
     def stage_prereq_dialog(self, title: str, msg: str, task_name: str) -> str | None:
-        return self._c._stage_prereq_dialog(title, msg, task_name)
+        """弹出阶段前置确认对话框；非字符串返回值一律折算为 None。"""
+        value = self._c._stage_prereq_dialog(title, msg, task_name)
+        return value if isinstance(value, str) else None
 
     def show_stage_dialog(self, title: str, content: str, next_action: Any = None) -> None:
         self._c._show_stage_dialog(title, content, next_action)

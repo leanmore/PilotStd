@@ -62,9 +62,9 @@ class QuerySummaryHandler:
         work_table: QTableWidget,
         parsed_results: list[ParsedStdInfo],
         suppress_dialogs: Callable[[], bool] | None,
-        register_task: Callable[..., None],
-        project_mark_dirty: Callable[[], None],
-        status_cb: Callable[[str], None],
+        register_task: Callable[..., Any],
+        project_mark_dirty: Callable[[], None] | None,
+        status_cb: Callable[[str], None] | None,
         on_download_cb: Callable[[], None] | None,
         export_pending_csv: Callable[[], str | None],
         write_pending_to_db: Callable[[list[Any]], None],
@@ -76,7 +76,7 @@ class QuerySummaryHandler:
         self._suppress_dialogs = suppress_dialogs
         self._register_task = register_task
         self._project_mark_dirty = project_mark_dirty
-        self._status_cb = status_cb
+        self._status_cb = status_cb if status_cb is not None else (lambda _msg: None)
         self._on_download_cb = on_download_cb
         self._export_pending_csv_cb = export_pending_csv
         self._write_pending_to_db_cb = write_pending_to_db
@@ -211,8 +211,9 @@ class QuerySummaryHandler:
         if layout is not None:
             layout.invalidate()
             layout.activate()
-            if layout.parentWidget():
-                layout.parentWidget().update()
+            parent = layout.parentWidget()
+            if parent is not None:
+                parent.update()
         remaining = len(self._parsed_results)
         if self._summary_total_label is not None:
             self._summary_total_label.setText(tr("summary_total_records").format(count=remaining))
@@ -321,7 +322,7 @@ class QuerySummaryHandler:
             self._write_pending_to_db_cb(pending)
 
         self._status_cb(tr("query_complete").format(total))
-        if self._project_mark_dirty:
+        if self._project_mark_dirty is not None:
             self._project_mark_dirty()
         self._register_task("查询", total, total)
 

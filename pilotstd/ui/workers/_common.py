@@ -115,10 +115,10 @@ class LogHandler(logging.Handler, QObject):
     def __init__(self, widget: QTextEdit) -> None:
         logging.Handler.__init__(self)
         QObject.__init__(self)
-        self.widget = widget
+        self.widget: QTextEdit | None = widget
         self._closed = False
         self.setFormatter(_TagFormatter())
-        self._log_signal.connect(self._append_text, Qt.ConnectionType.QueuedConnection)
+        self._log_signal.connect(self._append_text, Qt.ConnectionType.QueuedConnection)  # type: ignore[call-arg]
         self.setLevel(logging.DEBUG)
         self._buf: list[str] = []
         self._buf_timer = QTimer()

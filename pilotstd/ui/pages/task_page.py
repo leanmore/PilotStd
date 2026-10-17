@@ -171,7 +171,8 @@ class TaskPage(QWidget):
 
     def _on_selection_changed(self) -> None:
         """选中行时把明细（业务/状态/结果/时间 + 错误与结果原文）展开到下方文本框。"""
-        rows = self.task_table.selectionModel().selectedRows() if self.task_table.selectionModel() else []
+        model = self.task_table.selectionModel()
+        rows = model.selectedRows() if model is not None else []
         if not rows or not self._queue:
             self.detail_view.clear()
             return

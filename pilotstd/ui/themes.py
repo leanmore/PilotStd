@@ -282,7 +282,7 @@ def _set_titlebar_dark_mode(hwnd: int, dark: bool) -> None:
     try:
         DWMWA_USE_IMMERSIVE_DARK_MODE = 20
         ctypes.windll.dwmapi.DwmSetWindowAttribute(
-            ctypes.wintypes.HWND(hwnd),
+            ctypes.wintypes.HWND(hwnd),  # type: ignore[attr-defined]  # wintypes 仅 Windows 有
             ctypes.c_uint(DWMWA_USE_IMMERSIVE_DARK_MODE),
             ctypes.byref(ctypes.c_int(1 if dark else 0)),
             ctypes.sizeof(ctypes.c_int),

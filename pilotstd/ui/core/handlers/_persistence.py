@@ -74,6 +74,8 @@ class PersistenceHandler:
     def save_sort_state(self, work_table: QTableWidget) -> None:
         """保存表头完整状态（含排序列和排序方向）。"""
         header = work_table.horizontalHeader()
+        if header is None:
+            return
         state_bytes = header.saveState().data()
         data = self._engine.serialize_header_state(state_bytes)
         self._config.set("appearance.header_state", data)
@@ -88,7 +90,8 @@ class PersistenceHandler:
             state_bytes = self._engine.deserialize_header_state(data)
             if state_bytes:
                 header = work_table.horizontalHeader()
-                header.restoreState(QByteArray(state_bytes))
+                if header is not None:
+                    header.restoreState(QByteArray(state_bytes))
 
     # ── 列宽 ─────────────────────────────────────────────────
 

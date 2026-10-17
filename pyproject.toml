@@ -36,11 +36,10 @@ module = [
 ]
 ignore_missing_imports = true
 
-# UI 目录 Mixin 模式：PyQt6 类型系统与 mixin 架构冲突
-# (QMessageBox/QMenu/QHeaderView | None / self 非 QWidget)
-# 压制直到 mixin 重构为 QWidget 子类——参见 STATUS.md 3.14 节技术债
+# UI 主窗口仍为 Mixin 组合：PyQt6 类型系统与 mixin 架构冲突（QMessageBox/Menu/HeaderView | None、
+# self 非 QWidget）；D-17 收窄豁免范围——仅 main_window 暂缓，其余 UI 模块恢复类型检查。
 [[tool.mypy.overrides]]
-module = "pilotstd.ui.*"
+module = ["pilotstd.ui.main_window", "pilotstd.ui.main_window.*"]
 ignore_errors = true
 
 [tool.ruff]

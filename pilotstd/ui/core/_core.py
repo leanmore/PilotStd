@@ -27,6 +27,12 @@ from .handlers._scan import ScanUIHandler
 class MainWindowCore:
     """UI 核心容器，持有所有 UI Handler 实例，通过组合模式替代 Mixin。"""
 
+    # Handler 由 _init_* 系列延迟创建；显式声明类型，避免 attr-defined（D-17 收窄 mypy 豁免）
+    scan: Any
+    query: Any
+    download: Any
+    archive: Any
+
     def __init__(
         self,
         mgr: Any,

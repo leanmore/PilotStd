@@ -60,10 +60,15 @@ class ExportFileListDialog(QDialog):
         layout.addLayout(btn_layout)
 
     def _change_folder(self) -> None:
+        """选择源文件夹并刷新界面提示。"""
         path = QFileDialog.getExistingDirectory(None, "选择文件夹")
         if path:
             self.source_path = path
-            self.layout().itemAt(0).widget().setText(f"源文件夹: {path}")
+            layout = self.layout()
+            item = layout.itemAt(0) if layout is not None else None
+            widget = item.widget() if item is not None else None
+            if isinstance(widget, QLabel):
+                widget.setText(f"源文件夹: {path}")
 
     def _on_accept(self) -> None:
         self.include_path = self.include_cb.isChecked()

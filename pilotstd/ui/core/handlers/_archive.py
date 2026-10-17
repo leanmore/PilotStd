@@ -153,7 +153,7 @@ class ArchiveUIHandler:
                 self._publish_event("archive.progress", {"pct": pct}),
             ),  # type: ignore[func-returns-value]
             on_error=lambda msg: (
-                self.notify_worker_error("normalize", msg),
+                self.notify_worker_error("normalize", msg),  # type: ignore[func-returns-value]
                 self._publish_event("archive.error", {"error": msg}),
             ),
             on_finished=self._make_normalize_finished(),

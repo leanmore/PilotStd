@@ -150,7 +150,7 @@ class CleanupHandler:
             _("dialog_cleanup_title"),
             _("msg_cleanup_confirm").format(empty=len(empty_dirs), expire=len(expire_only)),
         )
-        return reply == QMessageBox.StandardButton.Yes
+        return bool(reply == QMessageBox.StandardButton.Yes)
 
     def delete_empty_dirs(self, empty_dirs: list[str], expire_only: list[str], expire_folder: str) -> int:
         """删除空目录 + 逐条确认删除仅含过期文件夹的目录。返回成功删除数。"""
@@ -308,8 +308,12 @@ class CleanupHandler:
         btn_none = QPushButton(_("deselect_all"))
         btn_ok = QPushButton(_("btn_ok"))
         btn_cancel = QPushButton(_("btn_cancel"))
-        btn_all.clicked.connect(lambda: [cb.setCheckState(0, Qt.CheckState.Checked) for cb in checkboxes])
-        btn_none.clicked.connect(lambda: [cb.setCheckState(0, Qt.CheckState.Unchecked) for cb in checkboxes])
+        def _set_all(state: Qt.CheckState) -> None:
+            for cb in checkboxes:
+                cb.setCheckState(0, state)
+
+        btn_all.clicked.connect(lambda: _set_all(Qt.CheckState.Checked))
+        btn_none.clicked.connect(lambda: _set_all(Qt.CheckState.Unchecked))
         btn_ok.clicked.connect(dlg.accept)
         btn_cancel.clicked.connect(dlg.reject)
         btn_layout.addWidget(btn_all)

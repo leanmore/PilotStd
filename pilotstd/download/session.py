@@ -35,7 +35,7 @@ class _DefaultTimeoutSession(requests.Session):
         super().__init__()
         self._default_timeout = default_timeout
 
-    def request(self, method: str, url: str, **kwargs: Any) -> requests.Response:
+    def request(self, method: str, url: str, **kwargs: Any) -> requests.Response:  # type: ignore[override]
         """未显式指定 timeout 时注入默认值（显式值优先）。"""
         kwargs.setdefault("timeout", self._default_timeout)
         return super().request(method, url, **kwargs)

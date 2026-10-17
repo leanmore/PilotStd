@@ -193,7 +193,7 @@ class DownloadFlowEngine:
 
         exponential = min(base_delay * (2**attempt), max_delay)
         jitter = random.uniform(0, exponential * 0.1)
-        return round(exponential + jitter, 3)
+        return float(round(exponential + jitter, 3))
 
     @staticmethod
     def validate_file_size(file_size: int, min_size: int = 0, max_size: int | None = None) -> dict:
