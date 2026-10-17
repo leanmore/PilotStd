@@ -62,6 +62,12 @@ pilotstd/core/
 │   │    候选集来自 `users` 表故有界）；此后与本文件其余部分**同一条路径、同一个出口**。
 │   │    `verify_wechat_url`：GET URL 验证（验签 → 解密 echostr → 返回明文），端点直接回显。
 │   ├── wechat_crypto.py — 企业微信回调加解密（WXBizMsgCrypt 等价实现，**T-43**，2026-10-17）
+│   │    ⚠️ **身份不猜（2026-10-17 修正）**：`callback_service._resolve_target_by_actor` 要求
+│   │    报文里的 `FromUserName`（企微 userid）**恰好**匹配一个用户配置的 `touser`：
+│   │    匹配 0 个（未登记）或 >1 个（两人填了同一 userid ⇒ 配置歧义）**一律拒绝**。
+│   │    原实现在"`users` 表只有一行"时回退认领该用户，会把**未知企微用户**的点击记成
+│   │    "我们的用户点的"并按该用户角色执行动作（管理员即等于放行）。企微本就能区分用户，
+│   │    只是载体不同（不是回调 URL 里的 `log_id:user_id`，而是报文 `FromUserName`）⇒ 不该猜。
 │   │    `WeChatCrypto(token, encoding_aes_key, receive_id)`：`check_signature`（SHA1 +
 │   │    `hmac.compare_digest` 常量时间）、`decrypt_message`/`encrypt_message`（AES-256-CBC，
 │   │    `iv=key[:16]`，明文 = random(16B)+长度(4B,大端)+msg+receiveid，**PKCS#7 按 32 字节块**）、

@@ -77,6 +77,25 @@ def _creds(user_id: int = 1, channel: str = "wechat") -> dict[str, str]:
     return {"token": TOKEN, "encoding_aes_key": AES_KEY, "corpid": CORP_ID, "touser": "zhangsan"}
 
 
+def _creds_for_single(user_id: int, channel: str = "") -> dict[str, str]:
+    """单用户部署：唯一一条记录，`touser=zhangsan`。"""
+    return _creds()
+
+
+def _creds_for_two_users(user_id: int, channel: str = "") -> dict[str, str]:
+    """两个用户、userid **各不相同**（用于"匹配不到任何人"的用例）。"""
+    if user_id == 1:
+        return _creds()
+    other = dict(_creds())
+    other["touser"] = "lisi"
+    return other
+
+
+def _creds_for_duplicate(user_id: int, channel: str = "") -> dict[str, str]:
+    """两个用户填了**同一个** userid ⇒ 配置歧义，必须拒绝而不是任选一个。"""
+    return _creds()
+
+
 def _crypto(receive_id: str = CORP_ID) -> WeChatCrypto:
     return WeChatCrypto(TOKEN, AES_KEY, receive_id)
 
@@ -188,21 +207,36 @@ class TestWechatRejections:
         headers, body = _encrypted_request()
         assert _handle(db, headers, body, creds={}).status == 401
 
+    def test_single_user_actor_mismatch_rejected(self):
+        """**单用户部署**下 FromUserName 匹配不到人 ⇒ 401（不因"库里只有一个人"就认领）。
+
+        2026-10-17 修正：原实现在此场景回退到唯一用户——等于把**未知企微用户**的一次点击
+        记成"我们的用户点的"并按该用户角色执行动作。企微本就能区分用户
+        （`FromUserName` = 企微 userid，与配置的 `touser` 同口径），故未匹配即拒绝。
+        """
+        db = _Db()
+        db.seed(user_id=1)
+        headers, body = _encrypted_request(from_user="wangwu")  # 与台账里的 touser=zhangsan 不符
+        outcome = handle_callback(db, "wechat", headers, body, _creds_for_single, now=NOW, credentials=_creds())
+        assert outcome.status == 401, "单用户也不得认领未匹配的 actor"
+
+    def test_duplicate_touser_is_ambiguous_rejected(self):
+        """两个用户填了同一个企微 userid ⇒ 401（配置歧义，不猜用哪一个）。"""
+        db = _Db()
+        db.seed(user_id=1)
+        db.execute("INSERT OR REPLACE INTO users (id, username, role) VALUES (?, ?, ?)", (2, "u2", "admin"))
+        headers, body = _encrypted_request(from_user="zhangsan")
+        outcome = handle_callback(db, "wechat", headers, body, _creds_for_duplicate, now=NOW, credentials=_creds())
+        assert outcome.status == 401
+
     def test_unknown_actor_without_fallback_rejected(self):
-        """多用户场景下 FromUserName 匹配不到人 ⇒ 401（单用户才回退到唯一用户）。"""
+        """多用户场景下 FromUserName 匹配不到人 ⇒ 401（任何情况都不回退）。"""
         db = _Db()
         db.seed(user_id=1)
         db.execute("INSERT OR REPLACE INTO users (id, username, role) VALUES (?, ?, ?)", (2, "u2", "admin"))
 
-        def creds_for(user_id: int, channel: str = "") -> dict[str, str]:
-            if user_id == 1:
-                return _creds()
-            other = dict(_creds())
-            other["touser"] = "lisi"
-            return other
-
         headers, body = _encrypted_request(from_user="wangwu")
-        outcome = handle_callback(db, "wechat", headers, body, creds_for, now=NOW, credentials=_creds())
+        outcome = handle_callback(db, "wechat", headers, body, _creds_for_two_users, now=NOW, credentials=_creds())
         assert outcome.status == 401
 
     def test_json_body_rejected(self):

@@ -84,32 +84,42 @@ def _resolve_target_by_actor(db: Any, user_name: str, credentials_for: Any) -> t
 
     **身份信任边界不变**：`FromUserName` 只用于"定位该用哪套密钥/哪条记录"，
     真正的信任仍来自验签（企业级 token/AESKey 只有企微服务器知道）+ DB 角色授权。
+
+    **不猜（2026-10-17 修正）**：`FromUserName` 必须**恰好**匹配一个用户的 `touser`。
+    原实现在"库内只有一个用户"时回退到该用户——那会把**未知企微用户**的一次点击
+    记成"我们的用户点的"并按该用户角色执行动作（归因错误）。企微本就能区分用户
+    （`FromUserName` = 企微 userid，与我们配置的 `touser` 同口径），故未匹配就拒绝，
+    并把"该怎么配"写进日志。
     """
     wanted = (user_name or "").strip()
     if not wanted:
         return None
     rows = db.fetchall("SELECT id FROM users ORDER BY id")
     candidates = [int(r["id"]) for r in rows]
-    matched: int | None = None
+    matched: list[int] = []
     for candidate in candidates:
         creds = credentials_for(candidate, "wechat") or {}
         if str(creds.get("touser") or "").strip() == wanted:
-            matched = candidate
-            break
-    # 只要没匹配到就退到唯一用户：单用户部署（本仓默认形态）里 `users` 仅一行，
-    # 而"受众未填/填了别名"不应让回调整体失效——鉴权仍由后续验签 + DB 角色把关。
-    if matched is None and len(candidates) == 1:
-        matched = candidates[0]
-    if matched is None:
-        logger.warning("notification callback: wechat actor not mapped to a local user")
+            matched.append(candidate)
+    if len(matched) != 1:
+        # 0 个 ⇒ 该企微用户没在我们的配置里登记；多个 ⇒ 两个用户填了同一个 userid（配置歧义）。
+        # 两种情况都**不猜**：宁可这次回调不生效，也不能把动作归到错误的用户名下。
+        logger.warning(
+            # i18n-allow: 开发者日志（回调定位失败的原因与配置指引，不进 i18n）
+            "notification callback: wechat actor %r matched %d local users (need exactly 1); "
+            "请把企微 userid 填进对应用户的渠道配置（touser）",
+            wanted,
+            len(matched),
+        )
         return None
+    matched_user = matched[0]
     log_rows = db.fetchall(
         "SELECT id FROM notification_log WHERE channel = ? AND status = ? ORDER BY id DESC LIMIT 1",
         ("wechat", "success"),
     )
     if not log_rows:
         return None
-    return int(log_rows[0]["id"]), matched
+    return int(log_rows[0]["id"]), matched_user
 
 
 def _role_of(db: Any, user_id: int) -> str:
