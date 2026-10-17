@@ -30,7 +30,10 @@ def _columns(db: Database, table: str) -> set[str]:
 def test_schema_version_reaches_current(fresh_db: Database) -> None:
     row = fresh_db.fetchone("SELECT MAX(version) AS v FROM _schema_version")
     assert row is not None
-    assert row["v"] == CURRENT_SCHEMA_VERSION == 69
+    # 不写死具体版本号（tests/test_notification_stage1b_fields.py 明令禁止，
+    # 否则每加一条迁移就要改这里）；下限 69 只用于防"迁移链提前截断"
+    assert row["v"] == CURRENT_SCHEMA_VERSION
+    assert CURRENT_SCHEMA_VERSION >= 69
 
 
 def test_all_migrations_registered_and_contiguous() -> None:
