@@ -163,6 +163,8 @@
 
 ### repo-compliance：入仓合规检查
 
+> **E-5（2026-10-18）**：`scripts/check_no_migrating.sh` 原先**无任何调用方**（写了门禁不运行），现已接入 CI `repo-compliance` 与本地 `check_all.sh --fast`；`governance-check.yml` 触发条件补 `push: branches [main] + docs/governance/**`，直推路径不再跳过治理文档检查。
+
 - **检查内容**：五条入仓标准（白名单/黑名单/文件名模式/根目录/路径守卫）
 - **数据来源**：`docs/governance/file-inclusion-criteria.md`
 - **阻断条件**：任一规则违规 → 阻断
@@ -582,6 +584,7 @@ A 类管"**事件**是否齐备"（数据完备性）；B 类管"同一事实在
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
+| v2.08 | 2026-10-18 | **E-5 门禁接线**：`check_no_migrating.sh` 接入 CI `repo-compliance` 与 `check_all.sh --fast`（此前无任何调用方）；`governance-check.yml` 补 `push: main + docs/governance/**` 触发，直推路径不再跳过治理文档检查 |
 | v2.07 | 2026-10-17 | **新增 G-050 静默吞错棘轮（体检 D-8/D-9/D-10 收口）**：AST 扫描三类"失败不可见"（`except: pass` / `except→return 空` / `except` 内 `logger.debug`），按文件 × 类别与 `scripts/silent_errors_baseline.json` 比较——超基线阻断、低于基线只告警提示收紧。基线 pass 43 / return 44 / debug 112；存量 91 处已于同日分 11 批修复（见 `docs/debt/05-audit-2026-10-17.md`）。测试 `tests/test_check_g_050_silent_errors.py`（5 例）。接入 `check_all.sh --fast` 与 CI `repo-compliance` |
 | v2.06 | 2026-10-17 | **D-6 / D-7：两条测试联动门禁从"假绿"恢复判别力**。**D-6（G-013）**：① `is_business_file()` 原把 git 路径第一段与 `BUSINESS_DIRS` 比较，而仓库路径是 `pilotstd/manager/...` ⇒ 第一段恒为 `pilotstd` ⇒ **`pilotstd/` 下所有业务代码从未被检查过**（实测 `pilotstd/manager/facade/_organize.py` 判 False）；改为按 `pilotstd/<子目录>` 取第二段。② 白名单补 `docker`、`scan`。③ 测试判据由"精确推测测试路径"改为"**tests/ 下任一测试变更**"——实测近 60 次提交里精确映射命中 **0/16**（docker 0/60、23 个推导路径不存在），文件名启发式仅 3/16；粗判据 14/16 通过，剩余 2 例是真阳性。**D-7（G-029）**：① 范围原用 `origin/main..HEAD`，直推 main 时恒空 ⇒ 打印"无变更文件 PASS"；改为优先读 `G029_RANGE`（CI 传 `before..sha`），全零回退，**显式范围 0 文件 ⇒ FAIL**。② 映射收敛为 **UI**（`pilotstd/ui/` → `tests/gui/`、`tests/test_ui*`、`tests/test_windows_tray*`）——其余目录已由 G-013 覆盖，原精确映射实测 2/2 假阳性。新增 `tests/test_check_g_013_test_sync_scope.py`（4 例）与 `tests/test_check_g_029_range.py`（4 例） |
 | v2.05 | 2026-10-17 | **G-013 规则 0 归位（pre-commit 假阻断修复）**：① `get_commit_message()` 原优先读 `.git/COMMIT_EDITMSG`，而 pre-commit 阶段 git 尚未写入本次消息 ⇒ 读到**上一条** `fix:`，一条纯 docs 提交被拦住（实测：docs 提交被前一条 `fix(gate):` 判为 bug 修复）；现无参时只读 `git log -1`，新增 `--commit-msg-file` 供 commit-msg 钩子传 `$1`。② 规则 0（fix/bugfix/hotfix 必须带测试）从 pre-commit 移到 `.husky/commit-msg`（`--bugfix-only`），pre-commit 传 `--no-commit-msg`。③ "带测试"判据由 `'test' in path` 改为 `path.startswith('tests/')`——原判据把 `scripts/check_g_013_test_coverage.py` 自身当成测试变更，规则 0 实际被架空。④ 新增 `tests/test_check_g_013_bugfix_message.py`（5 例） | v2.04 | 2026-10-17 | **G-034 接线 + 覆盖率报告去掉陈旧快照（体检 A-3/B-1/B-2）**：① 脚本此前**从未被任何入口调用**，本次接入两处——CI `test-backend`（pytest 加 `--cov-report=xml` → 重生成报告 → 断言）与本地 `check_all.sh --docs`（报告生成后立即断言），两者都保证"读的是本次数据"；② 阈值解析抽到 `scripts/_coverage_threshold.py`，G-034 与 `generate_coverage_report.py` 共用，生成器原写的"≥80%"行改为同源阈值；③ 明确 CI 的 45/58 为**作业级下限**、80% 为长期棘轮目标，唯一权威是 `pyproject.toml` 的 `fail_under`。实测见交付报告 |

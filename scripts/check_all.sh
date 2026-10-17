@@ -111,6 +111,13 @@ run_fast() {
         log_fail "G-050 静默吞错棘轮"
     fi
 
+    # E-5: capabilities 注册表不得残留 migrating（此前该脚本无任何调用方）
+    if bash scripts/check_no_migrating.sh >/dev/null 2>&1; then
+        log_pass "E-5 capabilities 无 migrating"
+    else
+        log_fail "E-5 capabilities 无 migrating"
+    fi
+
     # G-039: 冲突标记检查（禁止 <<<<<<< / ======= / >>>>>>> 入库）
     # 起因（2026-09-26）：一次合并产生了带冲突标记的提交，却通过了当时全部门禁
     if python scripts/check_no_conflict_markers.py; then

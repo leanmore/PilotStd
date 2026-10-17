@@ -908,6 +908,11 @@ jobs:
       - name: G-050 — 静默吞错棘轮
         run: python scripts/check_g_050_silent_errors.py
 
+      # E-5（2026-10-18 体检）：`check_no_migrating.sh` 原先**没有任何调用方**（写了门禁但不跑）。
+      # capabilities_registry 出现 status=migrating 时阻断；直推 main 也会经过本步骤。
+      - name: E-5 — capabilities 注册表无 migrating 条目
+        run: bash scripts/check_no_migrating.sh
+
   # ════════════════════════════════════════════════════════════════
   # Job 5: 版本管理（测试全部通过后执行）
   # ════════════════════════════════════════════════════════════════
