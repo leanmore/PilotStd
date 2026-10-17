@@ -152,8 +152,8 @@ class FileIndexQuery:
                 info.std_name = resolve_name(
                     getattr(info, "final_name", ""), info.found_name, info.std_name
                 )
-        except (json.JSONDecodeError, TypeError):
-            pass
+        except (json.JSONDecodeError, TypeError) as e:
+            logger.debug("cached parsed JSON invalid: %s", e)
 
     # ---- 移动检测 ----
 
@@ -240,7 +240,7 @@ class FileIndexQuery:
                     )
                     info["is_adopted"] = cached.get("is_adopted", False)
                     info["match_status"] = cached.get("match_status", "")
-                except (json.JSONDecodeError, TypeError):
-                    pass
+                except (json.JSONDecodeError, TypeError) as e:
+                    logger.debug("cached parsed JSON invalid in batch: %s", e)
             result.append(info)
         return result

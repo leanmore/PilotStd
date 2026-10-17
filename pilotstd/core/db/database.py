@@ -86,8 +86,8 @@ class Database:
         if p:
             try:
                 os.remove(p)
-            except OSError:
-                pass
+            except OSError as e:
+                logging.getLogger("pilotstd.db").debug("remove migration lock failed (%s): %s", p, e)
             self._migration_lock_path = ""
 
     def _ensure_schema_version_table(self) -> None:
@@ -225,8 +225,8 @@ class Database:
             except (sqlite3.IntegrityError, sqlite3.OperationalError, sqlite3.DatabaseError) as e:
                 try:
                     conn.rollback()
-                except Exception:
-                    pass
+                except Exception as rollback_error:
+                    logging.getLogger("pilotstd.db").debug("rollback failed: %s", rollback_error)
                 logging.getLogger("pilotstd.db").exception("SQL执行失败: %s", sql)
                 raise DatabaseError("数据库操作失败") from e
 

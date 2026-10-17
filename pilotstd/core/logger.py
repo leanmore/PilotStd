@@ -203,8 +203,8 @@ class LoggerManager:
         if listener is not None:
             try:
                 listener.stop()
-            except Exception:
-                pass
+            except Exception as e:
+                logging.getLogger(__name__).debug("queue listener stop failed: %s", e)
 
     def _cleanup_old_logs(self) -> None:
         """轮转由 RotatingFileHandler 自动管理（backupCount=1），无需手动清理。"""

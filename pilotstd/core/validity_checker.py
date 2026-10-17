@@ -206,8 +206,9 @@ class ValidityChecker:
                             "status": results[0].status or Status.ACTIVE.value,
                             "previous": None,
                         }
-            except Exception:
-                pass
+            except Exception as e:
+                # 在线查询失败 → 回落到历史状态对比，但要留痕
+                logger.debug("online validity query failed for %s: %s", standard_number, e)
 
         # ──3:历史状态对比──
         row = self._db.fetchone(

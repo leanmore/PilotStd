@@ -436,8 +436,9 @@ class NotificationAggregator:
             if app is not None:
                 QTimer.singleShot(0, lambda: self._on_show(safe_title, safe_body, msg.level))
                 return
-        except ImportError:
-            pass
+        except ImportError as e:
+            # 无 PyQt6（服务端/headless）时直接调用，属预期回退
+            logger.debug("PyQt6 unavailable for desktop toast, showing directly: %s", e)
 
         self._on_show(safe_title, safe_body, msg.level)
 
