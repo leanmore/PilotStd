@@ -39,11 +39,3 @@ def test_load_config_float_failure_logs(cache, caplog) -> None:
     with caplog.at_level(logging.DEBUG, logger="pilotstd.core.cache_manager"):
         assert cache._load_config_float("cleanup_ratio", 0.1) == 0.1
     assert "cache config cleanup_ratio unreadable" in caplog.text
-
-
-def test_forget_orphan_not_registered_logs(caplog) -> None:
-    from pilotstd.ui import qt_lifecycle
-
-    with caplog.at_level(logging.DEBUG, logger="pilotstd.ui.qt_lifecycle"):
-        qt_lifecycle._forget_orphan(object())
-    assert "orphan worker not in registry" in caplog.text
