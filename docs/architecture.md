@@ -283,7 +283,7 @@ PKCS#7 **按 32 字节块**填充、解密后校验 `receiveid`（企微为 corp
 
 ## 相关文档
 
-- [ADR 目录](adr/README.md) — 10 个架构决策记录（2026-08-19 更新：ADR-001~010）
+- [ADR 目录](adr/README.md) — **17 个 ADR 文件 / 16 个编号**（2026-10-17 实测：ADR-001~016，其中 **ADR-008 被两个文件占用**——`announcement-three-column` 与 `wait-worker-elimination`，违反 R-001"编号不得复用"，已登记待治；索引以 `docs/adr/README.md` 为准）
 - [技术债登记](../technical-debt.md) — 已清理 / 待处理 / 维持现状
 - [技术债登记](../technical-debt.md)（唯一数据源；旧簿已归档为 [technical-debt-registry.archived.md](technical-debt-registry.archived.md)） — 已跳过测试 + 已接受设计决策
 - [范式文档](../guides/) — 5 个 Engine 重构范式

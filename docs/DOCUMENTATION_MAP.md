@@ -69,7 +69,7 @@
 | `docs/guides/*-pattern.md`（5 个） | Engine 重构范式（persistence/settings-io/download/cleanup/query-summary） | ✅ 有效（ADR-002~004 引用） |
 | `docs/guides/refactoring-lessons.md` | 大函数拆分经验 | ✅ 有效 |
 | `docs/guides/人工测试方案.md` / `用户帮助文档.md` | 人工测试 / 用户帮助 | ✅ 有效 |
-| `docs/reference/*.md`（13 个） | 适配器开发/公告 pipeline/编码规范/i18n SOP/pre-commit 清单等（AGENTS.md 触发表引用） | ✅ 有效 |
+| `docs/reference/*.md`（18 个，2026-10-17 实测） | 适配器开发/公告 pipeline/编码规范/i18n SOP/pre-commit 清单等（AGENTS.md 触发表引用） | ✅ 有效 |
 | `docs/design/site_classification_v1.md` | 站点分类方案 v1.1（v2 路由基础） | ✅ 有效 |
 | `docs/superpowers/specs/`（近期 08-14~08-19 系列） | 功能设计 spec-lite/design 记录 | ✅ 有效 |
 | `docs/archive/specs/功能规格说明书.md` | ⚠️ ARCHIVED（版本止于 1.15/06-16；物理归档至 archive/specs/） | 🔴 归档 |
@@ -82,7 +82,7 @@
 | `docs/configuration/README.md` | config.json 完整 Schema 入口 | ✅ 有效 |
 | `docs/deployment/README.md` | 部署运维指南（后端/前端/Docker） | ✅ 有效 |
 | `docs/observability/README.md` | 监控与可观测性（9 Metrics/query_metrics 表/Grafana） | ✅ 有效 |
-| `docs/migrations/README.md` | 数据库迁移说明（最新 v51） | ✅ 有效 |
+| `docs/migrations/README.md` | 数据库迁移说明（**以代码为权威**：`db/_constants.py` 的 `CURRENT_SCHEMA_VERSION = 69`；本文件清单长期滞后，只作导读） | ✅ 有效 |
 | `docs/guides/Docker使用指南.md` | Docker 使用指南（与 deployment/README 有重叠，待统一） | ✅ 有效 |
 | `docs/ci-lessons.md` | CI 修复经验（含 §六 离线网络硬阻断） | ✅ 有效 |
 | `docs/technical-debt.md` | 技术债**唯一数据源**（SSOT）；旧簿已废止归档为 `docs/architecture/technical-debt-registry.archived.md` | ✅ 有效 |
@@ -104,7 +104,7 @@
 | `docs/testing/trinity-system-health-survey-2026-07-31.md` | 07-31 | 体系健康度快照 |
 | `docs/testing/handler-health-report-2026-08-02.md` | 08-02 | Handler 清理后健康度快照（基准记录） |
 | `docs/superpowers/reports/ci-risk-investigation-2026-08-06.md` | 08-06 | CI 风险调查（门禁设计指导） |
-| `docs/known-issues.md` | — | 安全审计轨迹（SEC-001 已解决） |
+| `docs/testing/known-issues.md` | — | 在册/已修复的已知问题清单（含安全审计轨迹 SEC-001 已解决）；**原文曾误写为 `docs/known-issues.md`（该路径不存在）** |
 | `docs/archive/tech_debt_linux_ci.archived.md` | 08-01 | ⚠️ ARCHIVED（2026-10-16；原 `docs/tech_debt_linux_ci.md`／根目录 `tech_debt_linux_ci.md`，Linux CI 技术债专项，原基线与目标线已不成立，仅供追溯） |
 | `docs/analysis/site_classification_partial_v1.0.md` | 08-17 | ⚠️ ARCHIVED（被 v1.1 取代） |
 
