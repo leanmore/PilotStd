@@ -64,4 +64,4 @@ class WelcomeDialog(QDialog):
         layout.addLayout(btn_layout)
 
     def should_skip(self) -> bool:
-        return self.skip_cb.isChecked()
+        return bool(self.skip_cb.isChecked())

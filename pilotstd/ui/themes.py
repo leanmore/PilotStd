@@ -281,7 +281,7 @@ def _set_titlebar_dark_mode(hwnd: int, dark: bool) -> None:
     """通过 DWM API 设置 Windows 标题栏深色/浅色模式。"""
     try:
         DWMWA_USE_IMMERSIVE_DARK_MODE = 20
-        ctypes.windll.dwmapi.DwmSetWindowAttribute(
+        ctypes.windll.dwmapi.DwmSetWindowAttribute(  # type: ignore[attr-defined]  # windll 仅 Windows 有
             ctypes.wintypes.HWND(hwnd),  # type: ignore[attr-defined]  # wintypes 仅 Windows 有
             ctypes.c_uint(DWMWA_USE_IMMERSIVE_DARK_MODE),
             ctypes.byref(ctypes.c_int(1 if dark else 0)),

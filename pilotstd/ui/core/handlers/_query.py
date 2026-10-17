@@ -272,7 +272,7 @@ class QueryUIHandler:
             if save_status is not None:
                 save_status.setText(f"已保存: {get_export_filename(tr('export_pending_list'), ts)}")
                 save_status.setStyleSheet("color: #2a7d2a; font-size: 9pt;")
-            return path
+            return str(path)
         except OSError as e:
             if save_status is not None:
                 save_status.setText(f"保存失败: {e}")
