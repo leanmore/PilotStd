@@ -67,7 +67,7 @@ def is_qt_alive(obj: Any) -> bool:
     if obj is None:
         return False
     isdeleted = _sip_isdeleted()
-    if isdeleted is None:  # pragma: no cover - 防御性分支
+    if isdeleted is None:  # 防御性分支：无 PyQt6/sip 时视为存活
         return True
     try:
         return not bool(isdeleted(obj))

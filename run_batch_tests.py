@@ -168,6 +168,8 @@ def _spawn_and_wait(batch, name, cmd, console_file):
     print(f"[OUTPUT] {console_file}")
     print(f"{'='*60}")
 
+    # shell=True 仅用于把子进程输出重定向到 console_file；命令串由批次配置生成，
+    # 不含任何外部输入（D-19 已评审保留此一处）
     proc = subprocess.Popen(cmd, shell=True, cwd=PROJECT_ROOT)
     print(f"[PID] {proc.pid}")
 
@@ -280,8 +282,12 @@ def main():
                 sys.exit(1)
 
     print(f"\n[DONE] {len(progress['completed_batches'])}/{progress['total_batches']} batches complete")
-    subprocess.run("python -m coverage combine", shell=True, cwd=PROJECT_ROOT)
-    subprocess.run("python -m coverage report --show-missing", shell=True, cwd=PROJECT_ROOT)
+    subprocess.run([sys.executable, "-m", "coverage", "combine"], cwd=PROJECT_ROOT, check=False)
+    subprocess.run(
+        [sys.executable, "-m", "coverage", "report", "--show-missing"],
+        cwd=PROJECT_ROOT,
+        check=False,
+    )
 
 
 if __name__ == "__main__":

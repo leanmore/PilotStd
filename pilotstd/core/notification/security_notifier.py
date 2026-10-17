@@ -48,7 +48,7 @@ try:
     )
 
     _HAS_BUILDERS = True
-except ImportError:  # pragma: no cover - 依赖缺失时的降级路径
+except ImportError:  # 依赖缺失时的降级路径；构建器缺失由 _build_security_message 记 warning
     _build_notification_credential_changed_message = None  # type: ignore[assignment]
     _build_security_password_changed_message = None  # type: ignore[assignment]
     _build_security_token_refreshed_message = None  # type: ignore[assignment]

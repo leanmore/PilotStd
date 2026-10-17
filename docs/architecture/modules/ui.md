@@ -52,6 +52,8 @@ MainWindow (QMainWindow)
 
 - **UI 处理器失败可见性（2026-10-17，体检 D-8 第 11 批）**：`_settings` 读取 `auto_pause_enabled` 失败、`scan_flow_engine` 的结构化解析失败、`_export_ops` 导出文件列表的单条失败，均由 `pass` 改 debug。
 
+- **D-16（同日）**：`qt_lifecycle.is_qt_alive` 的 `isdeleted is None` 防御分支去掉 `# pragma: no cover`，由 `tests/gui/test_qt_lifecycle_logging.py` 增例覆盖（无 PyQt6/sip 时视为存活）。
+
 ## Windows 端事件分流（W2，2026-10-03）
 
 > 设计见 [notification-system-design/00-framework.md](../../plans/notification-system-design/00-framework.md) §3.5 与
