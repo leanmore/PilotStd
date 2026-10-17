@@ -53,5 +53,5 @@ def _set_thread_priority_idle() -> None:
 
         handle = ctypes.windll.kernel32.GetCurrentThread()
         ctypes.windll.kernel32.SetThreadPriority(handle, -15)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("set OCR thread priority failed: %s", e)

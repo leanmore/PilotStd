@@ -141,8 +141,8 @@ class HbbaAdapter(BaseAdapter):
                 act_dt = datetime.strptime(act_date, "%Y-%m-%d")
                 if act_dt > datetime.now():
                     mapped = Status.UPCOMING.value
-            except ValueError:
-                pass
+            except ValueError as e:
+                logger.debug("hbba act_date parse failed (%s): %s", act_date, e)
 
         adopted = is_adopted(ch_name)
 

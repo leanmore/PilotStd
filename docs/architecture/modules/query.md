@@ -30,6 +30,7 @@
 > **状态值字典（R14-4b / #32-B，2026-10-01）**：各适配器的状态字面量（`现行` / `即将实施` / `废止` / `已废止` / `作废` / `被代替` / `未知`）与各 `status_map` 归一化表已统一引用权威字典 `pilotstd/core/status.py` 的 `Status.*.value`（取代原中文字面量）。**归一化结果与取值集合不变**，仅消除散落的硬编码字符串。
 
 > **编码回退的预期失败（2026-10-17，体检 D-8 第 5 批）**：`nrsis._decode_content` 的两次 `UnicodeDecodeError` 分支属**预期回退链**（UTF-8 → GBK → `errors="replace"`），不是吞错——已加注释明确，不纳入静默吞错治理。
+> **第 11 批（同日）**：`dbba`/`hbba` 的 `act_date` 解析失败、`_batch_dispatcher` 的 `bucket_crash` 指标递增失败、`rotator.reset_all_cooldowns` 的 `adapter_state` 清理失败，均由 `pass` 改 debug；契约见 `tests/test_silent_error_observability_batch11.py`。
 
 ## 架构
 

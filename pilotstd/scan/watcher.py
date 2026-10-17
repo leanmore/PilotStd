@@ -68,8 +68,8 @@ class FileWatchHandler(PatternMatchingEventHandler):
                     status=getattr(parsed, "effect_status", "") or "",
                     raw_number=getattr(parsed, "raw_number", ""),
                 )
-        except OSError:
-            pass  # 文件被锁定或已删除
+        except OSError as e:
+            logger.debug("watcher index file failed (locked/deleted, %s): %s", file_hash, e)
         except Exception:
             logger.debug("watcher 处理文件失败: %s", path, exc_info=True)
 

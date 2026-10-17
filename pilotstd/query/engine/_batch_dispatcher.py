@@ -339,9 +339,9 @@ class BatchDispatcher:
                         m = state.get("metrics")
                         if m:
                             m.increment("bucket_crash")
-                    except Exception:
-                        # 已知可忽略：指标计数失败不影响主流程
-                        pass
+                    except Exception as e:
+                        # 已知可忽略：指标计数失败不影响主流程，但要留痕
+                        logger.debug("bucket_crash metric increment failed: %s", e)
 
             try:
                 csres_future.result(timeout=600)

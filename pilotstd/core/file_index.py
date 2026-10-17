@@ -119,6 +119,7 @@ class FileIndexRepository:
                         deleted,
                     )
                 except (ValueError, OSError):
+                    # 日志输出编码失败（GBK 控制台）不影响校验结果：保留 pass（已评审）
                     pass
 
         t = threading.Thread(target=_run, daemon=True)

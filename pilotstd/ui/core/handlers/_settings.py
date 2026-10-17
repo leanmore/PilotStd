@@ -1,6 +1,7 @@
 # 模块：项目//核心/处理器/_脚本
 """SettingsHandler — 设置页面 Tab 构建、配置加载/保存，替代原有 Mixin 多重继承。"""
 
+import logging
 from typing import Any, Optional
 
 from PyQt6.QtWidgets import (
@@ -279,8 +280,8 @@ class SettingsHandler:
         try:
             agg = NotificationAggregator()
             self._auto_pause_cb.setChecked(agg.auto_pause_enabled)
-        except Exception:
-            pass
+        except Exception as e:
+            logging.getLogger(__name__).debug("read auto_pause_enabled failed: %s", e)
         self._auto_pause_cb.toggled.connect(self._on_auto_pause_toggled)
         hint = QLabel("连续 3 次警告/错误在 30 秒内自动暂停所有弹窗，5 分钟后自动恢复")
         hint.setStyleSheet("color: #666; font-size: 11px;")

@@ -111,8 +111,8 @@ class WechatIPUpdater:
             if self._browser:
                 self._browser.close()
                 self._browser = None
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("close wechat_ip browser failed: %s", e)
 
     def _parse_cookie(self, cookie_str: str) -> list[dict]:
         """将 HeaderString 格式 Cookie 转为浏览器格式。委托给 logic.parse_cookie_string。"""

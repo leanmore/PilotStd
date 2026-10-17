@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import logging
 import re
 from typing import Any
 
@@ -65,8 +66,8 @@ class ScanFlowEngine:
                     "std_name": parsed.std_name or "",
                     "is_valid": parsed.is_valid_standard,
                 }
-        except Exception:
-            pass
+        except Exception as e:
+            logging.getLogger(__name__).debug("scan flow structured parse failed: %s", e)
 
         # 退化：轻量正则匹配
         m = ScanFlowEngine._STD_NUMBER_RE.search(base)

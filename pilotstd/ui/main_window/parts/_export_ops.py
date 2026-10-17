@@ -41,8 +41,8 @@ def _on_export_file_list(self) -> None:
             try:
                 full = os.path.join(dirpath, fn)
                 lines.append(full if include_path else fn)
-            except OSError:
-                pass
+            except OSError as e:
+                logger.debug("export file list entry failed (%s): %s", fn, e)
     with open(save_path, "w", encoding="utf-8") as f:
         f.write("\n".join(lines))
     self.status_changed.emit(f"文件名清单已保存: {save_path} ({len(lines)} 项)")

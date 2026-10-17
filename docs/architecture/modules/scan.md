@@ -60,6 +60,8 @@ pilotstd/scan/
 
 `scanner.py` 的目录遍历异常处理中，Windows 特有的 `OSError.winerror`（错误码 206/123 表示路径过长）通过 `getattr(e, "winerror", 0)` 读取，非 Windows 平台安全降级（不访问不存在属性，直接抛出原始异常）——保证 Linux CI 静态检查（mypy G-038）与运行时行为均正常。
 
+- **watcher 索引失败的可见性（2026-10-17，体检 D-8 第 11 批）**：`watcher.py` 在文件被锁定/已删除时对索引写入 `OSError` 原为 `pass`；现记 debug（`watcher index file failed`），监控链路不再无痕丢事件。
+
 ## 相关文档
 
 - [解析器模块](parser.md) — 标准号解析详细架构

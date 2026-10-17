@@ -33,6 +33,7 @@
 
 - Parser 层只做正文提取，禁止包含业务逻辑
 - **熔断器配置读取的失败可见性（2026-10-17，体检 D-8 第 7 批）**：`announcement/_circuit_breaker.py::_durations` 读配置失败原 `pass` 并静默回退默认冻结档位；现记 debug。契约由 `tests/test_silent_error_observability_batch7.py` 锁定。
+- **OCR 线程优先级失败可见性（2026-10-17，体检 D-8 第 11 批）**：`ocr/_pdf_utils._set_thread_priority_idle` 在 `SetThreadPriority` 不可用时原 `pass`；现记 debug。契约由 `tests/test_silent_error_observability_batch11.py` 锁定。
 - 清洗逻辑统一在 Service 层的状态机中完成
 - 日期字段必须使用 ISO 8601 格式，禁止使用其他格式
 - 附件正文解析失败（含 `.doc`/OLE2 这类 python-docx 不支持的格式）记为 **WARNING 日志**并返回空正文；此前为 DEBUG 级，正文为空时**无任何可见痕迹**（R15 修复）。引入 antiword/textract 解析器一事仍登记在台账观察项

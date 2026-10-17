@@ -298,8 +298,8 @@ class SiteRotator:
             if self._db:
                 try:
                     self._db.execute("DELETE FROM adapter_state")
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug("clear adapter_state cooldown failed: %s", e)
         logger.info("所有站点冷却已重置")
 
     def get_cooldown_remaining(self, name: str) -> float:
