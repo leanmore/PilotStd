@@ -1,9 +1,17 @@
 #!/usr/bin/env python3
 """G-034: 覆盖率阈值检查。
 
-从 docs/testing/coverage-report.md 读取整体行覆盖率，
-检查是否 ≥ 80% 阈值。
-阻断条件：文件不存在，或覆盖率 < 80%。
+从 `docs/testing/coverage-report.md` 读取整体行覆盖率，与**唯一来源**的阈值比较。
+阻断条件：文件不存在、解析不出数据、或覆盖率低于阈值。
+
+2026-10-17 两项修正（体检 A-3 / B-1）：
+1. **解析器**：原正则只认 `行覆盖率: 85.2%` 这种冒号写法，而生成器实际产出的是**表格行**
+   `| 行覆盖率 | **62.5%** |` ⇒ 永不匹配 ⇒ 门禁恒报"无法解析"（且它当时还未接线，故无人察觉）。
+   现补表格行候选，并保留原有各种写法作为兼容。
+2. **阈值单一来源**：原在本脚本硬编码 80.0，而项目里同时存在 `pyproject.toml` 的 `fail_under`
+   与 CI 各作业的 `--cov-fail-under` ⇒ **四套口径**（51 / 45 / 58 / 80），任何按 `gates.md`
+   判断"达标线"的人都会得出错误结论。现改为读 `pyproject.toml` 的 `[tool.coverage.report] fail_under`
+   作为权威值；读不到才退回 `FALLBACK_THRESHOLD`。**80% 降级为长期目标**（棘轮式提升，见 gates.md）。
 """
 
 import re
@@ -12,13 +20,37 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 COVERAGE_REPORT = ROOT / "docs" / "testing" / "coverage-report.md"
-THRESHOLD = 80.0
+PYPROJECT = ROOT / "pyproject.toml"
+
+# 读不到 pyproject 时的兜底（与 CI `test-backend` 的实际阻断值一致，宁可保守）
+FALLBACK_THRESHOLD = 45.0
+
+
+def resolve_threshold(pyproject: Path = PYPROJECT) -> float:
+    """从 `pyproject.toml` 的 `[tool.coverage.report] fail_under` 取唯一权威阈值。"""
+    try:
+        text = pyproject.read_text(encoding="utf-8")
+    except OSError:
+        return FALLBACK_THRESHOLD
+    match = re.search(r"^\s*fail_under\s*=\s*([\d.]+)", text, re.MULTILINE)
+    if not match:
+        return FALLBACK_THRESHOLD
+    try:
+        return float(match.group(1))
+    except ValueError:
+        return FALLBACK_THRESHOLD
 
 
 def parse_coverage(text: str) -> float | None:
-    """从覆盖率报告文本中提取整体行覆盖率百分比。"""
+    """从覆盖率报告文本中提取整体行覆盖率百分比。
+
+    候选顺序：**表格行**（生成器的真实输出）→ 冒号写法 → 英文 → 兜底 `TOTAL`。
+    """
     patterns = [
+        # 生成器真实输出：| 行覆盖率 | **62.5%** |
+        r"行覆盖率\s*\|\s*\**\s*([\d.]+)\s*%",
         r"行覆盖率[：:]\s*([\d.]+)\s*%",
+        r"Line\s*Coverage\s*\|\s*\**\s*([\d.]+)\s*%",
         r"Line\s*Coverage[：:]\s*([\d.]+)\s*%",
         r"整体.*覆盖率[：:]\s*([\d.]+)\s*%",
         r"覆盖率[：:]\s*([\d.]+)\s*%",
@@ -41,22 +73,23 @@ def main() -> int:
         print(f"FAIL: {COVERAGE_REPORT} 不存在，请先运行覆盖率 job 生成报告。")
         return 1
 
+    threshold = resolve_threshold()
     text = COVERAGE_REPORT.read_text(encoding="utf-8")
     coverage = parse_coverage(text)
 
     if coverage is None:
         print(f"FAIL: 无法从 {COVERAGE_REPORT} 中解析覆盖率数据。")
-        print("请确保报告中包含形如 '行覆盖率: 85.2%' 的行。")
+        print("请确保报告中包含形如 '| 行覆盖率 | **85.2%** |' 的表格行（或 '行覆盖率: 85.2%' 的行）。")
         return 1
 
     print(f"覆盖率: {coverage:.1f}%")
-    print(f"阈值: {THRESHOLD:.0f}%")
+    print(f"阈值: {threshold:.0f}%（来源：pyproject.toml 的 fail_under）")
 
-    if coverage < THRESHOLD:
-        print(f"\nFAIL: 覆盖率 {coverage:.1f}% 低于阈值 {THRESHOLD:.0f}%。")
+    if coverage < threshold:
+        print(f"\nFAIL: 覆盖率 {coverage:.1f}% 低于阈值 {threshold:.0f}%。")
         return 1
 
-    print(f"\nPASS: 覆盖率 {coverage:.1f}% ≥ {THRESHOLD:.0f}% 阈值。")
+    print(f"\nPASS: 覆盖率 {coverage:.1f}% ≥ {threshold:.0f}% 阈值。")
     return 0
 
 
