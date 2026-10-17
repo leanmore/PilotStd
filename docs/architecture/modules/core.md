@@ -31,6 +31,12 @@ pilotstd/core/
 │   ├── manager.py             # ConfigManager：点分隔 JSON 持久化 + 原子替换
 │   ├── paths.py               # get_data_dir / get_db_path / get_library_root
 │   ├── crypto.py              # Fernet Key 管理与加密解密
+│   │                          #   ⚠️ **密钥不落日志**（2026-10-17，体检 D-21）：首次生成密钥时
+│   │                          #   原实现 `logger.info("【重要】请立即备份此 Key: %s", key.decode())`
+│   │                          #   会把 Fernet **主密钥明文**写进 `logs/` 与容器日志 ⇒ 能读日志者
+│   │                          #   可解密 config.json 里全部敏感字段（凭据/令牌/密码）。
+│   │                          #   现改为"密钥**文件路径** + sha256 前 12 位指纹"，备份照路径做，
+│   │                          #   指纹只用于核对两份备份是否同一把。
 │   ├── defaults.py            # 默认配置
 │   ├── migrate.py             # 配置迁移
 │   ├── service.py             # 配置读写服务（Web/Win 共用）

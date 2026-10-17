@@ -1,6 +1,7 @@
 # 模块：项目/核心/配置/脚本
 # 敏感字段加解密—从配置脚本拆分
 
+import hashlib
 import os
 from typing import Any
 
@@ -89,7 +90,16 @@ def _get_fernet(config_dir: str) -> Any:
         os.chmod(key_path, 0o600)
 
     logger.info("新 Key 已保存至 %s (权限 0600)", key_path)
-    logger.info("【重要】请立即备份此 Key: %s", new_key.decode())
+    # 2026-10-17（体检 D-21）：**不要再把密钥本身打进日志**。原为
+    # `logger.info("【重要】请立即备份此 Key: %s", new_key.decode())` ⇒ Fernet 主密钥会进入
+    # `logs/` 与容器日志，能读日志者即可解密 config.json 里的全部敏感字段（凭据/令牌/密码）。
+    # 备份指引改为"给路径 + 指纹"：用户照路径备份文件即可；指纹只用于核对两份备份是否同一把。
+    fingerprint = hashlib.sha256(new_key).hexdigest()[:12]
+    logger.info(
+        "【重要】请立即备份密钥文件 %s（sha256 指纹 %s，仅用于核对备份一致性，不可用于解密）",
+        key_path,
+        fingerprint,
+    )
 
     return Fernet(new_key)
 
