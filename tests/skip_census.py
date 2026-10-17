@@ -160,6 +160,22 @@ def static_inventory() -> dict:
     }
 
 
+def _read_report_text(path: Path) -> str:
+    """读 pytest `-rs` 报告文件，**按 BOM 自动判定编码**。
+
+    2026-10-17 实测（体检 #4，假绿）：Windows 下 PowerShell 的 `>` 重定向产出 **UTF-16LE**
+    （首字节 `b'\\xff\\xfe'`），而本工具原先硬编码 `encoding="utf-8", errors="replace"`
+    ⇒ 每个字符被替换成 U+FFFD ⇒ 真实 11 条跳过被静默报成 **0 条**。
+    现按 BOM 判定；无 BOM 时按 UTF-8 **严格**解码——解不开就抛错，不再"尽量猜"。
+    """
+    raw = path.read_bytes()
+    if raw.startswith((b"\xff\xfe", b"\xfe\xff")):
+        return raw.decode("utf-16")
+    if raw.startswith(b"\xef\xbb\xbf"):
+        return raw.decode("utf-8-sig")
+    return raw.decode("utf-8")
+
+
 def main(argv: list[str]) -> int:
     """CLI 入口：报告文件路径或 `--static`。"""
     args = [a for a in argv if not a.startswith("--")]
@@ -170,7 +186,7 @@ def main(argv: list[str]) -> int:
         if not args:
             print(__doc__)
             return 2
-        text = Path(args[0]).read_text(encoding="utf-8", errors="replace")
+        text = _read_report_text(Path(args[0]))
         records = parse_rs_report(text)
         payload = {
             "mode": "runtime",

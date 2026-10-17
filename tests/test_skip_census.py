@@ -69,6 +69,28 @@ def test_static_inventory_matches_r11_4_measurement() -> None:
     )
 
 
+def test_read_report_text_handles_utf16_bom(tmp_path: Path) -> None:
+    """Windows PowerShell 重定向出的报告是 UTF-16LE（带 BOM）⇒ 必须读出真实跳过数。
+
+    回归 2026-10-17 的**假绿**：原实现硬编码 `encoding="utf-8", errors="replace"`，
+    UTF-16 内容整段被替换成 U+FFFD ⇒ 真实跳过被静默报成 0 条。
+    """
+    line = "SKIPPED [1] tests/test_manager.py:26: 需要 root 权限\n"
+    report = tmp_path / "report.txt"
+    report.write_bytes(b"\xff\xfe" + line.encode("utf-16-le"))
+
+    text = sc._read_report_text(report)
+    assert "SKIPPED" in text, "UTF-16 报告未被正确解码（会退化成 0 条跳过）"
+    assert sc.summarize(sc.parse_rs_report(text))["total"] == 1
+
+
+def test_read_report_text_is_strict_utf8_without_bom(tmp_path: Path) -> None:
+    """无 BOM 的报告按严格 UTF-8 解码（不再"尽量猜"）。"""
+    report = tmp_path / "utf8.txt"
+    report.write_bytes("SKIPPED [2] tests/a.py:1: 无环境\n".encode())
+    assert "SKIPPED" in sc._read_report_text(report)
+
+
 def test_t29_files_have_no_permanent_skip_and_no_stub_body() -> None:
     """T-29（R13-1）：两个曾含 4 处永久 skip 的文件必须①零永久 skip、②无用例是空壳 `pass`。"""
     import ast
