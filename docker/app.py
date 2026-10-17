@@ -76,8 +76,9 @@ def _clean_zombie_tasks() -> None:
             "WHERE status IN ('running', 'pending')"
         )
         db.close()
-    except Exception:
-        pass
+    except Exception as e:
+        # 清理失败不阻断启动，但必须可观测：否则 fetch_task 会永远停在 running/pending
+        logger.warning("zombie task cleanup failed: %s", e, exc_info=True)
 
 
 def _migrate_user_settings_to_preferences(db) -> int:
@@ -146,6 +147,14 @@ def _migrate_user_settings_to_preferences(db) -> int:
         return -1
 
 
+def _start_task_scheduler(_cron_mgr) -> None:
+    """启动任务调度器并绑定队列；异常向上抛，由 lifespan 决定 fail-fast。"""
+    from pilotstd.task.scheduler import get_scheduler as get_task_scheduler
+
+    get_task_scheduler().set_queue(_cron_mgr.task_queue)
+    get_task_scheduler().start()
+
+
 def _start_all_schedulers(_cron_mgr) -> None:
     """注册定时任务并启动所有调度器（APScheduler + 任务调度器 + 监控 + 可信IP）。"""
     register_job_func("auto_scan", lambda: _cron_mgr.scan_and_index())
@@ -172,14 +181,12 @@ def _start_all_schedulers(_cron_mgr) -> None:
     )
     start_scheduler()
 
-    # 任务调度器自动启动
+    # 任务调度器自动启动（失败必须 fail-fast：否则服务在线但任务永不执行）
     try:
-        from pilotstd.task.scheduler import get_scheduler as get_task_scheduler
-
-        get_task_scheduler().set_queue(_cron_mgr.task_queue)
-        get_task_scheduler().start()
-    except Exception:
-        pass
+        _start_task_scheduler(_cron_mgr)
+    except Exception as e:
+        logger.error("task scheduler failed to start: %s", e, exc_info=True)
+        raise
 
     # 文件监控自动启动
     try:
@@ -197,8 +204,8 @@ def _start_all_schedulers(_cron_mgr) -> None:
             _cron_mgr.wechat_ip_service.start_scheduler()
             interval = int(_cron_mgr.cfg.get("wechat_ip.interval_hours", 6))
             logger.info("可信 IP 自动更新已启动 (间隔=%dh)", interval)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("wechat_ip scheduler start failed: %s", e, exc_info=True)
 
 
 def _shutdown_cleanup(_cron_mgr) -> None:
@@ -217,15 +224,15 @@ def _shutdown_cleanup(_cron_mgr) -> None:
 
     try:
         _cron_mgr.wechat_ip_service.stop_scheduler()
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("wechat_ip scheduler stop failed: %s", e, exc_info=True)
 
     try:
         from pilotstd.task.scheduler import get_scheduler as get_task_scheduler
 
         get_task_scheduler().stop()
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("task scheduler stop failed: %s", e, exc_info=True)
 
 
 @asynccontextmanager
