@@ -92,11 +92,13 @@ class NRSISAdapter(BaseAdapter):
         try:
             return content.decode("utf-8")
         except UnicodeDecodeError:
+            # 预期回退：不是错误，UTF-8 不适用时继续尝试 GBK
             pass
         # 3.（覆盖2312超集）
         try:
             return content.decode("gbk")
         except UnicodeDecodeError:
+            # 预期回退：GBK 也不适用，走 errors="replace" 兜底（不丢内容）
             pass
         # 4. 兜底（替换无法解码的字节）
         return content.decode("gbk", errors="replace")

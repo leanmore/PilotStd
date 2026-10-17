@@ -59,8 +59,9 @@ def _on_drives_ready(self, drives: list[Any]) -> None:
         _sip = __import__("PyQt6.sip", fromlist=["isdeleted"])
         if hasattr(_sip, "isdeleted") and _sip.isdeleted(self.this_pc):
             return
-    except (ImportError, RuntimeError):
-        pass
+    except (ImportError, RuntimeError) as e:
+        # sip 不可用/对象已析构：跳过就绪回调是防御性行为，但要留痕
+        logger.debug("sip unavailable in _on_drives_ready: %s", e)
     self.this_pc.takeChildren()
     for name, path in drives:
         item = self._make_drive_item(name, path)
@@ -143,13 +144,13 @@ def _populate_children(self, parent_item: QTreeWidgetItem) -> None:
                             )
                         else:
                             child.setIcon(0, self.style().standardIcon(self.style().StandardPixmap.SP_FileIcon))
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.debug("set tree item icon failed: %s", e)
                     child.setChildIndicatorPolicy(QTreeWidgetItem.ChildIndicatorPolicy.DontShowIndicator)
                 parent_item.addChild(child)
                 added += 1
-            except OSError:
-                pass
+            except OSError as e:
+                logger.debug("skip unreadable entry %s: %s", entry.name, e)
             except Exception:
                 logger.debug("跳过无法展示的条目: %s", entry.name)
         if truncated:

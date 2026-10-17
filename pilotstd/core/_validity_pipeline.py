@@ -51,8 +51,8 @@ def _std_name(db: Any, std_no: str) -> str:
         )
         if row and row["std_name"]:
             return str(row["std_name"])
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("std_name lookup failed for %s: %s", std_no, e)
     return ""
 
 
@@ -177,8 +177,9 @@ def _finalize_validity_round(
                         )
                     except Exception as e:
                         logger.warning("时效性周期总结通知发送失败: %s", e)
-        except Exception:
-            pass
+        except Exception as e:
+            # 周期记账失败不阻断已完成的本轮检查，但必须可观测
+            logger.warning("validity round bookkeeping failed: %s", e)
         config.save()
     return adapters_status
 
