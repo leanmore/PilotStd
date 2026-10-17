@@ -69,7 +69,8 @@ class FileWatchHandler(PatternMatchingEventHandler):
                     raw_number=getattr(parsed, "raw_number", ""),
                 )
         except OSError as e:
-            logger.debug("watcher index file failed (locked/deleted, %s): %s", file_hash, e)
+            # 注意：不能引用 file_hash（计算哈希本身就可能抛 OSError，此时它未绑定）
+            logger.debug("watcher index file failed (locked/deleted, %s): %s", path, e)
         except Exception:
             logger.debug("watcher 处理文件失败: %s", path, exc_info=True)
 

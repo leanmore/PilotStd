@@ -189,13 +189,13 @@ class FileIndexRepository:
         """清除文件已不存在的索引记录（增量：仅检查超过 7 天未验证或从未验证的记录），返回清除数量。"""
         rows = self._db.fetchall(
             f"SELECT id, file_path FROM {FILE_INDEX_TABLE} "
-            "WHERE last_checked IS NULL OR last_checked < date('now', '-7 days')"
+            "WHERE last_checked IS NULL OR last_checked < date('now', 'localtime', '-7 days')"
         )
         deleted = 0
         for r in rows:
             if os.path.exists(r["file_path"]):
                 self._db.execute(
-                    f"UPDATE {FILE_INDEX_TABLE} SET last_checked = date('now') WHERE id = ?",
+                    f"UPDATE {FILE_INDEX_TABLE} SET last_checked = date('now', 'localtime') WHERE id = ?",
                     (r["id"],),
                 )
             else:
