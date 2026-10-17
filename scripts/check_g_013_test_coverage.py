@@ -37,6 +37,8 @@ BUSINESS_DIRS = [
     "announcement",
     "core",
     "i18n",
+    "docker",
+    "scan",
 ]
 
 # 抽象语法树解析超时（秒）
@@ -249,7 +251,13 @@ def get_changed_files() -> List[str]:
 
 
 def is_business_file(filepath: str) -> bool:
-    """判断是否为需要检查的业务代码文件"""
+    """判断是否为需要检查的业务代码文件。
+
+    2026-10-17 修正（体检 D-6 的深层缺陷）：原实现把 git 路径的**第一段**与
+    `BUSINESS_DIRS` 比较，而仓库内路径是 `pilotstd/manager/...` ⇒ 第一段恒为
+    `pilotstd` ⇒ **`pilotstd/` 下所有业务代码从未被检查过**（只有顶层目录如
+    `scripts/`、`docker/` 才可能命中）。现按 `pilotstd/<子目录>` 取第二段。
+    """
     if not filepath.endswith('.py'):
         return False
 
@@ -261,10 +269,12 @@ def is_business_file(filepath: str) -> bool:
     if Path(filepath).name == '__init__.py':
         return False
 
-    # 必须在业务目录下
+    # 必须在业务目录下（pilotstd/<dir>/… 或顶层 <dir>/…）
     parts = Path(filepath).parts
     if not parts:
         return False
+    if len(parts) > 1 and parts[0] == 'pilotstd':
+        return parts[1] in BUSINESS_DIRS
     return parts[0] in BUSINESS_DIRS
 
 
@@ -272,42 +282,15 @@ def is_business_file(filepath: str) -> bool:
 # 测试文件映射
 # ============================================================================ 分隔
 
-def get_expected_test_files(business_file: str) -> List[str]:
-    """
-    多级回退映射：根据业务文件路径推测可能的测试文件路径。
-    按优先级排序，只要任一候选被修改即视为通过。
-    """
-    base = Path(business_file)
-    stem = base.stem
-    parent = base.parent
-    clean_stem = stem.lstrip('_')
-
-    candidates = [
-        f"tests/{parent}/test_{clean_stem}.py",
-        f"tests/unit/{parent}/test_{clean_stem}.py",
-        f"tests/{parent}/test_{clean_stem}_handler.py",
-        f"tests/unit/{parent}/test_{clean_stem}_handler.py",
-        f"tests/test_{clean_stem}.py",
-    ]
-
-    # 去掉可能的源码/或/前缀，再映射到测试/
-    clean_parent = str(parent)
-    for prefix in ['src/', 'app/']:
-        if clean_parent.startswith(prefix):
-            clean_parent = clean_parent[len(prefix):]
-            candidates.append(f"tests/{clean_parent}/test_{clean_stem}.py")
-            candidates.append(f"tests/unit/{clean_parent}/test_{clean_stem}.py")
-            break
-
-    # 去重保序
-    seen = set()
-    result = []
-    for c in candidates:
-        normalized = str(Path(c))
-        if normalized not in seen:
-            seen.add(normalized)
-            result.append(normalized)
-    return result
+# 判据：**tests/ 下任一测试变更**（不再按路径精确映射）。
+# 为什么不精确映射：实测近 60 次提交里 `tests/<父目录>/test_<文件名>.py` 命中 **0/16**
+# （docker 0/60），文件名启发式仅 3/16——本仓库测试按"功能"命名而非按模块命名
+# （如 test_channels_retry_foundation.py 一次覆盖 5 个渠道文件），精确映射必然常红。
+# 粗判据下 14/16 通过，剩余 2 例是"改了公开 API 却完全没动测试"的真阳性。
+# 体检 D-6，2026-10-17。
+def has_test_sync(changed_files: List[str]) -> bool:
+    """业务代码变更是否伴随 `tests/` 下的任何测试变更。"""
+    return any(is_test_file(f) for f in changed_files)
 
 
 # ============================================================================ 分隔
@@ -472,8 +455,7 @@ def run_check(
         if not changed_apis:
             continue
 
-        expected_tests = get_expected_test_files(biz_file)
-        test_changed = any(t in changed_files for t in expected_tests)
+        test_changed = has_test_sync(changed_files)
 
         for api_name, info in changed_apis.items():
             api_type = info['type']
@@ -485,7 +467,7 @@ def run_check(
                     errors.append(
                         f"[TEST-BLOCK] {biz_file} :: {api_name}() "
                         f"发生了功能变更 ({reason})，"
-                        f"但未检测到对应测试文件变更。期望修改: {expected_tests}"
+                        f"但未检测到对应测试文件变更。期望修改: tests/ 下任一测试文件"
                     )
             else:  # private
                 if _should_upgrade_private_to_block(info):
@@ -496,7 +478,7 @@ def run_check(
                             f"lines={info.get('line_count')}, "
                             f"exception={info.get('has_exception')}, "
                             f"io={info.get('has_io')})，需补充测试。"
-                            f"期望修改: {expected_tests}"
+                            f"期望修改: tests/ 下任一测试文件"
                         )
                 else:
                     if not test_changed:

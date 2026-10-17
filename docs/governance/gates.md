@@ -18,13 +18,13 @@
 | G-010 | 代码规模控制 | 文件有效代码行≤500行（>400警告）、函数≤80行；>500行阻断时须提供拆分证据 | 文件>500行/函数>80行（拆分证据不足亦阻断） | `scripts/check_g_010_code_size.py` | ✅ 已部署 |
 | G-011 | 动态属性完整性 | `self.xxx` 的引用必须有对应的定义或声明（`_done`/`_msg` 后缀识别） | 断裂引用 | `scripts/check_g_011_attr_integrity.py` | ✅ 已部署（`--fast` + CI `test-backend`） |
 | G-012 | SQL 列引用 + 注释规范 | ① SQL 字符串里的列必须存在于库（schema/迁移构建后比对）；② 注释密度与注释语言（`[LANG]` 仅警告不阻断） | ① SQL 引用不存在的列；② 注释密度阻断项 | `scripts/check_g_012_sql_schema.py`、`scripts/check_g_012_comment_density.py` | ✅ 已部署（`--fast` + 2026-10-17 补入 CI `repo-compliance`；⚠️ CI 原有的 `check_schema_consistency.py` 是**另一个脚本**，不可混同） |
-| G-013 | 测试联动（变更伴随测试） | 业务目录（`pilotstd/` 下 manager/organizer/download/query/tasks/monitor/wechat_ip/announcement/core/i18n）的公开/高风险私有 API 变更必须带测试变更 | `[TEST-BLOCK]` 高风险变更无测试 | `scripts/check_g_013_test_coverage.py` | ✅ 已部署（2026-10-17 接入 `.husky/pre-commit`；只挂本地——判据依赖暂存区）。**v2.05**：规则 0（`fix` 必须带测试）改由 `.husky/commit-msg` 用 `--commit-msg-file "$1"` 执行，pre-commit 传 `--no-commit-msg`；"带测试"判据由"路径含 test"改为"位于 `tests/`" |
+| G-013 | 测试联动（变更伴随测试） | 业务目录（`pilotstd/` 下 manager/organizer/download/query/tasks/monitor/wechat_ip/announcement/core/i18n）的公开/高风险私有 API 变更必须带测试变更 | `[TEST-BLOCK]` 高风险变更无测试 | `scripts/check_g_013_test_coverage.py` | ✅ 已部署（2026-10-17 接入 `.husky/pre-commit`；只挂本地——判据依赖暂存区）。**v2.05**：规则 0（`fix` 必须带测试）改由 `.husky/commit-msg` 用 `--commit-msg-file "$1"` 执行，pre-commit 传 `--no-commit-msg`；**v2.06**：`is_business_file()` 修正——原按 git 路径第一段匹配，而路径是 `pilotstd/manager/...` ⇒ **`pilotstd/` 下所有业务代码从未被检查过**；同时补 `docker`/`scan` 两个目录，测试判据统一为"tests/ 下任一测试变更"（精确映射实测 0/16、文件名启发式 3/16，都会常红） |
 | G-015 | 相对导入检查 | 所有 import 正确 | 违规 | `scripts/check_g_015_relative_imports.py` | ✅ 已部署 |
 | G-018 | UI 敏感字段保护 | 密钥/令牌类字段在 UI 层必须掩码（Password 组件 / `type=password`） | 命中未掩码字段 | `scripts/check_ui_sensitive_fields.py` | ✅ 已部署（CI `test-frontend` 步骤 `G-018 — Check UI sensitive fields protection`） |
 | G-025 | 适配器列表一致性 | 查询适配器与公告适配器必须可导入且定义 `DISPLAY_NAME`，与列表登记一致 | 缺失/不可导入 | `scripts/check_g_025_adapters.py` | ✅ 已部署（CI `test-backend`；需 `pilotstd` 可导入，本地裸跑须置 `PYTHONPATH`） |
 | G-026 | Docker 挂载黑名单 | `docker-compose.yml` 的挂载不得包含黑名单路径 | 命中黑名单路径 | `scripts/check_g_026_docker_mounts.py` | ✅ 已部署（CI `repo-compliance`） |
 | G-027 | Vue 组件 `defineOptions` 检查 | `web/src/{components,views}` 下所有 `<script setup>` 组件必须声明 `defineOptions` | 缺失 | `scripts/check_g_027_define_options.py` | ✅ 已部署（CI + 本地 `--fast`） |
-| G-029 | 测试联动检查 | 改核心模块 → 测试同步更新 | 未同步 | `scripts/check_g_029_test_coverage.py` | ✅ 已部署 |
+| G-029 | UI 测试联动检查 | `pilotstd/ui/` 变更 → GUI 测试同步更新 | 未同步；显式范围 0 文件 | `scripts/check_g_029_test_coverage.py` | ✅ 已部署（v2.06 修：范围改读 `G029_RANGE`，0 文件不再静默 PASS；映射收敛为 UI） |
 | G-030 | 技术债联动检查 | 新增 `# TECH-DEBT:` / `# TODO(debt):` 标记必须同步技术债登记簿 | 新增标记但登记簿未同步 | `scripts/check_g_030_tech_debt.py` | ✅ 已部署 |
 | G-031 | 文档同步检查 | 改核心模块 → 文档同步更新 | 文档存在但未同步更新 | `scripts/check_g_031_docs_sync.py` | ✅ 已部署（2026-10-17 核实：脚本存在且已接入 `check_all.sh` 的 `--local`；原标"待创建"是**状态谎报**，实测可阻断） |
 | G-032 | 文档健康度守护 | 生成器存活 / 人工层新鲜度 / 交叉引用完整 / 数据源唯一性 四维度 | 任一维度违规 | `scripts/check_g_032_doc_health.py` | ✅ 已部署 |
@@ -71,16 +71,14 @@
 - **阻断条件**：存在未受 try/except 保护的无效相对导入 → 阻断（try/except 保护的失效导入仅警告，视为有意的可选依赖回退）
 - **执行方式**：`python scripts/check_g_015_relative_imports.py`（已接入 `check_all.sh --fast` 与 ci.yml repo-compliance job）
 
-### G-029：测试联动检查
+### G-029：UI 测试联动检查
 
-- **检查内容**：核心模块变更时，对应测试文件同步更新
-- **映射规则**：
-  - `pilotstd/announcement/parser.py` → `tests/test_parser.py` 或 `tests/test_scanner.py`
-  - `pilotstd/query/adapters/` → `tests/test_adapters.py` 或 `tests/test_query.py`
-  - `pilotstd/manager/facade/_scan.py` → `tests/gui/test_scan.py` 或 `tests/test_scanner.py`
-  - `pilotstd/ui/main_window/` → `tests/gui/` 下任意测试文件
-- **阻断条件**：核心模块变更但对应测试未同步更新 → 阻断
-- **执行方式**：`python scripts/check_g_029_test_coverage.py`
+- **检查内容**：`pilotstd/ui/` 变更时，GUI 测试同步更新
+- **映射规则**：`pilotstd/ui/` → `tests/gui/`、`tests/test_ui*`、`tests/test_windows_tray*` 任一
+- **为何只管 UI**（v2.06）：parser / query.adapters / scanner 等目录**已由 G-013 覆盖**（2026-10-17 修好 `pilotstd/` 识别后）；原精确映射（`tests/test_parser.py` 等）实测 **2/2 假阳性**——改动方实际写的是 `test_exact_matcher.py` 等按功能命名的测试。一个文件只由一条门禁判定，避免两套规则互相打架
+- **范围取值**（v2.06）：CI 传 `G029_RANGE=<before>..<sha>`；`before` 全零（新分支）回退 `origin/<base>...HEAD` 再 `HEAD~1..HEAD`；**显式范围 0 文件 → FAIL**（原用 `origin/main..HEAD`，直推 main 时恒空 ⇒ 打印"无变更文件 PASS"的假绿）
+- **阻断条件**：UI 变更但测试未同步 → 阻断
+- **执行方式**：`python scripts/check_g_029_test_coverage.py`（CI `repo-compliance` job）
 
 ### G-030：技术债联动检查
 
@@ -575,6 +573,7 @@ A 类管"**事件**是否齐备"（数据完备性）；B 类管"同一事实在
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
+| v2.06 | 2026-10-17 | **D-6 / D-7：两条测试联动门禁从"假绿"恢复判别力**。**D-6（G-013）**：① `is_business_file()` 原把 git 路径第一段与 `BUSINESS_DIRS` 比较，而仓库路径是 `pilotstd/manager/...` ⇒ 第一段恒为 `pilotstd` ⇒ **`pilotstd/` 下所有业务代码从未被检查过**（实测 `pilotstd/manager/facade/_organize.py` 判 False）；改为按 `pilotstd/<子目录>` 取第二段。② 白名单补 `docker`、`scan`。③ 测试判据由"精确推测测试路径"改为"**tests/ 下任一测试变更**"——实测近 60 次提交里精确映射命中 **0/16**（docker 0/60、23 个推导路径不存在），文件名启发式仅 3/16；粗判据 14/16 通过，剩余 2 例是真阳性。**D-7（G-029）**：① 范围原用 `origin/main..HEAD`，直推 main 时恒空 ⇒ 打印"无变更文件 PASS"；改为优先读 `G029_RANGE`（CI 传 `before..sha`），全零回退，**显式范围 0 文件 ⇒ FAIL**。② 映射收敛为 **UI**（`pilotstd/ui/` → `tests/gui/`、`tests/test_ui*`、`tests/test_windows_tray*`）——其余目录已由 G-013 覆盖，原精确映射实测 2/2 假阳性。新增 `tests/test_check_g_013_test_sync_scope.py`（4 例）与 `tests/test_check_g_029_range.py`（4 例） |
 | v2.05 | 2026-10-17 | **G-013 规则 0 归位（pre-commit 假阻断修复）**：① `get_commit_message()` 原优先读 `.git/COMMIT_EDITMSG`，而 pre-commit 阶段 git 尚未写入本次消息 ⇒ 读到**上一条** `fix:`，一条纯 docs 提交被拦住（实测：docs 提交被前一条 `fix(gate):` 判为 bug 修复）；现无参时只读 `git log -1`，新增 `--commit-msg-file` 供 commit-msg 钩子传 `$1`。② 规则 0（fix/bugfix/hotfix 必须带测试）从 pre-commit 移到 `.husky/commit-msg`（`--bugfix-only`），pre-commit 传 `--no-commit-msg`。③ "带测试"判据由 `'test' in path` 改为 `path.startswith('tests/')`——原判据把 `scripts/check_g_013_test_coverage.py` 自身当成测试变更，规则 0 实际被架空。④ 新增 `tests/test_check_g_013_bugfix_message.py`（5 例） | v2.04 | 2026-10-17 | **G-034 接线 + 覆盖率报告去掉陈旧快照（体检 A-3/B-1/B-2）**：① 脚本此前**从未被任何入口调用**，本次接入两处——CI `test-backend`（pytest 加 `--cov-report=xml` → 重生成报告 → 断言）与本地 `check_all.sh --docs`（报告生成后立即断言），两者都保证"读的是本次数据"；② 阈值解析抽到 `scripts/_coverage_threshold.py`，G-034 与 `generate_coverage_report.py` 共用，生成器原写的"≥80%"行改为同源阈值；③ 明确 CI 的 45/58 为**作业级下限**、80% 为长期棘轮目标，唯一权威是 `pyproject.toml` 的 `fail_under`。实测见交付报告 |
 | v2.03 | 2026-10-17 | **G-034 覆盖率门禁：修好解析 + 阈值单一来源**（体检 A-3 / B-1）：① 解析器原正则只认 `行覆盖率: 85.2%` 的冒号写法，而 `scripts/generate_coverage_report.py` 的真实输出是**表格行** `\| 行覆盖率 \| **62.5%** \|` ⇒ **永不匹配**、门禁恒报"无法解析"（它当时未接线，故长期无人察觉）；现按"表格行 → 冒号 → 英文 → `TOTAL` 兜底"补候选，实测解析出 **62.5%**。② 阈值原在本脚本硬编码 **80.0**，与 `pyproject.toml` 的 `fail_under = 51`、`ci.yml:155` 的 `--cov-fail-under=45`、`ci.yml:775` 的 `--fail-under=58` 构成**四套口径** ⇒ 改为 `resolve_threshold()` 读 `pyproject.toml` 的 `fail_under` 作**唯一权威**（读不到才退回 45），并把 **80% 降级为长期棘轮目标**。③ 新增 `tests/test_check_g_034_coverage_threshold.py`（5 例：表格行解析 / 冒号与 TOTAL 兼容 / 无数据返回 None / 阈值来自 pyproject / 读不到时兜底）。**仍不接线**（避免一开就红）：实测 exit 0（62.5% ≥ 51%） |
 | v2.02 | 2026-10-17 | **两处门禁自身的判据修正**（体检批次 A/C 收尾）：① **`.husky/commit-msg` 的 scope 类放宽为 `[a-z0-9,-]`**——R-014 原文未禁止**多 scope 逗号**写法（如 `docs(plans,debt):`，历史与近期各 1 例），原 `[a-z0-9-]` 会把它判违规；受控验证：`docs(plans,debt): …` ⇒ exit 0、`docs(Plans): …`（大写）仍 ⇒ exit 1。② **`scripts/check_g_033_adr_integrity.py` 的 `parse_adr_status()` 补两条正则**：原只认 `## Status` / `**Status**:` / `状态：` / `> **状态**：`，而 ADR 的实际写法是**列表项 + 加粗** `- **状态**：✅ Accepted`——中间夹着 `**` 使 `状态[：:]` 匹配不到、`>` 分支又只认引用块 ⇒ ADR-001/009/010/017 被误判"无法解析 Status、视为无效"。补 `[-*]\s*\*\*状态\*\*` 与裸加粗两条后，**有效 ADR 13 → 16**（G-033 exit 0，5 例受控测试仍通过）。③ 两个钩子的索引模式补为 **100755**（POSIX 侧不再需要手工 `git update-index --chmod=+x`） |
