@@ -80,8 +80,8 @@ def _forget_orphan(worker: Any) -> None:
     """线程自然结束后释放保活引用。"""
     try:
         _ORPHANED_WORKERS.remove(worker)
-    except ValueError:
-        pass
+    except ValueError as e:
+        logger.debug("orphan worker not in registry: %s", e)
     _ORPHAN_SINCE.pop(id(worker), None)
 
 
@@ -142,8 +142,8 @@ def stop_worker_gracefully(worker: Any, signals: Iterable[Any] = (), timeout_ms:
     for sig in signals:
         try:
             sig.disconnect()
-        except (TypeError, RuntimeError):
-            pass  # 未连接或底层对象已析构，无需处理
+        except (TypeError, RuntimeError) as e:
+            logger.debug("disconnect failed (already disconnected/destroyed): %s", e)
 
     stop = getattr(worker, "stop", None)
     if callable(stop):

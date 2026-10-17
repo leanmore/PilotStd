@@ -351,7 +351,8 @@ class CacheManager:
         try:
             row = self._db.fetchone("SELECT config_value FROM cache_config WHERE config_key=?", (key,))
             return int(row["config_value"]) if row else default
-        except Exception:
+        except Exception as e:
+            logger.debug("cache config %s unreadable, using default %s: %s", key, default, e)
             return default
 
     def _load_config_bool(self, key: str, default: bool) -> bool:
@@ -359,7 +360,8 @@ class CacheManager:
         try:
             row = self._db.fetchone("SELECT config_value FROM cache_config WHERE config_key=?", (key,))
             return row["config_value"] == "true" if row else default
-        except Exception:
+        except Exception as e:
+            logger.debug("cache config %s unreadable, using default %s: %s", key, default, e)
             return default
 
     def _load_config_float(self, key: str, default: float) -> float:
@@ -367,5 +369,6 @@ class CacheManager:
         try:
             row = self._db.fetchone("SELECT config_value FROM cache_config WHERE config_key=?", (key,))
             return float(row["config_value"]) if row else default
-        except Exception:
+        except Exception as e:
+            logger.debug("cache config %s unreadable, using default %s: %s", key, default, e)
             return default

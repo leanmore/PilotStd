@@ -138,13 +138,13 @@ class LogHandler(logging.Handler, QObject):
             if hasattr(_sip, "isdeleted") and _sip.isdeleted(self):
                 self.widget = None
                 return
-        except (AttributeError, ImportError):
-            pass
+        except (AttributeError, ImportError) as e:
+            logger.debug("PyQt6.sip unavailable in close(), using fallback: %s", e)
         self.widget = None
         try:
             logging.getLogger().removeHandler(self)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("removeHandler failed in close(): %s", e)
 
     # ── 批量刷新缓冲区 ──
 
