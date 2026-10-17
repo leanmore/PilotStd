@@ -177,7 +177,7 @@ def _all_lines_present(joined: str, lines: int = 200) -> bool:
 def test_wechat_splits_long_message_by_bytes(monkeypatch) -> None:
     """企业微信：超长必须切分为多次投递，且**每段 ≤ 2048 字节**、信息零丢失。
 
-    用替身拦在 `_send_segment` 上：本用例只验证"分段与路由"，
+    用替身拦在 `_send_segment_with_retry` 上：本用例只验证"分段与路由"，
     真实 HTTP 由既有的渠道用例覆盖（避免把网络细节混进分段契约）。
     """
     from pilotstd.core.notification.channels.wechat import WechatChannel
@@ -186,7 +186,7 @@ def test_wechat_splits_long_message_by_bytes(monkeypatch) -> None:
     big = _long_text()
     monkeypatch.setattr(ch._renderer, "render", lambda _m: big, raising=False)
     seen: list[str] = []
-    monkeypatch.setattr(ch, "_send_segment", lambda text: seen.append(text) is None or True, raising=False)
+    monkeypatch.setattr(ch, "_send_segment_with_retry", lambda text: seen.append(text) is None or True, raising=False)
 
     assert ch.send(NotificationMessage(title="t")) is True
     assert len(seen) > 1, "超长必须分成多段"
@@ -204,7 +204,7 @@ def test_dingtalk_splits_long_message(monkeypatch) -> None:
     monkeypatch.setattr(ch, "_sign", lambda: "", raising=False)
     seen: list[str] = []
     monkeypatch.setattr(
-        ch, "_send_webhook_text", lambda url, title, text: seen.append(text) is None or True, raising=False
+        ch, "_send_segment_with_retry", lambda url, title, text: seen.append(text) is None or True, raising=False
     )
 
     assert ch.send(NotificationMessage(title="t")) is True
@@ -230,7 +230,7 @@ def test_feishu_splits_long_card_by_elements(monkeypatch) -> None:
     }
     monkeypatch.setattr(ch._renderer, "render", lambda _m: card, raising=False)
     seen: list[dict] = []
-    monkeypatch.setattr(ch, "_send_card", lambda one: seen.append(one) is None or True, raising=False)
+    monkeypatch.setattr(ch, "_send_card_with_retry", lambda one: seen.append(one) is None or True, raising=False)
 
     assert ch.send(NotificationMessage(title="t")) is True
     assert len(seen) > 1, "超长卡片必须切成多张"
@@ -250,7 +250,7 @@ def test_short_message_is_single_segment(monkeypatch) -> None:
     ch = WechatChannel("https://example.invalid/hook")
     monkeypatch.setattr(ch._renderer, "render", lambda _m: "短消息", raising=False)
     seen: list[str] = []
-    monkeypatch.setattr(ch, "_send_segment", lambda text: seen.append(text) is None or True, raising=False)
+    monkeypatch.setattr(ch, "_send_segment_with_retry", lambda text: seen.append(text) is None or True, raising=False)
 
     assert ch.send(NotificationMessage(title="t")) is True
     assert seen == ["短消息"]

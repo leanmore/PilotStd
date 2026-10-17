@@ -87,7 +87,7 @@ class TestSendBackoff(unittest.TestCase):
             return False, retryable
 
         with patch.object(self.ch, "_post_once", side_effect=_post_once), patch(
-            "pilotstd.core.notification.channels.telegram.time.sleep",
+            "pilotstd.core.notification.channels.base.time.sleep",
             side_effect=lambda s: sleeps.append(s),
         ):
             ok = self.ch.send(self.msg)
@@ -150,7 +150,7 @@ class TestSendBackoff(unittest.TestCase):
             return True, False
 
         with patch.object(self.ch, "_post_once", side_effect=_post_once), patch(
-            "pilotstd.core.notification.channels.telegram.time.sleep",
+            "pilotstd.core.notification.channels.base.time.sleep",
             side_effect=lambda s: sleeps.append(s),
         ):
             ok = self.ch.send(self.msg)
