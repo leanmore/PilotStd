@@ -67,8 +67,8 @@ class FileIndexRepository:
         if hasattr(self, "_db") and self._db is not None:
             try:
                 self._db.close_all()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("close_all failed during stop: %s", e)
 
     def _start_delayed_validation(self) -> None:
         """启动后台校验线程。
@@ -93,7 +93,8 @@ class FileIndexRepository:
                     row = self._db.fetchone(f"SELECT COUNT(*) AS cnt FROM {FILE_INDEX_TABLE}")
                     row_count = row["cnt"] if row else 0
                     delay = min(30, max(5.0, row_count / 500))
-                except Exception:
+                except Exception as e:
+                    logger.debug("validation delay query failed, fallback 10s: %s", e)
                     delay = 10
 
             if delay > 0:
@@ -105,7 +106,8 @@ class FileIndexRepository:
 
             try:
                 deleted = self.validate_paths()
-            except Exception:
+            except Exception as e:
+                logger.warning("file_index startup validation failed: %s", e, exc_info=True)
                 deleted = 0
             self._validation_complete.set()
 
@@ -129,7 +131,8 @@ class FileIndexRepository:
             return 0
         try:
             rows = self._db.fetchall(f"SELECT id, file_path FROM {FILE_INDEX_TABLE}")
-        except Exception:
+        except Exception as e:
+            logger.warning("validate_paths query failed: %s", e, exc_info=True)
             self._validation_complete.set()
             return 0
         deleted = 0

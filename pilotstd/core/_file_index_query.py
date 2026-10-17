@@ -78,7 +78,9 @@ class FileIndexQuery:
                 f"SELECT status, COUNT(*) as cnt FROM {FILE_INDEX_TABLE} WHERE status IS NOT NULL GROUP BY status"
             )
             s = {r["status"]: r["cnt"] for r in rows}
-        except Exception:
+        except Exception as e:
+            # 统计失败返回全 0 会被误读成"库里没有数据"，必须留痕
+            logger.warning("get_status_stats failed: %s", e)
             return {"current": 0, "expired": 0, "pending": 0, "upcoming": 0}
         return {
             "current": s.get(Status.ACTIVE.value, 0),

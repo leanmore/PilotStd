@@ -259,8 +259,8 @@ class CacheManager:
             )
             if row and row["total_bytes"]:
                 return cast(float, row["total_bytes"] / (1024 * 1024))
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("dbstat size probe failed: %s", e)
 
         # 方案2:_*_（数据库文件总大小）
         try:
@@ -288,8 +288,8 @@ class CacheManager:
                     )
                     return cast(float, (db_bytes * min(ratio, 1.0)) / (1024 * 1024))
                 return cast(float, (db_bytes * 0.3) / (1024 * 1024))
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("pragma size estimate failed: %s", e)
 
         # 方案3: 行数 × 500 字节估算
         total_rows = 0
@@ -297,8 +297,8 @@ class CacheManager:
             try:
                 r = self._db.fetchone(f"SELECT COUNT(*) as cnt FROM {table}")
                 total_rows += r["cnt"] if r else 0
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("row count failed for %s: %s", table, e)
         return total_rows * 500 / (1024 * 1024)
 
     def get_config(self) -> dict:

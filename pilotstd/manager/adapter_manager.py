@@ -33,8 +33,9 @@ class AdapterManager:
                     "SELECT frozen_until, freeze_count, fail_streak FROM adapter_state WHERE adapter_name = ?",
                     (name,),
                 )
-            except Exception:
-                pass
+            except Exception as e:
+                # 健康读取失败会让状态误报 normal，必须留痕
+                logger.warning("adapter health read failed for %s: %s", name, e)
 
         remaining = 0
         if site_state and site_state.cooldown_until > 0:
@@ -51,8 +52,9 @@ class AdapterManager:
                     frozen_dt = _dt.fromisoformat(frozen_until)
                     if frozen_dt.timestamp() > time.time():
                         h_status = "frozen"
-                except (ValueError, TypeError, OSError):
-                    pass
+                except (ValueError, TypeError, OSError) as e:
+                    # 解析不了 frozen_until 无法判定冻结态，保守保持 normal 但必须留痕
+                    logger.warning("invalid frozen_until for %s: %s", name, e)
             if h_status == "normal" and health.get("fail_streak", 0) > 0:
                 h_status = "degraded"
 
@@ -78,7 +80,8 @@ class AdapterManager:
         try:
             rows = self._db.fetchall("SELECT * FROM adapter_state")
             return [dict(r) for r in rows]
-        except Exception:
+        except Exception as e:
+            logger.warning("get_all_health failed: %s", e)
             return []
 
     # 阶段3.1:_执行层落地

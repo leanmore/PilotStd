@@ -74,6 +74,8 @@ StandardManager (BaseFacade)
 > 已删除；其 `archive_abandoned` 通知职责迁入收藏下载链。`SystemService` 由
 > `BaseFacade._init_services()` 实例化后暴露为 `mgr.system_service`。
 
+- **适配器状态读取的失败可见性（2026-10-17，体检 D-8/D-9）**：`AdapterManager.get_adapter_status` 读 `adapter_state` 失败、`frozen_until` 解析失败、`get_all_health` 读失败原先 `except: pass`（状态会误报 `normal`、全量健康返回空列表）；现统一记 warning 后再回退，**接口语义不变**。契约由 `tests/test_silent_error_observability_batch2.py` 锁定。
+
 ## 门面模式
 
 - `StandardManager` 是唯一对外暴露的业务入口
