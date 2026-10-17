@@ -48,4 +48,5 @@ def _on_select(self) -> None:
 
 def _pick_folder(self, title: str, start_dir: str = "") -> str:
     """弹出目录选择对话框，返回选中的路径。"""
-    return QFileDialog.getExistingDirectory(None, title, start_dir)
+    path = QFileDialog.getExistingDirectory(None, title, start_dir)
+    return path if isinstance(path, str) else ""

@@ -227,7 +227,7 @@ def _confirm_update_available(self, current: str, release: dict) -> bool:
         _("update_new_version_msg").format(current=current, latest=latest, body=body),
         QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
     )
-    return reply == QMessageBox.StandardButton.Yes
+    return bool(reply == QMessageBox.StandardButton.Yes)
 
 
 def _download_update_file(self, release: dict) -> None:
