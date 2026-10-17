@@ -10,6 +10,10 @@ import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from pathlib import Path
 
+# 阈值与 G-034 门禁共用同一解析（体检 B-1：报告里的 "≥80%" 曾与 pyproject 的 51 矛盾）
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _coverage_threshold import resolve_threshold  # noqa: E402
+
 # 控制台-8编码兼容
 if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
@@ -91,6 +95,7 @@ def main():
 
     OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
     data = parse_coverage_xml()
+    threshold = resolve_threshold()
 
     if not data["modules"]:
         print("   ⚠️  无覆盖率数据，生成空报告")
@@ -138,12 +143,15 @@ def main():
 
 | 门禁 | 阈值 | 当前值 | 状态 |
 |------|------|--------|:--:|
-| G-034 覆盖率阈值 | ≥ 80% | {total_line}% | {"✅ 通过" if total_line >= 80 else "❌ 未达标"} |
+| G-034 覆盖率阈值 | ≥ {threshold:.0f}% | {total_line}% | {"✅ 通过" if total_line >= threshold else "❌ 未达标"} |
 | CI test-backend | ≥ 45% | {total_line}% | {"✅ 通过" if total_line >= 45 else "❌ 未达标"} |
 
 ## 说明
 
-- 本报告由 CI 自动生成，每次 `check_all.sh --docs` 运行时覆盖
+- 本报告由 CI 的 `test-backend` 作业与本地 `check_all.sh --docs` 依据 `coverage.xml` 重新生成
+- 本文件是**快照**：CI 每次运行按该作业的测试集合重新生成，范围可能与本快照不同，达标判定以当次为准
+- G-034 阈值取自 pyproject 的 fail_under（当前 {threshold:.0f}%）
+- CI 的 --cov-fail-under 是作业级下限，不是达标线
 - `pilotstd/ui/` 在 headless 环境下覆盖率为 0%，实际由 Windows CI `test-unit-cov` job 单独收集
 - 如需手动补充分析，请在仓库外维护独立文档
 """

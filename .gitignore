@@ -18,6 +18,8 @@ env/
 .pytest_cache/
 .vulture_cache/
 .coverage*
+# 覆盖率 XML：本地与 CI 的生成物，不入仓（曾出现根目录 coverage.xml 未被忽略）
+coverage.xml
 htmlcov/
 .tox/
 

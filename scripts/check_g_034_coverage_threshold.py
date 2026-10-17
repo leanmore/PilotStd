@@ -20,25 +20,15 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 COVERAGE_REPORT = ROOT / "docs" / "testing" / "coverage-report.md"
-PYPROJECT = ROOT / "pyproject.toml"
 
-# 读不到 pyproject 时的兜底（与 CI `test-backend` 的实际阻断值一致，宁可保守）
-FALLBACK_THRESHOLD = 45.0
+# 阈值解析与覆盖率生成器共用同一实现（2026-10-17 体检 B-1：四套口径收敛为单一来源）
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _coverage_threshold import (  # noqa: E402
+    FALLBACK_THRESHOLD,
+    resolve_threshold,
+)
 
-
-def resolve_threshold(pyproject: Path = PYPROJECT) -> float:
-    """从 `pyproject.toml` 的 `[tool.coverage.report] fail_under` 取唯一权威阈值。"""
-    try:
-        text = pyproject.read_text(encoding="utf-8")
-    except OSError:
-        return FALLBACK_THRESHOLD
-    match = re.search(r"^\s*fail_under\s*=\s*([\d.]+)", text, re.MULTILINE)
-    if not match:
-        return FALLBACK_THRESHOLD
-    try:
-        return float(match.group(1))
-    except ValueError:
-        return FALLBACK_THRESHOLD
+__all__ = ["FALLBACK_THRESHOLD", "parse_coverage", "resolve_threshold"]
 
 
 def parse_coverage(text: str) -> float | None:

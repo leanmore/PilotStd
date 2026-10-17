@@ -257,6 +257,14 @@ run_docs() {
         exit 1
     fi
 
+    # G-034: 覆盖率阈值（必须紧跟在报告生成之后，否则会读到上一次的旧数）
+    # 2026-10-17 接线（体检 A-3/B-1）：脚本此前从未被任何入口调用，修好解析与阈值来源后在此落地。
+    if python scripts/check_g_034_coverage_threshold.py; then
+        log_pass "G-034 覆盖率阈值"
+    else
+        log_fail "G-034 覆盖率阈值"
+    fi
+
     # Step 3: 守护器
     echo "   🛡️  运行 G-032 守护器..."
     if python scripts/check_g_032_doc_health.py; then

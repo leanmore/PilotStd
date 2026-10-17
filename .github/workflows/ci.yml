@@ -152,7 +152,7 @@ jobs:
         run: |
           mkdir -p /tmp/standards
           python -m pytest tests/ -q -rs --tb=short -n auto -p no:pytest-qt \
-            --cov=pilotstd --cov-fail-under=45 \
+            --cov=pilotstd --cov-report=xml --cov-fail-under=45 \
             --timeout=60 --timeout_method=signal \
             --ignore=tests/gui/ \
             --ignore=tests/test_regression_architecture.py \
@@ -167,6 +167,14 @@ jobs:
             --deselect "tests/test_core.py::TestFileUtils::test_safe_move_and_copy" \
             --deselect "tests/test_cli.py::TestCLIMove::test_cmd_move" \
             --ignore=tests/test_ci_scan_fix.py
+
+      # G-034（2026-10-17 接线，体检 A-3/B-1）：报告此前是 2026-08-21 的陈旧快照
+      # （62.5%），门禁读旧数等于没接；故在本次 coverage.xml 生成后立即重生成并断言。
+      # 阈值唯一来源是 pyproject.toml 的 fail_under；CI 各作业的 --cov-fail-under 是作业级下限。
+      - name: G-034 — 覆盖率阈值（重生成报告后断言）
+        run: |
+          python scripts/generate_coverage_report.py
+          python scripts/check_g_034_coverage_threshold.py
 
       # 恢复网络：即使 pytest 失败也必须执行（if: always()），
       # 否则后续 vulture 安装 / 覆盖率上传等步骤会被阻断。
