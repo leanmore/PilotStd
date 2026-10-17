@@ -142,8 +142,9 @@ class WechatIPService:
             try:
                 decrypted = decrypt_cookie(encrypted, self._get_secret())
                 cookie_valid = validate_cookie(decrypted, "")
-            except Exception:
-                pass
+            except Exception as e:
+                # 解密/校验失败 → cookie_valid 保持 False，但必须留痕
+                logger.warning("wechat_ip cookie decrypt/validate failed: %s", e)
 
         return {
             "current_ip": now_ip or Status.UNKNOWN.value,

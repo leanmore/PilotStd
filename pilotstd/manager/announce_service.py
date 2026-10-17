@@ -225,8 +225,8 @@ class AnnounceService:
             if row["result_data"]:
                 try:
                     data = _json.loads(row["result_data"])
-                except (_json.JSONDecodeError, TypeError):
-                    pass
+                except (_json.JSONDecodeError, TypeError) as e:
+                    logger.debug("announce task result_data invalid JSON (task=%s): %s", task_id, e)
             return {"task_id": task_id, "status": "success", "data": data}
         elif status in ("pending", "running"):
             return {"task_id": task_id, "status": status,

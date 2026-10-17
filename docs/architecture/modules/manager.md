@@ -78,6 +78,8 @@ StandardManager (BaseFacade)
 
 - **归档/扫描路径的失败可见性（2026-10-17，体检 D-8 第 6 批）**：`expire`/`mirror`/`organizer` 的文件清理 `OSError`、`_backfill_std_name` 的缓存查询与 `result_json` 解析失败、`scan_directory(_stream)` 的缓存失效失败，均由 `pass` 改为 debug（行为不变）；契约由 `tests/test_silent_error_observability_batch6.py` 锁定。
 
+- **入队/状态读取的失败可见性（2026-10-17，体检 D-8 第 10 批）**：`ValidityService.enqueue_files` 单条入队失败、`AnnounceService` 的 `result_data` 非法 JSON、`WechatIPService` 的 cookie 解密/校验失败、`StandardManager` 的缓存 `result_json` 解析失败，均由 `pass` 改为 warning/debug；契约由 `tests/test_silent_error_observability_batch10.py` 锁定。
+
 ## 门面模式
 
 - `StandardManager` 是唯一对外暴露的业务入口

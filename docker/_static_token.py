@@ -60,8 +60,9 @@ def _ensure_static_token_in_db():
             )
         db.close()
         _STATIC_TOKEN_INITIALIZED = True
-    except Exception:
-        pass  # 首次启动时 DB 可能尚未初始化，后续请求重试
+    except Exception as e:
+        # 首次启动时 DB 可能尚未初始化：不阻断，但要留痕（后续请求重试）
+        logger.debug("static token db init failed: %s", e)
 
 
 def get_static_token() -> str:

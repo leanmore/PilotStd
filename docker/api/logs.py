@@ -1,4 +1,5 @@
 # 容器//脚本—应用日志读取接口（供前端日志栏+压测远端取回使用）
+import logging
 import os
 import re
 import time
@@ -249,8 +250,8 @@ def _list_rotated_impl() -> list[dict]:
                     "lines_estimate": max(st.st_size // _AVG_LINE_BYTES, 0),
                 }
             )
-    except OSError:
-        pass
+    except OSError as e:
+        logging.getLogger(__name__).debug("stat log file failed, skipped: %s", e)
     files.sort(key=lambda f: f["mtime_iso"], reverse=True)
     _list_cache["ts"] = now
     _list_cache["files"] = files

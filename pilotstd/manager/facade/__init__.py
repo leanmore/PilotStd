@@ -5,9 +5,12 @@
 """
 
 import json
+import logging
 from typing import Any, Optional, cast
 
 from ._base import BaseFacade
+
+logger = logging.getLogger(__name__)
 
 
 class StandardManager(BaseFacade):
@@ -69,8 +72,8 @@ class StandardManager(BaseFacade):
                         item["std_name"] = extra.get("standard_name", "")
                         item["replaces_code"] = extra.get("replaces", "")
                         item["publish_date"] = extra.get("publish_date", "")
-                except (json.JSONDecodeError, TypeError):
-                    pass
+                except (json.JSONDecodeError, TypeError) as e:
+                    logger.debug("standard_info_cache result_json invalid: %s", e)
             items.append(item)
         return items
 

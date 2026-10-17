@@ -1,11 +1,14 @@
 # 模块：项目/核心/配置/脚本
 # 目录/路径相关函数—从配置脚本拆分
 
+import logging
 import os
 import sys
 from typing import Any
 
 from ..frozen import is_frozen
+
+logger = logging.getLogger(__name__)
 
 
 def _get_config_dir() -> str:
@@ -20,9 +23,9 @@ def _get_config_dir() -> str:
                 f.write("")
             os.remove(test)
             return cfg_dir
-        except OSError:
+        except OSError as e:
             # 已知可忽略：冻结模式目录探测失败回退 appdata
-            pass
+            logger.debug("frozen config dir probe failed, fallback to appdata: %s", e)
         appdata = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "PilotStd")
         os.makedirs(appdata, exist_ok=True)
         return appdata

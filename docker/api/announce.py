@@ -44,8 +44,9 @@ def check_announce(since_date: str = "", mgr=None, types: list[str] | None = Non
             os.makedirs(os.path.dirname(FAILURES_FILE), exist_ok=True)
             with open(FAILURES_FILE, "w", encoding="utf-8") as f:
                 json.dump(failures, f, ensure_ascii=False, indent=2)
-        except OSError:
-            pass
+        except OSError as e:
+            # 失败清单落盘失败：抓取结果仍返回，但运维将看不到失败明细
+            logger.warning("write announcement failures file failed (%s): %s", FAILURES_FILE, e)
     # 公告抓取完成后标记缓存失效（查询缓存 + 统计缓存）
     try:
         from pilotstd.core.cache_manager import CacheManager, DataSource

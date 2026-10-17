@@ -208,8 +208,10 @@ def _start_session_cleanup() -> None:
                     logging.getLogger("pilotstd.auth").debug(
             t("auth.log.session_cleanup").format(count=removed)
         )
-            except Exception:
-                pass
+            except Exception as e:
+                import logging
+
+                logging.getLogger("pilotstd.auth").warning("session cleanup failed: %s", e)
 
     t = threading.Thread(target=_cleanup_loop, daemon=True, name="session-cleanup")
     t.start()

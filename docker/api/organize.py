@@ -87,6 +87,6 @@ def clean_empty_dirs(path: str = "/standards", mgr=Depends(get_manager_dep)):
                 if not os.listdir(dpath):
                     os.rmdir(dpath)
                     removed += 1
-            except OSError:
-                pass
+            except OSError as e:
+                logger.debug("rmdir empty dir failed (%s): %s", dpath, e)
     return {"cleaned": removed}

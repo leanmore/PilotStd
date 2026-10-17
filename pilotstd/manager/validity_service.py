@@ -1,7 +1,10 @@
 # 模块：项目/管理器/_服务脚本
 # 时效性检查服务—供接口层调用
 
+import logging
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 class ValidityService:
@@ -55,6 +58,7 @@ class ValidityService:
                     (str(fp),),
                 )
                 inserted += 1
-            except Exception:
-                pass
+            except Exception as e:
+                # 单条入队失败不阻断其余文件，但"少入队"必须可见
+                logger.warning("enqueue validity file failed (%s): %s", fp, e)
         return {"ok": True, "enqueued": inserted, "total": len(file_paths)}
