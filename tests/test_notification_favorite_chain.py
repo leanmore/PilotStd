@@ -378,7 +378,9 @@ class TestTelegram400Diagnostics:
 
         with (
             patch("pilotstd.core.notification.channels.telegram.urlopen", side_effect=err),
-            patch("pilotstd.core.notification.channels.telegram.logger.error") as mock_err,
+            # 2026-10-17：去重日志（`_log_dedup`）已随渠道基座搬到 `channels/base.py`，
+            # 故错误日志由 **base 的 logger** 发出；打桩目标必须跟着走，否则抓不到（CI 实测红）。
+            patch("pilotstd.core.notification.channels.base.logger.error") as mock_err,
         ):
             ok = ch.send(msg)
 
