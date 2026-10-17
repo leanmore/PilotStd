@@ -271,12 +271,19 @@ def parse_envelope(channel: str, payload: dict, event_id: str = "", now: float |
     """把各渠道的载荷归一为 `CallbackEnvelope`（只读字段，不做信任判断）。
 
     渠道载荷结构差异大（TG `callback_query.data`、钉钉 `action`+`outTrackId`、飞书 `action.value`、
-    企微**解密后的消息 XML** 的 `EventKey`/`TaskId`），这里按**我们下发的 `callback_data`** 取值；
+    企微**解密后的消息 XML** 的 `EventKey`/`Content`），这里按**我们下发的 `callback_data`** 取值；
     取不到时返回空动作，由调用方按未知动作拒绝。
 
-    `wechat` 的输入是 `wechat_crypto.parse_plain_xml` 得到的扁平字典（XML 字段名 → 文本）：
-    普通菜单/按钮事件用 `EventKey`，模板卡片按钮用 `TaskId`（企微两种形态字段名不同），
-    两者都可能形如 `action:token`（我们的下发口径），故统一走 `_split_action`。
+    `wechat` 的输入是 `wechat_crypto.parse_plain_xml` 得到的扁平字典（XML 字段名 → 文本）。
+    **字段依据来自可运行的参考实现**（本地副本 `D:/mp插件/MoviePilot-src/app/modules/wechat/__init__.py:179-207`）：
+
+    * `MsgType=event` **且** `Event=click` ⇒ 取 **`EventKey`**（该实现注释明写「event 事件只有
+      `click` 才有效，`enter_agent` 无效」）；
+    * `MsgType=text` ⇒ 取 **`Content`**（用户直接发消息当命令，同一实现 :204-207 即如此）；
+    * 其余 `MsgType`/`Event` **一律不产生动作**（宁可忽略，也不把未取证形态当成命令解析）。
+
+    ⚠️ 2026-10-17 修正：本分支此前**优先取 `TaskId`**，那是照文档推断的字段，**参考实现里没有
+    任何依据**（它只认 `EventKey`）⇒ 已移除；若将来另拿到"模板卡片按钮回调"的真报文再按实证加回。
     """
     current = time.time() if now is None else now
     action = ""
@@ -297,9 +304,15 @@ def parse_envelope(channel: str, payload: dict, event_id: str = "", now: float |
         callback_data = str(action_block.get("value", {}).get("token") or "")
         actor_ref = str((payload.get("operator") or {}).get("open_id") or "")
     elif channel == "wechat":
-        # 两种形态的按钮载荷字段名不同：菜单/普通按钮 = EventKey，模板卡片按钮 = TaskId。
-        # 都取（后者优先，模板卡片事件里 EventKey 可能不存在），交给 `_split_action` 拆动作。
-        raw_data = str(payload.get("TaskId") or payload.get("EventKey") or "")
+        msg_type = str(payload.get("MsgType") or "").strip().lower()
+        event = str(payload.get("Event") or "").strip().lower()
+        raw_data = ""
+        if msg_type == "event" and event == "click":
+            # 企微"用户点菜单/按钮"的实证形态：菜单 click 事件把我们的键放在 EventKey
+            raw_data = str(payload.get("EventKey") or "")
+        elif msg_type == "text":
+            # 用户直接给我们发消息：正文即命令（与参考实现同口径）
+            raw_data = str(payload.get("Content") or "")
         action, callback_data = _split_action(raw_data)
         actor_ref = str(payload.get("FromUserName") or "")
     return CallbackEnvelope(

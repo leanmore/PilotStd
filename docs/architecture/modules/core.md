@@ -68,6 +68,11 @@ pilotstd/core/
 │   │    原实现在"`users` 表只有一行"时回退认领该用户，会把**未知企微用户**的点击记成
 │   │    "我们的用户点的"并按该用户角色执行动作（管理员即等于放行）。企微本就能区分用户，
 │   │    只是载体不同（不是回调 URL 里的 `log_id:user_id`，而是报文 `FromUserName`）⇒ 不该猜。
+│   │    ⚠️ **回调字段以实证为准（2026-10-17 修正）**：`parse_envelope` 的企微分支此前**优先取
+│   │    `TaskId`**——那是照文档推断的字段。本地可运行的参考实现（`D:/mp插件/MoviePilot-src/
+│   │    app/modules/wechat/__init__.py:179-207`）只认：`MsgType=event` **且** `Event=click` ⇒ 取
+│   │    **`EventKey`**（其注释明写「event 事件只有 `click` 才有效，`enter_agent` 无效」）；
+│   │    `MsgType=text` ⇒ 取 `Content`；其余形态**一律不产生动作**。`TaskId` 已移除。
 │   │    `WeChatCrypto(token, encoding_aes_key, receive_id)`：`check_signature`（SHA1 +
 │   │    `hmac.compare_digest` 常量时间）、`decrypt_message`/`encrypt_message`（AES-256-CBC，
 │   │    `iv=key[:16]`，明文 = random(16B)+长度(4B,大端)+msg+receiveid，**PKCS#7 按 32 字节块**）、
