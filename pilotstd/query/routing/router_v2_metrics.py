@@ -5,11 +5,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import queue
 import threading
 import time
 from pathlib import Path
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 # 日志目录与文件（项目根 logs/）
 _LOG_PATH = Path(__file__).resolve().parent.parent.parent.parent / "logs" / "router_v2_decisions.jsonl"
@@ -39,8 +42,9 @@ def _write_loop() -> None:
             _LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
             with _LOG_PATH.open("a", encoding="utf-8") as f:
                 f.write(line + "\n")
-        except Exception:
-            pass  # 埋点失败不阻断主链路
+        except Exception as e:
+            # 埋点失败不阻断主链路，但静默会让"没有决策日志"无法归因
+            logger.debug("router metrics write failed: %s", e)
 
 
 def record_decision(payload: dict) -> None:
@@ -49,8 +53,8 @@ def record_decision(payload: dict) -> None:
     payload.setdefault("timestamp", time.strftime("%Y-%m-%dT%H:%M:%S%z"))
     try:
         _queue.put(json.dumps(payload, ensure_ascii=False))
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("router metrics enqueue failed: %s", e)
 
 
 def hash_query(query: str) -> str:

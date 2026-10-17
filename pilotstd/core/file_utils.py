@@ -64,9 +64,9 @@ def normalize_std_filename(filename: str) -> str:
     if not _has_surrogate:
         try:
             filename = unicodedata.normalize("NFKC", filename)
-        except Exception:
+        except Exception as e:
             # 安全降级：保留原始文件名（非代理项导致的异常，罕见但兜底）
-            pass
+            logger.debug("NFKC normalize failed, keep original filename: %s", e)
 
     # 3.缺斜杠还原（→/,→/,数据库22→数据库22/等）
     # 在步骤1之后执行：如果文件名本来就有/，步骤1已处理，此正则不会误匹配
@@ -140,7 +140,8 @@ def hash_file_content(path: str) -> str:
 
     try:
         file_size = os.path.getsize(path)
-    except OSError:
+    except OSError as e:
+        logger.debug("getsize failed for %s: %s", path, e)
         return ""
     h = hashlib.sha256()
     try:
@@ -152,8 +153,10 @@ def hash_file_content(path: str) -> str:
                 h.update(f.read(1024 * 1024))
                 f.seek(-65536, os.SEEK_END)
                 h.update(f.read(65536))
-    except OSError:
-        return ""  # 文件被锁定/删除/截断，返回空哈希跳过
+    except OSError as e:
+        # 文件被锁定/删除/截断，返回空哈希跳过
+        logger.debug("read failed for %s: %s", path, e)
+        return ""
     h.update(str(file_size).encode())
     return h.hexdigest()
 
@@ -217,8 +220,8 @@ def safe_move(src: str, dst: str, on_exists: str = "skip") -> bool:
         if os.path.exists(tmp_dst):
             try:
                 os.remove(tmp_dst)
-            except OSError:
-                pass
+            except OSError as cleanup_error:
+                logger.debug("cleanup tmp file failed (%s): %s", tmp_dst, cleanup_error)
         logger.error("移动失败: %s -> %s, 原因: %s", src, dst, e)
         return False
 
@@ -276,13 +279,13 @@ def remove_empty_dirs(root: str) -> int:
             for f in filenames:
                 try:
                     os.remove(os.path.join(dirpath, f))
-                except OSError:
-                    pass
+                except OSError as e:
+                    logger.debug("remove junk file failed (%s): %s", f, e)
             try:
                 os.rmdir(dirpath)
                 deleted += 1
-            except OSError:
-                pass
+            except OSError as e:
+                logger.debug("rmdir failed (%s): %s", dirpath, e)
     return deleted
 
 

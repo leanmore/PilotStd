@@ -290,8 +290,8 @@ class Database:
         if hasattr(self._local, "conn") and self._local.conn is not None:
             try:
                 self._local.conn.close()
-            except Exception:
-                pass
+            except Exception as e:
+                logging.getLogger("pilotstd.db").debug("close connection failed: %s", e)
             self._local.conn = None
 
     def close_all(self) -> None:
@@ -300,8 +300,8 @@ class Database:
         for conn in self._all_conns:
             try:
                 conn.close()
-            except Exception:
-                pass
+            except Exception as e:
+                logging.getLogger("pilotstd.db").debug("close_all connection failed: %s", e)
         self._all_conns.clear()
         if hasattr(self._local, "conn"):
             self._local.conn = None
