@@ -34,7 +34,9 @@ if [ -z "$SUBJECT" ]; then
 fi
 
 TYPE='(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert|merge)'
-SCOPE='(\([a-z0-9-]+\))?'
+# scope 允许小写字母/数字/连字符，并**接受逗号分隔的多 scope**（如 docs(plans,debt):）
+# —— R-014 原文未禁止多 scope，且历史与近期提交均有此写法（2026-10-17 政策留痕）。
+SCOPE='(\([a-z0-9,-]+\))?'
 # 复合类型允许任意多个 + 连接（如 feat(notify)+docs:）
 COMPOSITE="^${TYPE}${SCOPE}(\\+${TYPE}${SCOPE})*: .+"
 
@@ -53,6 +55,6 @@ fi
     echo "   示例：test+docs: 补回归用例并同步文档"
     echo "   示例：merge: 合并 feat/xxx 分支（或 merge(scope): …）"
     echo "   允许的 type：feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert|merge"
-    echo "   scope 仅允许小写字母/数字/连字符；Git 生成的 Merge …/Revert \"…\" 与 AGENTS.md R-014 的 [Test-Fix] … 亦接受"
+    echo "   scope 仅允许小写字母/数字/连字符（多 scope 用逗号，如 docs(plans,debt)）；Git 生成的 Merge …/Revert \"…\" 与 AGENTS.md R-014 的 [Test-Fix] … 亦接受"
 } >&2
 exit 1

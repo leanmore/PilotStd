@@ -109,6 +109,11 @@ def parse_adr_status(content: str) -> str | None:
         r"\*\*Status\*\*:\s*(\S+)",
         r"状态[：:]\s*(\S+)",
         r">\s*\*\*状态\*\*[：:]\s*(\S+)",
+        # 2026-10-17（体检留痕）：ADR 实际写法是列表项 + 加粗，如 `- **状态**：✅ Accepted`。
+        # 上面 `状态[：:]` 因中间夹着 `**` 匹配不到，`>` 分支又只认引用块 ⇒
+        # ADR-001/009/010/017 被误判"无法解析 Status、视为无效"。补两条覆盖 `-`/`*` 列表项与裸加粗。
+        r"[-*]\s*\*\*状态\*\*[：:]\s*(\S+)",
+        r"\*\*状态\*\*[：:]\s*(\S+)",
     ]
     for pat in patterns:
         match = re.search(pat, content, re.IGNORECASE)

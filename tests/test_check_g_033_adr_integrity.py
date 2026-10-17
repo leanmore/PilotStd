@@ -77,6 +77,23 @@ def test_clean_tree_passes(tmp_path: Path) -> None:
     assert gate.validate_adr(tmp_path) is True
 
 
+def test_parse_adr_status_accepts_list_item_bold_format() -> None:
+    """ADR 的实际 Status 写法是列表项 + 加粗 ⇒ 必须能解析（2026-10-17 修正）。
+
+    回归：原正则集只有 `## Status` / `**Status**:` / `状态：` / `> **状态**：`，
+    而真实文件写 `- **状态**：✅ Accepted`——中间夹着 `**` 使 `状态[：:]` 匹配不到、
+    `>` 分支又只认引用块 ⇒ ADR-001/009/010/017 被误判"无法解析 Status、视为无效"
+    （有效 ADR 被少算 4 个）。
+    """
+    gate = _load_module()
+    assert gate.parse_adr_status("- **状态**：✅ Accepted\n") is not None, "列表项加粗写法必须可解析"
+    assert gate.parse_adr_status("* **状态**：Accepted\n") == "accepted"
+    # 引用块写法仍要兼容（既有分支）
+    assert gate.parse_adr_status("> **状态**：Deprecated\n") == "deprecated"
+    # 真正解析不到时仍返回 None（不得因放宽而"什么都能过"）
+    assert gate.parse_adr_status("本文没有状态字段\n") is None
+
+
 def test_cli_real_tree_exit_zero() -> None:
     """真实仓库跑 CLI → exit 0。"""
     result = subprocess.run(
