@@ -24,7 +24,7 @@ _TREE_NODE_KEY = Qt.ItemDataRole.UserRole + 1  # 节点类型标记（用于 _re
 def _populate_quick_access(self) -> None:
     """填充文件树快速访问节点：桌面、文档、下载、此电脑。"""
     self.file_tree.clear()
-    self._drive_items: dict[str, QTreeWidgetItem] = {}
+    self._drive_items = {}
     desktop_path = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DesktopLocation)
     item = self._make_item(_("desktop"), desktop_path)
     item.setData(0, _TREE_NODE_KEY, "desktop")
@@ -188,6 +188,7 @@ def _on_file_tree_context_menu(self, pos: Any) -> None:
         return
     menu = QMenu(self)
     import_action = menu.addAction(f"\U0001f4c2 {_('context_import')}")
+    assert import_action is not None
     import_action.setToolTip(f"将 '{os.path.basename(path)}' 导入工作区并自动扫描")
     chosen = menu.exec(self.file_tree.viewport().mapToGlobal(pos))
     if chosen == import_action:

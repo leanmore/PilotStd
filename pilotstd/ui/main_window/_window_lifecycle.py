@@ -5,17 +5,25 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any, Callable
 
+from PyQt6.QtCore import QEvent
 from PyQt6.QtWidgets import QApplication, QSystemTrayIcon
 
 from ...i18n import _
 from ..qt_lifecycle import stop_worker_gracefully
 
+if TYPE_CHECKING:
+    # 仅类型检查期以 QMainWindow 为基类：运行时仍是纯 Mixin（不改变 MRO）
+    from PyQt6.QtGui import QCloseEvent
+    from PyQt6.QtWidgets import QMainWindow as _MixinBase
+else:
+    _MixinBase = object
+
 logger = logging.getLogger("pilotstd.ui")
 
 
-class _WindowLifecycleMixin:
+class _WindowLifecycleMixin(_MixinBase):
     """窗口生命周期方法集合（混入 MainWindow）。
 
     包含系统托盘交互、窗口事件处理、Worker 线程管理、状态收集与自动保存。
@@ -26,6 +34,18 @@ class _WindowLifecycleMixin:
     不是设计选择。强行拆分会引入无意义的转发样板。
     参见：docs/architecture/mixin-cleanup.md
     """
+
+    # 由 MainWindow 组合提供：显式声明类型，避免 attr-defined（D-17）
+    _mgr: Any
+    _mgr_ready: bool
+    _tray: Any
+    _project: Any
+    _save_window_geometry: Callable[[], None]
+    _save_splitter_sizes: Callable[[], None]
+    _save_sort_state: Callable[[], None]
+    _save_column_widths: Callable[[], None]
+    _start_auto_pipeline: Callable[[str], None]
+    _table_to_list: Callable[[], list[Any]]
 
     # ================================================================ 分隔
     # 系统托盘
@@ -56,9 +76,11 @@ class _WindowLifecycleMixin:
     # 窗口事件
     # ================================================================ 分隔
 
-    def changeEvent(self, event: object) -> None:
+    def changeEvent(self, event: QEvent | None) -> None:
         """窗口最小化时隐藏到系统托盘。"""
-        if event.type() == event.Type.WindowStateChange and self.isMinimized():
+        if event is None:
+            return
+        if event.type() == QEvent.Type.WindowStateChange and self.isMinimized():
             self._save_window_geometry()
             self._save_splitter_sizes()
             self._save_sort_state()
@@ -74,7 +96,7 @@ class _WindowLifecycleMixin:
             return
         super().changeEvent(event)
 
-    def closeEvent(self, event: object) -> None:
+    def closeEvent(self, event: QCloseEvent | None) -> None:
         """关闭窗口时保存状态并退出。"""
         self._save_window_geometry()
         self._save_splitter_sizes()
@@ -82,7 +104,8 @@ class _WindowLifecycleMixin:
         self._save_column_widths()
         self._stop_workers()
         self._quit_app()
-        event.accept()
+        if event is not None:
+            event.accept()
 
     # ================================================================ 分隔
     # 管理

@@ -61,7 +61,9 @@ def _load_qt_translator(self) -> None:
         for attr in ("_qt_translator", "_widgets_translator"):
             old = getattr(self, attr, None)
             if old:
-                QApplication.instance().removeTranslator(old)
+                app = QApplication.instance()
+                if app is not None:
+                    app.removeTranslator(old)
                 setattr(self, attr, None)
         if is_frozen():
             base = getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
@@ -73,7 +75,9 @@ def _load_qt_translator(self) -> None:
             if os.path.exists(qt_qm):
                 translator = QTranslator(self)
                 if translator.load(qt_qm):
-                    QApplication.instance().installTranslator(translator)
+                    app = QApplication.instance()
+                    if app is not None:
+                        app.installTranslator(translator)
                     if qm_name.startswith("qtbase"):
                         self._qt_translator = translator
                     else:
@@ -85,7 +89,9 @@ def _load_qt_translator(self) -> None:
         for attr in ("_qt_translator", "_widgets_translator"):
             old = getattr(self, attr, None)
             if old:
-                QApplication.instance().removeTranslator(old)
+                app = QApplication.instance()
+                if app is not None:
+                    app.removeTranslator(old)
                 setattr(self, attr, None)
     self._loaded_qt_lang = lang
 

@@ -43,9 +43,23 @@ class MainWindow(_WindowLifecycleMixin, QMainWindow):
     status_changed = pyqtSignal(str)
     query_result_ready = pyqtSignal(int, object)
 
+    # 由 parts/_ui_setup_ops 等导入方法在运行时创建：显式声明（D-17）
+    progress_bar: Any
+    status_bar: Any
+    file_tree: Any
+    work_table: Any
+    btn_query: Any
+    btn_download: Any
+    btn_cancel: Any
+    _file_menu: Any
+    _parsed_results: list[Any]
+    _scan_source_root: str
+    _unrecognized_files: list[Any]
+    _ui_translatable: bool
+
     # ──导入方法片段（从/注入，替代原内联）──
 
-    from .parts._actions_ops import (
+    from .parts._actions_ops import (  # type: ignore[misc]  # 类作用域组合导入（mypy 不支持）
         _apply_announce_cache_mode,
         _confirm_update_available,
         _download_update_file,
@@ -65,7 +79,7 @@ class MainWindow(_WindowLifecycleMixin, QMainWindow):
         _update_button_states,
         get_pipeline_stats,
     )
-    from .parts._delegate_ops import (
+    from .parts._delegate_ops import (  # type: ignore[misc]  # 类作用域组合导入（mypy 不支持）
         _on_check_announcements,
         _on_cleanup_empty_dirs,
         _on_collect_unrecognized,
@@ -77,29 +91,29 @@ class MainWindow(_WindowLifecycleMixin, QMainWindow):
         _run_scan,
         _start_auto_pipeline,
     )
-    from .parts._dialog_ops import (
+    from .parts._dialog_ops import (  # type: ignore[misc]  # 类作用域组合导入（mypy 不支持）
         _question_dlg,
         _register_task,
         _show_stage_dialog,
         _stage_prereq_dialog,
     )
-    from .parts._download_ops import (
+    from .parts._download_ops import (  # type: ignore[misc]  # 类作用域组合导入（mypy 不支持）
         _check_download_queue,
         _on_auto_run,
     )
-    from .parts._export_ops import (
+    from .parts._export_ops import (  # type: ignore[misc]  # 类作用域组合导入（mypy 不支持）
         _collect_folder_tree,
         _on_export_diag,
         _on_export_file_list,
         _on_export_folder_tree,
     )
-    from .parts._file_dialog_ops import (
+    from .parts._file_dialog_ops import (  # type: ignore[misc]  # 类作用域组合导入（mypy 不支持）
         _on_open_file,
         _on_open_folder,
         _on_select,
         _pick_folder,
     )
-    from .parts._file_tree_ops import (
+    from .parts._file_tree_ops import (  # type: ignore[misc]  # 类作用域组合导入（mypy 不支持）
         _make_drive_item,
         _make_item,
         _navigate_to,
@@ -110,7 +124,7 @@ class MainWindow(_WindowLifecycleMixin, QMainWindow):
         _populate_quick_access,
         _retranslate_file_tree,
     )
-    from .parts._persistence_ops import (
+    from .parts._persistence_ops import (  # type: ignore[misc]  # 类作用域组合导入（mypy 不支持）
         _on_open_project,
         _on_save_download_project,
         _on_save_query_project,
@@ -123,14 +137,14 @@ class MainWindow(_WindowLifecycleMixin, QMainWindow):
         _save_splitter_sizes,
         _save_window_geometry,
     )
-    from .parts._query_ops import (
+    from .parts._query_ops import (  # type: ignore[misc]  # 类作用域组合导入（mypy 不支持）
         _do_pending_query,
         _on_pending_query,
         _on_query_result_ready,
         _parse_pending_csv,
         _show_query_summary,
     )
-    from .parts._table_ops import (
+    from .parts._table_ops import (  # type: ignore[misc]  # 类作用域组合导入（mypy 不支持）
         _add_table_row,
         _apply_column_visibility,
         _clear_table,
@@ -152,14 +166,14 @@ class MainWindow(_WindowLifecycleMixin, QMainWindow):
         _table_key_press_event,
         _table_to_list,
     )
-    from .parts._theme_ops import (
+    from .parts._theme_ops import (  # type: ignore[misc]  # 类作用域组合导入（mypy 不支持）
         _apply_icon,
         _apply_language,
         _apply_theme,
         _load_qt_translator,
         _retranslate_ui,
     )
-    from .parts._ui_setup_ops import (
+    from .parts._ui_setup_ops import (  # type: ignore[misc]  # 类作用域组合导入（mypy 不支持）
         _on_shutdown_aggregator,
         _on_tray_activated,
         _setup_auto_save,

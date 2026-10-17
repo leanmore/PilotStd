@@ -54,6 +54,8 @@ MainWindow (QMainWindow)
 
 - **D-16（同日）**：`qt_lifecycle.is_qt_alive` 的 `isdeleted is None` 防御分支去掉 `# pragma: no cover`，由 `tests/gui/test_qt_lifecycle_logging.py` 增例覆盖（无 PyQt6/sip 时视为存活）。
 
+- **D-17 完全收口（2026-10-18）**：删除 `pilotstd.ui.main_window` 的 mypy 豁免。`_WindowLifecycleMixin` 在 `TYPE_CHECKING` 期以 `QMainWindow` 为基类（运行时仍 `object`，MRO 不变），并显式声明 `_mgr/_tray/_project` 等属性与 `_save_*` 方法类型；`QMenu.addAction` 统一经 `_add_action()` 收窄 Optional；事件签名改为 `QEvent | None` / `QCloseEvent | None`。`mypy --platform=linux pilotstd docker` 0 errors。
+
 ## Windows 端事件分流（W2，2026-10-03）
 
 > 设计见 [notification-system-design/00-framework.md](../../plans/notification-system-design/00-framework.md) §3.5 与

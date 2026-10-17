@@ -9,6 +9,7 @@ import logging
 from typing import Any
 
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import (
     QApplication,
     QFileDialog,
@@ -34,6 +35,13 @@ from ._table_io import (  # noqa: F401 — 由 MainWindow 类体导入消费
 )
 
 logger = logging.getLogger("pilotstd.ui")
+
+
+def _add_action(menu: QMenu, text: str) -> QAction:
+    """`QMenu.addAction` 的 PyQt6 类型标注为 Optional，实际必非 None；收窄后再用。"""
+    action = menu.addAction(text)
+    assert action is not None
+    return action
 
 
 # ── 列可见性管理 ──
@@ -79,7 +87,7 @@ def _on_header_context_menu(self, pos: Any) -> None:
     header = self.work_table.horizontalHeader()
     menu = QMenu(self.work_table)
     for c in TOGGLEABLE_COLS:
-        action = menu.addAction(_(WORK_COLUMN_KEYS[c]))
+        action = _add_action(menu, _(WORK_COLUMN_KEYS[c]))
         action.setCheckable(True)
         action.setChecked(not self.work_table.isColumnHidden(c))
         action.setData(c)
@@ -102,23 +110,23 @@ def _on_header_context_menu(self, pos: Any) -> None:
 def _on_work_table_context_menu(self, pos: Any) -> None:
     """构建工作区表格右键菜单：复制、离线查看、添加文件/文件夹、删除行。"""
     menu = QMenu(self)
-    copy_action = menu.addAction(f"\U0001f4cb {_('copy')}")
+    copy_action = _add_action(menu, f"\U0001f4cb {_('copy')}")
     copy_action.setToolTip("复制选中单元格内容至剪贴板")
     copy_action.triggered.connect(self._copy_selected_cells)
     menu.addSeparator()
-    offline_action = menu.addAction(f"\U0001f50d {_('offline_view')}")
+    offline_action = _add_action(menu, f"\U0001f50d {_('offline_view')}")
     offline_action.setToolTip("从本地索引和缓存查看标准完整信息（无需联网）")
     offline_action.triggered.connect(self._on_offline_view)
     if not self.work_table.selectedItems():
         offline_action.setEnabled(False)
-    add_file = menu.addAction(f"\U0001f4c4 {_('add_file')}")
+    add_file = _add_action(menu, f"\U0001f4c4 {_('add_file')}")
     add_file.setToolTip("选择一个标准文件加入工作区")
-    add_folder = menu.addAction(f"\U0001f4c1 {_('add_folder')}")
+    add_folder = _add_action(menu, f"\U0001f4c1 {_('add_folder')}")
     add_folder.setToolTip("选择一个文件夹加入工作区")
     menu.addSeparator()
-    remove_selected = menu.addAction(f"\U0001f5d1 {_('remove_selected')}")
+    remove_selected = _add_action(menu, f"\U0001f5d1 {_('remove_selected')}")
     remove_selected.setToolTip("从工作区表格中移除选中的行（不删除物理文件）")
-    remove_all = menu.addAction(f"\U0001f9f9 {_('remove_all')}")
+    remove_all = _add_action(menu, f"\U0001f9f9 {_('remove_all')}")
     remove_all.setToolTip("清空工作区表格（不删除物理文件）")
     if self.work_table.rowCount() == 0:
         remove_selected.setEnabled(False)
@@ -308,4 +316,6 @@ def _copy_selected_cells(self) -> None:
             item = self.work_table.item(r, c)
             cells.append(item.text() if item else "")
         lines.append("\t".join(cells))
-    QApplication.clipboard().setText("\n".join(lines))
+    clipboard = QApplication.clipboard()
+    if clipboard is not None:
+        clipboard.setText("\n".join(lines))

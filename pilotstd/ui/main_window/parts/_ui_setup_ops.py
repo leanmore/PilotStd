@@ -272,7 +272,7 @@ def _setup_work_table(self) -> None:
     for c in range(len(WORK_COLUMNS)):
         header.setSectionResizeMode(c, QHeaderView.ResizeMode.Interactive)
     header.setSectionResizeMode(9, QHeaderView.ResizeMode.Stretch)
-    self._col_specs: dict[int, tuple[int, int]] = {
+    self._col_specs = {
         0: (34, 34),
         1: (54, 54),
         2: (93, 93),
@@ -381,12 +381,10 @@ def _setup_log_handler(self) -> None:
 
 def _setup_scanner(self) -> None:
     """初始化扫描结果列表和未识别文件列表。"""
-    from ....models import ParsedStdInfo
-
-    self._parsed_results: list[ParsedStdInfo] = []
+    self._parsed_results = []
     logger.debug("MainWindow._parsed_results 初始化: id=%s", id(self._parsed_results))
-    self._unrecognized_files: list[str] = []
-    self._scan_source_root: str = ""
+    self._unrecognized_files = []
+    self._scan_source_root = ""
 
 
 # ── 自动保存 ──

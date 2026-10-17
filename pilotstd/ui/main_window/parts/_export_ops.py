@@ -61,7 +61,7 @@ def _on_export_folder_tree(self) -> None:
     save_path, __ = QFileDialog.getSaveFileName(self, "导出文件夹层次", "folder_tree.txt", "TXT (*.txt)")
     if not save_path:
         return
-    lines = []
+    lines: list[str] = []
     self._collect_folder_tree(path, lines, prefix="")
     with open(save_path, "w", encoding="utf-8") as f:
         f.write("\n".join(lines))

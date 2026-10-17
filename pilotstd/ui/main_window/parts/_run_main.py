@@ -26,7 +26,7 @@ def run() -> None:  # pragma: no cover — app.exec() 入口，单元测试不�
     # ──界面框架消息处理器：捕获界面框架++层致命/严重错误→_文本──
     _qt_fatal_seen = False
 
-    def _qt_message_handler(msg_type: QtMsgType, ctx: QMessageLogContext, msg: str) -> None:
+    def _qt_message_handler(msg_type: QtMsgType, ctx: QMessageLogContext, msg: str | None) -> None:
         """Qt 消息处理器：捕获 C++ 层致命/严重错误并写入 stderr。"""
         nonlocal _qt_fatal_seen
         level_map = {
@@ -37,7 +37,7 @@ def run() -> None:  # pragma: no cover — app.exec() 入口，单元测试不�
             QtMsgType.QtFatalMsg: "FATAL",
         }
         level = level_map.get(msg_type, "UNKNOWN")
-        line = f"[Qt {level}] {msg}  (file={ctx.file}, line={ctx.line}, func={ctx.function})\n"
+        line = f"[Qt {level}] {msg or ''}  (file={ctx.file}, line={ctx.line}, func={ctx.function})\n"
         if msg_type in (QtMsgType.QtCriticalMsg, QtMsgType.QtFatalMsg, QtMsgType.QtWarningMsg):
             print(line, file=sys.stderr, flush=True)
 
