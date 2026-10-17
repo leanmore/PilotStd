@@ -167,3 +167,10 @@ from ._migrate_v67_notification_log_failed_items import (  # noqa: E402, F401
 from ._migrate_v68_notification_policy_event_classes import (  # noqa: E402, F401
     _migrate_v68_notification_policy_event_classes,
 )
+
+# 第六十九版：自愈「通知渠道凭据迁移失败却已被标记完成」的历史坏状态（体检 D-5，2026-10-17）。
+# 不改 v37（P-106 锁迁移源码哈希），改为新增一版：标记为真 + config 仍有 channels +
+# `user_credentials` 缺该渠道 ⇒ 重新加密写入一次；失败只记 warning，不抛（避免拖垮启动）。
+from ._migrate_v69_reheal_notification_credentials import (  # noqa: E402, F401
+    _migrate_v69_reheal_notification_credentials,
+)

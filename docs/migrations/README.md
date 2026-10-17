@@ -1,6 +1,10 @@
 # 数据库迁移说明
 
-> 最后更新：2026-08-21 | 最新迁移：v52
+> 最后更新：2026-10-17 | 最新迁移：v69（通知渠道凭据自愈；当前 `CURRENT_SCHEMA_VERSION = 69`）
+
+> ⚠️ 本文件长期滞后（体检记录：2026-10-17 实测头部还写 v52、正文有 v60、代码已到 v68）。
+> **以代码为唯一权威**：`pilotstd/core/db/_constants.py` 的 `CURRENT_SCHEMA_VERSION`，
+> 以及 `pilotstd/core/db/migrations.py` 的注册导入列表。本文件的清单只作导读，缺行不代表没有该迁移。
 
 ## 迁移版本清单
 

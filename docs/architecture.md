@@ -211,6 +211,15 @@ Handler 通过构造函数显式注入依赖，所有方法通过 `self._handler
 
 > **v60 死列删除**（2026-09-26，技术债 #16 残留）：`archive_retry_count`/`last_archive_attempt` 的**唯一读取方**是 `/api/favorites/{record_id}/status` 的 5 个旧响应键（`local_path`/`error_message`/`in_cooldown`/`abandoned`/`archive_retry_count`），这些键已于 #16（TD-16，2026-09-25）删除；此后两列在生产代码中零读取（`pilotstd/` + `docker/` 全量 grep 仅命中 `_migrate_*` 历史迁移）。v60（`pilotstd/core/db/_migrate_v60_drop_favorite_retry_columns.py`）幂等 `ALTER TABLE ... DROP COLUMN` 删除两列，`CURRENT_SCHEMA_VERSION` 59 → 60；新库走完整迁移链（v36/v52/v59 补列 → v60 删列）同样收敛到"无此列"。两列不存在于任何索引/约束，且零读取，故回滚只需重新 `ADD COLUMN`（无数据依赖）。
 
+> **v69 通知渠道凭据自愈**（2026-10-17，体检 D-5）：v37+ 的迁移在
+> 「config.json 的 `notification.channels` → `user_credentials`」这一步**吞掉了异常**（`except Exception: pass`），
+> 随后**无条件**把 `notification._migrated_to_db` 置 True ⇒ 失败却标记已完成、下次启动不再重试，
+> 用户以为配置已迁移而实际渠道凭据永久丢失且无日志。按 P-106（既执行迁移源码不可变，
+> `tests/test_migration_checksum_guard.py` 锁哈希）**不改 v37**，改为**新增 v69 自愈**：
+> 当"标记为真 + config 仍有 channels + `user_credentials` 缺该渠道"三者同时成立时，重新加密写入一次；
+> 以 DB 为 SSOT（已存在的不覆盖），失败**只记 warning 不抛**（避免确定性失败把启动拖垮），
+> 日志给出"去设置页重存渠道配置"的处置指引。`CURRENT_SCHEMA_VERSION` 68 → 69。
+
 > **v68 通知策略类别层**（2026-10-05，阶段 4 · P6 · 4a）：`notification_policy` 新增 `event_classes TEXT NOT NULL DEFAULT '[]'`
 > （TEXT 存 JSON），用于把订阅粒度从"41 个原始业务事件"升级为"**10 类**（`notify_event`）"，与既有 `events` 列**双层并存**。
 > 迁移 `_migrate_v68_notification_policy_event_classes.py` 幂等补列（`PRAGMA table_info` 探测），`CURRENT_SCHEMA_VERSION` 67 → 68；
