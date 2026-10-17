@@ -234,8 +234,9 @@ def put_settings(request: Request, data: dict, mgr=Depends(get_manager_dep)):
             resource="PUT /api/settings",
             detail={"changed_categories": list(data.keys()) if isinstance(data, dict) else []},
         )
-    except Exception:
-        pass
+    except Exception as e:
+        # 设置已落库；审计失败不改变响应，但必须可观测（安全审计缺失是告警信号）
+        logger.error("settings audit write failed: %s", e, exc_info=True)
     return {"ok": True}
 
 

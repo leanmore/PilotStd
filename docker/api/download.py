@@ -7,6 +7,7 @@ from fastapi.routing import APIRouter
 from pilotstd.core.notification.batch import batch_scope
 
 from ..manager import get_manager_dep
+from ._pipeline import safe_update_step
 
 router = APIRouter(tags=["download"])
 
@@ -18,17 +19,10 @@ def download_standards(
     mgr=Depends(get_manager_dep),
 ):
     """批量下载标准文件。"""
-    # 更新管道：进入下载阶段
-    try:
-        mgr.pipeline_store.update_step(
-            run_id,
-            "download",
-            "running",
-            40,
-            step_results={"count": len(numbers)},
-        )
-    except Exception:
-        pass
+    # 更新管道：进入下载阶段（失败只记日志，不阻断）
+    safe_update_step(
+        mgr.pipeline_store, run_id, "download", "running", 40, step_results={"count": len(numbers)}
+    )
 
     try:
         tasks, stats = mgr.download_by_numbers(numbers)

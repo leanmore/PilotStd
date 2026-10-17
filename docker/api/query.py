@@ -9,6 +9,7 @@ from fastapi.routing import APIRouter
 from pilotstd.core.status import status_key
 
 from ..manager import get_manager_dep
+from ._pipeline import safe_update_step
 
 router = APIRouter(tags=["query"])
 
@@ -27,17 +28,10 @@ def query_standards(
     mgr=Depends(get_manager_dep),
 ):
     """批量查询标准有效性状态。返回完整 17 字段，前端按需取用。"""
-    # 更新管道：进入查询阶段
-    try:
-        mgr.pipeline_store.update_step(
-            run_id,
-            "query",
-            "running",
-            20,
-            step_results={"count": len(numbers)},
-        )
-    except Exception:
-        pass  # run_id 不存在时忽略，保持向后兼容
+    # 更新管道：进入查询阶段（失败只记日志，不阻断）
+    safe_update_step(
+        mgr.pipeline_store, run_id, "query", "running", 20, step_results={"count": len(numbers)}
+    )
 
     try:
         results, stats = mgr.query_by_numbers(numbers, force_refresh=force_refresh)

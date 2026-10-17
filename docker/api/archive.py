@@ -7,6 +7,7 @@ from fastapi.routing import APIRouter
 from pilotstd.models import ParsedStdInfo
 
 from ..manager import get_manager_dep
+from ._pipeline import safe_update_step
 
 logger = logging.getLogger(__name__)
 
@@ -21,17 +22,10 @@ def archive_files(
     mgr=Depends(get_manager_dep),
 ):
     """将已处理的文件移动到分类目录。"""
-    # 更新管道：进入归档阶段
-    try:
-        mgr.pipeline_store.update_step(
-            run_id,
-            "archive",
-            "running",
-            80,
-            step_results={"count": len(items)},
-        )
-    except Exception:
-        pass
+    # 更新管道：进入归档阶段（失败只记日志，不阻断归档）
+    safe_update_step(
+        mgr.pipeline_store, run_id, "archive", "running", 80, step_results={"count": len(items)}
+    )
 
     try:
         parsed_list = []

@@ -7,6 +7,7 @@ from fastapi.routing import APIRouter
 from pilotstd.models import ParsedStdInfo
 
 from ..manager import get_manager_dep
+from ._pipeline import safe_update_step
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["normalize"])
@@ -69,17 +70,10 @@ def normalize_files(
     mgr=Depends(get_manager_dep),
 ):
     """计算规范文件名。通过 StandardManager 统一入口。"""
-    # 更新管道：进入规范化阶段
-    try:
-        mgr.pipeline_store.update_step(
-            run_id,
-            "normalize",
-            "running",
-            60,
-            step_results={"count": len(items)},
-        )
-    except Exception:
-        pass
+    # 更新管道：进入规范化阶段（失败只记日志，不阻断）
+    safe_update_step(
+        mgr.pipeline_store, run_id, "normalize", "running", 60, step_results={"count": len(items)}
+    )
 
     try:
         parsed_list = [_dict_to_parsed(it) for it in items]

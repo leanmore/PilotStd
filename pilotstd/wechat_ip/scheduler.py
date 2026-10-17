@@ -120,8 +120,9 @@ def _notify(cb: Optional[Callable], title: str, body: str, status: str = "info")
     if cb:
         try:
             cb(title, body, status)
-        except Exception:
-            pass
+        except Exception as e:
+            # 通知回调失败不影响检测结果，但必须可观测（原实现静默 pass）
+            logger.warning("wechat_ip notify callback failed: %s", e, exc_info=True)
 
 
 def start(config: Any, interval: int = DEFAULT_INTERVAL, notify_cb: Optional[Callable] = None):
