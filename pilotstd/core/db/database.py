@@ -315,7 +315,7 @@ class Database:
         cooldown_triggered: bool = False,
         cooldown_reason: str = "",
     ) -> None:
-        """更新适配器统计：查询次数、成功率、冷却次数等（静默失败）。"""
+        """更新适配器统计：查询次数、成功率、冷却次数等（失败只记日志，不影响查询主流程）。"""
         try:
             # :插入配合更新实现原子累加
             self.execute(
@@ -351,8 +351,10 @@ class Database:
                     cooldown_triggered,
                 ),
             )
-        except Exception:
-            pass
+        except Exception as e:
+            logging.getLogger("pilotstd.db").warning(
+                "record_adapter_result failed for %s: %s", adapter_name, e
+            )
 
     def get_adapter_success_rate(self, adapter_name: str) -> float:
         """查询适配器成功率（0~1），无数据返回 -1.0。"""
@@ -363,8 +365,10 @@ class Database:
             )
             if row and row["total_queries"] > 0:
                 return row["successful_queries"] / row["total_queries"]  # type: ignore[no-any-return]
-        except Exception:
-            pass
+        except Exception as e:
+            logging.getLogger("pilotstd.db").warning(
+                "get_adapter_success_rate failed for %s: %s", adapter_name, e
+            )
         return -1.0
 
     # 聚合所有适配器统计，计算成功率和平均响应时间
@@ -396,5 +400,6 @@ class Database:
                     }
                 )
             return result
-        except Exception:
+        except Exception as e:
+            logging.getLogger("pilotstd.db").warning("get_adapter_stats_all failed: %s", e)
             return []

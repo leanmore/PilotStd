@@ -280,8 +280,9 @@ def _acquire_scheduler_lock() -> bool:
                     return True
                 else:
                     logger.info("调度器已在 PID=%d 运行，本 worker 跳过", row["pid"])
-            except (ValueError, OSError):
-                pass
+            except (ValueError, OSError) as e:
+                # 心跳时间不可解析 ⇒ 无法判断是否超时，保守返回 False 并留痕
+                logger.warning("scheduler lock heartbeat unparsable: %s", e)
         return False
 
 
@@ -304,8 +305,9 @@ def _heartbeat_loop() -> None:
                     "UPDATE scheduler_lock SET heartbeat_at=? WHERE id=1",
                     (time.strftime("%Y-%m-%d %H:%M:%S"),),
                 )
-        except Exception:
-            pass
+        except Exception as e:
+            # 心跳写失败说明 DB 不可用；继续循环等恢复，但必须可观测
+            logger.warning("scheduler heartbeat update failed: %s", e)
 
 
 def _scheduler_error_listener(event):
@@ -481,8 +483,9 @@ def stop_scheduler():
     scheduler.shutdown(wait=True)
     try:
         _get_db().execute("DELETE FROM scheduler_lock WHERE id=1")
-    except Exception:
-        pass
+    except Exception as e:
+        # 关停路径：锁残留会被下一进程按超时接管，但不能静默
+        logger.warning("release scheduler lock failed: %s", e)
     logger.info("APScheduler 已停止")
 
 
