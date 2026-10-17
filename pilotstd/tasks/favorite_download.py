@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Optional, cast
 
 from pilotstd.core.config import ConfigManager, get_db_path
+from pilotstd.core.db._constants import DatabaseError
 from pilotstd.core.db.database import Database
 from pilotstd.core.name_resolution import fetch_resolved_name
 from pilotstd.download.engine import ADOPTED_SKIP_MESSAGE
@@ -80,22 +81,31 @@ def _query_std_gov(mgr: Any, standard_number: str) -> Optional[Any]:
 
 
 def _find_in_file_index(standard_number: str, db: Database) -> Optional[str]:
-    """检查 file_index 中是否已有该标准的文件。"""
+    """检查 file_index 中是否已有该标准的文件。
+
+    2026-10-17（体检 D-11）：原实现 `except Exception: pass` 把"数据库查不了"与
+    "库里没有"混为一谈——调用方据此判定"未下载过"，会对已归档的标准**重复下载**。
+    现在：解析不出标准号（正常输入问题）返回 None；数据库错误原样抛出，
+    由任务外层标记失败（宁可报错，也不重复下载）。
+    """
+    parser = None
     try:
         parser = StandardParser(build_code_mapping())
         parsed = parser.parse(standard_number)
-        if parsed:
-            cursor = db.execute(
-                "SELECT file_path FROM file_index"
-                " WHERE logical_code = ? AND number = ? AND year = ?"
-                " ORDER BY scanned_at DESC LIMIT 1",
-                (parsed.logical_code, parsed.number, parsed.year),
-            )
-            row = cursor.fetchone()
-            if row:
-                return cast("str | None", row["file_path"])
-    except Exception:
-        pass
+    except Exception as e:  # 解析器异常属输入问题，不是"库里没有"；记警告后按未命中处理
+        logger.warning("parse standard number failed (%s): %s", standard_number, e)
+        return None
+    if not parsed:
+        return None
+    cursor = db.execute(
+        "SELECT file_path FROM file_index"
+        " WHERE logical_code = ? AND number = ? AND year = ?"
+        " ORDER BY scanned_at DESC LIMIT 1",
+        (parsed.logical_code, parsed.number, parsed.year),
+    )
+    row = cursor.fetchone()
+    if row:
+        return cast("str | None", row["file_path"])
     return None
 
 
@@ -319,6 +329,34 @@ def _archive_inbox_file(mgr: Any, inbox_path: Path, standard_number: str) -> str
     return None
 
 
+def _wait_for_archive_registration(
+    db: Database, favorite_id: int, standard_number: str, user_id: int, notify: bool
+) -> Optional[str]:
+    """轮询 file_index 直至归档器登记完成；成功时置 done + 通知并返回路径。
+
+    轮询期的瞬时数据库读失败不得把整条任务判死：记警告后进入下一轮。
+    """
+    for _ in range(30):
+        time.sleep(2)
+        try:
+            found = _find_in_file_index(standard_number, db)
+        except DatabaseError as e:
+            logger.warning("archive polling: file_index read failed, retrying: %s", e)
+            continue
+        if not found:
+            continue
+        db.execute(
+            "UPDATE favorite_downloads SET status = 'done', local_path = ?,"
+            " updated_at = datetime('now') WHERE favorite_id = ?",
+            (found, favorite_id),
+        )
+        logger.info("归档完成: %s", found)
+        # 扫描器已把文件登记到索引，通知用户下载归档全流程完成
+        _notify_download_complete(user_id, standard_number, favorite_id, found, notify)
+        return found
+    return None
+
+
 def download_to_inbox(favorite_id: int, user_id: int, record_id: int, notify: bool = True) -> None:
     """收藏下载任务：复用已有文件 → 下载到 inbox → 轮询 file_index → 更新状态。
     所有状态更新写入 favorite_downloads 表（v44 解耦），不再操作 user_favorites。
@@ -374,19 +412,8 @@ def download_to_inbox(favorite_id: int, user_id: int, record_id: int, notify: bo
         # 归档：链路自己把 inbox 文件交归档器登记（不再依赖周期机制，见技术债 #29）
         archive_error = _archive_inbox_file(mgr, inbox_path, standard_number)
 
-        for _ in range(30):
-            time.sleep(2)
-            found = _find_in_file_index(standard_number, db)
-            if found:
-                db.execute(
-                    "UPDATE favorite_downloads SET status = 'done', local_path = ?,"
-                    " updated_at = datetime('now') WHERE favorite_id = ?",
-                    (found, favorite_id),
-                )
-                logger.info("归档完成: %s", found)
-                # 扫描器已把文件登记到索引，通知用户下载归档全流程完成
-                _notify_download_complete(user_id, standard_number, favorite_id, found, notify)
-                return
+        if _wait_for_archive_registration(db, favorite_id, standard_number, user_id, notify):
+            return
 
         db.execute(
             "UPDATE favorite_downloads SET status = 'failed', error_message = ?,"
