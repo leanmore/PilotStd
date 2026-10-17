@@ -14,7 +14,6 @@ G-013: 测试覆盖率伴随检查门禁 (Test Coverage Accompaniment Gate)
 import ast
 import hashlib
 import json
-import os
 import re
 import subprocess
 import sys
@@ -48,6 +47,16 @@ PRIVATE_FUNC_BODY_LINE_THRESHOLD = 50
 
 # 缺陷修复关键字正则
 BUGFIX_PATTERN = re.compile(r'\b(fix|bugfix|hotfix|bug)\b', re.IGNORECASE)
+
+
+def is_test_file(path: str) -> bool:
+    """判断路径是否位于 `tests/`（规则 0 的"带测试"判据）。
+
+    原实现用 `'test' in path.lower()`，把 `scripts/check_g_013_test_coverage.py`
+    这类**文件名含 test 的生产脚本**当成测试变更 ⇒ 规则 0 被架空（2026-10-17 实测）。
+    """
+    normalized = path.replace('\\', '/').lower()
+    return normalized.startswith('tests/') or '/tests/' in normalized
 
 # 输入输出调用检测正则（比集合成员检查更精确）
 IO_PATTERN = re.compile(
@@ -178,29 +187,33 @@ def get_old_content(filepath: str) -> str:
     try:
         result = subprocess.run(
             ['git', 'show', f'HEAD:{filepath}'],
-            capture_output=True, text=True, check=False, timeout=10
+            capture_output=True, text=True, encoding='utf-8', errors='replace', check=False, timeout=10
         )
         if result.returncode == 0:
-            return result.stdout
+            return result.stdout or ''
         return ''
     except Exception:
         return ''
 
 
-def get_commit_message() -> str:
-    """获取当前暂存区或最近一次 commit message。"""
+def get_commit_message(msg_file: Optional[str] = None) -> str:
+    """获取**待提交**消息（`msg_file`）或最近一次 commit message。
+
+    显式传入 `msg_file`（commit-msg 钩子的 `$1`）时读该文件；否则读 `git log -1`。
+    **不再默认读 `.git/COMMIT_EDITMSG`**：pre-commit 阶段 git 尚未写入本次消息，
+    该文件仍是**上一次**提交的留言 ⇒ 会把上一条 `fix:` 误判成本条（2026-10-17 实测：
+    一条纯 docs 提交被前一条 `fix(gate):` 的 message 拦住）。规则 0 因此改由
+    `.husky/commit-msg` 用 `--commit-msg-file "$1"` 执行，pre-commit 传 `--no-commit-msg`。
+    """
     try:
-        # 优先读取暂存区的（/--场景）
-        msg_file = '.git/COMMIT_EDITMSG'
-        if os.path.exists(msg_file):
-            with open(msg_file, 'r', encoding='utf-8') as f:
+        if msg_file:
+            with open(msg_file, encoding='utf-8') as f:
                 return f.read()
-        # 回退到
         result = subprocess.run(
             ['git', 'log', '-1', '--format=%s%n%b'],
-            capture_output=True, text=True, check=False, timeout=10
+            capture_output=True, text=True, encoding='utf-8', errors='replace', check=False, timeout=10
         )
-        return result.stdout if result.returncode == 0 else ''
+        return (result.stdout or '') if result.returncode == 0 else ''
     except Exception:
         return ''
 
@@ -215,18 +228,18 @@ def get_changed_files() -> List[str]:
         # 暂存区变更
         r1 = subprocess.run(
             ['git', 'diff', '--cached', '--name-only', '--diff-filter=ACMR'],
-            capture_output=True, text=True, check=False, timeout=10
+            capture_output=True, text=True, encoding='utf-8', errors='replace', check=False, timeout=10
         )
         if r1.returncode == 0:
-            files.update(r1.stdout.strip().splitlines())
+            files.update((r1.stdout or '').strip().splitlines())
 
         # 已跟踪的工作区变更
         r2 = subprocess.run(
             ['git', 'diff', '--name-only', '--diff-filter=ACMR'],
-            capture_output=True, text=True, check=False, timeout=10
+            capture_output=True, text=True, encoding='utf-8', errors='replace', check=False, timeout=10
         )
         if r2.returncode == 0:
-            files.update(r2.stdout.strip().splitlines())
+            files.update((r2.stdout or '').strip().splitlines())
 
         # 注意：不包含未跟踪文件（---）
         # 未跟踪文件不应触发门禁，只有被后才进入暂存区检查
@@ -391,27 +404,57 @@ def _should_upgrade_private_to_block(info: dict) -> bool:
 # 主检查逻辑
 # ============================================================================ 分隔
 
-def run_check(changed_files: Optional[List[str]] = None, commit_msg: Optional[str] = None) -> dict:
+def _check_bugfix_rule(changed_files: List[str], commit_msg: str) -> tuple[bool, List[str]]:
+    """规则 0：`fix`/`bugfix`/`hotfix` 提交必须带 `tests/` 下的变更。
+
+    返回 ``(is_bugfix, errors)``。单独成函数是为了让 `run_check()` 守住 G-010 的
+    80 有效行上限（2026-10-17 接线 commit-msg 后实测 84 行被拦）。
+    """
+    is_bugfix = bool(BUGFIX_PATTERN.search(commit_msg))
+    has_test_change = any(is_test_file(f) for f in changed_files)
+    if is_bugfix and not has_test_change:
+        return is_bugfix, [
+            "[TEST-BLOCK] Bug 修复必须伴随测试用例的新增或修改 "
+            "(commit message 包含 fix/bugfix/hotfix，但未检测到测试文件变更)"
+        ]
+    return is_bugfix, []
+
+
+def run_check(
+    changed_files: Optional[List[str]] = None,
+    commit_msg: Optional[str] = None,
+    check_bugfix: bool = True,
+    bugfix_only: bool = False,
+) -> dict:
     """
     执行 G-013 门禁检查。
     返回 {'passed': bool, 'errors': [...], 'warnings': [...]}
+
+    `check_bugfix=False`：跳过规则 0（pre-commit 阶段拿不到待提交消息时使用）。
+    `bugfix_only=True`：只跑规则 0（commit-msg 钩子使用，测试联动由 pre-commit 负责）。
     """
     if changed_files is None:
         changed_files = get_changed_files()
     if commit_msg is None:
         commit_msg = get_commit_message()
+    commit_msg = commit_msg or ''
 
     errors = []
     warnings = []
 
     # 规则0:缺陷修复强制要求测试
-    is_bugfix = bool(BUGFIX_PATTERN.search(commit_msg))
-    has_test_change = any('test' in f.lower() for f in changed_files)
-    if is_bugfix and not has_test_change:
-        errors.append(
-            "[TEST-BLOCK] Bug 修复必须伴随测试用例的新增或修改 "
-            "(commit message 包含 fix/bugfix/hotfix，但未检测到测试文件变更)"
-        )
+    is_bugfix = False
+    if check_bugfix or bugfix_only:
+        is_bugfix, bugfix_errors = _check_bugfix_rule(changed_files, commit_msg)
+        errors.extend(bugfix_errors)
+        if bugfix_only:
+            return {
+                'passed': len(errors) == 0,
+                'errors': errors,
+                'warnings': warnings,
+                'files_checked': 0,
+                'is_bugfix': is_bugfix,
+            }
 
     # --- 规则 1: 业务代码变更检查 ---
     biz_files = [f for f in changed_files if is_business_file(f)]
@@ -477,12 +520,25 @@ def run_check(changed_files: Optional[List[str]] = None, commit_msg: Optional[st
 # ============================================================================ 分隔
 
 def main():
-    """CLI 入口：支持 --json 输出格式。"""
-    output_format = 'text'
-    if '--json' in sys.argv:
-        output_format = 'json'
+    """CLI 入口：支持 --json / --commit-msg-file / --no-commit-msg / --bugfix-only。"""
+    output_format = 'json' if '--json' in sys.argv else 'text'
 
-    result = run_check()
+    msg_file = None
+    if '--commit-msg-file' in sys.argv:
+        idx = sys.argv.index('--commit-msg-file')
+        if idx + 1 >= len(sys.argv):
+            print("[FAIL] --commit-msg-file 缺少参数（消息文件路径）", file=sys.stderr)
+            sys.exit(2)
+        msg_file = sys.argv[idx + 1]
+
+    check_bugfix = '--no-commit-msg' not in sys.argv
+    bugfix_only = '--bugfix-only' in sys.argv
+
+    result = run_check(
+        commit_msg=get_commit_message(msg_file),
+        check_bugfix=check_bugfix,
+        bugfix_only=bugfix_only,
+    )
 
     if output_format == 'json':
         print(json.dumps(result, ensure_ascii=False, indent=2))

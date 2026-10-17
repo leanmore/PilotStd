@@ -44,6 +44,9 @@ if printf '%s\n' "$SUBJECT" | grep -qE "$COMPOSITE" \
     || printf '%s\n' "$SUBJECT" | grep -qE '^Merge ' \
     || printf '%s\n' "$SUBJECT" | grep -qE '^Revert "' \
     || printf '%s\n' "$SUBJECT" | grep -qE '^\[Test-Fix\] .+'; then
+    # G-013 规则 0（fix/bugfix/hotfix 必须带测试变更）只能在这里做：
+    # pre-commit 阶段 git 尚未写入本次消息，读到的会是上一条（2026-10-17 实测假阻断）。
+    python scripts/check_g_013_test_coverage.py --commit-msg-file "$MSG_FILE" --bugfix-only || exit 1
     exit 0
 fi
 

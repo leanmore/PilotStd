@@ -19,7 +19,8 @@ bash scripts/check_all.sh --fast --guards --local || exit 1
 run_recovered_check() {
     _name="$1"
     _script="$2"
-    if python "$_script"; then
+    shift 2
+    if python "$_script" "$@"; then
         echo "[pre-commit] ✅ PASS: $_name"
     else
         echo "[pre-commit] ❌ FAIL: $_name（$_script）" >&2
@@ -30,6 +31,8 @@ run_recovered_check() {
 # SEC-001：@require_role 必须在 @router.xxx 内层，顺序颠倒会造成鉴权旁路
 run_recovered_check "SEC-001 装饰器顺序" scripts/check_decorator_order.py
 # G-013：业务代码变更必须带测试变更（读暂存区，无暂存业务文件时自动 PASS）
-run_recovered_check "G-013 测试联动" scripts/check_g_013_test_coverage.py
+# --no-commit-msg：pre-commit 阶段 git 还没写本次消息（.git/COMMIT_EDITMSG 仍是上一条），
+# 规则 0（fix 必须带测试）改由 .husky/commit-msg 用 --commit-msg-file 执行（2026-10-17）
+run_recovered_check "G-013 测试联动" scripts/check_g_013_test_coverage.py --no-commit-msg
 # Mixin 治理：新增 Mixin 类优先改组合（读暂存区新增的 .py）
 run_recovered_check "Mixin 治理" scripts/check_mixin.py
