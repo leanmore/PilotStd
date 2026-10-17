@@ -100,8 +100,9 @@ class ConfigManager:
                     if target.exists():
                         try:
                             shutil.copyfile(str(target), str(target) + ".bak")
-                        except OSError:
-                            pass
+                        except OSError as e:
+                            # 备份失败不阻断写盘，但要留痕（丢一次写将无法回滚）
+                            logger.debug("pre-write backup failed (%s): %s", target, e)
                     os.replace(tmp_path, str(target))
                     os.chmod(str(target), 0o600)
                     wrote = True
@@ -178,9 +179,9 @@ class ConfigManager:
                 if name.endswith(".tmp"):
                     try:
                         os.remove(os.path.join(cfg_dir, name))
-                    except OSError:
+                    except OSError as e:
                         # 已知可忽略：临时文件清理失败不影响主流程
-                        pass
+                        logger.debug("cleanup stale tmp file failed (%s): %s", name, e)
         try:
             if os.path.exists(self._filepath):
                 with open(self._filepath, "r", encoding="utf-8") as f:
@@ -213,16 +214,16 @@ class ConfigManager:
                     logger.warning("配置解析失败，已从写前备份回滚: %s", bak)
                     self.save()
                     return
-                except (json.JSONDecodeError, OSError):
+                except (json.JSONDecodeError, OSError) as e:
                     # 备份同样不可用 → 走原有"备份损坏文件 + 默认值初始化"路径（契约④不变）
-                    pass
+                    logger.debug("config .bak rollback failed, falling back to defaults: %s", e)
             # 数据损坏时备份原文件，避免数据彻底丢失
             backup = self._filepath + ".corrupted." + datetime.now().strftime("%Y%m%d%H%M%S")
             try:
                 os.rename(self._filepath, backup)
-            except OSError:
+            except OSError as e:
                 # 已知可忽略：损坏文件备份失败，仍以默认值初始化
-                pass
+                logger.debug("rename corrupted config failed (%s): %s", backup, e)
         # 文件不存在或解析失败时，用工厂默认值初始化
         self._data = {}
         self._populate_first_run()

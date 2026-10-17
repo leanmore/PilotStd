@@ -60,8 +60,9 @@ class CircuitBreaker:
             durations = ConfigManager().get("adapter.circuit_breaker.freeze_durations")
             if durations and isinstance(durations, list) and len(durations) > 0:
                 return [int(m) * 60 for m in durations]
-        except Exception:
-            pass
+        except Exception as e:
+            # 配置不可读/非法 → 回退默认冻结档位，但必须留痕
+            logger.debug("read circuit breaker freeze_durations failed: %s", e)
         return list(_DEFAULT_FREEZE_DURATIONS)
 
     @property

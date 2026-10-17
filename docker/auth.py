@@ -111,8 +111,9 @@ def require_role(role: str):
                         payload = jwt.decode(token, SECRET, algorithms=["HS256"])
                         current_role = payload.get("role", "user")
                         subject = payload.get("sub", "unknown")
-                    except JWTError:
-                        pass
+                    except JWTError as e:
+                        # 无效/过期 cookie 属预期，按匿名处理；不记录 token 本身
+                        logging.getLogger(__name__).debug("jwt cookie invalid, treated as anonymous: %s", e)
 
             if current_role != ADMIN_ROLE and current_role != role:
                 # L-04：审计需可读的 username，但 `sub` 是 user_id → 在拒绝路径上反查。
@@ -352,8 +353,8 @@ def auth_me(request: Request):
             )
             if row:
                 return {"id": row["id"], "username": row["username"], "role": row["role"]}
-        except Exception:
-            pass
+        except Exception as e:
+            logging.getLogger(__name__).debug("resolve_audit_identity db lookup failed: %s", e)
 
     # 降级兜底：兼容旧版令牌(=)或数据库查询失败场景
     fallback_id = get_current_user_id(request)

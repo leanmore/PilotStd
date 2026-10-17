@@ -81,8 +81,9 @@ def read_audit(
         # .反序列化，失败时保留原字符串
         try:
             item["detail"] = json.loads(item["detail"])
-        except (json.JSONDecodeError, TypeError):
-            pass
+        except (json.JSONDecodeError, TypeError) as e:
+            # 保留原字符串，但非法 detail 本身说明写入侧有问题
+            logger.debug("audit detail is not valid JSON (id=%s): %s", item.get("id"), e)
         result.append(item)
 
     db.close()
