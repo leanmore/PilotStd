@@ -913,6 +913,11 @@ jobs:
       - name: E-5 — capabilities 注册表无 migrating 条目
         run: bash scripts/check_no_migrating.sh
 
+      # E-1（2026-10-18 体检）：AGENTS §七"能力矩阵随批提交"此前无任何强制。
+      # --check 只校验（忽略时间戳），不同步即失败，提示运行生成器。
+      - name: E-1 — capabilities 矩阵与代码同步
+        run: python scripts/generate_capabilities.py --check
+
   # ════════════════════════════════════════════════════════════════
   # Job 5: 版本管理（测试全部通过后执行）
   # ════════════════════════════════════════════════════════════════

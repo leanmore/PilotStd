@@ -118,6 +118,13 @@ run_fast() {
         log_fail "E-5 capabilities 无 migrating"
     fi
 
+    # E-1: 能力矩阵必须与代码同步（AGENTS §七此前无强制；--check 忽略时间戳）
+    if python scripts/generate_capabilities.py --check >/dev/null 2>&1; then
+        log_pass "E-1 capabilities 矩阵已同步"
+    else
+        log_fail "E-1 capabilities 矩阵已同步"
+    fi
+
     # G-039: 冲突标记检查（禁止 <<<<<<< / ======= / >>>>>>> 入库）
     # 起因（2026-09-26）：一次合并产生了带冲突标记的提交，却通过了当时全部门禁
     if python scripts/check_no_conflict_markers.py; then

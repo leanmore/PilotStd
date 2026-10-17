@@ -164,6 +164,7 @@
 ### repo-compliance：入仓合规检查
 
 > **E-5（2026-10-18）**：`scripts/check_no_migrating.sh` 原先**无任何调用方**（写了门禁不运行），现已接入 CI `repo-compliance` 与本地 `check_all.sh --fast`；`governance-check.yml` 触发条件补 `push: branches [main] + docs/governance/**`，直推路径不再跳过治理文档检查。
+> **E-1（2026-10-18）**：`generate_capabilities.py --check` 接入同一批步骤——能力矩阵未随代码更新即阻断（忽略时间戳），AGENTS §七从"文字约定"变为可执行门禁。
 
 - **检查内容**：五条入仓标准（白名单/黑名单/文件名模式/根目录/路径守卫）
 - **数据来源**：`docs/governance/file-inclusion-criteria.md`
@@ -584,6 +585,7 @@ A 类管"**事件**是否齐备"（数据完备性）；B 类管"同一事实在
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
+| v2.09 | 2026-10-18 | **E-1 强制化**：`generate_capabilities.py --check` 接入 CI `repo-compliance` 与 `check_all.sh --fast`（忽略时间戳比较），能力矩阵未随批更新即阻断——AGENTS §七此前只有文字约定 |
 | v2.08 | 2026-10-18 | **E-5 门禁接线**：`check_no_migrating.sh` 接入 CI `repo-compliance` 与 `check_all.sh --fast`（此前无任何调用方）；`governance-check.yml` 补 `push: main + docs/governance/**` 触发，直推路径不再跳过治理文档检查 |
 | v2.07 | 2026-10-17 | **新增 G-050 静默吞错棘轮（体检 D-8/D-9/D-10 收口）**：AST 扫描三类"失败不可见"（`except: pass` / `except→return 空` / `except` 内 `logger.debug`），按文件 × 类别与 `scripts/silent_errors_baseline.json` 比较——超基线阻断、低于基线只告警提示收紧。基线 pass 43 / return 44 / debug 112；存量 91 处已于同日分 11 批修复（见 `docs/debt/05-audit-2026-10-17.md`）。测试 `tests/test_check_g_050_silent_errors.py`（5 例）。接入 `check_all.sh --fast` 与 CI `repo-compliance` |
 | v2.06 | 2026-10-17 | **D-6 / D-7：两条测试联动门禁从"假绿"恢复判别力**。**D-6（G-013）**：① `is_business_file()` 原把 git 路径第一段与 `BUSINESS_DIRS` 比较，而仓库路径是 `pilotstd/manager/...` ⇒ 第一段恒为 `pilotstd` ⇒ **`pilotstd/` 下所有业务代码从未被检查过**（实测 `pilotstd/manager/facade/_organize.py` 判 False）；改为按 `pilotstd/<子目录>` 取第二段。② 白名单补 `docker`、`scan`。③ 测试判据由"精确推测测试路径"改为"**tests/ 下任一测试变更**"——实测近 60 次提交里精确映射命中 **0/16**（docker 0/60、23 个推导路径不存在），文件名启发式仅 3/16；粗判据 14/16 通过，剩余 2 例是真阳性。**D-7（G-029）**：① 范围原用 `origin/main..HEAD`，直推 main 时恒空 ⇒ 打印"无变更文件 PASS"；改为优先读 `G029_RANGE`（CI 传 `before..sha`），全零回退，**显式范围 0 文件 ⇒ FAIL**。② 映射收敛为 **UI**（`pilotstd/ui/` → `tests/gui/`、`tests/test_ui*`、`tests/test_windows_tray*`）——其余目录已由 G-013 覆盖，原精确映射实测 2/2 假阳性。新增 `tests/test_check_g_013_test_sync_scope.py`（4 例）与 `tests/test_check_g_029_range.py`（4 例） |

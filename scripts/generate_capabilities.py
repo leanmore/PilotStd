@@ -193,20 +193,44 @@ def generate_registry(capabilities: list[dict]) -> str:
 """
 
 
-def main():
-    """扫描代码库生成能力矩阵，写入 capabilities_registry.md。"""
-    print("📊 generate_capabilities.py 开始执行...")
+def _normalized(content: str) -> str:
+    """去掉生成时间戳后比较，避免每次运行都因时间不同而误报。"""
+    return re.sub(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?\+00:00", "<TS>", content)
+
+
+def main() -> int:
+    """扫描代码库生成能力矩阵；`--check` 只校验是否与代码同步。"""
+    check = "--check" in sys.argv[1:]
+    print("📊 generate_capabilities.py 开始执行..." + ("（check 模式）" if check else ""))
 
     if not REGISTRY_FILE.exists():
+        if check:
+            print("   ❌ capabilities_registry.md 不存在")
+            return 1
         print("   ⚠️  capabilities_registry.md 不存在，将创建新文件")
 
     capabilities = scan_capabilities()
     print(f"   扫描完成: {len(capabilities)} 项能力")
 
     content = generate_registry(capabilities)
+
+    if check:
+        current = REGISTRY_FILE.read_text(encoding="utf-8")
+        if _normalized(current) != _normalized(content):
+            print("   ❌ capabilities_registry.md 与代码不同步（AGENTS §七要求同批提交）")
+            print("      修复：python scripts/generate_capabilities.py")
+            return 1
+        print("   ✅ capabilities_registry.md 已同步")
+        return 0
+
     REGISTRY_FILE.parent.mkdir(parents=True, exist_ok=True)
     REGISTRY_FILE.write_text(content, encoding="utf-8")
     print("   ✅ capabilities_registry.md 已更新")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
 
 
 if __name__ == "__main__":
