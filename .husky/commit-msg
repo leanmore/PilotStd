@@ -1,0 +1,58 @@
+#!/bin/sh
+# Trinity Commit-msg Hook —— .husky 为唯一活入口（2026-10-17 入口收口）
+#
+# 来源：正则脱胎于已归档的 .pre-commit-config.yaml 的 commit-msg-format hook
+# （那份配置 31 个 hook 因 core.hooksPath 指向 .husky 而从未执行）。
+# 若把原正则原样搬来，会挡掉本项目大量既有形态（实测 git log 近 2238 条 subject）：
+#   ① 原 scope 类为 [a-z\-]+，而历史 scope 有 31 个含数字（docs(t41):、fix(#40):…）；
+#   ② 无 merge / 复合类型分支，而 merge: 23 条、复合类型（test+docs:、feat(notify)+docs:）7 条；
+#   ③ 不剥 UTF-8 BOM，而 240 条 subject 以 BOM 开头（PowerShell 写消息所致）→ 全部会被判违规。
+#
+# 接受的形态：
+#   1. Conventional Commits：<type>[(<scope>)]: <描述>
+#      type ∈ feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert|merge
+#   2. 复合类型：test+docs: … / feat(notify)+docs: …
+#   3. merge: … / merge(<scope>): …
+#   4. Git 自身生成的 "Merge …"（merge 提交的默认 subject，不得拦）
+#      与 "Revert \"…\""（git revert 的默认 subject，不得拦）
+#   5. AGENTS.md R-014 规定的 [Test-Fix] 标注（测试修复；历史 4 例均无 type 前缀）
+
+MSG_FILE="$1"
+if [ -z "$MSG_FILE" ] || [ ! -f "$MSG_FILE" ]; then
+    echo "[pre-commit] ❌ commit-msg: 未收到提交信息文件（用法：commit-msg <消息文件路径>）" >&2
+    exit 1
+fi
+
+# 取首个非空行作 subject：去 CR（Windows 的 CRLF）、去行首 BOM、跳过前导空行
+SUBJECT=$(sed -e 's/\r$//' -e 's/^\xef\xbb\xbf//' "$MSG_FILE" \
+    | grep -v '^[[:space:]]*$' \
+    | head -n 1)
+
+if [ -z "$SUBJECT" ]; then
+    echo "[pre-commit] ❌ 提交信息为空：请填写 <type>(<scope>): <描述>" >&2
+    exit 1
+fi
+
+TYPE='(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert|merge)'
+SCOPE='(\([a-z0-9-]+\))?'
+# 复合类型允许任意多个 + 连接（如 feat(notify)+docs:）
+COMPOSITE="^${TYPE}${SCOPE}(\\+${TYPE}${SCOPE})*: .+"
+
+if printf '%s\n' "$SUBJECT" | grep -qE "$COMPOSITE" \
+    || printf '%s\n' "$SUBJECT" | grep -qE '^Merge ' \
+    || printf '%s\n' "$SUBJECT" | grep -qE '^Revert "' \
+    || printf '%s\n' "$SUBJECT" | grep -qE '^\[Test-Fix\] .+'; then
+    exit 0
+fi
+
+{
+    echo "[pre-commit] ❌ 提交信息格式错误：$SUBJECT"
+    echo "   正确格式：<type>(<scope>): <描述>  或  <type>+<type>: <描述>"
+    echo "   示例：feat(parser): 支持 PDF 公告解析"
+    echo "   示例：fix(query): 修复空结果集崩溃"
+    echo "   示例：test+docs: 补回归用例并同步文档"
+    echo "   示例：merge: 合并 feat/xxx 分支（或 merge(scope): …）"
+    echo "   允许的 type：feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert|merge"
+    echo "   scope 仅允许小写字母/数字/连字符；Git 生成的 Merge …/Revert \"…\" 与 AGENTS.md R-014 的 [Test-Fix] … 亦接受"
+} >&2
+exit 1

@@ -16,7 +16,7 @@ pip install -r requirements.txt
 
 ## 目录结构
 
-详见 [模块与功能清单](docs/specs/模块与功能清单.md) 和 [治理汇总](docs/architecture/governance-summary.md)。
+详见 [模块与功能清单（已归档）](docs/archive/specs/模块与功能清单.md) 和 [治理汇总](docs/architecture/governance-summary.md)。
 
 关键变化（v0.54.0）：
 - 11 个包化目录（`config/`, `db/`, `facade/`, `engine/`, `parser/`, `ocr/`, `main_window/`, `workers/`, `query/`, `organize/`, `commands/`）

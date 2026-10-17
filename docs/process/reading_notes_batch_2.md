@@ -52,7 +52,7 @@ Handler 组合模式（2026-07-11）→ Handler 层治理策略（ADR-002/003/00
 | 发现 | 依据 | 状态 |
 | :--- | :--- | :--- |
 | L18-27 适配器清单仅 8 个（7 生产+1 Mock） | registry.py 实际 21 个生产（缺 ccsn/cssn/energy/gongbiaoku/jjg/jtst/mee/miit/ncha/nrsis/sppt/sppt_local/tdpress/ttbz） | ⚠️ **严重过时**（Q22-Q23 前） |
-| **L77 断链**：[查询引擎](../query-engine.md) 不存在 | 实际文档为 `docs/query/README.md`；`docs/query-engine.md` 不存在 | 🔴 **断链（规则 4）** |
+| **L77 断链**：`../query-engine.md` 不存在 | 实际文档为 `docs/query/README.md`；`docs/query-engine.md` 不存在 | 🔴 **断链（规则 4）** |
 | L33 "5 步渐进搜索" 与 base.py | 与 adapter 基类 `_search_progressive` 一致 | ✅ 有效 |
 
 ## 5. 交叉关联

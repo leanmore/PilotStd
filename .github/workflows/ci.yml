@@ -865,6 +865,29 @@ jobs:
       - name: G-015 — 相对导入检查
         run: python scripts/check_g_015_relative_imports.py
 
+      # ── 本地 `--fast` 独有项补入 CI（2026-10-17 入口收口，体检 A-3）────────────
+      # 以下 5 项原先**只有**本地 `check_all.sh --fast` 执行（唯一调用点＝`.husky/pre-commit`），
+      # 而 `trinity-gate.yml` 用 `--deep`，`--deep` **不含** `run_fast` ⇒ CI 侧零覆盖，
+      # 用 `--no-verify` 提交或换一台机器就永久漏检。故在入库产物唯一的权威执行点显式补齐。
+      # **G-031 不在此列**：它按设计只挂本地（直推 main 时 base..HEAD 恒空 → 放 CI 只会假绿）。
+      # 注意：本作业的 "Schema consistency check (blocking)" 跑的是
+      # `check_schema_consistency.py`（表结构一致性），与下面 G-012 的
+      # `check_g_012_sql_schema.py`（SQL 列引用）**是两个脚本，不可互相替代**。
+      - name: G-005 — 日志规范（禁止 _log()/裸 print/print(stderr)）
+        run: python scripts/check_g_005_log_tags.py
+
+      - name: G-012 — SQL Schema 完整性（SQL 列引用必须存在于库）
+        run: python scripts/check_g_012_sql_schema.py
+
+      - name: G-012 — 注释密度/注释语言
+        run: python scripts/check_g_012_comment_density.py
+
+      - name: G-048 — 架构文档模块计数一致性
+        run: python scripts/check_g_048_core_module_count.py
+
+      - name: G-049 — manager.py 防膨胀（有效行 ≤ 340）
+        run: python scripts/check_g_049_manager_size.py
+
   # ════════════════════════════════════════════════════════════════
   # Job 5: 版本管理（测试全部通过后执行）
   # ════════════════════════════════════════════════════════════════

@@ -16,14 +16,24 @@
 - **Production code** lives under `pilotstd/`. It must NOT import any module from `tests/` or any file named `*mock*.py`, `*test*.py`, `*fake*.py` within `pilotstd/`.
 - **Test code** lives under `tests/`. Test helpers (mocks, fixtures) must be placed in `tests/` and never imported by production code.
 
-### Pre-commit Hooks
-We use pre-commit hooks to enforce code quality. Install with:
+### Pre-commit Hooks —— `.husky` 是唯一活入口
+
+本仓库**不使用 pre-commit 框架**：`git config core.hooksPath` 直接指向 `.husky/`（由 `web/package.json` 的 `prepare` 设置），钩子只有两个：
+
+| 钩子 | 内容 |
+|------|------|
+| `.husky/pre-commit` | `bash scripts/check_all.sh --fast --guards --local`；成功后再跑 SEC-001 装饰器顺序、G-013 测试联动、Mixin 治理——**任一失败即阻断提交** |
+| `.husky/commit-msg` | 提交信息格式（Conventional Commits；兼容 `merge:` / `merge(scope):` / `test+docs:` / `feat(notify)+docs:` 等历史形态） |
+
+启用方式（装前端依赖时自动执行）：
+
 ```bash
-pip install pre-commit
-pre-commit install
+cd web && npm install      # 等价于 git config core.hooksPath .husky
 ```
 
-The hooks will automatically check for forbidden imports before each commit.
+**不要** `pip install pre-commit` 或 `pre-commit install`：根目录的 pre-commit 配置已于 2026-10-17 归档为 [docs/archive/pre-commit-config.archived.yaml](docs/archive/pre-commit-config.archived.yaml)（因 `core.hooksPath` 指向 `.husky`，它的 31 个 hook **从未执行**；作废说明见该文件顶部）。禁止用 `--no-verify` 绕过钩子。
+
+禁止的 `tests/` 导入由 CI 的 `test-backend` 作业（步骤 `Forbid production imports from test modules`）强制检查。
 
 ### Pull Request Checklist
 - No production code imports from `tests/` or `*mock*.py`.
@@ -58,7 +68,7 @@ python scripts/check_g_028_no_hardcoded_admin.py  # G-028 禁止硬编码 admin
 本项目采用**能力遗产治理框架**防止非功能性能力（后台线程、观测日志、缓存等）在重构中静默丢失。
 
 - **核心文档**：[docs/governance/capabilities_registry.md](docs/governance/capabilities_registry.md) — 所有非功能性能力的登记簿
-- **重构前必读**：[docs/governance/refactoring_checklist.md](docs/governance/refactoring_checklist.md)
+- **重构前必读**：[docs/guides/refactoring-lessons.md](docs/guides/refactoring-lessons.md)
 - **归档前必读**：[docs/governance/archive_migration_protocol.md](docs/governance/archive_migration_protocol.md)
 - **PR 合并前必须运行**：`python tests/test_observability.py --check-all`
 - **归档文件前必须运行**：`bash scripts/extract_capabilities.sh <file>`

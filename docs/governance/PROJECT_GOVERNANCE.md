@@ -59,7 +59,7 @@ PilotStd 项目治理由三份核心文档构成，形成联动闭环：
                 ↓
 设计门禁脚本 → 放入 scripts/check_gate_XX.py
                 ↓
-注册门禁 → 更新 .pre-commit-config.yaml
+注册门禁 → 接入 .husky/pre-commit（本地专属）或 ci.yml 的 repo-compliance 显式步骤（入库产物）
                 ↓
 更新门禁索引 → 记录门禁与能力的关联
                 ↓

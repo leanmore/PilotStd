@@ -21,64 +21,64 @@
 
 | 文件 | 覆盖 Handler | 测试数 | 说明 |
 |------|-------------|--------|------|
-| [test_auto_pipeline.py](../tests/gui/test_auto_pipeline.py) | AutoUIHandler | 2 | 全流程（有文件/空目录） |
-| [test_e2e_auto.py](../tests/gui/test_e2e_auto.py) | AutoUIHandler | 1 | 自动管线注册 |
+| [test_auto_pipeline.py](../../tests/gui/test_auto_pipeline.py) | AutoUIHandler | 2 | 全流程（有文件/空目录） |
+| [test_e2e_auto.py](../../tests/gui/test_e2e_auto.py) | AutoUIHandler | 1 | 自动管线注册 |
 
 ### 公告
 
 | 文件 | 覆盖 Handler | 测试数 | 说明 |
 |------|-------------|--------|------|
-| [test_e2e_announce.py](../tests/gui/test_e2e_announce.py) | AnnounceUIHandler | 2 | 公告检查守卫（启用/禁用） |
+| [test_e2e_announce.py](../../tests/gui/test_e2e_announce.py) | AnnounceUIHandler | 2 | 公告检查守卫（启用/禁用） |
 
 ### 查询
 
 | 文件 | 覆盖 Handler | 测试数 | 说明 |
 |------|-------------|--------|------|
-| [test_e2e_query.py](../tests/gui/test_e2e_query.py) | QueryUIHandler | 0 | 无 `@pytest.mark.e2e` 标记 |
-| [test_e2e_query_summary.py](../tests/gui/test_e2e_query_summary.py) | QuerySummaryHandler | 2 | 查询结果分桶 |
+| [test_e2e_query.py](../../tests/gui/test_e2e_query.py) | QueryUIHandler | 0 | 无 `@pytest.mark.e2e` 标记 |
+| [test_e2e_query_summary.py](../../tests/gui/test_e2e_query_summary.py) | QuerySummaryHandler | 2 | 查询结果分桶 |
 
 ### 扫描
 
 | 文件 | 覆盖 Handler | 测试数 | 说明 |
 |------|-------------|--------|------|
-| [test_e2e_scan.py](../tests/gui/test_e2e_scan.py) | ScanUIHandler | 2 | 扫描填充表格（目录/单文件） |
+| [test_e2e_scan.py](../../tests/gui/test_e2e_scan.py) | ScanUIHandler | 2 | 扫描填充表格（目录/单文件） |
 
 ### 下载
 
 | 文件 | 覆盖 Handler | 测试数 | 说明 |
 |------|-------------|--------|------|
-| [test_e2e_download.py](../tests/gui/test_e2e_download.py) | DownloadUIHandler | 2 | 下载过滤（空/守卫） |
+| [test_e2e_download.py](../../tests/gui/test_e2e_download.py) | DownloadUIHandler | 2 | 下载过滤（空/守卫） |
 
 ### 清理
 
 | 文件 | 覆盖 Handler | 测试数 | 说明 |
 |------|-------------|--------|------|
-| [test_e2e_cleanup.py](../tests/gui/test_e2e_cleanup.py) | CleanupHandler | 2 | 空目录扫描（完全空/仅过期） |
+| [test_e2e_cleanup.py](../../tests/gui/test_e2e_cleanup.py) | CleanupHandler | 2 | 空目录扫描（完全空/仅过期） |
 
 ### 对话框
 
 | 文件 | 覆盖 Handler | 测试数 | 说明 |
 |------|-------------|--------|------|
-| [test_e2e_dialog.py](../tests/gui/test_e2e_dialog.py) | DialogUIHandler | 1 | 对话框处理器不在 core 中 |
-| [test_e2e_file_dialog.py](../tests/gui/test_e2e_file_dialog.py) | FileDialog | 1 | 文件选择对话框 |
+| `test_e2e_dialog.py` | DialogUIHandler | 1 | 对话框处理器不在 core 中 |
+| `test_e2e_file_dialog.py` | FileDialog | 1 | 文件选择对话框 |
 
 ### 文件树
 
 | 文件 | 覆盖 Handler | 测试数 | 说明 |
 |------|-------------|--------|------|
-| [test_e2e_file_tree.py](../tests/gui/test_e2e_file_tree.py) | FileTreeHandler | 1 | 文件树处理器不在 core 中 |
+| `test_e2e_file_tree.py` | FileTreeHandler | 1 | 文件树处理器不在 core 中 |
 
 ### 持久化
 
 | 文件 | 覆盖 Handler | 测试数 | 说明 |
 |------|-------------|--------|------|
-| [test_e2e_persistence.py](../tests/gui/test_e2e_persistence.py) | PersistenceHandler | 2 | 窗口几何/分割器尺寸持久化 |
+| [test_e2e_persistence.py](../../tests/gui/test_e2e_persistence.py) | PersistenceHandler | 2 | 窗口几何/分割器尺寸持久化 |
 
 ### 项目管理
 
 | 文件 | 覆盖 Handler | 测试数 | 说明 |
 |------|-------------|--------|------|
-| [test_e2e_project.py](../tests/gui/test_e2e_project.py) | ProjectHandler | 1 | 项目状态恢复 |
+| [test_e2e_project.py](../../tests/gui/test_e2e_project.py) | ProjectHandler | 1 | 项目状态恢复 |
 
 ### 设置
 
@@ -90,26 +90,26 @@
 
 | 文件 | 覆盖 Handler | 测试数 | 说明 |
 |------|-------------|--------|------|
-| [test_e2e_table.py](../tests/gui/test_e2e_table.py) | TableHandler | 1 | 表格处理器不在 core 中 |
-| [test_e2e_table_helper.py](../tests/gui/test_e2e_table_helper.py) | TableHelper | 1 | 表格辅助处理器不在 core 中 |
+| `test_e2e_table.py` | TableHandler | 1 | 表格处理器不在 core 中 |
+| `test_e2e_table_helper.py` | TableHelper | 1 | 表格辅助处理器不在 core 中 |
 
 ### 主题
 
 | 文件 | 覆盖 Handler | 测试数 | 说明 |
 |------|-------------|--------|------|
-| [test_e2e_theme.py](../tests/gui/test_e2e_theme.py) | ThemeHandler | 1 | 主题处理器需要视觉验证 |
+| `test_e2e_theme.py` | ThemeHandler | 1 | 主题处理器需要视觉验证 |
 
 ### 导出
 
 | 文件 | 覆盖 Handler | 测试数 | 说明 |
 |------|-------------|--------|------|
-| [test_e2e_export.py](../tests/gui/test_e2e_export.py) | ExportHandler | 1 | 导出树收集 |
+| `test_e2e_export.py` | ExportHandler | 1 | 导出树收集 |
 
 ### 事件总线
 
 | 文件 | 覆盖 Handler | 测试数 | 说明 |
 |------|-------------|--------|------|
-| [test_event_bus_integration.py](../tests/gui/test_event_bus_integration.py) | EventBus | 3 | 自动管线事件/扫描事件/迁移回归 |
+| [test_event_bus_integration.py](../../tests/gui/test_event_bus_integration.py) | EventBus | 3 | 自动管线事件/扫描事件/迁移回归 |
 
 ---
 

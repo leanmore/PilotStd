@@ -1,6 +1,6 @@
 #!/bin/sh
 # Trinity Pre-commit Hook
-# 唯一入口：调用 check_all.sh --fast --guards --local
+# 唯一入口：调用 check_all.sh --fast --guards --local + 三项收编检查
 # 不包含任何内联门禁逻辑
 #
 # 三个模式的分工（原则：检查的输入在哪里可靠，就放在哪里）：
@@ -9,3 +9,27 @@
 #   --local   本地专属检查（G-031 文档联动）——**不得进 CI**：
 #             本仓库以直推 main 为主，CI 里 base..HEAD 恒为空，该门禁只会假绿
 bash scripts/check_all.sh --fast --guards --local || exit 1
+
+# ── 死配置收编（2026-10-17 入口收口；体检 A-1，docs/debt/05-audit-2026-10-17.md）──
+# 以下三项原先**只**写在 .pre-commit-config.yaml 里。因 git config core.hooksPath
+# 指向 .husky，那份配置的 31 个 hook **从未执行过**（钩子从不调用 `pre-commit run`），
+# 于是这三项检查长期"脚本存在但无人调用"。该配置现已归档为
+# docs/archive/pre-commit-config.archived.yaml；仍有价值者在此接线。
+# 约定：任一失败即 exit 1，不得降级为 WARN（P-104 门禁不绕过）。
+run_recovered_check() {
+    _name="$1"
+    _script="$2"
+    if python "$_script"; then
+        echo "[pre-commit] ✅ PASS: $_name"
+    else
+        echo "[pre-commit] ❌ FAIL: $_name（$_script）" >&2
+        exit 1
+    fi
+}
+
+# SEC-001：@require_role 必须在 @router.xxx 内层，顺序颠倒会造成鉴权旁路
+run_recovered_check "SEC-001 装饰器顺序" scripts/check_decorator_order.py
+# G-013：业务代码变更必须带测试变更（读暂存区，无暂存业务文件时自动 PASS）
+run_recovered_check "G-013 测试联动" scripts/check_g_013_test_coverage.py
+# Mixin 治理：新增 Mixin 类优先改组合（读暂存区新增的 .py）
+run_recovered_check "Mixin 治理" scripts/check_mixin.py

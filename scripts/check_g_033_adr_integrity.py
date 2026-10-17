@@ -10,6 +10,8 @@ G-033: Architecture Decision Record Integrity Check
 
 ADR 有效性判定: Status 非 proposed/draft 即为有效
 MVP 阶段: 输出关联性手动确认提示
+编号唯一性: 同一 ADR-0NN 前缀出现 >1 个文件即 FAIL（R-001 编号不得复用；
+            该断言不依赖 git diff，任何场景都先执行）
 """
 import re
 import subprocess
@@ -22,6 +24,9 @@ if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 ADR_DIR = PROJECT_ROOT / "docs" / "adr"
+
+# ADR 文件名前缀编号：`ADR-008-wait-worker-elimination.md` → `008`
+ADR_NUMBER_RE = re.compile(r"^ADR-(\d{3})-")
 
 # 架构变更检测模式
 ARCH_PATTERNS = [
@@ -112,8 +117,34 @@ def parse_adr_status(content: str) -> str | None:
     return None
 
 
-def validate_adr() -> bool:
-    """执行 G-033 检查。返回 True 表示通过。"""
+def find_duplicate_adr_numbers(adr_dir: Path | None = None) -> dict[str, list[str]]:
+    """按文件名前缀 `ADR-0NN` 分组，返回「编号 → 文件列表」中的重复项。
+
+    R-001：编号一旦占用不得复用。只按文件名前缀判定（号即身份），不看正文标题。
+    """
+    target = ADR_DIR if adr_dir is None else adr_dir
+    by_number: dict[str, list[str]] = {}
+    for adr_file in sorted(target.glob("ADR-*.md")):
+        match = ADR_NUMBER_RE.match(adr_file.name)
+        if match:
+            by_number.setdefault(match.group(1), []).append(adr_file.name)
+    return {number: names for number, names in by_number.items() if len(names) > 1}
+
+
+def validate_adr(adr_dir: Path | None = None) -> bool:
+    """执行 G-033 检查。返回 True 表示通过。
+
+    `adr_dir` 仅供受控测试注入临时目录；生产调用不传，走模块级 `ADR_DIR`。
+    """
+    target = ADR_DIR if adr_dir is None else adr_dir
+    # 编号唯一性先行：不依赖本次 git diff，避免"无架构变更→跳过"把重号捂过去
+    duplicates = find_duplicate_adr_numbers(target)
+    if duplicates:
+        print("❌ G-033: ADR 编号唯一性校验失败（R-001：编号不得复用）")
+        for number, names in sorted(duplicates.items()):
+            print(f"   ADR-{number} 被 {len(names)} 个文件占用: {', '.join(names)}")
+        return False
+
     changed = get_changed_files()
     arch_changes = [f for f in changed if is_architecture_change(f) and not is_archived(f)]
 
@@ -127,14 +158,14 @@ def validate_adr() -> bool:
     if len(arch_changes) > 10:
         print(f"      ... 及其他 {len(arch_changes) - 10} 个文件")
 
-    if not ADR_DIR.exists():
-        print(f"❌ G-033: ADR 目录 {ADR_DIR} 不存在，请创建 docs/adr/")
+    if not target.exists():
+        print(f"❌ G-033: ADR 目录 {target} 不存在，请创建 docs/adr/")
         return False
 
     # 收集所有架构决策及其状态
-    adr_files = list(ADR_DIR.glob("ADR-*.md"))
+    adr_files = list(target.glob("ADR-*.md"))
     if not adr_files:
-        print(f"❌ G-033: 架构变更需伴随有效 ADR，但 {ADR_DIR} 中无 ADR 文件")
+        print(f"❌ G-033: 架构变更需伴随有效 ADR，但 {target} 中无 ADR 文件")
         print(f"   变更文件: {', '.join(arch_changes[:5])}")
         return False
 

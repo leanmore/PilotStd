@@ -151,15 +151,15 @@ Handler 通过构造函数显式注入依赖，所有方法通过 `self._handler
 
 各核心模块的架构分析文档（Mixin→Handler 重构后的包结构）：
 
-- [Manager 模块](modules/manager.md) — 业务门面层结构
-- [Parser 模块](modules/parser.md) — 标准号解析器架构
-- [Query 模块](modules/query.md) — 查询引擎架构
-- [Scan 模块](modules/scan.md) — 文件扫描架构
-- [UI 模块](modules/ui.md) — PyQt6 桌面端组件结构
+- [Manager 模块](architecture/modules/manager.md) — 业务门面层结构
+- [Parser 模块](architecture/modules/parser.md) — 标准号解析器架构
+- [Query 模块](architecture/modules/query.md) — 查询引擎架构
+- [Scan 模块](architecture/modules/scan.md) — 文件扫描架构
+- [UI 模块](architecture/modules/ui.md) — PyQt6 桌面端组件结构
 
 ### 治理体系总览
 
-完整的三位一体治理体系（测试 + 门禁 + 文档）状态，参见 [治理体系技术规范](../governance/trinity-technical-spec-v2.md)（历史快照：[治理体系总览（ARCHIVED）](../governance-overview.md)）。
+完整的三位一体治理体系（测试 + 门禁 + 文档）状态，参见 [治理体系技术规范](governance/trinity-technical-spec-v2.md)（历史快照：[治理体系总览（ARCHIVED）](governance-overview.md)）。
 
 ---
 
@@ -283,10 +283,10 @@ PKCS#7 **按 32 字节块**填充、解密后校验 `receiveid`（企微为 corp
 
 ## 相关文档
 
-- [ADR 目录](adr/README.md) — **17 个 ADR 文件 / 16 个编号**（2026-10-17 实测：ADR-001~016，其中 **ADR-008 被两个文件占用**——`announcement-three-column` 与 `wait-worker-elimination`，违反 R-001"编号不得复用"，已登记待治；索引以 `docs/adr/README.md` 为准）
-- [技术债登记](../technical-debt.md) — 已清理 / 待处理 / 维持现状
-- [技术债登记](../technical-debt.md)（唯一数据源；旧簿已归档为 [technical-debt-registry.archived.md](technical-debt-registry.archived.md)） — 已跳过测试 + 已接受设计决策
-- [范式文档](../guides/) — 5 个 Engine 重构范式
+- [ADR 目录](adr/README.md) — **17 个 ADR 文件 / 17 个编号**（2026-10-17 实测：ADR-001~017；原 ADR-008 重号已治理——后建的 `announcement-three-column` 重编号为 ADR-017（2026-08-19 建），`wait-worker-elimination` 保留 ADR-008（2026-08-02 建）；索引以 `docs/adr/README.md` 为准）
+- [技术债登记](technical-debt.md) — 已清理 / 待处理 / 维持现状
+- [技术债登记](technical-debt.md)（唯一数据源；旧簿已归档为 [technical-debt-registry.archived.md](architecture/technical-debt-registry.archived.md)） — 已跳过测试 + 已接受设计决策
+- [范式文档](guides/) — 5 个 Engine 重构范式
 
 ## 状态字段 API 契约（#32-C / R14-4c，2026-10-01）
 

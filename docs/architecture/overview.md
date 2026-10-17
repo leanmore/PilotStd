@@ -109,7 +109,7 @@ graph TD
 - 入口：[pilotstd/query/engine/__init__.py](pilotstd/query/engine/__init__.py) — `QueryEngine` 类
 - 路由（v1）：[pilotstd/query/engine/_routing.py](pilotstd/query/engine/_routing.py) — `_resolve_base_route()` 7 层决策树
 - **路由（v2，灰度中）**：[pilotstd/query/routing/router_v2.py](pilotstd/query/routing/router_v2.py) — 三级漏斗（L1 国内精准 → L2 有标准号综合兜底 → L3 模糊探索），`ROUTING_ENGINE_VERSION=v2` 启用（2026-08-17 起灰度，默认 v1）
-- 分桶：[pilotstd/query/engine/_batch_dispatch.py](pilotstd/query/engine/_batch_dispatch.py) — 6 阶段流水线
+- 分桶：[pilotstd/query/engine/_batch_dispatcher.py](pilotstd/query/engine/_batch_dispatcher.py) — 6 阶段流水线
 - 小桶：[pilotstd/query/engine/_mini_bucket.py](pilotstd/query/engine/_mini_bucket.py) — 50 条/桶 + 权重重分配
 - 单条：[pilotstd/query/engine/_single.py](pilotstd/query/engine/_single.py) — 5 步搜索链路（v2 分支 `_query_one_v2` 链式降级）
 
@@ -193,8 +193,8 @@ graph TD
 
 ## 关键设计决策
 
-1. **组合模式替代 Mixin**：[EngineCore](pilotstd/query/engine/_core_types.py:22) 作为依赖容器注入各 Handler，消除 MRO 隐式依赖
-2. **静态注册表**：[ALL_ADAPTERS](pilotstd/query/adapters/registry.py:32) 静态字典，无运行时动态注册
+1. **组合模式替代 Mixin**：[EngineCore](pilotstd/query/engine/_core_types.py#L22) 作为依赖容器注入各 Handler，消除 MRO 隐式依赖
+2. **静态注册表**：[ALL_ADAPTERS](pilotstd/query/adapters/registry.py#L32) 静态字典，无运行时动态注册
 3. **双配额体系**：`SiteRotator`(轮转冷却) + `DailyQuotaTracker`(日配额)，互不耦合
-4. **进程级全局冷却**：[SiteRotator._sites](pilotstd/query/rotator.py:53) 单例 + `threading.Lock`，跨批次实时影响
+4. **进程级全局冷却**：[SiteRotator._sites](pilotstd/query/rotator.py#L53) 单例 + `threading.Lock`，跨批次实时影响
 5. **收藏归档表级解耦**：v44 迁移将 `favorite_downloads` 独立，`user_favorites` 回归纯粹收藏

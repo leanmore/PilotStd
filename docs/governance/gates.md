@@ -3,6 +3,8 @@
 > 本文档是 PilotStd 项目全部门禁的索引。每项门禁在 CI 的 `repo-compliance` job 中执行，失败即阻断合并。
 >
 > **维护规则**：新增或修改门禁时，必须同步更新本文档。G-031 门禁会检查 `.github/workflows/` 或 `scripts/` 变更时是否更新了本文档。
+>
+> **入口（2026-10-17 起）**：**`.husky/` 是唯一活入口**——`.husky/pre-commit`（`check_all.sh --fast --guards --local` + SEC-001 / G-013 / Mixin 三项）与 `.husky/commit-msg`（提交信息格式）。原 根目录原 pre-commit 配置 已 `git mv` 归档为 `docs/archive/pre-commit-config.archived.yaml`：因 `core.hooksPath` 指向 `.husky`，那份配置的 **31 个 hook 从未执行**（详见该文件顶部作废说明）。**不要再 `pre-commit install`，也不要把配置接回 `core.hooksPath`。**
 
 ---
 
@@ -10,8 +12,17 @@
 
 | 编号 | 名称 | 检查内容 | 阻断条件 | 脚本路径 | 状态 |
 |------|------|---------|---------|---------|------|
+| G-005 | 日志规范 | `pilotstd/`、`docker/` 代码禁止 `_log()`、裸 `print()`、`print(stderr)`（`pilotstd/templates/` 与 `_core.py`/`logger.py` 排除；ui.md 登记的 2 处 stderr 豁免） | 命中违规写法 | `scripts/check_g_005_log_tags.py` | ✅ 已部署（`--fast` + 2026-10-17 补入 CI `repo-compliance`） |
+| G-008 | 依赖完整性检查 | 代码 import 与依赖声明（requirements）一致 | 有 import 无声明或反之 | `scripts/check_dependencies.py` | ✅ 已部署（CI `test-backend` 步骤 `G-008 — Check dependency completeness`） |
+| G-009 | CHANGELOG 版本一致性 | `CHANGELOG.md` 版本与 `pilotstd/__init__.py` 的 `__version__` 一致 | 不一致 | `scripts/check_changelog_version.py` | ✅ 已部署（CI `test-backend` 步骤 `G-009 — Check CHANGELOG version consistency`） |
 | G-010 | 代码规模控制 | 文件有效代码行≤500行（>400警告）、函数≤80行；>500行阻断时须提供拆分证据 | 文件>500行/函数>80行（拆分证据不足亦阻断） | `scripts/check_g_010_code_size.py` | ✅ 已部署 |
+| G-011 | 动态属性完整性 | `self.xxx` 的引用必须有对应的定义或声明（`_done`/`_msg` 后缀识别） | 断裂引用 | `scripts/check_g_011_attr_integrity.py` | ✅ 已部署（`--fast` + CI `test-backend`） |
+| G-012 | SQL 列引用 + 注释规范 | ① SQL 字符串里的列必须存在于库（schema/迁移构建后比对）；② 注释密度与注释语言（`[LANG]` 仅警告不阻断） | ① SQL 引用不存在的列；② 注释密度阻断项 | `scripts/check_g_012_sql_schema.py`、`scripts/check_g_012_comment_density.py` | ✅ 已部署（`--fast` + 2026-10-17 补入 CI `repo-compliance`；⚠️ CI 原有的 `check_schema_consistency.py` 是**另一个脚本**，不可混同） |
+| G-013 | 测试联动（变更伴随测试） | 业务目录（`pilotstd/` 下 manager/organizer/download/query/tasks/monitor/wechat_ip/announcement/core/i18n）的公开/高风险私有 API 变更必须带测试变更 | `[TEST-BLOCK]` 高风险变更无测试 | `scripts/check_g_013_test_coverage.py` | ✅ 已部署（2026-10-17 接入 `.husky/pre-commit`；只挂本地——判据依赖暂存区） |
 | G-015 | 相对导入检查 | 所有 import 正确 | 违规 | `scripts/check_g_015_relative_imports.py` | ✅ 已部署 |
+| G-018 | UI 敏感字段保护 | 密钥/令牌类字段在 UI 层必须掩码（Password 组件 / `type=password`） | 命中未掩码字段 | `scripts/check_ui_sensitive_fields.py` | ✅ 已部署（CI `test-frontend` 步骤 `G-018 — Check UI sensitive fields protection`） |
+| G-025 | 适配器列表一致性 | 查询适配器与公告适配器必须可导入且定义 `DISPLAY_NAME`，与列表登记一致 | 缺失/不可导入 | `scripts/check_g_025_adapters.py` | ✅ 已部署（CI `test-backend`；需 `pilotstd` 可导入，本地裸跑须置 `PYTHONPATH`） |
+| G-026 | Docker 挂载黑名单 | `docker-compose.yml` 的挂载不得包含黑名单路径 | 命中黑名单路径 | `scripts/check_g_026_docker_mounts.py` | ✅ 已部署（CI `repo-compliance`） |
 | G-027 | Vue 组件 `defineOptions` 检查 | `web/src/{components,views}` 下所有 `<script setup>` 组件必须声明 `defineOptions` | 缺失 | `scripts/check_g_027_define_options.py` | ✅ 已部署（CI + 本地 `--fast`） |
 | G-029 | 测试联动检查 | 改核心模块 → 测试同步更新 | 未同步 | `scripts/check_g_029_test_coverage.py` | ✅ 已部署 |
 | G-030 | 技术债联动检查 | 新增 `# TECH-DEBT:` / `# TODO(debt):` 标记必须同步技术债登记簿 | 新增标记但登记簿未同步 | `scripts/check_g_030_tech_debt.py` | ✅ 已部署 |
@@ -121,11 +132,12 @@
 
 ### G-033：ADR 完整性检查
 
-- **检查内容**：ADR 编号连续、历史 ADR 未被修改
+- **检查内容**：ADR 编号连续、历史 ADR 未被修改；**编号唯一性**——同一 `ADR-0NN` 前缀只能对应一个文件（R-001：编号不得复用）
 - **扫描范围**：`docs/adr/ADR-*.md`
 - **阻断条件**：
   - 编号不连续 → 阻断
   - 历史 ADR 文件被修改 → 阻断
+  - 同一 ADR 编号被 >1 个文件占用 → 阻断（2026-10-17 新增；该断言不依赖 git diff，任何场景先执行）
 - **执行方式**：`python scripts/check_g_033_adr_integrity.py`
 
 ### G-034：覆盖率阈值检查
@@ -500,7 +512,7 @@ A 类管"**事件**是否齐备"（数据完备性）；B 类管"同一事实在
 
 | 模式 | 内容 | 是否写文件 | 归属 |
 |------|------|-----------|------|
-| `--fast` | G-010 代码规模、G-011 动态属性、G-015 相对导入、G-012 SQL Schema/注释密度、**G-048 架构文档模块计数**、**G-039 冲突标记**、**G-040 i18n 硬编码**、vue-tsc、G-027 组件 `defineOptions`、`_wait_worker` 防回潮 | 否 | 通用 |
+| `--fast` | G-010 代码规模、**G-005 日志规范**、G-011 动态属性、G-015 相对导入、G-012 SQL Schema/注释密度、**G-048 架构文档模块计数**、**G-049 manager.py 防膨胀**、**G-039 冲突标记**、**G-040 i18n 硬编码**、**G-047 Python 侧 i18n 硬编码**、**G-043 敏感端点审计**、**G-044 术语与禁用词**、**G-045 通知覆盖度**、**G-046 通知链路审计**、vue-tsc、G-027 组件 `defineOptions`、`_wait_worker` 防回潮 | 否 | 通用 |
 | `--guards` | **治理守护（只读）**：Schema 一致性、G-032 文档健康度、G-037、G-030、G-033 | 否 | **入库产物**（CI 权威，本地 fail-fast） |
 | `--local` | **本地专属**：G-031 文档联动同步 | 否 | **仅本地，禁止进 CI** |
 | `--docs` | coverage.xml（缺失时生成）→ `generate_status_metrics.py` → `generate_coverage_report.py` → G-032 守护 | **是**（重写 `STATUS.md`、`docs/testing/coverage-report.md`） | 本地 |
@@ -529,6 +541,18 @@ A 类管"**事件**是否齐备"（数据完备性）；B 类管"同一事实在
   `--fast --docs` 实际只跑 `--fast`，docs 类门禁形同虚设；未知参数现在直接报用法并退出 1）。
 - **pre-commit 钩子**（`.husky/pre-commit`）执行 `--fast --guards --local`：不用 `--docs`
   （生成属本地行为，且会重写工作树并重跑带覆盖率采集的 pytest）。
+- **`.husky` 是唯一活入口**（2026-10-17 入口收口，体检 A-1/A-2）：`git config core.hooksPath`
+  指向 `.husky`，钩子内**从不调用 `pre-commit run`** ⇒ 根目录原 根目录原 pre-commit 配置 的
+  **31 个 hook 一次都没执行过**，已 `git mv` 归档为 `docs/archive/pre-commit-config.archived.yaml`
+  （顶部作废说明逐个列出 hook 去向）。
+  - `.husky/pre-commit` = `check_all.sh --fast --guards --local` **成功后**再跑三项（原先只写在死配置里）：
+    SEC-001 装饰器顺序（`check_decorator_order.py`）、G-013 测试联动（`check_g_013_test_coverage.py`）、
+    Mixin 治理（`check_mixin.py`）；任一失败即 `exit 1`，输出前缀 `[pre-commit]`。
+  - `.husky/commit-msg` = 提交信息校验（R-014 的自动化落地）：Conventional Commits +
+    **兼容历史形态**（`merge:` / `merge(scope):` / 复合类型 `test+docs:` / `feat(notify)+docs:` /
+    Git 生成的 `Merge …`、`Revert "…"` / AGENTS.md R-014 的 `[Test-Fix] …`），并剥离行首 BOM。
+  - 本地 `--fast` 独有的 5 项（G-005 / G-012 schema / G-012 注释密度 / G-048 / G-049）已补为
+    `ci.yml` 的 `repo-compliance` 显式步骤；**G-031 仍只挂本地**（见上表"本地专属"）。
 - **CI 不生成文档**：`trinity-gate.yml` 执行 `--deep`（不含 `--docs`、不含 `--local`），
   已移除原先空转的 pytest 采集与 artifact 上传步骤。
 - **G-038 仍在 `--deep`**：它需要 PATH 上存在 `ruff`/`mypy` 可执行文件，各开发机是否安装不一致，
@@ -546,6 +570,8 @@ A 类管"**事件**是否齐备"（数据完备性）；B 类管"同一事实在
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
+| v2.01 | 2026-10-17 | **G-033 补「ADR 编号唯一性」断言 + ADR-008 重号治理**（体检 C-3）：① `scripts/check_g_033_adr_integrity.py` 在 `validate_adr()` 最前新增 `find_duplicate_adr_numbers()`——同一 `ADR-0NN` 文件名前缀出现 >1 个文件即 FAIL，且**不依赖 git diff**（原逻辑在"无架构变更"时直接跳过，重号可被静默放过）；② 重号实测：`git log --diff-filter=A` 显示 `ADR-008-*` 中 `announcement-three-column`（2026-08-19 建）晚于 `wait-worker-elimination`（2026-08-02 建），二者同号，按 R-001 把**后建**的 `announcement-three-column` `git mv` 重编号为 `ADR-017`（001~016 已占用，017 实测空闲：全库 grep `ADR-0[0-9]+` 仅 001~016），同步 `docs/adr/README.md`（008 改指 wait-worker、新增 017 行）、`docs/DOCUMENTATION_MAP.md`（ADR 速查补 011~017）、`docs/architecture.md` 的相关文档说明；③ 新增受控测试 `tests/test_check_g_033_adr_integrity.py`（5 例：真实树编号唯一 / 同号两文件被检出 / 无架构变更时重号仍 FAIL / 干净临时树通过 / 真实仓库 CLI exit 0）。**实测**：`python scripts/check_g_033_adr_integrity.py` ⇒ exit 0；`python -m pytest tests/test_check_g_033_adr_integrity.py -q` ⇒ 5 passed |
+| v2.00 | 2026-10-17 | **入口收口（体检批次 A 的 A-1/A-2/A-3）：`.husky` 定为唯一活入口，死配置归档。** ① **`.husky/pre-commit` 收编三项**：在 `check_all.sh --fast --guards --local` **成功之后**追加 SEC-001 装饰器顺序（`check_decorator_order.py`）、G-013 测试联动（`check_g_013_test_coverage.py`）、Mixin 治理（`check_mixin.py`）；任一失败即 `exit 1`，输出前缀 `[pre-commit]`。三项单跑与整体钩子实测 exit 0（V-01~V-04）。② **新增 `.husky/commit-msg`**——原实现只存在于死配置的 `commit-msg-format`，且它那个正则若原样搬来会**挡掉大量历史提交**（实测 `git log` 2238 条 subject）：scope 类 `[a-z\-]+` 挡掉 31 个含数字 scope（`docs(t41):`、`fix(#40):`…）、无 `merge`/复合类型分支（历史 `merge:` 23 条、复合 7 条）、不剥行首 BOM（**240 条** subject 以 BOM 开头，PowerShell 写消息所致）。新正则另接受 Git 生成的 `Merge …`/`Revert "…"` 与 R-014 的 `[Test-Fix] …`；受控验证 6 条消息文件（合规 3 / 违规 3）退出码全部符合预期（V-05/V-06）。③ **归档**：根目录原 pre-commit 配置 → `docs/archive/pre-commit-config.archived.yaml`（顶部作废说明逐个列 31 个 hook 的去向与"不要接回 hooksPath"的约束）；`.github/scripts/check-repo-compliance.sh` 的白名单由该文件改为归档路径（`docs/archive/` 整体在黑名单，故按精确路径放行），实测 `COMPLIANCE_RANGE=HEAD` 下 PASS。④ **CI 补覆盖**：`ci.yml` 的 `repo-compliance` 新增 G-005 / G-012 schema / G-012 注释密度 / G-048 / G-049 五个**显式步骤**（本地 `--fast` 独有、原 CI 零覆盖；**G-031 按设计不加**），本地逐项 exit 0（V-07~V-11）。⑤ **同批修复（阻断项的前提）**：`scripts/check_g_049_manager_size.py` 在 GBK 控制台打印 ✅ 抛 `UnicodeEncodeError` → **判定其实通过却 exit 1**，导致 `.husky/pre-commit` 在 HEAD 上恒红；补 `sys.stdout.reconfigure(encoding="utf-8")`（与 G-048 等 20 个门禁脚本同口径）。⑥ **总览表补十行**：G-005 / G-008 / G-009 / G-011 / G-012 / G-013 / G-018 / G-025 / G-026 / G-028（状态按实测写，不照抄"待创建"），`--fast` 内容清单补登 G-005 / G-043~G-047 / G-049 / vue-tsc / `_wait_worker` |
 | v1.99 | 2026-10-17 | **门禁清单自身的状态失真修正**（体检 C-1/C-2 的机械修复，不改任何门禁逻辑）：① **G-031 状态 `⏳ 待创建` → `✅ 已部署`**——脚本存在且已接 `check_all.sh --local`，实测可阻断（提交 `f312698b` 起；原状态会让读者误判该规则无强制力）；② **G-034 状态改为如实描述**——脚本存在但**未接线**且现跑必 FAIL（正则 `行覆盖率[：:]\s*([\d.]+)\s*%` 与生成器的表格行 `\| 行覆盖率 \| **62.5%** \|` 永不匹配），且**阈值四套口径并存**（`pyproject.toml:94` 51 / `ci.yml:155` 45 / `ci.yml:775` 58 / 本节 80，体检 B-1）⇒ 修解析 + 定权威阈值后才能接线；③ 修正本文 `:520` 引用的**已删除脚本** `check_docs_sync.py` → 现名 `check_module_doc_mappings.py`。**未做**：`:503` 的 `--fast` 清单补登（G-005/043~047/049 + vue-tsc + `_wait_worker`）与总览表补 G-005/011/012/013/025/026/028，留待批次 A 与入口收口同批处理 |
 | v1.98 | 2026-10-16 | **G-005 门禁自身缺陷修复（`scripts/check_g_005_log_tags.py`）**：①`rglob("*.py")` 原样走进 `pilotstd/templates/**`（cookiecutter 模板含 Jinja 占位符，如 `class Test{{ cookiecutter.adapter_class }}(unittest.TestCase)`）⇒ `ast.parse` 抛 `SyntaxError` 直接崩掉整个门禁（输出 traceback + exit 1，**且不指出任何问题文件**）；现按**路径前缀**排除 `pilotstd/templates/`，与 `pyproject.toml` 的 `extend-exclude = ["whitelist.py", "pilotstd/templates/**"]` **同口径**；②`check_file()` 内兜住 `SyntaxError`，作为**该文件的违规项**上报（`无法解析（SyntaxError: … @ 行 N）`），不再让单文件解析失败伪装成"全库门禁崩溃"；另加 `_rel()` 使仓外路径（受控测试用临时文件）可正常展示。**同批新增受控测试** `tests/test_check_g_005_log_tags.py`（8 例：模板子树排除 + 与 pyproject 口径一致性 + "模板文件必 SyntaxError"的反证 + SyntaxError 上报不抛 + 干净文件/裸 `print()` 基本语义 + 受控树 exit 0/1）。**实测（2026-10-16）**：`python scripts/check_g_005_log_tags.py` ⇒ 不再 traceback，改为逐条报出 `pilotstd/ui/core/_self_check.py:32` 与 `pilotstd/ui/main_window/parts/_run_main.py:42` 两处 `print(..., file=sys.stderr)`、**exit 1**；`python -m pytest tests/test_check_g_005_log_tags.py -q` ⇒ **8 passed / exit 0**。**同批处置（2026-10-16 收尾，含一次方向修正）**：这两处**不是**"真实违规"，而是 `docs/architecture/modules/ui.md`「日志与诊断」节明写的**有意保留项**（2026-09-26 清理调试输出时特意留下：Qt 消息唯一出口，该节记"改成 logging 有重入风险"；自检工具按设计输出 stderr）⇒ **保留代码不动**，改为：① 门禁新增 `EXCLUDED_ALLOWED_STDERR` **具名登记**这两份文件（**不是**按目录放行——同目录同名的其它文件出现 `print(stderr)` 仍判违规；`_log()` 规则对它们照旧生效），并新增 3 例受控测试锁死清单（现 **11 passed**）；② **接线**：`scripts/check_all.sh` 的 `run_fast()`（G-015 之后）新增调用——此前 `git grep -n "check_g_005" -- scripts .github .husky` **零命中**，即它从未被任何入口调用，这正是"崩溃长期不可见"的根因；③ `docs/architecture/modules/ui.md` 该节补「G-005 与本节的关系」，声明增删例外须同步该节。**实测（终态）**：`check_g_005_log_tags.py` ⇒ **exit 0（365 个文件通过；`_core.py`/`logger.py`/`pilotstd/templates/` 已排除 + 2 处具名豁免）**；`bash scripts/check_all.sh --fast` ⇒ **exit 0**（含 `✅ [PASS] G-005 日志规范`）；`ruff` 全绿、`mypy` 442 文件 0 error。 |
 | v1.97 | 2026-10-07 | **CI 可观测性修复：启用 Playwright HTML 报告与失败现场上传**（用户裁定方案 ①）。`web/playwright.config.ts` 新增 `reporter: [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }]]` 与 `outputDir: 'test-results'`（`open: 'never'` ⇒ CI 不弹浏览器；`outputFolder` 相对 config 所在目录 ⇒ 解析为 `web/playwright-report`，与工作流上传 `path` **一致**）；`use.screenshot: 'only-on-failure'` 与 `use.trace: 'retain-on-failure'` **原本已配置**（本轮核对确认，未重复添加）；`.github/workflows/ci.yml` 的 `frontend-e2e` 上传步骤由单一 `web/playwright-report/` 扩展为 **`web/playwright-report/` + `web/test-results/`**（汇总视图与单条现场齐备），因报告恒产出 ⇒ 消除每轮的 `##[warning] No files were found with the provided path` |

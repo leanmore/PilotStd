@@ -1,3 +1,45 @@
+# =============================================================================
+# 【作废说明 / ARCHIVED】2026-10-17；原路径：仓库根 `.pre-commit-config.yaml`
+# =============================================================================
+# **本配置里的 31 个 hook（8 个远端 + 23 个 local）从未执行过一次。**
+# 依据（实测）：`git config --local core.hooksPath` = `D:\PilotStd\.husky`（由
+# `web/package.json` 的 `prepare` 设置），`.husky/pre-commit` 只转发
+# `bash scripts/check_all.sh --fast --guards --local`，**从不调用 `pre-commit run`**
+# （全库 `git grep "pre-commit run"` 零命中）。故本文件长期只是"脚本清单"，
+# 不存在执行效果——这也是"门禁脚本存在但无人调用"这一系统性缺口的根源。
+#
+# 处置（体检批次 A：入口收口；docs/debt/05-audit-2026-10-17.md 的 A-1/A-2/A-3）：
+#   · **唯一活入口是 `.husky/`**，由两个钩子组成：
+#       .husky/pre-commit —— check_all.sh --fast --guards --local
+#                            + SEC-001 装饰器顺序 / G-013 测试联动 / Mixin 治理
+#                            （后三项原仅存于本文件的 local hook，现已接线）
+#       .husky/commit-msg —— 提交信息校验（本文件 commit-msg-format 的替代实现，
+#                            并兼容 merge: / merge(xxx): / test+docs: 等历史形态）
+#   · 本地 `--fast` 独有的 5 项（G-005 / G-012 schema / G-012 注释密度 / G-048 / G-049）
+#     已补为 `.github/workflows/ci.yml` 的 `repo-compliance` 显式步骤；G-031 按设计
+#     **仍只在本地**（直推 main 时 base..HEAD 恒空 → 假绿）。
+#   · 其余 hook 的去向（逐个复核，均**未**在本文件中接管）：
+#       trailing-whitespace / end-of-file-fixer / check-yaml / check-added-large-files
+#         —— 仓库未接管，属"格式类便利钩子"，非门禁判据；
+#       ruff --fix / ruff-format / mypy —— CI 以 `ruff check`（G-038）、`mypy` 执行；
+#       detect-secrets —— CI `security-scan` 的 detect-secrets 步骤；
+#       py-compile-core —— CI `test-backend` 的 `python -m compileall pilotstd/ui/core/`；
+#       forbid-test-imports —— CI `test-backend` 同名步骤；
+#       update-capabilities —— 已被 `generate_capabilities.py` + CI
+#                              `check_capabilities_sync.py` 取代（本文件仍指旧脚本）；
+#       check-dead-code-python (vulture) —— `check_all.sh --deep` 的 G-020；
+#       check-dead-code-typescript (ts-prune) —— CI `test-frontend` 的
+#                                                 "Check dead TypeScript exports"；
+#       check-all / gate-10 / gate-11 / gate-13 / docs-sync-check / gate-sensitive-fields /
+#       gate-adapters / gate-docker-mounts / gate-define-options / gate-no-hardcoded-admin /
+#       run-gates / check-dependencies / check-changelog-version / check-ui-sensitive-fields /
+#       gate-10-code-size / no-new-mixin / check-decorator-order / commit-msg-format
+#         —— 已由 `.husky/` 的两个钩子或 CI 的显式步骤承担（见上）。
+#   · **保留原文（含 ruff/mypy 的 rev 钉版）仅为追溯**"当年打算跑什么、钉的哪个版本"。
+#     **不要再把它接回 `core.hooksPath`，也不要 `pre-commit install`**——否则会得到
+#     两套互相矛盾的口径（例如本文件 ruff 钉 v0.11.6 而 CI/本地跑本地版本）。
+# =============================================================================
+
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0

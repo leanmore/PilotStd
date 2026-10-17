@@ -5,6 +5,7 @@
 > ⚠️ 本文件长期滞后（体检记录：2026-10-17 实测头部还写 v52、正文有 v60、代码已到 v68）。
 > **以代码为唯一权威**：`pilotstd/core/db/_constants.py` 的 `CURRENT_SCHEMA_VERSION`，
 > 以及 `pilotstd/core/db/migrations.py` 的注册导入列表。本文件的清单只作导读，缺行不代表没有该迁移。
+> 2026-10-17 已按 `migrations.py` 注册列表补齐正文 v61~v69（说明取自各 `_migrate_v6*.py` 模块 docstring）。
 
 ## 迁移版本清单
 
@@ -44,6 +45,15 @@
 | **v52** | **user_favorites 兜底补 publish_date 列** | `_migrate_v52.py` |
 | **v59** | **user_favorites 兜底补 archive_retry_count / last_archive_attempt 列**（修复收藏状态接口 500：v36 补列未在该库生效、v52 只补了 publish_date，库已达版本顶故必须新增版本号兜底） | `_migrate_v59_ensure_favorite_retry_columns.py` |
 | **v60** | **删除 user_favorites.archive_retry_count / last_archive_attempt 两列死列**（技术债 #16 残留：唯一读取方是 `/status` 的 5 个旧响应键，随 #16 一并删除后两列零读取；幂等 DROP COLUMN + 删列失败降级告警） | `_migrate_v60_drop_favorite_retry_columns.py` |
+| v61 | file_index / standard_validity 的 status 列默认值收敛到权威状态字典（DDL 默认值已一致则不重建，零数据搬动） | `_migrate_v61_enum_status_defaults.py` |
+| v62 | notification_log 追加通知身份 4 列：message_id / correlation_id / delivery_status / ack_status（阶段 1a，零行为变更） | `_migrate_v62_notification_log_identity.py` |
+| v63 | notification_log 追加任务视角 4 列：task_id / notify_event / content_type / task_context（阶段 1b） | `_migrate_v63_notification_log_task_view.py` |
+| v64 | notification_log 追加交互能力 4 列：actions / callback_data / attachments / channel_message_ids（阶段 1c） | `_migrate_v64_notification_log_interactive.py` |
+| v65 | notification_log 追加 task_kind 标量列（阶段 2.5a，供聚合键切换消费） | `_migrate_v65_notification_log_task_kind.py` |
+| v66 | announcement_record 追加 final_name 列 + 从 pending_lookup 回填存量（名称决策③结果落库） | `_migrate_v66_announcement_record_final_name.py` |
+| v67 | notification_log 追加 failed_items 列（批量导入/汇总的逐条失败明细，TEXT 存 JSON，默认 `'[]'`） | `_migrate_v67_notification_log_failed_items.py` |
+| v68 | notification_policy 追加 event_classes 列（订阅粒度升级为 10 类，与 events 双层并存，读侧新字段优先） | `_migrate_v68_notification_policy_event_classes.py` |
+| v69 | 自愈「通知渠道凭据迁移失败却已标记完成」的历史坏状态（体检 D-5；不改 v37，按 P-106 新增一版） | `_migrate_v69_reheal_notification_credentials.py` |
 
 ## 重点迁移详细说明
 
@@ -76,7 +86,7 @@ CREATE TABLE IF NOT EXISTS query_metrics (
 ```
 
 **运行时接入**：
-- 写入：[`_batch_dispatch.py:_finalize_batch()`](pilotstd/query/engine/_batch_dispatch.py#L347) `INSERT OR REPLACE`
+- 写入：[`_batch_dispatcher.py:_finalize_batch()`](pilotstd/query/engine/_batch_dispatcher.py#L398) `INSERT OR REPLACE`
 - 读取：待步骤5完整实现（当前仅写入）
 
 **回滚方案**：`DROP TABLE IF EXISTS batch_state; DROP TABLE IF EXISTS query_metrics;`（两张表为全新创建，无历史数据依赖）

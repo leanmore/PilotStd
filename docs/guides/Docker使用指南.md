@@ -19,7 +19,7 @@
 
 ### A.1 获取 docker-compose.yml
 
-复制 [docker-compose.example.yml](docker-compose.example.yml) → 改名为 `docker-compose.yml`。
+复制 `docker-compose.example.yml` → 改名为 `docker-compose.yml`。
 
 将 `build:` 段替换为 `image:`：
 

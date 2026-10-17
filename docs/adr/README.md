@@ -16,7 +16,7 @@
 | 005 | [ADR-005](ADR-005-event-bus.md) | EventBus 事件总线重构 | 2026-07-16 | ✅ Accepted |
 | 006 | [ADR-006](ADR-006-ui-hold-strategy.md) | 纯 UI 编排文件维持策略 | 2026-07-16 | ✅ Accepted |
 | 007 | [ADR-007](ADR-007-favorite-archive-decouple.md) | 收藏与归档解耦 | 2026-Q1→Q3 | ✅ Accepted |
-| 008 | [ADR-008](ADR-008-announcement-three-column.md) | 首页公告三栏分类 | 2026-Q2 | ✅ Accepted |
+| 008 | [ADR-008](ADR-008-wait-worker-elimination.md) | GUI 测试 _wait_worker 消除与 wait_for_worker_and_ui 沉淀 | 2026-08-02 | ✅ Accepted |
 | 009 | [ADR-009](ADR-009-crontrigger-validity.md) | CronTrigger 替代间隔式时效性调度 | 2026-Q3 | ✅ Accepted |
 | 010 | [ADR-010](ADR-010-mixin-refactor.md) | Mixin 重构 16→1 | 2026-08-04 | 🗄 Deprecated（Related to ADR-001，不同主题无取代关系） |
 | 011 | [ADR-011](ADR-011-dashboard-singleton-floating-menu.md) | 首页仪表盘状态集中化与悬浮工作台菜单 | 2026-08-21（迁移归档） | ✅ Accepted |
@@ -25,6 +25,7 @@
 | 014 | [ADR-014](ADR-014-routetag-request-cancellation.md) | 前端 HTTP 请求取消 routeTag 三层机制 | 2026-08-21（A4 提炼） | ✅ Accepted |
 | 015 | [ADR-015](ADR-015-route-engine-v2-funnel.md) | 标准查询路由引擎 v2.0 三级漏斗 | 2026-08-21（A4 提炼） | ✅ Accepted（部分实施） |
 | 016 | [ADR-016](ADR-016-standard-name-resolution.md) | 标准名称解析——「最高可得阶段名」回退链与对外边界命名统一 | 2026-10-05（名称解析统一批次一/二/三） | ✅ Accepted（批次一、二、三均已落地） |
+| 017 | [ADR-017](ADR-017-announcement-three-column.md) | 首页公告三栏分类 | 2026-Q2（2026-10-17 由重号 ADR-008 重编号） | ✅ Accepted |
 
 > 注：ADR-011/012 由 Claude Code 迁移计划（A2/A3）归档转化；ADR-013/014/015 由历史会话转录（A4）提炼。新增 ADR 均遵循既有模板与编号连续。
 

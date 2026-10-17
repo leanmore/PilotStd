@@ -63,7 +63,11 @@ WHITELIST_PREFIXES=(
 )
 WHITELIST_EXACT=(
   "docs/index.md" "README.md" "CHANGELOG.md" "CONTRIBUTING.md"
-  "LICENSE" "docker-compose.yml" ".pre-commit-config.yaml"
+  "LICENSE" "docker-compose.yml"
+  # 2026-10-17 入口收口：`.pre-commit-config.yaml`（从未执行，31 个 hook）已 git mv 归档。
+  # 归档件仍须放行——`docs/archive/` 整体在黑名单内，而这一份是**长期保留的配置存档**
+  # （作废说明 + rev 钉版留档），不是过程文件；白名单判定先于黑名单，故按精确路径放行。
+  "docs/archive/pre-commit-config.archived.yaml"
   "pyproject.toml" "web/pnpm-lock.yaml" "web/package-lock.json"
   "web/package.json" ".gitignore" ".dockerignore"
   ".env.example" ".secrets.baseline"

@@ -1,7 +1,7 @@
 # gongbiaoku 搜索逻辑排查报告
 
 > 排查日期：2026-08-17
-> 排查对象：[pilotstd/query/adapters/gongbiaoku.py](../pilotstd/query/adapters/gongbiaoku.py)
+> 排查对象：[pilotstd/query/adapters/gongbiaoku.py](../../pilotstd/query/adapters/gongbiaoku.py)
 > 触发背景：v1.1 分类分析中 ISO 试查询（"ISO 9001" / "IEC 62304"）返回无关国标（GB 消防/建筑）
 
 ## 一、排查结论（TL;DR）
@@ -20,7 +20,7 @@ gongbiaoku 适配器代码逻辑无 bug，搜索词被正确透传给后端；�
 
 1. **关键词提取**（[gongbiaoku.py:63](pilotstd/query/adapters/gongbiaoku.py#L63)）：`keyword = standard_number.strip()`，仅去除首尾空白，不做前缀拆分、过滤或转换。
 2. **请求参数组装**（[gongbiaoku.py:67](pilotstd/query/adapters/gongbiaoku.py#L67)）：`params = {"txt": keyword}`，关键词作为 `txt` 参数原样传递。
-3. **请求发送**（[gongbiaoku.py:70](pilotstd/query/adapters/gongbiaoku.py#L70)）：`self._client.get(self.get_search_url(), params=params, timeout=15)`。`get_search_url()` 返回 [site_config.py:427](pilotstd/query/site_config.py#L427) 的 `search_url="https://www.gongbiaoku.com/search"`，实际请求为 `https://www.gongbiaoku.com/search?txt=ISO 9001`（httpx 自动做 URL 编码）。
+3. **请求发送**（[gongbiaoku.py:70](pilotstd/query/adapters/gongbiaoku.py#L70)）：`self._client.get(self.get_search_url(), params=params, timeout=15)`。`get_search_url()` 返回 [site_config/_sites.py:158](pilotstd/query/site_config/_sites.py#L158) 的 `search_url="https://www.gongbiaoku.com/search"`，实际请求为 `https://www.gongbiaoku.com/search?txt=ISO 9001`（httpx 自动做 URL 编码）。
 
 **分析结论**：搜索词 "ISO 9001" 被原样、正确地传递给后端，无截断、无编码错误、无前缀丢失。排除类型 A（搜索逻辑 Bug）。
 
@@ -46,9 +46,9 @@ gongbiaoku 适配器代码逻辑无 bug，搜索词被正确透传给后端；�
 
 1. 适配器代码无 bug（见 2.1、2.2）。
 2. 试查询结果（v1.1）："ISO 9001" / "IEC 62304" 返回无关国标（GB 消防/建筑），说明后端对国际标准关键词做了模糊匹配兜底，而非返回空结果或正确国际标准。
-3. site_config.py 中 gongbiaoku 的配置佐证：
-   - `std_prefixes: []`（[site_config.py:196](pilotstd/query/site_config.py#L196)）——未声明任何标准前缀，包括国际标准。
-   - `reliability: "low"`（[site_config.py:198](pilotstd/query/site_config.py#L198)）——已标记低可靠性。
+3. site_config 包中 gongbiaoku 的配置佐证：
+   - `std_prefixes: []`（[site_config/_profiles.py:193](pilotstd/query/site_config/_profiles.py#L193)）——未声明任何标准前缀，包括国际标准。
+   - `reliability: "low"`（[site_config/_profiles.py:195](pilotstd/query/site_config/_profiles.py#L195)）——已标记低可靠性。
 4. 域名定位佐证：gongbiaoku.com（工标库）定位为国内工程标准库，无国际标准收录迹象。
 
 **最终判定：类型 B — 数据源本身不支持国际标准（后端数据库无 ISO/IEC 数据），模糊匹配兜底返回无关国标。**

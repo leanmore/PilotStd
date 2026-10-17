@@ -56,9 +56,16 @@
 | ADR-005 | EventBus 事件总线重构 | ✅ Accepted |
 | ADR-006 | 纯 UI 编排文件维持策略 | ✅ Accepted |
 | ADR-007 | 收藏与归档解耦 | ✅ Accepted |
-| ADR-008 | 首页公告三栏分类（2026-08-19 补建独立文件） | ✅ Accepted |
+| ADR-008 | GUI 测试 _wait_worker 消除与 wait_for_worker_and_ui 沉淀 | ✅ Accepted |
 | ADR-009 | CronTrigger 替代间隔式时效性调度（2026-08-19 补建独立文件） | ✅ Accepted |
 | ADR-010 | Mixin 重构 16→1（原 ADR-001-mixin 重编号；Handler 组合系列） | 🗄 Deprecated（Related to ADR-001，无取代关系） |
+| ADR-011 | 首页仪表盘状态集中化与悬浮工作台菜单 | ✅ Accepted |
+| ADR-012 | 多用户基础架构改造 v3.0 | ✅ Accepted |
+| ADR-013 | 健康检查与业务任务解耦轮询机制 | ✅ Accepted |
+| ADR-014 | 前端 HTTP 请求取消 routeTag 三层机制 | ✅ Accepted |
+| ADR-015 | 标准查询路由引擎 v2.0 三级漏斗 | ✅ Accepted（部分实施） |
+| ADR-016 | 标准名称解析——「最高可得阶段名」回退链与对外边界命名统一 | ✅ Accepted |
+| ADR-017 | 首页公告三栏分类（2026-08-19 补建；2026-10-17 由重号 ADR-008 重编号） | ✅ Accepted |
 
 > 索引：`docs/adr/README.md`；演进链：ADR-007 收藏归档、ADR-009 CronTrigger 详情见 README 内联。
 

@@ -12,6 +12,11 @@
 import sys
 from pathlib import Path
 
+# 控制台编码兼容（与同目录其它门禁脚本同口径）：Windows 的 GBK 控制台无法编码 ✅，
+# 不加这段会在**判定其实通过**时抛 UnicodeEncodeError → 假性 exit 1（pre-commit 红）。
+if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
+
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 

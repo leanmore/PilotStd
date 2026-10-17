@@ -5,7 +5,7 @@
 ## 完整清单
 
 注册表：[pilotstd/query/adapters/registry.py:32-54](pilotstd/query/adapters/registry.py#L32-L54)
-配置：[pilotstd/query/site_config.py:8-87](pilotstd/query/site_config.py#L8-L87)
+配置：[pilotstd/query/site_config/_sites.py](pilotstd/query/site_config/_sites.py)
 
 | # | site_name | 适配器类 | 类型 | 日配额 | 状态 | 备注 |
 |---|-----------|---------|------|--------|------|------|

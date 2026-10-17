@@ -32,7 +32,7 @@
 | **V-10** | `HomeView.vue` 的 grid-layout-plus workaround | `观察中` | 升级 `grid-layout-plus`（`web/package.json:22`） | 删 `layout.value = [...layout.value]` 克隆 → 浏览器实测锁定/解锁后拖拽是否仍生效 |
 | **V-11** | G-044 术语覆盖缺口（B-1）：三语严格相等仅覆盖登记键（40/346） | `观察中` | ① 通知文案新增/变更批次；② 术语表扩容专项立项 | `python scripts/check_terminology.py --report` 的"未覆盖说明"行 |
 | **V-12** | G-032 交叉引用的一般性历史遗留 | `观察中` | 同 V-5 | 同 V-5（10 处中除版本历史行外的部分） |
-| **V-13** | 工具链**版本漂移**：本地 `ruff 0.15.17` vs pre-commit 钉的 `v0.11.6` | `观察中`（2026-10-16 新增） | 本地 `ruff format --check` 报"would reformat"而复现 | `python -m ruff --version` 与 `.pre-commit-config.yaml:11` 的 `rev` 比对；**不要按本地新版重排**（会与钩子钉版来回 churn）——实测 `engine.py` 2 处属此类 |
+| **V-13** | 工具链**版本漂移**：本地 `ruff 0.15.17` vs 归档配置里钉的 `v0.11.6` | `观察中`（2026-10-16 新增；2026-10-17 入口收口后该钉版**不再被执行**，仅存档） | 本地 `ruff format --check` 报"would reformat"而复现 | `python -m ruff --version` 与 `docs/archive/pre-commit-config.archived.yaml` 中 `ruff-pre-commit` 的 `rev` 比对；**不要按它重排**——那份配置的 31 个 hook 从未执行，现行口径是 CI 的 `ruff check`（G-038）与本地 `ruff check`；实测 `engine.py` 2 处属此类 |
 | **V-14** | L1 mypy 口径：`--follow-imports=skip` 下 `download/session.py:38` 的 `[override]` 不报 | `观察中`（2026-10-05 已定性） | 若将来改为 mypy 默认 `follow-imports` | `python -m mypy pilotstd/ docker/ --follow-imports=skip --ignore-missing-imports` ⇒ **2026-10-16 实测 442 文件 0 error** |
 
 ## 三、R15 观察期（2026-10-01 起约一周，**2026-10-16 补收口**）

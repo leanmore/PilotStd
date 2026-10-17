@@ -45,7 +45,7 @@
 - **日志**：`[CSRES_MELTDOWN] 连续失败=%d/%d 已处理=%d 丢弃=%d`
 
 #### 7. `bucket_crash` — 桶崩溃
-- **触发**：[`_batch_dispatch.py:273`](pilotstd/query/engine/_batch_dispatch.py#L273) 桶线程异常
+- **触发**：[`_batch_dispatcher.py:341`](pilotstd/query/engine/_batch_dispatcher.py#L341) 桶线程异常
 - **阈值**：> 0 即需 P1 告警
 - **排查方向**：查看完整 traceback 日志、桶内数据完整性
 - **日志**：`桶执行异常: %s` + full traceback
