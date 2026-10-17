@@ -901,6 +901,13 @@ jobs:
       - name: G-049 — manager.py 防膨胀（有效行 ≤ 340）
         run: python scripts/check_g_049_manager_size.py
 
+      # G-050（2026-10-17 体检 D-8/D-9/D-10 收口）：静默吞错棘轮。
+      # 存量锁在 scripts/silent_errors_baseline.json；任何**新增**的 except:pass /
+      # except→return 空 / except 内 logger.debug 都会让本步骤变红。
+      # 迁移文件计入基线但不可修改（P-106），基线只用于阻止新增。
+      - name: G-050 — 静默吞错棘轮
+        run: python scripts/check_g_050_silent_errors.py
+
   # ════════════════════════════════════════════════════════════════
   # Job 5: 版本管理（测试全部通过后执行）
   # ════════════════════════════════════════════════════════════════

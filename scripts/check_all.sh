@@ -103,6 +103,14 @@ run_fast() {
         log_fail "G-049 manager.py 防膨胀"
     fi
 
+    # G-050: 静默吞错棘轮（体检 D-8/D-9/D-10）——存量锁在基线，新增即阻断
+    # 基线：scripts/silent_errors_baseline.json（pass 43 / return 44 / debug 112，2026-10-17）
+    if python scripts/check_g_050_silent_errors.py; then
+        log_pass "G-050 静默吞错棘轮"
+    else
+        log_fail "G-050 静默吞错棘轮"
+    fi
+
     # G-039: 冲突标记检查（禁止 <<<<<<< / ======= / >>>>>>> 入库）
     # 起因（2026-09-26）：一次合并产生了带冲突标记的提交，却通过了当时全部门禁
     if python scripts/check_no_conflict_markers.py; then

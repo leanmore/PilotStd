@@ -45,6 +45,7 @@
 | G-047 | Python 侧 i18n 硬编码检查 | `pilotstd/`、`docker/` 的 **Python 字符串字面量**中不得**新增**写死的中文（**跳过 docstring**——G-012 强制其中文；注释不在 AST 中不计） | 超出 `scripts/i18n_hardcoded_python_baseline.json` 的新增 | `scripts/check_i18n_hardcoded_python.py` | ✅ 已部署 |
 | G-048 | 架构文档模块计数一致性 | `docs/architecture/modules/core.md` 的「子模块数」必须等于 `pilotstd/core/` 递归全部 `.py` 数（含 `__init__.py`，不含 `__pycache__`） | 文档数字与实际文件数不符 | `scripts/check_g_048_core_module_count.py` | ✅ 已部署 |
 | G-049 | manager.py 防膨胀门禁 | `pilotstd/core/notification/manager.py` **有效代码行 ≤ 340**（口径与 G-010 一致：排除空行与纯注释行） | 有效行 > 340（输出当前值与超出量） | `scripts/check_g_049_manager_size.py` | ✅ 已部署 |
+| G-050 | 静默吞错棘轮 | 三类失败不可见：`except: pass`、`except → return 空/False/None`、`except` 内 `logger.debug`（`pilotstd/`+`docker/`，排除 templates） | 任一文件任一类别计数 > 基线 | `scripts/check_g_050_silent_errors.py` | ✅ 已部署（v2.07；基线 `scripts/silent_errors_baseline.json`） |
 | repo-compliance | 入仓合规检查 | 五条入仓标准 | 违规 | `.github/scripts/check-repo-compliance.sh` | ✅ 已部署 |
 
 ---
@@ -151,6 +152,14 @@
   - CI：`test-backend` 的 pytest 带 `--cov-report=xml`，随后 `python scripts/generate_coverage_report.py` → `python scripts/check_g_034_coverage_threshold.py`
   - 本地：`bash scripts/check_all.sh --docs`（报告生成后立即执行）
   - 阈值解析实现：`scripts/_coverage_threshold.py`（与生成器共用，避免再次出现四套口径）
+
+### G-050：静默吞错棘轮
+
+- **检查内容**：生产代码（`pilotstd/` + `docker/`，排除 `templates/`）中三类"失败不可见"——`except` 体只有 `pass`、`except` 体只有 `return` 空/False/None、`except` 体内 `logger.debug`
+- **基线**：`scripts/silent_errors_baseline.json`（按文件 × 类别计数；2026-10-17 基线 pass **43** / return **44** / debug **112**）
+- **阻断条件**：任一文件任一类别当前计数 > 基线 → 阻断；< 基线仅 WARN（提示收紧基线）
+- **执行方式**：`python scripts/check_g_050_silent_errors.py`（`check_all.sh --fast` 与 CI `repo-compliance`）
+- **背景**：体检 D-8/D-9/D-10。存量 91 处已分批修复并带测试；剩余 43 处为迁移文件（P-106 不可改）/编码回退/日志防御，已评审登记
 
 ### repo-compliance：入仓合规检查
 
@@ -573,6 +582,7 @@ A 类管"**事件**是否齐备"（数据完备性）；B 类管"同一事实在
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
+| v2.07 | 2026-10-17 | **新增 G-050 静默吞错棘轮（体检 D-8/D-9/D-10 收口）**：AST 扫描三类"失败不可见"（`except: pass` / `except→return 空` / `except` 内 `logger.debug`），按文件 × 类别与 `scripts/silent_errors_baseline.json` 比较——超基线阻断、低于基线只告警提示收紧。基线 pass 43 / return 44 / debug 112；存量 91 处已于同日分 11 批修复（见 `docs/debt/05-audit-2026-10-17.md`）。测试 `tests/test_check_g_050_silent_errors.py`（5 例）。接入 `check_all.sh --fast` 与 CI `repo-compliance` |
 | v2.06 | 2026-10-17 | **D-6 / D-7：两条测试联动门禁从"假绿"恢复判别力**。**D-6（G-013）**：① `is_business_file()` 原把 git 路径第一段与 `BUSINESS_DIRS` 比较，而仓库路径是 `pilotstd/manager/...` ⇒ 第一段恒为 `pilotstd` ⇒ **`pilotstd/` 下所有业务代码从未被检查过**（实测 `pilotstd/manager/facade/_organize.py` 判 False）；改为按 `pilotstd/<子目录>` 取第二段。② 白名单补 `docker`、`scan`。③ 测试判据由"精确推测测试路径"改为"**tests/ 下任一测试变更**"——实测近 60 次提交里精确映射命中 **0/16**（docker 0/60、23 个推导路径不存在），文件名启发式仅 3/16；粗判据 14/16 通过，剩余 2 例是真阳性。**D-7（G-029）**：① 范围原用 `origin/main..HEAD`，直推 main 时恒空 ⇒ 打印"无变更文件 PASS"；改为优先读 `G029_RANGE`（CI 传 `before..sha`），全零回退，**显式范围 0 文件 ⇒ FAIL**。② 映射收敛为 **UI**（`pilotstd/ui/` → `tests/gui/`、`tests/test_ui*`、`tests/test_windows_tray*`）——其余目录已由 G-013 覆盖，原精确映射实测 2/2 假阳性。新增 `tests/test_check_g_013_test_sync_scope.py`（4 例）与 `tests/test_check_g_029_range.py`（4 例） |
 | v2.05 | 2026-10-17 | **G-013 规则 0 归位（pre-commit 假阻断修复）**：① `get_commit_message()` 原优先读 `.git/COMMIT_EDITMSG`，而 pre-commit 阶段 git 尚未写入本次消息 ⇒ 读到**上一条** `fix:`，一条纯 docs 提交被拦住（实测：docs 提交被前一条 `fix(gate):` 判为 bug 修复）；现无参时只读 `git log -1`，新增 `--commit-msg-file` 供 commit-msg 钩子传 `$1`。② 规则 0（fix/bugfix/hotfix 必须带测试）从 pre-commit 移到 `.husky/commit-msg`（`--bugfix-only`），pre-commit 传 `--no-commit-msg`。③ "带测试"判据由 `'test' in path` 改为 `path.startswith('tests/')`——原判据把 `scripts/check_g_013_test_coverage.py` 自身当成测试变更，规则 0 实际被架空。④ 新增 `tests/test_check_g_013_bugfix_message.py`（5 例） | v2.04 | 2026-10-17 | **G-034 接线 + 覆盖率报告去掉陈旧快照（体检 A-3/B-1/B-2）**：① 脚本此前**从未被任何入口调用**，本次接入两处——CI `test-backend`（pytest 加 `--cov-report=xml` → 重生成报告 → 断言）与本地 `check_all.sh --docs`（报告生成后立即断言），两者都保证"读的是本次数据"；② 阈值解析抽到 `scripts/_coverage_threshold.py`，G-034 与 `generate_coverage_report.py` 共用，生成器原写的"≥80%"行改为同源阈值；③ 明确 CI 的 45/58 为**作业级下限**、80% 为长期棘轮目标，唯一权威是 `pyproject.toml` 的 `fail_under`。实测见交付报告 |
 | v2.03 | 2026-10-17 | **G-034 覆盖率门禁：修好解析 + 阈值单一来源**（体检 A-3 / B-1）：① 解析器原正则只认 `行覆盖率: 85.2%` 的冒号写法，而 `scripts/generate_coverage_report.py` 的真实输出是**表格行** `\| 行覆盖率 \| **62.5%** \|` ⇒ **永不匹配**、门禁恒报"无法解析"（它当时未接线，故长期无人察觉）；现按"表格行 → 冒号 → 英文 → `TOTAL` 兜底"补候选，实测解析出 **62.5%**。② 阈值原在本脚本硬编码 **80.0**，与 `pyproject.toml` 的 `fail_under = 51`、`ci.yml:155` 的 `--cov-fail-under=45`、`ci.yml:775` 的 `--fail-under=58` 构成**四套口径** ⇒ 改为 `resolve_threshold()` 读 `pyproject.toml` 的 `fail_under` 作**唯一权威**（读不到才退回 45），并把 **80% 降级为长期棘轮目标**。③ 新增 `tests/test_check_g_034_coverage_threshold.py`（5 例：表格行解析 / 冒号与 TOTAL 兼容 / 无数据返回 None / 阈值来自 pyproject / 读不到时兜底）。**仍不接线**（避免一开就红）：实测 exit 0（62.5% ≥ 51%） |
