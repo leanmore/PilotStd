@@ -80,6 +80,10 @@ BLACKLIST_PREFIXES=(
 
 FILENAME_BLACKLIST=(
   "*_plan.md" "*_design.md" "*_report.md" "*_survey*.md" "*.txt"
+  # 2026-10-17（体检 E-3）：R-010 要求临时文件写在仓库外，但**没有任何拦截**——
+  # 历史上已两次误提交（`_msg7.txt` 于 6d3b3cf5、`_msg_tmp.txt` 于 d7d40c56），
+  # 且仓根仍残留 `STATUS.md.bak`。以下三条把"手滑提交"变成 CI 阻断。
+  "_*tmp*" "_msg*.txt" "*.bak"
 )
 
 # ── 辅助函数 ──
