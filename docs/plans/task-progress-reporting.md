@@ -40,4 +40,4 @@
 - 接线：Docker 调度器每分钟 tick；管道 `update_step` 阶段切换即时回调；
 - 渠道：默认四渠道统一 `send_event`，周期默认 5 分钟（夹紧 5~10）；
 - 前端：任务中心每 30 秒自动刷新；
-- 详细记录：[D-2 完成记录](../archive/2026-10-18-d2-task-progress-completion.md)。
+- 详细记录：[D-2 完成记录](../records/2026-10-18-d2-task-progress-completion.md)。
