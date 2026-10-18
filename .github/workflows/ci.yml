@@ -840,8 +840,8 @@ jobs:
       #   边界落在 tip），于是 `origin/main...HEAD` 恒空、`HEAD~1..HEAD` 也不可用（实测 `fatal: Needed a single revision`）
       #   → 步骤以「无变更文件」空转（run 36304263963 / 36306033918 实证）。显式范围 `<before>..<sha>` 不受浅边界影响
       #   （两端对象都在本地，实测 8 个文件）。
-      # 当前两者均为**告警期**：发现未同步只打 `WARN(告警期)` 并 exit 0（绝不静默 PASS）；
-      # 观察若干次后把对应脚本的 --strict 改为 --strict-block 即开启阻断。
+      # 当前状态（2026-10-18 起）：docs_sync_check.py 已切 `--strict-block`（阻断）；
+      # check_module_doc_mappings.py 仍 `--strict`（告警期）。回滚方式见 gates.md v2.10。
       - name: Docs sync check
         env:
           AUTO_FIX_DOCS: "false"
@@ -849,7 +849,7 @@ jobs:
           BASE_BRANCH: ${{ github.event.pull_request.base.ref || 'main' }}
         run: |
           set -e
-          python scripts/docs_sync_check.py --strict
+          python scripts/docs_sync_check.py --strict-block
           python scripts/check_module_doc_mappings.py --strict
 
       # 能力矩阵是入库文档（docs/governance/capabilities_registry.md）：
