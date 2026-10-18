@@ -128,5 +128,34 @@ class TestParseWpsText(unittest.TestCase):
         self.assertIsInstance(result, str)
 
 
+class TestFullwidthStandardCodes(unittest.TestCase):
+    """HB 公告常见全角连接符：`－`/`／` 不得导致整行被跳过。"""
+
+    def test_fullwidth_dash_and_slash_rows_are_parsed(self):
+        html = '''<html><body><table>
+        <thead><tr><th>序号</th><th>标准编号</th><th>标准名称</th></tr></thead>
+        <tbody>
+        <tr><td>1</td><td>SJ/T 11460.6.1－2025</td><td>显示光源 第6-1部分</td></tr>
+        <tr><td>2</td><td>SJ/T 11460.6.2－2025</td><td>显示光源 第6-2部分</td></tr>
+        <tr><td>3</td><td>SJ/T 11461.4.1－2025</td><td>平板显示 第4-1部分</td></tr>
+        <tr><td>4</td><td>SJ/T 12089.1.1－2025</td><td>通用多媒体接口 第1-1部分</td></tr>
+        <tr><td>5</td><td>DY/Z／14.3—2026</td><td>数字电影 第3部分</td></tr>
+        <tr><td>6</td><td>DY/Z？14.5—2026</td><td>数字电影 第5部分</td></tr>
+        </tbody></table></body></html>'''
+        results = parse_html_table(html)
+        codes = {r["std_code"] for r in results}
+        self.assertEqual(
+            codes,
+            {
+                "SJ/T 11460.6.1-2025",
+                "SJ/T 11460.6.2-2025",
+                "SJ/T 11461.4.1-2025",
+                "SJ/T 12089.1.1-2025",
+                "DY/Z/14.3-2026",
+                "DY/Z/14.5-2026",
+            },
+        )
+
+
 if __name__ == '__main__':
     unittest.main()

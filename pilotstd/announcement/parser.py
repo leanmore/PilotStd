@@ -18,9 +18,32 @@ from ._attachment_parser import (  # noqa: F401 — 重导出
 logger = logging.getLogger(__name__)
 
 # 标准编号模式：代号 + 空格 + 顺序号[.部分号] + — + 年份
-STD_CODE_PATTERN = re.compile(r"([A-Z]+(?:\d+)?(?:\s*/[A-Z]+)?)\s*(\d+(?:\.\d+)?)\s*[—\-\s]\s*(\d{4})")
+STD_CODE_PATTERN = re.compile(
+    r"([A-Z]+(?:\d+)?(?:\s*/[A-Z]+)?)\s*/?\s*(\d+(?:\.\d+)*)\s*[—\-－–−\s]\s*(\d{4})"
+)
 # 代替标准在表格中的位置模式（"代替" 列的后面）
-REPLACES_PATTERN = re.compile(r"([A-Z]+(?:\d+)?(?:\s*/[A-Z]+)?\s*\d+(?:\.\d+)?\s*[—\-]\s*\d{4})")
+REPLACES_PATTERN = re.compile(
+    r"([A-Z]+(?:\d+)?(?:\s*/[A-Z]+)?\s*/?\s*\d+(?:\.\d+)*\s*[—\-－–−]\s*\d{4})"
+)
+
+# 源站表格里的全角连接符（HB 公告常见 `SJ/T 11460.6.1－2025`、`DY/Z／14.3—2026`）。
+# 不归一化会让正则匹配失败，整行被跳过（2026-08 HB 第7号实测漏 6 条）。
+_FULLWIDTH_CODE_TRANS = str.maketrans(
+    {
+        "－": "-",  # U+FF0D
+        "—": "-",  # U+2014
+        "–": "-",  # U+2013
+        "−": "-",  # U+2212
+        "／": "/",  # U+FF0F
+        "？": "/",  # U+FF1F：源站把 DY/Z 与序号之间的分隔符打成全角问号
+        "　": " ",  # U+3000
+    }
+)
+
+
+def _normalize_code_text(text: str) -> str:
+    """把标准号里的全角连接符归一化为半角，保留长度以便复用正则偏移。"""
+    return text.translate(_FULLWIDTH_CODE_TRANS)
 
 
 def parse_announcement_meta(html: str) -> dict[str, str]:
@@ -121,7 +144,7 @@ def parse_html_table(html: str) -> list[dict[str, Any]]:
             if not cell_texts[0].isdigit():
                 continue
 
-            std_code = cell_texts[code_col]
+            std_code = _normalize_code_text(cell_texts[code_col])
             if not STD_CODE_PATTERN.match(std_code):
                 continue
 
@@ -144,6 +167,8 @@ def parse_html_table(html: str) -> list[dict[str, Any]]:
             for col_idx, field_name in col_map.items():
                 if col_idx < len(cell_texts) and field_name in item:
                     item[field_name] = cell_texts[col_idx]
+            # col_map 的 std_code 会覆盖上面的归一化值，这里再写回
+            item["std_code"] = std_code
             # 日期字段占位符归一化：源站用 -/——/无 表示空值
             for date_field in ("publish_date", "implementation_date", "expiry_date"):
                 if item.get(date_field, "") in ("-", "/", "——", "—", "--", "无"):
@@ -245,6 +270,7 @@ def parse_text_table(text: str) -> list[dict[str, Any]]:
         [{std_code, std_name, replaces_code, publish_date}, ...]
     """
     results: list[dict[str, Any]] = []
+    text = _normalize_code_text(text)
     matches = list(STD_CODE_PATTERN.finditer(text))
     if not matches:
         return results
