@@ -1,6 +1,6 @@
 ﻿#!/bin/bash
 # 治理文档增量检查脚本（Phase 2 CI 使用）
-# 规范基准: docs/governance/gates.md
+# 规范基准: docs/governance/gates.md（治理文档索引）
 set -e
 
 echo "🔍 检查 governance 文档增量变更..."
@@ -23,9 +23,9 @@ for FILE in $CHANGED_FILES; do
 done
 
 # 核心治理文档完整性：确保受保护文件未被修改
-PROTECTED_FILES=(
-    "docs/governance/gates.md"
-)
+# AI 工作流脚手架（trinity/prompt/phase1）已移除（2026-10-18）；
+# 治理文档不再设"不可修改"白名单（gates.md 本身就需要随门禁演进更新）。
+PROTECTED_FILES=()
 
 for PF in "${PROTECTED_FILES[@]}"; do
     if echo "$CHANGED_FILES" | grep -qF "$PF"; then

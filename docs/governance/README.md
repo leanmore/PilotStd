@@ -1,9 +1,10 @@
-﻿# PilotStd 治理文档中心
+# PilotStd 治理文档中心
 
 ## 文档索引
 
 | 文档 | 用途 | 状态 |
 |------|------|------|
+| [gates.md](gates.md) | 门禁清单（G-005~G-050）与版本历史；执行入口见 `scripts/check_all.sh` | 活跃 |
 | [governance-principles.md](governance-principles.md) | 治理体系元原则（三件套、决策链、门禁设计） | v1.0 |
 | [glossary.json](glossary.json) | 术语唯一数据源（G-044 门禁输入）：49 条术语的三语用词、`forbidden` 禁用词组、`aliases` 可接受写法，以及 `exempt_keys`（17）/ `exempt_terms`（10）两层白名单 | 活跃 |
 | [notification_coverage.md](notification_coverage.md) | 通知系统覆盖度基线（**42** 事件 × i18n/e2e/审计/术语 四维度；**2026-10-05 阶段 4 · P6 · 4c** 起含平台层事件 `desktop_toast`，其 L-22 专项已闭环），新增事件的准入检查清单；由 `scripts/audit_notification_coverage.py`（G-045 门禁）扫描生成。**4d 增补**：**层级结构维度**由 `tests/test_notification_class_layer_contract.py`（4 例）守护——类别清单同序同集 / 事件→类别映射逐项相等 / 每类至少一个事件承接（`manual_test` 例外）/ `spec_hash` 对层结构敏感（`gates.md` v1.85） | 活跃 |
