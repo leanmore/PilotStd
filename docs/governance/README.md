@@ -96,3 +96,5 @@ A: 紧急修复（Bug Fix）若涉及代码修改但未改变模块结构，只�
 
 A: `--required-only` 参数仅检查 `required` 级别能力。CI 也仅对 `required` 级别 FAIL 进行阻断。`recommended` 和 `optional` 级别的 WARN 不会阻断合并。
 
+
+> v2.14（2026-10-18）：Governance Docs Check 已从独立 workflow 合并为 CI `repo-compliance` 步骤，并改用显式范围（`GOVERNANCE_DOCS_RANGE`）；不再维护 `governance-check.yml`。

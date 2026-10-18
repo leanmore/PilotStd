@@ -120,9 +120,9 @@ python scripts/check_g_011_attr_integrity.py
 
 ## CI/CD 工作流与 Action 版本
 
-工作流位于 `.github/workflows/`，共 4 个：`ci.yml`（主流水线：lint-fast / test-backend / test-frontend /
+工作流位于 `.github/workflows/`，共 3 个：`ci.yml`（主流水线：lint-fast / test-backend / test-frontend /
 test-e2e / frontend-e2e / test-gui-* / e2e-coverage / security-scan / repo-compliance / docker / exe / version）、
-`governance-check.yml`、`gui-race-probe.yml`、`deep-gate.yml`。
+`gui-race-probe.yml`、`deep-gate.yml`。
 
 **失败诊断（2026-10-18）**：`test-backend` 生成 `/tmp/backend-report.xml`；失败时 `Backend failures summary`
 步骤把失败用例以 `::error title=Pytest failure::...` 注解输出（Actions 日志需 `actions:read`，注解可用仓库读权限取回）。

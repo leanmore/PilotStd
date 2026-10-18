@@ -1,4 +1,4 @@
-﻿# PilotStd CI/CD — 统一流水线：测试 → 版本管理 → Docker + exe 构建
+# PilotStd CI/CD — 统一流水线：测试 → 版本管理 → Docker + exe 构建
 name: CI/CD
 
 on:
@@ -932,6 +932,15 @@ jobs:
       # 迁移文件计入基线但不可修改（P-106），基线只用于阻止新增。
       - name: G-050 — 静默吞错棘轮
         run: python scripts/check_g_050_silent_errors.py
+
+      # 治理文档增量检查（原独立 governance-check.yml，2026-10-18 合并）：
+      # 独立 workflow 只在 docs/governance/** 触发，而本仓直推 main 为主，
+      # 检查状态容易被忽略；且脚本固定 HEAD~1..HEAD，多提交/PR 会只查最后一笔。
+      # 合并为 repo-compliance 的步骤，显式传入本次推送/PR 的完整范围。
+      - name: Governance Docs Check
+        env:
+          GOVERNANCE_DOCS_RANGE: ${{ github.event.pull_request.base.sha || github.event.before }}..${{ github.sha }}
+        run: bash scripts/check_governance_docs.sh
 
       # E-5（2026-10-18 体检）：`check_no_migrating.sh` 原先**没有任何调用方**（写了门禁但不跑）。
       # capabilities_registry 出现 status=migrating 时阻断；直推 main 也会经过本步骤。

@@ -585,6 +585,7 @@ A 类管"**事件**是否齐备"（数据完备性）；B 类管"同一事实在
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
+| v2.14 | 2026-10-18 | **Governance Docs Check 合并进 CI**：删除独立 `governance-check.yml`，改为 `repo-compliance` 的步骤；脚本支持 `GOVERNANCE_DOCS_RANGE` 显式范围（push before..sha / PR base..head），修复固定 `HEAD~1..HEAD` 在多提交/PR 下只查最后一笔的问题。该检查原先只在 `docs/governance/**` 触发，直推 main 时状态易被忽略；合并后每次 CI 都跑（无变更时立即跳过） |
 | v2.13 | 2026-10-18 | **精简仓库 / 退役 AI 工作流脚手架**：删除 `enforcement/`、`src/types/bootstrap.py`、trinity/prompt/phase1 文档与对应测试（2999 行）；`trinity-gate.yml` 改名 `deep-gate.yml`（功能不变）；`check_governance_docs.sh` 不再把 `gates.md` 列入"不可修改"白名单（门禁需随演进更新）。`docs/development-flow.md` 一并移除，AGENTS §8.1 与 `docs/index.md` 同步删除该行 |
 | v2.12 | 2026-10-18 | **后端失败诊断**：`test-backend` 生成 `/tmp/backend-report.xml`；失败时 `Backend failures summary` 把失败用例以 `::error title=Pytest failure::...` 输出为 check-run 注解（Actions 日志需 `actions:read`，注解可用仓库读权限取回）。仅失败时运行，不改变测试判定 |
 | v2.11 | 2026-10-18 | **A-2 G-049 扩展**：防膨胀从 `manager.py` 单文件扩到通知模块 7 个热点文件（manager 340 / aggregate_buffer 400 / _builders_batch 380 / callback_service·_builders_system·_manager_ops 350 / renderer 300），静态 `*_data.py` 不纳入；测试 `tests/test_check_g_049_notification_sizes.py`（3 例） |
