@@ -91,7 +91,9 @@ class NotifyService:
             lambda t, b, _l: self._tray.showMessage(t, b, QSystemTrayIcon.MessageIcon.Warning, duration),
         )  # type: ignore[arg-type]
 
-    def show_event(self, title: str, message: str, level: str = "info", duration: int = 5000) -> None:
+    def show_event(
+        self, title: str, message: str, level: str = "info", duration: int = 5000, event_type: str = ""
+    ) -> None:
         """把**已分流到托盘**的业务事件弹成气泡，并遵守分档节流（W3）。
 
         分档规则（[02-framework-update.md](../../docs/plans/notification-system-design/02-framework-update.md) §三）：
@@ -107,7 +109,7 @@ class NotifyService:
         if level in ("warning", "error"):
             self.show_warning(title, message, duration)
             return
-        topic = self._get_aggregator().topic_of(title, message)
+        topic = self._get_aggregator().topic_of(title, message, event_type)
         if not self._check_event_window(topic):
             return
         self.show(title, message, duration)

@@ -289,11 +289,19 @@ class NotificationAggregator:
             )
         return index, patterns
 
-    def topic_of(self, title: str, body: str) -> str:
-        """公开的主题判定（只读入口）：托盘分档节流需与聚合分组**同源**，避免两套关键词。
+    def topic_of(self, title: str, body: str, event_type: str = "") -> str:
+        """公开的主题判定（只读入口）：事件键优先，标题/关键词兜底。
 
-        W3 新增；内部仍走 `_extract_topic`（关键词表唯一来源）。
+        - `event_type` 非空且 `_TOPIC_BY_EVENT` 有登记 → 直接事件键映射，
+          不依赖标题语言（i18n 改词不会导致分组漂移）；
+        - 否则回退标题索引/关键词（兼容无事件键的桌面直呼与自定义标题）。
+
+        W3 新增；D-3（2026-10-18）改为事件键优先。
         """
+        if event_type:
+            topic = _TOPIC_BY_EVENT.get(event_type)
+            if topic:
+                return topic
         return self._extract_topic(title, body)
 
     @classmethod
@@ -444,8 +452,12 @@ class NotificationAggregator:
 
     # ──公共接口──
 
-    def should_show(self, level: str, title: str, body: str, on_show: Any = None) -> bool:
+    def should_show(
+        self, level: str, title: str, body: str, on_show: Any = None, event_type: str = ""
+    ) -> bool:
         """判断是否应显示通知。委托新版聚合器处理缓冲合并。
+
+        event_type 非空时主题按事件键映射（D-3）；为空则沿用标题/关键词兜底。
 
         on_show: 实际显示回调 (title, body, level)。
         返回 False：通知已入队，聚合后通过 on_show 输出。
@@ -470,12 +482,12 @@ class NotificationAggregator:
             else:
                 return False
 
-        # 提取主题作为_，复用新版的分组能力
-        topic = self._extract_topic(title, body)
+        # 提取主题作为_，复用新版的分组能力（D-3：事件键优先）
+        topic = self.topic_of(title, body, event_type)
         status = "failure" if level in ("warning", "error") else "success"
 
         self._new.push(
-            event_type="desktop_toast",
+            event_type=event_type or "desktop_toast",
             title=title,
             content=body,
             level=level,

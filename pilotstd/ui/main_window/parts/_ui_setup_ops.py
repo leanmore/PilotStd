@@ -79,15 +79,14 @@ class _TrayEventBridge(QObject):
         - 本方法由信号投递到主线程执行，故可以安全触碰托盘（GUI 对象）；
         - 按 `level` 选警告形态：`warning`/`error` 走 `show_warning`（立即、警示图标），
           其余走 `show`（信息图标，受 3 秒同标题防抖与自动暂停约束）；
-        - `event_type` 暂不参与展示（托盘只有标题/正文两个字段），保留形参以便将来细分。
+        - `event_type` 传给 `show_event` 做**事件键优先**的主题判定（D-3），托盘本身仍只展示标题/正文。
         """
-        del event_type  # 托盘只展示标题/正文；事件名留作将来细化分流
         from ....platform.notify import NotifyService
 
         service = NotifyService.get()
         if self.throttle:
             # W3：长阶段 60 秒/主题；警告在 show_event 内部立即发射
-            service.show_event(title, message, level)
+            service.show_event(title, message, level, event_type=event_type)
         elif level in ("warning", "error"):
             service.show_warning(title, message)
         else:
