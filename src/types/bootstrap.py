@@ -30,7 +30,8 @@ class BootstrapResult(TypedDict):
     """会话引导返回值强契约 — 四字段缺一不可。
 
     字段语义:
-      - context: 当前会话上下文快照（从 local-session-notes.md 解析）
+      - context: 会话上下文快照（**原 `local-session-notes.md` 机制已于 2026-10-18 下线**；
+        字段保留兼容，恒为空字典 `{}`）
       - signals: 待处理信号队列（规则固化信号、决策记录、假设失效等）
       - cleanup_result: 上一会话清理结果（过期锚点/决策记录/失效记录）
       - metadata: 版本号、引导耗时等扩展元数据

@@ -256,7 +256,11 @@ def session_bootstrap() -> BootstrapResult:
 
 
 def _parse_session_notes() -> Dict[str, Any]:
-    """解析 local-session-notes.md 为结构化上下文。"""
+    """解析 local-session-notes.md 为结构化上下文。
+
+    **机制已于 2026-10-18 下线**（该文件无数据落点，见 03-open D-6）：本函数仅保留
+    历史契约测试与兼容用途，生产引导流程不再读取该文件。
+    """
     ctx: Dict[str, Any] = {
         "anchors": {},
         "decision_records": [],
@@ -460,6 +464,9 @@ def _log_retry_exhaustion(output: str, retry_count: int) -> None:
 
 def atomic_write_notes(new_content: str, caller: str) -> None:
     """唯一合法写入入口，含调用栈白名单校验。
+
+    **机制已于 2026-10-18 下线**：生产流程不再写 `local-session-notes.md`；本函数保留
+    供历史契约测试（白名单/原子写）使用。
 
     白名单定义: src/types/bootstrap.py ALLOWED_CALLERS
     校验失败: UnauthorizedWriteError + 结构化审计日志
