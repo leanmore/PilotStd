@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 
 os.environ["PYTHONIOENCODING"] = "utf-8"
 
-PROJECT_ROOT = "D:/PilotStd"
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 PROGRESS_FILE = os.path.join(PROJECT_ROOT, "coverage_progress.json")
 IGNORE_TEMPLATES = "--ignore=pilotstd/templates"
 

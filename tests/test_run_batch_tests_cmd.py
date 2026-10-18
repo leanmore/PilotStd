@@ -21,6 +21,13 @@ def _load():
 batch_runner = _load()
 
 
+def test_project_root_is_portable() -> None:
+    """PROJECT_ROOT 必须由文件位置推导，不能硬编码盘符（CI Linux 收集期会 FileNotFoundError）。"""
+    root = Path(batch_runner.PROJECT_ROOT)
+    assert root.is_dir()
+    assert (root / "tests").is_dir()
+
+
 def test_build_cmd_returns_list_without_redirection() -> None:
     cmd = batch_runner._build_cmd({"files": ["tests/a.py", "tests/b.py"], "gui": True})
     assert isinstance(cmd, list)
