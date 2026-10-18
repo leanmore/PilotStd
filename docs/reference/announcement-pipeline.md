@@ -75,3 +75,10 @@ HB 公告 `2026年第7号（总第315号）` 源站 `STD_COUNT=674`，部署库�
 
 GB/DB/HB 公告头完整；详情记录缺口为 DB 9月第8号 18 条、HB 9月第8号 7 条、HB 10月第9号 34 条（GB 第42号为附件型，去重后与部署一致）。
 根因均为标准号前缀/连接符变体：`DB52T`、`DB11/ `、`NB/SH/T`、`SJ/T-`、`HG/T … 一 …`、`QB T`、多段分册号、全角 `－/／/？`。解析器已泛化前缀与归一化；完整清单见 `docs/records/2026-10-18-announcement-gap-audit.md`。
+
+## 单条公告强制重解析（2026-10-18）
+
+历史缺口修复入口：`POST /api/announcements/{announce_no}/reparse`。
+与 `/parse` 的差异：`/parse` 只处理附件且要求 `attachment_url`；`reparse` 对 HTML/附件型都通过适配器
+重新取详情，先解析成功再删除旧 `announcement_record` 并重建，避免解析失败先丢数据。
+服务实现：`pilotstd.announce.crawler_service.AnnounceCrawler.reparse_from_source`。

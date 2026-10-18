@@ -378,6 +378,17 @@ def trigger_parse(
 # ════════════════════════════════════════════════════════════════ 分隔
 
 
+@router.post("/api/announcements/{announce_no}/reparse")
+def reparse_from_source(announce_no: str, mgr=Depends(get_manager_dep)):
+    """重新抓取公告详情并替换记录（修复历史解析缺口；HTML/附件型均适用）。"""
+    try:
+        result = mgr._announce_svc.crawler.reparse_from_source(announce_no)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    logger.info("announcement reparsed: %s records=%s", announce_no, result.get("records"))
+    return result
+
+
 @router.get("/api/announcements/{announce_no}/parse-status")
 def get_parse_status(announce_no: str, mgr=Depends(get_manager_dep)):
     """查询解析状态（供前端轮询）。"""

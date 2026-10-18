@@ -8,6 +8,7 @@ check_filtered: 按 types 过滤的变体，供 CLI 调用。
 from __future__ import annotations
 
 import os
+from datetime import datetime
 from typing import Any
 
 from pilotstd.announcement.adapters import SamrDbCrawler, SamrGbCrawler, SamrHbCrawler
@@ -116,6 +117,48 @@ class AnnounceCrawler:
         return self._ocr_provider
 
     # ── 主入口 ──────────────────────────────────────────────
+
+    def reparse_from_source(self, announce_no: str) -> dict[str, Any]:
+        """按公告号重新抓取详情并替换记录（用于修复历史解析缺口）。
+
+        与 `/parse` 的区别：`/parse` 只处理附件且要求 announcement 已有 attachment_url；
+        本方法对 HTML/附件型都走适配器重新取详情，先解析成功再删除旧记录，避免解析失败先毁数据。
+        """
+        db = self._file_index._db
+        ann = db.fetchone(
+            "SELECT id, pid, announce_no, title, publish_date, source_site"
+            " FROM announcements WHERE announce_no = ?",
+            (announce_no,),
+        )
+        if not ann:
+            raise ValueError("announcement not found")
+        source_site = str(ann["source_site"] or "")
+        adapter = next((a for a in self.engine.adapters if a.source_site == source_site), None)
+        if adapter is None:
+            raise ValueError(f"unknown announcement source: {source_site}")
+        payload = {
+            "pid": ann["pid"],
+            "code": ann["announce_no"],
+            "title": ann["title"] or "",
+            "notice_date": ann["publish_date"] or "",
+        }
+        items = adapter._process_one_detail(payload, self._get_ocr_provider(), lambda pid: None)
+        if not items:
+            raise ValueError("reparse produced no records")
+        db.execute(
+            "DELETE FROM announcement_record WHERE pid = ? AND source_site = ?",
+            (ann["pid"], source_site),
+        )
+        self.engine.matcher.match_and_update(
+            items,
+            source_site=source_site,
+            standard_category=adapter.standard_category,
+        )
+        db.execute(
+            "UPDATE announcements SET parse_status='completed', updated_at=? WHERE announce_no=?",
+            (datetime.now().isoformat(), announce_no),
+        )
+        return {"status": "reparsed", "announce_no": announce_no, "records": len(items)}
 
     def check_all(self, adapter_name: str = "") -> dict[str, Any]:
         """对 gb/hb/db 适配器执行全量公告检查，返回摘要数据。"""

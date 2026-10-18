@@ -24,6 +24,11 @@ class AnnounceEngine:
     def adapters(self) -> list[BaseAnnounceCrawler]:
         return list(self._adapters.values())
 
+    @property
+    def matcher(self) -> AnnouncementMatcher:
+        """当前公告匹配器（供单条重解析等维护操作复用，避免另开 DB 连接）。"""
+        return self._matcher
+
     def check_all(self, since_date: str = "", ocr_provider: Any = None) -> dict[str, dict[str, Any]]:
         """GB/HB/DB 并发抓取，单个失败不影响其他。
         返回 {gb: {matched, updated}, hb: ..., db: ...}。
