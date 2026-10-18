@@ -1,4 +1,4 @@
-name: Trinity Gate CI
+name: Deep Gate Gate CI
 
 on:
   pull_request:
@@ -6,11 +6,11 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: trinity-gate-${{ github.ref }}
+  group: deep-gate-gate-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  trinity-check:
+  deep-gate-check:
     runs-on: ubuntu-latest
     timeout-minutes: 5  # 修正4: 防止 --deep 检查超时
 
@@ -41,16 +41,16 @@ jobs:
       #   STATUS.md 为 gitignored 本地状态文件，CI 不生成、不上传、不 push。
       #   （原 `--deep --docs` 因 check_all.sh 参数解析缺陷从未真正跑到 docs 段，
       #    相应的 pytest 与 artifact 上传步骤长期空转，2026-09-13 一并清理）
-      - name: Run Trinity Gate (--deep)
-        id: trinity_gate
+      - name: Run Deep Gate Gate (--deep)
+        id: deep-gate_gate
         run: bash scripts/check_all.sh --deep
         env:
           CI: "true"
 
       - name: Failure Guidance
-        if: failure() && steps.trinity_gate.outcome == 'failure'
+        if: failure() && steps.deep-gate_gate.outcome == 'failure'
         run: |
-          echo "::error::❌ Trinity Gate 失败：请在上方日志定位具体门禁项。"
+          echo "::error::❌ Deep Gate Gate 失败：请在上方日志定位具体门禁项。"
           echo ""
           echo "🔧 常见修复（本地执行、确认后再提交）："
           echo "  # 文档生成 + 守护（STATUS.md / coverage-report.md）"
@@ -59,7 +59,7 @@ jobs:
           echo "  python scripts/generate_capabilities.py"
           echo "  git add docs/governance/capabilities_registry.md && git commit --amend --no-edit"
           echo ""
-          echo "💡 修复指引: docs/governance/trinity-how-to-fix.md"
+          echo "💡 修复指引: docs/governance/gates.md"
           exit 1
 
       - name: Post PR comment with results
@@ -70,7 +70,7 @@ jobs:
             const jobStatus = '${{ job.status }}';
             const statusIcon = jobStatus === 'success' ? '✅' : '❌';
 
-            const body = `## ${statusIcon} Trinity Gate Report
+            const body = `## ${statusIcon} Deep Gate Gate Report
 
             | Check | Result |
             |-------|--------|
@@ -80,7 +80,7 @@ jobs:
             运行 \`bash scripts/check_all.sh --docs\` 生成 STATUS.md 与 docs/testing/coverage-report.md，
             人工确认后再提交入库文档。
 
-            > 🔧 修复指引: 参见 [Trinity Gate How-to-Fix](docs/governance/trinity-how-to-fix.md)
+            > 🔧 修复指引: 参见 [Deep Gate Gate How-to-Fix](docs/governance/gates.md)
             `;
 
             await github.rest.issues.createComment({

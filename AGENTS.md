@@ -152,7 +152,6 @@ W-001 分析 → W-002 设计/获批 → W-003 测试（适用时）→ W-004 �
 
 | 触发条件 | 必须读取的文档 | 文档性质 |
 |----------|---------------|---------|
-| 任何代码修改任务 | `docs/governance/development-flow.md` | 人的指引 |
 | 涉及数据库/Schema | `docs/architecture.md` | 代码说明书 |
 | 涉及公告解析/入库 | `docs/reference/announcement-pipeline.md` | 代码说明书 |
 | 涉及公告来源判断 | `docs/reference/announcement-sources.md` | 代码说明书 |

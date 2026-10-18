@@ -1,4 +1,4 @@
-# PilotStd CI/CD — 统一流水线：测试 → 版本管理 → Docker + exe 构建
+﻿# PilotStd CI/CD — 统一流水线：测试 → 版本管理 → Docker + exe 构建
 name: CI/CD
 
 on:
@@ -884,7 +884,7 @@ jobs:
         run: python scripts/check_capabilities_sync.py
 
       # ── 深门禁补齐：直推 main 时 G-030/G-032/G-033/G-037/G-038 ──
-      # 原先仅 trinity-gate（PR 触发 + 手动）执行；本仓库以直推 main 为主，
+      # 原先仅 deep-gate（PR 触发 + 手动）执行；本仓库以直推 main 为主，
       # 故在此统一部署，保证 push 流水线也有完整门禁覆盖（2026-08-20）。
       - name: G-030 — 技术债联动检查
         run: python scripts/check_g_030_tech_debt.py
@@ -905,7 +905,7 @@ jobs:
 
       # ── 本地 `--fast` 独有项补入 CI（2026-10-17 入口收口，体检 A-3）────────────
       # 以下 5 项原先**只有**本地 `check_all.sh --fast` 执行（唯一调用点＝`.husky/pre-commit`），
-      # 而 `trinity-gate.yml` 用 `--deep`，`--deep` **不含** `run_fast` ⇒ CI 侧零覆盖，
+      # 而 `deep-gate.yml` 用 `--deep`，`--deep` **不含** `run_fast` ⇒ CI 侧零覆盖，
       # 用 `--no-verify` 提交或换一台机器就永久漏检。故在入库产物唯一的权威执行点显式补齐。
       # **G-031 不在此列**：它按设计只挂本地（直推 main 时 base..HEAD 恒空 → 放 CI 只会假绿）。
       # 注意：本作业的 "Schema consistency check (blocking)" 跑的是
@@ -1190,3 +1190,4 @@ jobs:
             ### 系统要求
             - Windows 10/11 64-bit
             - 无需安装 Python
+

@@ -1,6 +1,6 @@
-#!/bin/bash
+﻿#!/bin/bash
 # 治理文档增量检查脚本（Phase 2 CI 使用）
-# 规范基准: docs/governance/trinity-technical-spec-v2.md §5.2
+# 规范基准: docs/governance/gates.md
 set -e
 
 echo "🔍 检查 governance 文档增量变更..."
@@ -24,10 +24,7 @@ done
 
 # 核心治理文档完整性：确保受保护文件未被修改
 PROTECTED_FILES=(
-    "docs/governance/prompt-crafting-guide.md"
-    "docs/governance/rule-quickref.md"
-    "docs/governance/development-flow.md"
-    "docs/governance/trinity-technical-spec-v2.md"
+    "docs/governance/gates.md"
 )
 
 for PF in "${PROTECTED_FILES[@]}"; do
@@ -45,3 +42,4 @@ else
   echo "✅ 所有治理文档符合规范。"
   exit 0
 fi
+

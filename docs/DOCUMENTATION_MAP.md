@@ -1,4 +1,4 @@
-# 🗺️ 项目文档地图 (DOCUMENTATION_MAP)
+﻿# 🗺️ 项目文档地图 (DOCUMENTATION_MAP)
 
 > **用途**：快速定位项目文档，了解每份文档的用途、状态与位置。Harness 接到任务时应先读本地图，再按索引定位目标文档。
 > **更新规则**：新增/修改/删除文档时，同步更新本地图对应条目；地图自身变更须经 G-032 文档健康度守护。
@@ -25,11 +25,8 @@
 | :--- | :--- | :--- | :--- |
 | L0 执行手册 | `AGENTS.md` | 开发者/AI 执行规则（R-规则：铁律/SOP/门禁 + P-规则：协作纪律） | 🟢 活跃 |
 | L1 流程总纲 | `docs/governance/PROJECT_GOVERNANCE.md` | 能力-门禁-架构三件套流程定义 + 治理角色 | 🟢 活跃（2026-08-19 修断链） |
-| L2 技术规格 | `docs/governance/trinity-technical-spec-v2.md` | 15 章技术规范（核心原则/交付物/强制执行层/健康度/提交粒度） | 🟢 活跃 |
 | L3 治理原则 | `docs/governance/governance-principles.md` | 元原则、门禁设计哲学、承诺追踪 | 🟢 活跃 |
 | 门禁清单 | `docs/governance/gates.md` | 全量门禁索引（门禁纪律见 AGENTS.md P-105） | 🟢 活跃 |
-| 支撑规范 | `docs/governance/development-flow.md`、`docs/governance/prompt-crafting-guide.md`、`docs/governance/rule-quickref.md`、`docs/development/documentation-policy.md` | 决策请求协议 / 提示词规范 / 规则速查 / 文档同步策略 | 🟢 活跃 |
-| L4 历史快照 | `docs/governance-overview.md` | ⚠️ ARCHIVED 历史治理快照（2026-07-16，Engine 表已失效） | 🔴 归档 |
 
 ## 三、核心架构与决策（Architecture & ADRs）
 
@@ -108,7 +105,6 @@
 | `docs/issues/router_v2_feedback.md` | 08-17 | 能力模型数据缺口记录（阶段四输入） |
 | `docs/flaky_e2e.md` | — | 不稳定 E2E 追踪（运维记录，不阻塞 CI） |
 | `docs/testing/project-coverage-survey-2026-07-31.md` | 07-31 | 覆盖率快照（已被 coverage-report.md 自动生成取代） |
-| `docs/testing/trinity-system-health-survey-2026-07-31.md` | 07-31 | 体系健康度快照 |
 | `docs/testing/handler-health-report-2026-08-02.md` | 08-02 | Handler 清理后健康度快照（基准记录） |
 | `docs/superpowers/reports/ci-risk-investigation-2026-08-06.md` | 08-06 | CI 风险调查（门禁设计指导） |
 | `docs/testing/known-issues.md` | — | 在册/已修复的已知问题清单（含安全审计轨迹 SEC-001 已解决）；**原文曾误写为 `docs/known-issues.md`（该路径不存在）** |
@@ -123,7 +119,6 @@
 | `docs/archive/2026-07-16-historical-plans/` | 2026-06~07 历史实施计划（design/plan 成对，多数已落地） |
 | `docs/archive/.../old-archive/2026-06-30/` | G-010 治理前的结构分析/功能清单/门禁索引 v1.0（已被 refactoring-analysis.md 合并） |
 | `docs/archive/项目进度日志.md` | **权威版项目进度日志**（gen_daily_log.py 自动生成） |
-| 各文件原位 ARCHIVED 警告头 | specs×2 / vulture-scan / v1.0 分类 / ttzb plan+design / exact-match-spec / governance-overview（见上各节） |
 
 > **归档约定**（documentation-policy.md）：归档文档不再维护；若需追溯历史决策，按日期/编号检索。新归档文件原则上不入仓（gitignore）。
 
@@ -135,3 +130,4 @@
 - 精读过程：`docs/process/reading_notes_batch_1~7.md`（8 批）
 - 决策记录：`docs/process/pending_questions.md`（Q1~Q6 系列，人工裁决）
 - 物理变更：2026-08-19 阶段 C（ADR 重编号/补建/5 态标记、断链修复、归档、矛盾修正、交叉引用）
+

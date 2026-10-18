@@ -121,7 +121,6 @@
 |---|----------|----------|
 | 1 | `docs/testing/known-issues.md 已 20 天未更新（核心状态上限 14 天，宽限期内）` | 宽限期内（2026-10-16 实测 20 天；原写 21 天）；本文档本次更新后即自然消除 |
 | 2 | `docs/governance/gates.md` 引用了 **9 处**不存在的文件：`pilotstd/core/_scan.py`、`pilotstd/ui/main_window.py`、`config/service.py`、`action.yml`、`pilotstd/core/i18n.py`、`manager/facade/_scan.py`、`check_i18n_hardcoded.py foo.py`、`_query_exec.py`、`pilotstd/core/parser.py` | 设计如此——G-032 维度 3 从 `gates.md` 的**历史版本行**抽取路径，含已删除文件与示例命令参数（`check_i18n_hardcoded.py foo.py`）；历史行不回溯改写 |
-| 3 | `docs/governance/trinity-technical-spec-v2.md` 引用了不存在的文件: `docs/metrics/data_dictionary_template.md` | 同上（历史引用；规范正文保留） |
 | 4-9 | `STATUS.md:23/49/57-60 含 [legacy-manual] 标记的数值`（6 条） | 设计如此——手动维护数值，标记 `[legacy-manual]` 走宽限期，待自动化指标接管后清除 |
 
 > **历史记录（不删除）**：原登记第 2 条 `AGENTS.md 引用了不存在的文件: ~/.claude/CLAUDE.md`（历史来源标注，用户裁决保留）在 **2026-10-16 实测中已不再出现在警告列表**（`git grep -n "claude/CLAUDE.md" -- AGENTS.md` 零命中）⇒ 该引用已被处理。

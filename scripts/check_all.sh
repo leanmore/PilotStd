@@ -1,6 +1,6 @@
-#!/usr/bin/env bash
+﻿#!/usr/bin/env bash
 # ============================================================
-# Trinity 统一门禁入口 (Single Source of Truth for Gates)
+# 统一门禁入口 (Single Source of Truth for Gates)
 # 用法: bash scripts/check_all.sh [--fast|--deep|--docs|--all]
 # ============================================================
 set -euo pipefail
@@ -461,7 +461,7 @@ run_lint_fast() {
 # （run 36293074107），本地 `--fast --guards --local` 却全绿——因为 G-040 只跑门禁脚本
 # 本体，不跑它自己的受控测试。
 # 处置：① `--fast` 下暂存变更命中「G-040 基线 / 其门禁脚本」时自动跑对应受控测试；
-#       ② `--deep` 无条件跑一遍（CI 的 trinity-gate 会执行 `--deep`，故 CI 侧同样兜住）。
+#       ② `--deep` 无条件跑一遍（CI 的 deep-gate 会执行 `--deep`，故 CI 侧同样兜住）。
 # 扩展方式：新增门禁基线时，在下方 case 里加一条「基线路径 → 受控测试」映射。
 # ============================================================
 run_gate_selftests() {
@@ -533,3 +533,4 @@ else
     echo -e "\n${RED}❌ 存在未通过的检查，请修复后重试。${NC}"
 fi
 exit $EXIT_CODE
+

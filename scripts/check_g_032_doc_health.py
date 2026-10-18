@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 G-032 文档健康度守护器。
 
@@ -40,9 +40,7 @@ AUTO_DOCS = [
 # 格式: (路径, 最大天数, 类别标签)
 HUMAN_DOC_RULES = [
     ("STATUS.md", 7, "核心状态"),
-    ("docs/governance/trinity-technical-spec-v2.md", 30, "架构规范"),
     ("docs/governance/gates.md", 30, "架构规范"),
-    ("docs/governance/development-flow.md", 30, "架构规范"),
     ("docs/governance/PROJECT_GOVERNANCE.md", 60, "治理文档"),
     ("docs/governance/capabilities_registry.md", 60, "治理文档"),
     ("docs/governance/governance-principles.md", 60, "治理文档"),
@@ -56,7 +54,6 @@ HUMAN_DOC_RULES = [
 # 格式:(源文档,引用的目标文件)
 CROSS_REF_RULES = [
     ("docs/governance/gates.md", "scripts/check_g_*.py"),
-    ("docs/governance/trinity-technical-spec-v2.md", "docs/governance/development-flow.md"),
     ("AGENTS.md", "docs/governance/gates.md"),
 ]
 
@@ -303,3 +300,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

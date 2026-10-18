@@ -1,4 +1,4 @@
-# 架构决策记录
+﻿# 架构决策记录
 
 ## Handler 组合模式（2026-07-11）
 
@@ -159,7 +159,7 @@ Handler 通过构造函数显式注入依赖，所有方法通过 `self._handler
 
 ### 治理体系总览
 
-完整的三位一体治理体系（测试 + 门禁 + 文档）状态，参见 [治理体系技术规范](governance/trinity-technical-spec-v2.md)（历史快照：[治理体系总览（ARCHIVED）](governance-overview.md)）。
+完整的三位一体治理体系（测试 + 门禁 + 文档）状态，参见 [门禁清单](governance/gates.md)。
 
 ---
 
@@ -303,3 +303,4 @@ PKCS#7 **按 32 字节块**填充、解密后校验 `receiveid`（企微为 corp
 | 其它同批字段 | `GET /api/wechat-ip/status` 新增 `current_ip_known`（布尔），取代 `current_ip !== '未知'` 的中文比较 |
 
 契约测试：`tests/unit/core/test_status_contract.py`（后端 25 例）＋ `web/src/utils/stdStatus.test.ts`（前端 4 例）。
+

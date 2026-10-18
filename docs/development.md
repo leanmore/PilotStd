@@ -1,4 +1,4 @@
-# 开发指南
+﻿# 开发指南
 
 > 更新日期：2026-06-30
 > 适用于 G-010 治理后的项目结构
@@ -122,7 +122,7 @@ python scripts/check_g_011_attr_integrity.py
 
 工作流位于 `.github/workflows/`，共 4 个：`ci.yml`（主流水线：lint-fast / test-backend / test-frontend /
 test-e2e / frontend-e2e / test-gui-* / e2e-coverage / security-scan / repo-compliance / docker / exe / version）、
-`governance-check.yml`、`gui-race-probe.yml`、`trinity-gate.yml`。
+`governance-check.yml`、`gui-race-probe.yml`、`deep-gate.yml`。
 
 **失败诊断（2026-10-18）**：`test-backend` 生成 `/tmp/backend-report.xml`；失败时 `Backend failures summary`
 步骤把失败用例以 `::error title=Pytest failure::...` 注解输出（Actions 日志需 `actions:read`，注解可用仓库读权限取回）。
@@ -178,3 +178,4 @@ config 的 `outputFolder`/`outputDir`、工作流上传 `path`、本节说明。
 | 文档策略 | `docs/development/documentation-policy.md` |
 | 会话存储 | `docs/development/session-store-design.md` |
 | 技术债 | `docs/technical-debt.md` |
+

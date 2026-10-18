@@ -1,4 +1,4 @@
-# ADR 目录索引
+﻿# ADR 目录索引
 
 > PilotStd 架构决策记录
 > 目录：`docs/adr/`
@@ -48,5 +48,5 @@
 ## 关联文档
 
 - [架构决策摘要](../architecture.md) — 历史决策 + 快速参考
-- [治理体系技术规范](../governance/trinity-technical-spec-v2.md) — 三位一体总览（治理体系总览 [ARCHIVED](../governance-overview.md)）
 - [技术债登记](../technical-debt.md) — 已清理 / 待处理 / 维持现状
+
