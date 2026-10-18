@@ -21,7 +21,7 @@
 | # | 项目 | 状态 | 现在能做什么 | 触发条件 / 备注 |
 |---|---|---|---|---|
 | **A-1** | **P7-12：`docker/api/tasks.py:138` 越过 DAO 直调私有 `mgr.task_queue._persist(task)`** | ✅ **已修（2026-10-18）** | `TaskQueue.persist()` 公共入口已加，`docker/api/tasks.py` 改调用它；测试断言 `persist` 被调且 `_persist` 不再被 API 触碰 | **无前置条件，可随时做**（`docs/plans/notification-redesign/10-阶段2投影入口调查.md:72` 明写"不得因 P4b 收尾而勾销"） |
-| **A-2** | **G-049 防膨胀门禁只覆盖 `manager.py`**（`scripts/check_g_049_manager_size.py:18` 的 `TARGET`） | 未修 | 评估把 `TARGET` 扩到 `pilotstd/core/notification/` 其他大文件（先跑一遍看会红多少） | 触发条件＝通知模块再出现单文件膨胀 |
+| **A-2** | **G-049 防膨胀门禁只覆盖 `manager.py`**（`scripts/check_g_049_manager_size.py:18` 的 `TARGET`） | ✅ **已修（2026-10-18）** | `TARGETS` 扩展为 manager.py + 6 个通知热点文件，上限=当前有效行+约 5% 余量；`*_data.py` 静态规格表不纳入（避免每加渠道就红）。测试 `tests/test_check_g_049_notification_sizes.py`（3 例） | 触发条件＝通知模块再出现单文件膨胀 |
 | **A-3** | **`channel_spec.schema ↔ get_config_schema()` 互证门禁缺失**（现只有字段级断言 `tests/test_channel_spec.py:72-119`） | 未修（可选） | 加一条"声明 ↔ 实现"一致性门禁 | 触发条件＝渠道字段再次漂移 |
 | **A-4** | **Phase1 检查项 3：重试耗尽埋点三字段不达标** | ✅ **已修（2026-10-18）** | `_log_retry_exhaustion` 现输出 `retry_reason=`（可由调用方按 transient/validation 传入）、`caller_stack=`（明确字段名）、`attempt_details=<JSON 数组>`；`validate_decision_request` 增加同名关键字参数并透传。测试 2 例锁定可解析性 | `enforcement/` 已确认在仓内（`git ls-files` 可见），无需外部路径 |
 | **A-5** | **cookiecutter 真实 CLI 端到端未入 CI** | 观察 | 模板改动涉及 hooks 时补一条真实 CLI 用例（渲染/编译/零字面量已由 jinja2 用例覆盖） | 触发条件＝hooks 变更或脚手架被频繁使用 |

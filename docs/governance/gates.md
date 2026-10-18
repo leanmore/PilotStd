@@ -44,7 +44,7 @@
 | G-046 | 通知链路审计 | 通知构建器不得出现空文本风险、不得缺空值守卫、不得静默吞错 | 任一发现（`--strict`，零基线） | `scripts/audit_notification_chain.py` | ✅ 已部署 |
 | G-047 | Python 侧 i18n 硬编码检查 | `pilotstd/`、`docker/` 的 **Python 字符串字面量**中不得**新增**写死的中文（**跳过 docstring**——G-012 强制其中文；注释不在 AST 中不计） | 超出 `scripts/i18n_hardcoded_python_baseline.json` 的新增 | `scripts/check_i18n_hardcoded_python.py` | ✅ 已部署 |
 | G-048 | 架构文档模块计数一致性 | `docs/architecture/modules/core.md` 的「子模块数」必须等于 `pilotstd/core/` 递归全部 `.py` 数（含 `__init__.py`，不含 `__pycache__`） | 文档数字与实际文件数不符 | `scripts/check_g_048_core_module_count.py` | ✅ 已部署 |
-| G-049 | manager.py 防膨胀门禁 | `pilotstd/core/notification/manager.py` **有效代码行 ≤ 340**（口径与 G-010 一致：排除空行与纯注释行） | 有效行 > 340（输出当前值与超出量） | `scripts/check_g_049_manager_size.py` | ✅ 已部署 |
+| G-049 | 通知模块防膨胀门禁 | `pilotstd/core/notification/`：`manager.py` **≤340**、`aggregate_buffer.py` **≤400**、`_builders_batch.py` **≤380**、`callback_service.py` / `_builders_system.py` / `_manager_ops.py` **≤350**、`renderer.py` **≤300**（有效代码行，口径与 G-010 一致；静态规格数据表 `*_data.py` 不纳入） | 任一文件有效行超上限（输出文件/当前值/上限） | `scripts/check_g_049_manager_size.py` | ✅ 已部署（A-2，2026-10-18 扩展） |
 | G-050 | 静默吞错棘轮 | 三类失败不可见：`except: pass`、`except → return 空/False/None`、`except` 内 `logger.debug`（`pilotstd/`+`docker/`，排除 templates） | 任一文件任一类别计数 > 基线 | `scripts/check_g_050_silent_errors.py` | ✅ 已部署（v2.07；基线 `scripts/silent_errors_baseline.json`） |
 | repo-compliance | 入仓合规检查 | 五条入仓标准 | 违规 | `.github/scripts/check-repo-compliance.sh` | ✅ 已部署 |
 
@@ -585,6 +585,7 @@ A 类管"**事件**是否齐备"（数据完备性）；B 类管"同一事实在
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
+| v2.11 | 2026-10-18 | **A-2 G-049 扩展**：防膨胀从 `manager.py` 单文件扩到通知模块 7 个热点文件（manager 340 / aggregate_buffer 400 / _builders_batch 380 / callback_service·_builders_system·_manager_ops 350 / renderer 300），静态 `*_data.py` 不纳入；测试 `tests/test_check_g_049_notification_sizes.py`（3 例） |
 | v2.10 | 2026-10-18 | **D-1 / T-16 切换阻断期**：CI `Docs sync check` 的 `docs_sync_check.py` 由 `--strict`（告警期）改为 `--strict-block`（阻断期）。依据：2026-09-27 起 176 次 push 零误报，远超"连续 3~5 次"条件。**例外（2026-10-18 实测补充）**：`CHANGELOG.md` 由 CI `version` 作业在测试通过后自动追加，不可能与 feat/fix 同批提交，规则改为 `in_repo=False`（只提示、不阻断）；其余 in_repo 文档仍照常阻断。**到期/回滚**：误报导致无法提交时，将 `ci.yml` 该行临时改回 `--strict`，在 `docs/debt/03-open.md` 记录原因与日期，修复后 7 天内重新切换；`check_module_doc_mappings.py` 仍保持告警期 |
 | v2.09 | 2026-10-18 | **E-1 强制化**：`generate_capabilities.py --check` 接入 CI `repo-compliance` 与 `check_all.sh --fast`（忽略时间戳比较），能力矩阵未随批更新即阻断——AGENTS §七此前只有文字约定 |
 | v2.08 | 2026-10-18 | **E-5 门禁接线**：`check_no_migrating.sh` 接入 CI `repo-compliance` 与 `check_all.sh --fast`（此前无任何调用方）；`governance-check.yml` 补 `push: main + docs/governance/**` 触发，直推路径不再跳过治理文档检查 |
