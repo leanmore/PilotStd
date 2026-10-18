@@ -135,23 +135,37 @@ def wait_for_completion(output_file, timeout=600):
     return -1
 
 
-def _build_cmd(batch, console_file):
-    """构建 pytest 命令（含超时标记 / CI 前缀 / 覆盖率参数）。"""
-    is_gui = batch.get("gui", False)
-    is_independent = batch.get("independent", False)
-    env_ci = batch.get("env_ci", False)
-    if is_gui:
-        timeout_flag = " --timeout=15"
-    elif is_independent:
-        timeout_flag = " --timeout=30"
-    else:
-        timeout_flag = ""
-    ci_prefix = "set CI=1&& " if env_ci else ""
-    files_str = " ".join(batch["files"])
-    return (f'{ci_prefix}python -u -W ignore::ResourceWarning -m pytest {files_str} '
-            f'--cov=pilotstd --cov-append {IGNORE_TEMPLATES} '
-            f'-p no:warnings -v --tb=long {timeout_flag}'
-            f'> {console_file} 2>&1')
+def _build_cmd(batch):
+    """构建 pytest 命令（列表参数，无 shell；输出重定向由调用方用文件句柄完成）。"""
+    args = [
+        sys.executable or "python",
+        "-u",
+        "-W",
+        "ignore::ResourceWarning",
+        "-m",
+        "pytest",
+        *batch["files"],
+        "--cov=pilotstd",
+        "--cov-append",
+        IGNORE_TEMPLATES,
+        "-p",
+        "no:warnings",
+        "-v",
+        "--tb=long",
+    ]
+    if batch.get("gui", False):
+        args.append("--timeout=15")
+    elif batch.get("independent", False):
+        args.append("--timeout=30")
+    return args
+
+
+def _build_env(batch):
+    """构建子进程环境（env_ci 时设置 CI=1，替代原 `set CI=1&&` 前缀）。"""
+    env = dict(os.environ)
+    if batch.get("env_ci", False):
+        env["CI"] = "1"
+    return env
 
 
 def _spawn_and_wait(batch, name, cmd, console_file):
@@ -168,27 +182,36 @@ def _spawn_and_wait(batch, name, cmd, console_file):
     print(f"[OUTPUT] {console_file}")
     print(f"{'='*60}")
 
-    # shell=True 仅用于把子进程输出重定向到 console_file；命令串由批次配置生成，
-    # 不含任何外部输入（D-19 已评审保留此一处）
-    proc = subprocess.Popen(cmd, shell=True, cwd=PROJECT_ROOT)
-    print(f"[PID] {proc.pid}")
+    # D-19：不再用 shell 模式；子进程 stdout/stderr 直接写入 console_file
+    out = open(console_file, "w", encoding="utf-8")
+    try:
+        proc = subprocess.Popen(
+            cmd,
+            cwd=PROJECT_ROOT,
+            stdout=out,
+            stderr=subprocess.STDOUT,
+            env=_build_env(batch),
+        )
+        print(f"[PID] {proc.pid}")
 
-    ret = wait_for_completion(console_file)
-    if ret == -1:
-        print(f"[TIMEOUT] killing {proc.pid}")
-        try:
-            proc.kill()
-        except Exception:
-            pass
-    else:
-        try:
-            proc.wait(timeout=10)
-        except subprocess.TimeoutExpired:
+        ret = wait_for_completion(console_file)
+        if ret == -1:
+            print(f"[TIMEOUT] killing {proc.pid}")
             try:
                 proc.kill()
             except Exception:
                 pass
-    return ret
+        else:
+            try:
+                proc.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                try:
+                    proc.kill()
+                except Exception:
+                    pass
+        return ret
+    finally:
+        out.close()
 
 
 def _classify_result(batch, name, console_file, log_file, ret):
@@ -225,10 +248,10 @@ def _classify_result(batch, name, console_file, log_file, ret):
                              "traceback": "", "timestamp": datetime.now(timezone.utc).isoformat()}
 
     if passed and not failed:
-        print(f"[PASS] batch OK")
+        print("[PASS] batch OK")
         return True, False, None
     else:
-        print(f"[FAIL] non-blocking, continuing")
+        print("[FAIL] non-blocking, continuing")
         return False, False, None
 
 
@@ -239,7 +262,7 @@ def run_batch(batch):
     console_file = os.path.join(PROJECT_ROOT, f"console_batch_{name}_{ts}.txt")
     log_file = os.path.join(PROJECT_ROOT, f"pytest_batch_{name}_{ts}.log")
 
-    cmd = _build_cmd(batch, console_file)
+    cmd = _build_cmd(batch)
     ret = _spawn_and_wait(batch, name, cmd, console_file)
     return _classify_result(batch, name, console_file, log_file, ret)
 
@@ -250,7 +273,10 @@ def main():
     if progress is None:
         progress = init_progress()
 
-    print(f"Batches: {progress['total_batches']} | Start: {progress['current_batch_index']} | Done: {len(progress['completed_batches'])}")
+    print(
+        f"Batches: {progress['total_batches']} | Start: {progress['current_batch_index']} "
+        f"| Done: {len(progress['completed_batches'])}"
+    )
 
     for idx in range(progress["current_batch_index"], len(batches)):
         batch = batches[idx]
@@ -273,7 +299,7 @@ def main():
             sys.exit(1)
         else:
             if is_blocking and batch.get("independent", False):
-                print(f"[INFO] Independent batch downgraded to non-blocking")
+                print("[INFO] Independent batch downgraded to non-blocking")
             progress["consecutive_failures"] += 1
             progress["last_updated"] = datetime.now(timezone.utc).isoformat()
             save_progress(progress)
