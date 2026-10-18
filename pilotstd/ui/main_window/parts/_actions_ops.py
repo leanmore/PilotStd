@@ -54,7 +54,7 @@ def _init_manager(self) -> None:
     self._apply_announce_cache_mode()
     self.status_bar.showMessage(_("ready"), 2000)
     self._check_download_queue()
-    if self._config.get("watchdog.enabled", False):  # pragma: no cover — 需要真实 ConfigManager 触发
+    if self._config.get("watchdog.enabled", False):  # 可选：watchdog 启用时才启动目录监听
         mgr.start_watching()
     self._init_core()
     # 启动自检（仅在类型脚本__=1时执行）
@@ -289,7 +289,7 @@ def _on_check_update(self) -> None:
             webbrowser.open("https://github.com/leanmore/PilotStd/releases/latest")
             return
         self._download_update_file(release)  # 异步：QThread 完成后触发 _prompt_restart
-    except Exception as e:  # pragma: no cover — 依赖 GitHub API 网络响应，单元测试 mock 不稳定
+    except Exception as e:  # 网络/API 失败仅提示，不阻断应用
         logger.warning("检查更新失败: %s", e)
         QMessageBox.information(self, _("title_no_update"), _("update_connection_failed").format(current=current))
 

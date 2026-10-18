@@ -54,7 +54,7 @@ def _sip_isdeleted() -> Any:
     """取回 sip.isdeleted；PyQt6 里 sip 是 PyQt6 的子模块（顶层 import sip 不存在）。"""
     try:
         from PyQt6 import sip as _sip
-    except ImportError:  # pragma: no cover - 仅在无 PyQt6 的环境触发
+    except ImportError:  # 环境守卫：无 PyQt6 时返回 None（由 is_qt_alive 视为存活）
         return None
     return getattr(_sip, "isdeleted", None)
 

@@ -27,3 +27,20 @@ def test_is_qt_alive_without_sip(monkeypatch) -> None:
 
     monkeypatch.setattr(qt_lifecycle, "_sip_isdeleted", lambda: None)
     assert qt_lifecycle.is_qt_alive(object()) is True
+
+
+def test_sip_isdeleted_import_error_returns_none(monkeypatch) -> None:
+    """D-16：`from PyQt6 import sip` 抛 ImportError 时返回 None（原 pragma 排除的分支）。"""
+    import builtins
+
+    from pilotstd.ui import qt_lifecycle
+
+    real_import = builtins.__import__
+
+    def fake_import(name, globals=None, locals=None, fromlist=(), level=0):
+        if name == "PyQt6" and fromlist and "sip" in fromlist:
+            raise ImportError("simulated missing PyQt6.sip")
+        return real_import(name, globals, locals, fromlist, level)
+
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+    assert qt_lifecycle._sip_isdeleted() is None
