@@ -127,6 +127,11 @@ test-e2e / frontend-e2e / test-gui-* / e2e-coverage / security-scan / repo-compl
 **失败诊断（2026-10-18）**：`test-backend` 生成 `/tmp/backend-report.xml`；失败时 `Backend failures summary`
 步骤把失败用例以 `::error title=Pytest failure::...` 注解输出（Actions 日志需 `actions:read`，注解可用仓库读权限取回）。
 
+**推送网络自适应（2026-10-18）**：**不要**把代理固定写进仓库级 `http.proxy`（换网络环境会直接推不动）。
+优先直连 `github.com`；被墙时用环境变量 `HTTPS_PROXY=http://<host>:<port>`（git 原生识别），
+或按当前网络探测系统代理后临时注入；历史硬编码用 `git config --local --unset http.proxy` 清理。
+排障顺序：`git ls-remote origin HEAD` 判连通 → 不通再看代理 → 最后才重试推送。
+
 **Action 版本口径（2026-10-07 升级）**：全部 Action 钉在**首个使用 `node24` 运行时的主版本**上，
 以消除平台侧「Node.js 20 is deprecated」告警；当前为：
 
