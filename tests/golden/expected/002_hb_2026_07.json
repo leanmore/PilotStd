@@ -6682,6 +6682,66 @@
       "expiry_date": "",
       "record_no": "107056-2026",
       "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "SJ/T 11460.6.1-2025",
+      "std_name": "显示光源组件  第6-1部分：测试方法  LED背光组件光电参数",
+      "replaces_code": "SJ/T 11460.6.1—2015",
+      "publish_date": "2026-08-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "106813-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "SJ/T 11460.6.2-2025",
+      "std_name": "显示光源组件  第6-2部分：测试方法  LED背光组件动态光学与光电参数",
+      "replaces_code": "SJ/T 11460.6.2—2015",
+      "publish_date": "2026-08-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "106814-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "SJ/T 11461.4.1-2025",
+      "std_name": "有机发光二极管显示器件 第4-1部分：用于屏下摄像的显示模块详细规范",
+      "replaces_code": "",
+      "publish_date": "2026-08-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "106815-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "SJ/T 12089.1.1-2025",
+      "std_name": "通用多媒体接口一致性测试规范  第1-1部分：连接器与线缆",
+      "replaces_code": "",
+      "publish_date": "2026-08-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "106839-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "DY/Z？14.3—2026",
+      "std_name": "虚拟现实电影？第3部分：头戴式显示设备技术要求和测量方法",
+      "replaces_code": "",
+      "publish_date": "2026-08-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "107032-2026",
+      "dept": "国家电影局"
+    },
+    {
+      "std_code": "DY/Z？14.5—2026",
+      "std_name": "虚拟现实电影？第5部分：场所技术要求和测量方法",
+      "replaces_code": "",
+      "publish_date": "2026-08-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "107033-2026",
+      "dept": "国家电影局"
     }
   ],
   "meta": {

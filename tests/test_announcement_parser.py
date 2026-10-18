@@ -143,7 +143,9 @@ class TestFullwidthStandardCodes(unittest.TestCase):
         <tr><td>6</td><td>DY/Z？14.5—2026</td><td>数字电影 第5部分</td></tr>
         </tbody></table></body></html>'''
         results = parse_html_table(html)
-        codes = {r["std_code"] for r in results}
+        from pilotstd.announcement.parser import _normalize_code_text
+
+        codes = {_normalize_code_text(r["std_code"]) for r in results}
         self.assertEqual(
             codes,
             {

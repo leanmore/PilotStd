@@ -144,8 +144,8 @@ def parse_html_table(html: str) -> list[dict[str, Any]]:
             if not cell_texts[0].isdigit():
                 continue
 
-            std_code = _normalize_code_text(cell_texts[code_col])
-            if not STD_CODE_PATTERN.match(std_code):
+            std_code = cell_texts[code_col]
+            if not STD_CODE_PATTERN.match(_normalize_code_text(std_code)):
                 continue
 
             # 标准名称列去重：4_()会递归拼接嵌套元素文本，
@@ -167,7 +167,8 @@ def parse_html_table(html: str) -> list[dict[str, Any]]:
             for col_idx, field_name in col_map.items():
                 if col_idx < len(cell_texts) and field_name in item:
                     item[field_name] = cell_texts[col_idx]
-            # col_map 的 std_code 会覆盖上面的归一化值，这里再写回
+            # col_map 的 std_code 会覆盖上面的值；保留源站原始写法（含全角字符），
+            # 归一化仅用于匹配，避免改变既有展示/黄金样本。
             item["std_code"] = std_code
             # 日期字段占位符归一化：源站用 -/——/无 表示空值
             for date_field in ("publish_date", "implementation_date", "expiry_date"):
@@ -270,8 +271,8 @@ def parse_text_table(text: str) -> list[dict[str, Any]]:
         [{std_code, std_name, replaces_code, publish_date}, ...]
     """
     results: list[dict[str, Any]] = []
-    text = _normalize_code_text(text)
-    matches = list(STD_CODE_PATTERN.finditer(text))
+    normalized = _normalize_code_text(text)
+    matches = list(STD_CODE_PATTERN.finditer(normalized))
     if not matches:
         return results
 
@@ -280,7 +281,7 @@ def parse_text_table(text: str) -> list[dict[str, Any]]:
     for i, match in enumerate(matches):
         if i in skip_indices:
             continue
-        std_code = match.group(0)
+        std_code = text[match.start() : match.end()]
 
         field_text, replaces_code_adjacent, _ = _find_field_text(text, matches, i, skip_indices)
 
