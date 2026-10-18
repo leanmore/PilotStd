@@ -52,3 +52,5 @@
 回归测试：`tests/test_announcement_checkpoint_regression.py`（4 例：失败回退、无失败前进、
 强制回退、详情失败记录日期）。历史漏抓恢复方式：手动按 `since_date` 补抓，它走
 `check_announcements_filtered`，不写 checkpoint。
+
+> 兼容性：失败列表只接受字符串日期（测试替身/MagicMock 的未知属性按无失败处理），避免门禁/单测替身被误判为失败。

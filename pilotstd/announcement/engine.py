@@ -107,7 +107,12 @@ class AnnounceEngine:
             d = item.get("notice_date", "")
             if d and d > max_date:
                 max_date = d
-        failed_dates = getattr(adapter, "failed_notice_dates", [])
+        raw_failed = getattr(adapter, "failed_notice_dates", [])
+        failed_dates = (
+            [d for d in raw_failed if isinstance(d, str) and d]
+            if isinstance(raw_failed, (list, tuple, set))
+            else []
+        )
         if failed_dates:
             # 失败项不能被 checkpoint 跨过：退到最早失败日期的前一天，下一轮重试
             earliest = min(d for d in failed_dates if d)

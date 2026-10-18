@@ -51,7 +51,7 @@ class TestCheckAll:
         assert result["matched"] == 3
         assert result["updated"] == 1
         assert result["errors"] == []
-        mock_persistence.write_checkpoint.assert_called_with("samr_gb", "2024-06-15")
+        mock_persistence.write_checkpoint.assert_called_with("samr_gb", "2024-06-15", force=False)
 
     def test_adapter_error_handled(self, crawler, mock_persistence):
         adapter = _mock_adapter("hb", "samr_hb", "HB site")
