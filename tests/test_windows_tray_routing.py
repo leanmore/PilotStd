@@ -92,7 +92,7 @@ def test_bridge_uses_throttled_entry_when_enabled():
         bridge.throttle = True
         bridge.tray_event_occurred.emit("scan_complete", "扫描完成", "共 3 条", "info")
 
-    service.show_event.assert_called_once_with("扫描完成", "共 3 条", "info")
+    service.show_event.assert_called_once_with("扫描完成", "共 3 条", "info", event_type="scan_complete")
     service.show.assert_not_called()
 
 

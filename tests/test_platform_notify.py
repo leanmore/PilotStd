@@ -167,7 +167,7 @@ class TestShowEventTiering:
         from unittest.mock import patch
 
         svc = self._service()
-        aggregator = SimpleNamespace(topic_of=lambda title, body: "scan")
+        aggregator = SimpleNamespace(topic_of=lambda title, body, event_type="": "scan")
         with (
             patch.object(svc, "_get_aggregator", return_value=aggregator),
             patch.object(svc, "show") as show,
@@ -194,7 +194,7 @@ class TestShowEventTiering:
         from pilotstd.platform.notify import NotifyService
 
         svc = self._service()
-        aggregator = SimpleNamespace(topic_of=lambda title, body: "scan")
+        aggregator = SimpleNamespace(topic_of=lambda title, body, event_type="": "scan")
         monkeypatch.setattr(NotifyService, "LONG_STAGE_WINDOW", 0.0)
         with (
             patch.object(svc, "_get_aggregator", return_value=aggregator),
