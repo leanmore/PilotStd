@@ -110,7 +110,8 @@ def test_retry_task_state_machine() -> None:
     mgr.task_queue.get.return_value = failed
     assert retry_task(_req(), "t1", mgr=mgr) == {"ok": True}
     assert failed.status is TaskStatus.PENDING
-    mgr.task_queue._persist.assert_called_once_with(failed)
+    mgr.task_queue.persist.assert_called_once_with(failed)
+    mgr.task_queue._persist.assert_not_called()
 
 
 def test_cancel_task_delegates() -> None:

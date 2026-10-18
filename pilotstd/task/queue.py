@@ -182,6 +182,10 @@ class TaskQueue:
             self._persist(task)
             return True
 
+    def persist(self, task: TaskInfo) -> None:
+        """公共持久化入口：更新任务状态后落库（供 API/服务层调用，替代直调 _persist）。"""
+        self._persist(task)
+
     def _persist(self, task: TaskInfo) -> None:
         """将任务信息写入 SQLite：已存在则更新，否则插入。"""
         existing = self._db.fetchone(f"SELECT id FROM {TASK_TABLE} WHERE task_id=?", (task.task_id,))

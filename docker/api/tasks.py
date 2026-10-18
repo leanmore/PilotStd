@@ -135,7 +135,7 @@ def retry_task(request: Request, task_id: str, mgr=Depends(get_manager_dep)):
 
     task.status = TaskStatus.PENDING
     task.updated_at = __import__("datetime").datetime.now().isoformat()
-    mgr.task_queue._persist(task)
+    mgr.task_queue.persist(task)
     return {"ok": True}
 
 
