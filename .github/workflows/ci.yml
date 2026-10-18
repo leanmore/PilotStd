@@ -152,6 +152,7 @@ jobs:
         run: |
           mkdir -p /tmp/standards
           python -m pytest tests/ -q -rs --tb=short -n auto -p no:pytest-qt \
+            --junitxml=/tmp/backend-report.xml \
             --cov=pilotstd --cov-report=xml --cov-fail-under=45 \
             --timeout=60 --timeout_method=signal \
             --ignore=tests/gui/ \
@@ -167,6 +168,30 @@ jobs:
             --deselect "tests/test_core.py::TestFileUtils::test_safe_move_and_copy" \
             --deselect "tests/test_cli.py::TestCLIMove::test_cmd_move" \
             --ignore=tests/test_ci_scan_fix.py
+
+      # 后端失败时把失败用例转成 check-run 注解（Actions 日志需 actions:read，
+      # 而注解可用仓库读权限直接取回；仅失败时运行，不改变测试判定）。
+      - name: Backend failures summary
+        if: failure()
+        run: |
+          python - <<'PY'
+          import os
+          import xml.etree.ElementTree as ET
+
+          path = "/tmp/backend-report.xml"
+          if not os.path.exists(path):
+              print("::error title=Backend tests::junit report missing")
+              raise SystemExit(0)
+          root = ET.parse(path).getroot()
+          failed = [
+              f"{tc.get('classname')}::{tc.get('name')}"
+              for tc in root.iter("testcase")
+              if tc.find("failure") is not None or tc.find("error") is not None
+          ]
+          for name in failed[:25]:
+              print(f"::error title=Pytest failure::{name}")
+          print(f"failed={len(failed)}")
+          PY
 
       # G-034（2026-10-17 接线，体检 A-3/B-1）：报告此前是 2026-08-21 的陈旧快照
       # （62.5%），门禁读旧数等于没接；故在本次 coverage.xml 生成后立即重生成并断言。

@@ -124,6 +124,9 @@ python scripts/check_g_011_attr_integrity.py
 test-e2e / frontend-e2e / test-gui-* / e2e-coverage / security-scan / repo-compliance / docker / exe / version）、
 `governance-check.yml`、`gui-race-probe.yml`、`trinity-gate.yml`。
 
+**失败诊断（2026-10-18）**：`test-backend` 生成 `/tmp/backend-report.xml`；失败时 `Backend failures summary`
+步骤把失败用例以 `::error title=Pytest failure::...` 注解输出（Actions 日志需 `actions:read`，注解可用仓库读权限取回）。
+
 **Action 版本口径（2026-10-07 升级）**：全部 Action 钉在**首个使用 `node24` 运行时的主版本**上，
 以消除平台侧「Node.js 20 is deprecated」告警；当前为：
 

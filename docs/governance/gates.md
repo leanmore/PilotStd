@@ -585,6 +585,7 @@ A 类管"**事件**是否齐备"（数据完备性）；B 类管"同一事实在
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
+| v2.12 | 2026-10-18 | **后端失败诊断**：`test-backend` 生成 `/tmp/backend-report.xml`；失败时 `Backend failures summary` 把失败用例以 `::error title=Pytest failure::...` 输出为 check-run 注解（Actions 日志需 `actions:read`，注解可用仓库读权限取回）。仅失败时运行，不改变测试判定 |
 | v2.11 | 2026-10-18 | **A-2 G-049 扩展**：防膨胀从 `manager.py` 单文件扩到通知模块 7 个热点文件（manager 340 / aggregate_buffer 400 / _builders_batch 380 / callback_service·_builders_system·_manager_ops 350 / renderer 300），静态 `*_data.py` 不纳入；测试 `tests/test_check_g_049_notification_sizes.py`（3 例） |
 | v2.10 | 2026-10-18 | **D-1 / T-16 切换阻断期**：CI `Docs sync check` 的 `docs_sync_check.py` 由 `--strict`（告警期）改为 `--strict-block`（阻断期）。依据：2026-09-27 起 176 次 push 零误报，远超"连续 3~5 次"条件。**例外（2026-10-18 实测补充）**：`CHANGELOG.md` 由 CI `version` 作业在测试通过后自动追加，不可能与 feat/fix 同批提交，规则改为 `in_repo=False`（只提示、不阻断）；其余 in_repo 文档仍照常阻断。**到期/回滚**：误报导致无法提交时，将 `ci.yml` 该行临时改回 `--strict`，在 `docs/debt/03-open.md` 记录原因与日期，修复后 7 天内重新切换；`check_module_doc_mappings.py` 仍保持告警期 |
 | v2.09 | 2026-10-18 | **E-1 强制化**：`generate_capabilities.py --check` 接入 CI `repo-compliance` 与 `check_all.sh --fast`（忽略时间戳比较），能力矩阵未随批更新即阻断——AGENTS §七此前只有文字约定 |
