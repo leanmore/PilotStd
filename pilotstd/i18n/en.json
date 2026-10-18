@@ -927,5 +927,8 @@
     "notification.channel.dingtalk.api_failed": "DingTalk returned an error: {detail}",
     "notification.channel.telegram.send_exception": "Telegram send exception: {error}",
     "notification.channel.telegram.send_failed": "Telegram returned an error: {detail}",
-    "notification.tiered.throttled": "Long-stage tiered throttling: event {event} (topic {topic}) already sent within the window; skipped"
+    "notification.tiered.throttled": "Long-stage tiered throttling: event {event} (topic {topic}) already sent within the window; skipped",
+  "notification.task.progress.title": "Task in progress: {task}",
+  "notification.task.progress.body": "Processed {completed}/{total} ({percent}%), running {elapsed} min",
+  "notification.task.progress.step": "; step: {step}"
 }

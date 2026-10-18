@@ -71,3 +71,12 @@ class PipelineRunStore:
     def get(self, run_id: str) -> dict[str, Any] | None:  # type: ignore[return-value]
         """按 run_id 查询记录。"""
         return self._db.fetchone("SELECT * FROM pipeline_runs WHERE run_id=?", (run_id,))
+
+    def list_running(self) -> list[dict[str, Any]]:
+        """返回所有运行中的管道记录（供进度汇报扫描）。"""
+        # 只取汇报需要的列，避免把 step_results 大 JSON 读进内存；按更新时间倒序便于调度器限流
+        rows = self._db.fetchall(
+            "SELECT run_id, current_step, status, progress, created_at, updated_at "
+            "FROM pipeline_runs WHERE status='running' ORDER BY updated_at DESC"
+        )
+        return [dict(r) for r in rows]

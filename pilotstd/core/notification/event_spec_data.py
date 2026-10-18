@@ -420,6 +420,21 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         verify="e2e",
         verify_reason="",
     ),
+    # D-2（2026-10-18）：长任务周期进度汇报。所有任务共用；阶段切换即时报 + 5 分钟兜底。
+    EventSpec(key="task_progress", notify_event="task_progress", content_type="task_progress",
+        task_kind="",
+        builder_ref="pilotstd.core.notification._builders_task_results:_build_task_progress_message",
+        i18n_category="notification.task", default_channels=(), levels=("info",),
+        module_key="notification.module.system",
+        trigger_file="pilotstd/core/notification/progress_reporter.py",
+        payload_keys=frozenset(
+            {"task_id", "task_name", "completed", "total", "percent", "elapsed_minutes", "step"}
+        ), security=False, branch_by=None,
+        subscribable=True, aggregation="aggregate",
+
+        verify="manual",
+        verify_reason="real_chain_only",
+    ),
     EventSpec(key="download_started", notify_event="task_progress", content_type="field_list",
         task_kind="favorite_download",
         builder_ref="pilotstd.core.notification._builders_batch_download:_build_download_started_message",

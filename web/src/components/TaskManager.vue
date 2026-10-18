@@ -2,7 +2,7 @@
 defineOptions({ name: 'TaskManager' })
 // TaskManager.vue — 任务队列管理界面
 import { useI18n } from 'vue-i18n'
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import http from '@/api/http'
 import { getItem, setItem } from '@/lib/storage'
 import Button from 'primevue/button'
@@ -98,6 +98,18 @@ async function cancelTask(taskId: string) {
 function showDetail(task: TaskItem) { detailTask.value = task }
 
 onMounted(loadTasks)
+
+// D-2：任务/管道进度每 30 秒自动刷新，让周期汇报与页面进度保持同步
+let refreshTimer: ReturnType<typeof setInterval> | null = null
+onMounted(() => {
+  refreshTimer = setInterval(() => {
+    if (subTab.value === 'tasks') loadTasks()
+    else loadPipelineRuns()
+  }, 30_000)
+})
+onUnmounted(() => {
+  if (refreshTimer) clearInterval(refreshTimer)
+})
 
 // ── 管道历史 ──
 const subTab = ref<'tasks' | 'runs'>('tasks')

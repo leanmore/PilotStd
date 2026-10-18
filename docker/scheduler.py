@@ -369,6 +369,8 @@ def start_scheduler():
     _add_interval_job("notification_cleanup", cleanup_interval * 3600)
     # 静音时段补发：每 5 分钟检查一次
     _add_interval_job("release_suppressed", 300)
+    # D-2：长任务周期进度汇报（每分钟扫描；实际按 5~10 分钟节流）
+    _add_interval_job("task_progress_report", 60)
 
     # ✅#43:注册时效性检查调度任务
     v_kwargs = _get_validity_cron_kwargs()

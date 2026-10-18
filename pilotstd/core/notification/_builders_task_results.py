@@ -255,3 +255,31 @@ def _build_announce_fetch_summary_message(data: dict) -> NotificationMessage:
         event_type="announce_fetch_summary",
         icon="pi pi-megaphone",
     )
+
+
+def _build_task_progress_message(data: dict) -> NotificationMessage:
+    """周期进度汇报（D-2）：任务名 / 完成数 / 总数 / 百分比 / 已运行分钟 / 当前步骤。"""
+    task_id = str(data.get("task_id") or "")
+    task_name = str(data.get("task_name") or task_id)
+    completed = int(data.get("completed") or 0)
+    total = int(data.get("total") or 0)
+    percent = int(data.get("percent") or 0)
+    elapsed = int(data.get("elapsed_minutes") or 0)
+    step = str(data.get("step") or "")
+
+    title = t("notification.task.progress.title").format(task=task_name)
+    body = t("notification.task.progress.body").format(
+        completed=completed, total=total, percent=percent, elapsed=elapsed
+    )
+    if step:
+        body += t("notification.task.progress.step").format(step=step)
+
+    return NotificationMessage(
+        title=title,
+        body=body,
+        level="info",
+        event_type="task_progress",
+        task_id=task_id,
+        target_id=task_id,
+        icon="pi pi-spin pi-spinner",
+    )

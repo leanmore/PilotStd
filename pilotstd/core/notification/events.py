@@ -129,6 +129,8 @@ ALL_EVENTS: list[EventDef] = [
     EventDef(EVENT_SECURITY_PASSWORD_CHANGED),
     EventDef(EVENT_SECURITY_TOKEN_REFRESHED),
     EventDef(EVENT_SECURITY_LOGIN_FAILED),
+    # D-2（2026-10-18）：长任务周期进度汇报（所有任务共用）
+    EventDef("task_progress"),
     # 平台层（阶段 4 · P6 · 4c）：桌面弹层回显，登记以消除 G-045 盲区
     EventDef(EVENT_DESKTOP_TOAST),
 ]
