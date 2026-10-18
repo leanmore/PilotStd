@@ -99,18 +99,6 @@ function showDetail(task: TaskItem) { detailTask.value = task }
 
 onMounted(loadTasks)
 
-// D-2：任务/管道进度每 30 秒自动刷新，让周期汇报与页面进度保持同步
-let refreshTimer: ReturnType<typeof setInterval> | null = null
-onMounted(() => {
-  refreshTimer = setInterval(() => {
-    if (subTab.value === 'tasks') loadTasks()
-    else loadPipelineRuns()
-  }, 30_000)
-})
-onUnmounted(() => {
-  if (refreshTimer) clearInterval(refreshTimer)
-})
-
 // ── 管道历史 ──
 const subTab = ref<'tasks' | 'runs'>('tasks')
 interface PipelineRunItem {
@@ -132,6 +120,18 @@ async function loadPipelineRuns() {
 }
 
 function onRunsPage(e: { page: number }) { runsPage.value = e.page; loadPipelineRuns() }
+
+// D-2：任务/管道进度每 30 秒自动刷新，让周期汇报与页面进度保持同步
+let refreshTimer: ReturnType<typeof setInterval> | null = null
+onMounted(() => {
+  refreshTimer = setInterval(() => {
+    if (subTab.value === 'tasks') loadTasks()
+    else loadPipelineRuns()
+  }, 30_000)
+})
+onUnmounted(() => {
+  if (refreshTimer) clearInterval(refreshTimer)
+})
 
 function stepLabel(s: string) {
   const map: Record<string, string> = { scan: t('task.step.scan'), query: t('task.step.query'), download: t('task.step.download'), normalize: t('task.step.normalize'), archive: t('task.step.archive') }
