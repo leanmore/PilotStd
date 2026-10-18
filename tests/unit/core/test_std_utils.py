@@ -190,3 +190,25 @@ class TestParseStdNumber:
     def test_roman_numeral(self):
         r = parse_std_number("ASME VIII.1-2021")
         assert r is not None
+
+
+class TestVariantPrefixFormats:
+    """2026-10 公告实测的变形前缀：DB52T、DB11/、NB/SH/T、SJ/T-、HG/T 一、QB T。"""
+
+    @pytest.mark.parametrize(
+        "text, code, number",
+        [
+            ("NB/SH/T 0001-2026", "NBSHT", 1),
+            ("DB52T 1078-2026", "DB52T", 1078),
+            ("DB11/ 2567-2026", "DB11", 2567),
+            ("SJ/T-12117-2026", "SJT", 12117),
+            ("HG/T 6488 \u4e00 2026", "HGT", 6488),
+            ("QB T 1750-2026", "QBT", 1750),
+        ],
+    )
+    def test_variant_prefix(self, text, code, number):
+        r = parse_std_number(text)
+        assert r is not None
+        assert r["code"] == code
+        assert r["number"] == number
+        assert r["year"] == 2026

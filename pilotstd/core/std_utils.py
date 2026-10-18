@@ -204,6 +204,48 @@ def _try_parse_fallback(text: str) -> dict[str, Any] | None:
     }
 
 
+_CODE_WIDTH_TRANS = str.maketrans(
+    {
+        "\uff0d": "-",
+        "\u2014": "-",
+        "\u2013": "-",
+        "\u2212": "-",
+        "\uff0f": "/",
+        "\uff1f": "/",
+        "\u4e00": "-",  # i18n-allow: 字符归一化表，不是用户文案
+        "\u04bb": "-",
+        "\u3000": " ",
+    }
+)
+
+
+def _try_parse_variant_prefix(text: str) -> dict[str, Any] | None:
+    """解析新版公告里常见的变形前缀：DB52T、DB11/、NB/SH/T、SJ/T-、HG/T … 一 …、QB T。"""
+    s = re.sub(r"\s+", " ", text.translate(_CODE_WIDTH_TRANS)).strip()
+    # DB11/ 2567：尾部斜杠是行政区分隔符，不是“/T”代号段
+    s = re.sub(r"^(DB\d{2,4})/\s*", r"\1 ", s)
+    # QB T 1750 -> QB/T 1750；只处理“单字母+空格+单字母”的代号段
+    s = re.sub(r"([A-Z])\s+([A-Z])(?=[\s/])", r"\1/\2", s)
+    s = re.sub(r"\s*/\s*", "/", s)
+    m = re.match(
+        r"^([A-Z][A-Z0-9]*(?:/[A-Z0-9]+)*)\s*/?\s*-?\s*(\d+(?:\.\d+)*)\s*-?\s*(\d{4})$",
+        s,
+    )
+    if not m:
+        return None
+    parts = [int(x) for x in m.group(2).split(".")]
+    prefix = m.group(1)
+    return {
+        "raw_code": prefix,
+        "code": prefix.replace("/", ""),
+        "number": parts[0],
+        "part": parts[1] if len(parts) > 1 else None,
+        "year": int(m.group(3)),
+        "num_prefix": "",
+        "num_suffix": "",
+    }
+
+
 def parse_std_number(text: str) -> dict[str, Any] | None:
     """从标准编号字符串提取结构化字段。所有场景的编号解析统一入口。
 
@@ -223,6 +265,7 @@ def parse_std_number(text: str) -> dict[str, Any] | None:
 
     # 按优先级依次尝试各解析器
     for parser in (
+        _try_parse_variant_prefix,
         _try_parse_db_standard,
         _try_parse_general_format,
         _try_parse_roman,
