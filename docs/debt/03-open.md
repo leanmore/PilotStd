@@ -31,7 +31,7 @@
 
 | # | 项目 | 我的建议 | 理由 |
 |---|---|---|---|
-| **D-1** | **T-16：`docs_sync_check.py` 由 `--strict`（告警期）切 `--strict-block`（阻断期）** | ✅ **已切换（2026-10-18）** | CI `ci.yml` 已改 `--strict-block`；到期/回滚说明见 `docs/governance/gates.md` v2.10（误报时临时回退 `--strict`、记录原因、7 天内重新切换） |
+| **D-1** | **T-16：`docs_sync_check.py` 由 `--strict`（告警期）切 `--strict-block`（阻断期）** | ✅ **已切换（2026-10-18）** | CI `ci.yml` 已改 `--strict-block`；实测发现 `CHANGELOG.md` 由 CI 自动生成、不可能同批提交，故该规则改为 `in_repo=False`（只提示）；到期/回滚说明见 `gates.md` v2.10 |
 | **D-2** | **N-b / N-e：通知阶段 2 是否先做"前置确认"只读批；附-2 口径澄清由谁完成** | **建议暂不启动** | 阶段 2（`task_progress` 接通知）与阶段 3 补取证均无业务阻塞，且当前无需求方；维持"触发式" |
 | **D-3** | **观察项「主题判定改为事件键优先、关键词兜底」** | **建议保持待排期** | 属设计改进而非缺陷；现有 i18n 契约表兜底已被 `tests/test_notification_aggregator_topic_i18n.py` 锁定 |
 | **D-4** | **Phase1 检查项 2（pre-commit 增量校验 + 3s 超时熔断）与检查项 5（受保护路径 `git diff --exit-code` Job）** | **建议关闭为"已接受"** | 检查项 5 的实质目标（防生成物漂移）已由 `check_capabilities_sync.py` 覆盖；检查项 2 属早期阶段的性能优化，当前 pre-commit 全量跑在本机约 3~5 分钟、可接受 |

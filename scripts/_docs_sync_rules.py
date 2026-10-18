@@ -60,7 +60,9 @@ TRIGGER_RULES = [
     {
         "name": "feat:/fix: 提交",
         "match_fn": lambda t, d, m: _is_feat_or_fix_commit(m),
-        "targets": [("CHANGELOG.md", "claude", True)],
+        # CHANGELOG 由 CI version 作业在测试通过后自动追加（ci.yml 版本步骤），
+        # 不可能与 feat/fix 同批提交；故 in_repo=False：只提示，不参与 strict-block 阻断。
+        "targets": [("CHANGELOG.md", "claude", False)],
     },
     {
         "name": "源代码变更（通用 STATUS 更新）",

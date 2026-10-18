@@ -53,10 +53,10 @@ def test_source_and_commit_message_rules_fire(mod, capsys) -> None:
 
 
 def test_in_repo_flag_distinguishes_blocking_targets(mod) -> None:
-    """feat:/fix: → CHANGELOG.md 为 in_repo=True（严格模式判定对象）；STATUS.md 为 False。"""
+    """CHANGELOG 由 CI 自动生成 → in_repo=False（不阻断）；STATUS.md 同为提示项。"""
     deduped = mod._match_trigger_rules([("M", "web/src/App.vue")], "", "fix: bug")
     flags = {doc: in_repo for _tn, doc, _s, in_repo in deduped}
-    assert flags.get("CHANGELOG.md") is True
+    assert flags.get("CHANGELOG.md") is False
     assert flags.get("STATUS.md") is False
 
 

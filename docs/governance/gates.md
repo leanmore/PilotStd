@@ -585,7 +585,7 @@ A 类管"**事件**是否齐备"（数据完备性）；B 类管"同一事实在
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
-| v2.10 | 2026-10-18 | **D-1 / T-16 切换阻断期**：CI `Docs sync check` 的 `docs_sync_check.py` 由 `--strict`（告警期）改为 `--strict-block`（阻断期）。依据：2026-09-27 起 176 次 push 零误报，远超"连续 3~5 次"条件。**到期/回滚**：误报导致无法提交时，将 `ci.yml` 该行临时改回 `--strict`，在 `docs/debt/03-open.md` 记录原因与日期，修复后 7 天内重新切换；`check_module_doc_mappings.py` 仍保持告警期 |
+| v2.10 | 2026-10-18 | **D-1 / T-16 切换阻断期**：CI `Docs sync check` 的 `docs_sync_check.py` 由 `--strict`（告警期）改为 `--strict-block`（阻断期）。依据：2026-09-27 起 176 次 push 零误报，远超"连续 3~5 次"条件。**例外（2026-10-18 实测补充）**：`CHANGELOG.md` 由 CI `version` 作业在测试通过后自动追加，不可能与 feat/fix 同批提交，规则改为 `in_repo=False`（只提示、不阻断）；其余 in_repo 文档仍照常阻断。**到期/回滚**：误报导致无法提交时，将 `ci.yml` 该行临时改回 `--strict`，在 `docs/debt/03-open.md` 记录原因与日期，修复后 7 天内重新切换；`check_module_doc_mappings.py` 仍保持告警期 |
 | v2.09 | 2026-10-18 | **E-1 强制化**：`generate_capabilities.py --check` 接入 CI `repo-compliance` 与 `check_all.sh --fast`（忽略时间戳比较），能力矩阵未随批更新即阻断——AGENTS §七此前只有文字约定 |
 | v2.08 | 2026-10-18 | **E-5 门禁接线**：`check_no_migrating.sh` 接入 CI `repo-compliance` 与 `check_all.sh --fast`（此前无任何调用方）；`governance-check.yml` 补 `push: main + docs/governance/**` 触发，直推路径不再跳过治理文档检查 |
 | v2.07 | 2026-10-17 | **新增 G-050 静默吞错棘轮（体检 D-8/D-9/D-10 收口）**：AST 扫描三类"失败不可见"（`except: pass` / `except→return 空` / `except` 内 `logger.debug`），按文件 × 类别与 `scripts/silent_errors_baseline.json` 比较——超基线阻断、低于基线只告警提示收紧。基线 pass 43 / return 44 / debug 112；存量 91 处已于同日分 11 批修复（见 `docs/debt/05-audit-2026-10-17.md`）。测试 `tests/test_check_g_050_silent_errors.py`（5 例）。接入 `check_all.sh --fast` 与 CI `repo-compliance` |
