@@ -83,6 +83,20 @@ def test_legacy_row_without_column_key_still_falls_back(helper_factory) -> None:
     assert helper.get_channels_for_event(1, "scan_complete") == ["telegram"]
 
 
+def test_both_layers_empty_means_subscribe_all(helper_factory) -> None:
+    """两层都为空 ⇒ 默认订阅全部类别（用户 2026-10-18 裁定）。"""
+    helper, _ = helper_factory([_row(events="[]", event_classes="[]")])
+    assert helper.get_channels_for_event(1, "scan_complete") == ["telegram"]
+    assert helper.get_channels_for_event(1, "task_progress") == ["telegram"]
+
+
+def test_legacy_events_list_merges_task_progress(helper_factory) -> None:
+    """旧逐事件列表未显式关闭时，新进度事件默认并入。"""
+    helper, _ = helper_factory([_row(events='["scan_complete"]', event_classes="[]")])
+    assert helper.get_channels_for_event(1, "task_progress") == ["telegram"]
+    assert helper.get_channels_for_event(1, "download_complete") == []
+
+
 # ── ② 新字段优先（非并集）───────────────────────────────────────────────────
 
 

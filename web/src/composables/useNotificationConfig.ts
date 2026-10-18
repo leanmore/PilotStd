@@ -288,6 +288,14 @@ export function useNotificationConfig() {
           if (!form) continue
           form.events = [...(p.events ?? [])]
           form.eventClasses = [...(p.event_classes ?? [])]
+          // 默认订阅全部：两层都为空 ⇒ 全类别；旧逐事件列表 ⇒ 并入新进度事件（用户 2026-10-18 裁定）
+          if (!form.eventClasses.length) {
+            if (form.events.length) {
+              if (!form.events.includes('task_progress')) form.events.push('task_progress')
+            } else {
+              form.eventClasses = [...NOTIFY_EVENTS.value]
+            }
+          }
         }
       } catch (e: unknown) {
         policyLoadFailed.value = true

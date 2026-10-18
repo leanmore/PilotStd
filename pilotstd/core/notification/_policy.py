@@ -14,6 +14,18 @@ def _log_trace_id() -> str:
     return secrets.token_hex(4)
 
 
+def _is_empty_json_list(raw: Any) -> bool:
+    """列值是否为“合法的空列表”（空串/`[]`）；坏 JSON 返回 False，避免被当成“默认全订阅”。"""
+    if not isinstance(raw, str) or not raw.strip():
+        return True
+    try:
+        data = _json.loads(raw)
+    except (TypeError, ValueError):
+        logger.warning("notification_policy column is invalid JSON; not treated as default-all")
+        return False
+    return isinstance(data, list) and not data
+
+
 def _loads_str_list(raw: Any) -> list[str]:
     """把策略列的 JSON 文本解析成字符串列表；**任何异常/非列表都回退 `[]`，永不抛**。
 
@@ -69,7 +81,9 @@ class NotificationPolicyHelper:
         **双读（阶段 4 · P6 · 4a/收口，裁定 4 甲：新字段优先）**：
         · **阶段 4 生效时**（`NOTIFY_REDESIGN_STAGE` ≥ 4）：该行 `event_classes` **非空** ⇒
           **只用类别层**（事件所属 `notify_event` 命中即订阅）；不并入 `events`——并集会让"关闭某类"无法表达；
-        · **回滚档（阶段 ≤ 3）或该行 `event_classes` 为空** ⇒ 回退旧字段 `events`（逐事件匹配）。
+        · **回滚档（阶段 ≤ 3）或该行 `event_classes` 为空** ⇒ 回退旧字段 `events`（逐事件匹配）；
+         · **两层都为空** ⇒ 视为“默认订阅全部类别”（用户 2026-10-18 裁定）；
+         · 旧 `events` 列表未显式关闭时，新事件 `task_progress` 默认并入（一次性兼容，不推广到未来所有事件）。
         这条"整档回退"是**第 1 层回滚开关**（`NOTIFY_REDESIGN_STAGE=3`）的技术前提：
         关掉开关即完整复原阶段 3 行为，不需要改代码。
         """
@@ -87,10 +101,17 @@ class NotificationPolicyHelper:
                     # 兼容"未跑 v68 的库/测试替身"：行里没有该键时按空串处理，等价于"未设置类别"
                     raw_classes = r["event_classes"] if "event_classes" in r.keys() else ""
                     classes = _loads_str_list(raw_classes) if layers_on else []
+                    events = _loads_str_list(r["events"])
                     if classes:
                         matched = bool(event_class) and event_class in classes
+                    elif events:
+                        # 旧逐事件订阅：新进度事件默认并入，避免升级后老用户完全收不到 D-2
+                        matched = event_type in events or event_type == "task_progress"
+                    elif layers_on and _is_empty_json_list(r["events"]) and _is_empty_json_list(raw_classes):
+                        # 两层都是合法空列表：默认订阅全部（用户裁定）
+                        matched = True
                     else:
-                        matched = event_type in _loads_str_list(r["events"])
+                        matched = False
                     if matched:
                         channels.append(r["channel"])
                 if channels:
