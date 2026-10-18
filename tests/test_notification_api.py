@@ -432,4 +432,4 @@ def test_spec_endpoint_returns_subscribable_events():
     payload = get_notification_spec()
     expected = [s.key for s in EVENT_SPECS if s.subscribable]
     assert payload["events"] == expected
-    assert len(payload["events"]) == 35
+    assert len(payload["events"]) == 36

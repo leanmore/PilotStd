@@ -267,12 +267,12 @@ def _build_task_progress_message(data: dict) -> NotificationMessage:
     elapsed = int(data.get("elapsed_minutes") or 0)
     step = str(data.get("step") or "")
 
-    title = t("notification.task.progress.title").format(task=task_name)
-    body = t("notification.task.progress.body").format(
-        completed=completed, total=total, percent=percent, elapsed=elapsed
+    title = t("notification.task_progress.title")
+    body = t("notification.task_progress.body").format(
+        task=task_name, completed=completed, total=total, percent=percent, elapsed=elapsed
     )
     if step:
-        body += t("notification.task.progress.step").format(step=step)
+        body += t("notification.task_progress.step").format(step=step)
 
     return NotificationMessage(
         title=title,

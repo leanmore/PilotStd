@@ -444,6 +444,7 @@ ALL_EVENT_PAYLOADS: dict[str, dict] = {
 # 是同源比较，映射表被改错时两边一起变、断言恒真（本批判别力自检时实测踩到并修正）。
 # 映射表侧另有"键集 == ALL_EVENTS + 值域合法"的用例；本表负责"**值正确**"。
 EXPECTED_TASK_KIND: dict[str, str] = {
+    "task_progress": "",
     # task_lifecycle（15）
     "favorite_created": "favorite_download",
     "download_started": "favorite_download",
@@ -576,7 +577,7 @@ class TaskKindPersistenceAcrossAllEvents(unittest.TestCase):
                 )
 
         # 42 = 原 41 + `desktop_toast`（阶段 4 · P6 · 4c 登记的平台层事件）
-        self.assertEqual(len(triggered), 42)
+        self.assertEqual(len(triggered), 43)
         # 十类中至少九类有事件承接（manual_test 无业务事件，设计如此；2026-10-05 S-1 分类扩展后为 9）
         categories = {r["notify_event"] for r in rows.values()}
         self.assertEqual(len(categories), 9)

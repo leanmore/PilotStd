@@ -157,7 +157,7 @@ def test_task_progress_event_registered_and_built() -> None:
             "step": "query",
         }
     )
-    assert "query" in message.title
+    assert "query" in message.body
     assert "3/10" in message.body
     assert message.event_type == "task_progress"
     assert message.task_id == "t1"

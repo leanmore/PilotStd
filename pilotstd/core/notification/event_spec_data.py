@@ -424,7 +424,7 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
     EventSpec(key="task_progress", notify_event="task_progress", content_type="task_progress",
         task_kind="",
         builder_ref="pilotstd.core.notification._builders_task_results:_build_task_progress_message",
-        i18n_category="notification.task", default_channels=("wechat", "dingtalk", "feishu", "telegram"),
+        i18n_category="notification.task_progress", default_channels=("wechat", "dingtalk", "feishu", "telegram"),
         levels=("info",),
         module_key="notification.module.system",
         trigger_file="pilotstd/core/notification/progress_reporter.py",
