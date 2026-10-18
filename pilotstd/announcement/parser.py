@@ -18,12 +18,16 @@ from ._attachment_parser import (  # noqa: F401 — 重导出
 logger = logging.getLogger(__name__)
 
 # 标准编号模式：代号 + 空格 + 顺序号[.部分号] + — + 年份
+_CODE_PREFIX = r"[A-Z]+(?:\d+)?[A-Z]*(?:\s+[A-Z]+(?:\d+)?[A-Z]*)*(?:\s*/\s*[A-Z]+(?:\d+)?[A-Z]*)*"
+_CODE_NUM = r"\d+(?:\.\d+)*"
+_CODE_SEP = r"[—\-－–−һ﹣‑]"
+# 标准编号模式：代号（可多段，如 NB/SH/T、DB52T、DB11/）+ 顺序号[.分册号] + 连接符 + 年份
 STD_CODE_PATTERN = re.compile(
-    r"([A-Z]+(?:\d+)?(?:\s*/[A-Z]+)?)\s*/?\s*(\d+(?:\.\d+)*)\s*[—\-－–−\s]\s*(\d{4})"
+    rf"({_CODE_PREFIX})\s*/?\s*{_CODE_SEP}?\s*({_CODE_NUM})\s*{_CODE_SEP}\s*(\d{{4}})"
 )
 # 代替标准在表格中的位置模式（"代替" 列的后面）
 REPLACES_PATTERN = re.compile(
-    r"([A-Z]+(?:\d+)?(?:\s*/[A-Z]+)?\s*/?\s*\d+(?:\.\d+)*\s*[—\-－–−]\s*\d{4})"
+    rf"({_CODE_PREFIX}\s*/?\s*{_CODE_SEP}?\s*{_CODE_NUM}\s*{_CODE_SEP}\s*\d{{4}})"
 )
 
 # 源站表格里的全角连接符（HB 公告常见 `SJ/T 11460.6.1－2025`、`DY/Z／14.3—2026`）。
@@ -35,7 +39,12 @@ _FULLWIDTH_CODE_TRANS = str.maketrans(
         "–": "-",  # U+2013
         "−": "-",  # U+2212
         "／": "/",  # U+FF0F
+        "｜": "/",  # U+FF5C
         "？": "/",  # U+FF1F：源站把 DY/Z 与序号之间的分隔符打成全角问号
+        "һ": "-",  # U+04BB：源站把连接符误打成西里尔字母
+        "一": "-",  # U+4E00：源站把连接符误打成汉字“一”（HG/T 6488 一 2026）
+        "﹣": "-",  # U+FE63
+        "‑": "-",  # U+2011
         "　": " ",  # U+3000
     }
 )
@@ -418,7 +427,7 @@ def parse_announcement_detail(
         return att_items, meta
 
     title = meta.get("title", "") or ""
-    logger.warning("公告详情页未能解析出标准列表: %s", title[:80])
+    logger.warning("公告详情页未能解析出标准列表: %s", title[:80])  # i18n-allow: 既有日志文案，保持中文排查可读
     return [], meta
 
 

@@ -159,5 +159,32 @@ class TestFullwidthStandardCodes(unittest.TestCase):
         )
 
 
+class TestMultiSlashAndTypoPrefixes(unittest.TestCase):
+    """DB/HB 常见前缀变形：DB52T（无分隔）、NB/SH/T（多斜杠）、HG/T … 一 …、SJ/T-。"""
+
+    def test_variant_prefixes_are_parsed(self):
+        html = '''<html><body><table>
+        <thead><tr><th>序号</th><th>标准编号</th><th>标准名称</th></tr></thead>
+        <tbody>
+        <tr><td>1</td><td>DB52T 1078-2026</td><td>贵州地标</td></tr>
+        <tr><td>2</td><td>DB11/ 2567-2026</td><td>北京地标</td></tr>
+        <tr><td>3</td><td>NB/SH/T 0001-2026</td><td>能源行标</td></tr>
+        <tr><td>4</td><td>HG/T 6488 一 2026</td><td>化工行标</td></tr>
+        <tr><td>5</td><td>SJ/T-12117-2026</td><td>电子行标</td></tr>
+        <tr><td>6</td><td>QB T 1750-2026</td><td>轻工行标</td></tr>
+        </tbody></table></body></html>'''
+        results = parse_html_table(html)
+        from pilotstd.announcement.parser import _normalize_code_text
+
+        codes = {_normalize_code_text(r["std_code"]) for r in results}
+        self.assertEqual(len(codes), 6)
+        self.assertIn("DB52T 1078-2026", codes)
+        self.assertIn("DB11/ 2567-2026", codes)
+        self.assertIn("NB/SH/T 0001-2026", codes)
+        self.assertIn("HG/T 6488 - 2026", codes)
+        self.assertIn("SJ/T-12117-2026", codes)
+        self.assertIn("QB T 1750-2026", codes)
+
+
 if __name__ == '__main__':
     unittest.main()
