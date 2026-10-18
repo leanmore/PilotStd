@@ -961,9 +961,9 @@
         "col_type": "错误类型",
         "col_message": "说明"
       },
-      "classes_label": "类别订阅（10 类）：",
+      "classes_label": "类别订阅（{count} 类）：",
       "classes_hint": "类别层非空时优先生效；留空则按下方高级层（按业务事件）投递。",
-      "advanced_label": "高级：按业务事件细分（41 项）",
+      "advanced_label": "高级：按业务事件细分（{count} 项）",
       "policy_load_failed": "策略服务读取失败：已回退配置文件规则，两层订阅未加载（这与“策略为空”不同，请检查服务）。",
       "policy_save_failed": "策略层未落库的渠道：{channels}；配置文件已保存，但类别层未生效。",
       "class": {
@@ -1024,7 +1024,8 @@
         "hint": "静音时段内通知将暂存，结束后自动补发",
         "start": "开始时间",
         "end": "结束时间"
-      }
+      },
+      "advanced_other": "其他（未归类）"
     },
     "event": {
       "archive_complete": "归档完成",

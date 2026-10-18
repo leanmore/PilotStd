@@ -3,6 +3,7 @@
 
 import concurrent.futures
 import logging
+from datetime import date, timedelta
 from typing import Any
 
 from .base import BaseAnnounceCrawler
@@ -106,5 +107,22 @@ class AnnounceEngine:
             d = item.get("notice_date", "")
             if d and d > max_date:
                 max_date = d
-        result["last_notice_date"] = max_date
+        failed_dates = getattr(adapter, "failed_notice_dates", [])
+        if failed_dates:
+            # 失败项不能被 checkpoint 跨过：退到最早失败日期的前一天，下一轮重试
+            earliest = min(d for d in failed_dates if d)
+            try:
+                safe_date = (date.fromisoformat(earliest) - timedelta(days=1)).isoformat()
+            except ValueError:
+                safe_date = ""
+            result["last_notice_date"] = safe_date
+            result["checkpoint_force"] = True
+            logger.warning(
+                "announcement %s: %d detail fetch failures, checkpoint regressed to %s",
+                adapter.standard_type,
+                len(failed_dates),
+                safe_date or "(unchanged)",
+            )
+        else:
+            result["last_notice_date"] = max_date
         return result

@@ -165,7 +165,11 @@ class AnnounceCrawler:
                 "status": "success",
                 "error_msg": "",
             })
-            self._persistence.write_checkpoint(adapter.source_site, result.get("last_notice_date", ""))
+            self._persistence.write_checkpoint(
+                adapter.source_site,
+                result.get("last_notice_date", ""),
+                force=bool(result.get("checkpoint_force")),
+            )
 
         # 本次抓取窗口内新增公告的分类统计（供通知载荷使用）
         stats = query_announcement_stats(self._persistence._db, check_start)

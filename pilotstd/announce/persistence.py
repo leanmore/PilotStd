@@ -43,15 +43,15 @@ class AnnouncePersistence:
             return None
         return row["last_notice_date"] or None
 
-    def write_checkpoint(self, source_site: str, last_notice_date: str) -> None:
-        """写入检查点，含防回退保护（更旧的日期将被忽略）。"""
+    def write_checkpoint(self, source_site: str, last_notice_date: str, *, force: bool = False) -> None:
+        """写入检查点；默认防回退，失败回退时由调用方传 force=True。"""
         if not last_notice_date:
             return
         current = self._query_one(
             "SELECT last_notice_date FROM fetch_checkpoint WHERE source_site=?",
             (source_site,),
         )
-        if current and current["last_notice_date"] >= last_notice_date:
+        if not force and current and current["last_notice_date"] >= last_notice_date:
             return
         now = datetime.now().isoformat()
         self._exec(

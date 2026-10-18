@@ -190,7 +190,7 @@ describe('NotificationConfig', () => {
     const html = english.html()
     expect(html).toContain('Enable Notifications')
     expect(html).toContain('WeCom')
-    expect(html).toContain('Event subscriptions:')
+    expect(html).toContain('Advanced: per business event')
     expect(html).not.toContain('启用通知')
     // 只断言「渲染出来的渠道标题」，模板注释里的中文（<!-- 企业微信 -->）不算文案
     expect(html).not.toContain('collapsible-title">企业微信')
@@ -204,6 +204,24 @@ describe('NotificationConfig', () => {
     const html = wrapper.html()
     expect(html).toContain('公告抓取完成')
     expect(html).not.toContain('>公告抓取<')
+  })
+
+  it('类别层标签走 i18n，高级层按类别分组（一级分类 → 二级事件）', async () => {
+    getNotificationChannelsMock.mockResolvedValue({
+      ...CHANNEL_FIXTURE,
+      notify_events: ['task_result'],
+      event_class_map: { scan_complete: 'task_result' },
+    })
+    const wrapper = mountConfig()
+    await new Promise(r => setTimeout(r, 10))
+    await wrapper.vm.$nextTick()
+    await wrapper.vm.$nextTick()
+    const html = wrapper.html()
+    // 类别名来自 notification.config.class.task_result，而不是英文原始 ID
+    expect(html).toContain('任务成功')
+    expect(html).not.toContain('>task_result<')
+    // 高级层按类别分组，组标题带该类别下的事件数
+    expect(html).toContain('任务成功（1）')
   })
 
   // ── 阶段 4 · P6 · 4b：双层订阅与缓存判据（用户点名的两条回归）────────────────────

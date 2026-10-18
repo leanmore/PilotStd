@@ -3,6 +3,7 @@
 
 import concurrent.futures
 import logging
+import threading
 from abc import ABC, abstractmethod
 from typing import Any, Callable, Optional, cast
 
@@ -27,6 +28,26 @@ class BaseAnnounceCrawler(ABC):
         # 熔断状态以标准类型为键写入适配器状态表，与状态接口读取口径一致
         self._cb = CircuitBreaker(lambda: self.standard_type)  # 组合，非继承
         self._http = _http
+        # 详情抓取失败的公告发布日期：用于 checkpoint 回退（不跨过失败项）
+        self._failed_notice_dates: list[str] = []
+        self._failed_lock = threading.Lock()
+
+    def reset_failed_details(self) -> None:
+        """开始新一轮抓取前清空失败记录。"""
+        with self._failed_lock:
+            self._failed_notice_dates = []
+
+    @property
+    def failed_notice_dates(self) -> list[str]:
+        """本轮详情抓取失败的公告发布日期（去重后的快照）。"""
+        with self._failed_lock:
+            return list(dict.fromkeys(self._failed_notice_dates))
+
+    def _record_failed_detail(self, notice_date: str) -> None:
+        if not notice_date:
+            return
+        with self._failed_lock:
+            self._failed_notice_dates.append(notice_date)
 
     # ──熔断委托（→）──
 
@@ -231,6 +252,7 @@ class BaseAnnounceCrawler(ABC):
                 ann.get("pid", "")[:32],
                 ann.get("code", ""),
             )
+            self._record_failed_detail(ann.get("notice_date", ""))
             _bump(ann.get("pid", "?"))
             return []
         # 提取公告正文写入._
@@ -329,6 +351,7 @@ class BaseAnnounceCrawler(ABC):
             complete_pids: 已完全解析的公告 PID 集合，跳过这些公告的阶段2抓取
         """
         self._cb_check_frozen()
+        self.reset_failed_details()
 
         try:
             ann_list = self._fetch_list(since_date, page_size)

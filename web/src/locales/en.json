@@ -961,9 +961,9 @@
         "col_type": "Error type",
         "col_message": "Message"
       },
-      "classes_label": "Category subscriptions (10 classes):",
+      "classes_label": "Category subscriptions ({count} classes):",
       "classes_hint": "The category layer wins when non-empty; if empty, the advanced layer (per business event) below applies.",
-      "advanced_label": "Advanced: per business event (41)",
+      "advanced_label": "Advanced: per business event ({count})",
       "policy_load_failed": "Policy service read failed: fell back to config-file rules; layer subscriptions were not loaded (this differs from \"policy is empty\" — please check the service).",
       "policy_save_failed": "Policy layer not persisted for: {channels}; the config file was saved, but the category layer is not in effect.",
       "class": {
@@ -1024,7 +1024,8 @@
         "hint": "Notifications are held during quiet hours and delivered afterwards",
         "start": "Start time",
         "end": "End time"
-      }
+      },
+      "advanced_other": "Other (unclassified)"
     },
     "event": {
       "archive_complete": "Archive Complete",

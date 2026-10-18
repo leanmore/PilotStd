@@ -76,12 +76,22 @@ export function useNotificationConfig() {
   const testResults = ref<Record<string, string>>({})
 
   /**
-   * 类别层标签：文案 key = `notification.class.<cls>`（与后端 `mapping.NOTIFY_EVENTS` 的 10 类一一对应）。
+   * 类别层标签：文案 key = `notification.config.class.<cls>`（locales 中的真实层级）。
    * 与 `eventLabel` 同款兜底：i18n 缺键时回退显示原始类别名，**不显示空白**。
    */
   function classLabel(cls: string): string {
-    const key = `notification.class.${cls}`
+    const key = `notification.config.class.${cls}`
     return te(key) ? t(key) : cls
+  }
+
+  /** 某个类别下的业务事件（高级层按类别分组渲染；映射来自后端 `event_class_map`）。 */
+  function eventsOfClass(cls: string): string[] {
+    return EVENTS.value.filter((ev) => EVENT_CLASS_MAP.value[ev] === cls)
+  }
+
+  /** 后端未给出类别映射的事件（兜底分组，避免事件在界面上凭空消失）。 */
+  function unmappedEvents(): string[] {
+    return EVENTS.value.filter((ev) => !EVENT_CLASS_MAP.value[ev])
   }
 
   // 可订阅的事件类型（**来自后端事件规格**，D5：前端零硬编码）；
@@ -433,6 +443,8 @@ export function useNotificationConfig() {
     errMsg,
     testResults,
     classLabel,
+    eventsOfClass,
+    unmappedEvents,
     EVENTS,
     channelOpen,
     fieldLabel,

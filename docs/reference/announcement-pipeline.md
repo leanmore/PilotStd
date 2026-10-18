@@ -38,3 +38,17 @@
 - 日期字段必须使用 ISO 8601 格式，禁止使用其他格式
 - 附件正文解析失败（含 `.doc`/OLE2 这类 python-docx 不支持的格式）记为 **WARNING 日志**并返回空正文；此前为 DEBUG 级，正文为空时**无任何可见痕迹**（R15 修复）。引入 antiword/textract 解析器一事仍登记在台账观察项
 - 缓存行的状态判定（`现行` / `即将实施` / `被代替`，见 `pilotstd/announcement/matcher.py`）自 **R14-4b（#32-B，2026-10-01）** 起统一引用权威字典 `pilotstd/core/status.py` 的 `Status.*.value`（取代原中文字面量），取值与判定优先级不变
+
+## 增量 checkpoint 与失败回退（2026-10-18）
+
+定时抓取（`auto_announce`）按适配器维护 `fetch_checkpoint.last_notice_date`，每次只拉取该日期之后的公告。
+历史缺陷：单条公告详情抓取失败时，失败项被跳过但 checkpoint 仍推进到本批最大日期，导致失败的公告
+**永久不会重抓**。2026-08 个别公告漏抓即由此产生（典型日志：`公告详情获取失败`）。
+
+现行为：适配器记录本轮详情失败公告的发布日期；`engine._check_one_adapter` 若发现有失败，
+把 checkpoint 回退到**最早失败日期的前一天**并标记 `checkpoint_force`，`write_checkpoint` 允许
+强制回退；下一轮会重新包含失败项。无失败时仍按本批最大日期前进。
+
+回归测试：`tests/test_announcement_checkpoint_regression.py`（4 例：失败回退、无失败前进、
+强制回退、详情失败记录日期）。历史漏抓恢复方式：手动按 `since_date` 补抓，它走
+`check_announcements_filtered`，不写 checkpoint。

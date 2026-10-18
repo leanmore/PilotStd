@@ -961,9 +961,9 @@
         "col_type": "錯誤類型",
         "col_message": "說明"
       },
-      "classes_label": "類別訂閱（10 類）：",
+      "classes_label": "類別訂閱（{count} 類）：",
       "classes_hint": "類別層非空時優先生效；留空則按下方高階層（按業務事件）投遞。",
-      "advanced_label": "高階：按業務事件細分（41 項）",
+      "advanced_label": "高階：按業務事件細分（{count} 項）",
       "policy_load_failed": "策略服務讀取失敗：已回退設定檔規則，兩層訂閱未載入（這與「策略為空」不同，請檢查服務）。",
       "policy_save_failed": "策略層未落庫的管道：{channels}；設定檔已儲存，但類別層未生效。",
       "class": {
@@ -1024,7 +1024,8 @@
         "hint": "靜音時段內通知將暫存，結束後自動補發",
         "start": "開始時間",
         "end": "結束時間"
-      }
+      },
+      "advanced_other": "其他（未分類）"
     },
     "event": {
       "archive_complete": "歸檔完成",

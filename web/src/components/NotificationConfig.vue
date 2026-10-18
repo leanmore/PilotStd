@@ -27,6 +27,8 @@ const {
   errMsg,
   testResults,
   classLabel,
+  eventsOfClass,
+  unmappedEvents,
   EVENTS,
   channelOpen,
   fieldLabel,
@@ -145,9 +147,9 @@ defineExpose({ saveConfig })
             <label style="font-size:12px;color:var(--text-dim)">{{ t('notification.config.enable_channel') }}</label>
           </div>
 
-          <!-- ① 类别层（10 类）：订阅主入口；非空时后端读侧优先用它 -->
+          <!-- ① 类别层（一级分类）：订阅主入口；非空时后端读侧优先用它 -->
           <div class="events-row">
-            <label class="events-label">{{ t('notification.config.classes_label') }}</label>
+            <label class="events-label">{{ t('notification.config.classes_label', { count: NOTIFY_EVENTS.length }) }}</label>
             <div v-for="cls in NOTIFY_EVENTS" :key="cls" class="checkbox-field">
               <Checkbox v-model="channels[ch.name].eventClasses" :value="cls" :input-id="`${ch.name}-cls-${cls}`" />
               <label :for="`${ch.name}-cls-${cls}`">{{ classLabel(cls) }}</label>
@@ -157,16 +159,27 @@ defineExpose({ saveConfig })
             </p>
           </div>
 
-          <!-- ② 高级层（41 个业务事件）：默认折叠，保留原有表达力 -->
+          <!-- ② 高级层（二级分类）：按一级类别分组，避免平铺成"大补丁" -->
           <details class="events-advanced">
             <summary style="font-size:12px;color:var(--text-dim);cursor:pointer">
-              {{ t('notification.config.advanced_label') }}
+              {{ t('notification.config.advanced_label', { count: EVENTS.length }) }}
             </summary>
-            <div class="events-row">
-              <label class="events-label">{{ t('notification.config.events_label') }}</label>
-              <div v-for="ev in EVENTS" :key="ev" class="checkbox-field">
-                <Checkbox v-model="channels[ch.name].events" :value="ev" :input-id="`${ch.name}-${ev}`" />
-                <label :for="`${ch.name}-${ev}`">{{ eventLabel(ev) }}</label>
+            <div v-for="cls in NOTIFY_EVENTS" :key="`group-${cls}`" v-show="eventsOfClass(cls).length" class="class-group">
+              <div class="class-group-title">{{ classLabel(cls) }}（{{ eventsOfClass(cls).length }}）</div>
+              <div class="events-row">
+                <div v-for="ev in eventsOfClass(cls)" :key="ev" class="checkbox-field">
+                  <Checkbox v-model="channels[ch.name].events" :value="ev" :input-id="`${ch.name}-${ev}`" />
+                  <label :for="`${ch.name}-${ev}`">{{ eventLabel(ev) }}</label>
+                </div>
+              </div>
+            </div>
+            <div v-if="unmappedEvents().length" class="class-group">
+              <div class="class-group-title">{{ t('notification.config.advanced_other') }}</div>
+              <div class="events-row">
+                <div v-for="ev in unmappedEvents()" :key="ev" class="checkbox-field">
+                  <Checkbox v-model="channels[ch.name].events" :value="ev" :input-id="`${ch.name}-${ev}`" />
+                  <label :for="`${ch.name}-${ev}`">{{ eventLabel(ev) }}</label>
+                </div>
               </div>
             </div>
           </details>
@@ -251,6 +264,8 @@ defineExpose({ saveConfig })
 .events-label { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block; }
 .checkbox-field { display: inline-flex; align-items: center; gap: 4px; margin-right: 12px; margin-top: 4px; }
 .checkbox-field label { font-size: 12px; color: var(--text); }
+.class-group { margin-top: 10px; }
+.class-group-title { font-size: 12px; font-weight: 600; color: var(--text-heading); margin: 6px 0 2px; }
 .events-check-grid {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 4px 8px; margin-top: 6px;
