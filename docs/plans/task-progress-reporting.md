@@ -33,3 +33,11 @@
 
 - 不改变现有"完成/失败"通知的语义与频率；
 - 不复用桌面 60 秒长阶段窗口（面向 toast 防轰炸，语义不同）。
+
+## 实现结果（2026-10-18）
+
+- 后端：`progress_reporter.TaskProgressReporter` + `task_progress` 事件/构建器/三语 i18n；
+- 接线：Docker 调度器每分钟 tick；管道 `update_step` 阶段切换即时回调；
+- 渠道：默认四渠道统一 `send_event`，周期默认 5 分钟（夹紧 5~10）；
+- 前端：任务中心每 30 秒自动刷新；
+- 详细记录：[D-2 完成记录](../archive/2026-10-18-d2-task-progress-completion.md)。

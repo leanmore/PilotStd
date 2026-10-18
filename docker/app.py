@@ -161,7 +161,11 @@ def _start_all_schedulers(_cron_mgr) -> None:
     from pilotstd.core.notification.progress_reporter import TaskProgressReporter
 
     # D-2：长任务周期进度汇报（每分钟扫描一次；实际汇报间隔 5~10 分钟）
-    _progress_interval = int(ConfigManager().get("notification.progress_interval_minutes", 5) or 5)
+    try:
+        _progress_interval = int(ConfigManager().get("notification.progress_interval_minutes", 5) or 5)
+    except (TypeError, ValueError):
+        # 配置写坏时回落默认值，不能因此让整个服务启动失败
+        _progress_interval = 5
     _progress_reporter = TaskProgressReporter(
         send_event=lambda event, data: _cron_mgr.notification_mgr.send_event(event, data),
         task_rows=lambda: (
@@ -177,6 +181,8 @@ def _start_all_schedulers(_cron_mgr) -> None:
         interval_seconds=_progress_interval * 60,
     )
     register_job_func("task_progress_report", _progress_reporter.tick)
+    if getattr(_cron_mgr, "pipeline_store", None) is not None:
+        _cron_mgr.pipeline_store.on_step_changed = _progress_reporter.notify_pipeline_step
 
     register_job_func("auto_scan", lambda: _cron_mgr.scan_and_index())
     register_job_func(

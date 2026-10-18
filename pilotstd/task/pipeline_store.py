@@ -2,11 +2,14 @@
 # 流水线_表封装
 
 import json
+import logging
 import uuid
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Callable
 
 from pilotstd.core.db import Database
+
+logger = logging.getLogger(__name__)
 
 
 class PipelineRunStore:
@@ -15,6 +18,8 @@ class PipelineRunStore:
     def __init__(self, db: Database) -> None:
         self._db = db
         self._ensure_table()
+        # D-2：阶段切换即时回调（由 app 注入进度汇报器；None 表示未接线）
+        self.on_step_changed: Callable[[str, str], None] | None = None
 
     def _ensure_table(self) -> None:
         """幂等建表（实际创建依赖迁移 v26，此处仅做防御）。"""
@@ -59,6 +64,7 @@ class PipelineRunStore:
         """更新当前步骤、进度和结果。"""
         now = self._now()
         existing = self.get(run_id)
+        previous_step = existing.get("current_step") if existing else None
         merged = json.loads(existing["step_results"]) if existing and existing.get("step_results") else {}
         if step_results:
             merged[step] = step_results
@@ -67,6 +73,13 @@ class PipelineRunStore:
             "step_results=?, error_message=?, updated_at=? WHERE run_id=?",
             (step, status, progress, json.dumps(merged, ensure_ascii=False), error, now, run_id),
         )
+        # 阶段真正变化才回调（首次创建时 previous 为空也会触发一次，便于“开始即报”）
+        if previous_step != step and self.on_step_changed is not None:
+            try:
+                self.on_step_changed(run_id, step)
+            except Exception as exc:
+                # 汇报失败不得影响管道主流程
+                logger.warning("pipeline step progress callback failed: %s", exc, exc_info=True)
 
     def get(self, run_id: str) -> dict[str, Any] | None:  # type: ignore[return-value]
         """按 run_id 查询记录。"""

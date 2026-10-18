@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from pilotstd.core.notification.progress_reporter import TaskProgressReporter
 
@@ -17,6 +17,10 @@ class _Clock:
 
 def _iso(epoch: float) -> str:
     return datetime.fromtimestamp(epoch).isoformat()
+
+
+def _iso_utc(epoch: float) -> str:
+    return datetime.fromtimestamp(epoch, timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
 
 
 def test_task_reports_every_interval() -> None:
@@ -94,7 +98,7 @@ def test_pipeline_stage_change_is_immediate_and_percent_from_progress() -> None:
             "run_id": "r1",
             "current_step": "scan",
             "progress": 10,
-            "created_at": _iso(clock.value),
+            "created_at": _iso_utc(clock.value),
         }
     ]
     reporter = TaskProgressReporter(
@@ -109,6 +113,8 @@ def test_pipeline_stage_change_is_immediate_and_percent_from_progress() -> None:
     assert len(sent) == 1
     assert sent[0][1]["step"] == "scan"
     assert sent[0][1]["percent"] == 10
+    # 管道时间戳是 UTC 字符串：按本地解析会得到 ±8 小时的假耗时
+    assert sent[0][1]["elapsed_minutes"] == 0
 
     clock.value += 30
     reporter.tick()
@@ -161,3 +167,46 @@ def test_task_progress_event_registered_and_built() -> None:
     assert "3/10" in message.body
     assert message.event_type == "task_progress"
     assert message.task_id == "t1"
+
+
+def test_notify_pipeline_step_is_immediate_and_deduplicated() -> None:
+    clock = _Clock()
+    sent: list[tuple[str, dict]] = []
+    rows = [{"run_id": "r1", "current_step": "scan", "progress": 10, "created_at": _iso_utc(clock.value)}]
+    reporter = TaskProgressReporter(
+        send_event=lambda e, d: sent.append((e, d)),
+        task_rows=lambda: [],
+        pipeline_rows=lambda: rows,
+        interval_seconds=300,
+        clock=clock,
+    )
+
+    reporter.tick()
+    assert len(sent) == 1
+
+    rows[0]["current_step"] = "query"
+    rows[0]["progress"] = 20
+    clock.value += 10  # 远未到 5 分钟
+    reporter.notify_pipeline_step("r1", "query")
+    assert len(sent) == 2
+    assert sent[-1][1]["step"] == "query"
+
+    clock.value += 1
+    reporter.tick()  # 同阶段、未到周期，不应重复
+    assert len(sent) == 2
+
+
+def test_pipeline_store_triggers_step_callback() -> None:
+    from unittest.mock import MagicMock
+
+    from pilotstd.task.pipeline_store import PipelineRunStore
+
+    store = object.__new__(PipelineRunStore)
+    store._db = MagicMock()
+    store._db.fetchone.return_value = {"current_step": "scan", "step_results": "{}"}
+    calls: list[tuple[str, str]] = []
+    store.on_step_changed = lambda run_id, step: calls.append((run_id, step))
+
+    store.update_step("r1", "query", progress=20)
+
+    assert calls == [("r1", "query")]

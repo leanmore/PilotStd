@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import logging
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Callable
 
 logger = logging.getLogger(__name__)
@@ -26,13 +26,21 @@ MIN_INTERVAL_SECONDS = 300
 MAX_INTERVAL_SECONDS = 600
 
 
-def _parse_ts(value: Any) -> float | None:
-    """把数据库时间串（ISO 或 'YYYY-MM-DD HH:MM:SS'）解析为 epoch 秒。"""
+def _parse_ts(value: Any, *, assume_utc: bool = False) -> float | None:
+    """把数据库时间串解析为 epoch 秒。
+
+    任务表用本地时间（`datetime.now()`），管道表用 UTC 字符串（`pipeline_store._now`），
+    两者都可能是 naive 字符串；由调用方用 `assume_utc` 指明语义，避免统一按本地解析
+    导致管道“已运行 8 小时”的假进度。
+    """
     if not value:
         return None
     text = str(value).replace("Z", "+00:00")
     try:
-        return datetime.fromisoformat(text).timestamp()
+        parsed = datetime.fromisoformat(text)
+        if assume_utc and parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed.timestamp()
     except ValueError:
         # 时间字段格式异常：本周期跳过（不是致命错误），但要留痕便于发现脏数据
         logger.warning("task progress: invalid timestamp %r", value)
@@ -135,27 +143,43 @@ class TaskProgressReporter:
             if not run_id:
                 continue
             step = str(row.get("current_step") or "")
-            started = _parse_ts(row.get("created_at")) or now
+            started = _parse_ts(row.get("created_at"), assume_utc=True) or now
             step_changed = self._last_pipeline_step.get(run_id) != step
             last = self._last_pipeline_report.get(run_id, started)
             if not step_changed and now - last < self._interval:
                 continue
-            self._last_pipeline_step[run_id] = step
-            self._last_pipeline_report[run_id] = now
-            progress = row.get("progress", 0)
-            self.send_event(
-                "task_progress",
-                {
-                    "task_id": run_id,
-                    "task_name": "pipeline",
-                    "completed": int(progress or 0),
-                    "total": 100,
-                    "percent": _percent(progress, 100),
-                    "elapsed_minutes": int((now - started) / 60),
-                    "step": step,
-                },
-            )
+            self._emit_pipeline(row, step, now)
         for gone in set(self._last_pipeline_report) - alive:
             self._last_pipeline_report.pop(gone, None)
             self._last_pipeline_step.pop(gone, None)
+
+    def notify_pipeline_step(self, run_id: str, step: str) -> None:
+        """阶段切换即时回调：由 `PipelineRunStore.update_step` 在步骤变化后调用。"""
+        now = self._clock()
+        for row in self._pipeline_rows() or []:
+            if str(row.get("run_id") or "") == str(run_id):
+                self._emit_pipeline(row, step, now)
+                return
+
+    def _emit_pipeline(self, row: dict[str, Any], step: str, now: float) -> None:
+        """发送一条管道进度；同时刷新去重状态（tick 与即时回调共用）。"""
+        run_id = str(row.get("run_id") or "")
+        if not run_id:
+            return
+        started = _parse_ts(row.get("created_at"), assume_utc=True) or now
+        self._last_pipeline_step[run_id] = step
+        self._last_pipeline_report[run_id] = now
+        progress = row.get("progress", 0)
+        self.send_event(
+            "task_progress",
+            {
+                "task_id": run_id,
+                "task_name": "pipeline",
+                "completed": int(progress or 0),
+                "total": 100,
+                "percent": _percent(progress, 100),
+                "elapsed_minutes": int((now - started) / 60),
+                "step": step,
+            },
+        )
 
