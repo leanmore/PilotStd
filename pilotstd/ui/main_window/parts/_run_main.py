@@ -10,7 +10,7 @@ from PyQt6.QtCore import QMessageLogContext, QTimer, QtMsgType, qInstallMessageH
 from PyQt6.QtWidgets import QApplication
 
 
-def run() -> None:  # pragma: no cover — app.exec() 入口，单元测试不可达
+def run() -> None:
     """启动 GUI 应用。"""
     from pilotstd.core.config import ConfigManager
     from pilotstd.core.frozen import is_frozen
