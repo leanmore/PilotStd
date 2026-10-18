@@ -5,6 +5,8 @@
 
 from __future__ import annotations
 
+import json
+import logging
 import sys
 from pathlib import Path
 
@@ -208,6 +210,36 @@ class TestRetryBudgetIsolation:
 
         with pytest.raises(RetryBudgetExhaustedError, match="重试耗尽"):
             validate_decision_request(bad_output, retry_count=3)
+
+    def test_retry_exhaustion_logs_three_fields(self, caplog):
+        """§4.3 实施备注：retry_reason / caller_stack / attempt_details 三字段可解析。"""
+        from enforcement.guardrails import _log_retry_exhaustion
+
+        details = [
+            {"attempt": 1, "reason": "transient", "errors": ["timeout"]},
+            {"attempt": 2, "reason": "validation", "errors": ["缺少字段"]},
+        ]
+        with caplog.at_level(logging.ERROR, logger="enforcement.guardrails"):
+            _log_retry_exhaustion("out", 3, retry_reason="transient", attempt_details=details)
+
+        message = caplog.records[0].getMessage()
+        assert "retry_reason=transient" in message
+        assert "caller_stack=" in message
+        payload = message.split("attempt_details=", 1)[1].split(" output_preview=", 1)[0]
+        assert json.loads(payload) == details
+
+    def test_retry_exhaustion_default_attempt_details(self, caplog):
+        """调用方未传 attempt_details 时退化为单元素数组（字段始终可解析）。"""
+        from enforcement.guardrails import _log_retry_exhaustion
+
+        with caplog.at_level(logging.ERROR, logger="enforcement.guardrails"):
+            _log_retry_exhaustion("bad output", 3)
+
+        message = caplog.records[0].getMessage()
+        payload = message.split("attempt_details=", 1)[1].split(" output_preview=", 1)[0]
+        parsed = json.loads(payload)
+        assert parsed[0]["attempt"] == 3
+        assert parsed[0]["reason"] == "validation"
 
 
 class TestAtomicWriteWhitelist:

@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 import os
 import time
@@ -374,16 +375,30 @@ def _run_cleanup() -> CleanupReport:
 _MAX_RETRIES = 3
 
 
-def validate_decision_request(output: str, retry_count: int = 0) -> None:
+def validate_decision_request(
+    output: str,
+    retry_count: int = 0,
+    *,
+    retry_reason: str = "validation",
+    attempt_details: list[dict[str, Any]] | None = None,
+) -> None:
     """Post-output: 决策请求输出时校验，含 max_retries=3 重试预算。
 
     重试预算语义（§4.3）:
       - 作用域: 请求级（每次调用独立）
       - 生命周期: 单次调用内，严禁全局变量维持
       - 耗尽处理: RetryBudgetExhaustedError，不静默失败
+
+    耗尽时按 §4.3 实施备注记录 retry_reason / caller_stack / attempt_details；
+    重试循环应把每轮的具体错误传入 attempt_details。
     """
     if retry_count >= _MAX_RETRIES:
-        _log_retry_exhaustion(output, retry_count)
+        _log_retry_exhaustion(
+            output,
+            retry_count,
+            retry_reason=retry_reason,
+            attempt_details=attempt_details,
+        )
         raise RetryBudgetExhaustedError(f"[生成阻断-重试耗尽] 决策请求在 {_MAX_RETRIES} 次重试后仍未通过校验")
 
     errors: list[str] = []
@@ -434,25 +449,38 @@ def _extract_field(output: str, field_name: str) -> str | None:
     return match.group(1).strip() if match else None
 
 
-def _log_retry_exhaustion(output: str, retry_count: int) -> None:
+def _log_retry_exhaustion(
+    output: str,
+    retry_count: int,
+    *,
+    retry_reason: str = "validation",
+    attempt_details: list[dict[str, Any]] | None = None,
+) -> None:
     """重试耗尽可观测性埋点（§4.3 实施备注）。
 
-    记录 retry_reason / caller_stack / attempt_details，
-    用于区分"下游服务抖动"和"提示词模板缺陷"。
+    记录三个可被日志系统解析/聚合的字段：
+      - retry_reason: transient（网络/超时）vs validation（格式错误）
+      - caller_stack: 调用栈哈希（聚合相同调用源）
+      - attempt_details: 每次重试的具体错误信息数组（JSON）
+
+    调用方（重试循环）应显式传入 attempt_details；未传时退化为
+    "最后一次尝试 + output 预览"的单元素数组，保证字段始终可解析。
     """
-    # 判断失败类型
-    retry_reason = "validation"  # 格式错误
-    # 调用栈哈希（用于聚合）
     import traceback
 
     stack = "".join(traceback.format_stack()[:-1])
     caller_hash = hashlib.md5(stack.encode()).hexdigest()[:8]
 
+    details = attempt_details
+    if details is None:
+        details = [{"attempt": retry_count, "reason": retry_reason, "output_preview": output[:200]}]
+
     logger.error(
-        "[RETRY_EXHAUSTED] reason=%s caller=%s retries=%d output_preview=%.200s",
+        "[RETRY_EXHAUSTED] retry_reason=%s caller_stack=%s retries=%d attempt_details=%s output_preview=%.200s",
         retry_reason,
         caller_hash,
         retry_count,
+        json.dumps(details, ensure_ascii=False),
         output,
     )
 

@@ -23,7 +23,7 @@
 | **A-1** | **P7-12：`docker/api/tasks.py:138` 越过 DAO 直调私有 `mgr.task_queue._persist(task)`** | ✅ **已修（2026-10-18）** | `TaskQueue.persist()` 公共入口已加，`docker/api/tasks.py` 改调用它；测试断言 `persist` 被调且 `_persist` 不再被 API 触碰 | **无前置条件，可随时做**（`docs/plans/notification-redesign/10-阶段2投影入口调查.md:72` 明写"不得因 P4b 收尾而勾销"） |
 | **A-2** | **G-049 防膨胀门禁只覆盖 `manager.py`**（`scripts/check_g_049_manager_size.py:18` 的 `TARGET`） | 未修 | 评估把 `TARGET` 扩到 `pilotstd/core/notification/` 其他大文件（先跑一遍看会红多少） | 触发条件＝通知模块再出现单文件膨胀 |
 | **A-3** | **`channel_spec.schema ↔ get_config_schema()` 互证门禁缺失**（现只有字段级断言 `tests/test_channel_spec.py:72-119`） | 未修（可选） | 加一条"声明 ↔ 实现"一致性门禁 | 触发条件＝渠道字段再次漂移 |
-| **A-4** | **Phase1 检查项 3：重试耗尽埋点三字段不达标** | 未修 | `enforcement/guardrails.py:433-453` 的 `_log_retry_exhaustion`：`retry_reason` 硬编码 `"validation"`（`:440`）、`caller_stack` 只输出 md5 前 8 位（`:445`）、**缺 `attempt_details` 字段** ⇒ 按验收标准补齐三字段 | **注：`enforcement/`、`src/` 不在本仓根目录的可达路径内时无法施工**（施工前先确认路径归属） |
+| **A-4** | **Phase1 检查项 3：重试耗尽埋点三字段不达标** | ✅ **已修（2026-10-18）** | `_log_retry_exhaustion` 现输出 `retry_reason=`（可由调用方按 transient/validation 传入）、`caller_stack=`（明确字段名）、`attempt_details=<JSON 数组>`；`validate_decision_request` 增加同名关键字参数并透传。测试 2 例锁定可解析性 | `enforcement/` 已确认在仓内（`git ls-files` 可见），无需外部路径 |
 | **A-5** | **cookiecutter 真实 CLI 端到端未入 CI** | 观察 | 模板改动涉及 hooks 时补一条真实 CLI 用例（渲染/编译/零字面量已由 jinja2 用例覆盖） | 触发条件＝hooks 变更或脚手架被频繁使用 |
 | **A-6** | **`known-issues.md` 第 4 项：Telegram 429 的 55.6% 未复测** | 观察 | 部署后取 `GET /api/notification/logs` 的 success/failed 分布 + 容器日志 429 计数，给出改善证据 | 触发条件＝下次通知量统计复核 |
 
