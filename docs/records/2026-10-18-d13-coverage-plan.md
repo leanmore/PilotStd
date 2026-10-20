@@ -65,3 +65,9 @@
 | 替换重复实现并删旧正则 | 1h | `grep` 仅一处语法定义 |
 
 原 22h → **约 30h / 2 周**；仍按 P1→P2→P3 顺序执行，先统一语法再补函数级覆盖。
+
+## 七、P1 实际进展（2026-10-20）
+
+- pilotstd/scan/scanner.py：行覆盖 65.8% → **99%**（新增 	ests/test_scanner_error_branches.py 12 例）；
+- pilotstd/scan/parser/_core.py：**97%**（	ests/test_parser_core_delegation.py 3 例）；
+- 剩余：_exact_matcher.py 的异常分支与 scan 其他文件，按 D-13 P1 继续。

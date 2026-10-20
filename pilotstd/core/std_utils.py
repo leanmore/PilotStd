@@ -244,7 +244,7 @@ def _try_parse_variant_prefix(text: str) -> dict[str, Any] | None:
     prefix = m.group(1)
     return {
         "raw_code": prefix,
-        "code": prefix.replace("/", ""),
+        "code": re.sub(r"\s+", "", prefix).replace("/", ""),
         "number": parts[0],
         "part": parts[1] if len(parts) > 1 else None,
         "year": int(m.group(3)),

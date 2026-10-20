@@ -112,3 +112,53 @@ def test_recursive_valueerror_branch() -> None:
     with patch("pilotstd.scan.scanner.os.scandir", side_effect=ValueError("bad")):
         scanner._scan_recursive("/x", result)
     assert any("遍历目录失败" in w for w in result.warnings)
+
+
+def _dir_scan(entries):
+    cm = MagicMock()
+    cm.__enter__.return_value = entries
+    cm.__exit__.return_value = False
+    return cm
+
+
+def test_recursive_entry_exceptions_are_caught_per_type() -> None:
+    for exc, text in (
+        (PermissionError("no"), "无权限访问"),
+        (OSError("bad"), "文件系统错误"),
+        (ValueError("bad"), "处理错误"),
+    ):
+        scanner = _scanner()
+        result = ScanResult()
+        with (
+            patch("pilotstd.scan.scanner.os.scandir", return_value=_dir_scan([_entry()])),
+            patch.object(scanner, "_process_file_entry", side_effect=exc),
+        ):
+            scanner._scan_recursive("/x", result)
+        assert any(text in w for w in result.warnings)
+
+
+def test_non_file_entry_is_ignored() -> None:
+    scanner = _scanner()
+    result = ScanResult()
+    entry = _entry()
+    entry.is_file.return_value = False
+    with (
+        patch("pilotstd.scan.scanner.os.scandir", return_value=_dir_scan([entry])),
+        patch.object(scanner, "_process_file_entry") as process,
+    ):
+        scanner._scan_recursive("/x", result)
+    process.assert_not_called()
+
+
+def test_progress_logged_every_100_files() -> None:
+    scanner = _scanner()
+    scanner.log = MagicMock()
+    result = ScanResult()
+    entries = [_entry(name=f"f{i}.pdf", path=f"/x/f{i}.pdf") for i in range(100)]
+    with (
+        patch("pilotstd.scan.scanner.os.scandir", return_value=_dir_scan(entries)),
+        patch("pilotstd.scan.scanner.hash_file_content", side_effect=[f"h{i}" for i in range(100)]),
+    ):
+        scanner._scan_recursive("/x", result)
+    assert result.stats.total == 100
+    assert any("扫描进度" in str(c) for c in scanner.log.info.call_args_list)
