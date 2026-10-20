@@ -44,14 +44,15 @@
       "check_no_type": "请至少开启一个公告类型",
       "check_failed": "公告检查失败",
       "check_failed_detail": "公告检查失败，请查看后台日志",
-      "empty_hint": "暂无公告数据，请调整日期或点击\"立即抓取\"",
+      "empty_hint": "暂无公告数据，请点击“刷新列表”，或设置起始日期后点击“立即抓取”",
       "item_count": "({n}项)",
       "stat": {
         "total": "标准总数",
         "matched": "已匹配",
         "today_new": "今日新增",
         "breakdown": "国标 {gb} · 行标 {hb} · 地标 {db}"
-      }
+      },
+      "refresh_list": "刷新列表"
     },
     "detail": {
       "route_title": "公告详情",

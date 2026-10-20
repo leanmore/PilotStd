@@ -63,10 +63,8 @@ const error = ref('')
 async function load() {
   try {
     const sourceSite = `announcement_${activeTab.value}`
-    const fromDate = sinceDate.value
-      ? `${sinceDate.value.getFullYear()}-${String(sinceDate.value.getMonth() + 1).padStart(2, '0')}-${String(sinceDate.value.getDate()).padStart(2, '0')}`
-      : ''
-    const data = await getAnnounceResults(sourceSite, fromDate, '/announce')
+    // 日期是“抓取起点”，不是列表展示日期：列表不按它过滤，只按来源 Tab 展示
+    const data = await getAnnounceResults(sourceSite, '', '/announce')
     results.value = data.results || []
     loadStats()
   } catch {}
@@ -115,7 +113,8 @@ function onPage(e: any) {
       @update:fetch-enabled="(key, val) => { const k = key as 'gb'|'hb'|'db'; adapterEnabled[k] = val }"
     />
     <AppCalendar v-model="sinceDate" dateFormat="yy-mm-dd" showIcon style="width:160px" />
-    <Button :label="t('announce.view.fetch_now')" icon="pi pi-refresh" :loading="loading" @click="check" size="small" />
+    <Button :label="t('announce.view.refresh_list')" icon="pi pi-sync" severity="secondary" outlined size="small" @click="load" />
+    <Button :label="t('announce.view.fetch_now')" icon="pi pi-cloud-download" :loading="loading" @click="check" size="small" />
   </div>
   <p v-if="error" class="err-msg">{{ error }}</p>
   <!-- 统计数据 -->

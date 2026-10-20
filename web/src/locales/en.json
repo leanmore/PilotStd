@@ -44,14 +44,15 @@
       "check_no_type": "Enable at least one announcement type",
       "check_failed": "Announcement check failed",
       "check_failed_detail": "Announcement check failed, please check the backend logs",
-      "empty_hint": "No announcement data. Adjust the date range or click \"Fetch Now\"",
+      "empty_hint": "No announcement data. Click \"Refresh List\", or set a start date and click \"Fetch Now\".",
       "item_count": "({n} items)",
       "stat": {
         "total": "Total Standards",
         "matched": "Matched",
         "today_new": "New Today",
         "breakdown": "GB {gb} · HB {hb} · DB {db}"
-      }
+      },
+      "refresh_list": "Refresh List"
     },
     "detail": {
       "route_title": "Announcement Detail",

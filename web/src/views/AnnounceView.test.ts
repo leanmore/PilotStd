@@ -86,6 +86,22 @@ describe('AnnounceView', () => {
     expect(wrapper.html()).toContain('立即抓取')
   })
 
+  it('列表刷新不按抓取日期过滤', async () => {
+    const wrapper = mountView()
+    await new Promise(r => setTimeout(r, 10))
+    await wrapper.vm.$nextTick()
+
+    // 列表请求不传 from_date：日期只用于“立即抓取”的起点
+    expect(getAnnounceResultsMock).toHaveBeenCalledWith('announcement_gb', '', '/announce')
+
+    const before = getAnnounceResultsMock.mock.calls.length
+    const refresh = wrapper.findAll('button').find((b) => b.text().includes('刷新列表'))
+    expect(refresh).toBeTruthy()
+    await refresh!.trigger('click')
+    await new Promise(r => setTimeout(r, 10))
+    expect(getAnnounceResultsMock.mock.calls.length).toBe(before + 1)
+  })
+
   it('无结果时正常渲染不崩溃', async () => {
     getAnnounceResultsMock.mockResolvedValue({ results: [] })
     const wrapper = mountView()
