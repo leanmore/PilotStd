@@ -61,3 +61,24 @@ def test_utils_compat_alias() -> None:
     from pilotstd.scan.parser._core import ParserCore
 
     assert UtilsMixin is ParserCore
+
+
+def test_number_extractor_more_edges() -> None:
+    assert NumberExtractor.normalize_year("2020") == 2020
+    assert NumberExtractor.extract_number("12A3") == (None, "", "")
+    assert NumberExtractor.extract_part("") is None
+
+
+def test_build_result_success_and_failure() -> None:
+    b = ResultBuilder({"GB": "GB"}, lambda: "扫描版")
+    info = b.build_result("GB 1-2020 标题", 10, "GB", 1, None, 2020)
+    assert info is not None
+    assert info.file_kind == "扫描版"
+    assert info.std_name == "标题"
+    assert b.build_result("GB 1-2020 标题", 2, "", 1, None, 2020) is None
+
+
+def test_classify_unknown_code() -> None:
+    from pilotstd.scan.parser import StandardParser
+
+    assert StandardParser._classify_code(None, "XYZ") == "unknown"
