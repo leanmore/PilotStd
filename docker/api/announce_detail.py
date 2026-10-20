@@ -67,7 +67,7 @@ def get_announcement_records_paginated(
     db = mgr.db
 
     total_row = db.fetchone(
-        "SELECT COUNT(*) AS cnt FROM announcement_record WHERE announce_no = ?",
+        "SELECT COUNT(*) AS cnt FROM announcement_record WHERE TRIM(announce_no) = ?",
         (announce_no,),
     )
     total = total_row["cnt"] if total_row else 0
@@ -77,7 +77,7 @@ def get_announcement_records_paginated(
         "SELECT id, row_index, standard_number, std_name,"
         " publish_date, implement_date, expiry_date, superseded_by, status"
         " FROM announcement_record"
-        " WHERE announce_no = ?"
+        " WHERE TRIM(announce_no) = ?"
         " ORDER BY standard_number ASC"
         " LIMIT ? OFFSET ?",
         (announce_no, page_size, offset),
@@ -107,7 +107,7 @@ def get_announcement_detail(announce_no: str, mgr=Depends(get_manager_dep)):
     ann = db.fetchone(
         "SELECT id, title, publish_date, source_url, attachment_url, raw_data, source_site,"
         " COALESCE(parse_status, 'pending') AS parse_status"
-        " FROM announcements WHERE announce_no = ?",
+        " FROM announcements WHERE TRIM(announce_no) = ?",
         (announce_no,),
     )
 
@@ -124,8 +124,8 @@ def get_announcement_detail(announce_no: str, mgr=Depends(get_manager_dep)):
         header = db.fetchone(
             "SELECT COALESCE(MAX(announcement_title), '公告 ' || announce_no) AS title,"
             " MAX(publish_date) AS publish_date"
-            " FROM announcement_record WHERE announce_no = ?"
-            " GROUP BY announce_no",
+            " FROM announcement_record WHERE TRIM(announce_no) = ?"
+            " GROUP BY TRIM(announce_no)",
             (announce_no,),
         )
         if not header:
@@ -143,7 +143,7 @@ def get_announcement_detail(announce_no: str, mgr=Depends(get_manager_dep)):
         " status, confidence, source_type,"
         " fetched_at AS created_at, approved_at AS updated_at"
         " FROM announcement_record"
-        " WHERE announce_no = ?"
+        " WHERE TRIM(announce_no) = ?"
         " ORDER BY row_index",
         (announce_no,),
     )
@@ -202,7 +202,7 @@ def get_announcement_detail_lite(announce_no: str, mgr=Depends(get_manager_dep))
     ann = db.fetchone(
         "SELECT id, title, publish_date, source_url, attachment_url, raw_data, source_site,"
         " COALESCE(parse_status, 'pending') AS parse_status"
-        " FROM announcements WHERE announce_no = ?",
+        " FROM announcements WHERE TRIM(announce_no) = ?",
         (announce_no,),
     )
 
@@ -217,8 +217,8 @@ def get_announcement_detail_lite(announce_no: str, mgr=Depends(get_manager_dep))
         header = db.fetchone(
             "SELECT COALESCE(MAX(announcement_title), '公告 ' || announce_no) AS title,"
             " MAX(publish_date) AS publish_date"
-            " FROM announcement_record WHERE announce_no = ?"
-            " GROUP BY announce_no",
+            " FROM announcement_record WHERE TRIM(announce_no) = ?"
+            " GROUP BY TRIM(announce_no)",
             (announce_no,),
         )
         if not header:
@@ -235,7 +235,7 @@ def get_announcement_detail_lite(announce_no: str, mgr=Depends(get_manager_dep))
         "SELECT id, row_index, standard_number, std_name,"
         " publish_date, implement_date, expiry_date, superseded_by, status, source_type"
         " FROM announcement_record"
-        " WHERE announce_no = ?"
+        " WHERE TRIM(announce_no) = ?"
         " ORDER BY row_index",
         (announce_no,),
     )
@@ -286,7 +286,7 @@ def get_announcement_by_no(announce_no: str, mgr=Depends(get_manager_dep)):
     """旧链接兼容：返回该编号下所有来源的公告头列表。"""
     db = mgr.db
     rows = db.fetchall(
-        "SELECT source_site, announce_no, title FROM announcements WHERE announce_no = ?",
+        "SELECT source_site, announce_no, title FROM announcements WHERE TRIM(announce_no) = ?",
         (announce_no,),
     )
     return [dict(r) for r in rows]
@@ -309,7 +309,7 @@ def trigger_parse(
     ann = db.fetchone(
         "SELECT id, announce_no, attachment_url, source_site, pid,"
         " title, publish_date, source_url, raw_data"
-        " FROM announcements WHERE announce_no = ?",
+        " FROM announcements WHERE TRIM(announce_no) = ?",
         (announce_no,),
     )
     if not ann:
@@ -317,8 +317,8 @@ def trigger_parse(
         rec = db.fetchone(
             "SELECT pid, source_site, announce_no,"
             " MAX(announcement_title) AS title, MAX(publish_date) AS publish_date"
-            " FROM announcement_record WHERE announce_no = ?"
-            " GROUP BY announce_no",
+            " FROM announcement_record WHERE TRIM(announce_no) = ?"
+            " GROUP BY TRIM(announce_no)",
             (announce_no,),
         )
         if rec:
@@ -343,7 +343,7 @@ def trigger_parse(
             ann = db.fetchone(
                 "SELECT id, announce_no, attachment_url, source_site, pid,"
                 " title, publish_date, source_url, raw_data"
-                " FROM announcements WHERE announce_no = ?",
+                " FROM announcements WHERE TRIM(announce_no) = ?",
                 (announce_no,),
             )
 
@@ -394,7 +394,7 @@ def get_parse_status(announce_no: str, mgr=Depends(get_manager_dep)):
     """查询解析状态（供前端轮询）。"""
     db = mgr.db
 
-    ann = db.fetchone("SELECT id FROM announcements WHERE announce_no = ?", (announce_no,))
+    ann = db.fetchone("SELECT id FROM announcements WHERE TRIM(announce_no) = ?", (announce_no,))
     if not ann:
         raise HTTPException(404, "公告不存在")
 

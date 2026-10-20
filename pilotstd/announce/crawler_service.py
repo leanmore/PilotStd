@@ -127,7 +127,7 @@ class AnnounceCrawler:
         db = self._file_index._db
         ann = db.fetchone(
             "SELECT id, pid, announce_no, title, publish_date, source_site"
-            " FROM announcements WHERE announce_no = ?",
+            " FROM announcements WHERE TRIM(announce_no) = ?",
             (announce_no,),
         )
         if not ann:
@@ -155,7 +155,7 @@ class AnnounceCrawler:
             standard_category=adapter.standard_category,
         )
         db.execute(
-            "UPDATE announcements SET parse_status='completed', updated_at=? WHERE announce_no=?",
+            "UPDATE announcements SET parse_status='completed', updated_at=? WHERE TRIM(announce_no)=?",
             (datetime.now().isoformat(), announce_no),
         )
         return {"status": "reparsed", "announce_no": announce_no, "records": len(items)}

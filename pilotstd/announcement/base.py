@@ -146,10 +146,10 @@ class BaseAnnounceCrawler(ABC):
                     return announcements
                 announcements.append(
                     {
-                        "pid": row.get("PID", ""),
-                        "code": row.get("CODE", ""),
-                        "title": row.get("TITLE", row.get("C_TITLE", "")),
-                        "notice_date": row.get("NOTICE_DATE", ""),
+                        "pid": str(row.get("PID", "")).strip(),
+                        "code": str(row.get("CODE", "")).strip(),
+                        "title": str(row.get("TITLE", row.get("C_TITLE", ""))).strip(),
+                        "notice_date": str(row.get("NOTICE_DATE", "")).strip(),
                         "std_count": row.get("STD_COUNT", ""),
                     }
                 )

@@ -417,6 +417,24 @@ class TestFetchList(unittest.TestCase):
         self.assertEqual(result[1]["pid"], "p2")
 
     @patch("pilotstd.announcement.base.safe_request")
+    def test_strips_whitespace_around_code(self, mock_safe_request):
+        """源站第36-38号 CODE 带前导空格；入库前必须 strip，否则详情按号查不到。"""
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {
+            "rows": [
+                {"PID": " p1 ", "CODE": " 2026年第36号 ", "TITLE": " 标题 ", "NOTICE_DATE": "2026-08-27"},
+            ],
+            "total": 1,
+        }
+        mock_safe_request.return_value = mock_resp
+
+        result = self.crawler._fetch_list("", 20)
+
+        self.assertEqual(result[0]["pid"], "p1")
+        self.assertEqual(result[0]["code"], "2026年第36号")
+        self.assertEqual(result[0]["title"], "标题")
+
+    @patch("pilotstd.announcement.base.safe_request")
     def test_pagination_multiple_pages(self, mock_safe_request):
         """多页数据：模拟 page1 返回 page_size 条，page2 返回 0 条。"""
 

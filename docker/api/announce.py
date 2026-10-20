@@ -195,7 +195,7 @@ def get_announce_results(
 
     try:
         query = (
-            f"SELECT announce_no, announcement_title, standard_count,"
+            f"SELECT TRIM(announce_no) AS announce_no, announcement_title, standard_count,"
             f" publish_date, fetched_at, source_site"
             f" FROM ({inner}) WHERE rn = 1"
             " ORDER BY"
@@ -207,7 +207,7 @@ def get_announce_results(
     except Exception:
         logger.warning("排序逻辑异常（可能 announce_no 格式异常），降级为按抓取时间排序")
         query = (
-            f"SELECT announce_no, announcement_title, standard_count,"
+            f"SELECT TRIM(announce_no) AS announce_no, announcement_title, standard_count,"
             f" publish_date, fetched_at, source_site"
             f" FROM ({inner}) WHERE rn = 1"
             " ORDER BY fetched_at DESC LIMIT 100"

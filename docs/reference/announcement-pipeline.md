@@ -82,3 +82,13 @@ GB/DB/HB 公告头完整；详情记录缺口为 DB 9月第8号 18 条、HB 9月
 与 `/parse` 的差异：`/parse` 只处理附件且要求 `attachment_url`；`reparse` 对 HTML/附件型都通过适配器
 重新取详情，先解析成功再删除旧 `announcement_record` 并重建，避免解析失败先丢数据。
 服务实现：`pilotstd.announce.crawler_service.AnnounceCrawler.reparse_from_source`。
+
+## 公告号前导空格（2026-10-18 实测）
+
+源站 GB 第36/37/38号的 `CODE` 带**前导空格**（`' 2026年第36号'`）。入库未 strip 时：
+- `/api/announce/results` 能列出，但前端按 `announce_no` 请求详情会 404；
+- 表现为“国家标准公告缺少第36、37、38号”。
+
+修复：`_fetch_list` 对 `PID/CODE/TITLE/NOTICE_DATE` 统一 `strip()`；详情/记录/状态查询
+改用 `TRIM(announce_no)=?` 兼容历史脏数据；列表查询返回 `TRIM(announce_no) AS announce_no`。
+回归：`tests/test_announcement_base_full.py::TestFetchList::test_strips_whitespace_around_code`。
