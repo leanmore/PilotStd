@@ -71,3 +71,5 @@
 - pilotstd/scan/scanner.py：行覆盖 65.8% → **99%**（新增 	ests/test_scanner_error_branches.py 12 例）；
 - pilotstd/scan/parser/_core.py：**97%**（	ests/test_parser_core_delegation.py 3 例）；
 - 剩余：_exact_matcher.py 的异常分支与 scan 其他文件，按 D-13 P1 继续。
+
+- pilotstd/scan/parser/_exact_matcher.py：新增错误/回退分支测试 	ests/test_exact_matcher_branches.py（8 例）；目标子集覆盖 95%。
