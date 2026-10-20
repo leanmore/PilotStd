@@ -7,6 +7,12 @@ from typing import Any, Optional
 
 from bs4 import BeautifulSoup
 
+from ..core.std_utils import (
+    STD_CODE_TOKEN_PATTERN as STD_CODE_PATTERN,
+)
+from ..core.std_utils import (
+    normalize_std_code_text as _normalize_code_text,
+)
 from ._attachment_parser import (  # noqa: F401 — 重导出
     download_attachment,
     extract_content,
@@ -17,42 +23,8 @@ from ._attachment_parser import (  # noqa: F401 — 重导出
 
 logger = logging.getLogger(__name__)
 
-# 标准编号模式：代号 + 空格 + 顺序号[.部分号] + — + 年份
-_CODE_PREFIX = r"[A-Z]+(?:\d+)?[A-Z]*(?:\s+[A-Z]+(?:\d+)?[A-Z]*)*(?:\s*/\s*[A-Z]+(?:\d+)?[A-Z]*)*"
-_CODE_NUM = r"\d+(?:\.\d+)*"
-_CODE_SEP = r"[—\-－–−һ﹣‑]"
-# 标准编号模式：代号（可多段，如 NB/SH/T、DB52T、DB11/）+ 顺序号[.分册号] + 连接符 + 年份
-STD_CODE_PATTERN = re.compile(
-    rf"({_CODE_PREFIX})\s*/?\s*{_CODE_SEP}?\s*({_CODE_NUM})\s*{_CODE_SEP}\s*(\d{{4}})"
-)
-# 代替标准在表格中的位置模式（"代替" 列的后面）
-REPLACES_PATTERN = re.compile(
-    rf"({_CODE_PREFIX}\s*/?\s*{_CODE_SEP}?\s*{_CODE_NUM}\s*{_CODE_SEP}\s*\d{{4}})"
-)
-
-# 源站表格里的全角连接符（HB 公告常见 `SJ/T 11460.6.1－2025`、`DY/Z／14.3—2026`）。
-# 不归一化会让正则匹配失败，整行被跳过（2026-08 HB 第7号实测漏 6 条）。
-_FULLWIDTH_CODE_TRANS = str.maketrans(
-    {
-        "－": "-",  # U+FF0D
-        "—": "-",  # U+2014
-        "–": "-",  # U+2013
-        "−": "-",  # U+2212
-        "／": "/",  # U+FF0F
-        "｜": "/",  # U+FF5C
-        "？": "/",  # U+FF1F：源站把 DY/Z 与序号之间的分隔符打成全角问号
-        "һ": "-",  # U+04BB：源站把连接符误打成西里尔字母
-        "一": "-",  # U+4E00：源站把连接符误打成汉字“一”（HG/T 6488 一 2026）
-        "﹣": "-",  # U+FE63
-        "‑": "-",  # U+2011
-        "　": " ",  # U+3000
-    }
-)
-
-
-def _normalize_code_text(text: str) -> str:
-    """把标准号里的全角连接符归一化为半角，保留长度以便复用正则偏移。"""
-    return text.translate(_FULLWIDTH_CODE_TRANS)
+# 代替标准沿用同一 token 语法
+REPLACES_PATTERN = STD_CODE_PATTERN
 
 
 def parse_announcement_meta(html: str) -> dict[str, str]:

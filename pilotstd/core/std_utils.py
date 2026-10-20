@@ -204,7 +204,7 @@ def _try_parse_fallback(text: str) -> dict[str, Any] | None:
     }
 
 
-_CODE_WIDTH_TRANS = str.maketrans(
+CODE_WIDTH_TRANS = str.maketrans(
     {
         "\uff0d": "-",
         "\u2014": "-",
@@ -218,19 +218,26 @@ _CODE_WIDTH_TRANS = str.maketrans(
     }
 )
 
+# 标准号 token 的**唯一语法定义**：公告行提取、语义解析、matcher 共用。
+STD_CODE_TOKEN_PATTERN = re.compile(
+    r"([A-Z][A-Z0-9]*(?:\s+[A-Z][A-Z0-9]*)*(?:/[A-Z0-9]+)*)\s*/?\s*-?\s*(\d+(?:\.\d+)*)\s*[—\-－–−һ﹣‑]\s*(\d{4})"
+)
+
+
+def normalize_std_code_text(text: str) -> str:
+    """全角/误打连接符归一化；仅用于匹配，展示层可保留原始写法。"""
+    return str(text).translate(CODE_WIDTH_TRANS)
+
 
 def _try_parse_variant_prefix(text: str) -> dict[str, Any] | None:
     """解析新版公告里常见的变形前缀：DB52T、DB11/、NB/SH/T、SJ/T-、HG/T … 一 …、QB T。"""
-    s = re.sub(r"\s+", " ", text.translate(_CODE_WIDTH_TRANS)).strip()
+    s = re.sub(r"\s+", " ", normalize_std_code_text(text)).strip()
     # DB11/ 2567：尾部斜杠是行政区分隔符，不是“/T”代号段
-    s = re.sub(r"^(DB\d{2,4})/\s*", r"\1 ", s)
+    s = re.sub(r"^(DB\d{2,4})/\s*(?=\d)", r"\1 ", s)
     # QB T 1750 -> QB/T 1750；只处理“单字母+空格+单字母”的代号段
     s = re.sub(r"([A-Z])\s+([A-Z])(?=[\s/])", r"\1/\2", s)
     s = re.sub(r"\s*/\s*", "/", s)
-    m = re.match(
-        r"^([A-Z][A-Z0-9]*(?:/[A-Z0-9]+)*)\s*/?\s*-?\s*(\d+(?:\.\d+)*)\s*-?\s*(\d{4})$",
-        s,
-    )
+    m = STD_CODE_TOKEN_PATTERN.match(s)
     if not m:
         return None
     parts = [int(x) for x in m.group(2).split(".")]

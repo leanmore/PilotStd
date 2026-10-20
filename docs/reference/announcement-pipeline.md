@@ -92,3 +92,5 @@ GB/DB/HB 公告头完整；详情记录缺口为 DB 9月第8号 18 条、HB 9月
 修复：`_fetch_list` 对 `PID/CODE/TITLE/NOTICE_DATE` 统一 `strip()`；详情/记录/状态查询
 改用 `TRIM(announce_no)=?` 兼容历史脏数据；列表查询返回 `TRIM(announce_no) AS announce_no`。
 回归：`tests/test_announcement_base_full.py::TestFetchList::test_strips_whitespace_around_code`。
+
+> 2026-10-20：公告行提取改用 `core.std_utils.STD_CODE_TOKEN_PATTERN`，与 `parse_std_number` 共用同一 token 语法/归一化；跨层不变量测试保证“提取出的号必能被语义解析”，避免再次出现提取成功、matcher 拒绝的静默丢记录。

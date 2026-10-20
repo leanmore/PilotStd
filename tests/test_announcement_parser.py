@@ -185,6 +185,21 @@ class TestMultiSlashAndTypoPrefixes(unittest.TestCase):
         self.assertIn("SJ/T-12117-2026", codes)
         self.assertIn("QB T 1750-2026", codes)
 
+    def test_every_extracted_code_is_semantically_parseable(self):
+        """跨层不变量：公告提取出的每个标准号，matcher 的 parse_std_number 必须能解析。"""
+        from pilotstd.core.std_utils import parse_std_number
+
+        html = '''<table><thead><tr><th>序号</th><th>标准编号</th><th>标准名称</th></tr></thead>
+        <tbody>
+        <tr><td>1</td><td>NB/SH/T 0001-2026</td><td>x</td></tr>
+        <tr><td>2</td><td>DB52T 1078-2026</td><td>x</td></tr>
+        <tr><td>3</td><td>SJ/T-12117-2026</td><td>x</td></tr>
+        </tbody></table>'''
+        items = parse_html_table(html)
+        self.assertEqual(len(items), 3)
+        for item in items:
+            self.assertIsNotNone(parse_std_number(item["std_code"]), item["std_code"])
+
 
 if __name__ == '__main__':
     unittest.main()
