@@ -160,6 +160,67 @@ def api_check_announce(
     return check_announce(since_date=since_date, mgr=mgr, types=type_list)
 
 
+def _build_announce_results_query(source_site: str, from_date: str, to_date: str) -> tuple[str, list]:
+    """构造公告列表 SQL：记录与公告头合并，零记录公告也保留。"""
+    record_where = ["announce_no IS NOT NULL", "announce_no != ''"]
+    header_where = ["announce_no IS NOT NULL", "announce_no != ''"]
+    record_params: list = []
+    header_params: list = []
+
+    if source_site:
+        record_where.append("source_site = ?")
+        record_params.append(source_site)
+        header_where.append("source_site = ?")
+        header_params.append(source_site)
+    if from_date:
+        record_where.append("date(publish_date) >= ?")
+        record_params.append(from_date)
+        header_where.append("date(publish_date) >= ?")
+        header_params.append(from_date)
+    if to_date:
+        record_where.append("date(publish_date) <= ?")
+        record_params.append(to_date)
+        header_where.append("date(publish_date) <= ?")
+        header_params.append(to_date)
+
+    inner = (
+        "SELECT announce_no, announcement_title, standard_count, publish_date, fetched_at,"
+        " source_site, 0 AS header_only"
+        " FROM announcement_record"
+        f" WHERE {' AND '.join(record_where)}"
+        " UNION ALL "
+        "SELECT TRIM(announce_no) AS announce_no, title AS announcement_title,"
+        " NULL AS standard_count, publish_date,"
+        " COALESCE(updated_at, created_at, '') AS fetched_at, source_site, 1 AS header_only"
+        " FROM announcements"
+        f" WHERE {' AND '.join(header_where)}"
+    )
+    params = record_params + header_params
+    mid = (
+        "SELECT *, ROW_NUMBER() OVER ("
+        " PARTITION BY TRIM(announce_no)"
+        " ORDER BY header_only ASC,"
+        "   CASE WHEN publish_date IS NOT NULL AND publish_date != '' THEN 0 ELSE 1 END,"
+        "   fetched_at DESC"
+        ") AS rn FROM ("
+        + inner
+        + ")"
+    )
+    query = (
+        "SELECT TRIM(announce_no) AS f_announce_no, announcement_title AS f_title,"
+        " standard_count AS f_count, publish_date AS f_publish_date, fetched_at AS f_fetched_at,"
+        " source_site AS f_source_site FROM ("
+        + mid
+        + ") WHERE rn = 1"
+        " ORDER BY"
+        " CAST(substr(f_announce_no, 1, 4) AS INTEGER) DESC,"
+        " CAST(substr(f_announce_no, instr(f_announce_no, '第')+1,"
+        " instr(f_announce_no, '号')-instr(f_announce_no, '第')-1) AS INTEGER) DESC,"
+        " f_publish_date DESC LIMIT 100"
+    )
+    return query, params
+
+
 @router.get("/api/announce/results")
 def get_announce_results(
     source_site: str = "",
@@ -167,65 +228,21 @@ def get_announce_results(
     to_date: str = "",
     mgr=Depends(get_manager_dep),
 ):
-    """获取最新公告列表。ROW_NUMBER 窗口去重——同公告号优先保留有日期、最近抓取的行。"""
-    db = mgr.db
-    inner = (
-        "SELECT announce_no, announcement_title, standard_count,"
-        " publish_date, fetched_at, source_site,"
-        " ROW_NUMBER() OVER ("
-        "   PARTITION BY announce_no"
-        "   ORDER BY"
-        "     CASE WHEN publish_date IS NOT NULL AND publish_date != '' THEN 0 ELSE 1 END,"
-        "     fetched_at DESC"
-        " ) AS rn"
-        " FROM announcement_record"
-        " WHERE announce_no IS NOT NULL AND announce_no != ''"
-    )
-    params: list = []
-
-    if source_site:
-        inner += " AND source_site = ?"
-        params.append(source_site)
-    if from_date:
-        inner += " AND date(publish_date) >= ?"
-        params.append(from_date)
-    if to_date:
-        inner += " AND date(publish_date) <= ?"
-        params.append(to_date)
-
-    try:
-        query = (
-            f"SELECT TRIM(announce_no) AS announce_no, announcement_title, standard_count,"
-            f" publish_date, fetched_at, source_site"
-            f" FROM ({inner}) WHERE rn = 1"
-            " ORDER BY"
-            " CAST(substr(announce_no, 1, 4) AS INTEGER) DESC,"
-            " CAST(substr(announce_no, instr(announce_no, '第')+1,"
-            " instr(announce_no, '号')-instr(announce_no, '第')-1) AS INTEGER) DESC,"
-            " publish_date DESC LIMIT 100"
-        )
-    except Exception:
-        logger.warning("排序逻辑异常（可能 announce_no 格式异常），降级为按抓取时间排序")
-        query = (
-            f"SELECT TRIM(announce_no) AS announce_no, announcement_title, standard_count,"
-            f" publish_date, fetched_at, source_site"
-            f" FROM ({inner}) WHERE rn = 1"
-            " ORDER BY fetched_at DESC LIMIT 100"
-        )
-
-    rows = db.fetchall(query, params)
+    """获取最新公告列表。公告头与记录合并：零记录公告也必须显示（否则漏抓公告在列表里消失）。"""
+    query, params = _build_announce_results_query(source_site, from_date, to_date)
+    rows = mgr.db.fetchall(query, params)
 
     results = []
     for row in rows:
         results.append(
             {
-                "announce_no": row["announce_no"],
-                "announcement_title": row["announcement_title"] or "",
-                "standard_count": row["standard_count"],
-                "publish_date": row["publish_date"] or "",
-                "source_site": row["source_site"],
+                "announce_no": row["f_announce_no"],
+                "announcement_title": row["f_title"] or "",
+                "standard_count": row["f_count"],
+                "publish_date": row["f_publish_date"] or "",
+                "source_site": row["f_source_site"],
                 # ✅#47:新增_字段，前端三栏分组使用
-                "standard_type": SOURCE_SITE_TO_TYPE.get(row.get("source_site", ""), "other"),
+                "standard_type": SOURCE_SITE_TO_TYPE.get(row.get("f_source_site", ""), "other"),
             }
         )
 
