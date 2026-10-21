@@ -15,6 +15,7 @@ from pilotstd.core.std_utils import (
     _try_parse_general_format,
     _try_parse_multi_hyphen,
     _try_parse_roman,
+    classify_document_type,
     classify_std_code,
     is_gb_code,
     is_sample_code,
@@ -68,6 +69,13 @@ class TestClassifyStdCode:
         assert classify_std_code("GSB 03-4369") == "sample"
         assert classify_std_code("04-2809-F01") == "sample"
         assert classify_std_code("GB/T") == "gb"
+
+    def test_document_type_distinguishes_gb_variants(self):
+        assert classify_document_type("GB") == "gb"
+        assert classify_document_type("GB/T") == "gb_t"
+        assert classify_document_type("GB/Z") == "gb_z"
+        assert classify_document_type("GSB 03-4369") == "sample"
+        assert classify_document_type("04-2809-F01") == "sample"
 
     def test_gb_variants(self):
         assert classify_std_code("GB") == "gb"

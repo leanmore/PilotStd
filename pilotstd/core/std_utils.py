@@ -5,12 +5,37 @@ import re
 from typing import Any
 
 GB_CODES: frozenset[Any] = frozenset({"GB", "GB/T", "GB/Z"})
+GB_T_CODES: frozenset[Any] = frozenset({"GB/T", "GBT"})
+GB_Z_CODES: frozenset[Any] = frozenset({"GB/Z", "GBZ"})
 SAMPLE_CODES: frozenset[Any] = frozenset({"GSB"})
 
 
 def is_gb_code(code: str) -> bool:
-    """判断标准代号是否为 GB 类（openstd 可下载）。GSB 是国家标准样品，不属于 GB。"""
+    """判断是否属于 openstd 可检索的 GB 家族（含 GB/T、GB/Z）。"""
     return code in GB_CODES
+
+
+def is_guiding_technical_document(code: str) -> bool:
+    """GB/Z：国家标准化指导性技术文件，不是国家标准。"""
+    return code.upper().replace(" ", "") in GB_Z_CODES
+
+
+def classify_document_type(logical_code: str) -> str:
+    """细粒度文档类型：gb / gb_t / gb_z / sample / industry / db / ...。
+
+    与 `classify_std_code` 的区别：后者返回检索/路由用的粗粒度族（GB 家族统一为 gb），
+    保留给适配器路由；统计、公告、展示需要区分 GB 与 GB/T、GB/Z 时用本函数。
+    """
+    code = logical_code.upper().replace(" ", "")
+    if is_sample_code(code):
+        return "sample"
+    if code == "GB":
+        return "gb"
+    if code in GB_T_CODES:
+        return "gb_t"
+    if code in GB_Z_CODES:
+        return "gb_z"
+    return classify_std_code(logical_code)
 
 
 def is_sample_code(code: str) -> bool:

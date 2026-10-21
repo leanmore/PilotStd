@@ -443,3 +443,5 @@ pilotstd/core/
 **标准样品编号（2026-10-21）**：`parse_std_number` 增加 `NN-NNNN-FNN-YYYY` / `GSB NN-NNNN-YYYY` 解析，避免通用标准号正则截断尾段。
 
 **样品/标准分类（2026-10-21）**：GB_CODES 仅保留 GB/GB/T/GB/Z；GSB 单独作为 SAMPLE_CODES，classify_std_code 对 GSB / NN-NNNN-FNN 返回 sample，不再误归 GB。
+
+**GB 细分与文件名安全（2026-10-21）**：新增 classify_document_type 返回 gb / gb_t / gb_z / sample；classify_std_code 仍返回粗粒度 gb 供适配器路由。make_standard_filename 通过 safe_code_for_filename 去掉 /，GB/T、GB/Z 落盘为 GBT、GBZ，并新增 Windows 文件名安全测试。
