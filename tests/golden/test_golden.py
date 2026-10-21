@@ -1,15 +1,21 @@
 """Golden File regression: parse_announcement_detail vs human-annotated expected."""
+import re
+
 from pilotstd.announcement.parser import parse_announcement_detail
 
 CRITICAL_FIELDS = ("std_code", "std_name", "publish_date", "implementation_date")
 
 
 def _normalize(items: list[dict]) -> list[dict]:
-    """Sort by std_code + strip whitespace + normalize line endings."""
+    """Sort by std_code + collapse whitespace + normalize line endings.
+
+    PDF 文本抽取在不同平台/库版本下会改变换行与空格；这些差异不改变语义，
+    统一折叠后再比较，避免 golden 依赖运行环境。
+    """
     for it in items:
         for k, v in it.items():
             if isinstance(v, str):
-                it[k] = v.replace("\r\n", "\n").strip()
+                it[k] = re.sub(r"\s+", " ", v.replace("\r\n", "\n")).strip()
     return sorted(items, key=lambda x: x.get("std_code", ""))
 
 
