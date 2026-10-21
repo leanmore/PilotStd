@@ -1,0 +1,5891 @@
+{
+  "_verified": true,
+  "_source_url": "https://std.sacinfo.org.cn/gnocHb/queryInfo?id=A230FB3FB8AE2A85E4EEADB8FC5BD3857DC2A23593F3D83E1DA0C582C894FB2A",
+  "_notes": "2026-10 HB 第9号（含 NB/SH/T 等变形前缀）；离线回归样本",
+  "items": [
+    {
+      "std_code": "DL/T 5457-2026",
+      "std_name": "变电工程建筑结构设计规程",
+      "replaces_code": "DL/T 5459-2012\r\n\t\t\t\t\t\t\t\r\n\t\t\t\t\t\t\t部分代替：无",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108101-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 5095-2026",
+      "std_name": "火电厂和核电厂常规岛主厂房荷载设计技术规程",
+      "replaces_code": "DL/T 5095-2013\r\n\t\t\t\t\t\t\t\r\n\t\t\t\t\t\t\t部分代替：无",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108102-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 5458-2026",
+      "std_name": "变电工程施工图设计内容深度规定",
+      "replaces_code": "DL/T 5458-2012\r\n\t\t\t\t\t\t\t\r\n\t\t\t\t\t\t\t部分代替：无",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108103-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 5096-2026",
+      "std_name": "电力工程钻探技术规程",
+      "replaces_code": "DL/T 5096-2008\r\n\t\t\t\t\t\t\t\r\n\t\t\t\t\t\t\t部分代替：无",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108104-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/T 12032-2026",
+      "std_name": "变电站装配式建筑设计规程",
+      "replaces_code": "无\r\n\t\t\t\t\t\t\t\r\n\t\t\t\t\t\t\t部分代替：无",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108105-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/T 12033-2026",
+      "std_name": "输变电工程水土保持设计技术规程",
+      "replaces_code": "无\r\n\t\t\t\t\t\t\t\r\n\t\t\t\t\t\t\t部分代替：无",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108106-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/T 12034-2026",
+      "std_name": "电力电缆线路随桥梁敷设设计技术规程",
+      "replaces_code": "无\r\n\t\t\t\t\t\t\t\r\n\t\t\t\t\t\t\t部分代替：无",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108107-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/T 12035-2026",
+      "std_name": "架空输电线路工程施工占地工程量计算办法",
+      "replaces_code": "无\r\n\t\t\t\t\t\t\t\r\n\t\t\t\t\t\t\t部分代替：无",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108108-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/T 12036-2026",
+      "std_name": "生物质发电工程经济评价导则",
+      "replaces_code": "无\r\n\t\t\t\t\t\t\t\r\n\t\t\t\t\t\t\t部分代替：无",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108109-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/T 12037-2026",
+      "std_name": "输变电工程造价数据交互标准",
+      "replaces_code": "DL/T 5457-2012\r\n\t\t\t\t\t\t\t\r\n\t\t\t\t\t\t\t部分代替：无",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108110-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DZ/T 0070-2016",
+      "std_name": "时间域激发极化法技术规程",
+      "replaces_code": "DZ/T 0070-93",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108111-2026",
+      "dept": "自然资源部"
+    },
+    {
+      "std_code": "NB/SH/T 0001-2026",
+      "std_name": "电缆沥青",
+      "replaces_code": "NB/SH/T 0001-2019",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108112-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/SH/T 0099.8-2026",
+      "std_name": "乳化沥青冷冻安定性试验法",
+      "replaces_code": "SH/T 0099.8-2005",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108113-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/SH/T 0361-2026",
+      "std_name": "导轨油",
+      "replaces_code": "SH/T 0361-1998",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108114-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/SH/T 0406-2026",
+      "std_name": "凡士林紫外吸光度测定法",
+      "replaces_code": "SH/T 0406-1992",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108115-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/SH/T 0409-2026",
+      "std_name": "液体石蜡中芳烃含量的测定  紫外分光光度法",
+      "replaces_code": "SH/T 0409-1992",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108116-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/SH/T 0424-2026",
+      "std_name": "沥青垂度测定法",
+      "replaces_code": "SH/T 0424-1992",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108117-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/SH/T 0562-2026",
+      "std_name": "低温下发动机油屈服应力和表观黏度的测定",
+      "replaces_code": "NB/SH/T 0562-2013",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108118-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/SH/T 0563-2026",
+      "std_name": "T551 金属减活剂",
+      "replaces_code": "SH/T 0563-1993",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108119-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/SH/T 0564-2026",
+      "std_name": "热处理油",
+      "replaces_code": "SH/T 0564—1993",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108120-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/SH/T 0589-2026",
+      "std_name": "石油蜡转变温度及熔融焓测定法  差示扫描量热法",
+      "replaces_code": "SH/T 0589-1994",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108121-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/SH/T 0637-2026",
+      "std_name": "沥青黏附率测定法",
+      "replaces_code": "SH/T 0637-1996",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108122-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/SH/T 0693-2026",
+      "std_name": "汽油中芳烃含量的测定  气相色谱法",
+      "replaces_code": "SH/T 0693-2000",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108123-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/SH/T 0706-2026",
+      "std_name": "燃料油中铝和硅含量的测定  电感耦合等离子体发射光谱法和原子吸收光谱法",
+      "replaces_code": "SH/T 0706-2001",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108124-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/SH/T 0714-2026",
+      "std_name": "石脑油中单体烃组成的测定  气相色谱法",
+      "replaces_code": "SH/T 0714-2002",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108125-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/SH/T 0749-2026",
+      "std_name": "润滑油及添加剂中元素含量的测定   电感耦合等离子体发射光谱法",
+      "replaces_code": "SH/T 0749-2004",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108126-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/SH/T 0766-2026",
+      "std_name": "喷气燃料抗磨添加剂",
+      "replaces_code": "SH/T 0766-2005",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108127-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/SH/T 0770-2026",
+      "std_name": "航空燃料冰点的测定 自动法",
+      "replaces_code": "SH/T 0770-2005",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108128-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/SH/T 0881-2026",
+      "std_name": "道桥用环氧沥青",
+      "replaces_code": "NB/SH/T 0881-2014",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108129-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/SH/T 0916-2026",
+      "std_name": "柴油和船用燃料油中脂肪酸甲酯含量的测定 红外光谱法",
+      "replaces_code": "NB/SH/T 0916-2015",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108130-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/SH/T 0954-2026",
+      "std_name": "催化裂化催化剂表观松密度的测定",
+      "replaces_code": "NB/SH/T 0954-2017",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108131-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/SH/T 0955-2026",
+      "std_name": "催化裂化催化剂孔体积测定 水吸附法",
+      "replaces_code": "NB/SH/T 0955-2017",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108132-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/SH/T 0964-2026",
+      "std_name": "催化裂化催化剂磨损指数的测定 直管法",
+      "replaces_code": "NB/SH/T 0964-2017",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108133-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/SH/T 6097-2026",
+      "std_name": "轻质石油产品中硅、磷、硫、氯含量的测定  单色激发能量色散X射线荧光光谱法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108134-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/SH/T 6098-2026",
+      "std_name": "航空润滑油承载能力的测定  高速齿轮法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108135-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/SH/T 6099-2026",
+      "std_name": "航空涡轮机油高温沉积物和降解特性的测定",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108136-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/SH/T 6100-2026",
+      "std_name": "相变材料用蜡过冷度测定法 差示扫描量热法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108137-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/SH/T 6101-2026",
+      "std_name": "航空涡轮发动机油抗氧化和热分解性的测定 有效寿命法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108138-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/SH/T 6102-2026",
+      "std_name": "航空涡轮发动机油水解安定性的测定  锥形瓶法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108139-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/SH/T 6103-2026",
+      "std_name": "高温高速球轴承润滑脂可靠寿命测定法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108140-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/SH/T 6104-2026",
+      "std_name": "锂电池隔膜油",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108141-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/SH/T 6105-2026",
+      "std_name": "热塑弹性体改性剂 油类剂",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108142-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/SH/T 6106-2026",
+      "std_name": "在用船用内燃机油质量监控规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108143-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/SH/T 6107-2026",
+      "std_name": "在用润滑油脂监测报警阈值确定方法   统计分析法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108144-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "TB/T 3621-2026",
+      "std_name": "铁路客车DC 600 V 电源装置",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108145-2026",
+      "dept": "国家铁路局"
+    },
+    {
+      "std_code": "JC/T 60034-2026",
+      "std_name": "超高性能混凝土（UHPC ）非承重构件应用技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108146-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 60035-2026",
+      "std_name": "高性能混凝土在公路桥涵中应用技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108147-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 60036-2026",
+      "std_name": "建筑隔声技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108148-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 60037-2026",
+      "std_name": "铁铝酸盐水泥混凝土在海洋工程中应用技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108149-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 60038-2026",
+      "std_name": "电杆生产用混凝土泵送技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108150-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 60039-2026",
+      "std_name": "玄武岩纤维和耐碱玻璃纤维混凝土应用技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108151-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2956-2026",
+      "std_name": "道路用固废基胶凝材料",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108152-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2958-2026",
+      "std_name": "预拌钢渣砂浆",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108153-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2960-2026",
+      "std_name": "建材产品水足迹评价 通则",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108154-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2961-2026",
+      "std_name": "建材产品水足迹评价 通用硅酸盐水泥",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108155-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2962-2026",
+      "std_name": "取水定额 建筑防水材料",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108156-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2963-2026",
+      "std_name": "节水型企业 防水材料行业",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108157-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2964.1-2026",
+      "std_name": "水泥窑烟气二氧化碳捕集纯化技术规范 第 1 部分：化学吸收",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108158-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2966-2026",
+      "std_name": "混凝土用生活垃圾焚烧飞灰",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108159-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2967-2026",
+      "std_name": "氟石膏",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108160-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2923-2026",
+      "std_name": "建筑卫生陶瓷行业节能监察技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108161-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2924-2026",
+      "std_name": "高岭土单位产品能源消耗技术要求",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108162-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2929-2026",
+      "std_name": "墙体材料用干法烟气脱硫灰",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108163-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2930-2026",
+      "std_name": "碱矿渣胶凝材料",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108164-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2933-2026",
+      "std_name": "水泥窑利用生活垃圾预处理可燃物技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108165-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2934-2026",
+      "std_name": "水泥窑利用生活垃圾预处理可燃物制备技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108166-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2935-2026",
+      "std_name": "基于项目的二氧化碳减排量评估技术规范 生产水泥熟料的燃料替代项目",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108167-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2936-2026",
+      "std_name": "建筑卫生陶瓷企业节能诊断技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108168-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2937-2026",
+      "std_name": "温室气体 产品碳足迹量化方法与要求 平板玻璃及制品",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108169-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2938-2026",
+      "std_name": "温室气体 产品碳足迹量化方法与要求 金属复合装饰材料",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108170-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2939-2026",
+      "std_name": "温室气体 产品碳足迹量化方法与要求 人造板和木质地板",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108171-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2940-2026",
+      "std_name": "温室气体 产品碳足迹量化方法与要求 预拌砂浆",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108172-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2941-2026",
+      "std_name": "温室气体 产品碳足迹量化方法与要求 岩（矿）棉及其制品",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108173-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2942-2026",
+      "std_name": "温室气体 产品碳足迹量化方法与要求 墙体材料",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108174-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2943-2026",
+      "std_name": "温室气体 产品碳足迹量化方法与要求 建筑卫生陶瓷",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108175-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2944-2026",
+      "std_name": "温室气体排放核算与报告要求 耐火材料生产企业",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108176-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2945-2026",
+      "std_name": "温室气体排放核算与报告要求 石灰生产企业",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108177-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2946-2026",
+      "std_name": "建材行业温室气体排放核查技术规范 水泥生产企业",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108178-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 209-2026",
+      "std_name": "膨胀珍珠岩",
+      "replaces_code": "JC/T 209-2012",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108179-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 239-2026",
+      "std_name": "蒸压粉煤灰砖",
+      "replaces_code": "JC/T 239-2014",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108180-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 430-2026",
+      "std_name": "膨胀珍珠岩装饰吸声板",
+      "replaces_code": "JC/T 430-2012",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108181-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 441-2026",
+      "std_name": "膨胀蛭石",
+      "replaces_code": "JC/T 441-2009",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108182-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 484-2026",
+      "std_name": "丙烯酸酯建筑密封胶",
+      "replaces_code": "JC/T 484-2006",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108183-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 547-2026",
+      "std_name": "陶瓷砖胶粘剂",
+      "replaces_code": "JC/T 547-2017",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108184-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 622-2026",
+      "std_name": "硅酸盐建筑制品用砂",
+      "replaces_code": "JC/T 622-2009",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108185-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 936-2026",
+      "std_name": "单组分聚氨酯泡沫填缝剂",
+      "replaces_code": "JC/T 936-2004",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108186-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 976-2026",
+      "std_name": "道桥嵌缝用密封胶",
+      "replaces_code": "JC/T 976-2005",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108187-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 986-2026",
+      "std_name": "水泥基灌浆材料",
+      "replaces_code": "JC/T 986-2018",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108188-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 1020-2026",
+      "std_name": "低温绝热用膨胀珍珠岩",
+      "replaces_code": "JC/T 1020-2007",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108189-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 1021.6-2026",
+      "std_name": "非金属矿物和岩石化学分析方法 第6部分：萤石矿化学分析方法",
+      "replaces_code": "JC/T 1021.6-2007",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108190-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2033-2026",
+      "std_name": "混凝土外加剂用聚醚及其衍生物",
+      "replaces_code": "JC/T 2033-2018",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108191-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2080-2026",
+      "std_name": "木铝复合门窗",
+      "replaces_code": "JC/T 2080-2011",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108192-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2081-2026",
+      "std_name": "实木门窗",
+      "replaces_code": "JC/T 2081-2011",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108193-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2180-2026",
+      "std_name": "水泥工业用行喷脉冲袋式除尘器",
+      "replaces_code": "JC/T 2180-2013",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108194-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2428-2026",
+      "std_name": "非固化橡胶沥青防水涂料",
+      "replaces_code": "JC/T 2428-2017",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108195-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3006-2026",
+      "std_name": "预制混凝土电缆沟及其盖板",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108196-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3007-2026",
+      "std_name": "预制混凝土夹心保温墙板用拉结件",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108197-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3008-2026",
+      "std_name": "混凝土引气剂起泡及稳泡性能测试方法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108198-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3009-2026",
+      "std_name": "光致变色玻璃光变性能测试方法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108199-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3010-2026",
+      "std_name": "道路车辆 制动衬片摩擦材料磨损颗粒物排放量测试方法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108200-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3011-2026",
+      "std_name": "高岭土矿化学成分的测定 波长色散 X 射线荧光光谱法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108201-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3012-2026",
+      "std_name": "玄武岩化学分析方法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108202-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3014-2026",
+      "std_name": "超缓凝混凝土技术条件",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108203-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3015-2026",
+      "std_name": "石膏墙板",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108204-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3016-2026",
+      "std_name": "沥青基防水材料用相容剂",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108205-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3017-2026",
+      "std_name": "石膏砖",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108206-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3018-2026",
+      "std_name": "卫生陶瓷高压注浆成形机",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108207-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3035-2026",
+      "std_name": "卫生陶瓷釉面耐化学腐蚀性能评价方法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108208-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3021-2026",
+      "std_name": "先张法预应力高性能预制混凝土桩",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108209-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3022-2026",
+      "std_name": "混凝土和砂浆用花岗岩石粉",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108210-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3023-2026",
+      "std_name": "钢板纤维水泥复合板",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108211-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3036-2026",
+      "std_name": "建筑材料及构件光老化/周期浸润耦合加速试验方法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108212-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3025-2026",
+      "std_name": "水性环氧沥青基层处理剂",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108213-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3026-2026",
+      "std_name": "热塑性聚烯烃防水卷材生产成套装备通用技术要求",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108214-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3027-2026",
+      "std_name": "埃洛石粉",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108215-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3028-2026",
+      "std_name": "高纯石墨靶材",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108216-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3030-2026",
+      "std_name": "建筑垃圾再生粉体泡沫混凝土砌块",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108217-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3031-2026",
+      "std_name": "智能制造 玻璃行业应用 深加工技术要求",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108218-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3034-2026",
+      "std_name": "空心玻璃微珠",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108219-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3037-2026",
+      "std_name": "金刚石氮-空位色心量子相干时间检测方法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108220-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3044-2026",
+      "std_name": "金刚石膜中硼掺杂含量的测定 二次离子质谱法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108221-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3045-2026",
+      "std_name": "量子级金刚石氮-空位色心浓度检测方法 荧光光子计数法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108222-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3038-2026",
+      "std_name": "建筑陶瓷用连续制浆装备",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108223-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3039-2026",
+      "std_name": "聚氯乙烯（PVC）防水卷材成型机组",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108224-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3040-2026",
+      "std_name": "聚氯乙烯（PVC）防水卷材生产成套装备通用技术要求",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108225-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3041-2026",
+      "std_name": "双浮动陶瓷砖模具",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108226-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3042-2026",
+      "std_name": "蒸压砖自动打包机组",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108227-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3043-2026",
+      "std_name": "建筑用辐射致冷膜复合金属板和带",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108228-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3019-2026",
+      "std_name": "水泥工业用地表给料机",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108229-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3024-2026",
+      "std_name": "吸收电磁波建筑砂浆",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108230-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3046-2026",
+      "std_name": "装配式防辐射板",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108231-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2948—2026",
+      "std_name": "水泥熟料替代原料应用技术规范 电石渣",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108232-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2951—2026",
+      "std_name": "产品碳足迹量化分级 通用硅酸盐水泥",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108233-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3002—2026",
+      "std_name": "勃姆石",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108234-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3003—2026",
+      "std_name": "石墨浮选用药剂",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108235-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2973—2026",
+      "std_name": "非金属矿磁选技术要求",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108236-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2974—2026",
+      "std_name": "非金属矿物 X 射线衍射分析方法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108237-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2975—2026",
+      "std_name": "膨润土土壤钝化剂钝化效能评价方法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108238-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2976—2026",
+      "std_name": "无机凝胶触变指数测定方法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108239-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2266—2026",
+      "std_name": "凹凸棒石黏土制品",
+      "replaces_code": "JC/T   2266  — 2014",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108240-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2977—2026",
+      "std_name": "涂料用玉石粉",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108241-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2098—2026",
+      "std_name": "高岭土术语和定义",
+      "replaces_code": "JC/T   2098  — 2012",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108242-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2988—2026",
+      "std_name": "柔性玻璃",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108243-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2989—2026",
+      "std_name": "碲化镉发电玻璃",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108244-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2990—2026",
+      "std_name": "太阳能镜用玻璃",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108245-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2982—2026",
+      "std_name": "氧化硅陶瓷空心微珠",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108246-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3000—2026",
+      "std_name": "物料破碎用氧化铝轧辊",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108247-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3001—2026",
+      "std_name": "氮化硼陶瓷蒸发舟",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108248-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2145—2026",
+      "std_name": "无铅玻璃色釉",
+      "replaces_code": "JC/T   2145  — 2012",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108249-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2039—2026",
+      "std_name": "木质装饰板抗菌、防霉、抗病毒性能",
+      "replaces_code": "JC/T   2039  — 2010",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108250-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2994—2026",
+      "std_name": "陆上风电钢混塔筒用水泥基座浆料",
+      "replaces_code": "JC/T   2994  — 2026",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108251-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 616—2026",
+      "std_name": "玻璃窑用优质硅砖",
+      "replaces_code": "JC/T    616   — 2003",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108252-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 925—2026",
+      "std_name": "玻璃窑用烧结 AZS 砖",
+      "replaces_code": "JC/T    925   — 2003",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108253-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 495—2026",
+      "std_name": "玻璃窑用锆英石砖",
+      "replaces_code": "JC/T    495   — 2013",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108254-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2971—2026",
+      "std_name": "建材产品使用说明书通用要求",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108255-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 879—2026",
+      "std_name": "水泥工业用离心通风机技术条件",
+      "replaces_code": "JC/T    879   — 2011",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108256-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2978—2026",
+      "std_name": "蒸压加气混凝土设备 立式料浆泵",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108257-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2979—2026",
+      "std_name": "电子显示玻璃蚀刻减薄设备技术要求",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108258-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2666—2026",
+      "std_name": "烧结砖自动卸砖码垛机组",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108259-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2667—2026",
+      "std_name": "烧结砖自动打包机组",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108260-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2968.2—2026",
+      "std_name": "建筑材料及构件 服役寿命规划 第 2 部分：服役寿命预测规程",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108261-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2969—2026",
+      "std_name": "动态杂散电流干扰下钢质管道腐蚀评价方法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108262-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2987—2026",
+      "std_name": "农业温室用超白压花玻璃",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108263-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 511—2026",
+      "std_name": "压花玻璃",
+      "replaces_code": "JC/T    511   — 2002",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108264-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2997—2026",
+      "std_name": "建筑用U 型玻璃光伏组件",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108265-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2996—2026",
+      "std_name": "玻璃用高硅含量石英砂化学分析方法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108266-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 647—2026",
+      "std_name": "泡沫玻璃绝热制品",
+      "replaces_code": "JC/T    647   — 2014",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108267-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2972—2026",
+      "std_name": "砖瓦窑协同处置固体废物技术规范",
+      "replaces_code": "/\r\n\t\t\t\t\t\t\t\r\n\t\t\t\t\t\t\t部分代替：/",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108268-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2214—2026",
+      "std_name": "钢筋陶粒混凝土轻质墙板",
+      "replaces_code": "JC/T   2214  — 2014\r\n\t\t\t\t\t\t\t\r\n\t\t\t\t\t\t\t部分代替：/",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108269-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3005—2026",
+      "std_name": "种植屋面用耐根穿刺防水涂料",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108270-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3004—2026",
+      "std_name": "化学气相沉积金刚石热沉片",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108271-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2983—2026",
+      "std_name": "用于水泥和砂浆中的砂岩",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108272-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2984—2026",
+      "std_name": "古建筑修复用石灰基胶结料",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108273-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2985—2026",
+      "std_name": "低收缩低热硅酸盐水泥",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108274-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2986—2026",
+      "std_name": "低辐射本底实验室用水泥",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108275-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2953—2026",
+      "std_name": "水泥窑协同处置固体废物中重金属含量的测定 X 射线荧光分析法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108276-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2952—2026",
+      "std_name": "页岩气固井水泥",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108277-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2991—2026",
+      "std_name": "混凝土和砂浆用晶核早强剂",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108278-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2992—2026",
+      "std_name": "混凝土粘度改性剂",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108279-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2993—2026",
+      "std_name": "水泥基堵漏灌浆材料",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108280-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2998—2026",
+      "std_name": "混凝土沟盖板",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108281-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2999—2026",
+      "std_name": "自保温混凝土中型砌块",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108282-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2003—2026",
+      "std_name": "灌排用预制混凝土渠槽",
+      "replaces_code": "JC/T   2003  — 2009",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108283-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 540—2026",
+      "std_name": "混凝土制品用冷拔低碳钢丝",
+      "replaces_code": "JC/T    540   — 2006",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108284-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2980—2026",
+      "std_name": "预应力混凝土 H 形护岸桩",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108285-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2981—2026",
+      "std_name": "预应力混凝土实心方桩用端板",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108286-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 862—2026",
+      "std_name": "粉煤灰混凝土小型空心砌块",
+      "replaces_code": "JC/T    862   — 2008",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108287-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2125—2026",
+      "std_name": "屋面保温隔热用泡沫混凝土",
+      "replaces_code": "JC/T   2125  — 2012",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108288-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2970—2026",
+      "std_name": "钢筋混凝土用阻锈剂阻锈性能试验方法 线性极化法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108289-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2126.8—2026",
+      "std_name": "水泥制品工艺技术规程 第8 部分：预制混凝土箱涵",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108290-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2995—2026",
+      "std_name": "超高性能混凝土薄壁构件抗冲击性能试验方法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108291-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2950—2026",
+      "std_name": "用于水泥生产的钢渣脱硫副产石膏应用技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108292-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 60048—2026",
+      "std_name": "建筑楼面用石膏复合材料隔声保温应用技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108293-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 60054—2026",
+      "std_name": "建筑室内窗饰产品安装技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108294-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 572—2026",
+      "std_name": "耐碱玻璃纤维无捻粗纱",
+      "replaces_code": "JC/T 572—2012",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108295-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 561.1—2026",
+      "std_name": "增强用玻璃纤维网布 第1部分：树脂砂轮用玻璃纤维网布",
+      "replaces_code": "JC/T 561.1—2006",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108296-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3086—2026",
+      "std_name": "合成锂皂石粉",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108297-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3072—2026",
+      "std_name": "石英砂中流体包裹体测定方法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108298-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3084—2026",
+      "std_name": "悬浮粒子调光玻璃",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108299-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3029—2026",
+      "std_name": "水性环氧改性水泥地坪材料",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108300-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3020—2026",
+      "std_name": "建材产品质量追溯 预制混凝土构件",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108301-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3033—2026",
+      "std_name": "石膏基砂浆用界面剂",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108302-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3081—2026",
+      "std_name": "建筑装饰用不燃级钛饰面板",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108303-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3082—2026",
+      "std_name": "装饰装修用天花软膜",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108304-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3083—2026",
+      "std_name": "矿山岩体加固用无机注浆材料",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108305-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3134—2026",
+      "std_name": "智能制造 水泥行业应用 能源管理系统技术要求",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108306-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3135—2026",
+      "std_name": "智能制造 水泥行业应用 物流管理系统技术要求",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108307-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3136—2026",
+      "std_name": "智能制造 水泥行业应用 系统集成通用要求",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108308-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3137—2026",
+      "std_name": "智能制造 水泥行业应用 智能控制系统技术要求",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108309-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3138—2026",
+      "std_name": "智能制造 玻璃行业应用 质量在线检测系统技术要求",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108310-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3104—2026",
+      "std_name": "加压法阻燃处理结构用木质材料",
+      "replaces_code": "SB/T 10896—2012",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108311-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3105—2026",
+      "std_name": "建筑用防腐木材",
+      "replaces_code": "SB/T 10628—2011",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108312-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2469—2026",
+      "std_name": "混凝土减胶剂",
+      "replaces_code": "JC/T 2469—2018",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108313-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3109—2026",
+      "std_name": "道路用石膏混合料",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108314-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3143—2026",
+      "std_name": "Ⅱ型无水石膏胶凝材料",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108315-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3144—2026",
+      "std_name": "建材产品质量追溯 纸面石膏板",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108316-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3089—2026",
+      "std_name": "绿色建材评价 管材管件",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108317-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3090—2026",
+      "std_name": "绿色建材评价 重组竹",
+      "replaces_code": "JC/T 3090—2026",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108318-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3091—2026",
+      "std_name": "绿色建材评价 超高性能混凝土",
+      "replaces_code": "JC/T 3091—2026",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108319-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3092—2026",
+      "std_name": "绿色建材评价 混凝土外加剂",
+      "replaces_code": "JC/T 3092—2026",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108320-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3133—2026",
+      "std_name": "绿色建材评价 建筑用气凝胶绝热材料",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108321-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2299—2026",
+      "std_name": "机制砂石生产技术规程",
+      "replaces_code": "JC/T 2299—2014",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108322-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3094—2026",
+      "std_name": "铜铬砷（CCA）木材防腐剂",
+      "replaces_code": "SB/T 10433—2007",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108323-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3095—2026",
+      "std_name": "铜氨（胺）季铵盐（ACQ）木材防腐剂",
+      "replaces_code": "SB/T 10432—2007",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108324-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3096—2026",
+      "std_name": "铜唑-B型（CA-B）木材防腐剂",
+      "replaces_code": "SB/T 10435—2007",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108325-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3097—2026",
+      "std_name": "镁质装饰材料通用技术条件",
+      "replaces_code": "SB/T 10845—2012",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108326-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3098—2026",
+      "std_name": "木材保护实验室管理规范",
+      "replaces_code": "SB/T 10606—2011",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108327-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3099—2026",
+      "std_name": "镁质装饰材料运输包装",
+      "replaces_code": "SB/T 11102—2014",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108328-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3100—2026",
+      "std_name": "防腐木材化学分析前的湿法消解方法",
+      "replaces_code": "SB/T 10405—2006",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108329-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3101—2026",
+      "std_name": "防腐木材及木材防腐剂取样方法",
+      "replaces_code": "SB/T 10558—2009",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108330-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3102—2026",
+      "std_name": "户外木地板耐久性试验方法",
+      "replaces_code": "SB/T 10951—2012",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108331-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3103—2026",
+      "std_name": "水载型防腐剂和阻燃剂有效成分的测定",
+      "replaces_code": "SB/T 10404—2006",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108332-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3130—2026",
+      "std_name": "玻璃熔窑用耐火材料动态下抗玻璃液侵蚀试验方法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108333-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3142—2026",
+      "std_name": "石膏中可溶性重金属的测定方法 电感耦合等离子体质谱法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108334-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 926—2026",
+      "std_name": "浮法玻璃窑用锡槽底砖",
+      "replaces_code": "JC/T 926—2003",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108335-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3093—2026",
+      "std_name": "绿色建材评价 玻璃纤维耐碱网格布",
+      "replaces_code": "JC/T 3093—2026",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108336-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3107—2026",
+      "std_name": "α-氧化铝空心球",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108337-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2082—2026",
+      "std_name": "调湿功能室内建筑装饰材料",
+      "replaces_code": "JC/T 2082—2011",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108338-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 897—2026",
+      "std_name": "陶瓷制品抗菌、抗病毒性能",
+      "replaces_code": "JC/T 897—2014",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108339-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3125—2026",
+      "std_name": "水泥行业设备智能监测维护系统技术要求",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108340-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3126—2026",
+      "std_name": "智能制造 玻璃行业应用 窑炉燃烧智能控制系统技术要求",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108341-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3127—2026",
+      "std_name": "智能制造 水泥行业应用 设备管理系统技术要求",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108342-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3013—2026",
+      "std_name": "水泥熟料易磨性试验方法（立式辊磨法）",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108343-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3118—2026",
+      "std_name": "仿石型混凝土砖（板）成型机",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108344-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3119—2026",
+      "std_name": "节水型陶瓷砖抛光机",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108345-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3120—2026",
+      "std_name": "散装水泥装船机",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108346-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3121—2026",
+      "std_name": "石材机械 桥式切割机",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108347-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3122—2026",
+      "std_name": "石材机械 扫描机",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108348-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3123—2026",
+      "std_name": "石膏墙板生产成套装备通用技术要求",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108349-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3124—2026",
+      "std_name": "同质聚氯乙烯卷材地板生产成套装备通用技术要求",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108350-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 401.1—2026",
+      "std_name": "建材机械用铸钢件 第1部分：奥氏体锰钢铸件技术条件",
+      "replaces_code": "JC/T 401.1—2011",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108351-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 401.2—2026",
+      "std_name": "建材机械用铸钢件 第2部分：碳钢和低合金钢铸件技术条件",
+      "replaces_code": "JC/T 401.2—2011",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108352-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2227—2026",
+      "std_name": "建筑陶瓷辊道式干燥器",
+      "replaces_code": "JC/T 2227—2014",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108353-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2226—2026",
+      "std_name": "建筑陶瓷辊道窑",
+      "replaces_code": "JC/T 2226—2014",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108354-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2259—2026",
+      "std_name": "立式煤磨用主减速器",
+      "replaces_code": "JC/T 2259—2014",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108355-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2293—2026",
+      "std_name": "砌块成型机用模具",
+      "replaces_code": "JC/T 2293—2014",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108356-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3066—2026",
+      "std_name": "混凝土砌块自动生产线通用技术要求",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108357-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3117—2026",
+      "std_name": "蒸压加气混凝土生产设备安装验收规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108358-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2115—2026",
+      "std_name": "非接触感应给水器具",
+      "replaces_code": "JC/T 2115—2012",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108359-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 977—2026",
+      "std_name": "化学钢化玻璃",
+      "replaces_code": "JC/T 977—2005",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108360-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2166—2026",
+      "std_name": "夹层玻璃用聚乙烯醇缩丁醛（PVB）胶片",
+      "replaces_code": "JC/T 2166—2013",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108361-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 649—2026",
+      "std_name": "平板玻璃用白云石",
+      "replaces_code": "JC/T 649—1996",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108362-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 857—2026",
+      "std_name": "平板玻璃用长石",
+      "replaces_code": "JC/T 857—2000",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108363-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 529—2026",
+      "std_name": "平板玻璃用硅质原料",
+      "replaces_code": "JC/T 529—2000",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108364-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 865—2026",
+      "std_name": "平板玻璃用石灰石",
+      "replaces_code": "JC/T 865—2000",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108365-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 433—2026",
+      "std_name": "夹丝玻璃",
+      "replaces_code": "JC/T 433—1991",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108366-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2068—2026",
+      "std_name": "镀膜玻璃生产规程",
+      "replaces_code": "JC/T 2068—2011",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108367-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2070—2026",
+      "std_name": "安全玻璃生产规程 第1部分：建筑用安全玻璃生产规程",
+      "replaces_code": "JC/T 2070—2011",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108368-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3112—2026",
+      "std_name": "建筑装饰用高温烧结数码打印彩釉玻璃",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108369-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2154—2026",
+      "std_name": "绝热用管道支撑座架",
+      "replaces_code": "JC/T 2154—2012",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108370-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3074—2026",
+      "std_name": "建筑内保温用无机保温膏料",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108371-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3087—2026",
+      "std_name": "装配式复合保温混凝土外墙板",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108372-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2186—2026",
+      "std_name": "室内装饰装修用免钉胶",
+      "replaces_code": "JC/T 2186—2013",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108373-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 548—2026",
+      "std_name": "壁布和壁纸胶粘剂",
+      "replaces_code": "JC/T 548—2016",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108374-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 636—2026",
+      "std_name": "木地板胶粘剂",
+      "replaces_code": "JC/T 636—1996",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108375-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3132—2026",
+      "std_name": "防腐建筑密封胶",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108376-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2224—2026",
+      "std_name": "室外装饰用木塑墙板",
+      "replaces_code": "JC/T 2224—2014",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108377-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3076—2026",
+      "std_name": "隔汽防水垫层",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108378-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2187—2026",
+      "std_name": "铝波纹芯复合铝板",
+      "replaces_code": "JC/T 2187—2013",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108379-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3114—2026",
+      "std_name": "蒸压加气石膏板",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108380-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3115—2026",
+      "std_name": "纸面石膏板用有机硅防水剂",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108381-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3116—2026",
+      "std_name": "热塑性聚烯烃金属复合板",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108382-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2218—2026",
+      "std_name": "防水卷材沥青技术要求",
+      "replaces_code": "JC/T 2218—2014",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108383-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3113—2026",
+      "std_name": "石膏胶凝材料凝结时间测试方法 超声波法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108384-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3128—2026",
+      "std_name": "厨卫用建筑密封胶",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108385-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3129—2026",
+      "std_name": "外墙外保温系统用建筑密封胶",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108386-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3079—2026",
+      "std_name": "钙镁锆共掺钆镓石榴石单晶衬底",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108387-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3080—2026",
+      "std_name": "i线光刻级氟化钙晶体",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108388-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3069—2026",
+      "std_name": "大尺寸稀土闪烁晶体",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108389-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 726—2026",
+      "std_name": "水泥胶砂试模",
+      "replaces_code": "JC/T 726—2005",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108390-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 738—2026",
+      "std_name": "水泥强度快速检验方法",
+      "replaces_code": "JC/T 738—2004",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108391-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3085—2026",
+      "std_name": "光伏用预应力混凝土支柱",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108392-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3088—2026",
+      "std_name": "现浇混凝土外墙保温用锚栓",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108393-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 434—2026",
+      "std_name": "电力电器工程用纤维水泥板",
+      "replaces_code": "JC/T 434—1991",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108394-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 447—2026",
+      "std_name": "纤维增强钢丝网水泥中波瓦",
+      "replaces_code": "JC/T 447—1991",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108395-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 851—2026",
+      "std_name": "纤维增强钢丝网水泥小波瓦",
+      "replaces_code": "JC/T 851—2008",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108396-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 861—2026",
+      "std_name": "混凝土砌块（砖）砌体用灌孔混凝土",
+      "replaces_code": "JC/T 861—2008",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108397-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 410—2026",
+      "std_name": "水泥花砖和格砖",
+      "replaces_code": "JC/T 410—1991",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108398-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2090—2026",
+      "std_name": "聚合物水泥防水浆料",
+      "replaces_code": "JC/T 2090—2011",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108399-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 946—2026",
+      "std_name": "混凝土和钢筋混凝土排水管用橡胶密封圈",
+      "replaces_code": "JC/T 946—2005",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108400-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 948—2026",
+      "std_name": "钢纤维混凝土水箅盖",
+      "replaces_code": "JC/T 948—2005",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108401-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3077—2026",
+      "std_name": "聚苯乙烯颗粒混凝土自保温砌块",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108402-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3064—2026",
+      "std_name": "农田水利建设用混凝土块体",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108403-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3067—2026",
+      "std_name": "检查井用混凝土模块",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108404-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2126.10—2026",
+      "std_name": "水泥制品工艺技术规程 第10部分：预制混凝土检查井",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108405-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3068—2026",
+      "std_name": "植生型轻质多孔混凝土制品",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108406-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3070—2026",
+      "std_name": "混凝土硫酸根离子含量测定方法 电导率滴定法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108407-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3071—2026",
+      "std_name": "混凝土减水剂分子量测试方法 凝胶渗透色谱法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108408-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3073—2026",
+      "std_name": "混凝土电阻率测试方法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108409-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3078—2026",
+      "std_name": "热熔高分子防水涂料",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108410-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 3075—2026",
+      "std_name": "玻璃纤维增强热固性树脂加筋管",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108411-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "JC/T 2083—2026",
+      "std_name": "建筑室内用水基无机干粉涂装材料",
+      "replaces_code": "JC/T 2083—2011",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108412-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "NB/T 11983-2026",
+      "std_name": "风力发电机组 塔筒、机舱、轮毂照明设计规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108413-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "YB/T 6557-2026",
+      "std_name": "转炉煤气净化与回收技术要求",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108414-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "YB/T 6559-2026",
+      "std_name": "焦炉煤气提纯制备液化天然气（LNG）技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108415-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "DL/T 306—2026",
+      "std_name": "1000kV变电站运行规程",
+      "replaces_code": "DL/T 306-2010",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108416-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 310—2026",
+      "std_name": "1000kV油浸式变压器、并联电抗器检修导则",
+      "replaces_code": "DL/T 310-2010",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108417-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 336—2026",
+      "std_name": "石英砂滤料的检测与评价",
+      "replaces_code": "DL/T 336-2010",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108418-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 418—2026",
+      "std_name": "绝缘液体击穿电压测定法",
+      "replaces_code": "DL/T 418-1991",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108419-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 500—2026",
+      "std_name": "电压监测仪使用技术条件",
+      "replaces_code": "DL/T 500-2017",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108420-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 641—2026",
+      "std_name": "电站阀门电动执行机构",
+      "replaces_code": "DL/T 641-2015",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108421-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 698.45—2026",
+      "std_name": "能源量测监控系统 第4-5部分：通信协议―数据交换协议",
+      "replaces_code": "DL/T 698.45-2017",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108422-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 768.5—2026",
+      "std_name": "电力金具制造质量 第5部分：铝制件",
+      "replaces_code": "DL/T 768.5-2017",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108423-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 768.7—2026",
+      "std_name": "电力金具制造质量 第7部分：钢铁件热镀锌层",
+      "replaces_code": "DL/T 768.7-2012",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108424-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 868—2026",
+      "std_name": "焊接工艺评定规程",
+      "replaces_code": "DL/T 868-2014",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108425-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 874—2026",
+      "std_name": "电力行业锅炉压力容器安全监督管理工程师培训考核规程",
+      "replaces_code": "DL/T 874-2017",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108426-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 922—2026",
+      "std_name": "火力发电用钢制通用阀门订货验收导则",
+      "replaces_code": "DL/T 922-2016",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108427-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 992—2026",
+      "std_name": "冲击电压测量实施细则",
+      "replaces_code": "DL/T 992-2006",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108428-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 1008—2026",
+      "std_name": "电力中长期交易技术支持系统功能规范",
+      "replaces_code": "DL/T 1008-2019",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108429-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 1027—2026",
+      "std_name": "湿式冷却塔试验规程",
+      "replaces_code": "DL/T 1027-2006",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108430-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 1041—2026",
+      "std_name": "电力系统电磁暂态现场试验导则",
+      "replaces_code": "DL/T 1041-2007",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108431-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 1189—2026",
+      "std_name": "火力发电厂能源审计导则",
+      "replaces_code": "DL/T 1189-2012",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108432-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 1201—2026",
+      "std_name": "发电厂低电导率水pH在线测量方法",
+      "replaces_code": "DL/T 1201-2013",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108433-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 1323—2026",
+      "std_name": "现场耐压试验电压测量导则",
+      "replaces_code": "DL/T 1323-2014",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108434-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 1351—2026",
+      "std_name": "电力系统暂态过电压在线测量及记录系统技术导则",
+      "replaces_code": "DL/T 1351-2014",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108435-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 1357—2026",
+      "std_name": "发电厂水处理用滤元验收导则",
+      "replaces_code": "DL/T 1357-2014",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108436-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 1379—2026",
+      "std_name": "电力调度数据网设备测试规范",
+      "replaces_code": "DL/T 1379-2014",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108437-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 1393—2026",
+      "std_name": "火力发电厂锅炉汽包水位测量系统技术规范",
+      "replaces_code": "DL/T 1393-2014",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108438-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 1425—2026",
+      "std_name": "变电站金属材料腐蚀防护技术导则",
+      "replaces_code": "DL/T 1425-2015",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108439-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 1540—2026",
+      "std_name": "变压器/电抗器运行振动测量方法",
+      "replaces_code": "DL/T 1540-2016",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108440-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 1544—2026",
+      "std_name": "电子式互感器现场交接验收规范",
+      "replaces_code": "DL/T 1544-2016",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108441-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 1658—2026",
+      "std_name": "35kV及以下绝缘管型母线技术规范",
+      "replaces_code": "DL/T 1658-2016",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108442-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 1743—2026",
+      "std_name": "带电作业用绝缘导线剥皮器",
+      "replaces_code": "DL/T 1743-2017",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108443-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 1815—2026",
+      "std_name": "储能电站设备可靠性评价规程",
+      "replaces_code": "DL/T 1815-2018",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108444-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 1922—2026",
+      "std_name": "架空电力线路导地线机械振动除冰装置使用技术导则",
+      "replaces_code": "DL/T 1922-2018",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108445-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 2115—2026",
+      "std_name": "电压监测仪检验技术规范",
+      "replaces_code": "DL/T 2115-2020",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108446-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 2124—2026",
+      "std_name": "电站汽轮机旁路阀选型导则",
+      "replaces_code": "DL/T 2124-2020",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108447-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 2404.3—2026",
+      "std_name": "电力需求侧管理通用规范 第3部分：资源调节",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108448-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 2473.14—2026",
+      "std_name": "可调节负荷并网运行与控制技术规范 第14部分：电力负荷实时调节终端",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108449-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 2825.6—2026",
+      "std_name": "变电站智能巡检导则 第6部分：无人机作业",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108450-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 2825.8—2026",
+      "std_name": "变电站智能巡检导则 第8部分：无人机系统维护",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108451-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 2875.5—2026",
+      "std_name": "火力发电厂运煤设备抑尘技术规范 第5部分：筛分破碎设备抑尘",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108452-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3014.2—2026",
+      "std_name": "变电站智能巡检系统技术规范 第2部分：巡检支持系统",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108453-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3016.1—2026",
+      "std_name": "500kV交联聚乙烯绝缘电力电缆附件安装规程 第1部分：户外终端",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108454-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3016.2—2026",
+      "std_name": "500kV交联聚乙烯绝缘电力电缆附件安装规程 第2部分：GIS终端",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108455-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3016.3—2026",
+      "std_name": "500kV交联聚乙烯绝缘电力电缆附件安装规程 第3部分：接头",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108456-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3017.1—2026",
+      "std_name": "架空电力线路无人机辅助检修技术导则 第1部分：总则",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108457-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3017.2—2026",
+      "std_name": "架空电力线路无人机辅助检修技术导则 第2部分：验电及挂拆接地线",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108458-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3017.3—2026",
+      "std_name": "架空电力线路无人机辅助检修技术导则 第3部分：工器具及材料传递",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108459-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3018.1—2026",
+      "std_name": "电力微型智能传感器技术要求 第1部分：总体要求",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108460-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3019—2026",
+      "std_name": "沉降管装置",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108461-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3020—2026",
+      "std_name": "水电水利工程全站仪自动化观测技术规程",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108462-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3021—2026",
+      "std_name": "水电站大坝安全无人机巡检技术规程",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108463-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3022—2026",
+      "std_name": "远程时间频率同步测量装置技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108464-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3023—2026",
+      "std_name": "高压电缆夹具选用导则",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108465-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3024—2026",
+      "std_name": "振荡抑制用幅相校正电容器成套装置通用技术要求",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108466-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3025—2026",
+      "std_name": "构网型柔性直流输电系统稳态性能要求",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108467-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3026—2026",
+      "std_name": "构网型柔性直流输电系统暂态性能要求",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108468-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3027—2026",
+      "std_name": "柔性直流换流阀控制保护系统技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108469-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3028—2026",
+      "std_name": "能动阀门驱动力在线检测技术导则",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108470-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3029—2026",
+      "std_name": "电站煤粉锅炉低负荷稳燃技术导则",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108471-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3030—2026",
+      "std_name": "燃煤机组灵活调峰烟气脱硝运行技术导则",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108472-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3031—2026",
+      "std_name": "循环流化床锅炉水冷壁防磨格栅安装及检验规程",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108473-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3032—2026",
+      "std_name": "汽轮机焊接隔板相控阵超声检测技术导则",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108474-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3033—2026",
+      "std_name": "汽轮机叶片激光清洗技术导则",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108475-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3034—2026",
+      "std_name": "双机回热汽轮机性能试验规程",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108476-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3035—2026",
+      "std_name": "6kV～66kV电抗器投切过电压现场测量导则",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108477-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3036—2026",
+      "std_name": "电力变压器绕组变形扫频阻抗试验装置技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108478-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3037—2026",
+      "std_name": "数字远传型避雷器监测器现场试验方法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108479-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3038—2026",
+      "std_name": "海上柔性直流输电换流站设备交接试验规程",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108480-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3039—2026",
+      "std_name": "电能表安装接插件技术条件",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108481-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3040—2026",
+      "std_name": "火电厂先导式气力物料输送系统技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108482-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3041—2026",
+      "std_name": "烟气循环流化床法脱硫系统技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108483-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3042—2026",
+      "std_name": "多端直流线路与汇流母线保护技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108484-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3043—2026",
+      "std_name": "常规燃煤发电机组能效对标评价规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108485-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3044—2026",
+      "std_name": "火力发电机组节能指标统计导则",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108486-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3045—2026",
+      "std_name": "燃气-蒸汽联合循环发电余热锅炉检修导则",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108487-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3046—2026",
+      "std_name": "海上高压直流气体绝缘金属封闭输电设备技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108488-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3047—2026",
+      "std_name": "火力发电厂锅炉智能燃烧控制系统技术导则",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108489-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3048—2026",
+      "std_name": "火力发电厂智能报警系统技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108490-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3049—2026",
+      "std_name": "火力发电厂智能监盘技术导则",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108491-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3050—2026",
+      "std_name": "火力发电厂智能巡检系统技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108492-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3051—2026",
+      "std_name": "火力发电机组与储能系统协调控制系统技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108493-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3052—2026",
+      "std_name": "水电站智能巡检系统技术导则",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108494-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3053—2026",
+      "std_name": "电动船舶直流岸电设施控制系统通用要求",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108495-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3054—2026",
+      "std_name": "港口岸电系统运营服务平台与站级系统通信协议",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108496-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3055—2026",
+      "std_name": "输电线路施工用模块化锚杆钻机",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108497-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3056—2026",
+      "std_name": "输电线路微型桩基础施工工艺导则",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108498-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3057—2026",
+      "std_name": "无人机展放初级导引绳施工工艺导则",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108499-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3058—2026",
+      "std_name": "输变电设施防汛风险评估导则",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108500-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3059—2026",
+      "std_name": "绿色电力消费核算方法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108501-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3060—2026",
+      "std_name": "绿色电力消费信息溯源技术导则",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108502-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3061—2026",
+      "std_name": "绿色电力证书交易技术支持系统通用要求",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108503-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3062—2026",
+      "std_name": "电力应急通信系统接入应急指挥中心技术要求",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108504-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3063—2026",
+      "std_name": "电网设备卫星巡检数据处理技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108505-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3064—2026",
+      "std_name": "燃气分布式能源站燃气增压机系统技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108506-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3065—2026",
+      "std_name": "涉电力领域市场主体商务信用评价规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108507-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3066—2026",
+      "std_name": "信用电力指数计算导则",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108508-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3067—2026",
+      "std_name": "综合能源服务 智慧运行管控平台技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108509-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3068—2026",
+      "std_name": "带电作业用降温服装",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108510-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3069—2026",
+      "std_name": "储能电站测量技术监督规程",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108511-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3070—2026",
+      "std_name": "储能电站电能质量技术监督规程",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108512-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3071—2026",
+      "std_name": "储能电站化学技术监督规程",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108513-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3072—2026",
+      "std_name": "储能电站继电保护和安全自动装置技术监督规程",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108514-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3073—2026",
+      "std_name": "储能电站绝缘技术监督规程",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108515-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3074—2026",
+      "std_name": "电化学储能电站安全风险评估报告内容深度规定",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108516-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3075—2026",
+      "std_name": "电化学储能电站建设项目竣工环境保护验收技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108517-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3076—2026",
+      "std_name": "电化学储能电站节能技术监督规程",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108518-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3077—2026",
+      "std_name": "锂离子电池储能预制舱舱体技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108519-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3078—2026",
+      "std_name": "压缩空气储能电站安全监测技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108520-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3079—2026",
+      "std_name": "压缩空气储能电站性能验收试验规程",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108521-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3080—2026",
+      "std_name": "油浸式电力变压器状态综合监测装置技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108522-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3081—2026",
+      "std_name": "虚拟电厂术语",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108523-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3082—2026",
+      "std_name": "齿轮油氧化安定性的测定 快速氧化法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108524-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3083—2026",
+      "std_name": "发电厂润滑剂中磨损颗粒的测定 电磁感应法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108525-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3084—2026",
+      "std_name": "并网发电企业涉网二次系统现场作业技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108526-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3085—2026",
+      "std_name": "电力系统安全稳定控制系统实时仿真测试规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108527-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3086—2026",
+      "std_name": "火力发电厂锅炉炉膛烟温测量装置技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108528-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3087—2026",
+      "std_name": "火力发电厂机炉主保护跳闸设备技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108529-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3088—2026",
+      "std_name": "无同步机电源系统短路电流计算指南",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108530-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3089—2026",
+      "std_name": "高频局部放电测试仪技术条件",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108531-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3090—2026",
+      "std_name": "高压电力紫外成像仪检测规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108532-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3091—2026",
+      "std_name": "架空输电线路动态增容运行技术导则",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108533-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3092—2026",
+      "std_name": "电力建设安全生产标准化评价导则",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108534-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3093—2026",
+      "std_name": "抽水蓄能工程建设施工现场安全管理导则",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108535-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3094—2026",
+      "std_name": "生物质发电企业安全生产标准化实施规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108536-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3095—2026",
+      "std_name": "农林生物质发电锅炉燃料含硫化合物检测技术导则",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108537-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 3096—2026",
+      "std_name": "生物质电厂燃料采制化管理规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108538-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 5009.2—2026",
+      "std_name": "电力建设安全工作规程 第2部分：电力线路",
+      "replaces_code": "DL 5009.2-2013",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108539-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 5009.3—2026",
+      "std_name": "电力建设安全工作规程 第3部分：变电站",
+      "replaces_code": "DL 5009.3-2013",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108540-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 5099—2026",
+      "std_name": "水工建筑物地下工程开挖施工技术规范",
+      "replaces_code": "DL/T 5099-2011",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108541-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 5717—2026",
+      "std_name": "农村住宅电气工程技术规范",
+      "replaces_code": "DL/T 5717-2015",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108542-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 5744.1—2026",
+      "std_name": "高压交联聚乙烯绝缘电力电缆敷设规程 第1部分：直埋敷设",
+      "replaces_code": "DL/T 5744.1-2016",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108543-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 5744.2—2026",
+      "std_name": "高压交联聚乙烯绝缘电力电缆敷设规程 第2部分：排管敷设",
+      "replaces_code": "DL/T 5744.2-2016",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108544-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 5744.3—2026",
+      "std_name": "高压交联聚乙烯绝缘电力电缆敷设规程 第3部分：隧道敷设",
+      "replaces_code": "DL/T 5744.3-2016",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108545-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 5816—2026",
+      "std_name": "用户侧电化学储能系统接入配电网设计规范",
+      "replaces_code": "DL/T 5816-2020",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108546-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 5906—2026",
+      "std_name": "变电站、换流站装配式混凝土结构施工及验收规程",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108547-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 5907—2026",
+      "std_name": "电缆土建工程施工质量验收规程",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108548-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 5908—2026",
+      "std_name": "架空输电线路直升机吊运物资施工工艺导则",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108549-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 5909—2026",
+      "std_name": "火力发电厂视频监控系统技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108550-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 5910—2026",
+      "std_name": "水工沥青混凝土配合比设计规程",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108551-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 5911—2026",
+      "std_name": "水工温拌沥青混凝土施工技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108552-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 5912—2026",
+      "std_name": "电化学储能电站监控系统设计规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108553-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 5913—2026",
+      "std_name": "电化学储能电站站用电设计规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108554-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 5914—2026",
+      "std_name": "飞轮储能系统安装规程",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108555-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 5915—2026",
+      "std_name": "电力建设工程绿色建造评价规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108556-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "DL/T 5916—2026",
+      "std_name": "电力建设工程新技术应用评价规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108557-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/T 11969—2026",
+      "std_name": "电动汽车非车载传导式充电机能效评估导则",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108558-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/T 11970—2026",
+      "std_name": "电动汽车充电设施接入运营安全评价规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108559-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/T 11971—2026",
+      "std_name": "电动汽车充电服务身份认证技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108560-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/T 11972—2026",
+      "std_name": "风电行业信息系统网络安全等级保护评测技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108561-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/T 11973—2026",
+      "std_name": "风力发电机组安全保护系统运行技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108562-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/T 11974—2026",
+      "std_name": "海上风力发电场基本术语",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108563-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/T 11975—2026",
+      "std_name": "风电场并网通信系统技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108564-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/T 11978.2—2026",
+      "std_name": "风力发电场无功配置及电压控制技术规范 第2部分：海上风电",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108565-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/T 11988—2026",
+      "std_name": "风力发电生产统计技术导则",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108566-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/T 11989—2026",
+      "std_name": "光伏发电站竣工环境保护验收技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108567-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/T 11990—2026",
+      "std_name": "屋面轻质光伏组件抗风揭测试技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108568-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/T 31076—2026",
+      "std_name": "风力发电场并网验收规范",
+      "replaces_code": "NB/T 31076-2016",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108569-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/T 32005—2026",
+      "std_name": "光伏发电站逆变器故障穿越检测技术规程",
+      "replaces_code": "NB/T 32005-2013",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108570-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/T 32026—2026",
+      "std_name": "光伏发电站并网性能评价方法",
+      "replaces_code": "NB/T 32026-2015",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108571-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/T 32037—2026",
+      "std_name": "光伏发电建设项目文件归档与档案整理规范",
+      "replaces_code": "NB/T 32037-2017",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108572-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/T 33002—2026",
+      "std_name": "电动汽车交流充电桩技术条件",
+      "replaces_code": "NB/T 33002-2018",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108573-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "QB/T 1170-2026",
+      "std_name": "真空乳化机",
+      "replaces_code": "QB/T 1170—2014",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108574-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB T 1750-2026",
+      "std_name": "中国画颜料",
+      "replaces_code": "QB/T 1750—2010",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108575-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 1947.1-2026",
+      "std_name": "民族气鸣乐器通用技术条件",
+      "replaces_code": "QB/T 1947.1—2012",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108576-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 1947.2-2026",
+      "std_name": "笛子",
+      "replaces_code": "QB/T 1947.2—2012",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108577-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 1947.3-2026",
+      "std_name": "笙",
+      "replaces_code": "QB/T 1947.3—2012",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108578-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 1947.4-2026",
+      "std_name": "箫",
+      "replaces_code": "QB/T 1947.4—2012",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108579-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 1947.5-2026",
+      "std_name": "唢呐",
+      "replaces_code": "QB/T 1947.5—2012",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108580-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 1951.1-2026",
+      "std_name": "家具 质量检验及质量评定 第1部分：木家具",
+      "replaces_code": "QB/T 1951.1—2010",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108581-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 2274-2026",
+      "std_name": "电光源产品的分类和型号命名方法",
+      "replaces_code": "QB/T 2274—2013",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108582-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 2660-2026",
+      "std_name": "化妆水",
+      "replaces_code": "QB/T 2660—2004",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108583-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 2680-2026",
+      "std_name": "鞋里用皮革",
+      "replaces_code": "QB/T 2680—2004",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108584-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 2689-2026",
+      "std_name": "滤嘴棒纸",
+      "replaces_code": "QB/T 2689—2015",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108585-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 2725-2026",
+      "std_name": "皮革 气味的测定",
+      "replaces_code": "QB/T 2725—2005",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108586-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 2741-2026",
+      "std_name": "学生公寓多功能家具",
+      "replaces_code": "QB/T 2741—2013",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108587-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 2790-2026",
+      "std_name": "毛皮 耐摩擦色牢度试验方法",
+      "replaces_code": "QB/T 2790—2006",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108588-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 2799-2026",
+      "std_name": "皮革 物理和机械试验 透气性的测定",
+      "replaces_code": "QB/T 2799—2006",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108589-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 4057-2026",
+      "std_name": "普通照明用LED 封装 性能规范",
+      "replaces_code": "QB/T 4057—2010",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108590-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 4391-2026",
+      "std_name": "工业用缝纫机 肘型筒式链式线迹缝纫机",
+      "replaces_code": "QB/T 4391—2012",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108591-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 4465-2026",
+      "std_name": "家具包装通用技术要求",
+      "replaces_code": "QB/T 4465—2013",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108592-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 4683-2026",
+      "std_name": "家用和类似用途嵌入式制冷器具",
+      "replaces_code": "QB/T 4683—2014",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108593-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 4762-2026",
+      "std_name": "铅酸蓄电池用涂板纸",
+      "replaces_code": "QB/T 4762—2014",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108594-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 4835-2026",
+      "std_name": "使用可燃性制冷剂房间空调器安装、维修和运输的特殊要求",
+      "replaces_code": "QB/T 4835—2015",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108595-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 4836-2026",
+      "std_name": "家用和类似用途光伏太阳能空气调节器",
+      "replaces_code": "QB/T 4836—2015",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108596-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 4891-2026",
+      "std_name": "冷藏、冷冻食品企业良好生产评价规范",
+      "replaces_code": "QB/T 4891—2015\nSB/T 10699—2012",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108597-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 4975-2026",
+      "std_name": "使用可燃性制冷剂生产家用和类似用途房间空调器的特殊要求",
+      "replaces_code": "QB/T 4975—2016",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108598-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 4976-2026",
+      "std_name": "使用可燃性制冷剂房间空调器运输的特殊要求",
+      "replaces_code": "QB/T 4976—2016",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108599-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 4981-2026",
+      "std_name": "洗衣机直流变频驱动装置技术规范",
+      "replaces_code": "QB/T 4981—2016",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108600-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 5274-2026",
+      "std_name": "缝制机械控制面板形象化操作符号",
+      "replaces_code": "QB/T 5274—2018",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108601-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 5296-2026",
+      "std_name": "擦拭纸巾",
+      "replaces_code": "QB/T 5296—2018",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108602-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 5323-2026",
+      "std_name": "植物酵素",
+      "replaces_code": "QB/T 5323—2018",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108603-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 5476.10-2026",
+      "std_name": "果酒 第 10 部分：柿子酒",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108604-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 5476.9-2026",
+      "std_name": "果酒 第 9 部分：苹果酒",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108605-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 5633.13-2026",
+      "std_name": "氨基酸、氨基酸盐及其类似物第 13 部分： β-丙氨酸",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108606-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 6502-2026",
+      "std_name": "鱼松",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108607-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 8169-2026",
+      "std_name": "熟制豆类",
+      "replaces_code": "SB/T 10948—2012",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108608-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 8170-2026",
+      "std_name": "速冻面米食品",
+      "replaces_code": "SB/T 10412-2007",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108609-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 8171-2026",
+      "std_name": "熟制与生干腰果",
+      "replaces_code": "SB/T 10615—2011",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108610-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 8172-2026",
+      "std_name": "熟制与生干板栗和仁",
+      "replaces_code": "SB/T 10557—2009",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108611-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 8173-2026",
+      "std_name": "熟制与生干南瓜籽和仁",
+      "replaces_code": "SB/T 10554—2009",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108612-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 8175-2026",
+      "std_name": "熟制与生干西瓜籽和仁",
+      "replaces_code": "SB/T 10555—2009",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108613-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 8176-2026",
+      "std_name": "熟制与生干开心果和仁",
+      "replaces_code": "SB/T 10613—2011",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108614-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 8177-2026",
+      "std_name": "熟制与生干杏核和杏仁",
+      "replaces_code": "SB/T 10617—2011",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108615-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 8178-2026",
+      "std_name": "熟制与生干扁桃（ 巴旦木）核和仁",
+      "replaces_code": "SB/T 10673—2012",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108616-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 8179-2026",
+      "std_name": "富铬酵母中三价铬和六价铬的测定",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108617-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 8180-2026",
+      "std_name": "米酿（食用型米酒、醪糟、酒酿）",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108618-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 8193-2026",
+      "std_name": "家居产品适老化设计通用要求",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108619-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 8194-2026",
+      "std_name": "皮帽",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108620-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 8195-2026",
+      "std_name": "办公家具 静音舱",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108621-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 8196-2026",
+      "std_name": "修线头机",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108622-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 8197-2026",
+      "std_name": "缝料点胶机",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108623-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 8198-2026",
+      "std_name": "锁体",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108624-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 8199-2026",
+      "std_name": "静音门锁系统",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108625-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 8200-2026",
+      "std_name": "纸管抗压强度测定仪",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108626-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 8201-2026",
+      "std_name": "纸和纸板水分测定仪（烘干法）",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108627-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 8202-2026",
+      "std_name": "家用和类似用途洗地机",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108628-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 8203-2026",
+      "std_name": "牛乳及其制品中β-酪蛋白的测定",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108629-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 8204-2026",
+      "std_name": "建筑排水用硬聚氯乙烯（PVC-U）承压管材及管件",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108630-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 8205-2026",
+      "std_name": "葡萄酒中 3-甲氧基-1，2-丙二醇的测定方法 气相质谱法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108631-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 8206-2026",
+      "std_name": "轻工行业企业工业互联网网络安全分类分级防护要求",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108632-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 8207-2026",
+      "std_name": "海藻蛋白",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108633-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 8208-2026",
+      "std_name": "海藻多糖",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108634-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 8209-2026",
+      "std_name": "电子智能锁",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108635-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 8210-2026",
+      "std_name": "日用化学用品质量追溯体系规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108636-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 8211-2026",
+      "std_name": "食用植物油产品质量追溯体系规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108637-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 8212-2026",
+      "std_name": "运动健康辅助器具 手持式无绳筋膜冲击仪",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108638-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 8213-2026",
+      "std_name": "埙",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108639-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 8214-2026",
+      "std_name": "生物基丁二酸",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108640-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 8215-2026",
+      "std_name": "再生塑料制品 平托盘",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108641-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 8216-2026",
+      "std_name": "清洁用三聚氰胺泡沫塑料",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108642-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 8217-2026",
+      "std_name": "装饰用硬质聚氯乙烯（PVC-U）压延薄膜",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108643-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "QB/T 8218-2026",
+      "std_name": "葡萄酒、果酒感官品评导则",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108644-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "MT/T 1358-2026",
+      "std_name": "智能化综采工作面自主规划开采技术要求",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108645-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "MT/T 1359-2026",
+      "std_name": "综采工作面智能化系统运行质量要求",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108646-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "NB/T 10186—2026",
+      "std_name": "光储系统用功率转换设备技术规范",
+      "replaces_code": "NB/T 10186—2019",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108647-2026",
+      "dept": "国家能源局"
+    },
+    {
+      "std_code": "JR/T 0361—2026",
+      "std_name": "金融数据中心智能运维规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108648-2026",
+      "dept": "中国人民银行"
+    },
+    {
+      "std_code": "JR/T 0362—2026",
+      "std_name": "金融业应用软件测试术语",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108649-2026",
+      "dept": "中国人民银行"
+    },
+    {
+      "std_code": "JR/T 0363—2026",
+      "std_name": "金融业应用软件测试数据设计指南",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108650-2026",
+      "dept": "中国人民银行"
+    },
+    {
+      "std_code": "JRT 0364—2026",
+      "std_name": "金融业应用软件验收测试质量控制框架",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108651-2026",
+      "dept": "中国人民银行"
+    },
+    {
+      "std_code": "JR/T 0366—2026",
+      "std_name": "金融标准化能力成熟度指引",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108652-2026",
+      "dept": "中国人民银行"
+    },
+    {
+      "std_code": "XF/T 3023-2026",
+      "std_name": "锂离子电池生产企业消防安全管理",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108653-2026",
+      "dept": "国家消防救援局"
+    },
+    {
+      "std_code": "XF/T 3024-2026",
+      "std_name": "电动自行车充电及停放场所消防安全管理",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108654-2026",
+      "dept": "国家消防救援局"
+    },
+    {
+      "std_code": "XF/T 3025-2026",
+      "std_name": "室内冰雪娱乐场所消防安全管理",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108655-2026",
+      "dept": "国家消防救援局"
+    },
+    {
+      "std_code": "XF/T 3026-2026",
+      "std_name": "物流场所消防安全管理",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108656-2026",
+      "dept": "国家消防救援局"
+    },
+    {
+      "std_code": "XF 3027-2026",
+      "std_name": "消防救援用无人机通用技术条件",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108657-2026",
+      "dept": "国家消防救援局"
+    },
+    {
+      "std_code": "XF/T 3028-2026",
+      "std_name": "消防救援用无人机训练导则",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108658-2026",
+      "dept": "国家消防救援局"
+    },
+    {
+      "std_code": "XF/T 839-2026",
+      "std_name": "火灾现场勘验规则",
+      "replaces_code": "XF 839-2009",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108659-2026",
+      "dept": "国家消防救援局"
+    },
+    {
+      "std_code": "XF/T 1192-2026",
+      "std_name": "火灾信息报告规则",
+      "replaces_code": "XF/T 1192-2014",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108660-2026",
+      "dept": "国家消防救援局"
+    },
+    {
+      "std_code": "XF/T 1283-2026",
+      "std_name": "住宅物业消防安全管理",
+      "replaces_code": "XF 1283-2015",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108661-2026",
+      "dept": "国家消防救援局"
+    },
+    {
+      "std_code": "XF/T 1339-2026",
+      "std_name": "119接警调度工作规程",
+      "replaces_code": "XF/T 1339-2017",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108662-2026",
+      "dept": "国家消防救援局"
+    },
+    {
+      "std_code": "GA 990-2025",
+      "std_name": "爆破作业单位资质条件和管理要求",
+      "replaces_code": "GA 990-2012",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108663-2026",
+      "dept": "公安部"
+    },
+    {
+      "std_code": "GA 991-2025",
+      "std_name": "爆破作业项目管理要求",
+      "replaces_code": "GA 991-2012",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108664-2026",
+      "dept": "公安部"
+    },
+    {
+      "std_code": "GA 53-2025",
+      "std_name": "爆破作业人员资格条件和管理要求",
+      "replaces_code": "GA 53-2015",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108665-2026",
+      "dept": "公安部"
+    },
+    {
+      "std_code": "YS/T 1873-2026",
+      "std_name": "钴冶炼企业废水循环利用技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108666-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "YS/T 1874-2026",
+      "std_name": "镍冶炼企业废水循环利用技术规范",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108667-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "YS/T 118.17-2026",
+      "std_name": "重有色冶金炉窑热平衡测定与计算方法（镍闪速熔炼炉）",
+      "replaces_code": "YS/T 118.17-2012",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108668-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "YS/T 1876-2026",
+      "std_name": "锂离子电池正极材料再生料比例核算与报告要求",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108669-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "YS/T 1877-2026",
+      "std_name": "铅锌冶炼水淬渣化学分析方法 多元素含量的测定 电感耦合等离子体原子发射光谱法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108670-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "YS/T 1884-2026",
+      "std_name": "金属基封严复合粉末中聚苯酯含量的测定 重量法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108671-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "YS/T 539.10-2026",
+      "std_name": "镍基合金粉化学分析方法 第10部分：痕量杂质元素含量的测定 电感耦合等离子体质谱法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108672-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "YS/T 1886-2026",
+      "std_name": "硬质合金直线往复磨损试验方法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108673-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "YS/T 1879-2026",
+      "std_name": "半导体用高纯铝及铝合金圆铸锭",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108674-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "YS/T 1881-2026",
+      "std_name": "拟薄水铝石",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108675-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "YS/T 1878-2026",
+      "std_name": "锂离子电池用钴基复合氢氧化物",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108676-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "YS/T 1880-2026",
+      "std_name": "有色金属行业供应链智能管理模型技术要求",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108677-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "YS/T 1462.6-2026",
+      "std_name": "粗锡化学分析方法 第6部分：银含量的测定 火焰原子吸收光谱法和碘化钾-电位滴定法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108678-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "YS/T 928.8-2026",
+      "std_name": "镍钴锰三元前驱体化学分析方法 第8部分：镍、钴、锰含量的测定 X射线荧光光谱法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108679-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "YS/T 1883-2026",
+      "std_name": "湿法炼锌氧压浸出系统热平衡测定与计算方法",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108680-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "XB/T 818-2026",
+      "std_name": "温室气体排放核算与报告要求 稀土湿法冶炼分离企业",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108681-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "XB/T 819-2026",
+      "std_name": "温室气体排放核算与报告要求 稀土火法冶炼企业",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108682-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "XB/T 820-2026",
+      "std_name": "温室气体排放核算与报告要求 稀土永磁材料生产企业",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108683-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "XB/T 530-2026",
+      "std_name": "高纯金属镧靶材",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108684-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "XB/T 531-2026",
+      "std_name": "铽/镝旋转靶材",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108685-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "XB/T 532-2026",
+      "std_name": "钕铝合金靶材",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108686-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "XB/T 533-2026",
+      "std_name": "稀土永磁材料晶界扩散用氢化铽、氢化镝",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108687-2026",
+      "dept": "工业和信息化部"
+    },
+    {
+      "std_code": "XB/T 534-2026",
+      "std_name": "稀土抛光液",
+      "replaces_code": "",
+      "publish_date": "2026-10-01",
+      "implementation_date": "",
+      "expiry_date": "",
+      "record_no": "108688-2026",
+      "dept": "工业和信息化部"
+    }
+  ],
+  "meta": {
+    "title": "标准信息查询-国家标准化管理委员会",
+    "publish_date": "2026-10-01"
+  }
+}

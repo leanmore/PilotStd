@@ -67,6 +67,8 @@ def test_number_extractor_more_edges() -> None:
     assert NumberExtractor.normalize_year("2020") == 2020
     assert NumberExtractor.extract_number("12A3") == (None, "", "")
     assert NumberExtractor.extract_part("") is None
+    assert NumberExtractor.extract_number("6D") == (6, "D", "6D")
+    assert NumberExtractor.extract_num_prefix("B16") == "B"
 
 
 def test_build_result_success_and_failure() -> None:
@@ -76,6 +78,7 @@ def test_build_result_success_and_failure() -> None:
     assert info.file_kind == "扫描版"
     assert info.std_name == "标题"
     assert b.build_result("GB 1-2020 标题", 2, "", 1, None, 2020) is None
+    assert b.build_result("GB 1-2020 123", 10, "GB", 1, None, 2020).std_name == ""
 
 
 def test_classify_unknown_code() -> None:

@@ -162,3 +162,25 @@ def test_progress_logged_every_100_files() -> None:
         scanner._scan_recursive("/x", result)
     assert result.stats.total == 100
     assert any("扫描进度" in str(c) for c in scanner.log.info.call_args_list)
+
+
+def test_recursive_oserror_other_winerror_reraises() -> None:
+    scanner = _scanner()
+    result = ScanResult()
+    err = OSError("other")
+    err.winerror = 5
+    with patch("pilotstd.scan.scanner.os.scandir", side_effect=err):
+        try:
+            scanner._scan_recursive("/x", result)
+        except OSError:
+            pass
+        else:
+            raise AssertionError("expected OSError")
+
+
+def test_language_detection_signals() -> None:
+    from pilotstd.scan.lang_detect import detect_language
+
+    assert detect_language("GB 1-2020 中文版") == "中文版"
+    assert detect_language("GB 1-2020 English version") == "英文版"
+    assert detect_language("GB 1-2020") == ""
