@@ -12,7 +12,7 @@ from pilotstd.core.std_utils import classify_std_code
         ("GB", "gb"),
         ("GB/T", "gb"),
         ("GB/Z", "gb"),
-        ("GSB", "gb"),
+        ("GSB", "sample"),
         # 国际标准
         ("ISO", "iso_iec"),
         ("IEC", "iso_iec"),

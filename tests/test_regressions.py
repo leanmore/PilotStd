@@ -332,12 +332,17 @@ class TestDownloadAdapterRoutingByStandardNature(unittest.TestCase):
 
     def test_slash_codes_are_routable(self):
         """GB/T、GB/Z 的代号解析保留斜杠，不能被判成非国标。"""
-        for number in ("GB/T 1-2020", "GB/Z 184.1-2026", "GB 2894-2025", "GSB 1-2020"):
+        for number in ("GB/T 1-2020", "GB/Z 184.1-2026", "GB 2894-2025"):
             with self.subTest(number=number):
                 task = DownloadTask(standard_number=number, source_site="ahbz")
                 found = self._engine()._find_adapter(task)
                 self.assertIsNotNone(found, f"{number} 是 GB 类，应可路由")
                 self.assertEqual(found.site_name, "openstd_download")
+
+    def test_sample_is_not_routable_as_gb(self):
+        """GSB 是国家标准样品，不是 GB/GB/T，不能走 openstd 国标下载。"""
+        task = DownloadTask(standard_number="GSB 1-2020", source_site="ahbz")
+        self.assertIsNone(self._engine()._find_adapter(task))
 
     def test_empty_source_site_national_std_still_routable(self):
         """查询未命中时 source_site 为空，国标仍应按性质路由。"""
