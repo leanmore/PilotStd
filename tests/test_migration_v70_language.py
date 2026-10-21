@@ -59,3 +59,21 @@ def test_matcher_keeps_both_language_rows(db) -> None:
     AnnouncementMatcher(db).match_and_update(items, source_site="announcement_gb", standard_category="NationalStd")
     rows = db.fetchall("SELECT language FROM announcement_record ORDER BY language")
     assert [r["language"] for r in rows] == ["德文", "英文"]
+
+
+def test_migration_is_retry_safe_with_fk_children(db) -> None:
+    from pilotstd.core.db._migrate_v70_announcement_record_language import (
+        _migrate_v70_announcement_record_language,
+    )
+
+    _insert(db, "英文", "English")
+    db.execute("CREATE TABLE child (id INTEGER, record_id INTEGER REFERENCES announcement_record(id))")
+    db.execute("INSERT INTO child VALUES (1, 1)")
+    # 模拟生产第一次失败留下的半成品表
+    db.execute("CREATE TABLE announcement_record_v70 (id INTEGER)")
+
+    _migrate_v70_announcement_record_language(db)
+
+    assert db.fetchone("SELECT COUNT(*) c FROM announcement_record")["c"] == 1
+    assert db.fetchone("SELECT COUNT(*) c FROM child")["c"] == 1
+    assert db.fetchone("PRAGMA foreign_keys")["foreign_keys"] == 1

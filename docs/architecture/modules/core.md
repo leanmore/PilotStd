@@ -447,3 +447,5 @@ pilotstd/core/
 **GB 细分与文件名安全（2026-10-21）**：新增 classify_document_type 返回 gb / gb_t / gb_z / sample；classify_std_code 仍返回粗粒度 gb 供适配器路由。make_standard_filename 通过 safe_code_for_filename 去掉 /，GB/T、GB/Z 落盘为 GBT、GBZ，并新增 Windows 文件名安全测试。
 
 **公告记录语种（2026-10-21）**：v70 重建 `announcement_record`，增加 `language`/`foreign_name`，唯一键含语种；迁移文件 `_migrate_v70_announcement_record_language.py`。
+
+**v70 重试（2026-10-21）**：迁移先清理残留 nnouncement_record_v70，并在重建期间临时关闭外键（子表引用），完成后恢复；支持失败后原地重入。

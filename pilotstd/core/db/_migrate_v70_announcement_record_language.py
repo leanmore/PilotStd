@@ -76,6 +76,9 @@ def _migrate_v70_announcement_record_language(db: Any) -> None:
     cols = {row["name"] for row in db.fetchall("PRAGMA table_info(announcement_record)")}
     if not cols:
         return
+    # 上次失败可能留下半成品表；先清理，保证可重入
+    db.execute("DROP TABLE IF EXISTS announcement_record_v70")
+
     if "language" not in cols:
         db.execute("ALTER TABLE announcement_record ADD COLUMN language TEXT DEFAULT ''")
     if "foreign_name" not in cols:
@@ -87,9 +90,17 @@ def _migrate_v70_announcement_record_language(db: Any) -> None:
             "SELECT sql FROM sqlite_master WHERE type='index' AND tbl_name='announcement_record' AND sql IS NOT NULL"
         )
     ]
-    db.execute(_TABLE_SQL)
-    db.execute(_INSERT_SQL)
-    db.execute("DROP TABLE announcement_record")
-    db.execute("ALTER TABLE announcement_record_v70 RENAME TO announcement_record")
-    for sql in indexes:
-        db.execute(sql)
+    fk_on = db.fetchone("PRAGMA foreign_keys")
+    fk_enabled = bool(fk_on and list(fk_on.values())[0])
+    if fk_enabled:
+        db.execute("PRAGMA foreign_keys=OFF")
+    try:
+        db.execute(_TABLE_SQL)
+        db.execute(_INSERT_SQL)
+        db.execute("DROP TABLE announcement_record")
+        db.execute("ALTER TABLE announcement_record_v70 RENAME TO announcement_record")
+        for sql in indexes:
+            db.execute(sql)
+    finally:
+        if fk_enabled:
+            db.execute("PRAGMA foreign_keys=ON")
