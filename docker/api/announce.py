@@ -244,6 +244,15 @@ _stats_cache: dict = {"data": None, "ts": 0}
 _STATS_CACHE_TTL = 300  # 5 分钟
 
 
+@router.get("/api/announce/reconcile")
+def announce_reconcile(mgr=Depends(get_manager_dep)):
+    """P2 防漏巡检：源站声明条数 vs 实际入库记录数。"""
+    from pilotstd.announcement.reconcile import find_announcement_count_mismatches
+
+    items = find_announcement_count_mismatches(mgr.db)
+    return {"items": items, "total": len(items)}
+
+
 @router.get("/api/announce/stats")
 def get_announce_stats(mgr=Depends(get_manager_dep)):
     """公告统计数据（标准总数/已匹配/今日新增，按国标/行标/地标分类）。5分钟缓存。
