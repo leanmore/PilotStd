@@ -126,7 +126,10 @@ def parse_html_table(html: str) -> list[dict[str, Any]]:
                 continue
 
             std_code = cell_texts[code_col]
-            if not STD_CODE_PATTERN.match(_normalize_code_text(std_code)):
+            if not (
+                STD_CODE_PATTERN.match(_normalize_code_text(std_code))
+                or SAMPLE_CODE_PATTERN.match(_normalize_code_text(std_code))
+            ):
                 continue
 
             # 标准名称列去重：4_()会递归拼接嵌套元素文本，
@@ -239,6 +242,34 @@ def _parse_entry_fields(field_text: str) -> tuple[str, str, str, str]:
     return std_name, replaces_code, publish_date, implementation_date
 
 
+# 国家标准样品编号：04-2809-F01-2025 / GSB 03-4369-2025。
+# 必须优先于通用标准号匹配，否则只会截到 F01-2025，把不同样品合并成同一条。
+SAMPLE_CODE_PATTERN = re.compile(
+    r"(?:(?:GSB\s+\d{2}-\d{3,5})|\d{2}-\d{3,5}-[A-Z]\d{1,3})-\s*\d{4}",
+    re.IGNORECASE,
+)
+
+
+def _display_sample_code(raw: str) -> str:
+    """PDF 会把 04-2162-F01-\\n2026 拆行；展示时去掉换行/空白，GSB 保留一个空格。"""
+    compact = re.sub(r"\s+", "", raw)
+    if compact.upper().startswith("GSB"):
+        return "GSB " + compact[3:]
+    return compact
+
+
+def _iter_code_matches(normalized: str) -> list[re.Match[str]]:
+    """返回样品号 + 标准号的完整匹配，样品号优先，过滤其内部的标准号碎片。"""
+    samples = list(SAMPLE_CODE_PATTERN.finditer(normalized))
+    sample_spans = [(m.start(), m.end()) for m in samples]
+    standards = [
+        m
+        for m in STD_CODE_PATTERN.finditer(normalized)
+        if not any(m.start() < end and m.end() > start for start, end in sample_spans)
+    ]
+    return sorted(samples + standards, key=lambda m: m.start())
+
+
 def parse_text_table(text: str) -> list[dict[str, Any]]:
     """从附件文本中提取标准表格。不依赖换行符，用标准编号模式全文本扫描。
 
@@ -253,7 +284,7 @@ def parse_text_table(text: str) -> list[dict[str, Any]]:
     """
     results: list[dict[str, Any]] = []
     normalized = _normalize_code_text(text)
-    matches = list(STD_CODE_PATTERN.finditer(normalized))
+    matches = _iter_code_matches(normalized)
     if not matches:
         return results
 
@@ -263,6 +294,8 @@ def parse_text_table(text: str) -> list[dict[str, Any]]:
         if i in skip_indices:
             continue
         std_code = text[match.start() : match.end()]
+        if SAMPLE_CODE_PATTERN.fullmatch(_normalize_code_text(std_code)):
+            std_code = _display_sample_code(std_code)
 
         field_text, replaces_code_adjacent, _ = _find_field_text(text, matches, i, skip_indices)
 

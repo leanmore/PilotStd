@@ -201,5 +201,36 @@ class TestMultiSlashAndTypoPrefixes(unittest.TestCase):
             self.assertIsNotNone(parse_std_number(item["std_code"]), item["std_code"])
 
 
+class TestStandardSampleCodes(unittest.TestCase):
+    """国家标准样品编号：04-2809-F01-2025 / GSB 03-4369-2025，不能被截成 F01-2025。"""
+
+    def test_text_table_keeps_full_sample_code(self):
+        from pilotstd.announcement.parser import parse_text_table
+
+        text = (
+            "1 04-2809-F01-2025 铁矿石样品A 2025-01-06\n"
+            "2 04-3314-F01-2025 铁矿石样品B 2025-01-06\n"
+            "3 GSB 03-4369-2025 标准样品C 2025-01-06\n"
+        )
+        items = parse_text_table(text)
+        codes = {x["std_code"].replace("\n", " ").strip() for x in items}
+        self.assertEqual(codes, {"04-2809-F01-2025", "04-3314-F01-2025", "GSB 03-4369-2025"})
+
+    def test_sample_codes_are_semantically_parseable(self):
+        from pilotstd.core.std_utils import parse_std_number
+
+        for code in ("04-2809-F01-2025", "04-3314-F01-2025", "GSB 03-4369-2025"):
+            parsed = parse_std_number(code)
+            self.assertIsNotNone(parsed, code)
+            self.assertEqual(parsed["year"], 2025)
+
+    def test_split_sample_code_is_reassembled(self):
+        from pilotstd.announcement.parser import parse_text_table
+
+        text = "1 04-2162-F01-\n2026 样品A\n2 08-2986-F01-\n2026 样品B\n"
+        codes = {x["std_code"] for x in parse_text_table(text)}
+        self.assertEqual(codes, {"04-2162-F01-2026", "08-2986-F01-2026"})
+
+
 if __name__ == '__main__':
     unittest.main()

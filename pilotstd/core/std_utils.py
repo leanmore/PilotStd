@@ -229,6 +229,43 @@ def normalize_std_code_text(text: str) -> str:
     return str(text).translate(CODE_WIDTH_TRANS)
 
 
+def _try_parse_sample_code(text: str) -> dict[str, Any] | None:
+    """国家标准样品编号：04-2809-F01-2025 / GSB 03-4369-2025。
+
+    这类编号不是“标准号 + 年份”，通用正则会把 04-2809- 前缀丢掉，只剩 F01-2025。
+    """
+    s = re.sub(r"\s+", " ", text.strip())
+    m = re.match(
+        r"^(?:(?P<gsb>GSB)\s+(?P<gcat>\d{2})-(?P<gserial>\d{3,5})"
+        r"|(?P<cat>\d{2})-(?P<serial>\d{3,5})-(?P<suffix>[A-Z]\d{1,3}))-\s*(?P<year>\d{4})$",
+        s,
+        re.IGNORECASE,
+    )
+    if not m:
+        return None
+    if m.group("gsb"):
+        code = f"GSB {m.group('gcat')}-{m.group('gserial')}"
+        return {
+            "raw_code": code,
+            "code": code,
+            "number": int(m.group("gserial")),
+            "part": None,
+            "year": int(m.group("year")),
+            "num_prefix": "",
+            "num_suffix": "",
+        }
+    code = f"{m.group('cat')}-{m.group('serial')}-{m.group('suffix')}"
+    return {
+        "raw_code": code,
+        "code": code,
+        "number": int(m.group("serial")),
+        "part": None,
+        "year": int(m.group("year")),
+        "num_prefix": "",
+        "num_suffix": m.group("suffix"),
+    }
+
+
 def _try_parse_variant_prefix(text: str) -> dict[str, Any] | None:
     """解析新版公告里常见的变形前缀：DB52T、DB11/、NB/SH/T、SJ/T-、HG/T … 一 …、QB T。"""
     s = re.sub(r"\s+", " ", normalize_std_code_text(text)).strip()
@@ -272,6 +309,7 @@ def parse_std_number(text: str) -> dict[str, Any] | None:
 
     # 按优先级依次尝试各解析器
     for parser in (
+        _try_parse_sample_code,
         _try_parse_variant_prefix,
         _try_parse_db_standard,
         _try_parse_general_format,
