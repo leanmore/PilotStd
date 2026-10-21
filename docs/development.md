@@ -168,6 +168,13 @@ config 的 `outputFolder`/`outputDir`、工作流上传 `path`、本节说明。
 **环境版本声明**：`ci.yml` 顶部 `env` 定义 `PYTHON_VERSION: '3.12'` 与 `NODE_VERSION: '22'`；
 容器基础镜像为 `python:3.12-slim`；`pyproject.toml` 声明 `requires-python >= 3.12`。
 
+## 测试覆盖状态（2026-10-21）
+
+D-13 批次新增 9 个测试文件（扫描器错误分支、ParserCore/ResultBuilder 边界、国外标准后处理、
+版次/文件名正则、ExactMatcher 分支、对账 API、HB 第9号真实样本）。关键文件覆盖：
+scan/scanner.py 99%、scan/parser/_core.py 100%、_foreign.py 100%、
+_result_builder.py 98%、_exact_matcher.py 95%。
+
 ## 相关文档
 
 | 文档 | 路径 |
