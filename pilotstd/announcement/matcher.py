@@ -167,6 +167,8 @@ class AnnouncementMatcher:
                 item.get("announcement_title", "") or None,
                 item.get("standard_count"),
                 standard_category,  # 批次7：收藏分类（17 列）
+                item.get("language", "") or "",
+                item.get("foreign_name", "") or "",
             )
         )
 
@@ -267,13 +269,14 @@ class AnnouncementMatcher:
         # 分批插入：避免单条数据库查询过长导致性能下降
         for i in range(0, len(rows), self._BATCH_SIZE):
             batch = rows[i : i + self._BATCH_SIZE]
-            placeholders = ",".join("(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)" for _ in batch)
+            placeholders = ",".join("(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)" for _ in batch)
             flat_values = [item for row in batch for item in row]
             self._db.execute(
                 "INSERT OR IGNORE INTO announcement_record "
                 "(source_site, pid, announce_no, standard_number, std_name, "
                 "publish_date, implement_date, expiry_date, superseded_by, confidence, row_index,"
-                " status, fetched_at, matched, announcement_title, standard_count, standard_type) "
+                " status, fetched_at, matched, announcement_title, standard_count, standard_type,"
+                " language, foreign_name) "
                 f"VALUES {placeholders}",
                 flat_values,
             )

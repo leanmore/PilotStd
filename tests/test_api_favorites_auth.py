@@ -113,7 +113,9 @@ def client_and_db(tmp_path_factory):
         source_type TEXT DEFAULT '网页解析',
         standard_type TEXT NOT NULL DEFAULT 'Unknown',
         final_name TEXT,
-        UNIQUE(source_site, pid, standard_number))"""
+        language TEXT DEFAULT '',
+        foreign_name TEXT DEFAULT '',
+        UNIQUE(source_site, pid, standard_number, language))"""
     )
 
     from pilotstd.core.security import generate_salt, get_password_hash

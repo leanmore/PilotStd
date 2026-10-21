@@ -111,7 +111,8 @@
         "approve_ok": "確認成功",
         "approve_ok_detail": "已確認 {n} 條標準",
         "approve_failed": "確認失敗"
-      }
+      },
+      "col_language": "語種"
     }
   },
   "standards": {

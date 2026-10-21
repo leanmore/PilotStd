@@ -4,7 +4,7 @@
 from typing import Any, Callable
 
 # 当前期望的表结构版本号（每次新增迁移+1）
-CURRENT_SCHEMA_VERSION = 69  # v69: 自愈通知渠道凭据（旧迁移失败却已标记完成 ⇒ 重做一次加密写入）
+CURRENT_SCHEMA_VERSION = 70  # v70: 公告记录增加语种/外文名，唯一键含 language
 
 # 迁移注册表：版本号→迁移函数（接收实例）
 MIGRATIONS: dict[int, Callable[..., Any]] = {}

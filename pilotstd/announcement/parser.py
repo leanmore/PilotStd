@@ -58,6 +58,11 @@ _HEADER_KEYWORD_MAP = [
     ("标准编号", "std_code"),
     ("编号", "std_code"),
     ("标准名称", "std_name"),
+    ("外文名称", "foreign_name"),
+    ("英文名称", "foreign_name"),
+    ("外文名", "foreign_name"),
+    ("语种", "language"),
+    ("语言", "language"),
     ("名称", "std_name"),
     ("代替", "replaces_code"),
     ("实施日期", "implementation_date"),
@@ -141,6 +146,8 @@ def parse_html_table(html: str) -> list[dict[str, Any]]:
             item = {
                 "std_code": std_code,
                 "std_name": cell_texts[name_col] if name_col < len(cell_texts) else "",
+                "foreign_name": "",
+                "language": "",
                 "replaces_code": "",
                 "publish_date": "",
                 "implementation_date": "",
@@ -359,7 +366,7 @@ def _ocr_pdf(pdf_bytes: bytes, ocr_provider: Any) -> str:
 
     result = "\n".join(texts)
     logger.info(
-        "OCR 完成: %d/%d 页成功, %d 字符",
+        "OCR complete: %d/%d pages, %d chars",
         total_pages - failed,
         total_pages,
         len(result),
@@ -420,15 +427,15 @@ def parse_announcement_detail(
             if _code_key(item) not in codes:
                 html_items.append(item)
                 new_count += 1
-        logger.info("HTML %d 条 + 附件补充 %d 条", len(html_items) - new_count, new_count)
+        logger.info("HTML %d rows + attachment %d rows", len(html_items) - new_count, new_count)
         return html_items, meta
 
     if html_items:
-        logger.info("HTML 表格解析到 %d 条标准", len(html_items))
+        logger.info("HTML table parsed %d rows", len(html_items))
         return html_items, meta
 
     if att_items:
-        logger.info("附件解析到 %d 条标准", len(att_items))
+        logger.info("attachment parsed %d rows", len(att_items))
         return att_items, meta
 
     title = meta.get("title", "") or ""

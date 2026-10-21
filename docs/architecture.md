@@ -304,3 +304,5 @@ PKCS#7 **按 32 字节块**填充、解密后校验 `receiveid`（企微为 corp
 
 契约测试：`tests/unit/core/test_status_contract.py`（后端 25 例）＋ `web/src/utils/stdStatus.test.ts`（前端 4 例）。
 
+
+> 2026-10-21：`announcement_record` 增加 `language`（语种）/`foreign_name`（外文名称），唯一键扩展为 `(source_site,pid,standard_number,language)`；v70 迁移重建表。

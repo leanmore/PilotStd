@@ -60,7 +60,9 @@ CREATE TABLE IF NOT EXISTS announcement_record (
     updated_at TEXT DEFAULT 'CURRENT_TIMESTAMP',
     source_type TEXT DEFAULT '网页解析',
     standard_type TEXT NOT NULL DEFAULT 'Unknown',
-    final_name TEXT
+    final_name TEXT,
+    language TEXT DEFAULT '',
+    foreign_name TEXT DEFAULT ''
 );CREATE TABLE IF NOT EXISTS announcement_match (
     id INTEGER,
     standard_number TEXT NOT NULL,
@@ -384,12 +386,14 @@ class TestProcessItem(unittest.TestCase):
         )
 
         row = log_rows[0]
-        self.assertEqual(len(row), 17)  # 批次7：含 standard_type（第 17 列）
+        self.assertEqual(len(row), 19)  # 17 列 + language + foreign_name
         self.assertEqual(row[0], "announcement_gb")  # source_site
         self.assertEqual(row[1], "p001")  # pid
         self.assertEqual(row[2], "2024-001")  # announce_no
         self.assertEqual(row[3], "GB/T 99999-2020")  # standard_number
         self.assertEqual(row[16], "NationalStd")  # standard_type（批次7）
+        self.assertEqual(row[17], "")  # language
+        self.assertEqual(row[18], "")  # foreign_name
 
 
 class TestGetCompletePids(unittest.TestCase):

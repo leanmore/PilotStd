@@ -174,3 +174,9 @@ from ._migrate_v68_notification_policy_event_classes import (  # noqa: E402, F40
 from ._migrate_v69_reheal_notification_credentials import (  # noqa: E402, F401
     _migrate_v69_reheal_notification_credentials,
 )
+
+# 第七十版：公告记录增加 language / foreign_name，唯一键扩展为含语种
+# （GB 2026 第29/39号同一标准号存在英文版、德文版多行，旧唯一键会合并）。
+from ._migrate_v70_announcement_record_language import (  # noqa: E402, F401
+    _migrate_v70_announcement_record_language,
+)

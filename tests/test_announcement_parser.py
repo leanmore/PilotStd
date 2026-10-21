@@ -201,6 +201,24 @@ class TestMultiSlashAndTypoPrefixes(unittest.TestCase):
             self.assertIsNotNone(parse_std_number(item["std_code"]), item["std_code"])
 
 
+class TestLanguageColumns(unittest.TestCase):
+    """GB 29/39 的“外文名称 / 语种”列必须被识别，不能只取中文名。"""
+
+    def test_foreign_name_and_language(self):
+        html = '''<table><thead><tr>
+        <th>序号</th><th>国家标准编号</th><th>国家标准名称</th>
+        <th>国家标准外文名称</th><th>语种</th></tr></thead>
+        <tbody>
+        <tr><td>1</td><td>GB/T 29548-2024</td><td>中文名</td><td>English name</td><td>英文</td></tr>
+        <tr><td>2</td><td>GB/T 29548-2024</td><td>中文名</td><td>Deutscher Name</td><td>德文</td></tr>
+        </tbody></table>'''
+        items = parse_html_table(html)
+        self.assertEqual(len(items), 2)
+        self.assertEqual(items[0]["std_name"], "中文名")
+        self.assertEqual({x["language"] for x in items}, {"英文", "德文"})
+        self.assertEqual({x["foreign_name"] for x in items}, {"English name", "Deutscher Name"})
+
+
 class TestStandardSampleCodes(unittest.TestCase):
     """国家标准样品编号：04-2809-F01-2025 / GSB 03-4369-2025，不能被截成 F01-2025。"""
 

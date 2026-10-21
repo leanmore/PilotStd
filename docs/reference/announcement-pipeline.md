@@ -100,3 +100,5 @@ GB/DB/HB 公告头完整；详情记录缺口为 DB 9月第8号 18 条、HB 9月
 > 2026-10-21（P2 入库对账）：GET /api/announce/reconcile 返回 standard_count 与实际记录数不一致的公告（declared/actual/diff），实现见 pilotstd.announcement.reconcile；用于部署后巡检，不自动改数据。
 
 > 2026-10-21：解析器新增**国家标准样品编号**语法（`04-2809-F01-2025`、`GSB 03-4369-2025`），并处理 PDF 将 `04-2162-F01-` 与年份拆行的情形；旧逻辑会截成 `F01-2025`，把不同样品合并。
+
+> 2026-10-21：GB 公告表格新增识别“国家标准外文名称 / 语种”列；`announcement_record` 增加 `language`/`foreign_name`，唯一键改为 `(source_site,pid,standard_number,language)`，同一标准号的不同语种分行保留（v70 迁移）。

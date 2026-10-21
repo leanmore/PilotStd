@@ -75,7 +75,8 @@ def get_announcement_records_paginated(
     offset = (page - 1) * page_size
     rows = db.fetchall(
         "SELECT id, row_index, standard_number, std_name,"
-        " publish_date, implement_date, expiry_date, superseded_by, status"
+        " publish_date, implement_date, expiry_date, superseded_by, status,"
+        " language, foreign_name"
         " FROM announcement_record"
         " WHERE TRIM(announce_no) = ?"
         " ORDER BY standard_number ASC"

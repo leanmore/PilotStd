@@ -176,6 +176,9 @@ const {
                 </span>
               </template>
             </Column>
+            <Column field="language" :header="t('announce.detail.col_language')" style="width: 6rem">
+              <template #body="{ data }">{{ data.language || '-' }}</template>
+            </Column>
             <Column field="publish_date" :header="t('announce.detail.col_publish_date')" style="min-width: 10rem">
               <template #editor="{ data, field }">
                 <AppCalendar v-model="data[field]" dateFormat="yy-mm-dd" showIcon />

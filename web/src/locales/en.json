@@ -111,7 +111,8 @@
         "approve_ok": "Approved",
         "approve_ok_detail": "{n} standards approved",
         "approve_failed": "Approval Failed"
-      }
+      },
+      "col_language": "Language"
     }
   },
   "standards": {

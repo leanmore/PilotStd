@@ -166,7 +166,9 @@ class TestCoreDeepComplete(unittest.TestCase):
     updated_at TEXT DEFAULT 'CURRENT_TIMESTAMP',
     source_type TEXT DEFAULT '网页解析',
     standard_type TEXT NOT NULL DEFAULT 'Unknown',
-    final_name TEXT
+    final_name TEXT,
+    language TEXT DEFAULT '',
+    foreign_name TEXT DEFAULT ''
 );"""
         db = MockDatabase(schema).__enter__()
         try:
