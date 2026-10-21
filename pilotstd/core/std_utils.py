@@ -4,12 +4,21 @@
 import re
 from typing import Any
 
-GB_CODES: frozenset[Any] = frozenset({"GB", "GB/T", "GB/Z", "GSB"})
+GB_CODES: frozenset[Any] = frozenset({"GB", "GB/T", "GB/Z"})
+SAMPLE_CODES: frozenset[Any] = frozenset({"GSB"})
 
 
 def is_gb_code(code: str) -> bool:
-    """判断标准代号是否为 GB 类（openstd 可下载）。"""
+    """判断标准代号是否为 GB 类（openstd 可下载）。GSB 是国家标准样品，不属于 GB。"""
     return code in GB_CODES
+
+
+def is_sample_code(code: str) -> bool:
+    """判断是否为国家标准样品编号（GSB 或 NN-NNNN-FNN 形式）。"""
+    compact = code.upper().replace(" ", "")
+    if compact in SAMPLE_CODES or compact.startswith("GSB"):
+        return True
+    return bool(re.match(r"^\d{2}-\d{3,5}-[A-Z]\d{1,3}$", compact))
 
 
 def classify_std_code(logical_code: str) -> str:
@@ -23,6 +32,10 @@ def classify_std_code(logical_code: str) -> str:
         return ""
 
     code = logical_code.upper().replace(" ", "")
+
+    # 国家标准样品（GSB / NN-NNNN-FNN）不是 GB/GB/T 标准
+    if is_sample_code(code):
+        return "sample"
 
     # 类
     if code in GB_CODES:

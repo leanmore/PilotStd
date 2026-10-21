@@ -17,6 +17,7 @@ from pilotstd.core.std_utils import (
     _try_parse_roman,
     classify_std_code,
     is_gb_code,
+    is_sample_code,
     parse_std_number,
 )
 
@@ -30,7 +31,19 @@ class TestIsGbCode:
     def test_non_gb_code_returns_false(self):
         assert is_gb_code("ISO") is False
         assert is_gb_code("SH/T") is False
+        assert is_gb_code("GSB") is False
         assert is_gb_code("") is False
+
+
+class TestIsSampleCode:
+    def test_sample_codes(self):
+        assert is_sample_code("GSB") is True
+        assert is_sample_code("GSB 03-4369") is True
+        assert is_sample_code("04-2809-F01") is True
+
+    def test_non_sample_codes(self):
+        assert is_sample_code("GB/T") is False
+        assert is_sample_code("04-2809") is False
 
 
 class TestClassifyStdCode:
@@ -50,6 +63,11 @@ class TestClassifyStdCode:
 
     def test_empty_returns_empty(self):
         assert classify_std_code("") == ""
+
+    def test_sample_is_not_gb(self):
+        assert classify_std_code("GSB 03-4369") == "sample"
+        assert classify_std_code("04-2809-F01") == "sample"
+        assert classify_std_code("GB/T") == "gb"
 
     def test_gb_variants(self):
         assert classify_std_code("GB") == "gb"

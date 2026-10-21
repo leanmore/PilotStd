@@ -441,3 +441,5 @@ pilotstd/core/
 **标准样品编号（2026-10-21）**：parse_std_number 增加 NN-NNNN-FNN-YYYY / GSB NN-NNNN-YYYY 解析，避免通用标准号正则截断尾段。
 
 **标准样品编号（2026-10-21）**：`parse_std_number` 增加 `NN-NNNN-FNN-YYYY` / `GSB NN-NNNN-YYYY` 解析，避免通用标准号正则截断尾段。
+
+**样品/标准分类（2026-10-21）**：GB_CODES 仅保留 GB/GB/T/GB/Z；GSB 单独作为 SAMPLE_CODES，classify_std_code 对 GSB / NN-NNNN-FNN 返回 sample，不再误归 GB。
