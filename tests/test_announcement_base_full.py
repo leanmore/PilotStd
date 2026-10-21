@@ -885,5 +885,27 @@ class TestCountMismatchWarning(unittest.TestCase):
         self.assertTrue(any("invalid" in line for line in cm.output))
 
 
+class TestAmendmentAnnouncement(unittest.TestCase):
+    """修改单公告：只取标题中的被修改标准，不解析附件的修改内容表格。"""
+
+    def setUp(self):
+        self.crawler = ConcreteCrawler()
+
+    def test_detects_and_extracts_amended_standard(self):
+        ann = {
+            "title": "关于批准GB/T 2260-2007《中华人民共和国行政区划代码》第1号修改单的公告",
+            "code": "2016年第26号",
+            "notice_date": "2016-12-23",
+        }
+        self.assertTrue(self.crawler._is_amendment(ann))
+        items = self.crawler._parse_amendment(ann)
+        self.assertEqual(len(items), 1)
+        self.assertEqual(items[0]["std_code"], "GB/T 2260-2007")
+        self.assertEqual(items[0]["std_name"], "中华人民共和国行政区划代码")
+
+    def test_normal_announcement_is_not_amendment(self):
+        self.assertFalse(self.crawler._is_amendment({"title": "关于批准发布国家标准的公告"}))
+
+
 if __name__ == "__main__":
     unittest.main()

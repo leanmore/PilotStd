@@ -3,6 +3,7 @@
 
 import concurrent.futures
 import logging
+import re
 import threading
 from abc import ABC, abstractmethod
 from typing import Any, Callable, Optional, cast
@@ -237,6 +238,41 @@ class BaseAnnounceCrawler(ABC):
             item.setdefault("source_type", source_type)
         return items
 
+    def _is_amendment(self, ann: dict[str, Any]) -> bool:
+        """修改单公告：标题声明“第N号修改单”，正文附件是修改内容，不是标准清单。"""
+        return "修改单" in str(ann.get("title", "") or "")
+
+    def _parse_amendment(self, ann: dict[str, Any]) -> list[dict[str, Any]]:
+        """从修改单公告标题提取被修改标准，不解析附件里的修改内容表格。"""
+        title = str(ann.get("title", "") or "")
+        code_match = re.search(
+            r"GB\s*(?:/\s*[TZ])?\s*\d+(?:\.\d+)*\s*[—\-－–−]\s*\d{4}",
+            title,
+            re.IGNORECASE,
+        )
+        if not code_match:
+            logger.warning(
+                "amendment announcement has no standard code: code=%s title=%s",
+                ann.get("code", ""),
+                title[:80],
+            )
+            return []
+        code = re.sub(r"\s*/\s*", "/", code_match.group(0))
+        code = re.sub(r"\s*[—－–−]\s*", "-", code)
+        code = re.sub(r"\s+", " ", code).strip()
+        name_match = re.search(r"《([^》]+)》", title)
+        name = name_match.group(1) if name_match else title
+        return [
+            {
+                "std_code": code,
+                "std_name": name,
+                "replaces_code": "",
+                "publish_date": ann.get("notice_date", ""),
+                "implementation_date": "",
+                "expiry_date": "",
+            }
+        ]
+
     def _warn_if_count_mismatch(self, ann: dict[str, Any], parsed_count: int) -> None:
         """源站 STD_COUNT 与解析条目数不一致时告警，避免静默漏抓。"""
         raw = str(ann.get("std_count", "") or "").strip()
@@ -289,8 +325,11 @@ class BaseAnnounceCrawler(ABC):
             self.source_site,
             raw,
         )
-        parsed = self._parse_items(raw, ocr_provider=ocr_provider)
-        self._warn_if_count_mismatch(ann, len(parsed))
+        parsed = self._parse_amendment(ann) if self._is_amendment(ann) else self._parse_items(
+            raw, ocr_provider=ocr_provider
+        )
+        if not self._is_amendment(ann):
+            self._warn_if_count_mismatch(ann, len(parsed))
         if not parsed:
             logger.warning(
                 "公告解析为空: type=%s pid=%s code=%s html_size=%d title=%s",
@@ -313,7 +352,10 @@ class BaseAnnounceCrawler(ABC):
             item["_pid"] = ann.get("pid", "")
             item["announce_no"] = ann.get("code", "")
             raw_std_count = ann.get("std_count", "")
-            item["standard_count"] = int(raw_std_count) if raw_std_count else len(parsed)
+            if self._is_amendment(ann):
+                item["standard_count"] = len(parsed)
+            else:
+                item["standard_count"] = int(raw_std_count) if raw_std_count else len(parsed)
             # 列表接口的_是公告权威发布日期，覆盖所有条目
             # 网页表格和附件解析可能产生不同的_（甚至为空），
             # 不一致会导致查询返回重复行
@@ -391,7 +433,7 @@ class BaseAnnounceCrawler(ABC):
                 skipped = len(ann_list) - len(remaining)
                 if skipped > 0:
                     logger.info(
-                        "公告 %s: 跳过已完全解析 %d 条, 剩余 %d 条",
+                        "announcement %s: skip fully parsed %d, remaining %d",
                         self.standard_type,
                         skipped,
                         len(remaining),

@@ -104,3 +104,5 @@ GB/DB/HB 公告头完整；详情记录缺口为 DB 9月第8号 18 条、HB 9月
 > 2026-10-21：GB 公告表格新增识别“国家标准外文名称 / 语种”列；`announcement_record` 增加 `language`/`foreign_name`，唯一键改为 `(source_site,pid,standard_number,language)`，同一标准号的不同语种分行保留（v70 迁移）。
 
 > 2026-10-21：公告列表查询改为 nnouncement_record UNION ALL announcements 并按公告号去重；有公告头但 0 条记录的公告也会显示（计数为空），避免漏抓公告在刷新后消失。
+
+> 2026-10-21：识别**修改单公告**（标题含“修改单”）。此类公告的附件是修改内容表格，不是标准清单；解析器只从标题提取被修改标准（如 `GB/T 2260-2007`），不再把附件表格当标准列表。
