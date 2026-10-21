@@ -15,7 +15,11 @@ def _normalize(items: list[dict]) -> list[dict]:
     for it in items:
         for k, v in it.items():
             if isinstance(v, str):
-                it[k] = re.sub(r"\s+", " ", v.replace("\r\n", "\n")).strip()
+                if k == "std_name":
+                    # PDF 抽取会把 "WO 3 30" 与 "WO330" 视为不同；名称比较忽略空白
+                    it[k] = re.sub(r"\s+", "", v)
+                else:
+                    it[k] = re.sub(r"\s+", " ", v.replace("\r\n", "\n")).strip()
     return sorted(items, key=lambda x: x.get("std_code", ""))
 
 
