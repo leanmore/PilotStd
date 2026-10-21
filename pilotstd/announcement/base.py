@@ -237,6 +237,31 @@ class BaseAnnounceCrawler(ABC):
             item.setdefault("source_type", source_type)
         return items
 
+    def _warn_if_count_mismatch(self, ann: dict[str, Any], parsed_count: int) -> None:
+        """源站 STD_COUNT 与解析条目数不一致时告警，避免静默漏抓。"""
+        raw = str(ann.get("std_count", "") or "").strip()
+        if not raw:
+            return
+        try:
+            declared = int(raw)
+        except ValueError:
+            logger.warning(
+                "announcement std_count invalid: type=%s code=%s std_count=%r",
+                self.standard_type,
+                ann.get("code", ""),
+                raw,
+            )
+            return
+        if declared and parsed_count != declared:
+            logger.warning(
+                "announcement count mismatch: type=%s code=%s source=%d parsed=%d diff=%+d",
+                self.standard_type,
+                ann.get("code", ""),
+                declared,
+                parsed_count,
+                parsed_count - declared,
+            )
+
     def _process_one_detail(
         self,
         ann: dict[str, Any],
@@ -265,6 +290,7 @@ class BaseAnnounceCrawler(ABC):
             raw,
         )
         parsed = self._parse_items(raw, ocr_provider=ocr_provider)
+        self._warn_if_count_mismatch(ann, len(parsed))
         if not parsed:
             logger.warning(
                 "公告解析为空: type=%s pid=%s code=%s html_size=%d title=%s",

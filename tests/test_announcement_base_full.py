@@ -864,5 +864,26 @@ class TestCircuitBreakerConfigProperties(unittest.TestCase):
         self.assertGreater(self.crawler._cb._reset_hours, 0)
 
 
+class TestCountMismatchWarning(unittest.TestCase):
+    """P2：源站 STD_COUNT 与解析条目数不一致必须告警，不能静默。"""
+
+    def setUp(self):
+        self.crawler = ConcreteCrawler()
+
+    def test_mismatch_logs_warning(self):
+        with self.assertLogs("pilotstd.announcement.base", level="WARNING") as cm:
+            self.crawler._warn_if_count_mismatch({"code": "C1", "std_count": "3"}, 2)
+        self.assertTrue(any("mismatch" in line for line in cm.output))
+
+    def test_equal_count_is_silent(self):
+        with self.assertNoLogs("pilotstd.announcement.base", level="WARNING"):
+            self.crawler._warn_if_count_mismatch({"code": "C1", "std_count": "2"}, 2)
+
+    def test_invalid_count_logs_warning(self):
+        with self.assertLogs("pilotstd.announcement.base", level="WARNING") as cm:
+            self.crawler._warn_if_count_mismatch({"code": "C1", "std_count": "abc"}, 2)
+        self.assertTrue(any("invalid" in line for line in cm.output))
+
+
 if __name__ == "__main__":
     unittest.main()
