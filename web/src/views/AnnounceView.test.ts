@@ -55,6 +55,7 @@ describe('AnnounceView', () => {
         { announce_no: '2025年第1号', announcement_title: '2025年1月国家标准委收到北京市等27个省市区共发布标准1530项', standard_count: 1530, publish_date: '2025-02-01', source_site: 'announcement_db' },
       ],
     })
+    postAnnounceCheckMock.mockResolvedValue({ ok: true })
   })
 
   it('渲染三个胶囊标签（国家标准/行业标准/地方标准）', async () => {
@@ -99,6 +100,7 @@ describe('AnnounceView', () => {
     expect(refresh).toBeTruthy()
     await refresh!.trigger('click')
     await new Promise(r => setTimeout(r, 10))
+    expect(postAnnounceCheckMock).toHaveBeenCalled()
     expect(getAnnounceResultsMock.mock.calls.length).toBe(before + 1)
   })
 

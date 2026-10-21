@@ -169,7 +169,7 @@ class BaseAnnounceCrawler(ABC):
         """下载附件，子类可重写。"""
         from ..query.network import safe_raw_get
 
-        resp = safe_raw_get(url, self.site_name, timeout=60)
+        resp = safe_raw_get(url, self.site_name, timeout=180)
         if resp and resp.status_code == 200:
             return cast("bytes | None", resp.content)
         return None

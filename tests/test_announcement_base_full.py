@@ -864,6 +864,20 @@ class TestCircuitBreakerConfigProperties(unittest.TestCase):
         self.assertGreater(self.crawler._cb._reset_hours, 0)
 
 
+class TestAttachmentTimeout(unittest.TestCase):
+    """大附件（19MB PDF）下载超时必须放宽到 180s，否则扫描件直接 no records。"""
+
+    @patch("pilotstd.query.network.safe_raw_get")
+    def test_download_uses_180s_timeout(self, mock_get):
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.content = b"pdf"
+        mock_get.return_value = resp
+        result = ConcreteCrawler()._download_attachment("http://example.com/a.pdf")
+        self.assertEqual(result, b"pdf")
+        self.assertEqual(mock_get.call_args.kwargs["timeout"], 180)
+
+
 class TestCountMismatchWarning(unittest.TestCase):
     """P2：源站 STD_COUNT 与解析条目数不一致必须告警，不能静默。"""
 

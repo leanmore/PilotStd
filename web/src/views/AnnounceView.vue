@@ -113,7 +113,7 @@ function onPage(e: any) {
       @update:fetch-enabled="(key, val) => { const k = key as 'gb'|'hb'|'db'; adapterEnabled[k] = val }"
     />
     <AppCalendar v-model="sinceDate" dateFormat="yy-mm-dd" showIcon style="width:160px" />
-    <Button :label="t('announce.view.refresh_list')" icon="pi pi-sync" severity="secondary" outlined size="small" @click="load" />
+    <Button :label="t('announce.view.refresh_list')" icon="pi pi-sync" severity="secondary" outlined size="small" @click="check" />
     <Button :label="t('announce.view.fetch_now')" icon="pi pi-cloud-download" :loading="loading" @click="check" size="small" />
   </div>
   <p v-if="error" class="err-msg">{{ error }}</p>
