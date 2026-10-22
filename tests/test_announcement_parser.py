@@ -218,6 +218,15 @@ class TestLanguageColumns(unittest.TestCase):
         self.assertEqual({x["language"] for x in items}, {"英文", "德文"})
         self.assertEqual({x["foreign_name"] for x in items}, {"English name", "Deutscher Name"})
 
+    def test_text_table_language_hints(self):
+        """2019 第11号等 PDF 文本表：语种混在名称末尾，也要拆成独立行。"""
+        from pilotstd.announcement.parser import parse_text_table
+
+        text = "GB 17820-2012 天然气 英文\n2020-01-01\nGB 17820-2012 天然气 俄文\n2020-01-01\n"
+        items = parse_text_table(text)
+        self.assertEqual(len(items), 2)
+        self.assertEqual({x["language"] for x in items}, {"英文", "俄文"})
+
 
 class TestStandardSampleCodes(unittest.TestCase):
     """国家标准样品编号：04-2809-F01-2025 / GSB 03-4369-2025，不能被截成 F01-2025。"""

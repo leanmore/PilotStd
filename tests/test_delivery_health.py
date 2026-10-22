@@ -348,7 +348,7 @@ class TestManagerIntegration(unittest.TestCase):
 
         msg = _build_notification_delivery_failed_message(payload)
         text = "\n".join(getattr(b, "text", "") for b in msg.blocks)
-        self.assertIn("telegram", text)
+        self.assertIn("telegram", text.lower())
         self.assertNotIn("notification.", text)
 
     def test_no_recursion_when_alert_also_fails(self):

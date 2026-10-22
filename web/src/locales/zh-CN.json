@@ -1066,7 +1066,11 @@
       "trust_ip_update": "可信IP更新",
       "image_update_available": "镜像更新可用",
       "worker_error": "工作线程异常",
-      "test": "测试"
+      "test": "测试",
+      "daily": "每日汇总",
+      "task_result": "任务结果",
+      "anomaly_alert": "异常告警",
+      "notification_delivery_failed": "通知投递失败"
     },
     "logs": {
       "title": "通知日志",

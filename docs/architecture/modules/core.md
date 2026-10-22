@@ -453,3 +453,5 @@ pilotstd/core/
 **本地 OCR（2026-10-22）**：`announcement/ocr/_local.py` 提供 RapidOCR CPU provider；`ocr.provider=local` 时用于扫描版 PDF；Docker 运行库随镜像，模型随 RapidOCR wheel。
 
 **OCR 设置与诊断（2026-10-22）**：设置项 `ocr.provider` 增加中文“识别方式”标签与本地/云端选项；`GET /api/announce/ocr-status` 返回 provider、依赖、模型目录与安装状态，便于部署诊断。
+
+**公告记录语种（2026-10-21）**：v70 重建 `announcement_record`，增加 `language`/`foreign_name`，唯一键含语种；迁移文件 `_migrate_v70_announcement_record_language.py`。

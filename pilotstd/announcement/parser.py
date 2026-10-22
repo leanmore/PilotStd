@@ -277,6 +277,33 @@ def _iter_code_matches(normalized: str) -> list[re.Match[str]]:
     return sorted(samples + standards, key=lambda m: m.start())
 
 
+_LANGUAGE_HINTS = (
+    "英文",  # i18n-allow: PDF 表格语种标记
+    "俄文",  # i18n-allow: PDF 表格语种标记
+    "德文",  # i18n-allow: PDF 表格语种标记
+    "法文",  # i18n-allow: PDF 表格语种标记
+    "日文",  # i18n-allow: PDF 表格语种标记
+    "韩文",  # i18n-allow: PDF 表格语种标记
+    "蒙古文",  # i18n-allow: PDF 表格语种标记
+    "老挝文",  # i18n-allow: PDF 表格语种标记
+    "老挝语",  # i18n-allow: PDF 表格语种标记
+    "缅甸语",  # i18n-allow: PDF 表格语种标记
+    "越南语",  # i18n-allow: PDF 表格语种标记
+    "柬埔寨语",  # i18n-allow: PDF 表格语种标记
+    "葡萄牙语",  # i18n-allow: PDF 表格语种标记
+    "西班牙语",  # i18n-allow: PDF 表格语种标记
+    "阿拉伯语",  # i18n-allow: PDF 表格语种标记
+)
+
+
+def _extract_language(text: str) -> str:
+    """从附件文本表格里提取语种标记（老 PDF 没有独立语种列）。"""
+    for hint in _LANGUAGE_HINTS:
+        if hint in text:
+            return hint
+    return ""
+
+
 def parse_text_table(text: str) -> list[dict[str, Any]]:
     """从附件文本中提取标准表格。不依赖换行符，用标准编号模式全文本扫描。
 
@@ -310,6 +337,11 @@ def parse_text_table(text: str) -> list[dict[str, Any]]:
             replaces_code_adjacent = ""  # _find_field_text may return ""
 
         std_name, replaces_code, publish_date, implementation_date = _parse_entry_fields(field_text)
+        language = _extract_language(std_name)
+        if language:
+            for hint in _LANGUAGE_HINTS:
+                std_name = std_name.replace(hint, "")
+            std_name = re.sub(r"\s{2,}", " ", std_name).strip()
         # 如果___检测到了代替号但_没扫到，用前者
         if not replaces_code and replaces_code_adjacent:
             replaces_code = replaces_code_adjacent
@@ -324,6 +356,7 @@ def parse_text_table(text: str) -> list[dict[str, Any]]:
                 "replaces_code": replaces_code,
                 "publish_date": publish_date,
                 "implementation_date": implementation_date,
+                "language": language,
             }
         )
 

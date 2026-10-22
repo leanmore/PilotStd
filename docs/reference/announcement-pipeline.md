@@ -112,3 +112,7 @@ GB/DB/HB 公告头完整；详情记录缺口为 DB 9月第8号 18 条、HB 9月
 > 2026-10-22：OCR 设置改为两项——`云端优先`（空值，先云后本地）、`本地（CPU）优先`（`local`，先本地后云）；`FallbackOcrProvider` 在文本为空时回退，整份 PDF 一次调用，避免逐页重复云端调度。
 
 > 2026-10-22 补充：OCR 主备由 FallbackOcrProvider 实现；云端优先/本地优先在整份 PDF 级别回退，单页失败不会重复云端调度。
+
+> 2026-10-21：GB 公告表格新增识别“国家标准外文名称 / 语种”列；`announcement_record` 增加 `language`/`foreign_name`，唯一键改为 `(source_site,pid,standard_number,language)`，同一标准号的不同语种分行保留（v70 迁移）。
+
+> 2026-10-22：PDF 文本表新增语种提示提取（英文/俄文/德文/法文/日文/老挝文等）；2019 年第 11 号 141 条外文版按 `(标准号, 语种)` 入库。

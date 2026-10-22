@@ -1066,7 +1066,11 @@
       "trust_ip_update": "Trusted IP Updated",
       "image_update_available": "Image Update Available",
       "worker_error": "Worker Error",
-      "test": "Test"
+      "test": "Test",
+      "daily": "Daily Summary",
+      "task_result": "Task Result",
+      "anomaly_alert": "Anomaly Alert",
+      "notification_delivery_failed": "Notification Delivery Failed"
     },
     "logs": {
       "title": "Notification Logs",

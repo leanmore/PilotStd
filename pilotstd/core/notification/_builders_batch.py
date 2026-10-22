@@ -203,6 +203,9 @@ def _build_notification_delivery_failed_message(data: dict) -> NotificationMessa
     `samples`/`failures` 给出统计依据，便于判断严重程度。
     """
     channel = str(data.get("channel", "") or "")
+    channel_label = t(f"notification.channel.{channel}") if channel else channel
+    if channel_label == f"notification.channel.{channel}":
+        channel_label = channel
     reason = str(data.get("reason", "") or "")
     samples = int(data.get("samples", 0) or 0)
     failures = int(data.get("failures", 0) or 0)
@@ -210,12 +213,12 @@ def _build_notification_delivery_failed_message(data: dict) -> NotificationMessa
 
     if reason == "consecutive":
         body = t("notification.system.notification_delivery_failed.body.consecutive").format(
-            channel=channel, consecutive=consecutive
+            channel=channel_label, consecutive=consecutive
         )
     else:
         percent = round(failures / samples * 100) if samples else 0
         body = t("notification.system.notification_delivery_failed.body.rate").format(
-            channel=channel, failures=failures, samples=samples, percent=percent
+            channel=channel_label, failures=failures, samples=samples, percent=percent
         )
 
     blocks: list[NotificationBlock] = [
@@ -223,7 +226,7 @@ def _build_notification_delivery_failed_message(data: dict) -> NotificationMessa
         TextBlock(text=t("notification.system.notification_delivery_failed.body.advice")),
     ]
     return NotificationMessage(
-        title=t("notification.system.notification_delivery_failed.title").format(channel=channel),
+        title=t("notification.system.notification_delivery_failed.title").format(channel=channel_label),
         blocks=blocks,
         level="error",
         event_type="notification_delivery_failed",
