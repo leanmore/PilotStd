@@ -95,6 +95,7 @@ def _create_local(config: dict[str, Any]) -> Optional["LocalOcrProvider"]:
     return LocalOcrProvider(
         scale=float(config.get("local_scale", 150 / 72)),
         max_side=int(config.get("local_max_side", 2000)),
+        model_dir=config.get("local_model_dir") or None,
     )
 
 

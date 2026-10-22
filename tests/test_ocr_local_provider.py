@@ -20,3 +20,14 @@ def test_local_provider_missing_dependencies_returns_none(monkeypatch) -> None:
 
     monkeypatch.setattr(importlib.util, "find_spec", lambda name: None if name.startswith("rapidocr") else object())
     assert create_ocr_provider({"provider": "local"}) is None
+
+
+def test_local_provider_installs_models_to_app_dir(tmp_path) -> None:
+    pytest.importorskip("rapidocr_onnxruntime")
+    from pilotstd.announcement.ocr._local import LocalOcrProvider
+
+    provider = LocalOcrProvider(model_dir=tmp_path)
+    target = provider.install_models()
+    assert (target / "ch_PP-OCRv3_det_infer.onnx").exists()
+    assert (target / "manifest.json").exists()
+    assert str(tmp_path) in str(target)
