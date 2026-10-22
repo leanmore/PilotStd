@@ -51,6 +51,16 @@ services:
       # 群晖 NAS 文件权限（可选）—— SSH 执行 id 查看 uid/gid
       # - PUID=1026
       # - PGID=100
+      #
+      # 本地 OCR（随镜像内置，无需额外端口/服务）：
+      #   - 限制 ONNX Runtime/BLAS 只用 1 个 CPU 线程，避免 OCR 抢占宿主机
+      #   - 模型存放在 /app/data/models/ocr（已由 ./data:/app/data 持久化）
+      - OMP_NUM_THREADS=1
+      - OPENBLAS_NUM_THREADS=1
+      - MKL_NUM_THREADS=1
+    # 可选资源上限：按宿主机内存调整；OCR 峰值约 200MB，不建议低于 1g
+    # mem_limit: 2g
+    # cpus: "2.0"
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:9028/api/health"]
