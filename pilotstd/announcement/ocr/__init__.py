@@ -23,6 +23,7 @@ from ._base import (
     OcrSlot,
     ProviderCooling,
 )
+from ._fallback import FallbackOcrProvider
 from ._local import LocalOcrProvider
 from ._pdf_utils import (
     _pdf_page_count,
@@ -38,27 +39,30 @@ logger = logging.getLogger(__name__)
 
 
 def create_ocr_provider(config: dict[str, Any], data_dir: str = "") -> Optional[BaseOcrProvider]:
-    """创建 OCR 调度器（多 provider 共存）或单个 provider（旧模式兼容）。
-
-    新键（推荐）：
-      baidu_api_key / baidu_secret_key
-      tencent_secret_id / tencent_secret_key
-      aliyun_access_key_id / aliyun_access_key_secret
-    旧键（兼容，单 provider 模式）：
-      api_key / secret_key / secret_id / access_key_id / access_key_secret
-    """
-    # 旧模式兼容：显式指定时走单路径
+    """创建 OCR provider；空白/cloud=云端优先，local=本地优先，失败互相回退。"""
     explicit = config.get("provider", "")
-    if explicit in ("baidu", "tencent", "aliyun", "local"):
+    if explicit in ("baidu", "tencent", "aliyun"):
         if explicit == "baidu":
             return _create_baidu(config)
         if explicit == "tencent":
             return _create_tencent(config)
-        if explicit == "local":
-            return _create_local(config)
         return _create_aliyun(config)
 
-    # 新模式：创建全部有凭据的，返回调度器
+    local = _create_local(config)
+    cloud = _build_cloud_provider(config, data_dir)
+
+    if explicit in ("local", "local_first"):
+        if local and cloud:
+            return FallbackOcrProvider(local, cloud)
+        return local or cloud
+
+    if local and cloud:
+        return FallbackOcrProvider(cloud, local)
+    return cloud or local
+
+
+def _build_cloud_provider(config: dict[str, Any], data_dir: str = "") -> Optional[BaseOcrProvider]:
+    """只构建云端调度器；无凭据返回 None。"""
     if not data_dir:
         from ...core.config import get_data_dir
 

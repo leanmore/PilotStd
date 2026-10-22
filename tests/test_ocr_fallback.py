@@ -85,7 +85,8 @@ def test_cooling_qps():
 
 
 def test_scheduler_creates(scheduler):
-    assert scheduler.name == "scheduler"
+    # 有云凭据时为 scheduler / scheduler+local；仅本地可用时为 local
+    assert scheduler.name in ("scheduler", "scheduler+local", "local")
 
 
 def test_ocr_result_ok():

@@ -1,0 +1,50 @@
+# PilotStd — Docker Compose 示例（含 OCR 模型持久化）
+# 复制为 docker-compose.yml 后按需修改路径/密码。
+#
+# 持久化说明：
+#   ./data → /app/data：数据库、备份、配置文件、OCR 模型（/app/data/models/ocr）
+#   模型安装后不会随容器重建丢失；升级镜像时保留该目录即可。
+#
+# 首次启动后：设置 → OCR → 识别方式 → “本地（CPU）优先”。
+
+services:
+  pilotstd:
+    image: ghcr.io/leanmore/pilotstd:latest
+    container_name: pilotstd
+    ports:
+      - "9028:9028"
+    volumes:
+      # 禁止挂载 /app（会覆盖代码）；只挂业务数据目录
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./inbox:/inbox
+      - ./standards:/standards
+      - ./.env:/app/.env
+      - ./output:/app/output
+      - ./browser_cache:/app/browser_cache
+      - ./config:/app/config
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - TZ=Asia/Shanghai
+      - STANDARD_ROOT=/standards
+      # 本地 OCR 模型持久化目录（已在 ./data 卷内）
+      - PILOTSTD_MODEL_DIR=/app/data/models/ocr
+      # 限制 OCR/BLAS 线程，避免占满宿主机 CPU
+      - OMP_NUM_THREADS=1
+      - OPENBLAS_NUM_THREADS=1
+      - MKL_NUM_THREADS=1
+      # 超级用户（按需取消注释）
+      # - SUPERUSER=superadmin
+      # - SUPERUSER_PASSWORD=your_password
+      # - PUID=1026
+      # - PGID=100
+    # 可选资源上限：OCR 峰值约 200MB，不建议低于 1g
+    # mem_limit: 2g
+    # cpus: "2.0"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:9028/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

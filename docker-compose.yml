@@ -55,6 +55,7 @@ services:
       # 本地 OCR（随镜像内置，无需额外端口/服务）：
       #   - 限制 ONNX Runtime/BLAS 只用 1 个 CPU 线程，避免 OCR 抢占宿主机
       #   - 模型存放在 /app/data/models/ocr（已由 ./data:/app/data 持久化）
+      - PILOTSTD_MODEL_DIR=/app/data/models/ocr
       - OMP_NUM_THREADS=1
       - OPENBLAS_NUM_THREADS=1
       - MKL_NUM_THREADS=1

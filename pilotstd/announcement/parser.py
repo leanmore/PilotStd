@@ -340,9 +340,10 @@ def _ocr_pdf(pdf_bytes: bytes, ocr_provider: Any) -> str:
     # 内部已拆页+调度，直接返回全文，无需逐页循环
     from pilotstd.announcement.ocr import OcrScheduler
 
-    if isinstance(ocr_provider, OcrScheduler):
+    if isinstance(ocr_provider, OcrScheduler) or getattr(ocr_provider, "full_pdf", False):
         result = ocr_provider.recognize_pdf(pdf_bytes, page_num=1)
-        return result or ""
+        text = getattr(result, "text", None) if not isinstance(result, str) else result
+        return text or ""
 
     total_pages = 1
     try:

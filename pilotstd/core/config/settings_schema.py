@@ -223,13 +223,10 @@ SCHEMA: list[SettingDef] = [
         field_type=FIELD_SELECT,
         default="",
         options=[
-            {"label": "自动（按云端配置）", "value": ""},  # i18n-allow: 设置项展示文案
-            {"label": "本地 CPU（扫描件/离线）", "value": "local"},  # i18n-allow: 设置项展示文案
-            {"label": "百度云 OCR", "value": "baidu"},  # i18n-allow: 设置项展示文案
-            {"label": "腾讯云 OCR", "value": "tencent"},  # i18n-allow: 设置项展示文案
-            {"label": "阿里云 OCR", "value": "aliyun"},  # i18n-allow: 设置项展示文案
+            {"label": "云端优先", "value": ""},  # i18n-allow: 设置项展示文案
+            {"label": "本地（CPU）优先", "value": "local"},  # i18n-allow: 设置项展示文案
         ],
-        help_text="自动：使用已配置的云端 OCR；扫描版 PDF 建议选本地 CPU（离线、单线程）",  # i18n-allow: 设置项帮助文案
+        help_text="云端优先：先云后本地；本地优先：先本地后云端；均自动回退",  # i18n-allow: 设置项帮助文案
     ),
     SettingDef(
         key="ocr.baidu_api_key",
