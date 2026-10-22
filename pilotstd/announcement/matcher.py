@@ -11,6 +11,7 @@ from pilotstd.core.status import Status
 from ..core.db import Database
 from ..core.file_index import FILE_INDEX_TABLE
 from ._content_cleaner import clean_announcement_content  # noqa: F401 — 重导出
+from .source_corrections import correct_std_code
 
 logger = logging.getLogger(__name__)
 
@@ -132,6 +133,7 @@ class AnnouncementMatcher:
         expiry_date = item.get("expiry_date", "")
         confidence = item.get("confidence", 0.0)
         row_index = item.get("row_index", 0)
+        std_code = correct_std_code(source_site, announce_no, std_name, std_code)
 
         parsed = self._parse_std_code(std_code)
         if not parsed:

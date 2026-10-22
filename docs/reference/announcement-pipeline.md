@@ -116,3 +116,5 @@ GB/DB/HB 公告头完整；详情记录缺口为 DB 9月第8号 18 条、HB 9月
 > 2026-10-21：GB 公告表格新增识别“国家标准外文名称 / 语种”列；`announcement_record` 增加 `language`/`foreign_name`，唯一键改为 `(source_site,pid,standard_number,language)`，同一标准号的不同语种分行保留（v70 迁移）。
 
 > 2026-10-22：PDF 文本表新增语种提示提取（英文/俄文/德文/法文/日文/老挝文等）；2019 年第 11 号 141 条外文版按 `(标准号, 语种)` 入库。
+
+> 2026-10-22：新增源站标准号纠错表 `pilotstd/announcement/source_corrections.py`；仅对指定公告+精确名称生效：视频中物品图像→GA/T 1018-2013，裂头蚴病的诊断→WS 438-2013。
