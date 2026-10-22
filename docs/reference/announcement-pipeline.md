@@ -110,3 +110,5 @@ GB/DB/HB 公告头完整；详情记录缺口为 DB 9月第8号 18 条、HB 9月
 > 2026-10-22：新增 **本地 CPU OCR**（`rapidocr-onnxruntime` + `pypdfium2`，扫描版 PDF 用）。设置页 `OCR → 本地 CPU` 可切换；Docker 镜像内置运行库，模型随 wheel 提供；单公告逐页串行，线程数由 compose 的 `OMP_NUM_THREADS=1` 限制。
 
 > 2026-10-22：OCR 设置改为两项——`云端优先`（空值，先云后本地）、`本地（CPU）优先`（`local`，先本地后云）；`FallbackOcrProvider` 在文本为空时回退，整份 PDF 一次调用，避免逐页重复云端调度。
+
+> 2026-10-22 补充：OCR 主备由 FallbackOcrProvider 实现；云端优先/本地优先在整份 PDF 级别回退，单页失败不会重复云端调度。

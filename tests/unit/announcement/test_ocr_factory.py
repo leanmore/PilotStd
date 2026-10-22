@@ -61,6 +61,8 @@ class TestCreateOcrProvider:
         ), patch(
             "pilotstd.announcement.ocr._create_aliyun", return_value=None
         ), patch(
+            "pilotstd.announcement.ocr._create_local", return_value=None
+        ), patch(
             "pilotstd.announcement.ocr.OcrSlot", return_value=MagicMock()
         ), patch(
             "pilotstd.announcement.ocr.OcrScheduler", return_value=mock_scheduler
@@ -84,6 +86,8 @@ class TestCreateOcrProvider:
             "pilotstd.announcement.ocr._create_tencent", return_value=None
         ), patch(
             "pilotstd.announcement.ocr._create_aliyun", return_value=None
+        ), patch(
+            "pilotstd.announcement.ocr._create_local", return_value=None
         ), patch(
             "pilotstd.announcement.ocr.os.path.join", return_value="/fake/counters.json"
         ), patch(
