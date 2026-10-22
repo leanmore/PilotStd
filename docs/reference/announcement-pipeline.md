@@ -118,3 +118,5 @@ GB/DB/HB 公告头完整；详情记录缺口为 DB 9月第8号 18 条、HB 9月
 > 2026-10-22：PDF 文本表新增语种提示提取（英文/俄文/德文/法文/日文/老挝文等）；2019 年第 11 号 141 条外文版按 `(标准号, 语种)` 入库。
 
 > 2026-10-22：新增源站标准号纠错维护列表 `pilotstd/announcement/data/source_code_corrections.json`（可用 `PILOTSTD_CODE_CORRECTIONS` 指向外部 JSON 覆盖）；仅对指定公告+精确名称生效：视频中物品图像→GA/T 1018-2013，裂头蚴病的诊断→WS 438-2013。
+
+> 2026-10-22：内置维护列表 pilotstd/announcement/data/source_code_corrections.json 纳入版本控制（.gitignore 例外），不再依赖运行时文件。

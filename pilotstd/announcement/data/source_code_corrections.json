@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "source_site": "announcement_hb",
+      "announce_no": "2014年第4号(总第172号)",
+      "std_name": "视频中物品图像检验技术规范",
+      "wrong_code": "GA/T 1023-2013",
+      "corrected_code": "GA/T 1018-2013",
+      "reason": "源站标准号录入错误；同公告 44714-2014 备案记录",
+      "authority": "https://www.spc.org.cn/online/8f942417f77d5fc49c3e736da53e22c0.html"
+    },
+    {
+      "source_site": "announcement_hb",
+      "announce_no": "2019年第8号(总第236号)",
+      "std_name": "裂头蚴病的诊断",
+      "wrong_code": "WS 439-2013",
+      "corrected_code": "WS 438-2013",
+      "reason": "源站标准号录入错误；国卫通〔2013〕1号",
+      "authority": "https://www.nhc.gov.cn/fzs/c100048/201309/861672ee05544b1696a28975a6f09a99.shtml"
+    }
+  ]
+}

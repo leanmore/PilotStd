@@ -1,8 +1,13 @@
 """源站标准号纠错：按权威标准名称反查修正已知录入错误。"""
 
 import json
+from pathlib import Path
 
 from pilotstd.announcement.source_corrections import correct_std_code, reload_corrections
+
+
+def test_bundled_maintenance_list_is_shipped() -> None:
+    assert Path("pilotstd/announcement/data/source_code_corrections.json").exists()
 
 
 def test_video_item_name_maps_to_ga_t_1018() -> None:

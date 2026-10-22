@@ -75,6 +75,9 @@ crash_log.txt
 # ===== 运行时数据与日志 =====
 data/
 logs/
+# 公告标准号纠错内置维护列表（随代码发布，不是运行时数据）
+!pilotstd/announcement/data/
+!pilotstd/announcement/data/source_code_corrections.json
 
 # ===== 测试缓存与敏感残留 =====
 tests/.cache/
