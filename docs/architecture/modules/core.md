@@ -449,3 +449,5 @@ pilotstd/core/
 **公告记录语种（2026-10-21）**：v70 重建 `announcement_record`，增加 `language`/`foreign_name`，唯一键含语种；迁移文件 `_migrate_v70_announcement_record_language.py`。
 
 **v70 重试（2026-10-21）**：迁移先清理残留 nnouncement_record_v70，并在重建期间临时关闭外键（子表引用），完成后恢复；支持失败后原地重入。
+
+**本地 OCR（2026-10-22）**：`announcement/ocr/_local.py` 提供 RapidOCR CPU provider；`ocr.provider=local` 时用于扫描版 PDF；Docker 运行库随镜像，模型随 RapidOCR wheel。

@@ -25,5 +25,12 @@ responses>=0.25.0
 # --- 系统监控 ---
 psutil==7.2.2
 
+# --- 本地 OCR（CPU，扫描版 PDF 兜底）---
+# 运行库随镜像提供；模型由 RapidOCR wheel 内置，不依赖运行时下载
+onnxruntime==1.27.0
+rapidocr-onnxruntime==1.2.3
+pypdfium2==5.14.0
+
+
 # TODO: 待 passlib 官方修复 bcrypt 兼容性后，升级 passlib 并解锁 bcrypt 版本
 bcrypt==4.0.1

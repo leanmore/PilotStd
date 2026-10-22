@@ -152,6 +152,7 @@ def get_settings(request: Request, mgr=Depends(get_manager_dep)):
             "login_bg": cfg.get("appearance.login_bg", ""),
         },
         "ocr": {
+            "provider": cfg.get("ocr.provider", ""),
             "baidu_api_key": "***" if cfg.get("ocr.baidu_api_key") else "",
             "baidu_secret_key": "***" if cfg.get("ocr.baidu_secret_key") else "",
             "tencent_secret_id": "***" if cfg.get("ocr.tencent_secret_id") else "",

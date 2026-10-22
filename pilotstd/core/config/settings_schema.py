@@ -218,6 +218,20 @@ SCHEMA: list[SettingDef] = [
     ),
     # 说明：──文字识别──
     SettingDef(
+        key="ocr.provider",
+        tab="ocr",
+        field_type=FIELD_SELECT,
+        default="",
+        options=[
+            {"label": "自动（云端）", "value": ""},  # i18n-allow: 设置项展示文案
+            {"label": "本地 CPU（扫描件）", "value": "local"},  # i18n-allow: 设置项展示文案
+            {"label": "百度云", "value": "baidu"},  # i18n-allow: 设置项展示文案
+            {"label": "腾讯云", "value": "tencent"},  # i18n-allow: 设置项展示文案
+            {"label": "阿里云", "value": "aliyun"},  # i18n-allow: 设置项展示文案
+        ],
+        help_text="扫描版 PDF 可选本地 OCR；不依赖云端密钥/配额",  # i18n-allow: 设置项帮助文案
+    ),
+    SettingDef(
         key="ocr.baidu_api_key",
         tab="ocr",
         field_type=FIELD_PASSWORD,

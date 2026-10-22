@@ -23,6 +23,7 @@ from ._base import (
     OcrSlot,
     ProviderCooling,
 )
+from ._local import LocalOcrProvider
 from ._pdf_utils import (
     _pdf_page_count,
     _set_thread_priority_idle,
@@ -48,13 +49,14 @@ def create_ocr_provider(config: dict[str, Any], data_dir: str = "") -> Optional[
     """
     # 旧模式兼容：显式指定时走单路径
     explicit = config.get("provider", "")
-    if explicit in ("baidu", "tencent", "aliyun"):
+    if explicit in ("baidu", "tencent", "aliyun", "local"):
         if explicit == "baidu":
             return _create_baidu(config)
-        elif explicit == "tencent":
+        if explicit == "tencent":
             return _create_tencent(config)
-        else:
-            return _create_aliyun(config)
+        if explicit == "local":
+            return _create_local(config)
+        return _create_aliyun(config)
 
     # 新模式：创建全部有凭据的，返回调度器
     if not data_dir:
@@ -81,6 +83,19 @@ def create_ocr_provider(config: dict[str, Any], data_dir: str = "") -> Optional[
         logger.warning("无可用OCR提供商")
         return None
     return OcrScheduler(baidu_slot, tencent_slot, aliyun_slot, stop, counters, cooling)
+
+
+def _create_local(config: dict[str, Any]) -> Optional["LocalOcrProvider"]:
+    """创建本地 OCR；依赖缺失时返回 None，由调用方决定是否回退云端。"""
+    import importlib.util
+
+    if importlib.util.find_spec("rapidocr_onnxruntime") is None or importlib.util.find_spec("pypdfium2") is None:
+        logger.warning("local OCR dependencies not installed: rapidocr_onnxruntime/pypdfium2")
+        return None
+    return LocalOcrProvider(
+        scale=float(config.get("local_scale", 150 / 72)),
+        max_side=int(config.get("local_max_side", 2000)),
+    )
 
 
 def _create_baidu(config: dict[str, Any]) -> Optional["BaiduOcrProvider"]:
