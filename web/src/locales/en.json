@@ -880,7 +880,8 @@
       "tencent_secret_id": "Tencent Secret ID",
       "tencent_secret_key": "Tencent Secret Key",
       "aliyun_access_key_id": "Aliyun Access Key ID",
-      "aliyun_access_key_secret": "Aliyun Access Key Secret"
+      "aliyun_access_key_secret": "Aliyun Access Key Secret",
+      "provider": "OCR Provider"
     }
   },
   "sites": {

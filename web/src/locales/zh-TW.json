@@ -880,7 +880,8 @@
       "tencent_secret_id": "騰訊雲 Secret ID",
       "tencent_secret_key": "騰訊雲 Secret Key",
       "aliyun_access_key_id": "阿里雲 Access Key ID",
-      "aliyun_access_key_secret": "阿里雲 Access Key Secret"
+      "aliyun_access_key_secret": "阿里雲 Access Key Secret",
+      "provider": "辨識方式"
     }
   },
   "sites": {

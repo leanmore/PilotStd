@@ -249,6 +249,36 @@ def get_announce_results(
     return {"results": results}
 
 
+@router.get("/api/announce/ocr-status")
+def announce_ocr_status(mgr=Depends(get_manager_dep)):
+    """本地 OCR 安装/依赖/模型目录诊断（不执行识别）。"""
+    import importlib.util
+    from pathlib import Path
+
+    crawler = mgr._announce_svc.crawler
+    cfg = getattr(crawler, "_ocr_config", {}) or {}
+    provider = crawler._get_ocr_provider()
+    result: dict[str, Any] = {
+        "configured_provider": cfg.get("provider", ""),
+        "provider": getattr(provider, "name", None),
+        "rapidocr": importlib.util.find_spec("rapidocr_onnxruntime") is not None,
+        "pypdfium2": importlib.util.find_spec("pypdfium2") is not None,
+        "onnxruntime": importlib.util.find_spec("onnxruntime") is not None,
+    }
+    if result["rapidocr"] and result["pypdfium2"]:
+        from pilotstd.announcement.ocr._local import LocalOcrProvider, _default_model_dir
+
+        model_dir = Path(cfg.get("local_model_dir") or _default_model_dir())
+        result["model_dir"] = str(model_dir)
+        result["model_dir_writable"] = os.access(model_dir if model_dir.exists() else model_dir.parent, os.W_OK)
+        try:
+            local = LocalOcrProvider(model_dir=model_dir)
+            result["installed_models"] = str(local.install_models())
+        except Exception as exc:  # 诊断端点必须返回原因
+            result["model_error"] = str(exc)
+    return result
+
+
 @router.get("/api/announce/fetch-log")
 def get_announcement_records(limit: int = 100, mgr=Depends(get_manager_dep)):
     """查询公告抓取记录（全量，含未匹配），供压测样本生成。"""

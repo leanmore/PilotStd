@@ -451,3 +451,5 @@ pilotstd/core/
 **v70 重试（2026-10-21）**：迁移先清理残留 nnouncement_record_v70，并在重建期间临时关闭外键（子表引用），完成后恢复；支持失败后原地重入。
 
 **本地 OCR（2026-10-22）**：`announcement/ocr/_local.py` 提供 RapidOCR CPU provider；`ocr.provider=local` 时用于扫描版 PDF；Docker 运行库随镜像，模型随 RapidOCR wheel。
+
+**OCR 设置与诊断（2026-10-22）**：设置项 `ocr.provider` 增加中文“识别方式”标签与本地/云端选项；`GET /api/announce/ocr-status` 返回 provider、依赖、模型目录与安装状态，便于部署诊断。
