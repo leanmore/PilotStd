@@ -27,7 +27,9 @@ ENV PYTHONPATH=/install
 RUN useradd -m appuser
 
 # 安装 gosu + git（自更新 git pull 方案，参照 MoviePilot）
-RUN apt-get update && apt-get install -y --no-install-recommends gosu git curl && \
+# libxcb1/libgl1 等为 RapidOCR 依赖的 OpenCV 在 slim 镜像中的运行库
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gosu git curl libxcb1 libgl1 libglib2.0-0 libsm6 libxext6 && \
     rm -rf /var/lib/apt/lists/*
 
 COPY docker/entrypoint.sh /app/entrypoint.sh

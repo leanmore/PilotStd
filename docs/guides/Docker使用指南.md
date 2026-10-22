@@ -224,6 +224,7 @@ docker compose logs -f   # 查看日志，按 Ctrl+C 退出
 - 设置 → OCR → 识别方式：
   - **云端优先**：先云后本地；
   - **本地（CPU）优先**：先本地后云；
+- 镜像已安装 `libxcb1/libgl1` 等 OpenCV 运行库；若自建镜像报 `libxcb.so.1`，重新构建最新 Dockerfile；
 - 模型首次使用时安装到 `/app/data/models/ocr/rapidocr/<版本>/`，由 `./data:/app/data` 持久化；
 - 可参考根目录示例：`docker-compose.example.yml`；
 - 默认单线程，`docker-compose.yml` 已设置：
