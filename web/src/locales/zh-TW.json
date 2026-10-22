@@ -1070,7 +1070,14 @@
       "daily": "每日彙總",
       "task_result": "任務結果",
       "anomaly_alert": "異常告警",
-      "notification_delivery_failed": "通知投遞失敗"
+      "notification_delivery_failed": "通知投遞失敗",
+      "desktop_toast": "桌面提醒",
+      "favorite_abandoned_summary": "收藏放棄彙總",
+      "notification_credential_changed": "通知憑證變更",
+      "security_login_failed": "登入失敗",
+      "security_password_changed": "密碼變更",
+      "security_token_refreshed": "權杖重新整理",
+      "task_progress": "任務進度"
     },
     "logs": {
       "title": "通知記錄",

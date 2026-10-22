@@ -1070,7 +1070,14 @@
       "daily": "Daily Summary",
       "task_result": "Task Result",
       "anomaly_alert": "Anomaly Alert",
-      "notification_delivery_failed": "Notification Delivery Failed"
+      "notification_delivery_failed": "Notification Delivery Failed",
+      "desktop_toast": "Desktop Notification",
+      "favorite_abandoned_summary": "Favorite Abandoned Summary",
+      "notification_credential_changed": "Notification Credential Changed",
+      "security_login_failed": "Login Failed",
+      "security_password_changed": "Password Changed",
+      "security_token_refreshed": "Token Refreshed",
+      "task_progress": "Task Progress"
     },
     "logs": {
       "title": "Notification Logs",

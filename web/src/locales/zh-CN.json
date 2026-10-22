@@ -1070,7 +1070,14 @@
       "daily": "每日汇总",
       "task_result": "任务结果",
       "anomaly_alert": "异常告警",
-      "notification_delivery_failed": "通知投递失败"
+      "notification_delivery_failed": "通知投递失败",
+      "desktop_toast": "桌面提醒",
+      "favorite_abandoned_summary": "收藏放弃汇总",
+      "notification_credential_changed": "通知凭证变更",
+      "security_login_failed": "登录失败",
+      "security_password_changed": "密码变更",
+      "security_token_refreshed": "令牌刷新",
+      "task_progress": "任务进度"
     },
     "logs": {
       "title": "通知日志",
