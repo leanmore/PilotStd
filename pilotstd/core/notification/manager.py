@@ -204,6 +204,13 @@ class NotificationManager:
                 guards = tuple((ch_cfg.get(f) or "").strip() for f in spec.ctor_required)
                 if not all(guards):
                     continue
+                # 双形态渠道（webhook / app 二选一）：任一形态字段齐全才初始化；
+                # 否则构造空实例后每次发送都记 failed，污染日志并触发误告警。
+                forms = getattr(spec, "forms", ())
+                if forms and not any(
+                    all((ch_cfg.get(field) or "").strip() for field in form.required) for form in forms
+                ):
+                    continue
                 self._channels[spec.name] = _CHANNEL_CLASSES[spec.name](*args)
             except Exception as e:
                 logger.warning("通知渠道 %s 初始化失败: %s", spec.name, e)

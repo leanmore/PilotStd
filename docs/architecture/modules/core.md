@@ -455,3 +455,5 @@ pilotstd/core/
 **OCR 设置与诊断（2026-10-22）**：设置项 `ocr.provider` 增加中文“识别方式”标签与本地/云端选项；`GET /api/announce/ocr-status` 返回 provider、依赖、模型目录与安装状态，便于部署诊断。
 
 **公告记录语种（2026-10-21）**：v70 重建 `announcement_record`，增加 `language`/`foreign_name`，唯一键含语种；迁移文件 `_migrate_v70_announcement_record_language.py`。
+
+**通知渠道守卫（2026-10-22）**：双形态渠道（webhook/app 二选一）在 `_init_channels` 中必须至少一种形态字段齐全才实例化，避免未配置渠道每次发送都记 failed；`parse_retry_after` 对非字符串参数做 `str()` 归一。

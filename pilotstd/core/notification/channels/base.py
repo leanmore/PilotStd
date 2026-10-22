@@ -70,7 +70,7 @@ def parse_retry_after(error_text: str) -> float | None:
     """
     import re
 
-    match = re.search(r"retry after\s+(\d+(?:\.\d+)?)", error_text or "", re.I)
+    match = re.search(r"retry after\s+(\d+(?:\.\d+)?)", str(error_text or ""), re.I)
     if not match:
         return None
     try:
