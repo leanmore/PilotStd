@@ -146,8 +146,10 @@ class AnnounceCrawler:
         if not items:
             raise ValueError("reparse produced no records")
         db.execute(
-            "DELETE FROM announcement_record WHERE pid = ? AND source_site = ?",
-            (ann["pid"], source_site),
+            # 同一公告号可能因源站 PID 变更留下旧 pid 的记录；按 source_site + announce_no
+            # 一起清理，否则旧行会与新解析结果并存，reconcile 永远对不上。
+            "DELETE FROM announcement_record WHERE source_site=? AND (pid=? OR TRIM(announce_no)=?)",
+            (source_site, ann["pid"], announce_no),
         )
         self.engine.matcher.match_and_update(
             items,

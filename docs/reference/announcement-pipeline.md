@@ -120,3 +120,5 @@ GB/DB/HB 公告头完整；详情记录缺口为 DB 9月第8号 18 条、HB 9月
 > 2026-10-22：新增源站标准号纠错维护列表 `pilotstd/announcement/data/source_code_corrections.json`（可用 `PILOTSTD_CODE_CORRECTIONS` 指向外部 JSON 覆盖）；仅对指定公告+精确名称生效：视频中物品图像→GA/T 1018-2013，裂头蚴病的诊断→WS 438-2013。
 
 > 2026-10-22：内置维护列表 pilotstd/announcement/data/source_code_corrections.json 纳入版本控制（.gitignore 例外），不再依赖运行时文件。
+
+> 2026-10-22：reparse 清理范围从 (pid, source_site) 扩展为 (source_site, announce_no)，清掉源站 PID 变更留下的旧 pid 残留，避免新旧记录并存导致 reconcile 偏差。
