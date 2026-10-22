@@ -93,6 +93,9 @@ def send_event(
     if not target_channels:
         logger.info(t("notification.manager.skip_no_channels").format(event=event_type))
         return
+    if _suppress_nochange(host, event_type, event_data):
+        logger.debug(t("notification.manager.skip_nochange").format(event=event_type))
+        return
 
     msg = host._build_message(event_type, event_data)
     # 批次键透传（通知聚合 B1 · E2，2026-10-05）：构建器**不感知批次**（它是"单条消息长什么样"的出处），
@@ -111,6 +114,21 @@ def send_event(
         logger.error(t("notification.manager.validate_failed").format(event=event_type, error=e))
         return
     host._do_send(msg, target_channels, bypass_aggregation=bypass_aggregation)
+
+
+def _suppress_nochange(host: Any, event_type: str, data: dict[str, Any]) -> bool:
+    """无变化任务默认静默；失败/有新增时绝不抑制。"""
+    cfg = getattr(host, "_cfg", None)
+    enabled = cfg.get("notification.suppress_nochange", True) if cfg is not None else True
+    if not enabled:
+        return False
+    if event_type == "scan_empty":
+        return True
+    if event_type == "announcement_check_complete":
+        return int(data.get("total_announcements", 0) or 0) == 0 and int(data.get("failures", 0) or 0) == 0
+    if event_type == "announcement_fetch_complete":
+        return int(data.get("count", 0) or 0) == 0
+    return False
 
 
 def validate_message(host: Any, msg: NotificationMessage, event_type: str) -> None:

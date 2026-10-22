@@ -847,6 +847,7 @@
     "notification.module.security": "安全告警",
     "notification.manager.skip_disabled": "通知功能未启用，跳过事件 {event} 的发送",
     "notification.manager.skip_no_channels": "事件 {event} 无订阅渠道，跳过发送",
+    "notification.manager.skip_nochange": "事件 {event} 无变化，已静默",
     "notification.manager.validate_failed": "构建器契约校验失败，事件 {event} 已跳过发送: {error}",
     "notification.manager.delivery_alert_failed": "通知投递失败告警发送异常: {error}",
     "notification.api.user_not_found": "用户不存在",

@@ -843,6 +843,7 @@
     "notification.module.security": "Security Alerts",
     "notification.manager.skip_disabled": "Notification disabled; skipped sending event {event}",
     "notification.manager.skip_no_channels": "Event {event} has no subscribed channel; skipped sending",
+    "notification.manager.skip_nochange": "Event {event} has no changes; suppressed",
     "notification.manager.validate_failed": "Builder contract validation failed; event {event} skipped: {error}",
     "notification.manager.delivery_alert_failed": "Failed to send the delivery-failure alert: {error}",
     "notification.api.user_not_found": "User not found",
