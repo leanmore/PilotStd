@@ -617,6 +617,9 @@
     "notification.announce.announcement_fetch_complete.body.list_header": "本次新增公告：",
     "notification.announce.announcement_fetch_complete.body.item": "• {t}",
 
+    "notification.announce.source.samr_gb": "国标",
+    "notification.announce.source.samr_hb": "行标",
+    "notification.announce.source.samr_db": "地标",
     "notification.announce.announce_fetch_summary.title.normal": "公告抓取完成",
     "notification.announce.announce_fetch_summary.title.with_error": "公告抓取完成（有异常）",
     "notification.announce.announce_fetch_summary.body.total": "总计",

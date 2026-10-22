@@ -1,22 +1,28 @@
-# 模块：公告源站标准号纠错
+# 模块：公告源站标准号纠错（可维护列表）
 """按“标准名称反查权威标准号”修正源站已知录入错误。
 
-只对**指定公告 + 精确名称**生效，避免影响其他公告中的同名标准：
-- 2014 年第4号：源站把《视频中物品图像检验技术规范》写成 GA/T 1023-2013，
-  权威登记为 GA/T 1018-2013；GA/T 1023 属于《视频中人像检验技术规范》。
-- 2019 年第8号：源站两行都写成 WS 439-2013；国卫通〔2013〕1号明确
-  《裂头蚴病的诊断》为 WS 438-2013，《钩虫病的诊断》为 WS 439-2013。
+兜底维护列表：
+- 内置：`pilotstd/announcement/data/source_code_corrections.json`
+- 运行时覆盖：`data/source_code_corrections.json`
+- 环境变量：`PILOTSTD_CODE_CORRECTIONS=/path/to/file.json`
+- 格式：`{"entries": [{source_site, announce_no, std_name, wrong_code, corrected_code, reason, authority}]}`
+
+只对指定公告 + 精确名称（可再限定 wrong_code）生效。
 """
 
 from __future__ import annotations
 
+import json
+import logging
+import os
 import re
+from pathlib import Path
+from typing import Any
 
-# (source_site, announce_no, 标准名称) -> 权威标准号
-SOURCE_CODE_CORRECTIONS: dict[tuple[str, str, str], str] = {
-    ("announcement_hb", "2014年第4号(总第172号)", "视频中物品图像检验技术规范"): "GA/T 1018-2013",  # i18n-allow
-    ("announcement_hb", "2019年第8号(总第236号)", "裂头蚴病的诊断"): "WS 438-2013",  # i18n-allow
-}
+logger = logging.getLogger(__name__)
+
+_BUNDLED_PATH = Path(__file__).with_name("data") / "source_code_corrections.json"
+_cache: dict[tuple[str, str, str, str], str] | None = None
 
 
 def _norm_name(name: str) -> str:
@@ -24,14 +30,68 @@ def _norm_name(name: str) -> str:
     return re.sub(r"[\s《》]+", "", name or "")
 
 
-_NORMALIZED_CORRECTIONS = {
-    (site, anno, _norm_name(name)): code for (site, anno, name), code in SOURCE_CODE_CORRECTIONS.items()
-}
+def _norm_code(code: str) -> str:
+    """标准号只比较字母数字，忽略空格与大小写差异。"""
+    return re.sub(r"\s+", "", code or "").upper()
+
+
+def _load_file(path: Path) -> list[dict[str, Any]]:
+    """读取单个维护列表文件；格式错误只告警，不阻断公告解析。"""
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        logger.warning("correction list read failed %s: %s", path, exc)
+        return []
+    entries = raw.get("entries", []) if isinstance(raw, dict) else []
+    if not isinstance(entries, list):
+        return []
+    return [e for e in entries if isinstance(e, dict)]
+
+
+def _candidate_paths() -> list[Path]:
+    """内置列表 + 环境变量指定的外部维护列表（后者覆盖前者）。"""
+    paths = [_BUNDLED_PATH]
+    env = os.environ.get("PILOTSTD_CODE_CORRECTIONS", "")
+    if env:
+        paths.append(Path(env))
+    return paths
+
+
+def _build_cache() -> dict[tuple[str, str, str, str], str]:
+    """把多份文件合并成 (站点,公告号,名称,错误号) -> 正确号 的索引。"""
+    cache: dict[tuple[str, str, str, str], str] = {}
+    # 后加载的文件覆盖先加载的内置条目，便于现场热修维护列表
+    for path in _candidate_paths():
+        if not path.exists():
+            continue
+        for entry in _load_file(path):
+            site = str(entry.get("source_site", ""))
+            anno = str(entry.get("announce_no", ""))
+            name = _norm_name(str(entry.get("std_name", "")))
+            corrected = str(entry.get("corrected_code", ""))
+            if not (site and anno and name and corrected):
+                logger.warning("correction entry incomplete, ignored: %s", entry)
+                continue
+            wrong = _norm_code(str(entry.get("wrong_code", "")))
+            cache[(site, anno, name, wrong)] = corrected
+    return cache
+
+
+def reload_corrections() -> None:
+    """清空缓存，供测试/运行时维护列表更新后调用。"""
+    global _cache
+    _cache = None
 
 
 def correct_std_code(source_site: str, announce_no: str, std_name: str, std_code: str) -> str:
-    """命中已知源站错误时返回权威标准号，否则原样返回。"""
-    return _NORMALIZED_CORRECTIONS.get(
-        (source_site, announce_no, _norm_name(std_name)),
-        std_code,
-    )
+    """命中维护列表时返回权威标准号，否则原样返回。"""
+    global _cache
+    if _cache is None:
+        _cache = _build_cache()
+    name = _norm_name(std_name)
+    code = _norm_code(std_code)
+    exact = _cache.get((source_site, announce_no, name, code))
+    if exact:
+        return exact
+    # wrong_code 为空表示该公告下同名条目一律修正；这是维护列表的兜底匹配
+    return _cache.get((source_site, announce_no, name, ""), std_code)

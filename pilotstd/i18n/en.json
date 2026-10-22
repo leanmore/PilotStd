@@ -613,6 +613,9 @@
     "notification.announce.announcement_fetch_complete.body.list_header": "Newly fetched announcements:",
     "notification.announce.announcement_fetch_complete.body.item": "• {t}",
 
+    "notification.announce.source.samr_gb": "National",
+    "notification.announce.source.samr_hb": "Industry",
+    "notification.announce.source.samr_db": "Local",
     "notification.announce.announce_fetch_summary.title.normal": "Announcement Fetch Complete",
     "notification.announce.announce_fetch_summary.title.with_error": "Announcement Fetch Complete (with Errors)",
     "notification.announce.announce_fetch_summary.body.total": "Total",

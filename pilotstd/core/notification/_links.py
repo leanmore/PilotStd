@@ -84,11 +84,12 @@ def attach_web_actions(message: Any, config: Any) -> bool:
     base = resolve_web_base(config)
     url = logs_url(base)
     if not url:
-        # 降级：按钮变提示（不生成任何 URL，也不留空按钮）
-        hint = TextBlock(text=_hint_text())
+        # 降级：一次消息只追加一段提示；同一消息发往多渠道时会被重复调用，不能重复追加。
+        hint_text = _hint_text()
         blocks = list(getattr(message, "blocks", []) or [])
-        blocks.append(hint)
-        message.blocks = blocks
+        if not any(getattr(b, "text", "") == hint_text for b in blocks):
+            blocks.append(TextBlock(text=hint_text))
+            message.blocks = blocks
         return False
 
     actions = list(getattr(message, "actions", []) or [])

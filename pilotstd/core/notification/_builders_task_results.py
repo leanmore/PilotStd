@@ -209,6 +209,13 @@ def _build_replacement_not_found_message(data: dict) -> NotificationMessage:
 
 
 # ── 公告抓取汇总 ──
+def _adapter_label(name: str) -> str:
+    """把 samr_gb/samr_hb 适配器标识转成用户可读名称，缺失时原样回退。"""
+    key = f"notification.announce.source.{name}"
+    label = t(key)
+    return label if label != key else name
+
+
 def _build_announce_fetch_summary_message(data: dict) -> NotificationMessage:
     """公告抓取逐站汇总（4 段式：标题 + 总计统计行 + 适配器明细（≤5 条））。"""
     adapters = data.get("adapters", [])
@@ -229,7 +236,7 @@ def _build_announce_fetch_summary_message(data: dict) -> NotificationMessage:
             status_text = t("notification.announce.announce_fetch_summary.body.adapter_error").format(
                 error=a.get("error_msg", t("notification.common.unknown_error"))
             )
-        blocks.append(KeyValueBlock(key=a["name"], value=status_text))
+        blocks.append(KeyValueBlock(key=_adapter_label(a["name"]), value=status_text))
 
     if len(adapters) > MAX_ADAPTER_DISPLAY:
         blocks.append(
