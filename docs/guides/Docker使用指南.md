@@ -217,6 +217,25 @@ docker compose logs -f   # 查看日志，按 Ctrl+C 退出
 
 开启后无需手动操作——标准库自动保持最新。
 
+### 3.4 本地 OCR（扫描版公告）
+
+镜像已内置 RapidOCR/onnxruntime 运行库和模型，用于扫描版 PDF 公告。
+
+- 设置 → OCR → `本地 CPU（扫描件）`；
+- 模型首次使用时安装到 `/app/data/models/ocr/rapidocr/<版本>/`（已由 `./data:/app/data` 持久化）；
+- 默认单线程，`docker-compose.yml` 已设置：
+  ```yaml
+  - OMP_NUM_THREADS=1
+  - OPENBLAS_NUM_THREADS=1
+  - MKL_NUM_THREADS=1
+  ```
+- 可选资源上限（按宿主机调整）：
+  ```yaml
+  # mem_limit: 2g
+  # cpus: "2.0"
+  ```
+- 13 页扫描件实测约 57s、内存峰值约 200MB；OCR 串行执行，不会并发抢占宿主机。
+
 ---
 
 ## 四、日常运维
