@@ -327,3 +327,5 @@ ports:
   - "9028:9028"   # 改前面的数字即可，如 9999:9028
 ```
 重启生效。访问 `http://<NAS-IP>:9999`。
+
+> 2026-10-22：Dockerfile 已补 libxcb1/libgl1 等 OpenCV 运行库；自建镜像需重新构建，否则本地 OCR 会报 libxcb.so.1。
