@@ -45,7 +45,7 @@ def _log_skipped(host: Any, event_type: str, event_data: dict) -> None:
     只调用 `host._log`，**不碰渠道对象**，故 `send()` 不可能被调用。
     """
     try:
-        channels = host._policy.get_channels_for_event(host._user_id, event_type)
+        channels = host._policy.get_channels_for_event(host._user_id, event_type, event_data)
     except Exception:  # noqa: BLE001 - 可见性记录不得影响主流程
         logger.debug(t("notification.manager.visibility_policy_failed"), exc_info=True)
         return
@@ -89,7 +89,7 @@ def send_event(
         logger.debug(t("notification.manager.skip_disabled").format(event=event_type))
         return
     if target_channels is None:
-        target_channels = host._policy.get_channels_for_event(host._user_id, event_type)
+        target_channels = host._policy.get_channels_for_event(host._user_id, event_type, event_data)
     if not target_channels:
         logger.info(t("notification.manager.skip_no_channels").format(event=event_type))
         return

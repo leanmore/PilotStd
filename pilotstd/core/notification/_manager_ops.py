@@ -345,15 +345,13 @@ class NotificationOps:
         msg.task_kind = projection.task_kind
 
 
-def notify_event_of(event_type: str) -> str:
-    """取某业务事件所属的 `notify_event` 类别（10 类之一）；未知事件返回空串。
+def notify_event_of(event_type: str, data: dict[str, Any] | None = None) -> str:
+    """取某业务事件所属的 `notify_event` 类别；auto_backup 按 success 分支。
 
-    **为什么放在本模块**：防腐测试
-    `tests/test_notification_stage2b_wiring.py::TestWiringBoundaries::test_mapping_module_not_imported_elsewhere`
-    规定"除 `mapping.py` / `stage.py` / 本模块外，生产代码不得 import mapping"——策略层（`_policy.py`）
-    做"按类别订阅"匹配时需要"事件 → 类别"，**必须经本模块**转一手；否则就会出现第二处 mapping 接入点，
-    正是那条防腐规则要防的事。
+    其余事件仍查静态 EventSpec 映射；本模块是 mapping 的唯一生产接入点。
     """
+    if event_type == "auto_backup" and data is not None:
+        return "task_result" if data.get("success") else "anomaly_alert"
     entry = EVENT_MAPPINGS.get(event_type)
     return str(getattr(entry, "notify_event", "") or "")
 

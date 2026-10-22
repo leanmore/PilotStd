@@ -46,16 +46,11 @@ def _loads_str_list(raw: Any) -> list[str]:
     return [str(item) for item in data if isinstance(item, str)]
 
 
-def _notify_event_of(event_type: str) -> str:
-    """取某业务事件所属的 `notify_event` 类别（10 类之一）；未知事件返回空串。
-
-    用于"按类别订阅"（10 类层）的匹配。**经 `_manager_ops` 转一手**而不是直接 import mapping：
-    防腐测试规定 mapping 只有一个集成点（`_manager_ops`），策略层再开一个接入点会被该测试拦下
-    （这也是"先读测试再动手"救回来的一次——首版直接 import mapping 即被拦）。
-    """
+def _notify_event_of(event_type: str, data: dict | None = None) -> str:
+    """取某业务事件所属的 `notify_event` 类别；`data` 供 auto_backup 成功/失败分支。"""
     from ._manager_ops import notify_event_of
 
-    return notify_event_of(event_type)
+    return notify_event_of(event_type, data)
 
 
 def _config_layers_enabled() -> bool:
@@ -75,7 +70,7 @@ class NotificationPolicyHelper:
         self._db = db
         self._cfg = cfg
 
-    def get_channels_for_event(self, user_id: int, event_type: str) -> list[str]:
+    def get_channels_for_event(self, user_id: int, event_type: str, data: dict | None = None) -> list[str]:
         """从 notification_policy 表查询该事件应发送到哪些渠道（按用户隔离）。
 
         **双读（阶段 4 · P6 · 4a/收口，裁定 4 甲：新字段优先）**：
@@ -95,7 +90,7 @@ class NotificationPolicyHelper:
             )
             if rows:
                 channels = []
-                event_class = _notify_event_of(event_type)
+                event_class = _notify_event_of(event_type, data)
                 layers_on = _config_layers_enabled()
                 for r in rows:
                     # 兼容"未跑 v68 的库/测试替身"：行里没有该键时按空串处理，等价于"未设置类别"

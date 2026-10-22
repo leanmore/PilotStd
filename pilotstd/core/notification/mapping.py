@@ -217,12 +217,14 @@ def project(event_type: str, data: Mapping[str, Any]) -> NotificationProjection:
     **为什么接收 `data` 却不用**：见模块 docstring 的"4 个分支归属事件"。
     参数名保持 `data`（与既有构建器 `_build_*(data)` 同口径）。
     """
-    del data  # 阶段 2a 不读载荷；保留形参为后续批次留门（见 docstring）
     mapping = EVENT_MAPPINGS.get(event_type)
     if mapping is None:
         return NotificationProjection()
+    notify_event = mapping.notify_event
+    if event_type == "auto_backup" and data is not None:
+        notify_event = "task_result" if data.get("success") else "anomaly_alert"
     return NotificationProjection(
-        notify_event=mapping.notify_event,
+        notify_event=notify_event,
         content_type=mapping.content_type,
         task_kind=mapping.task_kind,
         # correlation_id / task_context 需运行期上下文，阶段 2b 填充

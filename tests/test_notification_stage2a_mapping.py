@@ -198,11 +198,14 @@ class TestDataParameterForFutureBranches(unittest.TestCase):
     """4 个分支归属事件：本批恒返回单值，但 `data` 参数已留门。"""
 
     BRANCH_EVENTS = (
-        "auto_backup",
         "image_update_available",
         "validity_batch_report",
         "validity_round_summary",
     )
+
+    def test_auto_backup_branches_by_success(self):
+        self.assertEqual(project("auto_backup", {"success": True}).notify_event, "task_result")
+        self.assertEqual(project("auto_backup", {"success": False}).notify_event, "anomaly_alert")
 
     def test_branch_events_return_single_value_regardless_of_data(self):
         """本批不实现分支判定：同一事件传不同 data 仍得同一投影。"""
