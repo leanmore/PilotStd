@@ -32,18 +32,18 @@ export const getAnnounceDetailLite = (announceNo: string, source?: string, route
 }
 
 /** 分页获取公告记录（Phase 1 分页端点，排序 standard_number ASC） */
-export const getAnnounceRecords = (announceNo: string, page: number, pageSize: number): Promise<PaginatedResult> =>
+export const getAnnounceRecords = (announceNo: string, page: number, pageSize: number, source?: string): Promise<PaginatedResult> =>
   http.get(`/announcements/${encodeURIComponent(announceNo)}/records`, {
-    params: { page, page_size: pageSize },
+    params: { page, page_size: pageSize, ...(source ? { source } : {}) },
   }).then(r => r.data)
 
 /** 触发附件解析 */
-export const triggerParse = (announceNo: string): Promise<{ status: string }> =>
-  http.post(`/announcements/${announceNo}/parse`).then(r => r.data)
+export const triggerParse = (announceNo: string, source?: string): Promise<{ status: string }> =>
+  http.post(`/announcements/${announceNo}/parse`, null, { params: source ? { source } : {} }).then(r => r.data)
 
 /** 获取解析状态 */
-export const getParseStatus = (announceNo: string): Promise<{ status: string; record_count?: number }> =>
-  http.get(`/announcements/${announceNo}/parse-status`).then(r => r.data)
+export const getParseStatus = (announceNo: string, source?: string): Promise<{ status: string; record_count?: number }> =>
+  http.get(`/announcements/${announceNo}/parse-status`, { params: source ? { source } : {} }).then(r => r.data)
 
 /** 单行更新（单元格编辑） */
 export const updateRecord = (id: number, data: Partial<AnnouncementRecord>): Promise<{ status: string }> =>

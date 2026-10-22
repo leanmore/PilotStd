@@ -624,11 +624,18 @@
     "notification.system.worker_error.body.worker": "{worker} 工作執行緒異常",
 
     "notification.system.trust_ip_update.title.default": "可信 IP 狀態",
+    "notification.system.trust_ip_update.body.ip": "IP 位址",
+    "notification.system.trust_ip_update.body.time": "更新時間",
+    "notification.system.trust_ip_update.body.status": "狀態",
+    "notification.system.trust_ip_update.status.success": "成功",
+    "notification.system.trust_ip_update.status.failed": "失敗",
 
     "notification.system.quota_exhausted.title": "站點日配額已耗盡",
     "notification.system.quota_exhausted.body": "{site_name} 今日配額已用完（限額 {quota_limit}），將於 {reset_time} 重置",
 
+    "notification.fallback.title": "未分類通知",
     "notification.fallback.body.event_type": "事件類型：{t}",
+    "notification.fallback.body.details_omitted": "原始資料已省略，請查看通知日誌詳情。",
 
     "notification.aggregated.status.name_suffix": "（{name}）",
     "notification.aggregated.status.change_line": "：{old} → {new}",

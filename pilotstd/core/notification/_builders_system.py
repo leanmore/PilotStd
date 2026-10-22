@@ -193,9 +193,10 @@ def _build_fallback_message(event_type: str, data: dict) -> NotificationMessage:
         TextBlock(text=t("notification.fallback.body.event_type").format(t=data.get("event_type", "unknown")))
     ]
     if data:
-        blocks.append(TextBlock(text=str(data)))
+        # 不直接 str(data)：未知事件的原始 dict 会把内部键名泄露到用户通知
+        blocks.append(TextBlock(text=t("notification.fallback.body.details_omitted")))
     return NotificationMessage(
-        title=event_type,
+        title=t("notification.fallback.title"),
         blocks=blocks,
         level="info",
         event_type=event_type,
@@ -251,9 +252,17 @@ def _build_trust_ip_update_message(data: dict) -> NotificationMessage:
     text = data.get("body", "")
     blocks: list[NotificationBlock] = [TextBlock(text=text)]
     extra_keys = [k for k in ("ip", "update_time", "status") if data.get(k)]
-    # 有额外键值对信息时追加
+    # 有额外键值对信息时追加；展示名必须走 i18n，不能把 ip/update_time/status 原样输出
+    extra_labels = {
+        "ip": "notification.system.trust_ip_update.body.ip",
+        "update_time": "notification.system.trust_ip_update.body.time",
+        "status": "notification.system.trust_ip_update.body.status",
+    }
     for k in extra_keys:
-        blocks.append(KeyValueBlock(key=k, value=str(data[k])))
+        value = str(data[k])
+        if k == "status":
+            value = t(f"notification.system.trust_ip_update.status.{value}")
+        blocks.append(KeyValueBlock(key=t(extra_labels[k]), value=value))
     # 级别按**机器可读**结果判定（T-39）：标题是展示文案，改文案不得改变通知级别
     level = "warning" if data.get("status", "") == "failed" else "info"
     return NotificationMessage(

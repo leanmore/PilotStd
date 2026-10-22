@@ -703,11 +703,18 @@
     "notification.system.worker_error.body.worker": "Worker thread error in {worker}",
 
     "notification.system.trust_ip_update.title.default": "Trusted IP Status",
+    "notification.system.trust_ip_update.body.ip": "IP Address",
+    "notification.system.trust_ip_update.body.time": "Updated At",
+    "notification.system.trust_ip_update.body.status": "Status",
+    "notification.system.trust_ip_update.status.success": "Success",
+    "notification.system.trust_ip_update.status.failed": "Failed",
 
     "notification.system.quota_exhausted.title": "Site Daily Quota Exhausted",
     "notification.system.quota_exhausted.body": "{site_name} has used up today's quota (limit {quota_limit}); it will reset at {reset_time}",
 
+    "notification.fallback.title": "Unclassified Notification",
     "notification.fallback.body.event_type": "Event type: {t}",
+    "notification.fallback.body.details_omitted": "Raw data omitted; see notification log details.",
 
     "notification.aggregated.status.name_suffix": " ({name})",
     "notification.aggregated.status.change_line": ": {old} → {new}",

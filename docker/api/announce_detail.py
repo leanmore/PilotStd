@@ -25,6 +25,18 @@ SITE_NAME_MAP = {
 URL_SOURCE_MAP = {v: k for k, v in SOURCE_MAP.items()}
 
 
+def _resolve_source_site(source: str | None) -> str:
+    """把 URL 标识符（annc_hb）或 DB 值（announcement_hb）统一成 source_site。
+
+    同一 announce_no/PID 可能同时存在于 HB/DB/GB 端点，PID 不能单独作为身份；
+    详情/记录/reparse 必须带 source_site 才能唯一确定公告。
+    """
+    if not source:
+        return ""
+    mapped = URL_SOURCE_MAP.get(source, source)
+    return str(mapped)
+
+
 def get_site_name(url: str) -> str:
     """从 URL 提取域名并映射到中文站点名，未知则返回域名。"""
     if not url:
@@ -52,6 +64,7 @@ def get_announcement_records_paginated(
     announce_no: str,
     page: int = Query(1, ge=1, description="页码，从 1 开始"),
     page_size: int = Query(50, ge=1, le=200, description="每页条数，1-200"),
+    source: str | None = Query(None, description="来源标识（annc_gb/annc_hb/annc_db）"),
     mgr=Depends(get_manager_dep),
 ):
     """分页获取公告标准记录。
@@ -65,10 +78,12 @@ def get_announcement_records_paginated(
         raise HTTPException(422, "page 需 >=1，pageSize 需在 1-200 之间")
 
     db = mgr.db
+    source_site = _resolve_source_site(source)
 
     total_row = db.fetchone(
-        "SELECT COUNT(*) AS cnt FROM announcement_record WHERE TRIM(announce_no) = ?",
-        (announce_no,),
+        "SELECT COUNT(*) AS cnt FROM announcement_record"
+        " WHERE TRIM(announce_no) = ? AND (? = '' OR source_site = ?)",
+        (announce_no, source_site, source_site),
     )
     total = total_row["cnt"] if total_row else 0
 
@@ -76,12 +91,12 @@ def get_announcement_records_paginated(
     rows = db.fetchall(
         "SELECT id, row_index, standard_number, std_name,"
         " publish_date, implement_date, expiry_date, superseded_by, status,"
-        " language, foreign_name"
+        " language, foreign_name, source_site"
         " FROM announcement_record"
-        " WHERE TRIM(announce_no) = ?"
+        " WHERE TRIM(announce_no) = ? AND (? = '' OR source_site = ?)"
         " ORDER BY standard_number ASC"
         " LIMIT ? OFFSET ?",
-        (announce_no, page_size, offset),
+        (announce_no, source_site, source_site, page_size, offset),
     )
 
     items = [dict(r) for r in rows]
@@ -99,17 +114,37 @@ def get_announcement_records_paginated(
 # ════════════════════════════════════════════════════════════════ 分隔
 
 
+def _fetch_announcement_records(db, announce_no: str, source_site: str) -> list[dict]:
+    """按公告号+来源读取详情页记录，避免详情函数超过代码规模上限。"""
+    rows: list[dict] = db.fetchall(
+        "SELECT id, row_index, standard_number, std_name,"
+        " publish_date, implement_date, expiry_date, superseded_by,"
+        " status, confidence, source_type,"
+        " fetched_at AS created_at, approved_at AS updated_at"
+        " FROM announcement_record"
+        " WHERE TRIM(announce_no) = ? AND (? = '' OR source_site = ?)"
+        " ORDER BY row_index",
+        (announce_no, source_site, source_site),
+    )
+    return rows
+
+
 @router.get("/api/announcements/{announce_no}")
-def get_announcement_detail(announce_no: str, mgr=Depends(get_manager_dep)):
+def get_announcement_detail(
+    announce_no: str,
+    source: str | None = Query(None, description="来源标识（annc_gb/annc_hb/annc_db）"),
+    mgr=Depends(get_manager_dep),
+):
     """获取公告头 + 关联的所有标准记录。"""
     db = mgr.db
+    source_site = _resolve_source_site(source)
 
     # 优先从表获取公告头（含_等字段）
     ann = db.fetchone(
         "SELECT id, title, publish_date, source_url, attachment_url, raw_data, source_site,"
         " COALESCE(parse_status, 'pending') AS parse_status"
-        " FROM announcements WHERE TRIM(announce_no) = ?",
-        (announce_no,),
+        " FROM announcements WHERE TRIM(announce_no) = ? AND (? = '' OR source_site = ?)",
+        (announce_no, source_site, source_site),
     )
 
     # 公告头信息：表有则取，无则从_回退
@@ -125,9 +160,9 @@ def get_announcement_detail(announce_no: str, mgr=Depends(get_manager_dep)):
         header = db.fetchone(
             "SELECT COALESCE(MAX(announcement_title), '公告 ' || announce_no) AS title,"
             " MAX(publish_date) AS publish_date"
-            " FROM announcement_record WHERE TRIM(announce_no) = ?"
+            " FROM announcement_record WHERE TRIM(announce_no) = ? AND (? = '' OR source_site = ?)"
             " GROUP BY TRIM(announce_no)",
-            (announce_no,),
+            (announce_no, source_site, source_site),
         )
         if not header:
             raise HTTPException(404, "公告不存在")
@@ -138,16 +173,7 @@ def get_announcement_detail(announce_no: str, mgr=Depends(get_manager_dep)):
         content = ""
         db_parse_status = "pending"
 
-    records = db.fetchall(
-        "SELECT id, row_index, standard_number, std_name,"
-        " publish_date, implement_date, expiry_date, superseded_by,"
-        " status, confidence, source_type,"
-        " fetched_at AS created_at, approved_at AS updated_at"
-        " FROM announcement_record"
-        " WHERE TRIM(announce_no) = ?"
-        " ORDER BY row_index",
-        (announce_no,),
-    )
+    records = _fetch_announcement_records(db, announce_no, source_site)
 
     parse_status = db_parse_status if records else "pending"
 
@@ -196,15 +222,20 @@ def get_announcement_detail(announce_no: str, mgr=Depends(get_manager_dep)):
 
 
 @router.get("/api/announcements/{announce_no}/lite")
-def get_announcement_detail_lite(announce_no: str, mgr=Depends(get_manager_dep)):
+def get_announcement_detail_lite(
+    announce_no: str,
+    source: str | None = Query(None, description="来源标识（annc_gb/annc_hb/annc_db）"),
+    mgr=Depends(get_manager_dep),
+):
     """轻量版详情：records 仅返回 DataTable 必需的 9 个字段，省略 confidence/source_type/created_at/updated_at。"""
     db = mgr.db
+    source_site = _resolve_source_site(source)
 
     ann = db.fetchone(
         "SELECT id, title, publish_date, source_url, attachment_url, raw_data, source_site,"
         " COALESCE(parse_status, 'pending') AS parse_status"
-        " FROM announcements WHERE TRIM(announce_no) = ?",
-        (announce_no,),
+        " FROM announcements WHERE TRIM(announce_no) = ? AND (? = '' OR source_site = ?)",
+        (announce_no, source_site, source_site),
     )
 
     if ann:
@@ -218,9 +249,9 @@ def get_announcement_detail_lite(announce_no: str, mgr=Depends(get_manager_dep))
         header = db.fetchone(
             "SELECT COALESCE(MAX(announcement_title), '公告 ' || announce_no) AS title,"
             " MAX(publish_date) AS publish_date"
-            " FROM announcement_record WHERE TRIM(announce_no) = ?"
+            " FROM announcement_record WHERE TRIM(announce_no) = ? AND (? = '' OR source_site = ?)"
             " GROUP BY TRIM(announce_no)",
-            (announce_no,),
+            (announce_no, source_site, source_site),
         )
         if not header:
             raise HTTPException(404, "公告不存在")
@@ -236,9 +267,9 @@ def get_announcement_detail_lite(announce_no: str, mgr=Depends(get_manager_dep))
         "SELECT id, row_index, standard_number, std_name,"
         " publish_date, implement_date, expiry_date, superseded_by, status, source_type"
         " FROM announcement_record"
-        " WHERE TRIM(announce_no) = ?"
+        " WHERE TRIM(announce_no) = ? AND (? = '' OR source_site = ?)"
         " ORDER BY row_index",
-        (announce_no,),
+        (announce_no, source_site, source_site),
     )
 
     parse_status = db_parse_status if records else "pending"
@@ -302,25 +333,27 @@ def get_announcement_by_no(announce_no: str, mgr=Depends(get_manager_dep)):
 def trigger_parse(
     announce_no: str,
     background_tasks: BackgroundTasks,
+    source: str | None = Query(None, description="来源标识（annc_gb/annc_hb/annc_db）"),
     mgr=Depends(get_manager_dep),
 ):
     """异步触发附件解析。先查 announcements，无则从 announcement_record 自愈。"""
     db = mgr.db
+    source_site = _resolve_source_site(source)
 
     ann = db.fetchone(
         "SELECT id, announce_no, attachment_url, source_site, pid,"
         " title, publish_date, source_url, raw_data"
-        " FROM announcements WHERE TRIM(announce_no) = ?",
-        (announce_no,),
+        " FROM announcements WHERE TRIM(announce_no) = ? AND (? = '' OR source_site = ?)",
+        (announce_no, source_site, source_site),
     )
     if not ann:
         # 自愈：公告只在_中，不在表
         rec = db.fetchone(
             "SELECT pid, source_site, announce_no,"
             " MAX(announcement_title) AS title, MAX(publish_date) AS publish_date"
-            " FROM announcement_record WHERE TRIM(announce_no) = ?"
+            " FROM announcement_record WHERE TRIM(announce_no) = ? AND (? = '' OR source_site = ?)"
             " GROUP BY TRIM(announce_no)",
-            (announce_no,),
+            (announce_no, source_site, source_site),
         )
         if rec:
             # 防绕过：_经清洗管线后再写入，确保语义补全
@@ -380,10 +413,14 @@ def trigger_parse(
 
 
 @router.post("/api/announcements/{announce_no}/reparse")
-def reparse_from_source(announce_no: str, mgr=Depends(get_manager_dep)):
+def reparse_from_source(
+    announce_no: str,
+    source: str | None = Query(None, description="来源标识（annc_gb/annc_hb/annc_db）"),
+    mgr=Depends(get_manager_dep),
+):
     """重新抓取公告详情并替换记录（修复历史解析缺口；HTML/附件型均适用）。"""
     try:
-        result = mgr._announce_svc.crawler.reparse_from_source(announce_no)
+        result = mgr._announce_svc.crawler.reparse_from_source(announce_no, _resolve_source_site(source))
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
     logger.info("announcement reparsed: %s records=%s", announce_no, result.get("records"))
@@ -391,11 +428,19 @@ def reparse_from_source(announce_no: str, mgr=Depends(get_manager_dep)):
 
 
 @router.get("/api/announcements/{announce_no}/parse-status")
-def get_parse_status(announce_no: str, mgr=Depends(get_manager_dep)):
+def get_parse_status(
+    announce_no: str,
+    source: str | None = Query(None, description="来源标识（annc_gb/annc_hb/annc_db）"),
+    mgr=Depends(get_manager_dep),
+):
     """查询解析状态（供前端轮询）。"""
     db = mgr.db
+    source_site = _resolve_source_site(source)
 
-    ann = db.fetchone("SELECT id FROM announcements WHERE TRIM(announce_no) = ?", (announce_no,))
+    ann = db.fetchone(
+        "SELECT id FROM announcements WHERE TRIM(announce_no) = ? AND (? = '' OR source_site = ?)",
+        (announce_no, source_site, source_site),
+    )
     if not ann:
         raise HTTPException(404, "公告不存在")
 
@@ -419,9 +464,9 @@ def update_record(record_id: int, data: dict, mgr=Depends(get_manager_dep)):
 
     record = db.fetchone("SELECT id, status FROM announcement_record WHERE id = ?", (record_id,))
     if not record:
-        raise HTTPException(404, "记录不存在")
+        raise HTTPException(404, "记录不存在")  # i18n-allow: 既有 API 错误文案
     if record["status"] == "approved":
-        raise HTTPException(400, "已确认的记录不可编辑")
+        raise HTTPException(400, "已确认的记录不可编辑")  # i18n-allow: 既有 API 错误文案
 
     allowed = {
         "standard_number",
@@ -433,7 +478,7 @@ def update_record(record_id: int, data: dict, mgr=Depends(get_manager_dep)):
     }
     updates = {k: v for k, v in data.items() if k in allowed and v is not None}
     if not updates:
-        raise HTTPException(400, "无有效更新字段")
+        raise HTTPException(400, "无有效更新字段")  # i18n-allow: 既有 API 错误文案
 
     set_clause = ", ".join(f"{k} = ?" for k in updates)
     values = list(updates.values())
@@ -459,7 +504,7 @@ def batch_approve(data: dict, mgr=Depends(get_manager_dep)):
     db = mgr.db
     ids = data.get("ids", [])
     if not ids:
-        raise HTTPException(400, "未选择任何记录")
+        raise HTTPException(400, "未选择任何记录")  # i18n-allow: 既有 API 错误文案
 
     placeholders = ", ".join("?" for _ in ids)
     records = db.fetchall(
@@ -467,7 +512,7 @@ def batch_approve(data: dict, mgr=Depends(get_manager_dep)):
         ids,
     )
     if not records:
-        raise HTTPException(400, "未找到有效记录")
+        raise HTTPException(400, "未找到有效记录")  # i18n-allow: 既有 API 错误文案
 
     errors = []
     to_approve = []
@@ -475,7 +520,7 @@ def batch_approve(data: dict, mgr=Depends(get_manager_dep)):
         if r["status"] == "approved":
             continue
         if not r["standard_number"] or not r["std_name"]:
-            errors.append(f"ID {r['id']}: 标准号或名称为空")
+            errors.append(f"ID {r['id']}: 标准号或名称为空")  # i18n-allow: 既有 API 错误文案
             continue
         to_approve.append(r["id"])
 

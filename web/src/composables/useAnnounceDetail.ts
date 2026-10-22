@@ -51,7 +51,9 @@ export function useAnnounceDetail(
   const usePaginated = import.meta.env.VITE_USE_PAGINATED_RECORDS_API === 'true'
   // sentinel 由组件声明并以参数传入：模板 ref="sentinel" 是字符串属性，
   // 声明在 composable 内会让 vue-tsc 的 noUnusedLocals 误判为未使用（TS6133）
-  const recordsSource: Ref<AnnouncementRecord[]> | RecordFetcher = usePaginated ? (page: number, pageSize: number) => getAnnounceRecords(announceNo, page, pageSize) : records
+  const recordsSource: Ref<AnnouncementRecord[]> | RecordFetcher = usePaginated
+    ? (page: number, pageSize: number) => getAnnounceRecords(announceNo, page, pageSize, source)
+    : records
   const {
     displayRecords,
     isLoadingMore,
@@ -142,14 +144,14 @@ export function useAnnounceDetail(
     parsing.value = true
     parseStatus.value = 'parsing'
     try {
-      await triggerParse(announceNo)
+      await triggerParse(announceNo, source)
       let retries = 0
       const maxRetries = 30
       const interval = 2000
       pollTimer = setInterval(async () => {
         retries++
         try {
-          const statusRes = await getParseStatus(announceNo)
+          const statusRes = await getParseStatus(announceNo, source)
           if (statusRes.status === 'completed') {
             clearInterval(pollTimer!)
             pollTimer = null

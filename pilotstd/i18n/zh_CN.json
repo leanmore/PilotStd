@@ -707,11 +707,18 @@
     "notification.system.worker_error.body.worker": "{worker} 工作线程异常",
 
     "notification.system.trust_ip_update.title.default": "可信 IP 状态",
+    "notification.system.trust_ip_update.body.ip": "IP 地址",
+    "notification.system.trust_ip_update.body.time": "更新时间",
+    "notification.system.trust_ip_update.body.status": "状态",
+    "notification.system.trust_ip_update.status.success": "成功",
+    "notification.system.trust_ip_update.status.failed": "失败",
 
     "notification.system.quota_exhausted.title": "站点日配额已耗尽",
     "notification.system.quota_exhausted.body": "{site_name} 今日配额已用完（限额 {quota_limit}），将于 {reset_time} 重置",
 
+    "notification.fallback.title": "未分类通知",
     "notification.fallback.body.event_type": "事件类型：{t}",
+    "notification.fallback.body.details_omitted": "原始数据已省略，请查看通知日志详情。",
 
     "notification.aggregated.status.name_suffix": "（{name}）",
     "notification.aggregated.status.change_line": "：{old} → {new}",

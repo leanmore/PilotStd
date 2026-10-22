@@ -459,3 +459,5 @@ pilotstd/core/
 **通知渠道守卫（2026-10-22）**：双形态渠道（webhook/app 二选一）在 `_init_channels` 中必须至少一种形态字段齐全才实例化，避免未配置渠道每次发送都记 failed；`parse_retry_after` 对非字符串参数做 `str()` 归一。
 
 **通知展示守卫（2026-10-22）**：公告抓取汇总的 `samr_gb/samr_hb/samr_db` 适配器名改为 `notification.announce.source.*` 中文标签；站内访问地址未配置时，同一消息只追加一次提示块，避免多渠道发送重复追加。
+
+**通知键名（2026-10-22）**：可信 IP 的 `ip/update_time/status` 字段名改走 i18n；未知事件兜底不再 `str(data)`；`samr_gb/hb/db` 适配器名、事件类型、渠道名均本地化。

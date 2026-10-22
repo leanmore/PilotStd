@@ -118,17 +118,17 @@ class AnnounceCrawler:
 
     # ── 主入口 ──────────────────────────────────────────────
 
-    def reparse_from_source(self, announce_no: str) -> dict[str, Any]:
-        """按公告号重新抓取详情并替换记录（用于修复历史解析缺口）。
+    def reparse_from_source(self, announce_no: str, source_site: str = "") -> dict[str, Any]:
+        """按公告号 + 来源重新抓取详情并替换记录。
 
-        与 `/parse` 的区别：`/parse` 只处理附件且要求 announcement 已有 attachment_url；
-        本方法对 HTML/附件型都走适配器重新取详情，先解析成功再删除旧记录，避免解析失败先毁数据。
+        同一 announce_no/PID 可能同时出现在 HB/DB/GB 端点，不能只按公告号定位；
+        `source_site` 为空时保留旧调用兼容，但多来源冲突会拒绝执行。
         """
         db = self._file_index._db
         ann = db.fetchone(
             "SELECT id, pid, announce_no, title, publish_date, source_site"
-            " FROM announcements WHERE TRIM(announce_no) = ?",
-            (announce_no,),
+            " FROM announcements WHERE TRIM(announce_no) = ? AND (? = '' OR source_site = ?)",
+            (announce_no, source_site, source_site),
         )
         if not ann:
             raise ValueError("announcement not found")

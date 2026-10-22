@@ -15,3 +15,5 @@
 - 新增来源时，必须同时更新本文档和 `docker/api/announce_detail.py`
 - 禁止在代码中硬编码来源标识符，必须引用本文档中的映射关系
 - 数据库值与 URL 标识符的映射关系不可逆，修改需提交 ADR
+
+> 2026-10-22：同一 `announce_no/PID` 可能出现在 HB/DB/GB 端点（实测 2014年第4号 PID `5D14...` 在 gnocHb/gnocDb/gnoc 返回三套数据）。详情、records、parse、reparse 均增加 `source` 参数（annc_gb/annc_hb/annc_db），按 `source_site` 过滤，不能只用公告号/PID 定位。

@@ -66,3 +66,11 @@
 | **接受** | P-08/P-09/P-11 | 外部环境/成本约束，触发式处理 | 已接受 |
 
 > 规则：F2/F3/F4 每项单独 commit + 回归测试；不把“接受”当“已修复”。
+
+| P-13 | 通知键名全量审计 | 可信 IP、fallback、适配器名、事件/渠道名 | 已修，待复验 |
+| P-14 | 同一公告号/PID 跨来源冲突 | HB/DB/GB 同码，详情/records/reparse 加 `source` | 已修，待复验 |
+
+## 六、新增修复项
+
+- **F6 / P-13**：通知键名全量审计；已修 `trust_ip_update` 的 `ip/update_time/status`、未知事件 `str(data)`、适配器名、事件/渠道名；待建 EventSpec 三语契约测试。
+- **F7 / P-14**：同一 `announce_no/PID` 跨 HB/DB 冲突；详情、records、parse、parse-status、reparse 增加 `source` 参数，前端路由 source 透传。
