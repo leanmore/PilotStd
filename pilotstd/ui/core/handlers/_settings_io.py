@@ -329,6 +329,9 @@ class SettingsConfigIO:
             self._config.save()
 
         # 文字识别密钥占位符（不加载实际值到文本框，只显示提示）
+        if h._ocr_provider_combo is not None:
+            idx = h._ocr_provider_combo.findData(self._config.get("ocr.provider", ""))
+            h._ocr_provider_combo.setCurrentIndex(max(idx, 0))
         if all(
             [
                 h._ocr_api_key,
@@ -364,6 +367,8 @@ class SettingsConfigIO:
             data["query.announcement_api_key"] = h._announce_api_key_edit.text().strip()
 
         # 文字识别密钥
+        if h._ocr_provider_combo is not None:
+            data["ocr.provider"] = h._ocr_provider_combo.currentData() or ""
         if all(
             [
                 h._ocr_api_key,

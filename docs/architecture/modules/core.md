@@ -463,3 +463,5 @@ pilotstd/core/
 **通知键名（2026-10-22）**：可信 IP 的 `ip/update_time/status` 字段名改走 i18n；未知事件兜底不再 `str(data)`；`samr_gb/hb/db` 适配器名、事件类型、渠道名均本地化。
 
 **备份分类（2026-10-22）**：auto_backup 投影按 data.success 分支，成功归 task_result、失败归 anomaly_alert；策略层 get_channels_for_event 透传 data。
+
+**通知默认值（2026-10-23）**：suppress_nochange 默认 False；auto_backup 成功/失败按 task_result/anomaly_alert 分支。

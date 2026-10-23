@@ -61,7 +61,7 @@
 | **F1（v0.149.5）** | P-01/P-12 2019 第11号；HB 2014/2019 错号；P-02 通知英文键；P-03 渠道守卫；P-04 浮点退避 | reparse 141；reconcile=0；通知无英文事件键；新 failed 不再来自未配置渠道 | 代码完成，待部署 |
 | **F2** | P-05 无变化通知噪音：`notification.suppress_nochange` 默认 true，扫描无新增/公告 0 条静默 | 默认不再发 18+18 条重复；失败不抑制 | 已实现 |
 | **F3** | P-06 备份成功归 `anomaly_alert`：成功走 task_lifecycle、失败走 anomaly_alert | 备份成功不再触发异常告警 | **已实现**：auto_backup success → task_result，失败 → anomaly_alert |
-| **F4** | P-10 Windows 本地 OCR 模型下载：manifest + SHA256 + `models/ocr` 原子安装 | 开关下载/离线导入/校验 | **接受**：随包模型复制到 models/ocr；无正式下载源，按离线模型接受 |
+| **F4** | P-10 Windows 本地 OCR 模型下载 | 设置页开关下载 RapidOCR 官方 wheel，SHA256 校验后解压到 models/ocr | 已实现 |
 | **F5** | P-07 A-3 渠道声明 ↔ schema 互证门禁 | `channels/*.get_config_schema()` 已由 `legacy_schema` 派生，无需重复门禁 | 关闭（已收敛） |
 | **接受** | P-08/P-09/P-11 | 外部环境/成本约束，触发式处理 | 已接受 |
 

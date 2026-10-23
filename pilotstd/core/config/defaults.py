@@ -88,8 +88,8 @@ FACTORY_DEFAULTS = {
     # B3：Docker 侧分档节流（长阶段同主题 60 秒一条；关闭即回退为不节流）
     "notification.tiered_throttle": True,
     "notification.aggregate_enabled": True,
-    # 无变化任务默认静默：扫描无新增、公告检查/抓取 0 条时不再每日重复发送。
-    "notification.suppress_nochange": True,
+    # 无变化任务默认仍通知；仅当用户显式开启 suppress_nochange 时才静默。
+    "notification.suppress_nochange": False,
     # 注：窗口按"交互型通知要快"取小值；批量链路（收藏下载链）的刷屏改在源头
     # 解决——链路按批汇总为 1 条，不再逐条发"开始/失败/完成"通知
     # （2026-09-21 实测：逐条发导致 1119 条通知中 622 条被电报接口以 429 拒绝）

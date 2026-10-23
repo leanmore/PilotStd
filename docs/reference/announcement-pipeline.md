@@ -122,3 +122,5 @@ GB/DB/HB 公告头完整；详情记录缺口为 DB 9月第8号 18 条、HB 9月
 > 2026-10-22：内置维护列表 pilotstd/announcement/data/source_code_corrections.json 纳入版本控制（.gitignore 例外），不再依赖运行时文件。
 
 > 2026-10-22：reparse 清理范围从 (pid, source_site) 扩展为 (source_site, announce_no)，清掉源站 PID 变更留下的旧 pid 残留，避免新旧记录并存导致 reconcile 偏差。
+
+> 2026-10-23：Windows 本地 OCR 模型由设置页从 RapidOCR 官方 wheel 下载并 SHA256 校验，安装到 models/ocr。

@@ -72,6 +72,10 @@ class SettingsHandler:
         self._ocr_tencent_secret_key: Optional[QLineEdit] = None
         self._ocr_access_key_id: Optional[QLineEdit] = None
         self._ocr_access_key_secret: Optional[QLineEdit] = None
+        self._ocr_provider_combo: Optional[QComboBox] = None
+        self._ocr_model_status: Optional[QLabel] = None
+        self._ocr_download_btn: Optional[QPushButton] = None
+        self._ocr_download_worker: Any = None
         self._skip_folders: Optional[QLineEdit] = None
         self._scan_extensions: Optional[QLineEdit] = None
         self._skip_file_keywords: Optional[QLineEdit] = None
@@ -311,29 +315,43 @@ class SettingsHandler:
         layout = QVBoxLayout(w)
         gb = QGroupBox(_("ocr_group"))
         form = QFormLayout(gb)
+        self._ocr_provider_combo = QComboBox()
+        self._ocr_provider_combo.addItem("云端优先", "")
+        self._ocr_provider_combo.addItem("本地（CPU）优先", "local")
+        form.addRow("识别方式", self._ocr_provider_combo)
+        self._ocr_model_status = QLabel("检查本地 OCR 模型…")
+        self._ocr_model_status.setWordWrap(True)
+        self._ocr_download_btn = QPushButton("下载本地 OCR 模型")
+        self._ocr_download_btn.clicked.connect(self._download_local_ocr_model)
+        local_row = QWidget()
+        local_layout = QHBoxLayout(local_row)
+        local_layout.setContentsMargins(0, 0, 0, 0)
+        local_layout.addWidget(self._ocr_model_status, 1)
+        local_layout.addWidget(self._ocr_download_btn)
+        form.addRow("本地模型", local_row)
         self._ocr_api_key = QLineEdit()
         self._ocr_api_key.setEchoMode(QLineEdit.EchoMode.Password)
-        self._ocr_api_key.setPlaceholderText("百度云 API Key")
+        self._ocr_api_key.setPlaceholderText("百度云 API Key")  # i18n-allow
         form.addRow(_("ocr_baidu_api_key"), self._ocr_api_key)
         self._ocr_secret_key = QLineEdit()
         self._ocr_secret_key.setEchoMode(QLineEdit.EchoMode.Password)
-        self._ocr_secret_key.setPlaceholderText("百度云 Secret Key")
+        self._ocr_secret_key.setPlaceholderText("百度云 Secret Key")  # i18n-allow
         form.addRow(_("ocr_baidu_secret_key"), self._ocr_secret_key)
         self._ocr_secret_id = QLineEdit()
         self._ocr_secret_id.setEchoMode(QLineEdit.EchoMode.Password)
-        self._ocr_secret_id.setPlaceholderText("腾讯云 Secret ID")
+        self._ocr_secret_id.setPlaceholderText("腾讯云 Secret ID")  # i18n-allow
         form.addRow(_("ocr_tencent_secret_id"), self._ocr_secret_id)
         self._ocr_tencent_secret_key = QLineEdit()
         self._ocr_tencent_secret_key.setEchoMode(QLineEdit.EchoMode.Password)
-        self._ocr_tencent_secret_key.setPlaceholderText("腾讯云 Secret Key")
+        self._ocr_tencent_secret_key.setPlaceholderText("腾讯云 Secret Key")  # i18n-allow
         form.addRow(_("ocr_tencent_secret_key"), self._ocr_tencent_secret_key)
         self._ocr_access_key_id = QLineEdit()
         self._ocr_access_key_id.setEchoMode(QLineEdit.EchoMode.Password)
-        self._ocr_access_key_id.setPlaceholderText("阿里云 Access Key ID")
+        self._ocr_access_key_id.setPlaceholderText("阿里云 Access Key ID")  # i18n-allow
         form.addRow(_("ocr_aliyun_access_key_id"), self._ocr_access_key_id)
         self._ocr_access_key_secret = QLineEdit()
         self._ocr_access_key_secret.setEchoMode(QLineEdit.EchoMode.Password)
-        self._ocr_access_key_secret.setPlaceholderText("阿里云 Access Key Secret")
+        self._ocr_access_key_secret.setPlaceholderText("阿里云 Access Key Secret")  # i18n-allow
         form.addRow(_("ocr_aliyun_access_key_secret"), self._ocr_access_key_secret)
         note = QLabel(_("ocr_note"))
         note.setWordWrap(True)
@@ -341,6 +359,49 @@ class SettingsHandler:
         layout.addWidget(gb)
         layout.addStretch()
         self._add_page(_("ocr_group"), w)
+        self._refresh_ocr_model_status()
+
+    def _refresh_ocr_model_status(self) -> None:
+        """显示本地模型是否已安装；不触发网络。"""
+        if self._ocr_model_status is None or self._ocr_download_btn is None:
+            return
+        try:
+            from pilotstd.announcement.ocr._model_manager import is_installed, target_dir
+
+            installed = is_installed()
+            self._ocr_model_status.setText(
+                f"已安装：{target_dir()}" if installed else f"未安装：{target_dir()}"  # i18n-allow
+            )
+            self._ocr_download_btn.setEnabled(not installed)
+        except Exception as exc:
+            self._ocr_model_status.setText(f"模型状态检查失败：{exc}")  # i18n-allow
+
+    def _download_local_ocr_model(self) -> None:
+        """后台下载模型；按钮期间禁用，结果回写状态。"""
+        if self._ocr_download_btn is None or self._ocr_model_status is None:
+            return
+        # 下载 12MB 模型不能阻塞设置对话框，交给 QThread
+        from ._ocr_download import OcrModelDownloadWorker
+
+        self._ocr_download_btn.setEnabled(False)
+        self._ocr_model_status.setText("正在下载本地 OCR 模型…")  # i18n-allow
+        worker = OcrModelDownloadWorker()
+        self._ocr_download_worker = worker
+        worker.progress.connect(self._ocr_model_status.setText)
+        worker.download_done.connect(self._on_ocr_model_downloaded)
+        worker.download_failed.connect(self._on_ocr_model_download_failed)
+        worker.start()
+
+    def _on_ocr_model_downloaded(self, path: str) -> None:
+        if self._ocr_model_status is not None:
+            self._ocr_model_status.setText(f"已安装：{path}")  # i18n-allow
+        self._refresh_ocr_model_status()
+
+    def _on_ocr_model_download_failed(self, error: str) -> None:
+        if self._ocr_model_status is not None:
+            self._ocr_model_status.setText(f"下载失败：{error}")  # i18n-allow
+        if self._ocr_download_btn is not None:
+            self._ocr_download_btn.setEnabled(True)
 
     def _build_columns_page(self) -> None:
         """构建列显示设置页：勾选显示/隐藏工作表的哪些列。"""
