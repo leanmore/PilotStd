@@ -59,7 +59,7 @@
 | 批次 | 内容 | 验收 | 状态 |
 |---|---|---|---|
 | **F1（v0.149.5）** | P-01/P-12 2019 第11号；HB 2014/2019 错号；P-02 通知英文键；P-03 渠道守卫；P-04 浮点退避 | reparse 141；reconcile=0；通知无英文事件键；新 failed 不再来自未配置渠道 | 代码完成，待部署 |
-| **F2** | P-05 无变化通知噪音：`notification.suppress_nochange` 默认 true，扫描无新增/公告 0 条静默 | 默认不再发 18+18 条重复；失败不抑制 | 已实现 |
+| **F2** | P-05 无变化通知：默认仍通知，不静默；`suppress_nochange` 仅显式开启才抑制 | 默认行为与用户要求一致 | 已实现 |
 | **F3** | P-06 备份成功归 `anomaly_alert`：成功走 task_lifecycle、失败走 anomaly_alert | 备份成功不再触发异常告警 | **已实现**：auto_backup success → task_result，失败 → anomaly_alert |
 | **F4** | P-10 Windows 本地 OCR 模型下载 | 设置页开关下载 RapidOCR 官方 wheel，SHA256 校验后解压到 models/ocr | 已实现 |
 | **F5** | P-07 A-3 渠道声明 ↔ schema 互证门禁 | `channels/*.get_config_schema()` 已由 `legacy_schema` 派生，无需重复门禁 | 关闭（已收敛） |
@@ -72,5 +72,5 @@
 
 ## 六、新增修复项
 
-- **F6 / P-13**：通知键名全量审计；已修 `trust_ip_update` 的 `ip/update_time/status`、未知事件 `str(data)`、适配器名、事件/渠道名；待建 EventSpec 三语契约测试。
+- **F6 / P-13**：通知键名全量审计；已修 `trust_ip_update` 的 `ip/update_time/status`、未知事件 `str(data)`、适配器名、事件/渠道名；已补 EventSpec 三语契约测试。
 - **F7 / P-14**：同一 `announce_no/PID` 跨 HB/DB 冲突；详情、records、parse、parse-status、reparse 增加 `source` 参数，前端路由 source 透传。
