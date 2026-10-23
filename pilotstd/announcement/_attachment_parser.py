@@ -20,7 +20,13 @@ def parse_attachment_text(attachment_bytes: bytes, filename: str = "") -> str:
         return parse_wps_text(attachment_bytes)
     if name_lower.endswith(".pdf"):
         return _parse_pdf_text(attachment_bytes)
-    if name_lower.endswith((".doc", ".docx")):
+    if name_lower.endswith(".doc"):
+        # 部分备案公告把 Word 97(.doc) 当 WPS 文本容器；优先按 UTF-16 文本提取
+        text = parse_wps_text(attachment_bytes)
+        if text:
+            return text
+        return _parse_docx_text(attachment_bytes)
+    if name_lower.endswith(".docx"):
         return _parse_docx_text(attachment_bytes)
     # 文件类型未知时依次尝试所有解析器，取首个有意义的输出
     for parser in (parse_wps_text, _parse_pdf_text, _parse_docx_text):
@@ -112,6 +118,7 @@ def find_attachment_url(html: str) -> Optional[str]:
     # 优先匹配标准公告附件链接，其次匹配通用文件下载链接
     for pattern in [
         r'href="(http://zxd\.sacinfo\.org\.cn/gb_notice/[^"]+)"',
+        r'href="(https?://(?:dbba|hbba)\.sacinfo\.org\.cn/attachment/[^"]+)"',
         r'href="(https?://[^"]+\.(?:wps|docx?|pdf))"',
     ]:
         m = re.search(pattern, html, re.IGNORECASE)

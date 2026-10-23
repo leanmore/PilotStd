@@ -65,7 +65,7 @@ class BaseAnnounceCrawler(ABC):
         self._cb.record_success()
 
     def _cb_record_failure(self) -> bool:
-        return self._cb.record_failure()
+        return bool(self._cb.record_failure())
 
     # ── 子类必须定义 ──
 
@@ -355,7 +355,12 @@ class BaseAnnounceCrawler(ABC):
             if self._is_amendment(ann):
                 item["standard_count"] = len(parsed)
             else:
-                item["standard_count"] = int(raw_std_count) if raw_std_count else len(parsed)
+                declared = int(raw_std_count) if raw_std_count else len(parsed)
+                # 附件比列表声明的行数更完整时，以解析到的实际行数为准
+                # （DB 2014年第4号：列表写215，.doc 附件实有223行）
+                if item.get("_attachment_primary") and len(parsed) > declared:
+                    declared = len(parsed)
+                item["standard_count"] = declared
             # 列表接口的_是公告权威发布日期，覆盖所有条目
             # 网页表格和附件解析可能产生不同的_（甚至为空），
             # 不一致会导致查询返回重复行

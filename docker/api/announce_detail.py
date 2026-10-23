@@ -1,5 +1,6 @@
 # 模块：容器//_脚本—阶段3:公告详情页接口
 import logging
+from typing import Any
 from urllib.parse import urlparse
 
 from fastapi import BackgroundTasks, Depends, HTTPException, Query
@@ -28,13 +29,25 @@ URL_SOURCE_MAP = {v: k for k, v in SOURCE_MAP.items()}
 def _resolve_source_site(source: str | None) -> str:
     """把 URL 标识符（annc_hb）或 DB 值（announcement_hb）统一成 source_site。
 
-    同一 announce_no/PID 可能同时存在于 HB/DB/GB 端点，PID 不能单独作为身份；
+    同一 announce_no/PID 可能同时存在于 HB/DB 端点，PID 不能单独作为身份；
     详情/记录/reparse 必须带 source_site 才能唯一确定公告。
     """
     if not isinstance(source, str) or not source:
         return ""
     mapped = URL_SOURCE_MAP.get(source, source)
     return str(mapped)
+
+
+def _reject_ambiguous_source(db: Any, announce_no: str, source_site: str) -> None:
+    """未指定 source 且公告号跨多个来源时拒绝，避免把 HB/DB 数据混在一起。"""
+    if source_site:
+        return
+    row = db.fetchone(
+        "SELECT COUNT(DISTINCT source_site) AS cnt FROM announcement_record WHERE TRIM(announce_no) = ?",
+        (announce_no,),
+    )
+    if row and int(row["cnt"] or 0) > 1:
+        raise HTTPException(409, "该公告号存在多个来源，请指定 source")
 
 
 def get_site_name(url: str) -> str:
@@ -79,6 +92,7 @@ def get_announcement_records_paginated(
 
     db = mgr.db
     source_site = _resolve_source_site(source)
+    _reject_ambiguous_source(db, announce_no, source_site)
 
     total_row = db.fetchone(
         "SELECT COUNT(*) AS cnt FROM announcement_record"
@@ -138,6 +152,7 @@ def get_announcement_detail(
     """获取公告头 + 关联的所有标准记录。"""
     db = mgr.db
     source_site = _resolve_source_site(source)
+    _reject_ambiguous_source(db, announce_no, source_site)
 
     # 优先从表获取公告头（含_等字段）
     ann = db.fetchone(
@@ -165,7 +180,7 @@ def get_announcement_detail(
             (announce_no, source_site, source_site),
         )
         if not header:
-            raise HTTPException(404, "公告不存在")
+            raise HTTPException(404, "公告不存在")  # i18n-allow: 既有 API 错误文案
         title = header["title"] or ""
         publish_date = header["publish_date"] or ""
         source_url = ""
@@ -254,7 +269,7 @@ def get_announcement_detail_lite(
             (announce_no, source_site, source_site),
         )
         if not header:
-            raise HTTPException(404, "公告不存在")
+            raise HTTPException(404, "公告不存在")  # i18n-allow: 既有 API 错误文案
         title = header["title"] or ""
         publish_date = header["publish_date"] or ""
         source_url = ""
@@ -442,7 +457,7 @@ def get_parse_status(
         (announce_no, source_site, source_site),
     )
     if not ann:
-        raise HTTPException(404, "公告不存在")
+        raise HTTPException(404, "公告不存在")  # i18n-allow: 既有 API 错误文案
 
     row = db.fetchone(
         "SELECT COUNT(*) AS cnt FROM announcement_record WHERE announcement_id = ?",

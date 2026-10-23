@@ -453,6 +453,14 @@ def parse_announcement_detail(
                 if att_text:
                     att_items = parse_text_table(att_text)
 
+    # 附件比网页表格更完整时以附件为主（DB 公告详情页只展示首屏 52 行，
+    # 完整 215/223 行在 .doc 附件中）；否则沿用“网页为主、附件补漏”的合并策略。
+    if att_items and len(att_items) > len(html_items):
+        logger.info("attachment %d rows > HTML %d rows; use attachment as primary", len(att_items), len(html_items))
+        for item in att_items:
+            item["_attachment_primary"] = True
+        return att_items, meta
+
     # 交叉去重：网页为主，附件补充未覆盖的标准号
     if html_items and att_items:
         codes = {_code_key(i) for i in html_items}

@@ -58,3 +58,9 @@ def test_detail_filtered_by_db_source(client: TestClient) -> None:
     assert body["announcement"]["title"] == "地方标准备案"
     assert len(body["records"]) == 1
     assert body["records"][0]["standard_number"] == "DB11/T 1-2020"
+
+
+def test_ambiguous_source_is_rejected(client: TestClient) -> None:
+    resp = client.get("/api/announcements/2014年第4号(总第172号)/records")
+    assert resp.status_code == 409
+
