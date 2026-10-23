@@ -47,6 +47,9 @@ class TestParseAttachmentText:
 
     def test_doc_extension_routes_to_docx_parser(self):
         with patch(
+            "pilotstd.announcement._attachment_parser.parse_wps_text",
+            return_value="",
+        ), patch(
             "pilotstd.announcement._attachment_parser._parse_docx_text",
             return_value="DOC content",
         ):
