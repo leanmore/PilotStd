@@ -272,3 +272,7 @@
 - [ ] 新增/改动 QThread worker → 覆盖引用前先 `stop_worker_gracefully()`；判据用 `isFinished()` 不用 `isRunning()`
 - [ ] 新增 GUI 等待 → 用 `wait_for_worker_and_ui` + 真实 predicate；**禁用固定 `qtbot.wait(N)` 等 worker**
 - [ ] CI GUI 套件变红且**无汇总**（exit 134 / 0xC0000409）→ 先读 faulthandler 全线程转储，找"Current thread"与孤儿线程
+
+## 2026-10-23 Node 安全基线
+
+CI 的 NODE_VERSION 从浮动 22 固定到 22.23.4，修复 2026-10-21 Node.js 安全公告（Brotli RCE、DNS/TLS 等）；生产镜像无 Node 运行时。

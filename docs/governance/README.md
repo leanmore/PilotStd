@@ -98,3 +98,8 @@ A: `--required-only` 参数仅检查 `required` 级别能力。CI 也仅对 `req
 
 
 > v2.14（2026-10-18）：Governance Docs Check 已从独立 workflow 合并为 CI `repo-compliance` 步骤，并改用显式范围（`GOVERNANCE_DOCS_RANGE`）；不再维护 `governance-check.yml`。
+
+
+## 2026-10-23 Node 安全基线
+
+- CI Node 固定 22.23.4；生产镜像无 Node 运行时。

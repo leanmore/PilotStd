@@ -28,7 +28,7 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository_owner }}/pilotstd
   PYTHON_VERSION: '3.12'
-  NODE_VERSION: '22'
+  NODE_VERSION: '22.23.4'
 
 jobs:
   # ════════════════════════════════════════════════════════════════
@@ -527,7 +527,7 @@ jobs:
       REGISTRY: ghcr.io
       IMAGE_NAME: leanmore/pilotstd
       PYTHON_VERSION: "3.12"
-      NODE_VERSION: "22"
+      NODE_VERSION: "22.23.4"
       SUPERUSER: superadmin
       ADMIN_PASSWORD: Admin@123
       PILOTSTD_STORAGE_INBOX_DIR: /tmp/pilotstd-inbox
