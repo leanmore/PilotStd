@@ -437,9 +437,10 @@ class TestParseAttachmentText(unittest.TestCase):
         result = parse_attachment_text(b"fake docx", filename="test.docx")
         self.assertIn("DOCX标准", result)
 
+    @patch("pilotstd.announcement._attachment_parser.parse_wps_text", return_value="")
     @patch("pilotstd.announcement._attachment_parser._parse_docx_text")
-    def test_doc_route(self, mock_docx_parse):
-        """.doc 后缀也路由到 DOCX 解析器。"""
+    def test_doc_route(self, mock_docx_parse, mock_wps):
+        """.doc 先按 WPS 文本尝试，空结果再回退 DOCX 解析器。"""
         mock_docx_parse.return_value = "GB/T 1.1-2020 DOC标准"
         result = parse_attachment_text(b"fake doc", filename="test.doc")
         self.assertIn("DOC标准", result)
