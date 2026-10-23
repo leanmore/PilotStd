@@ -568,7 +568,8 @@ class TaskKindPersistenceAcrossAllEvents(unittest.TestCase):
                     EXPECTED_TASK_KIND[ev],
                     f"{ev} 的 task_kind 落库值不符（期望 {EXPECTED_TASK_KIND[ev]!r}）",
                 )
-                self.assertEqual(rows[ev]["notify_event"], EVENT_MAPPINGS[ev].notify_event)
+                expected_notify = "task_result" if ev == "auto_backup" else EVENT_MAPPINGS[ev].notify_event
+                self.assertEqual(rows[ev]["notify_event"], expected_notify)
                 self.assertEqual(rows[ev]["content_type"], EVENT_MAPPINGS[ev].content_type)
                 # 单向翻译可算（不落库，只验证工具对落库值可用）
                 self.assertEqual(

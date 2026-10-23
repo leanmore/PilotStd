@@ -465,3 +465,5 @@ pilotstd/core/
 **备份分类（2026-10-22）**：auto_backup 投影按 data.success 分支，成功归 task_result、失败归 anomaly_alert；策略层 get_channels_for_event 透传 data。
 
 **通知默认值（2026-10-23）**：suppress_nochange 默认 False；auto_backup 成功/失败按 task_result/anomaly_alert 分支。
+
+**通知策略分支（2026-10-23）**：策略查询透传 data，auto_backup 成功归 task_result；无变化默认不抑制。

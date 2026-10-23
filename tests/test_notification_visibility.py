@@ -13,7 +13,7 @@ class _Policy:
     def __init__(self, channels):
         self._channels = channels
 
-    def get_channels_for_event(self, user_id, event_type):  # noqa: ARG002 - 契约签名
+    def get_channels_for_event(self, user_id, event_type, data=None):  # noqa: ARG002 - 契约签名
         return list(self._channels)
 
 

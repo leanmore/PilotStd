@@ -117,10 +117,11 @@ def send_event(
 
 
 def _suppress_nochange(host: Any, event_type: str, data: dict[str, Any]) -> bool:
-    """无变化任务默认静默；失败/有新增时绝不抑制。"""
+    """无变化任务默认仍通知；仅显式开启 suppress_nochange 才静默。"""
     cfg = getattr(host, "_cfg", None)
-    enabled = cfg.get("notification.suppress_nochange", True) if cfg is not None else True
-    if not enabled:
+    raw = cfg.get("notification.suppress_nochange", False) if cfg is not None else False
+    # 测试替身/旧配置可能给 MagicMock 或其他非 bool 值；只有显式 True/1 才抑制
+    if raw is not True and raw != 1:
         return False
     if event_type == "scan_empty":
         return True

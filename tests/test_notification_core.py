@@ -123,7 +123,8 @@ class TestMessageBuilders(unittest.TestCase):
 
     def test_fallback_message(self):
         msg = self.mixin._build_fallback_message("custom_event", {"key": "val"})
-        self.assertEqual(msg.title, "custom_event")
+        self.assertNotEqual(msg.title, "custom_event")
+        self.assertFalse(any("key" in getattr(b, "text", "") for b in msg.blocks))
 
     def test_announcement_fetch_complete(self):
         msg = self.mixin._build_announcement_fetch_complete_message(

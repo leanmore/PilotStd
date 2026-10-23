@@ -31,7 +31,7 @@ def _resolve_source_site(source: str | None) -> str:
     同一 announce_no/PID 可能同时存在于 HB/DB/GB 端点，PID 不能单独作为身份；
     详情/记录/reparse 必须带 source_site 才能唯一确定公告。
     """
-    if not source:
+    if not isinstance(source, str) or not source:
         return ""
     mapped = URL_SOURCE_MAP.get(source, source)
     return str(mapped)

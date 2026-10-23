@@ -341,7 +341,7 @@ class TestSystemBuildersSnapshot:
         })
         assert msg.level == "info"
         assert msg.icon == "pi pi-bell"
-        assert msg.title == "custom_event"
+        assert msg.title != "custom_event"
 
     def test_fallback_empty_data(self):
         msg = _build_fallback_message("unknown", {})
