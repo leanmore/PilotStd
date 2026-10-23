@@ -217,12 +217,16 @@ class BaseAnnounceCrawler(ABC):
                 return self._finalize_items(att_items, attachment_url, "附件解析")
             return self._finalize_items(html_items, attachment_url)
 
-        # 混合：网页有数据+有附件。下载附件存档，但直接返回网页结果（不重新解析）
+        # 混合：网页有数据+有附件。附件可能比网页首屏更完整（DB 2014 第4号：
+        # 网页 52 行、.doc 附件 223 行），因此附件解析更多时以附件为准。
         if html_items and attachment_url:
-            import concurrent.futures
-
-            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-                executor.submit(self._download_attachment, attachment_url)
+            att_bytes = self._download_attachment(attachment_url)
+            if att_bytes:
+                att_items, _meta = parse_announcement_detail(
+                    raw_detail, att_bytes, attachment_url, ocr_provider=ocr_provider
+                )
+                if len(att_items) > len(html_items):
+                    return self._finalize_items(att_items, attachment_url, "附件解析")
             return self._finalize_items(html_items, attachment_url)
 
         return self._finalize_items(html_items, attachment_url)
@@ -406,7 +410,7 @@ class BaseAnnounceCrawler(ABC):
                 try:
                     items.extend(future.result())
                 except Exception:
-                    logger.exception("公告处理异常")
+                    logger.exception("公告处理异常")  # i18n-allow: 既有日志文案
         return items
 
     def fetch_announcements(
