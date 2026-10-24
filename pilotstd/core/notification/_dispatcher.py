@@ -178,13 +178,19 @@ def _throttled(host: Any, msg: NotificationMessage) -> bool:
     return not throttle.admit(msg.target_id or msg.event_type, True)
 
 
+# N1 裁决（2026-10-24）：**警告及以上不受静音时段约束**。
+# 静音的本意是"别拿普通事吵我"，而警告/错误恰恰是"必须现在知道"——延后等于没告警。
+# 只影响静音分支；分档节流与聚合行为不变（警告的 bypass 由调用点的 bypass_aggregation 决定）。
+_QUIET_BYPASS_LEVELS = frozenset({"warning", "error"})
+
+
 def do_send(
     host: Any,
     msg: NotificationMessage,
     target_channels: list[str],
     bypass_aggregation: bool = False,
 ) -> None:
-    """逐渠道发送：分档节流 → 静音期暂存 → 聚合器入队 → 合并后发送。"""
+    """逐渠道发送：分档节流 → 静音期暂存（警告/错误除外）→ 聚合器入队 → 合并后发送。"""
     # B3（Docker 分档节流）：**长阶段**按主题 60 秒一条，与 Windows 端 W3 同窗口、同语义。
     # 短阶段与警告不受影响（警告本就走 bypass）；节流是正常行为 ⇒ 只记 debug，不写日志行
     # （写行会污染投递健康统计，且让"被节流"看起来像"投递失败"）。
@@ -193,7 +199,7 @@ def do_send(
             t("notification.tiered.throttled").format(event=msg.event_type, topic=msg.target_id or "-")
         )
         return
-    if host._is_quiet_hours():
+    if host._is_quiet_hours() and msg.level not in _QUIET_BYPASS_LEVELS:
         host._enqueue_notification(msg, target_channels)
         return
     if host.aggregator is not None and not bypass_aggregation:

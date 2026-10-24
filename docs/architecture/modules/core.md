@@ -126,6 +126,7 @@ pilotstd/core/
 │   │                            # （`_extract_topic` 的只读入口），供托盘分档节流与聚合分组**同源**
 │   ├── _suppression_queue.py  # 静音时段暂存与补发（组合式 SuppressionQueue：判静音/入队/到期补发；2026-10-03 步 C B1 从 manager.py 拆出，manager 保留同名薄转发与白名单再导出）
 │   ├── _dispatcher.py         # 发送编排（模块级函数 send_event/validate_message/do_send/send_now/record_delivery/send_delivery_alert，宿主入参；2026-10-03 步 C B2 从 manager.py 拆出，manager 只留同名一行委托）
+│   │                          # **N1（2026-10-24 裁决）**：`do_send` 的静音分支按 `msg.level` 分流——`warning`/`error` 绕过静音直接发送（静音只拦 info），否则"延后告警"等于没告警；回归见 `tests/unit/core/notification/test_dispatcher_quiet_bypass.py`
 │   ├── （2026-10-05 P2 分段接入 · 二）：**飞书**（`channels/feishu.py`）已接入——卡片是 `elements[]`，
 │   │   故 `_split_card()` **按元素装填**成多张卡片（单元素超预算时对该元素 `content` 走
 │   │   `split_for_channel`），第 2 张起在末元素追加「续 N/M」；`_send_card()` 承载原请求/判定。
