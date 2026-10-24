@@ -508,6 +508,11 @@ A 类管"**事件**是否齐备"（数据完备性）；B 类管"同一事实在
 互相验证"（**恒真、判别力为零**）——这正是 C1 替换掉的旧锁的毛病。实现见
 `scripts/_notification_spec_audit.py`（+ `_frontend_channel_scan.py`）。
 
+**2026-10-24 裁决换算（Q9）**：通知二期原裁决要求"新增独立'声明 vs 实现'门禁"。核对发现
+B1（声明类 vs 实现类）已覆盖同一语义、且每次 CI 都在跑；再拆一个独立门禁会把两条规则都做薄。
+经决策者同意，**改为并入本门禁并在此留痕**——不再新增编号，Q9 视为已落地（见
+`docs/records/2026-10-24-notification-phase2-decisions.md`）。
+
 **输出格式**：A 类阻断项加 `[覆盖度]` 前缀、B 类加 `[派生]`，两类在 `❌ 阻断缺口` 列表里可区分；
 正文新增 `渠道派生一致性（B1–B4，阻断维度）` 块；`[覆盖摘要]` 的 `检查项` 为
 **41 事件 + 4 个 B 类检查 = 45**，`检查口径` 按 A 类 / B1–B4 **分开逐条列出**
@@ -585,6 +590,7 @@ A 类管"**事件**是否齐备"（数据完备性）；B 类管"同一事实在
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
+| v2.16 | 2026-10-24 | **Q9 裁决换算（通知二期）**：原要求"新增独立声明 vs 实现门禁"，核对确认 G-045 的 B1 已覆盖同语义且每次 CI 都跑 → 改为**并入 G-045 并在此留痕**，不新增编号（拆分会把两条规则都做薄）。同批记录 Q1/Q2/Q6 的核对结论（均符合裁决） |
 | v2.15 | 2026-10-24 | **文档可维护性收口（G-032 由 22 warning → 0）**：① 清除本文 16 处死链引用——删除/改名路径一律去反引号（check_docs_sync.py→check_module_doc_mappings.py、trinity-gate.yml→deep-gate.yml 等），唯一仍有效的 pilotstd/core/i18n.py 更正为 `pilotstd/i18n/__init__.py`（加载器已迁）；② `scripts/generate_status_metrics.py` 改为**全量生成** `STATUS.md`（不再保留人工区，数字单一来源；无 coverage.xml 时记 n/a 而非 0）；③ 同步 AGENTS.md 中同一处死链。验证：G-032 0 warning、G-037 13 项对齐 |
 | v2.14 | 2026-10-18 | **Governance Docs Check 合并进 CI**：删除独立 governance-check.yml，改为 `repo-compliance` 的步骤；脚本支持 `GOVERNANCE_DOCS_RANGE` 显式范围（push before..sha / PR base..head），修复固定 `HEAD~1..HEAD` 在多提交/PR 下只查最后一笔的问题。该检查原先只在 `docs/governance/**` 触发，直推 main 时状态易被忽略；合并后每次 CI 都跑（无变更时立即跳过） |
 | v2.13 | 2026-10-18 | **精简仓库 / 退役 AI 工作流脚手架**：删除 `enforcement/`、src/types/bootstrap.py、trinity/prompt/phase1 文档与对应测试（2999 行）；trinity-gate.yml 改名 `deep-gate.yml`（功能不变）；`check_governance_docs.sh` 不再把 `gates.md` 列入"不可修改"白名单（门禁需随演进更新）。docs/development-flow.md 一并移除，AGENTS §8.1 与 `docs/index.md` 同步删除该行 |
