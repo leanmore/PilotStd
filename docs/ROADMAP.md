@@ -89,7 +89,7 @@
 
 | ID | 事项 | 预估 | 依赖 | 状态 |
 |---|---|---|---|---|
-| P-10 | Windows 本地 OCR 模型独立下载开关 | 4h | 无 | 待做 |
+| P-10 | Windows 本地 OCR 模型独立下载开关 | — | — | **已实现（2026-10-24 复核）**：`_model_manager.download_and_install`（URL+SHA256+原子替换）+ 设置页下载按钮/状态 + 两个测试 |
 | P-05 | "无变化"通知 | — | — | **已裁定非缺陷（2026-10-24）**：默认仍通知（状态确认），需清静可开 `suppress_nochange` |
 | P-06 | 备份成功误用 `anomaly_alert` | — | 需验证环境数据 | **复核未复现**：`project()` 已按 `success` 分支（成功→task_result），待查 `notification_log.notify_event` |
 

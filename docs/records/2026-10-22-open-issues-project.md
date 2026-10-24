@@ -42,7 +42,7 @@
 | P-07 | A-3 `channel_spec ↔ get_config_schema` 互证门禁 | `docs/debt/03-open.md` A-3 | 未修（可选） |
 | P-08 | A-5 cookiecutter CLI 未入 CI | `docs/debt/03-open.md` A-5 | 接受：hooks 变更时再补 |
 | P-09 | T-40/T-42/T-43 线上取证 | `docs/debt/03-open.md` | 接受：需外部渠道/部署环境，代码侧已实现 |
-| P-10 | Windows 本地 OCR 模型下载开关 | 当前为随包模型复制，无独立下载器 | **未实现，产品缺口** |
+| P-10 | Windows 本地 OCR 模型下载开关 | 当前为随包模型复制，无独立下载器 | **已实现（2026-10-24 复核）**：`announcement/ocr/_model_manager.py::download_and_install`（wheel URL + SHA256 + 原子替换）；设置页有 `_ocr_download_btn`/`_ocr_model_status`（`_settings.py:76-78`）与下载 Worker；测试 `test_ocr_model_manager.py` + `gui/test_settings_ocr_model.py` 通过 |
 | P-11 | V-1~V-14 观察项 | `docs/debt/04-watch.md` | 接受：均为外部依赖/成本约束，触发式处理 |
 | P-12 | 2019 第11号 141 条 | 语种解析已修 | 待 v0.149.5 部署后 reparse 关闭 |
 
