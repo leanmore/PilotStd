@@ -7,9 +7,10 @@
 > 以及 `pilotstd/core/db/migrations.py` 的注册导入列表。本文件的清单只作导读，缺行不代表没有该迁移。
 > 2026-10-17 已按 `migrations.py` 注册列表补齐正文 v61~v69（说明取自各 `_migrate_v6*.py` 模块 docstring）。
 >
-> **迁移前快照归档（2026-10-24）**：`data/backups/` 共 39 份 `pre_migration_v*_to_v*.bak`，现只保留最近 5 份
-> （v65→v70，约 22 MB）；其余 34 份已归档到 `E:\PilotStd-archive\db-backup\migration-snapshots\`（**独立物理盘**，
-> 34/34 文件、1687.41 MB、抽样 5 个 SHA256 一致）。需要回滚到 v6x 及更早时从该目录取。
+> **迁移前快照归档（2026-10-24）**：`data/backups/` 原 39 份 `pre_migration_v*_to_v*.bak`，现只保留最近 5 份
+> （v65→v70，**20.69 MB**）；其余 34 份已归档到 `E:\PilotStd-archive\db-backup\migration-snapshots\`
+> （**独立物理盘**，D 源与 E 副本**逐文件全量 SHA256 比对 34/34 一致**，总 1687.41 MB）。
+> **原件已于 2026-10-24 删除**；回滚到 v6x 及更早时从 E 盘归档目录取。
 
 ## 迁移版本清单
 

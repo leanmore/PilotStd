@@ -27,6 +27,7 @@
 | **A-6** | **`known-issues.md` 第 4 项：Telegram 429 的 55.6% 未复测** | 观察 | 部署后取 `GET /api/notification/logs` 的 success/failed 分布 + 容器日志 429 计数，给出改善证据 | 触发条件＝下次通知量统计复核 |
 | **A-9** | **解析失败日志格式未统一**（`pilotstd/scan/parser/__init__.py:200` 的 `TODO(P2)`） | 未修 | 统一为"路径/类型/错误/详情"四段，牵动日志断言测试，需单独一批 | 触发条件＝下次动解析器日志或排障困难 |
 | **A-10** | **设置页 Tab 定位依赖 DOM 顺序**（`web/src/views/settings/constants.ts:4` 的 `TODO(P2-FOLLOWUP)`） | 未修 | 改为 `data-tab` 名称定位，消除对子元素顺序的依赖 | 触发条件＝设置页 Tab 结构再调整 |
+| **A-11** | **两条自定义 eslint 规则"已定义但未执行"**（`web/eslint.config.js` 把 `custom/no-raw-i18n-key`、`custom/no-sensitive-persist` 设为 error，但 package.json 无 lint 脚本、CI 无 eslint 步骤） | 未修 | 加 `lint` 脚本 + CI 一步；**先决**：56 条存量 `no-raw-i18n-key` 违规需先裁定（逐条修 or 基线），否则接入即红。2026-10-24 实测：`eslint src` = 56 errors（全部该类）+ 284 warnings；`no-sensitive-persist` **0 命中** | 触发条件＝下次改前端规范或要把 eslint 接入 CI 时 |
 
 ## 三、待裁定项（我已给建议，只需你一句话）
 
