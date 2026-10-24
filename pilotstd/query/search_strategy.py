@@ -43,6 +43,20 @@ def _parse_result_number(num_str: str) -> dict[str, Any]:
     return r if r else {}
 
 
+# 代号里的"噪音后缀"：部分站点把标准写成 `API STD 610`，解析出的代号是 `APISTD`，
+# 与用户查询的 `API` 不等。这类后缀不改变标准身份，比对前统一剥掉（2026-10-24）。
+_CODE_NOISE_SUFFIXES = ("STANDARD", "STD")
+
+
+def _strip_code_noise(code: str) -> str:
+    """去掉代号尾部的 `STD`/`STANDARD` 噪音，便于与用户输入比对。"""
+    c = code.replace(" ", "").upper()
+    for suffix in _CODE_NOISE_SUFFIXES:
+        if c.endswith(suffix) and len(c) > len(suffix):
+            return c[: -len(suffix)]
+    return c
+
+
 def _is_code_variant(code1: str, code2: str) -> bool:
     """两个代号是否为变体关系（如 GB ↔ GB/T）。
 
@@ -89,7 +103,7 @@ def _exact_parse_match(
     parsed = _parse_result_number(result_number_str)
     if not parsed:
         return None
-    code_match = parsed.get("code", "") == local_code_clean
+    code_match = _strip_code_noise(parsed.get("code", "")) == _strip_code_noise(local_code_clean)
     num_exact = parsed.get("number") == local_number
     result_part = parsed.get("part")
     if local_part is not None and result_part is not None:
