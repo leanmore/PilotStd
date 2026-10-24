@@ -297,3 +297,30 @@ def _build_task_progress_message(data: dict) -> NotificationMessage:
         target_id=task_id,
         icon="pi pi-spin pi-spinner",
     )
+
+
+def _build_auto_pipeline_summary_message(data: dict) -> NotificationMessage:
+    """一键处理管道级终局汇总（Q11）：扫描 / 查到 / 下载 / 归档四行统计。
+
+    为什么用 `KeyValueBlock` 而不是正文：四个阶段是并列指标，键值块在桌面与 Web
+    都能按列对齐；正文拼串在窄屏会折行成不可读的长句。
+    """
+    scan = int(data.get("scan") or 0)
+    found = int(data.get("query_found") or 0)
+    downloaded = int(data.get("download_success") or 0)
+    moved = int(data.get("organize_moved") or 0)
+
+    blocks: list[NotificationBlock] = [
+        KeyValueBlock(key=t("notification.auto.auto_pipeline_summary.body.scan"), value=str(scan)),
+        KeyValueBlock(key=t("notification.auto.auto_pipeline_summary.body.query_found"), value=str(found)),
+        KeyValueBlock(key=t("notification.auto.auto_pipeline_summary.body.download_success"), value=str(downloaded)),
+        KeyValueBlock(key=t("notification.auto.auto_pipeline_summary.body.organize_moved"), value=str(moved)),
+    ]
+
+    return NotificationMessage(
+        title=t("notification.auto.auto_pipeline_summary.title"),
+        blocks=blocks,
+        level="info",
+        event_type="auto_pipeline_summary",
+        icon="pi pi-bolt",
+    )

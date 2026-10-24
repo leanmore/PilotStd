@@ -951,5 +951,10 @@
     "notification.tiered.throttled": "长阶段分档节流：事件 {event}（主题 {topic}）在窗口内已发过，本次跳过",
   "notification.task_progress.title": "任务进行中",
   "notification.task_progress.body": "任务 {task}：已处理 {completed}/{total}（{percent}%），已运行 {elapsed} 分钟",
-  "notification.task_progress.step": "；当前步骤：{step}"
+  "notification.task_progress.step": "；当前步骤：{step}",
+    "notification.auto.auto_pipeline_summary.title": "一键处理完成",
+    "notification.auto.auto_pipeline_summary.body.scan": "扫描",
+    "notification.auto.auto_pipeline_summary.body.query_found": "查询到",
+    "notification.auto.auto_pipeline_summary.body.download_success": "下载成功",
+    "notification.auto.auto_pipeline_summary.body.organize_moved": "归档完成"
 }

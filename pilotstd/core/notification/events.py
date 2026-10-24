@@ -54,6 +54,10 @@ EVENT_EXPIRE_STANDARD_MOVED = "expire_standard_moved"
 EVENT_REPLACEMENT_NOT_FOUND = "replacement_not_found"
 EVENT_QUOTA_EXHAUSTED = "quota_exhausted"
 EVENT_ANNOUNCE_FETCH_SUMMARY = "announce_fetch_summary"
+# Q11（2026-10-24 裁决）：`/api/auto` 一键处理的**管道级终局汇总**。
+# 原先一次"一键处理"拆成扫描/查询/下载/归档四条阶段通知，用户要自己拼结果；
+# 本事件在整条管道收尾时发一条汇总，承担"终局档"（与分档策略对应）。
+EVENT_AUTO_PIPELINE_SUMMARY = "auto_pipeline_summary"
 EVENT_FAVORITE_CREATED = "favorite_created"
 EVENT_DOWNLOAD_STARTED = "download_started"
 EVENT_DOWNLOAD_COMPLETE = "download_complete"
@@ -133,6 +137,8 @@ ALL_EVENTS: list[EventDef] = [
     EventDef("task_progress"),
     # 平台层（阶段 4 · P6 · 4c）：桌面弹层回显，登记以消除 G-045 盲区
     EventDef(EVENT_DESKTOP_TOAST),
+    # Q11（2026-10-24）：一键处理管道级终局汇总
+    EventDef(EVENT_AUTO_PIPELINE_SUMMARY),
 ]
 
 # ── 派生变量（供各模块引用，避免硬编码重复） ──

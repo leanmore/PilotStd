@@ -155,6 +155,9 @@ StandardManager (BaseFacade)
 - **2026-10-05（B1 · E1 批次键）**：三条路径的**批次标识**在入口生成并随 payload 透传——
   `facade/_organize.py::archive_standards` ⇒ `arch-<uuid8>`；`facade/_organize.py::normalize_files_stream`
   ⇒ `norm-<uuid8>`；`facade/_query_subsystem.py::_finalize_query` ⇒ `qry-<uuid8>`（一次操作 = 一个批次）。
+- **2026-10-24（Q11 管道级终局汇总）**：`_auto.py::_auto_run_impl` 与流式版收尾各调用一次
+  `_notify_auto_pipeline_summary(report)`，发 `auto_pipeline_summary`（扫描/查到/下载/归档四行统计）；
+  与四阶段通知同处 `batch_scope("imp")`，故仍收敛为一条，不新增消息条数。
   该键经 `notification._dispatcher.send_event` 搬到 `NotificationMessage.correlation_id`，驱动聚合器走
   **①批次键**（`correlation_id × notify_event`）把本次操作的通知收敛成一条；为空则走 **②日常键**。
   **注意**：这三处是"各自操作一个批次"；跨阶段（导入→查询→下载→规范化→存档）共用同一批次键尚未接线。

@@ -100,7 +100,26 @@ class AutoPipeline:
             report["fallback_mirrored"],
         )
         logger.info("自动运行完成: %s", report)
+        self._notify_auto_pipeline_summary(report)
         return report
+
+    def _notify_auto_pipeline_summary(self, report: dict[str, int]) -> None:
+        """管道级终局汇总（Q11）：四阶段跑完后发一条，替代让用户自己拼 4 条阶段通知。
+
+        只取 report 里的四个稳定键；`mirror_*` 属收容细节，不进用户可见汇总。
+        """
+        mgr = self._core.notification_mgr
+        if not mgr:
+            return
+        mgr.send_event(
+            "auto_pipeline_summary",
+            {
+                "scan": report.get("scan", 0),
+                "query_found": report.get("query_found", 0),
+                "download_success": report.get("download_success", 0),
+                "organize_moved": report.get("organize_moved", 0),
+            },
+        )
 
     # ── 内部阶段方法 ──────────────────────────────────────
 
@@ -262,6 +281,8 @@ class AutoPipeline:
         logger.info("阶段耗时 download: %.1fs (%d 成功)", _time.monotonic() - t_stage, report["download_success"])
         t_stage = _time.monotonic()
 
-        return self._auto_stage_archive_and_fallback(
+        result = self._auto_stage_archive_and_fallback(
             parsed, root_path, on_archive_result, on_stage_change, report, t_stage
         )
+        self._notify_auto_pipeline_summary(result)
+        return result

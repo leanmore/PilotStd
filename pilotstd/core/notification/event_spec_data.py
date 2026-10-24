@@ -531,4 +531,18 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         verify="manual",
         verify_reason="env_dependent",
     ),
+    # Q11（2026-10-24 裁决）：一键处理（扫描→查询→下载→归档）的管道级终局汇总。
+    # 触发点在 `_auto.py` 的两个入口收尾；`task_kind=auto_pipeline` 按 Q11 映射到 scan 队列。
+    EventSpec(key="auto_pipeline_summary", notify_event="batch_summary", content_type="field_list",
+        task_kind="auto_pipeline",
+        builder_ref="pilotstd.core.notification._builders_task_results:_build_auto_pipeline_summary_message",
+        i18n_category="notification.auto", default_channels=(), levels=("info",),
+        module_key="notification.module.system", trigger_file="pilotstd/manager/facade/_auto.py",
+        payload_keys=frozenset({"download_success", "organize_moved", "query_found", "scan"}),
+        security=False, branch_by=None,
+        subscribable=True, aggregation="aggregate",
+
+        verify="manual",
+        verify_reason="real_chain_only",
+    ),
 )

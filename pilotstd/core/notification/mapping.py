@@ -108,6 +108,7 @@ TASK_KINDS: tuple[str, ...] = (
     "validity_check",
     "backup",
     "image_update",
+    "auto_pipeline",
 )
 
 # 阶段 2b/后续批次需按 `data` 分支的事件（本批恒返回单值，先登记以免被遗忘）
@@ -191,6 +192,9 @@ TASK_KIND_TO_TASK_TYPE: dict[str, str] = {
     "validity_check": "query",  # 时效性核查走站点查询
     "backup": "organize",  # 备份由整理侧定时任务承担
     "image_update": "organize",  # 镜像更新无独立队列类型，归入整理侧
+    # `auto_pipeline`（一键处理）跨扫描/查询/下载/归档四阶段，无独立队列；
+    # 归入触发它的首个阶段 `scan`（Q11 裁决，2026-10-24）。
+    "auto_pipeline": "scan",
 }
 
 

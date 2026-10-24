@@ -290,6 +290,14 @@
       "events": [
         "security_login_failed"
       ]
+    },
+    {
+      "no": 38,
+      "name": "一键处理整条管道跑完了，结果怎么样",
+      "priority": "应发",
+      "events": [
+        "auto_pipeline_summary"
+      ]
     }
   ]
 }

@@ -393,7 +393,7 @@ pilotstd/core/
 │   │   `error_type` 的**取值**由构建器侧 `_ERROR_TYPE_KEYS` 先翻译（not_found/parse/network/timeout/unknown →
 │   │   i18n 键），i18n 资源已补齐 zh_CN / en / zh_TW
 │   ├── channel_spec.py        # 四渠道声明的唯一来源（键/字段/掩码/控件形态/状态规则，2026-10-03 步 A C1）
-│   ├── event_spec.py          # 41 个事件声明的唯一来源（15 字段：投影/构建器指针/文案前缀/**模块 i18n 键**/默认渠道/级别/触发文件/载荷键/审计标志/聚合**ASCII 枚举**；2026-10-03 步 B，**D1/D2/D3 均已接入**：mapping / manager / config-defaults）；**2026-10-05 B1 收口**：新增 `LEVEL_ORDER = ("info","warning","error")`（级别**唯一排序口径**，严重度序；`levels` 须为其**保序子序列**，**允许跳级**如 `("info","error")`），断言位于 `tests/test_notification_e2e.py::TestLevelOrder`（全量事件校验）
+│   ├── event_spec.py          # 44 个事件声明的唯一来源（15 字段：投影/构建器指针/文案前缀/**模块 i18n 键**/默认渠道/级别/触发文件/载荷键/审计标志/聚合**ASCII 枚举**；2026-10-03 步 B，**D1/D2/D3 均已接入**：mapping / manager / config-defaults）；**2026-10-24 Q11**：新增 `auto_pipeline_summary`（一键处理管道级终局汇总，`task_kind=auto_pipeline` 映射 scan）；**2026-10-05 B1 收口**：新增 `LEVEL_ORDER = ("info","warning","error")`（级别**唯一排序口径**，严重度序；`levels` 须为其**保序子序列**，**允许跳级**如 `("info","error")`），断言位于 `tests/test_notification_e2e.py::TestLevelOrder`（全量事件校验）
 │   ├── blocks.py / renderer.py / desktop_formatter.py / _format_utils.py
 │   ├── _builders_batch.py / _builders_system.py / _builders_validity.py
 │   ├── _builders_task_results.py  # 扫描/查询/归档/规范化/状态迁移/公告抓取类模板（2026-09-26 拆出）

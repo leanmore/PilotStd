@@ -72,8 +72,8 @@ EXPECTED_FIELDS = (
     "verify",
     "verify_reason",
 )
-# 42 = 原 41 + `desktop_toast`（阶段 4 · P6 · 4c 正式登记的平台层事件；用户裁决 Q10）
-EXPECTED_EVENT_COUNT = 43
+# 44 = 原 43 + `auto_pipeline_summary`（Q11 裁决，2026-10-24：一键处理管道级终局汇总）
+EXPECTED_EVENT_COUNT = 44
 EXPECTED_MODULE_KEYS = {
     "notification.module.validity",
     "notification.module.interaction",
@@ -233,8 +233,8 @@ class TestSpecSelfConsistency(unittest.TestCase):
         counts = {
             value: sum(1 for s in EVENT_SPECS if s.aggregation == value) for value in AGGREGATION_VALUES
         }
-        # 43 事件：aggregate 40 + bypass 3（4c 新增的 `desktop_toast` 走 aggregate）
-        self.assertEqual(counts, {"aggregate": 40, "bypass": 3})
+        # 44 事件：aggregate 41 + bypass 3（新增 `auto_pipeline_summary` 走 aggregate）
+        self.assertEqual(counts, {"aggregate": 41, "bypass": 3})
 
     def test_levels_are_ordered_subsequences(self):
         """级别集合必须非空、无重复，且按严重度升序（序列化约定的前提）。"""

@@ -37,6 +37,7 @@ from ._builders_system import (
 from ._builders_task_results import (
     _build_announce_fetch_summary_message,
     _build_archive_failed_message,
+    _build_auto_pipeline_summary_message,
     _build_date_reminder_message,
     _build_expire_standard_moved_message,
     _build_normalize_failed_message,

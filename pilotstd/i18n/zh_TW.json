@@ -868,5 +868,10 @@
     "notification.tiered.throttled": "長階段分檔節流：事件 {event}（主題 {topic}）在視窗內已發過，本次跳過",
   "notification.task_progress.title": "任務進行中",
   "notification.task_progress.body": "任務 {task}：已處理 {completed}/{total}（{percent}%），已執行 {elapsed} 分鐘",
-  "notification.task_progress.step": "；目前步驟：{step}"
+  "notification.task_progress.step": "；目前步驟：{step}",
+    "notification.auto.auto_pipeline_summary.title": "一鍵處理完成",
+    "notification.auto.auto_pipeline_summary.body.scan": "掃描",
+    "notification.auto.auto_pipeline_summary.body.query_found": "查詢到",
+    "notification.auto.auto_pipeline_summary.body.download_success": "下載成功",
+    "notification.auto.auto_pipeline_summary.body.organize_moved": "歸檔完成"
 }

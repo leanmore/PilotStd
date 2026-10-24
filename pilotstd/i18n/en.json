@@ -947,5 +947,10 @@
     "notification.tiered.throttled": "Long-stage tiered throttling: event {event} (topic {topic}) already sent within the window; skipped",
   "notification.task_progress.title": "Task in progress",
   "notification.task_progress.body": "Task {task}: processed {completed}/{total} ({percent}%), running {elapsed} min",
-  "notification.task_progress.step": "; step: {step}"
+  "notification.task_progress.step": "; step: {step}",
+    "notification.auto.auto_pipeline_summary.title": "One-click Pipeline Complete",
+    "notification.auto.auto_pipeline_summary.body.scan": "Scanned",
+    "notification.auto.auto_pipeline_summary.body.query_found": "Queried",
+    "notification.auto.auto_pipeline_summary.body.download_success": "Downloaded",
+    "notification.auto.auto_pipeline_summary.body.organize_moved": "Archived"
 }
