@@ -174,3 +174,28 @@ git show <commit> -- pilotstd/core/db/_migrate_vN_*.py
 - 报错发生在**使用点**（解密/加密时），可能被上层包装成"配置问题"或"解密失败"，让使用者误判；
 - 待办（阶段三顺手）：确认 `ValueError` 能否透出"`.fernet_key` 损坏"这一层，必要时在 `_get_fernet` 包一层更明确的错误文案；
 - 备份要求：`.fernet_key` 必须**独立于 `data/` 目录**备份（2026-10-24 已复制到 `D:\PilotStd-archive\secrets\`，并同步到 `E:\PilotStd-archive\secrets\`）。
+
+---
+
+## P-06 测试标记文件不要写进某个具体工具的配置目录
+
+### 现象
+
+`tests/conftest.py` 的 `pytest_sessionfinish` 会把"测试通过"标记写入 `.claude/.test_pass`（含 commit hash / 用例数）。
+这是 Claude Code 时代的"三位一体"机制。
+
+### 后果
+
+- 工具换成 DSH 后，该标记没有任何消费方，但**每次跑测试仍会重建 `.claude/` 目录**；
+- 只删目录不删写入点 = 下次测试又长出来（本轮实测：删钩子前文件 mtime 19:35，删钩子后跑 47 个用例未再生成）；
+- 目录名绑定工具，工具一换就成为孤儿目录与孤儿标记。
+
+### 做法
+
+- 标记/缓存**写到工具无关的路径**（系统临时目录或仓库外），或干脆不写；
+- 删除某个"工具目录"前，先 `git grep` 找**写入点**——只删目录是治标；
+- 本案例处理（2026-10-24）：删除 `pytest_sessionfinish` 钩子（含不再使用的 `json/subprocess/datetime` 导入）→ 删除 `.claude/` → `.gitignore` 保留 `.claude*` 防再生。
+
+### 可复用模式
+
+**"临时状态"要按生命周期管，不按工具目录管**。凡是 `tests/` 或脚本写入 `.<tool>/` 的，都视为会在下一次运行时复活的隐患。

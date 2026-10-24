@@ -1,11 +1,8 @@
 # pytest 收集时忽略独立运行脚本
-import json
 import os
 import shutil
 import socket
-import subprocess
 import tempfile
-from datetime import datetime, timezone
 
 import pytest
 
@@ -164,40 +161,8 @@ def pytest_addoption(parser):
     parser.addoption("--step1", help="step1.json 路径")
     parser.addoption("--step2", help="step2.json 输出路径")
 
-
-@pytest.hookimpl(trylast=True)
-def pytest_sessionfinish(session, exitstatus):
-    """所有测试结束后自动写入 .test_pass 文件"""
-    test_pass_path = os.path.join(session.config.rootdir, ".claude", ".test_pass")
-    os.makedirs(os.path.dirname(test_pass_path), exist_ok=True)
-
-    if exitstatus == 0:
-        try:
-            commit_hash = subprocess.check_output(
-                ["git", "rev-parse", "HEAD"], stderr=subprocess.DEVNULL, text=True
-            ).strip()
-        except subprocess.CalledProcessError:
-            commit_hash = "unknown"
-
-        data = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "total_tests": session.testscollected,
-            "passed_tests": session.testscollected,
-            "exit_code": 0,
-            "verification_type": "auto",
-            "commit_hash": commit_hash,
-        }
-        with open(test_pass_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2)
-    else:
-        if os.path.exists(test_pass_path):
-            try:
-                with open(test_pass_path, "r", encoding="utf-8") as f:
-                    existing = json.load(f)
-                if existing.get("verification_type") == "auto":
-                    os.remove(test_pass_path)
-            except (json.JSONDecodeError, KeyError, UnicodeDecodeError):
-                os.remove(test_pass_path)
+    # .test_pass 写入钩子已删除（2026-10-24）：它是 Claude Code 时代的"测试通过"标记，
+# DSH 不消费，且路径绑定 .claude/ 目录。标记文件与具体工具目录解耦前不再回加。
 
 
 # ── BatchDispatcher 心跳线程清理 ──
