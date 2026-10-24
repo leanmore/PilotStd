@@ -59,7 +59,7 @@
 
 ### S3 通知二期 · 步 B：事件收敛（2026-10-28 ~ 10-29，18h）
 
-> **状态核对（2026-10-24）：大部分已实现。** 证据：`tests/test_notification_e2e.py` 已 `from ...events import ALL_EVENT_KEYS`（派生而非复制）；前端生产代码**无硬编码事件键**；Q3 已落地（`_builders_batch.py:241,256` 按 `pending>0` 分支）。**未实现：Q11 管道级时刻**（事件清单中无 pipeline 事件）。
+> **状态核对（2026-10-24）：大部分已实现。** 证据：`tests/test_notification_e2e.py` 已 `from ...events import ALL_EVENT_KEYS`（派生而非复制）；前端生产代码**无硬编码事件键**；Q3 已落地（`_builders_batch.py:241,256` 按 `pending>0` 分支）。**Q11 已实现（2026-10-24，409ab1e）**：新增 uto_pipeline_summary，覆盖 44 事件。
 
 | 项 | 内容 | 验收 |
 |---|---|---|
