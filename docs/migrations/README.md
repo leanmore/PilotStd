@@ -6,6 +6,10 @@
 > **以代码为唯一权威**：`pilotstd/core/db/_constants.py` 的 `CURRENT_SCHEMA_VERSION`，
 > 以及 `pilotstd/core/db/migrations.py` 的注册导入列表。本文件的清单只作导读，缺行不代表没有该迁移。
 > 2026-10-17 已按 `migrations.py` 注册列表补齐正文 v61~v69（说明取自各 `_migrate_v6*.py` 模块 docstring）。
+>
+> **迁移前快照归档（2026-10-24）**：`data/backups/` 共 39 份 `pre_migration_v*_to_v*.bak`，现只保留最近 5 份
+> （v65→v70，约 22 MB）；其余 34 份已复制到 `D:\PilotStd-archive\db-backup\migration-snapshots\`（**同一物理盘，尚未构成独立备份**）。
+> 需要回滚到 v6x 及更早时从该目录取；确认归档已复制到 E 盘/云存储后，才可删除 `data/backups/` 中的原件。
 
 ## 迁移版本清单
 

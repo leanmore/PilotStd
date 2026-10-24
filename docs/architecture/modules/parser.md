@@ -54,6 +54,11 @@ StandardParser (入口)
 - `pilotstd.core.std_utils.classify_std_code` — 代号分类
 - `pilotstd.scan.parser._constants` — 正则片段 + 代号集合（ISO_IEC_SET、FOREIGN_CODE_SET 等）
 
+## 已知待办
+
+- **A-9**：解析失败日志尚未统一为"路径/类型/错误/详情"四段（`pilotstd/scan/parser/__init__.py`）。
+  登记于 [技术债 A-9](../debt/03-open.md)；动日志格式时需同批改断言测试。
+
 ## 相关文档
 
 - [ADR-001](../../adr/ADR-001-modal-dialog-auto-clicker.md) — 事件驱动架构决策

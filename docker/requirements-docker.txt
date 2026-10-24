@@ -32,5 +32,5 @@ rapidocr-onnxruntime==1.2.3
 pypdfium2==5.14.0
 
 
-# TODO: 待 passlib 官方修复 bcrypt 兼容性后，升级 passlib 并解锁 bcrypt 版本
+# 跟踪上游：passlib 修复 bcrypt 兼容性后，升级 passlib 并解锁 bcrypt 版本（当前锁 4.0.1）
 bcrypt==4.0.1

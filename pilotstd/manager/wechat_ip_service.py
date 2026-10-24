@@ -4,13 +4,17 @@
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any
 
 from pilotstd.core.status import Status
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_ENCRYPT_SECRET = "pilotstd_wework_ip_2026"
+# 可信 IP cookie 的加密密钥**不设可用默认值**：默认值一旦进 git 就等于公开密钥。
+# 取值顺序：环境变量 > config 的 wechat_ip.encrypt_secret > 抛错（拒绝静默降级）。
+_ENV_SECRET = "WECHAT_IP_ENCRYPT_SECRET"
+_CFG_SECRET_KEY = "wechat_ip.encrypt_secret"
 
 
 class WechatIPService:
@@ -20,8 +24,18 @@ class WechatIPService:
         self._mgr = manager
 
     def _get_secret(self) -> str:
-        cfg = self._mgr.cfg
-        return cfg.get("wechat_ip.encrypt_secret") or _DEFAULT_ENCRYPT_SECRET
+        """Return the encryption secret; raise rather than use a public default."""
+        # 取值顺序：环境变量 > config 同名字段 > 抛错（见模块级注释）
+        env_secret = os.environ.get(_ENV_SECRET, "").strip()
+        if env_secret:
+            return env_secret
+        cfg_secret = str(self._mgr.cfg.get(_CFG_SECRET_KEY, "") or "").strip()
+        if cfg_secret:
+            return cfg_secret
+        raise RuntimeError(
+            f"wechat_ip encrypt secret is not configured: set env {_ENV_SECRET} "
+            f"(or config {_CFG_SECRET_KEY}). Refusing to fall back to a public default key."
+        )
 
     def _notify(self, title: str, body: str, status: str = "info") -> None:
         """发送可信 IP 通知；`status` 为机器可读结果标记（T-39：级别不再由标题中文推断）。"""
@@ -47,6 +61,10 @@ class WechatIPService:
                 decrypted = decrypt_cookie(encrypted, self._get_secret())
                 if decrypted:
                     cookie_status = f"已配置 ({mask_cookie(decrypted)})"
+        except RuntimeError:
+            # 密钥缺失是配置问题，不是"解密失败"——两类状态要能区分
+            # i18n-allow: 与同函数既有"未配置/已配置/解密失败"同属对前端的固定中文状态值，改动需前后端同批
+            cookie_status = "未配置密钥"
         except Exception:
             cookie_status = "解密失败"
 
@@ -76,6 +94,16 @@ class WechatIPService:
         cfg = self._mgr.cfg
         was_enabled = cfg.get("wechat_ip.enabled", False)
 
+        # 先校验密钥再改任何字段：失败时不留半套内存状态
+        raw_cookie = str(body.get("cookie_raw") or "").strip()
+        secret = ""
+        if raw_cookie:
+            try:
+                secret = self._get_secret()
+            except RuntimeError as e:
+                logger.warning("wechat_ip config not saved: %s", e)
+                return {"ok": False, "error": str(e)}
+
         for key in (
             "enabled",
             "interval_hours",
@@ -94,9 +122,8 @@ class WechatIPService:
         if "ip_sources" in body:
             cfg.set("wechat_ip.ip_sources", body["ip_sources"])
 
-        if "cookie_raw" in body and body["cookie_raw"]:
-            raw = body["cookie_raw"].strip()
-            encrypted = encrypt_cookie(raw, self._get_secret())
+        if raw_cookie:
+            encrypted = encrypt_cookie(raw_cookie, secret)
             cfg.set("wechat_ip.encrypted_cookie", encrypted)
             cfg.set("wechat_ip.cookie_source", "manual")
 

@@ -197,7 +197,7 @@ class StandardParser:
             if result is not None:
                 return result
 
-        # TODO(P2): 统一文件解析失败日志格式，补充文件路径/文件类型/错误类型/错误详情
+        # TODO(A-9): 统一失败日志格式（路径/类型/错误/详情），见 docs/debt/03-open.md
         self.log.info("解析失败: %s", filename)
         return None
 

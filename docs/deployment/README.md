@@ -11,6 +11,15 @@
 | SQLite | 3.35 | RETURNING 子句支持 |
 | 系统库 | — | Windows: 无特殊依赖；Linux: `libsqlite3-dev` |
 
+## 必设环境变量（2026-10-24 起）
+
+| 变量 | 必需性 | 未设置时的行为 |
+|---|---|---|
+| `WECHAT_IP_ENCRYPT_SECRET` | **启用"可信 IP"功能时必需** | 保存/解密企微 cookie 时抛 `RuntimeError`，设置页显示"未配置密钥"。**这是预期失败方式**（旧代码用仓库内公开默认值加密，等于没加密） |
+
+**升级检查项**：若生产环境使用过可信 IP 的 cookie 保存功能，升级前必须把原默认值配进
+`WECHAT_IP_ENCRYPT_SECRET`（或 config 的 `wechat_ip.encrypt_secret`），否则已保存的 cookie 无法解密。
+
 ## 标准部署流程
 
 ### 1. 后端部署

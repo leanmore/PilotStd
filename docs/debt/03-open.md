@@ -25,6 +25,8 @@
 | **A-3** | **`channel_spec.schema ↔ get_config_schema()` 互证门禁缺失**（现只有字段级断言 `tests/test_channel_spec.py:72-119`） | 未修（可选） | 加一条"声明 ↔ 实现"一致性门禁 | 触发条件＝渠道字段再次漂移 |
 | **A-5** | **cookiecutter 真实 CLI 端到端未入 CI** | 观察 | 模板改动涉及 hooks 时补一条真实 CLI 用例（渲染/编译/零字面量已由 jinja2 用例覆盖） | 触发条件＝hooks 变更或脚手架被频繁使用 |
 | **A-6** | **`known-issues.md` 第 4 项：Telegram 429 的 55.6% 未复测** | 观察 | 部署后取 `GET /api/notification/logs` 的 success/failed 分布 + 容器日志 429 计数，给出改善证据 | 触发条件＝下次通知量统计复核 |
+| **A-9** | **解析失败日志格式未统一**（`pilotstd/scan/parser/__init__.py:200` 的 `TODO(P2)`） | 未修 | 统一为"路径/类型/错误/详情"四段，牵动日志断言测试，需单独一批 | 触发条件＝下次动解析器日志或排障困难 |
+| **A-10** | **设置页 Tab 定位依赖 DOM 顺序**（`web/src/views/settings/constants.ts:4` 的 `TODO(P2-FOLLOWUP)`） | 未修 | 改为 `data-tab` 名称定位，消除对子元素顺序的依赖 | 触发条件＝设置页 Tab 结构再调整 |
 
 ## 三、待裁定项（我已给建议，只需你一句话）
 

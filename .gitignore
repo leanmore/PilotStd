@@ -115,3 +115,8 @@ models/ocr/
 # 测试误把 MagicMock 当路径写出的残留目录（2026-10-24 清理）
 MagicMock/
 pilotstd.egg-info/
+
+# 散落字节码与证书/密钥（2026-10-24；已确认仓库内无 tracked 证书）
+*.pyc
+*.key
+*.pem

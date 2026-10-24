@@ -14,7 +14,8 @@ onMounted(fetchLayout)
 // 动态切换 isDraggable 时库内部微任务调度器（he/Ze）与 Vue 响应式队列不同步，
 // 导致 GridItem 的 interact.js 拖拽监听器未重新绑定。解锁时通过 [...layout] 克隆
 // 数组强制 GridItem 重新挂载以触发 Ze() 重跑，目录下 k.value.draggable() 正确执行。
-// TODO: 升级 grid-layout-plus 后重新评估是否仍需此 workaround。
+// TODO(前置条件): grid-layout-plus 升级到 > 1.1.1（当前 ^1.1.1）后重新评估是否仍需此 workaround；
+// 若升级后仍复现，保留本段并在技术债中登记。
 watch(
   () => appStore.dashboardLocked,
   (locked, wasLocked) => {
