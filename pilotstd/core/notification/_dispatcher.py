@@ -51,6 +51,10 @@ def _log_skipped(host: Any, event_type: str, event_data: dict) -> None:
         return
     if not channels:
         return
+    # 未配置/未初始化的渠道不写 skipped 行，避免“没配置”被当成一次投递事件
+    channels = [ch for ch in channels if ch in host._channels]
+    if not channels:
+        return
     msg = host._build_message(event_type, event_data)
     reason = t("notification.manager.skipped_disabled")
     sent_at = datetime.now().isoformat()
@@ -215,14 +219,8 @@ def send_now(host: Any, msg: NotificationMessage, target_channels: list[str]) ->
         channel = host._channels.get(ch_name)
         sent_at = datetime.now().isoformat()
         if channel is None:
-            host._log(
-                event_type,
-                ch_name,
-                msg,
-                "failed",
-                t("notification.manager.channel_unavailable").format(ch=ch_name),
-                sent_at,
-            )
+            # 渠道未配置/未启用：策略层可能仍返回该渠道名，但不应伪造失败记录
+            logger.debug("未配置渠道，跳过发送: %s", ch_name)  # i18n-allow: 内部日志
             continue
         # ① 两阶段写（真实宿主）／回退旧序（不支持 `ops.update_log_fields` 的宿主，如受限测试替身）
         #    能力探测放在**落库之前**：否则占位行会与旧序的日志行重复。

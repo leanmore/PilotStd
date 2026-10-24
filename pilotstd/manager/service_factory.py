@@ -25,7 +25,8 @@ def create_services(mgr: Any) -> tuple[Any, Any, Any, Any, Any]:
     """
     # ── 归类子系统依赖 ──
     root = get_library_root(mgr.cfg)
-    dir_builder = DirBuilder(root)
+    expire_folder = str(mgr.cfg.get("storage.expire_folder", "过期作废") or "过期作废")  # i18n-allow: 配置默认值
+    dir_builder = DirBuilder(root, expire_dir_name=expire_folder)
     file_mover = FileMover(dir_builder)
 
     # ── 查询分类服务 ──

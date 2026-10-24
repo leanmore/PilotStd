@@ -577,6 +577,7 @@
     "notification.validity.validity_batch_report.body.changed_failed": "Changed: {c}, failed: {f}",
     "notification.validity.validity_batch_report.body.change_header": "Change details:",
     "notification.validity.validity_batch_report.body.change_reason": " — {r}",
+    "notification.validity.validity_batch_report.body.replacement": " → New standard: {s}",
     "notification.validity.validity_batch_report.body.failed_header": "Failure details:",
     "notification.validity.validity_batch_report.body.failed_error": " — {e}",
     "notification.validity.validity_batch_report.body.item": "• {s}",

@@ -93,6 +93,8 @@ def _process_validity_batch(
                             "standard": std_no,
                             "name": _std_name(db, std_no),
                             "reason": new_status,
+                            "new_standard": result.get("new_standard", ""),
+                            "new_standard_name": result.get("new_standard_name", ""),
                         }
                     )
                     if len(change_detail) % 10 == 0 and notification_mgr:

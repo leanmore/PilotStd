@@ -467,3 +467,7 @@ pilotstd/core/
 **通知默认值（2026-10-23）**：suppress_nochange 默认 False；auto_backup 成功/失败按 task_result/anomaly_alert 分支。
 
 **通知策略分支（2026-10-23）**：策略查询透传 data，auto_backup 成功归 task_result；无变化默认不抑制。
+
+**时效性通知/排除（2026-10-24）**：validity_batch_report 增加替代新标准号；到期查询联查 file_index，排除路径含 storage.expire_folder 的标准；未配置渠道不再写 failed 日志。
+
+**时效性处置（2026-10-24）**：状态变为废止/被代替时自动移动文件到配置的过期作废目录；到期查询联查 file_index 排除该目录。

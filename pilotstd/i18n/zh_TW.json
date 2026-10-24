@@ -498,6 +498,7 @@
     "notification.validity.validity_batch_report.body.changed_failed": "變更：{c} 條，失敗：{f} 條",
     "notification.validity.validity_batch_report.body.change_header": "變更詳情：",
     "notification.validity.validity_batch_report.body.change_reason": " — {r}",
+    "notification.validity.validity_batch_report.body.replacement": " → 新标准：{s}",
     "notification.validity.validity_batch_report.body.failed_header": "失敗詳情：",
     "notification.validity.validity_batch_report.body.failed_error": " — {e}",
     "notification.validity.validity_batch_report.body.item": "• {s}",

@@ -581,6 +581,7 @@
     "notification.validity.validity_batch_report.body.changed_failed": "变更：{c} 条，失败：{f} 条",
     "notification.validity.validity_batch_report.body.change_header": "变更详情：",
     "notification.validity.validity_batch_report.body.change_reason": " — {r}",
+    "notification.validity.validity_batch_report.body.replacement": " → 新标准：{s}",
     "notification.validity.validity_batch_report.body.failed_header": "失败详情：",
     "notification.validity.validity_batch_report.body.failed_error": " — {e}",
     "notification.validity.validity_batch_report.body.item": "• {s}",

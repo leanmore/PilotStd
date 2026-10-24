@@ -304,6 +304,20 @@ def _extract_language(text: str) -> str:
     return ""
 
 
+_METADATA_DATE_PREFIX = re.compile(r"^\s*\d{4}\s*[-/.年]\s*\d{1,2}")
+_METADATA_HEADERS = ("序号", "备案号", "标准编号", "标准名称", "批准日期", "实施日期")  # i18n-allow: 源站表头识别
+
+
+def _looks_like_metadata_row(std_name: str) -> bool:
+    """排除“代替标准号”列被误当成数据行后留下的日期/表头残片。"""
+    name = (std_name or "").strip()
+    if not name:
+        return True
+    if _METADATA_DATE_PREFIX.match(name):
+        return True
+    return any(word in name[:30] for word in _METADATA_HEADERS)
+
+
 def parse_text_table(text: str) -> list[dict[str, Any]]:
     """从附件文本中提取标准表格。不依赖换行符，用标准编号模式全文本扫描。
 
@@ -346,6 +360,9 @@ def parse_text_table(text: str) -> list[dict[str, Any]]:
         if not replaces_code and replaces_code_adjacent:
             replaces_code = replaces_code_adjacent
 
+        if _looks_like_metadata_row(std_name):
+            continue
+
         if len(std_name) < 2:
             continue
 
@@ -387,7 +404,7 @@ def _ocr_pdf(pdf_bytes: bytes, ocr_provider: Any) -> str:
         reader = PdfReader(BytesIO(pdf_bytes))
         total_pages = len(reader.pages)
     except Exception:
-        logger.debug("PDF 页数检测失败，假定 1 页", exc_info=True)
+        logger.debug("PDF 页数检测失败，假定 1 页", exc_info=True)  # i18n-allow: 内部日志
 
     texts = []
     failed = 0

@@ -35,3 +35,8 @@ class DirBuilder:
     @property
     def root(self) -> str:
         return self._root
+
+    @property
+    def expire_name(self) -> str:
+        """过期作废目录名（由 storage.expire_folder 配置）。"""
+        return self._expire_name

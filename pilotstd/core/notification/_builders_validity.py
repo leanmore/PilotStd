@@ -137,6 +137,9 @@ def _build_validity_batch_report_message(data: dict) -> NotificationMessage:
             reason = cd.get("reason", "")
             if reason:
                 line += t("notification.validity.validity_batch_report.body.change_reason").format(r=reason)
+            new_standard = cd.get("new_standard", "")
+            if new_standard:
+                line += t("notification.validity.validity_batch_report.body.replacement").format(s=new_standard)
             lines.append(t("notification.validity.validity_batch_report.body.item").format(s=line))
         blocks.append(TextBlock(text="\n".join(lines)))
     failed_detail = data.get("failed_detail") or []

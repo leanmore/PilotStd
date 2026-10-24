@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 from .db import Database
-from .status import Status
+from .status import ABOLISHED_STATUSES_WITH_EXPIRED, Status
 
 logger = logging.getLogger(__name__)
 
@@ -108,6 +108,8 @@ class ValidityChecker:
                         )
                     except Exception as e:
                         logger.warning("状态变更通知发送失败: %s, error=%s", standard_number, e)
+                if new_status in ABOLISHED_STATUSES_WITH_EXPIRED:
+                    self._move_expired_file(standard_number)
             else:
                 self._db.execute(
                     f"UPDATE {_TABLE} SET last_checked_at=?, next_check_at=?, "
@@ -124,30 +126,86 @@ class ValidityChecker:
 
     # ── 到期标准查询 ──────────────────────────────────────────
 
+    def _move_expired_file(self, standard_number: str) -> None:
+        """状态变为废止/被代替后，把库内对应文件移到分类下的过期作废目录。"""
+        try:
+            import os
+
+            from ..organizer.dir_builder import DirBuilder
+            from ..organizer.industry_lookup import build_code_mapping
+            from ..organizer.mover import FileMover
+            from ..scan.parser import StandardParser
+            from .config import ConfigManager, get_library_root
+            from .std_utils import parse_std_number
+
+            parsed = parse_std_number(standard_number)
+            if not parsed:
+                return
+            root = get_library_root(ConfigManager())
+            expire_name = str(ConfigManager().get("storage.expire_folder", "过期作废") or "过期作废")
+            dir_builder = DirBuilder(root, expire_dir_name=expire_name)
+            mover = FileMover(dir_builder)
+            rows = self._db.fetchall(
+                "SELECT file_path FROM file_index WHERE number=? AND year=? AND logical_code IN (?, ?)",
+                (parsed["number"], parsed["year"], parsed["raw_code"], parsed["code"]),
+            )
+            for row in rows:
+                path = str(row["file_path"] or "")
+                if not path or expire_name in path.replace("\\", "/").split("/"):
+                    continue
+                info = StandardParser(build_code_mapping()).parse(os.path.basename(path))
+                if not info:
+                    continue
+                info.source_path = path
+                info.effect_status = Status.WITHDRAWN.value
+                mover.move_to_code_dir(path, info)
+        except Exception as exc:
+            logger.warning("自动移动过期文件失败: %s, error=%s", standard_number, exc)  # i18n-allow: 内部日志
+
+    def _exclude_expired_sql(self) -> tuple[str, str]:
+        """排除 file_index 中路径含“过期作废”子目录的标准。"""
+        from .config import ConfigManager
+
+        folder = str(ConfigManager().get("storage.expire_folder", "过期作废") or "过期作废")  # i18n-allow: 配置默认值
+        pattern = f"%/{folder}/%"
+        clause = (
+            " AND NOT EXISTS ("
+            " SELECT 1 FROM file_index f"
+            " WHERE REPLACE(f.file_path, '\\\\', '/') LIKE ?"
+            " AND (f.logical_code || ' ' || f.number ||"
+            " CASE WHEN f.year > 0 THEN '-' || f.year ELSE '' END) = v.standard_number)"
+        )
+        return clause, pattern
+
     def get_due_standards(self) -> list[str]:
         """查询所有 next_check_at <= now 的到期标准号。"""
         now = datetime.now(timezone.utc).isoformat()
+        clause, pattern = self._exclude_expired_sql()
         rows = self._db.fetchall(
-            f"SELECT standard_number FROM {_TABLE} WHERE next_check_at <= ? ORDER BY next_check_at ASC",
-            (now,),
+            f"SELECT standard_number FROM {_TABLE} v"
+            f" WHERE next_check_at <= ?{clause} ORDER BY next_check_at ASC",
+            (now, pattern),
         )
         return [r["standard_number"] for r in rows]
 
     def count_due_standards(self) -> int:
         """到期标准总数（轻量 COUNT 查询，不加载数据）。"""
         now = datetime.now(timezone.utc).isoformat()
+        clause, pattern = self._exclude_expired_sql()
         row = self._db.fetchone(
-            f"SELECT COUNT(*) as cnt FROM {_TABLE} WHERE next_check_at <= ?",
-            (now,),
+            f"SELECT COUNT(*) as cnt FROM {_TABLE} v WHERE next_check_at <= ?{clause}",
+            (now, pattern),
         )
         return row["cnt"] if row else 0
 
     def get_due_standards_random(self, limit: int) -> list[str]:
         """随机采样 limit 条到期标准号（数据库层 ORDER BY RANDOM() + LIMIT，避免全量加载到 Python 内存）。"""
         now = datetime.now(timezone.utc).isoformat()
+        clause, pattern = self._exclude_expired_sql()
         rows = self._db.fetchall(
-            f"SELECT standard_number FROM {_TABLE} WHERE next_check_at <= ? ORDER BY RANDOM() LIMIT ?",
-            (now, limit),
+            f"SELECT standard_number FROM {_TABLE} v WHERE next_check_at <= ?{clause}"
+            " ORDER BY RANDOM() LIMIT ?",
+            (now, pattern, limit),
         )
         return [r["standard_number"] for r in rows]
 
@@ -187,9 +245,10 @@ class ValidityChecker:
             if row:
                 result = self._determine_status(standard_number, row)
                 if result:
+                    result.update(self._replacement_info(standard_number))
                     return result
         except Exception:
-            logger.exception("查询公告缓存失败: %s", standard_number)
+            logger.exception("查询公告缓存失败: %s", standard_number)  # i18n-allow: 内部日志
 
         # ──2:适配器实时查询──
         if query_engine:
@@ -202,10 +261,12 @@ class ValidityChecker:
                         [(parsed["code"], parsed["number"], parsed.get("year", 0), "", None, "")]
                     )
                     if results and results[0].is_found():
-                        return {
+                        info = {
                             "status": results[0].status or Status.ACTIVE.value,
                             "previous": None,
                         }
+                        info.update(self._replacement_info(standard_number))
+                        return info
             except Exception as e:
                 # 在线查询失败 → 回落到历史状态对比，但要留痕
                 logger.debug("online validity query failed for %s: %s", standard_number, e)
@@ -216,12 +277,31 @@ class ValidityChecker:
             (standard_number,),
         )
         if row:
-            return {
+            info = {
                 "status": row["status"],
                 "previous": row["last_status"],
             }
+            info.update(self._replacement_info(standard_number))
+            return info
 
         return None
+
+    def _replacement_info(self, standard_number: str) -> dict[str, str]:
+        """查替代标准：announcement_record 中 replaces_code 指向旧标准的新标准。"""
+        try:
+            row = self._db.fetchone(
+                "SELECT standard_number, std_name FROM announcement_record"
+                " WHERE replaces_code=? AND standard_number<>? LIMIT 1",
+                (standard_number, standard_number),
+            )
+            if row:
+                return {
+                    "new_standard": str(row["standard_number"] or ""),
+                    "new_standard_name": str(row["std_name"] or ""),
+                }
+        except Exception:
+            logger.warning("replacement lookup failed for %s", standard_number, exc_info=True)
+        return {}
 
     def _determine_status(self, standard_number: str, row: dict) -> Optional[dict[str, Optional[str]]]:
         """从缓存行判断现行/废止状态。"""
