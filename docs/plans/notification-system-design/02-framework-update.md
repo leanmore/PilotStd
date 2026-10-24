@@ -103,12 +103,12 @@
 
 | # | 任务 | 实测值 | 样本来源 | 样本量 |
 |---|---|---|---|---|
-| 1 | **一键管道**（扫描→查询→下载→规范化→归档） | **168 秒**（2.8 分钟） | `data/pilotstd.db.backup_20260708` 的 `pipeline_runs`：`created_at 2026-07-06 00:44:25` → `updated_at 00:47:13`；step_results=`scan 21 / query found 18 / download failed 10 / normalize 21 / archive 21` | **1 条完整管道** |
+| 1 | **一键管道**（扫描→查询→下载→规范化→归档） | **168 秒**（2.8 分钟） | 7 月库备份（原 `data/pilotstd.db.backup_20260708`，2026-10-24 已冷存至仓库外 `D:\PilotStd-archive\db-backup`）的 `pipeline_runs`：`created_at 2026-07-06 00:44:25` → `updated_at 00:47:13`；step_results=`scan 21 / query found 18 / download failed 10 / normalize 21 / archive 21` | **1 条完整管道** |
 | 2 | **单次适配器查询** | **0.10 / 1.45 / 1.61 / 1.92 / 2.71 秒**（中位 **1.61 s**） | 同库 `adapter_stats` 的 `total_response_time ÷ total_queries`（csres/hbba/ahbz/std_gov/njbz365） | **5 个适配器** |
 | 3 | **公告全量抓取** | 单源完成时刻 01:03:08 / 01:06:09 / 01:11:03 → **首末跨度 8 分钟**（单源约 **3–5 分钟**）；每轮写入 **65,373–90,583 条** | 同库 `announcement_record`（227,390 行）按 `fetched_at` 分组 | **3 个来源** |
 | 4 | 桌面任务耗时 | **无记录** | 当前库 `task_queue` 2,918 行，`started_at`/`finished_at` **全空** | — |
 | 5 | 定时任务耗时 | **无记录** | `task_execution_history` 172 行，非 `test_job` 样本 **0** | — |
-| 6 | 通知历史 | **几乎为空**：当前库 **0 行**、`db.bak` **0 行**、7 月备份 **2 行**（`announcement_check_complete`） | 三库 `notification_log` 计数 | 3 库 |
+| 6 | 通知历史 | **几乎为空**：当前库 **0 行**、`db.bak`（2026-10-24 已清理）**0 行**、7 月备份 **2 行**（`announcement_check_complete`） | 三库 `notification_log` 计数 | 3 库 |
 
 **两条必须诚实说明的采样限制**：
 - `logs/app.log` 今日内容为**测试噪声**（含 `boom`、`group=probe e1`），**已排除**，不作为耗时样本。
