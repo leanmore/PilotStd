@@ -111,3 +111,7 @@ config/docker_creds.json
 
 # 本地 OCR 模型（按需安装/下载，不提交）
 models/ocr/
+
+# 测试误把 MagicMock 当路径写出的残留目录（2026-10-24 清理）
+MagicMock/
+pilotstd.egg-info/
