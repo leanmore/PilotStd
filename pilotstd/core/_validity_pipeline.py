@@ -50,8 +50,8 @@ def _std_name(db: Any, std_no: str) -> str:
         row = db.fetchone(
             "SELECT std_name FROM announcement_record WHERE standard_number = ?", (std_no,)
         )
-        if row and row["std_name"]:
-            return str(row["std_name"])
+        if row and isinstance(row["std_name"], str) and row["std_name"]:
+            return row["std_name"]
     except Exception as e:
         logger.debug("std_name lookup failed for %s: %s", std_no, e)
     return ""
@@ -157,14 +157,14 @@ def _process_validity_batch(
             failed_list.append({"standard": std_no, "name": _std_name(db, std_no), "error": str(e)})
             if notification_mgr:
                 try:
-                    notification_mgr.send_event(
-                        "validity_standard_failed",
-                        {
-                            "standard_number": std_no,
-                            "standard_name": _std_name(db, std_no),
-                            "error": str(e),
-                        },
-                    )
+                    failed_payload = {
+                        "standard_number": std_no,
+                        "error": str(e),
+                    }
+                    failed_name = _std_name(db, std_no)
+                    if isinstance(failed_name, str) and failed_name:
+                        failed_payload["standard_name"] = failed_name
+                    notification_mgr.send_event("validity_standard_failed", failed_payload)
                 except Exception as e2:
                     logger.warning("标准检查失败通知发送失败: %s, error=%s", std_no, e2)
         if i > 0 and i % batch_size == 0 and batch_interval > 0:

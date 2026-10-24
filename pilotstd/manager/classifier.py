@@ -114,9 +114,11 @@ class QueryClassifier:
                 and is_gb_code(p.logical_code)
                 and r.match_status != "newer"
             ):
-                replaced_by = self.resolve_replaces(
-                    p.get_full_number(), notification_mgr, getattr(p, "std_name", "")
-                )
+                name = getattr(p, "std_name", "")
+                if isinstance(name, str) and name:
+                    replaced_by = self.resolve_replaces(p.get_full_number(), notification_mgr, name)
+                else:
+                    replaced_by = self.resolve_replaces(p.get_full_number(), notification_mgr)
                 if not replaced_by:
                     continue
                 r.replaces = replaced_by
@@ -227,14 +229,13 @@ class QueryClassifier:
 
         if searched_sources and notification_mgr:
             try:
-                notification_mgr.send_event(
-                    "replacement_not_found",
-                    {
-                        "standard_number": standard_number,
-                        "standard_name": standard_name,
-                        "searched_sources": searched_sources,
-                    },
-                )
+                payload = {
+                    "standard_number": standard_number,
+                    "searched_sources": searched_sources,
+                }
+                if standard_name:
+                    payload["standard_name"] = standard_name
+                notification_mgr.send_event("replacement_not_found", payload)
             except Exception as e:
                 logger.warning("替代标准未找到通知发送失败: %s, error=%s", standard_number, e)
 

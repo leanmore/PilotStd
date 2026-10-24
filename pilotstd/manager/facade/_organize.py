@@ -233,14 +233,13 @@ class OrganizeHandler:
                 # 废止标准同步触发__（与归档_同时触发）
                 try:
                     if self._core.notification_mgr and getattr(p, "effect_status", "") in _EXPIRE_STATUSES:
-                        self._core.notification_mgr.send_event(
-                            "expire_standard_moved",
-                            {
-                                "standard_number": std_no,
-                                "standard_name": getattr(p, "std_name", ""),
-                                "target_path": getattr(p, "source_path", ""),
-                            },
-                        )
+                        payload = {
+                            "standard_number": std_no,
+                            "target_path": getattr(p, "source_path", ""),
+                        }
+                        if getattr(p, "std_name", ""):
+                            payload["standard_name"] = p.std_name
+                        self._core.notification_mgr.send_event("expire_standard_moved", payload)
                 except Exception as e:
                     logger.warning("发送废止标准通知失败: %s, error=%s", std_no, e)
         try:

@@ -103,24 +103,29 @@ class ValidityChecker:
                         # 第一步：标准废止事件已合并进本事件，
                         # 通过"是否已过期"字段区分废止（替代原独立事件，避免双通知）
                         is_expired = new_status == Status.WITHDRAWN_NORMALIZED.value
-                        name_row = self._db.fetchone(
-                            "SELECT std_name FROM announcement_record WHERE standard_number=? LIMIT 1",
-                            (standard_number,),
-                        )
-                        standard_name = str(name_row["std_name"] or "") if name_row else ""
-                        notification_mgr.send_event(
-                            "standard_status_changed",
-                            {
-                                "standard_number": standard_number,
-                                "standard_name": standard_name,
-                                "old_status": row["status"],
-                                "new_status": new_status,
-                                "is_expired": is_expired,
-                                "changed_at": datetime.now().isoformat(),
-                                "new_standard": new_standard,
-                                "new_standard_name": new_standard_name,
-                            },
-                        )
+                        standard_name = ""
+                        try:
+                            name_row = self._db.fetchone(
+                                "SELECT std_name FROM announcement_record WHERE standard_number=? LIMIT 1",
+                                (standard_number,),
+                            )
+                            if name_row and "std_name" in name_row.keys():
+                                standard_name = str(name_row["std_name"] or "")
+                        except (KeyError, IndexError, TypeError):
+                            standard_name = ""
+                        payload = {
+                            "standard_number": standard_number,
+                            "old_status": row["status"],
+                            "new_status": new_status,
+                            "is_expired": is_expired,
+                            "changed_at": datetime.now().isoformat(),
+                        }
+                        if standard_name:
+                            payload["standard_name"] = standard_name
+                        if new_standard:
+                            payload["new_standard"] = new_standard
+                            payload["new_standard_name"] = new_standard_name
+                        notification_mgr.send_event("standard_status_changed", payload)
                     except Exception as e:
                         logger.warning("状态变更通知发送失败: %s, error=%s", standard_number, e)
                 if new_status in ABOLISHED_STATUSES_WITH_EXPIRED:

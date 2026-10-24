@@ -226,10 +226,10 @@ class QuerySubsystem:
         try:
             if self._core.notification_mgr and failed_items:
                 for std_no, std_name, err in failed_items[:5]:
-                    self._core.notification_mgr.send_event(
-                        "query_failed",
-                        {"standard_number": std_no, "standard_name": std_name, "error": err},
-                    )
+                    payload = {"standard_number": std_no, "error": err}
+                    if std_name:
+                        payload["standard_name"] = std_name
+                    self._core.notification_mgr.send_event("query_failed", payload)
         except Exception as e:
             logger.warning("查询失败通知发送失败: %s", e)
 

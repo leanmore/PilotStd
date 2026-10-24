@@ -85,3 +85,38 @@ def test_status_notification_includes_new_standard_name() -> None:
     )
     texts = [getattr(b, "text", "") for b in msg.blocks]
     assert any("GB/T 1-2024" in x and "新标准名称" in x for x in texts)
+
+
+def test_query_and_download_notifications_include_name() -> None:
+    from pilotstd.core.notification._builders_batch_download import (
+        _build_download_started_message,
+    )
+    from pilotstd.core.notification._builders_task_results import _build_query_failed_message
+
+    started = _build_download_started_message(
+        {"standard_number": "GB/T 1-2024", "standard_name": "标准名称"}
+    )
+    assert "GB/T 1-2024" in started.blocks[0].text
+    assert "标准名称" in started.blocks[0].text
+
+    failed = _build_query_failed_message(
+        {"standard_number": "GB/T 1-2024", "standard_name": "标准名称", "error": "timeout"}
+    )
+    assert "GB/T 1-2024" in failed.blocks[0].text
+    assert "标准名称" in failed.blocks[0].text
+
+
+def test_status_message_sets_standard_name_field() -> None:
+    from pilotstd.core.notification._builders_validity import (
+        _build_standard_status_changed_message,
+    )
+
+    msg = _build_standard_status_changed_message(
+        {
+            "standard_number": "GB/T 1-2020",
+            "standard_name": "旧标准",
+            "old_status": "现行",
+            "new_status": "已废止",
+        }
+    )
+    assert msg.standard_name == "旧标准"
