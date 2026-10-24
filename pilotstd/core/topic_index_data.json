@@ -43,7 +43,8 @@
     "download_started": "download",
     "announcement_check_complete": "announce",
     "desktop_toast": "desktop",
-    "task_progress": "done"
+    "task_progress": "done",
+    "auto_pipeline_summary": "done"
   },
   "legacy_topic_keywords": [
     [

@@ -1031,6 +1031,7 @@
       "advanced_other": "其他（未分類）"
     },
     "event": {
+      "auto_pipeline_summary": "一鍵處理完成",
       "archive_complete": "歸檔完成",
       "standard_status_changed": "狀態變更",
       "standard_first_registered": "首次登記",

@@ -66,8 +66,8 @@ class TestTableCompleteness(unittest.TestCase):
     def test_registry_covers_exactly_the_registered_events(self):
         """映射表的键集合必须与事件注册表**双向**一致（多一个孤儿键也算失败）。"""
         self.assertEqual(set(EVENT_MAPPINGS), set(ALL_EVENT_KEYS))
-        # 43 = 原 42 + `task_progress`（阶段 4 · P6 · 4c 正式登记的平台层事件；Q10 裁决）
-        self.assertEqual(len(EVENT_MAPPINGS), 43, "已注册事件应为 43 个")
+        # 44 = 原 43 + `auto_pipeline_summary`（Q11 裁决，2026-10-24）
+        self.assertEqual(len(EVENT_MAPPINGS), 44, "已注册事件应为 44 个")
 
     def test_field_value_domains(self):
         for key, m in EVENT_MAPPINGS.items():
@@ -96,7 +96,7 @@ class TestTableCompleteness(unittest.TestCase):
             "task_result": 6,
             "task_failure": 5,
             "user_activity": 6,
-            "batch_summary": 8,
+            "batch_summary": 9,
             "anomaly_alert": 7,
             "security_alert": 5,
             "schedule_reminder": 2,
@@ -109,8 +109,8 @@ class TestTableCompleteness(unittest.TestCase):
             with self.subTest(notify_event=name):
                 self.assertEqual(actual.get(name, 0), want)
         self.assertEqual(sum(actual.values()), len(ALL_EVENT_KEYS))
-        # 43 = 原 42 + `task_progress`（平台层事件，2026-10-05 · 4c）
-        self.assertEqual(sum(expected.values()), 43)
+        # 44 = 原 43 + `auto_pipeline_summary`（Q11 裁决，2026-10-24）
+        self.assertEqual(sum(expected.values()), 44)
 
     def test_no_event_mapped_to_manual_test(self):
         """`manual_test` 不得承接任何业务事件（它是测试专用类型）。"""

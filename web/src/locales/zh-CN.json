@@ -1031,6 +1031,7 @@
       "advanced_other": "其他（未归类）"
     },
     "event": {
+      "auto_pipeline_summary": "一键处理完成",
       "archive_complete": "归档完成",
       "standard_status_changed": "状态变更",
       "standard_first_registered": "首次登记",

@@ -1031,6 +1031,7 @@
       "advanced_other": "Other (unclassified)"
     },
     "event": {
+      "auto_pipeline_summary": "One-click Pipeline Complete",
       "archive_complete": "Archive Complete",
       "standard_status_changed": "Status Changed",
       "standard_first_registered": "First Registered",

@@ -26,9 +26,9 @@ def _docker_event_keys() -> set[str]:
 
 
 class TestMomentList:
-    def test_moment_count_is_36(self):
-        """Docker 侧用户时刻 = 36（00-framework §1.2）。"""
-        assert len(USER_MOMENTS) == 36
+    def test_moment_count_is_37(self):
+        """Docker 侧用户时刻 = 37（原 36 + 2026-10-24 新增「一键处理」时刻 #38）。"""
+        assert len(USER_MOMENTS) == 37
 
     def test_moment_numbers_unique_and_positive(self):
         numbers = [m.no for m in USER_MOMENTS]

@@ -468,6 +468,7 @@ EXPECTED_TASK_KIND: dict[str, str] = {
     "query_empty": "query",
     "auto_scan_failed": "scan",
     "announce_fetch_summary": "announce_fetch",
+    "auto_pipeline_summary": "auto_pipeline",
     "announcement_fetch_complete": "announce_fetch",
     "announcement_check_complete": "announce_fetch",
     "announcement_fetch_failed": "announce_fetch",
@@ -577,8 +578,8 @@ class TaskKindPersistenceAcrossAllEvents(unittest.TestCase):
                     task_kind_to_task_type(EXPECTED_TASK_KIND[ev]),
                 )
 
-        # 42 = 原 41 + `desktop_toast`（阶段 4 · P6 · 4c 登记的平台层事件）
-        self.assertEqual(len(triggered), 43)
+        # 44 = 原 43 + `auto_pipeline_summary`（Q11 裁决，2026-10-24）
+        self.assertEqual(len(triggered), 44)
         # 十类中至少九类有事件承接（manual_test 无业务事件，设计如此；2026-10-05 S-1 分类扩展后为 9）
         categories = {r["notify_event"] for r in rows.values()}
         self.assertEqual(len(categories), 9)
