@@ -77,3 +77,77 @@ Copy-Item C:\Temp\seed.db data\pilotstd.db
 - 重建库期间**不要**同时跑测试/应用（迁移锁是跨进程排他，并发会互相打断）。
 - 看到"停在某个中间版本"时，先查该版本**下一条**迁移的失败原因，不要盯着当前版本。
 - 重建后先跑 `pytest tests/test_docker_api.py -q`（最快暴露 `no such table` 的一组）。
+
+---
+
+## P-02 `data/pilotstd.db.bak` 是**退出备份的产物**，不是夹具
+
+### 事实
+
+- 用例位置：`docs/guides/人工测试方案.md` 5.12「托盘右键退出后，`data/pilotstd.db.bak` 存在」。
+- 写入点：`pilotstd/ui/main_window/_window_lifecycle.py::_quit_app` → `self._mgr.db.backup()`；
+  `Database.backup()` 默认目标就是「同目录 `.bak`」⇒ 每次正常退出都会重写。
+
+### 陷阱
+
+该文件**预先存在**时，5.12 的「存在」断言**恒真**（假绿）；它也不是任何测试的输入夹具。
+清理 `data/` 时容易被误当成"要保留的备份"。
+
+### 做法
+
+1. 手动跑 5.12 之前先删除 `data/pilotstd.db.bak`，退出后确认它被**重新生成**；
+2. 清理时可直接删（应用下次退出会重建）；
+3. 不要把「它存在」当作数据安全的证据——真正的回滚锚点是迁移前备份与 git 历史。
+
+---
+
+## P-03 迁移 checksum 不匹配是**预期噪音**（当迁移脚本被改过）
+
+### 现象
+
+大批测试同时失败，签名一致：`DatabaseError: 迁移 vN 的脚本逻辑已变更，checksum 不匹配`。
+本次实测 52 个失败都是这一条（v70）。
+
+### 机制
+
+迁移源码的规范化哈希在首次执行时写入 `_schema_version`。之后只要改动该迁移文件（哪怕只是防护性改动），
+旧库启动即红——这是 P-106「已执行迁移不可变」的守门机制，**不是 bug**。
+
+### 判断方法（先定性，再决定动库）
+
+```bash
+git log -1 --format="%h %ad %s" -- pilotstd/core/db/_migrate_vN_*.py
+git show <commit> -- pilotstd/core/db/_migrate_vN_*.py
+```
+
+- diff 只涉及**重入/并发/FK 包裹**等防护，不碰列定义与数据语义 ⇒ 旧库数据仍有效，属噪音；
+- 若真的改了表结构/数据语义 ⇒ 必须按迁移设计走，不能只重建库了事。
+
+### 处理
+
+按 P-01 流程重建本地库（**不要**手改 `_schema_version` 里的 checksum——那会掩盖真实不一致）。
+
+---
+
+## P-04 站点代号带噪音后缀（`API STD`）导致 exact 被判 mismatch
+
+### 现象
+
+站点返回 `API STD 610-2004`（名称 `Centrifugal Pumps…` 完全正确），
+`match_status` 却是 `mismatch`，e2e 用例长期红。
+
+### 机制
+
+`_parse_result_number` 把 `API STD` 解析成代号 `APISTD`，与本地 `API` 不等；
+`_exact_parse_match` 在**顺序号相等但代号不等**时直接 `return False, "mismatch"`，
+**跳过了后面的模糊文本回退**（否则模糊匹配本可判 exact）。
+
+### 做法
+
+- 比对前剥掉代号尾部噪音：`_strip_code_noise`（`STD` / `STANDARD`）；
+- 顺序号仍严格判等（`API STD 609` 依旧 mismatch）；
+- 回归用例：`tests/unit/query/test_search_strategy_code_noise.py`（3 例）。
+
+### 可复用模式
+
+**「代号归一化」应当发生在等值判断之前**；凡是 early-return 的分支，先确认它没有吞掉本可回退的路径。

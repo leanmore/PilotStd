@@ -131,7 +131,7 @@ Task 0 评估结论：平台架构与国标站点差异大（接口、分页、�
 | §一 通知 | `plans/notification-redesign/*`（18 篇）、`plans/notification-system-design/{01,03,04,05}`、`plans/moviepilot-investigation/*`、`plans/dual-end-investigation/*` |
 | §二 路由 | `analysis/{gongbiaoku_search_audit,query_metrics_routing_mismatch_20260816,site_classification_partial_v1.0,v1_cleanup_readiness,v1_vs_v2_routing_comparison}`、`issues/router_v2_feedback` |
 | §三 重构 | `architecture/exact_match_refactor_spec`、`designs/favorite-classification-design`、`development/session-store-design`、`plans/{P10_plan,batch2-security-audit-design,task-progress-reporting}` |
-| §四 故障 | `reference/{diagnosis-favorite-download-failures,diagnosis-super-request-error,notification-effectiveness-analysis,sppt-8087-assessment}` |
+| §四 故障 | `reference/{diagnosis-super-request-error,notification-effectiveness-analysis,sppt-8087-assessment}`；`diagnosis-favorite-download-failures` 的结论见 §4.1（原件与其取证库 `_v57f.db`/`_v57c_test.db` 已于 2026-10-24 清理） |
 | §五 快照 | `testing/{handler-health-report-2026-08-02,project-coverage-survey-2026-07-31}`、`investigations/*`（3 篇） |
 
 > 其余 12 篇（精读笔记 8、迁移说明、诞生记、Q20 验证、决策摘要）无功能结论，未纳入本摘要，原件同样在本地归档目录。
