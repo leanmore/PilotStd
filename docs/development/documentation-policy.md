@@ -68,16 +68,19 @@ grep -rn "\.py'\|\.md'" docs/ | grep -v archive/
 grep -rn "PASS\|FAIL\|SKIP" docs/ | grep -v archive/ | grep -v superpowers/
 ```
 
-## 五、归档协议
+## 五、归档协议（2026-10-24 统一，此前三套说法作废）
 
-1. 确认文档内容已过时（引用不再存在，或数据不准确）
-2. 创建 `docs/archive/YYYY-MM-DD/` 目录（如果不存在）
-3. 使用 `git mv` 移动文件（保留历史）
-4. 在归档目录的 `README.md` 中记录归档原因
-5. 创建/更新替代文档
-6. 在 PR 描述中注明归档操作
+归档 = **结论留下、原文移出 git**，四步：
 
-**自动归档触发时机**：PR 合并到 `main`/`develop` 时，CI 自动将 `docs/pending/` 下文件移入 `docs/archive/YYYY-MM-DD/`。
+1. **提炼**：把仍有效的结论并入 `docs/reference/implementation-digest.md` 或对应模块说明书；
+2. **移出**：原文复制到 `docs/.local/archive/YYYY-MM-DD/<原相对路径>`（该目录已被 `.gitignore` 忽略，不进 git）；
+3. **摘除**：从 `docs/DOCUMENTATION_MAP.md` 删除该行；若被 `index.md` / `AGENTS.md §8.1` 引用，同批改；
+4. **提交**：commit message 写明"归档 N 篇，结论见 X"。
+
+约束：
+- `docs/archive/` 是 **2026-10 之前的历史区，冻结不动**（该路径在 CI 黑名单内，新增/改名会被拦）。
+- 未经提炼不得直接删——**先保结论，再移原件**。
+- 被代码/测试/配置直接读取的文档（如 `plans/notification-redesign/02-目标架构.md`）**不得归档**，除非先解除依赖。
 
 ## 六、相关文档
 

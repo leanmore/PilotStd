@@ -164,6 +164,7 @@ W-001 分析 → W-002 设计/获批 → W-003 测试（适用时）→ W-004 �
 | 涉及技术债 | `docs/technical-debt.md` | 索引 |
 | 编写新代码时 | `docs/reference/coding-standards.md` | 人的指引 |
 | 提交代码前 | `docs/reference/pre-commit-checklist.md` | 人的指引 |
+| 不确定下一步做什么 / 查排期 | `docs/ROADMAP.md` | 索引 |
 | 不确定该读什么 | `docs/index.md` | 索引 |
 
 ### 8.2 回写侧（R-006 补充）
