@@ -40,6 +40,7 @@
     },
     "view": {
       "title": "公告",
+      "load_failed": "公告列表加载失败",
       "fetch_now": "立即抓取",
       "check_no_type": "请至少开启一个公告类型",
       "check_failed": "公告检查失败",

@@ -174,7 +174,7 @@ function deleteRecord(r: TaskRecord) {
 }
 
 async function loadPaths() {
-  try { const r = await getSettings(); paths.value = r.storage?.scan_paths || paths.value } catch {}
+  try { const r = await getSettings(); paths.value = r.storage?.scan_paths || paths.value } catch (e) { console.warn('读取扫描路径失败，沿用默认值', e) } // i18n-allow: 开发者日志：非关键路径读取失败
 }
 
 function setStep(i: number, status: 'wait'|'running'|'done'|'fail', summary = '') {

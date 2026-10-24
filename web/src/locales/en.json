@@ -40,6 +40,7 @@
     },
     "view": {
       "title": "Announcements",
+      "load_failed": "Failed to load announcements",
       "fetch_now": "Fetch Now",
       "check_no_type": "Enable at least one announcement type",
       "check_failed": "Announcement check failed",

@@ -317,7 +317,7 @@ async function loadSystemSections() {
 
 // 折叠变化时写入后端
 watch(systemSections, (val) => {
-  prefsStore.set('system_sections', val).catch(() => {})
+  prefsStore.set('system_sections', val).catch((e) => console.warn('保存系统区块偏好失败，沿用默认分组', e)) // i18n-allow: 开发者日志：偏好保存失败不影响当前界面
 }, { deep: true })
 
 // ═══════════════════════════════════════════

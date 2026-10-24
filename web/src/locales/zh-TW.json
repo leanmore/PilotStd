@@ -40,6 +40,7 @@
     },
     "view": {
       "title": "公告",
+      "load_failed": "公告列表載入失敗",
       "fetch_now": "立即抓取",
       "check_no_type": "請至少開啟一個公告類型",
       "check_failed": "公告檢查失敗",

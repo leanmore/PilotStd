@@ -2,6 +2,7 @@
 defineOptions({ name: 'FavoritesView' })
 // FavoritesView.vue — 收藏列表页（批次7：Tab 分类切换 + 类型标签 + 导出）
 import { computed, onMounted, ref } from 'vue'
+import http from '@/api/http'
 import { useI18n } from 'vue-i18n'
 import { useToast } from 'primevue/usetoast'
 import FavoriteStatusTag from '@/components/FavoriteStatusTag.vue'
@@ -70,15 +71,32 @@ function countOf(key: string): number {
 async function loadFavorites() {
   loading.value = true
   try {
-    const resp = await fetch('/api/favorites', { credentials: 'include' })
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
-    const data = await resp.json()
+    const data = await http.get('/favorites').then(r => r.data)
     favorites.value = data.favorites || []
   } catch (e: any) {
     toast.add({ severity: 'error', summary: t('favorites.load_failed'), detail: String(e?.message || e), life: 3000 })
   } finally {
     loading.value = false
   }
+}
+
+/** 导出失败时错误响应可能是 Blob（responseType:'blob'），先读文本再解析，避免界面显示 [object Blob]。 */
+async function exportErrorDetail(e: unknown): Promise<string> {
+  const data = (e as { response?: { data?: unknown } })?.response?.data
+  if (data instanceof Blob) {
+    try {
+      const text = await data.text()
+      try {
+        const j = JSON.parse(text)
+        return String(j.detail || j.error || text)
+      } catch {
+        return text
+      }
+    } catch {
+      return String((e as Error)?.message || e)
+    }
+  }
+  return String((e as Error)?.message || e)
 }
 
 async function exportFavorites(scope: 'current' | 'all') {
@@ -88,17 +106,15 @@ async function exportFavorites(scope: 'current' | 'all') {
     params.set('standard_type', activeType.value)
   }
   try {
-    const resp = await fetch(`/api/favorites/export?${params.toString()}`, { credentials: 'include' })
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
-    const blob = await resp.blob()
+    const blob = await http.get(`/favorites/export?${params.toString()}`, { responseType: 'blob' }).then(r => r.data)
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
     a.download = `favorites${activeType.value === 'all' ? '' : `-${activeType.value}`}.csv`
     a.click()
     URL.revokeObjectURL(url)
-  } catch (e: any) {
-    toast.add({ severity: 'error', summary: t('favorites.export_failed'), detail: String(e?.message || e), life: 3000 })
+  } catch (e: unknown) {
+    toast.add({ severity: 'error', summary: t('favorites.export_failed'), detail: await exportErrorDetail(e), life: 3000 })
   }
 }
 

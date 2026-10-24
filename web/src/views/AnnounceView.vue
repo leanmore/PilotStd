@@ -56,18 +56,21 @@ const sinceDate = ref<Date>(defaultSince())
 watch(sinceDate, (v) => {
   setItem('announce_since', v.toISOString())
   const ds = `${v.getFullYear()}-${String(v.getMonth()+1).padStart(2,'0')}-${String(v.getDate()).padStart(2,'0')}`
-  usePreferencesStore().set('announce_since_date', ds).catch(() => {})
+  usePreferencesStore().set('announce_since_date', ds).catch((e) => console.warn('保存抓取起点失败，回落到默认日期', e)) // i18n-allow: 开发者日志：偏好保存失败不影响列表
 })
 const error = ref('')
 
 async function load() {
+  error.value = ''
   try {
     const sourceSite = `announcement_${activeTab.value}`
     // 日期是“抓取起点”，不是列表展示日期：列表不按它过滤，只按来源 Tab 展示
     const data = await getAnnounceResults(sourceSite, '', '/announce')
     results.value = data.results || []
     loadStats()
-  } catch {}
+  } catch {
+    error.value = t('announce.view.load_failed')
+  }
 }
 
 async function check() {

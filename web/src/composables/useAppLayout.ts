@@ -113,7 +113,7 @@ export function useAppLayout() {
     sidebarCollapsed.value = !sidebarCollapsed.value
     usePreferencesStore()
       .set('sidebar_collapsed', sidebarCollapsed.value)
-      .catch(() => {})
+      .catch((e) => console.warn('保存侧边栏偏好失败，只影响下次记忆', e)) // i18n-allow: 开发者日志：偏好保存失败不打断交互
   }
   function toggleTheme() {
     store.theme = isDark.value ? 'light' : 'dark'
