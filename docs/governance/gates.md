@@ -585,7 +585,7 @@ A 类管"**事件**是否齐备"（数据完备性）；B 类管"同一事实在
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
-| v2.15 | 2026-10-24 | **文档可维护性收口（G-032 由 22 warning → 0）**：① 清除本文 16 处死链引用——删除/改名路径一律去反引号（check_docs_sync.py→check_module_doc_mappings.py、trinity-gate.yml→deep-gate.yml 等），唯一仍有效的 `pilotstd/core/i18n.py` 更正为 `pilotstd/i18n/__init__.py`（加载器已迁）；② `scripts/generate_status_metrics.py` 改为**全量生成** `STATUS.md`（不再保留人工区，数字单一来源；无 coverage.xml 时记 n/a 而非 0）；③ 同步 AGENTS.md 中同一处死链。验证：G-032 0 warning、G-037 13 项对齐 |
+| v2.15 | 2026-10-24 | **文档可维护性收口（G-032 由 22 warning → 0）**：① 清除本文 16 处死链引用——删除/改名路径一律去反引号（check_docs_sync.py→check_module_doc_mappings.py、trinity-gate.yml→deep-gate.yml 等），唯一仍有效的 pilotstd/core/i18n.py 更正为 `pilotstd/i18n/__init__.py`（加载器已迁）；② `scripts/generate_status_metrics.py` 改为**全量生成** `STATUS.md`（不再保留人工区，数字单一来源；无 coverage.xml 时记 n/a 而非 0）；③ 同步 AGENTS.md 中同一处死链。验证：G-032 0 warning、G-037 13 项对齐 |
 | v2.14 | 2026-10-18 | **Governance Docs Check 合并进 CI**：删除独立 governance-check.yml，改为 `repo-compliance` 的步骤；脚本支持 `GOVERNANCE_DOCS_RANGE` 显式范围（push before..sha / PR base..head），修复固定 `HEAD~1..HEAD` 在多提交/PR 下只查最后一笔的问题。该检查原先只在 `docs/governance/**` 触发，直推 main 时状态易被忽略；合并后每次 CI 都跑（无变更时立即跳过） |
 | v2.13 | 2026-10-18 | **精简仓库 / 退役 AI 工作流脚手架**：删除 `enforcement/`、src/types/bootstrap.py、trinity/prompt/phase1 文档与对应测试（2999 行）；trinity-gate.yml 改名 `deep-gate.yml`（功能不变）；`check_governance_docs.sh` 不再把 `gates.md` 列入"不可修改"白名单（门禁需随演进更新）。docs/development-flow.md 一并移除，AGENTS §8.1 与 `docs/index.md` 同步删除该行 |
 | v2.12 | 2026-10-18 | **后端失败诊断**：`test-backend` 生成 `/tmp/backend-report.xml`；失败时 `Backend failures summary` 把失败用例以 `::error title=Pytest failure::...` 输出为 check-run 注解（Actions 日志需 `actions:read`，注解可用仓库读权限取回）。仅失败时运行，不改变测试判定 |
