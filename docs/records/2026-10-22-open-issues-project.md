@@ -37,7 +37,7 @@
 | P-02 | 通知英文键名 | 第二节 | 已修，待部署 |
 | P-03 | 未配置渠道不应记为 failed | 31/54 failed，dingtalk/feishu/wechat 全失败 | **已修**：双形态字段齐全才初始化；待部署 |
 | P-04 | Telegram `float` 错误 | 1 条实际失败 | **已修**：`parse_retry_after` 先 `str()`；待部署 |
-| P-05 | 无变化通知噪音 | 18+18 条重复状态 | **未修，需产品决定抑制/聚合策略** |
+| P-05 | 无变化通知噪音 | 18+18 条重复状态 | **已裁定（2026-10-24）：非缺陷**——"跑完没变化"是状态确认（证明任务真的执行了），默认仍通知；需要清静的用户可开 `suppress_nochange`（F2 已实现） |
 | P-06 | 备份成功用 `anomaly_alert` | 4 条备份成功归为异常告警 | **未修** |
 | P-07 | A-3 `channel_spec ↔ get_config_schema` 互证门禁 | `docs/debt/03-open.md` A-3 | 未修（可选） |
 | P-08 | A-5 cookiecutter CLI 未入 CI | `docs/debt/03-open.md` A-5 | 接受：hooks 变更时再补 |
