@@ -7,6 +7,7 @@ import logging
 import math
 import threading
 import time as _time
+from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from .status import Status
@@ -56,6 +57,32 @@ def _std_name(db: Any, std_no: str) -> str:
     return ""
 
 
+def _enqueue_gb_replacement(db: Any, new_standard: str, new_name: str) -> None:
+    """被 GB 家族替代时，把新标准放入下载等待队列（自动补下）。"""
+    if not new_standard:
+        return
+    from .std_utils import is_gb_code, parse_std_number
+
+    parsed = parse_std_number(new_standard)
+    if not parsed or not is_gb_code(str(parsed.get("raw_code", ""))):
+        return
+    try:
+        existing = db.fetchone(
+            "SELECT id FROM download_queue WHERE standard_number=? AND status='waiting'",
+            (new_standard,),
+        )
+        if existing:
+            return
+        now = datetime.now().isoformat()
+        db.execute(
+            "INSERT INTO download_queue (standard_number, standard_name, publish_date,"
+            " expected_available, created_at, status) VALUES (?, ?, ?, ?, ?, 'waiting')",
+            (new_standard, new_name, "", now[:10], now),
+        )
+    except Exception as e:
+        logger.warning("替代标准入下载队列失败: %s, error=%s", new_standard, e)  # i18n-allow: 内部日志
+
+
 def _process_validity_batch(
     candidates: list[str],
     checker: ValidityChecker,
@@ -96,6 +123,11 @@ def _process_validity_batch(
                             "new_standard": result.get("new_standard", ""),
                             "new_standard_name": result.get("new_standard_name", ""),
                         }
+                    )
+                    _enqueue_gb_replacement(
+                        db,
+                        str(result.get("new_standard", "") or ""),
+                        str(result.get("new_standard_name", "") or ""),
                     )
                     if len(change_detail) % 10 == 0 and notification_mgr:
                         try:
@@ -253,7 +285,7 @@ def run_validity_check(
                     {"error": str(e)},
                 )
             except Exception as e2:
-                logger.warning("时效性系统失败通知发送失败: %s", e2)
+                logger.warning("时效性系统失败通知发送失败: %s", e2)  # i18n-allow: 内部日志
         return {"ok": False, "checked": 0, "changed": 0, "error": str(e)}
     finally:
         _VALIDITY_LOCK.release()

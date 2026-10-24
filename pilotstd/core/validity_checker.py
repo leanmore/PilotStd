@@ -162,8 +162,15 @@ class ValidityChecker:
         except Exception as exc:
             logger.warning("自动移动过期文件失败: %s, error=%s", standard_number, exc)  # i18n-allow: 内部日志
 
+    def _file_index_exists(self) -> bool:
+        """兼容测试替身/旧库：没有 file_index 表时不做路径排除。"""
+        rows = self._db.fetchall("PRAGMA table_info(file_index)")
+        return bool(rows)
+
     def _exclude_expired_sql(self) -> tuple[str, str]:
         """排除 file_index 中路径含“过期作废”子目录的标准。"""
+        if not self._file_index_exists():
+            return "", ""
         from .config import ConfigManager
 
         folder = str(ConfigManager().get("storage.expire_folder", "过期作废") or "过期作废")  # i18n-allow: 配置默认值
@@ -181,10 +188,11 @@ class ValidityChecker:
         """查询所有 next_check_at <= now 的到期标准号。"""
         now = datetime.now(timezone.utc).isoformat()
         clause, pattern = self._exclude_expired_sql()
+        params: tuple[Any, ...] = (now,) if not clause else (now, pattern)
         rows = self._db.fetchall(
             f"SELECT standard_number FROM {_TABLE} v"
             f" WHERE next_check_at <= ?{clause} ORDER BY next_check_at ASC",
-            (now, pattern),
+            params,
         )
         return [r["standard_number"] for r in rows]
 
@@ -192,9 +200,10 @@ class ValidityChecker:
         """到期标准总数（轻量 COUNT 查询，不加载数据）。"""
         now = datetime.now(timezone.utc).isoformat()
         clause, pattern = self._exclude_expired_sql()
+        params: tuple[Any, ...] = (now,) if not clause else (now, pattern)
         row = self._db.fetchone(
             f"SELECT COUNT(*) as cnt FROM {_TABLE} v WHERE next_check_at <= ?{clause}",
-            (now, pattern),
+            params,
         )
         return row["cnt"] if row else 0
 
@@ -202,10 +211,11 @@ class ValidityChecker:
         """随机采样 limit 条到期标准号（数据库层 ORDER BY RANDOM() + LIMIT，避免全量加载到 Python 内存）。"""
         now = datetime.now(timezone.utc).isoformat()
         clause, pattern = self._exclude_expired_sql()
+        params: tuple[Any, ...] = (now, limit) if not clause else (now, pattern, limit)
         rows = self._db.fetchall(
             f"SELECT standard_number FROM {_TABLE} v WHERE next_check_at <= ?{clause}"
             " ORDER BY RANDOM() LIMIT ?",
-            (now, pattern, limit),
+            params,
         )
         return [r["standard_number"] for r in rows]
 
@@ -287,17 +297,22 @@ class ValidityChecker:
         return None
 
     def _replacement_info(self, standard_number: str) -> dict[str, str]:
-        """查替代标准：announcement_record 中 replaces_code 指向旧标准的新标准。"""
+        """查替代标准：announcement_record.superseded_by 指向的新标准号。"""
         try:
             row = self._db.fetchone(
-                "SELECT standard_number, std_name FROM announcement_record"
-                " WHERE replaces_code=? AND standard_number<>? LIMIT 1",
-                (standard_number, standard_number),
+                "SELECT superseded_by FROM announcement_record"
+                " WHERE standard_number=? AND COALESCE(superseded_by,'')<>'' LIMIT 1",
+                (standard_number,),
             )
             if row:
+                new_standard = str(row["superseded_by"] or "")
+                name_row = self._db.fetchone(
+                    "SELECT std_name FROM announcement_record WHERE standard_number=? LIMIT 1",
+                    (new_standard,),
+                )
                 return {
-                    "new_standard": str(row["standard_number"] or ""),
-                    "new_standard_name": str(row["std_name"] or ""),
+                    "new_standard": new_standard,
+                    "new_standard_name": str(name_row["std_name"] or "") if name_row else "",
                 }
         except Exception:
             logger.warning("replacement lookup failed for %s", standard_number, exc_info=True)
