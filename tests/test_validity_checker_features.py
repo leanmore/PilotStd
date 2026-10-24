@@ -68,3 +68,20 @@ def test_process_batch_reports_replacement(tmp_path) -> None:
     assert changed == 1 and changed_list == ["GB 1-2020"]
     assert detail[0]["new_standard"] == "GB/T 1-2024"
     db.close()
+
+
+def test_status_notification_includes_new_standard_name() -> None:
+    from pilotstd.core.notification._builders_validity import _build_standard_status_changed_message
+
+    msg = _build_standard_status_changed_message(
+        {
+            "standard_number": "GB 1-2020",
+            "old_status": "现行",
+            "new_status": "已废止",
+            "is_expired": True,
+            "new_standard": "GB/T 1-2024",
+            "new_standard_name": "新标准名称",
+        }
+    )
+    texts = [getattr(b, "text", "") for b in msg.blocks]
+    assert any("GB/T 1-2024" in x and "新标准名称" in x for x in texts)

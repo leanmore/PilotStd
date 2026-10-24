@@ -43,6 +43,13 @@ def _build_standard_status_changed_message(data: dict) -> NotificationMessage:
         # 新状态为废止类时降级为警告级别（按数据口径判定，不得比较展示文案）
         level = "warning" if is_abolished_status(new_status) else "info"
         icon = "pi pi-refresh"
+    new_standard = data.get("new_standard", "")
+    if new_standard:
+        text = t("notification.validity.standard_status_changed.body.new_standard").format(s=new_standard)
+        new_standard_name = data.get("new_standard_name", "")
+        if new_standard_name:
+            text += f" {new_standard_name}"
+        blocks.append(TextBlock(text=text))
     return NotificationMessage(
         title=title,
         blocks=blocks,
@@ -140,6 +147,9 @@ def _build_validity_batch_report_message(data: dict) -> NotificationMessage:
             new_standard = cd.get("new_standard", "")
             if new_standard:
                 line += t("notification.validity.validity_batch_report.body.replacement").format(s=new_standard)
+                new_standard_name = cd.get("new_standard_name", "")
+                if new_standard_name:
+                    line += f" {new_standard_name}"
             lines.append(t("notification.validity.validity_batch_report.body.item").format(s=line))
         blocks.append(TextBlock(text="\n".join(lines)))
     failed_detail = data.get("failed_detail") or []

@@ -563,6 +563,7 @@
     "notification.download.batch_download_complete.body.stats": "Succeeded: {success}, failed: {failed}, skipped: {skipped}",
 
     "notification.validity.standard_status_changed.title.normal": "Standard Status Changed",
+    "notification.validity.standard_status_changed.body.new_standard": "New standard: {s}",
     "notification.validity.standard_status_changed.title.expired": "[Expired] Standard has expired",
 
     "notification.validity.standard_first_registered.title": "New Standards First Registered",

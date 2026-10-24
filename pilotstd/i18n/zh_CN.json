@@ -567,6 +567,7 @@
     "notification.download.batch_download_complete.body.stats": "成功：{success}，失败：{failed}，跳过：{skipped}",
 
     "notification.validity.standard_status_changed.title.normal": "标准状态变更",
+    "notification.validity.standard_status_changed.body.new_standard": "新标准：{s}",
     "notification.validity.standard_status_changed.title.expired": "[废止] 标准已废止",
 
     "notification.validity.standard_first_registered.title": "新标准首次登记",

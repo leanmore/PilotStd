@@ -69,7 +69,14 @@ class ValidityChecker:
 
     # ── 状态更新 ──────────────────────────────────────────────
 
-    def update_status(self, standard_number: str, new_status: str, notification_mgr: Any = None) -> None:
+    def update_status(
+        self,
+        standard_number: str,
+        new_status: str,
+        notification_mgr: Any = None,
+        new_standard: str = "",
+        new_standard_name: str = "",
+    ) -> None:
         """更新标准时效性状态，设置下次检查时间=now + total_weeks*7 天。
         状态变更时同步更新 last_changed_at，未变化时仅更新 updated_at。
         """
@@ -104,6 +111,8 @@ class ValidityChecker:
                                 "new_status": new_status,
                                 "is_expired": is_expired,
                                 "changed_at": datetime.now().isoformat(),
+                                "new_standard": new_standard,
+                                "new_standard_name": new_standard_name,
                             },
                         )
                     except Exception as e:

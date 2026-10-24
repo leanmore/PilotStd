@@ -111,7 +111,13 @@ def _process_validity_batch(
                 )
                 old_status = old_row["status"] if old_row else None
                 new_status = result["status"] or Status.ACTIVE.value
-                checker.update_status(std_no, new_status, notification_mgr)
+                checker.update_status(
+                    std_no,
+                    new_status,
+                    notification_mgr,
+                    str(result.get("new_standard", "") or ""),
+                    str(result.get("new_standard_name", "") or ""),
+                )
                 if old_status and old_status != new_status:
                     changed_list.append(std_no)
                     changed += 1
