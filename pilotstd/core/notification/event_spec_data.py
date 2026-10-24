@@ -24,7 +24,18 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         builder_ref="pilotstd.core.notification._builders_validity:_build_standard_status_changed_message",
         i18n_category="notification.validity", default_channels=("wechat",), levels=("info", "warning", "error"),
         module_key="notification.module.validity", trigger_file="pilotstd/core/validity_checker.py",
-        payload_keys=frozenset({"changed_at", "is_expired", "new_status", "old_status", "standard_number"}),
+        payload_keys=frozenset(
+            {
+                "changed_at",
+                "is_expired",
+                "new_status",
+                "old_status",
+                "standard_number",
+                "standard_name",
+                "new_standard",
+                "new_standard_name",
+            }
+        ),
         security=False, branch_by=None, subscribable=True, aggregation="aggregate",
 
         verify="e2e",
@@ -68,7 +79,8 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         builder_ref="pilotstd.core.notification._builders_validity:_build_validity_standard_failed_message",
         i18n_category="notification.validity", default_channels=("wechat",), levels=("error",),
         module_key="notification.module.validity", trigger_file="pilotstd/core/_validity_pipeline.py",
-        payload_keys=frozenset({"error", "standard_number"}), security=False, branch_by=None, subscribable=True,
+        payload_keys=frozenset({"error", "standard_number", "standard_name"}),
+        security=False, branch_by=None, subscribable=True,
         aggregation="aggregate",
 
         verify="manual",
@@ -144,7 +156,8 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         builder_ref="pilotstd.core.notification._builders_task_results:_build_query_failed_message",
         i18n_category="notification.query", default_channels=(), levels=("error",),
         module_key="notification.module.query", trigger_file="pilotstd/manager/facade/_query_subsystem.py",
-        payload_keys=frozenset({"error", "standard_number"}), security=False, branch_by=None, subscribable=True,
+        payload_keys=frozenset({"error", "standard_number", "standard_name"}),
+        security=False, branch_by=None, subscribable=True,
         aggregation="aggregate",
 
         verify="e2e",
@@ -255,7 +268,8 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         builder_ref="pilotstd.core.notification._builders_task_results:_build_expire_standard_moved_message",
         i18n_category="notification.validity", default_channels=(), levels=("info",),
         module_key="notification.module.expire", trigger_file="pilotstd/manager/facade/_organize.py",
-        payload_keys=frozenset({"standard_number", "target_path"}), security=False, branch_by=None, subscribable=True,
+        payload_keys=frozenset({"standard_number", "standard_name", "target_path"}),
+        security=False, branch_by=None, subscribable=True,
         aggregation="aggregate",
 
         verify="manual",
@@ -265,7 +279,8 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         builder_ref="pilotstd.core.notification._builders_task_results:_build_replacement_not_found_message",
         i18n_category="notification.validity", default_channels=(), levels=("warning",),
         module_key="notification.module.expire", trigger_file="pilotstd/manager/classifier.py",
-        payload_keys=frozenset({"searched_sources", "standard_number"}), security=False, branch_by=None,
+        payload_keys=frozenset({"searched_sources", "standard_number", "standard_name"}),
+        security=False, branch_by=None,
         subscribable=True, aggregation="aggregate",
 
         verify="manual",

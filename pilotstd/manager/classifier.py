@@ -114,7 +114,9 @@ class QueryClassifier:
                 and is_gb_code(p.logical_code)
                 and r.match_status != "newer"
             ):
-                replaced_by = self.resolve_replaces(p.get_full_number(), notification_mgr)
+                replaced_by = self.resolve_replaces(
+                    p.get_full_number(), notification_mgr, getattr(p, "std_name", "")
+                )
                 if not replaced_by:
                     continue
                 r.replaces = replaced_by
@@ -187,7 +189,9 @@ class QueryClassifier:
             # 新增中文字面量会超基线；注释与 docstring 不计入该基线，故说明仍用中文。
             logger.debug("persist final_name failed (classification/archive unaffected): %s", e)
 
-    def resolve_replaces(self, standard_number: str, notification_mgr: Any = None) -> str:
+    def resolve_replaces(
+        self, standard_number: str, notification_mgr: Any = None, standard_name: str = ""
+    ) -> str:
         """跨站点补查替代关系。遍历所有适配器，由适配器声明能力而非硬编码站点名。"""
 
         searched_sources: list[str] = []
@@ -225,7 +229,11 @@ class QueryClassifier:
             try:
                 notification_mgr.send_event(
                     "replacement_not_found",
-                    {"standard_number": standard_number, "searched_sources": searched_sources},
+                    {
+                        "standard_number": standard_number,
+                        "standard_name": standard_name,
+                        "searched_sources": searched_sources,
+                    },
                 )
             except Exception as e:
                 logger.warning("替代标准未找到通知发送失败: %s, error=%s", standard_number, e)

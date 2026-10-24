@@ -208,7 +208,16 @@ SECURITY_EVENTS_TRIGGERED_VIA_SEND_EVENT: frozenset[str] = frozenset({"security_
 # 硬编码 trigger_keys — 当 regex 无法解析 Block 模式 send_event 时使用
 # 由手动审查 trigger 源码维护，是字段验证的真实来源
 TRIGGER_KEYS: dict[str, set[str]] = {
-    "standard_status_changed": {"standard_number", "old_status", "new_status", "is_expired", "changed_at"},
+    "standard_status_changed": {
+        "standard_number",
+        "standard_name",
+        "old_status",
+        "new_status",
+        "is_expired",
+        "changed_at",
+        "new_standard",
+        "new_standard_name",
+    },
     "standard_first_registered": {"standard_number", "standards", "name", "detail_url", "elapsed_ms"},
     "validity_batch_report": {"count", "changed", "failed", "adapters", "change_detail", "adapter_status"},
     "validity_round_summary": {
@@ -219,7 +228,7 @@ TRIGGER_KEYS: dict[str, set[str]] = {
         "adapter_summary",
         "round",
     },
-    "validity_standard_failed": {"standard_number", "error"},
+    "validity_standard_failed": {"standard_number", "standard_name", "error"},
     "validity_system_failed": {"error"},
     "scan_complete": {"count", "failed"},
     "scan_empty": set(),
@@ -228,7 +237,7 @@ TRIGGER_KEYS: dict[str, set[str]] = {
     "desktop_toast": set(),
     "auto_scan_failed": {"path", "error"},
     "batch_query_summary": {"total", "found", "pending", "results", "failed_items"},
-    "query_failed": {"standard_number", "error"},
+    "query_failed": {"standard_number", "standard_name", "error"},
     "query_empty": {"total"},
     "batch_download_complete": {"total", "success", "failed", "skipped", "failed_items"},
     # 下载族三事件自 2026-10-05 起载荷带名称键 standard_name（值＝「最高可得阶段名」，
@@ -242,7 +251,7 @@ TRIGGER_KEYS: dict[str, set[str]] = {
     "archive_complete": {"count", "directories", "category_stats", "failed_items"},
     "archive_failed": {"count", "error"},
     "archive_abandoned": {"standard_info", "error"},
-    "expire_standard_moved": {"standard_number", "target_path"},
+    "expire_standard_moved": {"standard_number", "standard_name", "target_path"},
     "announcement_fetch_complete": {"count", "source"},
     "announcement_check_complete": {
         "total_announcements",
@@ -257,7 +266,7 @@ TRIGGER_KEYS: dict[str, set[str]] = {
         "source",
     },
     "announcement_fetch_failed": {"source", "error"},
-    "replacement_not_found": {"standard_number", "searched_sources"},
+    "replacement_not_found": {"standard_number", "standard_name", "searched_sources"},
     "auto_backup": {"success", "backup_path", "size_mb", "error"},
     "image_update_available": {"error", "old_digest", "new_digest"},
     "worker_error": {"worker", "error", "traceback"},

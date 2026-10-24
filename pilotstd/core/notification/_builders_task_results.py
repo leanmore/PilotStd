@@ -16,6 +16,7 @@
 # 覆盖全部任务类通知。顺序本身无副作用（管理器按事件名查表，不依赖定义顺序）。
 from pilotstd.i18n import t
 
+from ._builders_common import _std_label
 from ._format_utils import translate_error_message
 from .blocks import (
     KeyValueBlock,
@@ -106,10 +107,13 @@ def _build_scan_empty_message(data: dict) -> NotificationMessage:
 def _build_query_failed_message(data: dict) -> NotificationMessage:
     """原 Mixin 方法，现为模块级纯函数。"""
     std_no = data.get("standard_number", "")
+    std_name = data.get("standard_name", "")
     error = data.get("error", t("notification.common.unknown_error"))
     blocks: list[NotificationBlock] = [
         TextBlock(
-            text=t("notification.query.query_failed.body").format(standard_number=std_no, error=error)
+            text=t("notification.query.query_failed.body").format(
+                standard_number=_std_label(std_no, std_name), error=error
+            )
         ),
     ]
     return NotificationMessage(
@@ -172,13 +176,14 @@ def _build_normalize_failed_message(data: dict) -> NotificationMessage:
 def _build_expire_standard_moved_message(data: dict) -> NotificationMessage:
     """原 Mixin 方法，现为模块级纯函数。"""
     std_no = data.get("standard_number", "")
+    std_name = data.get("standard_name", "")
     target = data.get("target_path", "")
     return NotificationMessage(
         title=t("notification.validity.expire_standard_moved.title"),
         blocks=[
             TextBlock(
                 text=t("notification.validity.expire_standard_moved.body").format(
-                    standard_number=std_no, target_path=target
+                    standard_number=_std_label(std_no, std_name), target_path=target
                 )
             )
         ],
@@ -191,14 +196,16 @@ def _build_expire_standard_moved_message(data: dict) -> NotificationMessage:
 def _build_replacement_not_found_message(data: dict) -> NotificationMessage:
     """原 Mixin 方法，现为模块级纯函数。"""
     std_no = data.get("standard_number", "")
+    std_name = data.get("standard_name", "")
     sources = data.get("searched_sources", [])
+    label = _std_label(std_no, std_name)
     if sources:
         sources_str = ", ".join(str(s) for s in sources)
         text = t("notification.validity.replacement_not_found.body.with_sources").format(
-            standard_number=std_no, sources_str=sources_str
+            standard_number=label, sources_str=sources_str
         )
     else:
-        text = t("notification.validity.replacement_not_found.body.no_sources").format(standard_number=std_no)
+        text = t("notification.validity.replacement_not_found.body.no_sources").format(standard_number=label)
     return NotificationMessage(
         title=t("notification.validity.replacement_not_found.title"),
         blocks=[TextBlock(text=text)],

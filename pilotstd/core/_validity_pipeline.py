@@ -83,6 +83,23 @@ def _enqueue_gb_replacement(db: Any, new_standard: str, new_name: str) -> None:
         logger.warning("替代标准入下载队列失败: %s, error=%s", new_standard, e)  # i18n-allow: 内部日志
 
 
+def _record_change(db: Any, std_no: str, new_status: str, result: dict) -> dict:
+    """记录一次状态变更，并把 GB 替代标准放入下载队列。"""
+    detail = {
+        "standard": std_no,
+        "name": _std_name(db, std_no),
+        "reason": new_status,
+        "new_standard": result.get("new_standard", ""),
+        "new_standard_name": result.get("new_standard_name", ""),
+    }
+    _enqueue_gb_replacement(
+        db,
+        str(result.get("new_standard", "") or ""),
+        str(result.get("new_standard_name", "") or ""),
+    )
+    return detail
+
+
 def _process_validity_batch(
     candidates: list[str],
     checker: ValidityChecker,
@@ -121,20 +138,7 @@ def _process_validity_batch(
                 if old_status and old_status != new_status:
                     changed_list.append(std_no)
                     changed += 1
-                    change_detail.append(
-                        {
-                            "standard": std_no,
-                            "name": _std_name(db, std_no),
-                            "reason": new_status,
-                            "new_standard": result.get("new_standard", ""),
-                            "new_standard_name": result.get("new_standard_name", ""),
-                        }
-                    )
-                    _enqueue_gb_replacement(
-                        db,
-                        str(result.get("new_standard", "") or ""),
-                        str(result.get("new_standard_name", "") or ""),
-                    )
+                    change_detail.append(_record_change(db, std_no, new_status, result))
                     if len(change_detail) % 10 == 0 and notification_mgr:
                         try:
                             notification_mgr.send_event(
@@ -155,7 +159,11 @@ def _process_validity_batch(
                 try:
                     notification_mgr.send_event(
                         "validity_standard_failed",
-                        {"standard_number": std_no, "error": str(e)},
+                        {
+                            "standard_number": std_no,
+                            "standard_name": _std_name(db, std_no),
+                            "error": str(e),
+                        },
                     )
                 except Exception as e2:
                     logger.warning("标准检查失败通知发送失败: %s, error=%s", std_no, e2)
@@ -203,7 +211,10 @@ def _finalize_validity_round(
                             "WHERE last_changed_at IS NOT NULL "
                             "ORDER BY last_changed_at DESC LIMIT 200"
                         )
-                        cycle_change_list = [r["standard_number"] for r in changes]
+                        cycle_change_list = [
+                            f"{r['standard_number']} {_std_name(db, r['standard_number'])}".strip()
+                            for r in changes
+                        ]
                         notification_mgr.send_event(
                             "validity_round_summary",
                             {

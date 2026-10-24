@@ -38,6 +38,7 @@ class NotificationMessage:
     body: str = ""  # 向后兼容：blocks 为空时回退渲染 body
     level: str = "info"  # info / warning / error
     standard_number: str | None = None
+    standard_name: str | None = None
     event_type: str = ""
     link: str | None = None  # 跳转链接（如 /standards/GB/T 123-2024）
     icon: str | None = None  # 图标标识（前端按类型渲染）

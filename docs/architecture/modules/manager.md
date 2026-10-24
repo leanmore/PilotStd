@@ -177,3 +177,5 @@ StandardManager (BaseFacade)
 **时效性/归档配置（2026-10-24）**：归档目录使用 `storage.expire_folder` 配置作为“过期作废”目录名；时效性到期查询联查 `file_index.file_path`，排除该目录下的标准。
 
 **归档/时效性（2026-10-24）**：storage.expire_folder 同时用于归档路径与时效性排除；过期状态自动移动。
+
+**通知标准名（2026-10-24）**：替代关系补查、查询失败、废止移动等事件同时携带 standard_name，通知构建器统一拼接标准号与名称。

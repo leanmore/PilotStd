@@ -3,6 +3,7 @@
 
 from pilotstd.i18n import t
 
+from ._builders_common import _std_label
 from ._format_utils import is_abolished_status, translate_error_message
 from .blocks import (
     ListBlock,
@@ -25,11 +26,12 @@ def _build_standard_status_changed_message(data: dict) -> NotificationMessage:
     沿用原"标准已废止"模板语义（error 级别 + 变更时间行），替代原独立事件。
     """
     std_no = data.get("standard_number", "")
+    std_name = data.get("standard_name", "")
     old_status = data.get("old_status", "")
     new_status = data.get("new_status", "")
     is_expired = data.get("is_expired", False)
     blocks: list[NotificationBlock] = [
-        StatusChangeBlock(label=std_no, old_value=old_status, new_value=new_status)
+        StatusChangeBlock(label=_std_label(std_no, std_name), old_value=old_status, new_value=new_status)
     ]
     # 废止类通知用级别+红色图标，强调紧急性；并保留原标准废止事件的变更时间行
     if is_expired:
@@ -55,6 +57,7 @@ def _build_standard_status_changed_message(data: dict) -> NotificationMessage:
         blocks=blocks,
         level=level,
         standard_number=std_no,
+        standard_name=data.get("standard_name") or None,
         event_type="standard_status_changed",
         link=_make_link(std_no),
         icon=icon,
@@ -216,7 +219,10 @@ def _build_validity_round_summary_message(data: dict) -> NotificationMessage:
 def _build_validity_standard_failed_message(data: dict) -> NotificationMessage:
     """原 Mixin 方法，现为模块级纯函数。"""
     std_no = data.get("standard_number", "")
-    blocks: list[NotificationBlock] = [TextBlock(text=t("notification.common.std_no").format(s=std_no))]
+    std_name = data.get("standard_name", "")
+    blocks: list[NotificationBlock] = [
+        TextBlock(text=t("notification.common.std_no").format(s=_std_label(std_no, std_name)))
+    ]
     if data.get("error"):
         blocks.append(TextBlock(text=t("notification.common.error").format(e=data["error"])))
     return NotificationMessage(
@@ -224,6 +230,7 @@ def _build_validity_standard_failed_message(data: dict) -> NotificationMessage:
         blocks=blocks,
         level="error",
         standard_number=std_no,
+        standard_name=data.get("standard_name") or None,
         event_type="validity_standard_failed",
         link=_make_link(std_no),
         icon="pi pi-exclamation-circle",

@@ -235,7 +235,11 @@ class OrganizeHandler:
                     if self._core.notification_mgr and getattr(p, "effect_status", "") in _EXPIRE_STATUSES:
                         self._core.notification_mgr.send_event(
                             "expire_standard_moved",
-                            {"standard_number": std_no, "target_path": getattr(p, "source_path", "")},
+                            {
+                                "standard_number": std_no,
+                                "standard_name": getattr(p, "std_name", ""),
+                                "target_path": getattr(p, "source_path", ""),
+                            },
                         )
                 except Exception as e:
                     logger.warning("发送废止标准通知失败: %s, error=%s", std_no, e)

@@ -12,6 +12,15 @@ from datetime import date, timedelta
 from pilotstd.i18n import t
 
 
+def _std_label(standard_number: str, standard_name: str) -> str:
+    """标准号与名称的统一展示串；名称缺失时才退化为单独标准号。"""
+    number = (standard_number or "").strip()
+    name = (standard_name or "").strip()
+    if number and name:
+        return f"{number} {name}"
+    return number or name
+
+
 def _make_link(standard_number: str | None) -> str | None:
     """根据标准号生成跳转链接（与 _builders_system 同款，避免跨模块依赖）。
 

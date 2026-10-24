@@ -433,6 +433,7 @@ class NotificationAggregator:
             blocks=merged_blocks,  # 核心：绝不丢弃
             level=self._worst_level(entries),
             standard_number=first_msg.standard_number,
+            standard_name=getattr(first_msg, "standard_name", None),
             event_type=event_type,
             link=first_msg.link,
             icon=first_msg.icon,

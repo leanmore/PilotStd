@@ -215,16 +215,20 @@ class QuerySubsystem:
         stats = BatchQueryStats.from_results(results)
 
         failed_items = [
-            (r.standard_number, getattr(r, "error_message", "") or "未知错误")
+            (
+                r.standard_number,
+                getattr(r, "standard_name", "") or "",
+                getattr(r, "error_message", "") or "未知错误",
+            )
             for r in results
             if getattr(r, "error_message", "") and r.standard_number
         ]
         try:
             if self._core.notification_mgr and failed_items:
-                for std_no, err in failed_items[:5]:
+                for std_no, std_name, err in failed_items[:5]:
                     self._core.notification_mgr.send_event(
                         "query_failed",
-                        {"standard_number": std_no, "error": err},
+                        {"standard_number": std_no, "standard_name": std_name, "error": err},
                     )
         except Exception as e:
             logger.warning("查询失败通知发送失败: %s", e)

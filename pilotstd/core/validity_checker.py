@@ -103,10 +103,16 @@ class ValidityChecker:
                         # 第一步：标准废止事件已合并进本事件，
                         # 通过"是否已过期"字段区分废止（替代原独立事件，避免双通知）
                         is_expired = new_status == Status.WITHDRAWN_NORMALIZED.value
+                        name_row = self._db.fetchone(
+                            "SELECT std_name FROM announcement_record WHERE standard_number=? LIMIT 1",
+                            (standard_number,),
+                        )
+                        standard_name = str(name_row["std_name"] or "") if name_row else ""
                         notification_mgr.send_event(
                             "standard_status_changed",
                             {
                                 "standard_number": standard_number,
+                                "standard_name": standard_name,
                                 "old_status": row["status"],
                                 "new_status": new_status,
                                 "is_expired": is_expired,

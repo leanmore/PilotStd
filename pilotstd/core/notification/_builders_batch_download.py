@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from pilotstd.i18n import t
 
-from ._builders_common import _make_link, _std_type_text
+from ._builders_common import _make_link, _std_label, _std_type_text
 from ._format_utils import translate_error_message
 from .blocks import (
     NotificationBlock,
@@ -70,6 +70,7 @@ def _build_download_failed_message(data: dict) -> NotificationMessage:
         blocks=blocks,
         level="error",
         standard_number=std_no or None,
+        standard_name=std_name or None,
         event_type="download_failed",
         link=_make_link(std_no) if std_no else None,
         icon="pi pi-download",
@@ -84,13 +85,17 @@ def _build_download_started_message(data: dict) -> NotificationMessage:
     表明下载流程已进入执行阶段（区别于收藏时的排队阶段）。
     """
     std_no = data.get("standard_number", "")
-    blocks: list[NotificationBlock] = [TextBlock(text=t("notification.common.std_no").format(s=std_no))]
+    std_name = data.get("standard_name", "")
+    blocks: list[NotificationBlock] = [
+        TextBlock(text=t("notification.common.std_no").format(s=_std_label(std_no, std_name)))
+    ]
     # 下载开始仅告知执行阶段，不承诺成功结果（成败由完成/失败事件分别表达）
     return NotificationMessage(
         title=t("notification.download.download_started.title"),
         blocks=blocks,
         level="info",
         standard_number=std_no or None,
+        standard_name=std_name or None,
         event_type="download_started",
         link=_make_link(std_no) if std_no else None,
         icon="pi pi-download",
@@ -123,6 +128,7 @@ def _build_download_complete_message(data: dict) -> NotificationMessage:
         blocks=blocks,
         level="info",
         standard_number=std_no or None,
+        standard_name=std_name or None,
         event_type="download_complete",
         link=_make_link(std_no) if std_no else None,
         icon="pi pi-check-circle",
