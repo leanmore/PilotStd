@@ -20,7 +20,8 @@ export default {
     return {
       Property(node) {
         const keyName = node.key?.name || node.key?.value;
-        if (!keyName || !keyName.endsWith('Key')) return;
+        // 计算属性/字面量键的 value 可能是数字或对象（ESLint 10 的 AST 形态），先判类型
+        if (typeof keyName !== 'string' || !keyName.endsWith('Key')) return;
 
         const parent = node.parent?.parent;
         const isWrapped =
