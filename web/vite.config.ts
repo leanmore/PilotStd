@@ -49,7 +49,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'eslint-plugin-custom/**/*.test.js'],
     setupFiles: [resolve(__dirname, 'src/test-setup.ts')],
     coverage: {
       provider: 'v8',

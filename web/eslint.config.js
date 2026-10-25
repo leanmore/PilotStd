@@ -51,4 +51,11 @@ export default tseslint.config(
       'custom/no-raw-i18n-key': 'off',
     },
   },
+  // 测试文件刻意使用原始键（fixture/断言目标），不适用该规则
+  {
+    files: ['**/*.test.ts', '**/*.spec.ts'],
+    rules: {
+      'custom/no-raw-i18n-key': 'off',
+    },
+  },
 );
