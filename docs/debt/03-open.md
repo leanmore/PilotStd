@@ -30,6 +30,7 @@
 | **A-11** | **两条自定义 eslint 规则"已定义但未执行"**（`web/eslint.config.js` 把 `custom/no-raw-i18n-key`、`custom/no-sensitive-persist` 设为 error，但 package.json 无 lint 脚本、CI 无 eslint 步骤） | 未修 | 加 `lint` 脚本 + CI 一步；**先决**：56 条存量 `no-raw-i18n-key` 违规需先裁定（逐条修 or 基线），否则接入即红。2026-10-24 实测：`eslint src` = 56 errors（全部该类）+ 284 warnings；`no-sensitive-persist` **0 命中** | 触发条件＝下次改前端规范或要把 eslint 接入 CI 时 |
 | **A-12** | **6 个适配器的 `_search` 无直接测试**（`ccsn`/`sppt`/`sppt_local`/`jtst`/`mee`/`nrsis`；`tests/` 中 grep 零命中） | **部分覆盖**（2026-10-25） | 已由 `tests/unit/query/test_adapter_search_delegation.py` 参数化覆盖 6 类的委托与边界（空/精确优先/取最新）；**仍未覆盖**各适配器 `query_standards` 的网络/解析路径——需按站补录制回放或 mock 响应 | 触发条件＝改任一适配器 `query_standards` 或补适配器测试时 |
 | **A-13** | **两套 HTTP 栈**：4 个通知渠道用 `urllib.request`（`dingtalk.py:19`、`feishu.py:11`、telegram、wechat），其余 21 个文件用 `requests` | 未修 | 引入提交 `c53d7500`（通知模块 v17+三渠道）与 `0da0dea7`（钉钉渠道），**提交信息均无 HTTP 栈选择理由**（2026-10-25 核查）。统一前置：逐条回归四渠道的 `timeout`/异常类型（`URLError` vs `RequestException`）与重试语义，再决定统一到 `requests` 还是保留并补注释 | 触发条件＝下一次动通知渠道网络层时 |
+| **A-14** | **`docs/architecture/modules/query.md` 适配器清单逐行数据失真**：只列 8/22 个适配器，表内行数为旧快照（`njbz365` 写 385、实测 149） | 未修 | 按类/站点/行数整表重算并补全 14 个缺失适配器；头表已于 2026-10-25 修正为 22 个 / 3,875 行，清单开头已加"逐行数据不可信"警示 | 触发条件＝下次改 `query.md` 或需要按表查适配器规模时 |
 
 ## 三、待裁定项（我已给建议，只需你一句话）
 
