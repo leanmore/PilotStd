@@ -18,6 +18,24 @@ from ..search_strategy import (
 logger = logging.getLogger(__name__)
 
 
+def pick_best_result(
+    candidates: list[QueryResult], search_term: str
+) -> Optional[QueryResult]:
+    """从候选结果中挑最佳：精确匹配优先，否则取发布日期最新。
+
+    2026-10-25 从 6 个适配器（ccsn/sppt/sppt_local/jtst/mee/nrsis）抽取，
+    与原实现**逐行等价**：
+    - 精确匹配用 `for + return`，首个命中即返回，不会走到 max 分支；
+    - 无精确匹配时用 `max(..., key=publish_date)`；并列时返回输入顺序第一条。
+    """
+    if not candidates:
+        return None
+    for c in candidates:
+        if c.standard_number == search_term:
+            return c
+    return max(candidates, key=lambda c: getattr(c, "publish_date", "") or "")
+
+
 class BaseAdapter(ABC):
     """所有查询网站适配器的抽象基类。"""
 
