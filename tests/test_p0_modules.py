@@ -164,6 +164,34 @@ class TestFeishuChannelFull(unittest.TestCase):
         self.assertFalse(ch.send(msg))
 
 
+class TestFeishuChannelFullExtra(unittest.TestCase):
+    def test_validate_config(self):
+        from pilotstd.core.notification.channels.feishu import FeishuChannel
+
+        self.assertTrue(FeishuChannel.validate_config({"webhook_url": "https://e.com"}))
+        self.assertFalse(FeishuChannel.validate_config({"webhook_url": ""}))
+
+    @patch("pilotstd.core.notification.channels.feishu.urlopen")
+    def test_send_success(self, mock_urlopen):
+        from pilotstd.core.notification.channel import NotificationMessage
+        from pilotstd.core.notification.channels.feishu import FeishuChannel
+
+        mock_urlopen.side_effect = _mock_urlopen_success(b'{"code":0}')
+        ch = FeishuChannel("https://open.feishu.cn/test")
+        msg = NotificationMessage(title="T", body="B", level="warning", event_type="e")
+        self.assertTrue(ch.send(msg))
+
+    @patch("pilotstd.core.notification.channels.feishu.urlopen")
+    def test_send_api_error(self, mock_urlopen):
+        from pilotstd.core.notification.channel import NotificationMessage
+        from pilotstd.core.notification.channels.feishu import FeishuChannel
+
+        mock_urlopen.side_effect = _mock_urlopen_success(b'{"code":1,"msg":"error"}')
+        ch = FeishuChannel("https://e.com")
+        msg = NotificationMessage(title="T", body="B", level="info", event_type="e")
+        self.assertFalse(ch.send(msg))
+
+
 class TestDingTalkChannelFull(unittest.TestCase):
     def test_validate_config(self):
         from pilotstd.core.notification.channels.dingtalk import DingTalkChannel
@@ -185,22 +213,22 @@ class TestDingTalkChannelFull(unittest.TestCase):
         self.assertIn("timestamp", sig)
         self.assertIn("sign", sig)
 
-    @patch("pilotstd.core.notification.channels.dingtalk.urlopen")
+    @patch("pilotstd.core.notification.channels.dingtalk.requests.post")
     def test_send_success(self, mock_urlopen):
         from pilotstd.core.notification.channel import NotificationMessage
         from pilotstd.core.notification.channels.dingtalk import DingTalkChannel
 
-        mock_urlopen.side_effect = _mock_urlopen_success(b'{"errcode":0}')
+        mock_urlopen.return_value = FakeResponse(200, b'{"errcode":0}')
         ch = DingTalkChannel("https://oapi.dingtalk.com/test")
         msg = NotificationMessage(title="T", body="B", level="info", event_type="e")
         self.assertTrue(ch.send(msg))
 
-    @patch("pilotstd.core.notification.channels.dingtalk.urlopen")
+    @patch("pilotstd.core.notification.channels.dingtalk.requests.post")
     def test_send_with_secret(self, mock_urlopen):
         from pilotstd.core.notification.channel import NotificationMessage
         from pilotstd.core.notification.channels.dingtalk import DingTalkChannel
 
-        mock_urlopen.side_effect = _mock_urlopen_success(b'{"errcode":0}')
+        mock_urlopen.return_value = FakeResponse(200, b'{"errcode":0}')
         ch = DingTalkChannel("https://e.com", secret="SEC")
         msg = NotificationMessage(title="T", body="B", level="info", event_type="e")
         self.assertTrue(ch.send(msg))

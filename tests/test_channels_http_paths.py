@@ -28,7 +28,7 @@ def _make_msg(title="Test", standard_number=""):
 
 
 # 各渠道模块的 urlopen 补丁路径
-_DD_PATH = "pilotstd.core.notification.channels.dingtalk.urlopen"
+_DD_PATH = "pilotstd.core.notification.channels.dingtalk.requests.post"
 _TG_PATH = "pilotstd.core.notification.channels.telegram.requests.post"
 _FS_PATH = "pilotstd.core.notification.channels.feishu.urlopen"
 _WX_PATH = "pilotstd.core.notification.channels.wechat.urlopen"
@@ -54,10 +54,7 @@ class TestDingTalkSend:
     def test_send_success(self):
         from pilotstd.core.notification.channels.dingtalk import DingTalkChannel
         ch = DingTalkChannel("http://hook")
-        mock_resp = MagicMock()
-        mock_resp.status = 200
-        mock_resp.read.return_value = json.dumps({"errcode": 0}).encode()
-        mock_resp.__enter__.return_value = mock_resp
+        mock_resp = FakeResponse(200, json.dumps({"errcode": 0}).encode())
         with patch(_DD_PATH, return_value=mock_resp):
             assert ch.send(_make_msg()) is True
 
@@ -65,14 +62,11 @@ class TestDingTalkSend:
         """发送层不追加标准号（已由构建器渲染进正文），与 telegram 同口径（57f58a6c）。"""
         from pilotstd.core.notification.channels.dingtalk import DingTalkChannel
         ch = DingTalkChannel("http://hook")
-        mock_resp = MagicMock()
-        mock_resp.status = 200
-        mock_resp.read.return_value = json.dumps({"errcode": 0}).encode()
-        mock_resp.__enter__.return_value = mock_resp
+        mock_resp = FakeResponse(200, json.dumps({"errcode": 0}).encode())
         with patch(_DD_PATH, return_value=mock_resp) as mock_urlopen:
             assert ch.send(_make_msg(standard_number="GB/T 1")) is True
-            call_args = mock_urlopen.call_args[0][0]
-            body = json.loads(call_args.data.decode())
+            call_args = mock_urlopen.call_args
+            body = json.loads(call_args.kwargs["data"].decode())
             assert "GB/T 1" not in body["markdown"]["text"]
 
     def test_http_not_200(self):
@@ -87,10 +81,7 @@ class TestDingTalkSend:
     def test_api_error_response(self):
         from pilotstd.core.notification.channels.dingtalk import DingTalkChannel
         ch = DingTalkChannel("http://hook")
-        mock_resp = MagicMock()
-        mock_resp.status = 200
-        mock_resp.read.return_value = json.dumps({"errcode": 1, "errmsg": "bad"}).encode()
-        mock_resp.__enter__.return_value = mock_resp
+        mock_resp = FakeResponse(200, json.dumps({"errcode": 1, "errmsg": "bad"}).encode())
         with patch(_DD_PATH, return_value=mock_resp):
             assert ch.send(_make_msg()) is False
 

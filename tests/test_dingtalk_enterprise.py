@@ -98,17 +98,9 @@ class TestCardSend:
 
         class _Resp:
             def __init__(self, payload: dict, code: int) -> None:
-                self.status = code
-                self._body = _json.dumps(payload).encode("utf-8")
-
-            def read(self) -> bytes:
-                return self._body
-
-            def __enter__(self):
-                return self
-
-            def __exit__(self, *exc) -> bool:
-                return False
+                self.status_code = code
+                self.content = _json.dumps(payload).encode("utf-8")
+                self.text = self.content.decode("utf-8")
 
         seq = [_Resp(token_body, 200)]
         for _ in range(sends):
@@ -120,7 +112,7 @@ class TestCardSend:
         # 两轮发送：令牌只取一次（进程内缓存），创建/投递各两次
         responses = self._responses({"accessToken": "tok", "expireIn": 7200}, sends=2)
         with patch(
-            "pilotstd.core.notification.channels.dingtalk.urlopen", side_effect=responses
+            "pilotstd.core.notification.channels.dingtalk.requests.post", side_effect=responses
         ) as mock_open:
             assert ch.send(_msg()) is True, ch.last_error
             assert ch.send(_msg()) is True, ch.last_error
@@ -133,24 +125,17 @@ class TestCardSend:
         import json as _json
 
         class _Resp:
-            status = 200
+            status_code = 200
+            content = _json.dumps({"message": "invalid app"}).encode("utf-8")
+            text = content.decode("utf-8")
 
-            def read(self) -> bytes:
-                return _json.dumps({"message": "invalid app"}).encode("utf-8")
-
-            def __enter__(self):
-                return self
-
-            def __exit__(self, *exc) -> bool:
-                return False
-
-        with patch("pilotstd.core.notification.channels.dingtalk.urlopen", return_value=_Resp()):
+        with patch("pilotstd.core.notification.channels.dingtalk.requests.post", return_value=_Resp()):
             assert ch.send(_msg()) is False
         assert "取令牌失败" in ch.last_error  # t() 的中文渲染
 
     def test_send_card_records_http_error(self):
         ch = _channel(**ENTERPRISE)
         responses = self._responses({"accessToken": "tok", "expireIn": 7200}, status=500)
-        with patch("pilotstd.core.notification.channels.dingtalk.urlopen", side_effect=responses):
+        with patch("pilotstd.core.notification.channels.dingtalk.requests.post", side_effect=responses):
             assert ch.send(_msg()) is False
         assert "HTTP 500" in ch.last_error

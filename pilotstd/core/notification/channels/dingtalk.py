@@ -16,7 +16,8 @@ import logging
 import time
 from typing import TYPE_CHECKING, Any
 from urllib.parse import quote
-from urllib.request import Request, urlopen
+
+import requests
 
 from pilotstd.i18n import t
 
@@ -149,39 +150,33 @@ class DingTalkChannel(NotificationChannel):
                 }
             ).encode("utf-8")
 
-            req = Request(url, data=payload, headers={"Content-Type": "application/json"}, method="POST")
-            with urlopen(req, timeout=10) as resp:
-                if resp.status != 200:
-                    self.last_error = t("notification.channel.dingtalk.http_error").format(status=resp.status)
-                    logger.warning("钉钉通知 HTTP %d", resp.status)
-                    return False, is_retryable_http_status(resp.status)
-                data = json.loads(resp.read().decode("utf-8"))
-                # 钉钉返回=0表示成功
-                if data.get("errcode") == 0:
-                    return True, False
-                errmsg = data.get("errmsg") or t("notification.channel.api_unknown_error")
-                self.last_error = t("notification.channel.dingtalk.api_failed").format(detail=errmsg)
-                logger.warning("钉钉通知失败: %s", errmsg)
-                return False, looks_rate_limited(f"{data.get('errcode', '')} {errmsg}")
+            resp = requests.post(
+                url, data=payload, headers={"Content-Type": "application/json"}, timeout=10
+            )
+            if resp.status_code != 200:
+                self.last_error = t("notification.channel.dingtalk.http_error").format(
+                    status=resp.status_code
+                )
+                logger.warning("钉钉通知 HTTP %d", resp.status_code)
+                return False, is_retryable_http_status(resp.status_code)
+            data = json.loads(resp.content.decode("utf-8"))
+            # 钉钉返回=0表示成功
+            if data.get("errcode") == 0:
+                return True, False
+            errmsg = data.get("errmsg") or t("notification.channel.api_unknown_error")
+            self.last_error = t("notification.channel.dingtalk.api_failed").format(detail=errmsg)
+            logger.warning("钉钉通知失败: %s", errmsg)
+            return False, looks_rate_limited(f"{data.get('errcode', '')} {errmsg}")
+        except (requests.RequestException, OSError) as e:
+            # 网络类异常（连接重置/超时/域名解析失败）属瞬时故障 → 可重试
+            self.last_error = str(e)
+            logger.warning("钉钉通知异常: %s", e, exc_info=True)
+            return False, True
         except Exception as e:
-            # 读取错误响应体用于诊断（回调返回非 200 时的具体错误）
-            body = ""
-            from urllib.error import HTTPError
-
-            status = 0
-            if isinstance(e, HTTPError):
-                status = e.code
-                try:
-                    body = e.read().decode("utf-8", errors="replace")[:500]
-                except Exception as read_exc:
-                    # 区分"服务端未返回 body"与"body 读取失败"，避免诊断信息静默丢失
-                    body = f"<body 读取失败: {read_exc}>"
-                    logger.debug("错误响应体读取失败: %s", read_exc)
-            # 透传具体错误描述
-            self.last_error = f"{e}: {body}" if body else str(e)
-            logger.warning("钉钉通知异常: %s, body=%s", e, body, exc_info=True)
-            # HTTP 429/5xx 或网络类异常（无 HTTPError 即连接/超时类）⇒ 可重试
-            return False, is_retryable_http_status(status) if status else True
+            # 非网络类异常（如 JSON 解析/编程错误）重试无意义
+            self.last_error = str(e)
+            logger.warning("钉钉通知异常: %s", e, exc_info=True)
+            return False, False
 
     def _send_webhook_text(self, url: str, title: str, rendered: str) -> bool:
         """发送**单个分段**的 markdown 文本（兼容入口：单次尝试，不重试）。
@@ -200,9 +195,14 @@ class DingTalkChannel(NotificationChannel):
         if self._token and now < self._token_expire_at:
             return self._token
         body = json.dumps({"appKey": self._app_key, "appSecret": self._app_secret}).encode("utf-8")
-        req = Request(self._TOKEN_URL, data=body, headers={"Content-Type": "application/json"}, method="POST")
-        with urlopen(req, timeout=10) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
+        resp = requests.post(
+            self._TOKEN_URL, data=body, headers={"Content-Type": "application/json"}, timeout=10
+        )
+        if resp.status_code != 200:
+            raise RuntimeError(
+                t("notification.channel.dingtalk.token_failed").format(detail=resp.status_code)
+            )
+        data = json.loads(resp.content.decode("utf-8"))
         token = str(data.get("accessToken") or "")
         if not token:
             raise RuntimeError(
@@ -233,11 +233,17 @@ class DingTalkChannel(NotificationChannel):
                 },
                 ensure_ascii=False,
             ).encode("utf-8")
-            req = Request(self._CARD_CREATE_URL, data=create_body, headers=headers, method="POST")
-            with urlopen(req, timeout=10) as resp:
-                if resp.status != 200:
-                    self.last_error = t("notification.channel.dingtalk.card_create_http").format(status=resp.status)
-                    logger.warning("%s", t("notification.channel.dingtalk.card_create_http").format(status=resp.status))
+            resp = requests.post(self._CARD_CREATE_URL, data=create_body, headers=headers, timeout=10)
+            if resp.status_code != 200:
+                    self.last_error = t("notification.channel.dingtalk.card_create_http").format(
+                        status=resp.status_code
+                    )
+                    logger.warning(
+                        "%s",
+                        t("notification.channel.dingtalk.card_create_http").format(
+                            status=resp.status_code
+                        ),
+                    )
                     return False
 
             deliver_body = json.dumps(
@@ -249,16 +255,17 @@ class DingTalkChannel(NotificationChannel):
                 },
                 ensure_ascii=False,
             ).encode("utf-8")
-            req2 = Request(self._CARD_DELIVER_URL, data=deliver_body, headers=headers, method="POST")
-            with urlopen(req2, timeout=10) as resp2:
-                if resp2.status != 200:
-                    # 同一文案既进 last_error（日志表用户可见）也进 warning（排查用）
-                    deliver_error = t("notification.channel.dingtalk.card_deliver_http").format(
-                        status=resp2.status
-                    )
-                    self.last_error = deliver_error
-                    logger.warning("%s", deliver_error)
-                    return False
+            resp2 = requests.post(
+                self._CARD_DELIVER_URL, data=deliver_body, headers=headers, timeout=10
+            )
+            if resp2.status_code != 200:
+                # 同一文案既进 last_error（日志表用户可见）也进 warning（排查用）
+                deliver_error = t("notification.channel.dingtalk.card_deliver_http").format(
+                    status=resp2.status_code
+                )
+                self.last_error = deliver_error
+                logger.warning("%s", deliver_error)
+                return False
             return True
         except Exception as e:
             self.last_error = t("notification.channel.dingtalk.enterprise_send_failed").format(error=e)
