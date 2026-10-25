@@ -88,6 +88,10 @@ async function exportErrorDetail(e: unknown): Promise<string> {
       const text = await data.text()
       try {
         const j = JSON.parse(text)
+        // FastAPI 422 的 detail 是数组（[{loc,msg,type}]），直接 String() 会变 [object Object]
+        if (Array.isArray(j.detail)) {
+          return j.detail.map((d: { msg?: string } | string) => (typeof d === 'string' ? d : d?.msg || '')).filter(Boolean).join('; ')
+        }
         return String(j.detail || j.error || text)
       } catch {
         return text
