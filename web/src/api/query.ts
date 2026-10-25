@@ -3,17 +3,17 @@ import http from './http'
 import type { QueryResponse, PendingItem } from '../types/api'
 import type { RouteTag } from '../types/route-tag'
 
-export const postQuery = (numbers: string[], forceRefresh: boolean = false, runId?: string): Promise<QueryResponse> =>
-  http.post('/query', { numbers, run_id: runId }, { params: forceRefresh ? { force_refresh: true } : {} }).then(r => r.data)
+export const postQuery = async (numbers: string[], forceRefresh: boolean = false, runId?: string): Promise<QueryResponse> =>
+  (await http.post('/query', { numbers, run_id: runId }, { params: forceRefresh ? { force_refresh: true } : {} })).data
 
-export const saveQueryResults = (results: QueryResponse['results']): Promise<{ ok?: boolean }> =>
-  http.post('/query/save', results).then(r => r.data)
+export const saveQueryResults = async (results: QueryResponse['results']): Promise<{ ok?: boolean }> =>
+  (await http.post('/query/save', results)).data
 
 export const getQueryResults = (options?: { routeTag?: RouteTag }) =>
   http.get('/query/results', options)
 
-export const getPendingItems = (): Promise<{ items: PendingItem[] }> =>
-  http.get('/pending').then(r => r.data)
+export const getPendingItems = async (): Promise<{ items: PendingItem[] }> =>
+  (await http.get('/pending')).data
 
-export const postRequery = (numbers: string[], site?: string): Promise<{ results: QueryResponse['results'] }> =>
-  http.post('/pending/requery', numbers, { params: site ? { site } : {} }).then(r => r.data)
+export const postRequery = async (numbers: string[], site?: string): Promise<{ results: QueryResponse['results'] }> =>
+  (await http.post('/pending/requery', numbers, { params: site ? { site } : {} })).data

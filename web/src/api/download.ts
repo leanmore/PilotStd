@@ -2,8 +2,8 @@
 import http from './http'
 import type { DownloadResponse } from '../types/api'
 
-export const postDownload = (numbers: string[], runId?: string): Promise<DownloadResponse> =>
-  http.post('/download', { numbers, run_id: runId }).then(r => r.data)
+export const postDownload = async (numbers: string[], runId?: string): Promise<DownloadResponse> =>
+  (await http.post('/download', { numbers, run_id: runId })).data
 
 // 手动导入下载列表：提交标准号文本（FormData，字段名 'text'）
 // 纯 click 触发，无需 routeTag（走 globalPool）

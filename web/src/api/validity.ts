@@ -40,23 +40,23 @@ export interface ValidityHistoryResponse {
   items: ValidityHistoryItem[]
 }
 
-export const getValidityConfig = (routeTag?: RouteTag): Promise<ValidityConfig> =>
-  http.get('/validity/config', { routeTag }).then(r => r.data)
+export const getValidityConfig = async (routeTag?: RouteTag): Promise<ValidityConfig> =>
+  (await http.get('/validity/config', { routeTag })).data
 
-export const putValidityConfig = (data: Partial<ValidityConfig>): Promise<{ ok: boolean; message: string }> =>
-  http.put('/validity/config', data).then(r => r.data)
+export const putValidityConfig = async (data: Partial<ValidityConfig>): Promise<{ ok: boolean; message: string }> =>
+  (await http.put('/validity/config', data)).data
 
-export const runValidityCheck = (): Promise<ValidityRunResult> =>
-  http.post('/validity/run').then(r => r.data)
+export const runValidityCheck = async (): Promise<ValidityRunResult> =>
+  (await http.post('/validity/run')).data
 
-export const getValidityHistory = (params: {
+export const getValidityHistory = async (params: {
   page?: number
   page_size?: number
 }, routeTag?: RouteTag): Promise<ValidityHistoryResponse> =>
-  http.get('/validity/history', { params, routeTag }).then(r => r.data)
+  (await http.get('/validity/history', { params, routeTag })).data
 
-export const enqueueValidityCheck = (filePaths: string[]): Promise<{ ok: boolean; enqueued: number; total: number }> =>
-  http.post('/validity/enqueue', { file_paths: filePaths }).then(r => r.data)
+export const enqueueValidityCheck = async (filePaths: string[]): Promise<{ ok: boolean; enqueued: number; total: number }> =>
+  (await http.post('/validity/enqueue', { file_paths: filePaths })).data
 
 /** 解析 "HH:MM" 字符串为 { hour, minute }，空值/非法值容错为 0 */
 export function parseExecuteTime(timeStr: string | undefined | null): { hour: number; minute: number } {

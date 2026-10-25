@@ -9,49 +9,49 @@ import type {
   AnnouncementRecord,
 } from '../types/api'
 
-export const getAnnounceResults = (sourceSite?: string, fromDate?: string, routeTag?: RouteTag): Promise<AnnounceResponse> =>
-  http.get('/announce/results', { params: { source_site: sourceSite || '', from_date: fromDate || '' }, routeTag }).then(r => r.data)
+export const getAnnounceResults = async (sourceSite?: string, fromDate?: string, routeTag?: RouteTag): Promise<AnnounceResponse> =>
+  (await http.get('/announce/results', { params: { source_site: sourceSite || '', from_date: fromDate || '' }, routeTag })).data
 
-export const postAnnounceCheck = (sinceDate?: string, types?: string): Promise<SuccessResponse> =>
-  http.post('/announce/check', null, { params: { ...(sinceDate ? { since_date: sinceDate } : {}), ...(types ? { types } : {}) } }).then(r => r.data)
+export const postAnnounceCheck = async (sinceDate?: string, types?: string): Promise<SuccessResponse> =>
+  (await http.post('/announce/check', null, { params: { ...(sinceDate ? { since_date: sinceDate } : {}), ...(types ? { types } : {}) } })).data
 
 // ── Phase 3: 公告详情 ──────────────────────────────────
 
 /** 旧格式兼容：通过 announce_no 查询所有来源的公告 */
-export const getAnnouncementByNo = (announceNo: string, routeTag?: RouteTag): Promise<Array<{ source_site: string; announce_no: string; title: string }>> =>
-  http.get(`/announcements/by-no/${encodeURIComponent(announceNo)}`, { routeTag }).then(r => r.data)
-export const getAnnouncementDetail = (announceNo: string, source?: string): Promise<AnnouncementDetail> => {
+export const getAnnouncementByNo = async (announceNo: string, routeTag?: RouteTag): Promise<Array<{ source_site: string; announce_no: string; title: string }>> =>
+  (await http.get(`/announcements/by-no/${encodeURIComponent(announceNo)}`, { routeTag })).data
+export const getAnnouncementDetail = async (announceNo: string, source?: string): Promise<AnnouncementDetail> => {
   const params = source ? { source } : {}
-  return http.get(`/announcements/${encodeURIComponent(announceNo)}`, { params }).then(r => r.data)
+  return (await http.get(`/announcements/${encodeURIComponent(announceNo)}`, { params })).data
 }
 
 /** 轻量版详情：records 不含 confidence/source_type/created_at/updated_at，响应体缩减约 40% */
-export const getAnnounceDetailLite = (announceNo: string, source?: string, routeTag?: RouteTag): Promise<AnnouncementDetail> => {
+export const getAnnounceDetailLite = async (announceNo: string, source?: string, routeTag?: RouteTag): Promise<AnnouncementDetail> => {
   const params = source ? { source } : {}
-  return http.get(`/announcements/${encodeURIComponent(announceNo)}/lite`, { params, routeTag }).then(r => r.data)
+  return (await http.get(`/announcements/${encodeURIComponent(announceNo)}/lite`, { params, routeTag })).data
 }
 
 /** 分页获取公告记录（Phase 1 分页端点，排序 standard_number ASC） */
-export const getAnnounceRecords = (announceNo: string, page: number, pageSize: number, source?: string): Promise<PaginatedResult> =>
-  http.get(`/announcements/${encodeURIComponent(announceNo)}/records`, {
+export const getAnnounceRecords = async (announceNo: string, page: number, pageSize: number, source?: string): Promise<PaginatedResult> =>
+  (await http.get(`/announcements/${encodeURIComponent(announceNo)}/records`, {
     params: { page, page_size: pageSize, ...(source ? { source } : {}) },
-  }).then(r => r.data)
+  })).data
 
 /** 触发附件解析 */
-export const triggerParse = (announceNo: string, source?: string): Promise<{ status: string }> =>
-  http.post(`/announcements/${announceNo}/parse`, null, { params: source ? { source } : {} }).then(r => r.data)
+export const triggerParse = async (announceNo: string, source?: string): Promise<{ status: string }> =>
+  (await http.post(`/announcements/${announceNo}/parse`, null, { params: source ? { source } : {} })).data
 
 /** 获取解析状态 */
-export const getParseStatus = (announceNo: string, source?: string): Promise<{ status: string; record_count?: number }> =>
-  http.get(`/announcements/${announceNo}/parse-status`, { params: source ? { source } : {} }).then(r => r.data)
+export const getParseStatus = async (announceNo: string, source?: string): Promise<{ status: string; record_count?: number }> =>
+  (await http.get(`/announcements/${announceNo}/parse-status`, { params: source ? { source } : {} })).data
 
 /** 单行更新（单元格编辑） */
-export const updateRecord = (id: number, data: Partial<AnnouncementRecord>): Promise<{ status: string }> =>
-  http.patch(`/announcement-record/${id}`, data).then(r => r.data)
+export const updateRecord = async (id: number, data: Partial<AnnouncementRecord>): Promise<{ status: string }> =>
+  (await http.patch(`/announcement-record/${id}`, data)).data
 
 /** 批量确认入库 */
-export const batchApprove = (ids: number[]): Promise<{ approved_count: number }> =>
-  http.post('/announcement-record/batch-approve', { ids }).then(r => r.data)
+export const batchApprove = async (ids: number[]): Promise<{ approved_count: number }> =>
+  (await http.post('/announcement-record/batch-approve', { ids })).data
 
 // ── Phase 4a: 收藏 ──────────────────────────────────────
 //
@@ -77,16 +77,16 @@ export interface BatchFavoriteStatus extends FavoriteDownloadFields {
   status: string
 }
 
-export const addFavorite = (recordId: number): Promise<{ status: string; favorite_id: number }> =>
-  http.post('/favorites', { record_id: recordId }).then(r => r.data)
+export const addFavorite = async (recordId: number): Promise<{ status: string; favorite_id: number }> =>
+  (await http.post('/favorites', { record_id: recordId })).data
 
-export const getBatchFavoriteStatus = (
+export const getBatchFavoriteStatus = async (
   recordIds: number[],
 ): Promise<{ statuses: Record<string, BatchFavoriteStatus | null> }> =>
-  http.post('/favorites/batch-status', { record_ids: recordIds }).then(r => r.data)
+  (await http.post('/favorites/batch-status', { record_ids: recordIds })).data
 
-export const removeFavorite = (recordId: number): Promise<{ status: string }> =>
-  http.delete(`/favorites/${recordId}`).then(r => r.data)
+export const removeFavorite = async (recordId: number): Promise<{ status: string }> =>
+  (await http.delete(`/favorites/${recordId}`)).data
 
-export const listFavorites = (params?: { status?: string }): Promise<{ favorites: any[] }> =>
-  http.get('/favorites', { params }).then(r => r.data)
+export const listFavorites = async (params?: { status?: string }): Promise<{ favorites: any[] }> =>
+  (await http.get('/favorites', { params })).data

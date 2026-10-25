@@ -96,12 +96,12 @@ export interface FailedItemsResponse {
 }
 
 /** 取某条通知日志的失败明细（**按需加载 + 服务端分页 + 已脱敏**） */
-export const getNotificationFailedItems = (
+export const getNotificationFailedItems = async (
   logId: number,
   page = 1,
   pageSize = 20,
 ): Promise<FailedItemsResponse> =>
-  http.get(`/notification/logs/${logId}/failed-items`, { params: { page, page_size: pageSize } }).then(r => r.data)
+  (await http.get(`/notification/logs/${logId}/failed-items`, { params: { page, page_size: pageSize } })).data
 
 export interface NotificationLogResponse {
   total: number
@@ -110,8 +110,8 @@ export interface NotificationLogResponse {
   items: NotificationLog[]
 }
 
-export const getNotificationConfig = (routeTag?: RouteTag): Promise<NotificationConfig> =>
-  http.get('/notification/config', { routeTag }).then(r => r.data)
+export const getNotificationConfig = async (routeTag?: RouteTag): Promise<NotificationConfig> =>
+  (await http.get('/notification/config', { routeTag })).data
 
 // ── 渠道元数据（步 A C2 新增）：`GET /api/notification/channels` ──
 // 渠道的**唯一事实来源**是后端 `channel_spec.py`；前端不再硬编码渠道清单与字段。
@@ -182,8 +182,8 @@ export interface NotificationChannelsResponse {
   event_class_map: Record<string, string>
 }
 
-export const getNotificationChannels = (routeTag?: RouteTag): Promise<NotificationChannelsResponse> =>
-  http.get('/notification/channels', { routeTag }).then(r => r.data)
+export const getNotificationChannels = async (routeTag?: RouteTag): Promise<NotificationChannelsResponse> =>
+  (await http.get('/notification/channels', { routeTag })).data
 
 // ── 可订阅事件清单（D5 新增）：`GET /api/notification/spec` ──
 // 事件的**唯一事实来源**是后端事件规格（`event_spec.py`）；前端不再硬编码事件清单。
@@ -192,19 +192,19 @@ export interface NotificationSpecResponse {
   events: string[]
 }
 
-export const getNotificationSpec = (routeTag?: RouteTag): Promise<NotificationSpecResponse> =>
-  http.get('/notification/spec', { routeTag }).then(r => r.data)
+export const getNotificationSpec = async (routeTag?: RouteTag): Promise<NotificationSpecResponse> =>
+  (await http.get('/notification/spec', { routeTag })).data
 
-export const putNotificationConfig = (data: NotificationConfigUpdate): Promise<{ ok: boolean }> =>
-  http.put('/notification/config', data).then(r => r.data)
+export const putNotificationConfig = async (data: NotificationConfigUpdate): Promise<{ ok: boolean }> =>
+  (await http.put('/notification/config', data)).data
 
-export const testNotification = (
+export const testNotification = async (
   channel: string,
   params?: Record<string, string>,
 ): Promise<{ ok: boolean; error?: string }> =>
-  http.post('/notification/test', { channel, params }).then(r => r.data)
+  (await http.post('/notification/test', { channel, params })).data
 
-export const getNotificationLogs = (params: {  page?: number
+export const getNotificationLogs = async (params: {  page?: number
   page_size?: number
   channel?: string
   status?: string
@@ -212,10 +212,10 @@ export const getNotificationLogs = (params: {  page?: number
   end_date?: string
   is_read?: boolean
 }, routeTag?: RouteTag): Promise<NotificationLogResponse> =>
-  http.get('/notification/logs', { params, routeTag }).then(r => r.data)
+  (await http.get('/notification/logs', { params, routeTag })).data
 
-export const markNotificationRead = (id?: number | null): Promise<{ ok: boolean; message: string }> =>
-  http.post('/notification/read', { id: id ?? null }).then(r => r.data)
+export const markNotificationRead = async (id?: number | null): Promise<{ ok: boolean; message: string }> =>
+  (await http.post('/notification/read', { id: id ?? null })).data
 
 export interface NotificationPolicy {
   id: number
@@ -228,18 +228,18 @@ export interface NotificationPolicy {
   updated_at: string
 }
 
-export const getNotificationPolicies = (): Promise<{ policies: NotificationPolicy[] }> =>
-  http.get('/notification/policy').then(r => r.data)
+export const getNotificationPolicies = async (): Promise<{ policies: NotificationPolicy[] }> =>
+  (await http.get('/notification/policy')).data
 
-export const putNotificationPolicy = (data: {
+export const putNotificationPolicy = async (data: {
   channel: string
   enabled?: boolean
   events?: string[]
   /** 类别层（10 类）；`undefined`＝本次不动该层，`[]`＝清空该层 */
   event_classes?: string[]
 }): Promise<{ ok: boolean }> =>
-  http.put('/notification/policy', data).then(r => r.data)
+  (await http.put('/notification/policy', data)).data
 
 /** 清理指定天数前的通知日志（需管理员权限） */
-export const deleteNotificationLogs = (days: number = 30): Promise<{ ok: boolean; deleted: number }> =>
-  http.delete('/notification/logs', { params: { days } }).then(r => r.data)
+export const deleteNotificationLogs = async (days: number = 30): Promise<{ ok: boolean; deleted: number }> =>
+  (await http.delete('/notification/logs', { params: { days } })).data

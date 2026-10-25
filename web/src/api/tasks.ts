@@ -4,8 +4,8 @@ import type { PipelineRun } from '@/types/task'
 import type { RouteTag } from '../types/route-tag'
 
 /** 查询管道执行状态（2 秒轮询用） */
-export function getPipelineRun(runId: string): Promise<PipelineRun> {
-  return http.get(`/tasks/runs/${runId}`).then(r => r.data)
+export async function getPipelineRun(runId: string): Promise<PipelineRun> {
+  return (await http.get(`/tasks/runs/${runId}`)).data
 }
 
 export function getTasks(options?: { routeTag?: RouteTag }) {

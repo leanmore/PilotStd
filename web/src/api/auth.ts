@@ -3,20 +3,20 @@ import http from './http'
 import type { RouteTag } from '../types/route-tag'
 import type { UserListResponse, SuccessResponse } from '../types/api'
 
-export const login = (username: string, password: string): Promise<SuccessResponse> =>
-  http.post('/login', new URLSearchParams({ username, password })).then(r => r.data)
+export const login = async (username: string, password: string): Promise<SuccessResponse> =>
+  (await http.post('/login', new URLSearchParams({ username, password }))).data
 
-export const getUsers = (routeTag?: RouteTag): Promise<UserListResponse> =>
-  http.get('/users', { routeTag }).then(r => r.data)
+export const getUsers = async (routeTag?: RouteTag): Promise<UserListResponse> =>
+  (await http.get('/users', { routeTag })).data
 
-export const addUser = (username: string, password: string, role: string): Promise<SuccessResponse> =>
-  http.post('/users', { username, password, role }).then(r => r.data)
+export const addUser = async (username: string, password: string, role: string): Promise<SuccessResponse> =>
+  (await http.post('/users', { username, password, role })).data
 
-export const deleteUser = (id: number): Promise<SuccessResponse> =>
-  http.delete(`/users/${id}`).then(r => r.data)
+export const deleteUser = async (id: number): Promise<SuccessResponse> =>
+  (await http.delete(`/users/${id}`)).data
 
-export const changePassword = (oldPassword: string, newPassword: string): Promise<SuccessResponse> =>
-  http.put('/users/password', { old_password: oldPassword, new_password: newPassword }).then(r => r.data)
+export const changePassword = async (oldPassword: string, newPassword: string): Promise<SuccessResponse> =>
+  (await http.put('/users/password', { old_password: oldPassword, new_password: newPassword })).data
 
-export const register = (username: string, password: string): Promise<SuccessResponse> =>
-  http.post('/auth/register', new URLSearchParams({ username, password })).then(r => r.data)
+export const register = async (username: string, password: string): Promise<SuccessResponse> =>
+  (await http.post('/auth/register', new URLSearchParams({ username, password }))).data
