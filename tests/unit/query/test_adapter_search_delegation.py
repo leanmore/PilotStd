@@ -48,3 +48,15 @@ def test_search_empty_returns_none(name, adapter_cls):
     adapter = adapter_cls()
     adapter.query_standards = lambda _term: []  # type: ignore[method-assign]
     assert adapter._search("GB/T 19001-2016") is None
+
+
+@pytest.mark.parametrize(("name", "adapter_cls"), ADAPTERS)
+def test_search_falls_back_to_latest(name, adapter_cls):
+    """无精确匹配时走 max 分支取发布日期最新——与 helper 同一路径。"""
+    adapter = adapter_cls()
+    older = _r("GB/T 19002-2010", "2010-01-01")
+    newer = _r("GB/T 19002-2016", "2016-01-01")
+    candidates = [older, newer]
+    adapter.query_standards = lambda _term: candidates  # type: ignore[method-assign]
+    assert adapter._search("GB/T 19001-2016") is newer
+    assert adapter._search("GB/T 19001-2016") is pick_best_result(candidates, "GB/T 19001-2016")

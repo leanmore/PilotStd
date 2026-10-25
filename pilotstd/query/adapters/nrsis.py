@@ -25,7 +25,7 @@ from pilotstd.core.status import Status
 from ..models import QueryResult
 from ..search_strategy import _parse_result_number, match_result
 from ._shared_ssl import default_ssl_context
-from .base import BaseAdapter
+from .base import BaseAdapter, pick_best_result
 
 DISPLAY_NAME = "自然资源标准"
 
@@ -162,14 +162,7 @@ class NRSISAdapter(BaseAdapter):
 
     def _search(self, search_term: str) -> Optional[QueryResult]:
         """搜索并返回最佳匹配（精确匹配优先，否则返回最新）。"""
-        candidates = self.query_standards(search_term)
-        if not candidates:
-            return None
-        for c in candidates:
-            if c.standard_number == search_term:
-                return c
-        best = max(candidates, key=lambda c: getattr(c, "publish_date", "") or "")
-        return best
+        return pick_best_result(self.query_standards(search_term), search_term)
 
     def _parse_result(
         self,

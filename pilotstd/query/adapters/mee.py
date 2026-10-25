@@ -25,7 +25,7 @@ from pilotstd.core.status import Status
 
 from ..models import QueryResult
 from ..search_strategy import _parse_result_number, match_result
-from .base import BaseAdapter
+from .base import BaseAdapter, pick_best_result
 
 DISPLAY_NAME = "生态环境部"
 
@@ -123,15 +123,7 @@ class MEEAdapter(BaseAdapter):
 
     def _search(self, search_term: str) -> Optional[QueryResult]:
         """搜索并返回最佳匹配（精确匹配优先，否则返回最新）。"""
-        candidates = self.query_standards(search_term)
-        if not candidates:
-            return None
-        for c in candidates:
-            if c.standard_number == search_term:
-                return c
-        # 返回发布日期最新的候选
-        best = max(candidates, key=lambda c: getattr(c, "publish_date", "") or "")
-        return best
+        return pick_best_result(self.query_standards(search_term), search_term)
 
     def _parse_result(self, item: Any, search_term: str = "") -> Optional[QueryResult]:
         """从 BeautifulSoup Tag 解析标准信息。"""

@@ -5,8 +5,8 @@
 | 模块路径 | `pilotstd/query/adapters/` |
 | G-031 映射 | `pilotstd/query/adapters/` |
 | 核心类 | `BaseAdapter` (ABC) |
-| 适配器数 | 8（7 生产 + 1 Mock） |
-| 总行数 | ~1,666 |
+| 适配器数 | 22（21 生产 + 1 Mock） |
+| 总行数 | 3,875（2026-10-25 实测，含 base/registry 与私有模块，共 27 个 `.py`） |
 | 状态 | 活跃 |
 
 ## 模块职责
@@ -28,6 +28,8 @@
 | 电标备案 | `DbbaAdapter` | dbba.sacinfo.org.cn | 98 |
 | ISO 官网 | `IsoGovAdapter` | iso.org | 111 |
 | Mock | `MockQueryAdapter` | — (测试用) | 93 |
+
+> **清单滞后说明（2026-10-25，A1 抽取时实测）**：上表仅列 8 个适配器，且行数为早期快照（如 `njbz365` 实测 149 行、`std_gov` 194 行，与表内 385/190 不符）。A1 涉及的 6 个适配器未在表中，实测行数：`CCSNAdapter` 182、`SPPTAdapter` 113、`SPPTLocalAdapter` 146、`JTSTAdapter` 149、`MEEAdapter` 152、`NRSISAdapter` 188（抽取后，合计较抽取前少 52 行）。整表重算待后续文档批次。
 
 > **状态值字典（R14-4b / #32-B，2026-10-01）**：各适配器的状态字面量（`现行` / `即将实施` / `废止` / `已废止` / `作废` / `被代替` / `未知`）与各 `status_map` 归一化表已统一引用权威字典 `pilotstd/core/status.py` 的 `Status.*.value`（取代原中文字面量）。**归一化结果与取值集合不变**，仅消除散落的硬编码字符串。
 
