@@ -59,8 +59,15 @@ export default {
           const calleeName = callee?.property?.name || callee?.name
           // 数组定义写入（layout.value.push({ titleKey })）：键随后由模板 t() 消费
           if (['push', 'unshift', 'splice'].includes(calleeName)) return
-          // const x = ref([...]) 这类声明包装
-          if (cur.parent?.type === 'VariableDeclarator') return
+          // 仅跳过 `const x = ref([...])` 这一具体包装（ref 为直接 import 的 Identifier）；
+          // `const x = foo({ labelKey })` 仍按"调用参数对象"报告
+          if (
+            cur.parent?.type === 'VariableDeclarator' &&
+            callee?.type === 'Identifier' &&
+            callee.name === 'ref'
+          ) {
+            return
+          }
         }
         if (cur && DEFINITION_PARENTS.has(cur.type)) return
 
