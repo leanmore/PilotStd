@@ -5,8 +5,9 @@
 | 模块路径 | `pilotstd/query/adapters/` |
 | G-031 映射 | `pilotstd/query/adapters/` |
 | 核心类 | `BaseAdapter` (ABC) |
-| 适配器数 | 22（21 生产 + 1 Mock） |
-| 总行数 | 3,875（2026-10-25 实测，含 base/registry 与私有模块，共 27 个 `.py`） |
+| 适配器数 | 22（21 生产 + 1 Mock），非空行合计 **3,256** |
+| 文件数 | 27 个 `.py`（22 个适配器 + 5 个基础设施文件，后者非空行 619） |
+| 总行数 | **3,875** 非空行（= 3,256 + 619；2026-10-25 实测） |
 | 状态 | 活跃 |
 
 ## 模块职责
@@ -17,21 +18,64 @@
 
 ## 适配器清单
 
-> ⚠️ **以下清单最后更新于 2026-10 早期，逐行数据不可信**：适配器数量与总行数以头表为准（22 个 / 3,875 行，2026-10-25 实测）；清单仅覆盖 8 个适配器、行数为旧快照（如 `njbz365` 实为 149 行），**引用前请以代码为准**。整表逐行校正登记为技术债 A-14。
+> **站点列口径**：`get_search_url()` 运行时取值（代码**实际发出搜索请求**的地址），**不是标准来源域名**；`Mock` 无站点。
+> 少数站点为 IP/非标准端口（`energy`、`ncha`），另有适配器的 URL 来自 registry/site_config 而非文件内字面量（如 `ahbz`）。
 
-| 适配器 | 类名 | 站点 | 行数 |
-|--------|------|------|------|
-| 国家标准 | `StdGovAdapter` | openstd.samr.gov.cn | 190 |
-| 南京标准 | `Njbz365Adapter` | njbz365.cn | 385 |
-> **2026-10-05 类型标注级修正（G-031 联动，P2 步 B B1 收口）**：pilotstd/query/adapters/_njbz365_session_manager.py 的两处 params 由 dict[str, str] 标注为 **dict[str, Any]**（含 rom typing import Any），以消除 mypy 因**跟随 import 链**对 Session.post(json=...) 值类型协变不兼容的判定；**运行期行为零变化**（纯标注）。该传递性扫描口径问题已登记 docs/technical-debt.md:419。
-| 标准资源网 | `CsresAdapter` | csres.com | 252 |
-| 安徽标准 | `AhbzAdapter` | ahbz.org.cn | 156 |
-| 河北标准 | `HbbaAdapter` | hbba.org.cn | 163 |
-| 电标备案 | `DbbaAdapter` | dbba.sacinfo.org.cn | 98 |
-| ISO 官网 | `IsoGovAdapter` | iso.org | 111 |
-| Mock | `MockQueryAdapter` | — (测试用) | 93 |
+| 适配器 | 类名 | 站点 | 非空行 |
+|--------|------|------|--------|
+| 安徽标准 | `AhbzAdapter` | bzxx.ahbz.org.cn | 157 |
+| 工程建设 | `CCSNAdapter` | www.ccsn.org.cn | 182 |
+| 标准资源网 | `CsresAdapter` | www.csres.com | 255 |
+| 中国标准服务网 | `CSSNAdapter` | www.cssn.net.cn | 116 |
+| 电标备案 | `DbbaAdapter` | dbba.sacinfo.org.cn | 100 |
+| 能源 | `EnergyAdapter` | 114.251.111.103:18080 | 159 |
+| 工标库 | `GongBiaoKuAdapter` | www.gongbiaoku.com | 136 |
+| 河北标准 | `HbbaAdapter` | hbba.sacinfo.org.cn | 165 |
+| 国际标准（经 SAMR） | `IsoGovAdapter` | std.samr.gov.cn | 113 |
+| 计量 | `JJGAdapter` | jjg.spc.org.cn | 128 |
+| 交通 | `JTSTAdapter` | jtst.mot.gov.cn | 149 |
+| 生态环境 | `MEEAdapter` | www.mee.gov.cn | 152 |
+| 工信 | `MIITAdapter` | std.miit.gov.cn | 123 |
+| Mock | `MockQueryAdapter` | —（mock/测试专用） | 96 |
+| 文物 | `NCHAAdapter` | bz.ncha.gov.cn:9005 | 150 |
+| 南京标准 | `Njbz365Adapter` | www.njbz365.cn | 149 |
+| 自然资源 | `NRSISAdapter` | www.nrsis.org.cn | 188 |
+| 食品安全国标 | `SPPTAdapter` | sppt.cfsa.net.cn:8086 | 113 |
+| 食品安全地标 | `SPPTLocalAdapter` | sppt.cfsa.net.cn:8087 | 146 |
+| 国家标准 | `StdGovAdapter` | std.samr.gov.cn | 194 |
+| 铁路 | `TDPressAdapter` | biaozhun.tdpress.com | 121 |
+| 团体标准 | `TTBZAdapter` | www.ttbz.org.cn | 164 |
 
-> **清单滞后说明（2026-10-25，A1 抽取时实测）**：上表仅列 8 个适配器，且行数为早期快照（如 `njbz365` 实测 149 行、`std_gov` 194 行，与表内 385/190 不符）。A1 涉及的 6 个适配器未在表中，实测行数：`CCSNAdapter` 182、`SPPTAdapter` 113、`SPPTLocalAdapter` 146、`JTSTAdapter` 149、`MEEAdapter` 152、`NRSISAdapter` 188（抽取后，合计较抽取前少 52 行）。整表重算待后续文档批次。
+> **行数口径**：非空行（`sum(1 for l in text.splitlines() if l.strip())`）。22 个适配器合计 **3,256**；
+> 5 个基础设施文件（`base` 235、`registry` 68、`_njbz365_session_manager` 240、`_shared_ssl` 31、`__init__` 45）合计 **619**；
+> 目录总计 **3,875** 非空行 / 27 个 `.py`。**2026-10-25（A-14）重算**；顺带修正 `IsoGovAdapter` 站点
+> （旧表误写 iso.org，实际经 std.samr.gov.cn 搜索）。
+
+> **重算命令**（复算请用同一口径；Git Bash 或 WSL）：
+
+```bash
+python - <<'PY'
+import ast, importlib, pathlib
+d = pathlib.Path("pilotstd/query/adapters")
+for p in sorted(d.glob("*.py")):
+    src = p.read_text(encoding="utf-8")
+    nb = sum(1 for l in src.splitlines() if l.strip())
+    classes = [n.name for n in ast.parse(src).body
+               if isinstance(n, ast.ClassDef) and n.name.endswith("Adapter")
+               and n.name != "BaseAdapter"]
+    if not classes:
+        print(f"{p.name}\tINFRA\t{nb}")
+        continue
+    if len(classes) > 1:
+        print(f"!! {p.name} multiple: {classes}")
+    mod = importlib.import_module("pilotstd.query.adapters." + p.stem)
+    for c in classes:
+        url = getattr(mod, c)().get_search_url() if c != "MockQueryAdapter" else ""
+        print(f"{c}\t{nb}\t{url}")
+PY
+```
+
+> **2026-10-05 类型标注级修正（G-031 联动，P2 步 B B1 收口）**：pilotstd/query/adapters/_njbz365_session_manager.py 的两处 params 由 dict[str, str] 标注为 **dict[str, Any]**（含 from typing import Any），以消除 mypy 因**跟随 import 链**对 Session.post(json=...) 值类型协变不兼容的判定；**运行期行为零变化**（纯标注）。该传递性扫描口径问题已登记 docs/technical-debt.md:419。
 
 > **状态值字典（R14-4b / #32-B，2026-10-01）**：各适配器的状态字面量（`现行` / `即将实施` / `废止` / `已废止` / `作废` / `被代替` / `未知`）与各 `status_map` 归一化表已统一引用权威字典 `pilotstd/core/status.py` 的 `Status.*.value`（取代原中文字面量）。**归一化结果与取值集合不变**，仅消除散落的硬编码字符串。
 
