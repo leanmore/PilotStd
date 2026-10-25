@@ -444,6 +444,11 @@ jobs:
           cd web
           pnpm run type-check
 
+      - name: Lint (eslint)
+        run: |
+          cd web
+          pnpm run lint
+
       - name: PrimeVue icon import check
         run: bash scripts/check-primevue-icons.sh
 

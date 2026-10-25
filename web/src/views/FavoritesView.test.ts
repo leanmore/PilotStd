@@ -64,15 +64,15 @@ const FAVORITES = [
   favorite({ id: 5, standard_number: 'GB 5-2026', download_status: 'brand_new_status' }),
 ]
 
+const httpMock = vi.hoisted(() => ({ get: vi.fn() }))
+vi.mock('@/api/http', () => ({ default: httpMock }))
+
 beforeEach(() => {
-  vi.stubGlobal(
-    'fetch',
-    vi.fn().mockResolvedValue({ ok: true, json: async () => ({ favorites: FAVORITES }) }),
-  )
+  httpMock.get.mockResolvedValue({ data: { favorites: FAVORITES } })
 })
 
 afterEach(() => {
-  vi.unstubAllGlobals()
+  vi.clearAllMocks()
 })
 
 async function mountView(locale: 'zh-CN' | 'zh-TW' | 'en' = 'zh-CN') {
