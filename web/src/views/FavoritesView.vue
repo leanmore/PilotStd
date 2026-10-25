@@ -71,7 +71,7 @@ function countOf(key: string): number {
 async function loadFavorites() {
   loading.value = true
   try {
-    const data = await http.get('/favorites').then(r => r.data)
+    const data = (await http.get('/favorites')).data
     favorites.value = data.favorites || []
   } catch (e: any) {
     toast.add({ severity: 'error', summary: t('favorites.load_failed'), detail: String(e?.message || e), life: 3000 })
@@ -110,7 +110,7 @@ async function exportFavorites(scope: 'current' | 'all') {
     params.set('standard_type', activeType.value)
   }
   try {
-    const blob = await http.get(`/favorites/export?${params.toString()}`, { responseType: 'blob' }).then(r => r.data)
+    const blob = (await http.get(`/favorites/export?${params.toString()}`, { responseType: 'blob' })).data
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
