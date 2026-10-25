@@ -69,22 +69,15 @@ def _capture_telegram(monkeypatch: Any) -> list[dict]:
     bodies: list[dict] = []
 
     class _Resp:
-        status = 200
+        status_code = 200
+        content = b'{"ok": true, "result": {"message_id": 555}}'
+        text = content.decode("utf-8")
 
-        def read(self) -> bytes:
-            return b'{"ok": true, "result": {"message_id": 555}}'
-
-        def __enter__(self) -> "_Resp":
-            return self
-
-        def __exit__(self, *a: object) -> None:
-            return None
-
-    def _fake_urlopen(req: Any, timeout: int = 10) -> "_Resp":
-        bodies.append(json.loads(req.data.decode("utf-8")))
+    def _fake_post(url: str, data: bytes | None = None, **kwargs: Any) -> "_Resp":
+        bodies.append(json.loads((data or b"{}").decode("utf-8")))
         return _Resp()
 
-    monkeypatch.setattr(tg, "urlopen", _fake_urlopen)
+    monkeypatch.setattr(tg.requests, "post", _fake_post)
     return bodies
 
 

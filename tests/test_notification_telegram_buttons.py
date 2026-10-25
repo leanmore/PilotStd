@@ -80,27 +80,20 @@ def test_request_body_unchanged_without_markup_and_carries_markup_with_it() -> N
     bodies: list[dict] = []
 
     class _FakeResp:
-        status = 200
+        status_code = 200
+        content = b'{"ok": true}'
+        text = content.decode("utf-8")
 
-        def read(self) -> bytes:
-            return b'{"ok": true}'
-
-        def __enter__(self) -> "_FakeResp":
-            return self
-
-        def __exit__(self, *a: object) -> None:
-            return None
-
-    def _fake_urlopen(req: Any, timeout: int = 10) -> "_FakeResp":
+    def _fake_post(url: str, data: bytes | None = None, **kwargs: Any) -> "_FakeResp":
         import json as _json
 
-        bodies.append(_json.loads(req.data.decode("utf-8")))
+        bodies.append(_json.loads((data or b"{}").decode("utf-8")))
         return _FakeResp()
 
     import pilotstd.core.notification.channels.telegram as tg
 
-    original = tg.urlopen
-    tg.urlopen = _fake_urlopen  # type: ignore[assignment]
+    original = tg.requests.post
+    tg.requests.post = _fake_post  # type: ignore[assignment]
     try:
         msg = _msg([ActionSpec(action="retry", label_key="notification.action.retry")])
         msg.blocks = []
@@ -115,4 +108,4 @@ def test_request_body_unchanged_without_markup_and_carries_markup_with_it() -> N
         assert ch.send(plain) is True
         assert set(bodies[-1]) == {"chat_id", "text", "parse_mode"}, "无按钮时不得新增键"
     finally:
-        tg.urlopen = original  # type: ignore[assignment]
+        tg.requests.post = original  # type: ignore[assignment]
