@@ -1,5 +1,13 @@
 # tests/test_p0_modules.py — P0 补测：facade + channels
 
+
+class FakeResponse:
+    def __init__(self, status: int = 200, body: bytes = b'{"ok":true}'):
+        self.status_code = status
+        self.content = body if isinstance(body, bytes) else str(body).encode("utf-8")
+        self.text = self.content.decode("utf-8", errors="replace")
+        self.headers = {"Content-Type": "application/json"}
+
 import os
 import sys
 import unittest
@@ -89,22 +97,22 @@ class TestTelegramChannelFull(unittest.TestCase):
         ch._log_dedup("repeat")  # should be suppressed - time diff < 120s
         self.assertEqual(ch._last_error_time, t1)
 
-    @patch("pilotstd.core.notification.channels.telegram.urlopen")
+    @patch("pilotstd.core.notification.channels.telegram.requests.post")
     def test_send_ok(self, mock_urlopen):
         from pilotstd.core.notification.channel import NotificationMessage
         from pilotstd.core.notification.channels.telegram import TelegramChannel
 
-        mock_urlopen.side_effect = _mock_urlopen_success(b'{"ok":true}')
+        mock_urlopen.return_value = FakeResponse(200, b'{"ok":true}')
         ch = TelegramChannel("tok123", "chat456")
         msg = NotificationMessage(title="T", body="B", level="info", event_type="e")
         self.assertTrue(ch.send(msg))
 
-    @patch("pilotstd.core.notification.channels.telegram.urlopen")
+    @patch("pilotstd.core.notification.channels.telegram.requests.post")
     def test_send_api_error(self, mock_urlopen):
         from pilotstd.core.notification.channel import NotificationMessage
         from pilotstd.core.notification.channels.telegram import TelegramChannel
 
-        mock_urlopen.side_effect = _mock_urlopen_success(b'{"ok":false,"description":"bad"}')
+        mock_urlopen.return_value = FakeResponse(200, b'{"ok":false,"description":"bad"}')
         ch = TelegramChannel("tok", "chat")
         msg = NotificationMessage(title="T", body="B", level="info", event_type="e")
         self.assertFalse(ch.send(msg))

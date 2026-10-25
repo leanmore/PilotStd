@@ -1,9 +1,24 @@
 """渠道子类 HTTP 响应/异常路径补测。
 用 mock urlopen 覆盖 send() 中的 HTTP 状态码、错误响应、异常处理分支。
 """
+
+class FakeResponse:
+    """requests.Response 的最小替身。"""
+
+    def __init__(self, status: int = 200, body: bytes = b'{"ok":true}'):
+        self.status_code = status
+        self.content = body if isinstance(body, bytes) else str(body).encode("utf-8")
+        self.text = self.content.decode("utf-8", errors="replace")
+        self.headers = {"Content-Type": "application/json"}
+
+
+def http_error(status: int, body: bytes = b""):
+    import requests
+
+    return requests.HTTPError(f"HTTP {status}", response=FakeResponse(status, body))
+
 import json
 from unittest.mock import MagicMock, patch
-from urllib.error import HTTPError
 
 from pilotstd.core.notification.channel import NotificationMessage
 
@@ -14,7 +29,7 @@ def _make_msg(title="Test", standard_number=""):
 
 # 各渠道模块的 urlopen 补丁路径
 _DD_PATH = "pilotstd.core.notification.channels.dingtalk.urlopen"
-_TG_PATH = "pilotstd.core.notification.channels.telegram.urlopen"
+_TG_PATH = "pilotstd.core.notification.channels.telegram.requests.post"
 _FS_PATH = "pilotstd.core.notification.channels.feishu.urlopen"
 _WX_PATH = "pilotstd.core.notification.channels.wechat.urlopen"
 
@@ -104,24 +119,18 @@ class TestTelegramSend:
     def test_send_success(self):
         from pilotstd.core.notification.channels.telegram import TelegramChannel
         ch = TelegramChannel("tok", "123")
-        mock_resp = MagicMock()
-        mock_resp.status = 200
-        mock_resp.read.return_value = json.dumps({"ok": True}).encode()
-        mock_resp.__enter__.return_value = mock_resp
+        mock_resp = FakeResponse(200, json.dumps({"ok": True}).encode())
         with patch(_TG_PATH, return_value=mock_resp):
             assert ch.send(_make_msg()) is True
 
     def test_send_with_standard_number(self):
         from pilotstd.core.notification.channels.telegram import TelegramChannel
         ch = TelegramChannel("tok", "123")
-        mock_resp = MagicMock()
-        mock_resp.status = 200
-        mock_resp.read.return_value = json.dumps({"ok": True}).encode()
-        mock_resp.__enter__.return_value = mock_resp
+        mock_resp = FakeResponse(200, json.dumps({"ok": True}).encode())
         with patch(_TG_PATH, return_value=mock_resp) as mock_urlopen:
             assert ch.send(_make_msg(standard_number="GB/T 1")) is True
-            call_args = mock_urlopen.call_args[0][0]
-            body = json.loads(call_args.data.decode())
+            call_args = mock_urlopen.call_args
+            body = json.loads(call_args.kwargs["data"].decode())
             # 批次2（57f58a6c）去重契约：标准号已由构建器渲染进正文，
             # 发送层不再追加 standard_number（与 dingtalk 通道行为不同）
             assert "body" in body["text"]
@@ -130,44 +139,33 @@ class TestTelegramSend:
     def test_api_not_ok(self):
         from pilotstd.core.notification.channels.telegram import TelegramChannel
         ch = TelegramChannel("tok", "123")
-        mock_resp = MagicMock()
-        mock_resp.status = 200
-        mock_resp.read.return_value = json.dumps({"ok": False, "description": "bad"}).encode()
-        mock_resp.__enter__.return_value = mock_resp
+        mock_resp = FakeResponse(200, json.dumps({"ok": False, "description": "bad"}).encode())
         with patch(_TG_PATH, return_value=mock_resp):
             assert ch.send(_make_msg()) is False
 
     def test_http_not_200(self):
         from pilotstd.core.notification.channels.telegram import TelegramChannel
         ch = TelegramChannel("tok", "123")
-        mock_resp = MagicMock()
-        mock_resp.status = 500
-        mock_resp.__enter__.return_value = mock_resp
+        mock_resp = FakeResponse(500)
         with patch(_TG_PATH, return_value=mock_resp):
             assert ch.send(_make_msg()) is False
 
     def test_http_404(self):
         from pilotstd.core.notification.channels.telegram import TelegramChannel
         ch = TelegramChannel("tok", "123")
-        with patch(_TG_PATH, side_effect=HTTPError(
-            "http://x", 404, "Not Found", {}, None
-        )):
+        with patch(_TG_PATH, side_effect=http_error(404)):
             assert ch.send(_make_msg()) is False
 
     def test_http_401(self):
         from pilotstd.core.notification.channels.telegram import TelegramChannel
         ch = TelegramChannel("tok", "123")
-        with patch(_TG_PATH, side_effect=HTTPError(
-            "http://x", 401, "Unauthorized", {}, None
-        )):
+        with patch(_TG_PATH, side_effect=http_error(401)):
             assert ch.send(_make_msg()) is False
 
     def test_http_500_error(self):
         from pilotstd.core.notification.channels.telegram import TelegramChannel
         ch = TelegramChannel("tok", "123")
-        with patch(_TG_PATH, side_effect=HTTPError(
-            "http://x", 500, "Server Error", {}, None
-        )), patch(_TG_SLEEP):
+        with patch(_TG_PATH, side_effect=http_error(500)), patch(_TG_SLEEP):
             assert ch.send(_make_msg()) is False
 
     def test_general_exception(self):
@@ -180,10 +178,7 @@ class TestTelegramSend:
         """F 修复：瞬时网络异常（连接重置）应重试，第二次成功即返回 True。"""
         from pilotstd.core.notification.channels.telegram import TelegramChannel
         ch = TelegramChannel("tok", "123")
-        mock_resp = MagicMock()
-        mock_resp.status = 200
-        mock_resp.read.return_value = json.dumps({"ok": True}).encode()
-        mock_resp.__enter__.return_value = mock_resp
+        mock_resp = FakeResponse(200, json.dumps({"ok": True}).encode())
         with patch(_TG_PATH, side_effect=[ConnectionResetError(104, "Connection reset by peer"), mock_resp]) as m, \
                 patch(_TG_SLEEP) as sleep:
             assert ch.send(_make_msg()) is True
@@ -206,9 +201,7 @@ class TestTelegramSend:
         from pilotstd.core.notification.channels.telegram import TelegramChannel
         for code in (401, 404):
             ch = TelegramChannel("tok", "123")
-            with patch(_TG_PATH, side_effect=HTTPError(
-                "http://x", code, "err", {}, None
-            )) as m, patch(_TG_SLEEP) as sleep:
+            with patch(_TG_PATH, side_effect=http_error(code)) as m, patch(_TG_SLEEP) as sleep:
                 assert ch.send(_make_msg()) is False
                 assert m.call_count == 1, f"HTTP {code} 不应重试"
                 assert sleep.call_count == 0
@@ -217,9 +210,7 @@ class TestTelegramSend:
         """F 修复：429 属限流（瞬时），应重试。"""
         from pilotstd.core.notification.channels import telegram as tg
         ch = tg.TelegramChannel("tok", "123")
-        with patch(_TG_PATH, side_effect=HTTPError(
-            "http://x", 429, "Too Many Requests", {}, None
-        )) as m, patch(_TG_SLEEP):
+        with patch(_TG_PATH, side_effect=http_error(429)) as m, patch(_TG_SLEEP):
             assert ch.send(_make_msg()) is False
             assert m.call_count == tg._MAX_ATTEMPTS
 

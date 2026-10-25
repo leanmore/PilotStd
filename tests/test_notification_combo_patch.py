@@ -5,6 +5,22 @@ P0（P-119）：后端 update_config 拦截掩码值（***）写回，且为 Mer
 P1（P-116）：渠道 send() 失败时设置 last_error，_send_now 将其写入 notification_log.error_msg。
 """
 
+
+class FakeResponse:
+    """requests.Response 的最小替身。"""
+
+    def __init__(self, status: int = 200, body: bytes = b'{"ok":true}'):
+        self.status_code = status
+        self.content = body if isinstance(body, bytes) else str(body).encode("utf-8")
+        self.text = self.content.decode("utf-8", errors="replace")
+        self.headers = {"Content-Type": "application/json"}
+
+
+def http_error(status: int, body: bytes = b""):
+    import requests
+
+    return requests.HTTPError(f"HTTP {status}", response=FakeResponse(status, body))
+
 import os
 import sys
 
@@ -228,9 +244,7 @@ class TestErrorPropagation:
 
     def test_telegram_channel_sets_last_error_on_http_404(self):
         """TelegramChannel.send() 遇 HTTP 404 → last_error 含具体描述。"""
-        import io
         from unittest.mock import MagicMock, patch
-        from urllib.error import HTTPError
 
         from pilotstd.core.notification.channels.telegram import TelegramChannel
 
@@ -249,12 +263,9 @@ class TestErrorPropagation:
         msg.changed_at = ""
         msg.blocks = []
 
-        err = HTTPError(
-            "http://api.telegram.org", 404, "Not Found", None,
-            io.BytesIO(b'{"ok":false,"error_code":404,"description":"Not Found"}'),
-        )
+        err = http_error(404, b'{"ok":false,"error_code":404,"description":"Not Found"}')
 
-        with patch("pilotstd.core.notification.channels.telegram.urlopen", side_effect=err):
+        with patch("pilotstd.core.notification.channels.telegram.requests.post", side_effect=err):
             ok = ch.send(msg)
 
         assert ok is False

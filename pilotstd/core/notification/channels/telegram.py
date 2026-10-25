@@ -4,8 +4,8 @@
 import json
 import logging
 from typing import TYPE_CHECKING, Any
-from urllib.error import HTTPError
-from urllib.request import Request, urlopen
+
+import requests
 
 from pilotstd.i18n import t
 
@@ -112,32 +112,34 @@ class TelegramChannel(NotificationChannel):
             payload_body["reply_markup"] = reply_markup
         payload = json.dumps(payload_body).encode("utf-8")
         url = f"https://api.telegram.org/bot{self._token}/sendMessage"
-        req = Request(url, data=payload, headers={"Content-Type": "application/json"})
         try:
-            with urlopen(req, timeout=10) as resp:
-                if resp.status == 200:
-                    data = json.loads(resp.read())
-                    if data.get("ok"):
-                        return True, False
-                    desc = data.get("description", "")
-                    self.last_error = t("notification.channel.telegram.send_failed").format(detail=desc)
-                    logger.warning("Telegram 通知失败: %s", desc)
-                    return False, False
-                # 真实网络库对非成功状态码会抛网络错误，此分支仅防御非标准实现
-                self.last_error = f"Telegram HTTP {resp.status}"
-                return False, False
-        except HTTPError as e:
+            resp = requests.post(
+                url, data=payload, headers={"Content-Type": "application/json"}, timeout=10
+            )
+            if resp.status_code != 200:
+                # 与 urllib 路径对齐：非 200 抛 HTTPError，统一走下方同一个错误分支
+                raise requests.HTTPError(f"HTTP {resp.status_code}", response=resp)
+            data = json.loads(resp.content)
+            if data.get("ok"):
+                return True, False
+            desc = data.get("description", "")
+            self.last_error = t("notification.channel.telegram.send_failed").format(detail=desc)
+            logger.warning("Telegram 通知失败: %s", desc)
+            return False, False
+        except requests.HTTPError as e:
+            http_resp = e.response
+            code = http_resp.status_code if http_resp is not None else 0
             # 读取响应体（含说明字段）用于诊断 4xx 具体原因
             body = ""
             try:
-                body = e.read().decode("utf-8", errors="replace")[:500]
+                body = (http_resp.text if http_resp is not None else "")[:500]
             except Exception:
                 # P1-4 修复：响应体读取失败需带结构化上下文记录，禁止静默吞错
                 logger.warning(
                     "Telegram 响应体读取失败: trace_id=%s source_type=telegram_channel target_chat_id=%s code=%s",
                     _log_trace_id(),
                     self._chat_id,
-                    e.code,
+                    code,
                     exc_info=True,
                 )
             # 提取具体错误描述透传（优先取 JSON 中的说明字段）
@@ -150,26 +152,26 @@ class TelegramChannel(NotificationChannel):
                     "target_chat_id=%s code=%s body=%s",
                     _log_trace_id(),
                     self._chat_id,
-                    e.code,
+                    code,
                     body[:100],
                     exc_info=True,
                 )
                 desc = body or str(e)
-            self.last_error = f"HTTP {e.code}: {desc}"
-            logger.warning("Telegram send failed: HTTP %s, body=%s", e.code, body)
+            self.last_error = f"HTTP {code}: {desc}"
+            logger.warning("Telegram send failed: HTTP %s, body=%s", code, body)
             # 404/401→配置错误（无效/已撤销），不应重试
             # 429/5xx→服务端临时故障，退避重试
-            if e.code == 404:
+            if code == 404:
                 self._log_dedup(
                     "Telegram 404 — bot token 无效或已撤销，请检查配置中的 bot_token。"
                     " 在修复配置之前，Telegram 通知将静默跳过。"
                 )
-            elif e.code == 401:
+            elif code == 401:
                 self._log_dedup("Telegram 401 Unauthorized — bot token 鉴权失败，请重新生成 token。")
             else:
-                logger.warning("Telegram HTTP %s: %s", e.code, e)
-            return False, e.code == 429 or e.code >= 500
-        except OSError as e:
+                logger.warning("Telegram HTTP %s: %s", code, e)
+            return False, code == 429 or code >= 500
+        except (requests.RequestException, OSError) as e:
             # 网络类异常（连接重置/握手超时/域名解析失败，含网络库错误）属瞬时故障 → 退避重试
             self.last_error = t("notification.channel.telegram.send_exception").format(error=e)
             logger.warning("Telegram 通知异常: %s", e)
@@ -220,14 +222,15 @@ class TelegramChannel(NotificationChannel):
         """调用 Bot API 的单个方法（编辑等低频动作），失败写 last_error 并返回 False。"""
         url = f"https://api.telegram.org/bot{self._token}/{method}"
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-        req = Request(url, data=body, headers={"Content-Type": "application/json"}, method="POST")
         try:
-            with urlopen(req, timeout=10) as resp:
-                if resp.status != 200:
-                    self.last_error = f"Telegram {method} HTTP {resp.status}"
-                    logger.warning("Telegram %s HTTP %d", method, resp.status)
-                    return False
-                data = json.loads(resp.read().decode("utf-8"))
+            resp = requests.post(
+                url, data=body, headers={"Content-Type": "application/json"}, timeout=10
+            )
+            if resp.status_code != 200:
+                self.last_error = f"Telegram {method} HTTP {resp.status_code}"
+                logger.warning("Telegram %s HTTP %d", method, resp.status_code)
+                return False
+            data = json.loads(resp.content.decode("utf-8"))
         except Exception as e:
             api_error = t("notification.channel.api_exception").format(method=method, error=e)
             self.last_error = api_error

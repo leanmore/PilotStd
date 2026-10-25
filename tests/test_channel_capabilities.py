@@ -5,6 +5,22 @@
 与 01-channel-capabilities.md §四 结论 3（四家编辑锚点不统一）。
 """
 
+
+class FakeResponse:
+    """requests.Response 的最小替身。"""
+
+    def __init__(self, status: int = 200, body: bytes = b'{"ok":true}'):
+        self.status_code = status
+        self.content = body if isinstance(body, bytes) else str(body).encode("utf-8")
+        self.text = self.content.decode("utf-8", errors="replace")
+        self.headers = {"Content-Type": "application/json"}
+
+
+def http_error(status: int, body: bytes = b""):
+    import requests
+
+    return requests.HTTPError(f"HTTP {status}", response=FakeResponse(status, body))
+
 import json
 from unittest.mock import patch
 
@@ -130,8 +146,8 @@ class TestTelegramEdit:
     def test_edit_success(self):
         ch = _telegram()
         with patch(
-            "pilotstd.core.notification.channels.telegram.urlopen",
-            return_value=_Resp({"ok": True, "result": {}}),
+            "pilotstd.core.notification.channels.telegram.requests.post",
+            return_value=FakeResponse(200, json.dumps({"ok": True, "result": {}}).encode()),
         ):
             assert ch.edit_message(MessageHandle("telegram", ANCHOR_MESSAGE_ID, "42"), self._msg()) is True
         assert ch.last_error == ""
@@ -139,15 +155,17 @@ class TestTelegramEdit:
     def test_edit_platform_failure_records_error(self):
         ch = _telegram()
         with patch(
-            "pilotstd.core.notification.channels.telegram.urlopen",
-            return_value=_Resp({"ok": False, "description": "message is not modified"}),
+            "pilotstd.core.notification.channels.telegram.requests.post",
+            return_value=FakeResponse(
+                200, json.dumps({"ok": False, "description": "message is not modified"}).encode()
+            ),
         ):
             assert ch.edit_message(MessageHandle("telegram", ANCHOR_MESSAGE_ID, "42"), self._msg()) is False
         assert "message is not modified" in ch.last_error
 
     def test_edit_wrong_anchor_refused_without_network(self):
         ch = _telegram()
-        with patch("pilotstd.core.notification.channels.telegram.urlopen") as mock_open:
+        with patch("pilotstd.core.notification.channels.telegram.requests.post") as mock_open:
             assert ch.edit_message(MessageHandle("telegram", ANCHOR_OUT_TRACK_ID, "x"), self._msg()) is False
         mock_open.assert_not_called()
         assert "锚点" in ch.last_error

@@ -14,6 +14,22 @@
 - 验证通知失败不阻塞主业务流程
 """
 
+
+class FakeResponse:
+    """requests.Response 的最小替身。"""
+
+    def __init__(self, status: int = 200, body: bytes = b'{"ok":true}'):
+        self.status_code = status
+        self.content = body if isinstance(body, bytes) else str(body).encode("utf-8")
+        self.text = self.content.decode("utf-8", errors="replace")
+        self.headers = {"Content-Type": "application/json"}
+
+
+def http_error(status: int, body: bytes = b""):
+    import requests
+
+    return requests.HTTPError(f"HTTP {status}", response=FakeResponse(status, body))
+
 import os
 import sys
 
@@ -310,9 +326,7 @@ class TestTelegram400Diagnostics:
 
     def test_http_400_records_body(self):
         """HTTPError(400) → 日志包含 response body（description）。"""
-        import io
         from unittest.mock import MagicMock, patch
-        from urllib.error import HTTPError
 
         from pilotstd.core.notification.channels.telegram import TelegramChannel
 
@@ -331,13 +345,10 @@ class TestTelegram400Diagnostics:
         msg.changed_at = ""
         msg.blocks = []
 
-        err = HTTPError(
-            "http://api.telegram.org", 400, "Bad Request", None,
-            io.BytesIO(b'{"ok":false,"description":"chat_id not found"}'),
-        )
+        err = http_error(400, b'{"ok":false,"description":"chat_id not found"}')
 
         with (
-            patch("pilotstd.core.notification.channels.telegram.urlopen", side_effect=err),
+            patch("pilotstd.core.notification.channels.telegram.requests.post", side_effect=err),
             patch("pilotstd.core.notification.channels.telegram.logger.warning") as mock_log,
         ):
             ok = ch.send(msg)
@@ -350,9 +361,7 @@ class TestTelegram400Diagnostics:
 
     def test_http_400_logs_dedup_for_404(self):
         """404 → 记录"bot token 无效"提示。"""
-        import io
         from unittest.mock import MagicMock, patch
-        from urllib.error import HTTPError
 
         from pilotstd.core.notification.channels.telegram import TelegramChannel
 
@@ -371,13 +380,10 @@ class TestTelegram400Diagnostics:
         msg.changed_at = ""
         msg.blocks = []
 
-        err = HTTPError(
-            "http://api.telegram.org", 404, "Not Found", None,
-            io.BytesIO(b'{"ok":false,"description":"Not Found"}'),
-        )
+        err = http_error(404, b'{"ok":false,"description":"Not Found"}')
 
         with (
-            patch("pilotstd.core.notification.channels.telegram.urlopen", side_effect=err),
+            patch("pilotstd.core.notification.channels.telegram.requests.post", side_effect=err),
             # 2026-10-17：去重日志（`_log_dedup`）已随渠道基座搬到 `channels/base.py`，
             # 故错误日志由 **base 的 logger** 发出；打桩目标必须跟着走，否则抓不到（CI 实测红）。
             patch("pilotstd.core.notification.channels.base.logger.error") as mock_err,
