@@ -2087,7 +2087,7 @@ def main():
             f"错误: cryptography 未安装，当前 Python 可能不是虚拟环境。\n"
             f"  sys.executable = {sys.executable}\n"
             f"  请使用虚拟环境 Python 运行压测:\n"
-            f"  D:\\PilotStd\\pilotstd_env\\Scripts\\python.exe tests/stress_driver.py ..."
+            f"  <venv>\\Scripts\\python.exe tests/stress_driver.py ..."
         )
         sys.exit(1)
 
