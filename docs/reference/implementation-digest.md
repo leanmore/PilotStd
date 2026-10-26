@@ -21,7 +21,7 @@
 
 ### 1.2 15 项裁决（2026-10-02，节选）
 
-> **2026-10-26 起以 `docs/DECISIONS.md` 为唯一真相**：本节 5 条已迁为 D-19～D-23；完整 15 项已于批次 2 从 `docs/plans/notification-redesign/00-README.md` §三回收（D-19～D-22 + D-27～D-37），缺口已关闭。
+> **2026-10-26 起以 `docs/DECISIONS.md` 为唯一真相**：本节 5 条中的 4 条对应完整 15 项（D-19～D-22 + D-27～D-37，2026-10-26 从 `plans/notification-redesign/00-README.md` §三回收），D-23 为表外补充；缺口已关闭。
 
 | 裁决 | 结论 |
 |---|---|
