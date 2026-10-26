@@ -12,21 +12,11 @@ from pilotstd.core.notification.channels.feishu import FeishuChannel
 
 
 class _Resp:
-    """真实上下文管理器替身（`with` 按类型查找 `__enter__`）。"""
-
-    status = 200
+    status_code = 200
 
     def __init__(self, payload: dict) -> None:
-        self._body = json.dumps(payload).encode("utf-8")
-
-    def read(self) -> bytes:
-        return self._body
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *exc) -> bool:
-        return False
+        self.content = json.dumps(payload).encode("utf-8")
+        self.text = self.content.decode("utf-8")
 
 
 def _msg() -> NotificationMessage:
@@ -44,12 +34,12 @@ class TestFeishuSignature:
     def test_signature_matches_documented_algorithm(self):
         sent: dict = {}
 
-        def _capture(req, timeout=10):  # noqa: ARG001 - 契约签名
-            sent.update(json.loads(req.data.decode("utf-8")))
+        def _capture(url, data=None, **kwargs):  # noqa: ARG001 - 契约签名
+            sent.update(json.loads((data or b"{}").decode("utf-8")))
             return _Resp({"code": 0})
 
         channel = FeishuChannel(webhook_url="https://open.feishu.cn/open-apis/bot/v2/hook/x", secret="s3cr3t")
-        with patch("pilotstd.core.notification.channels.feishu.urlopen", side_effect=_capture):
+        with patch("pilotstd.core.notification.channels.feishu.requests.post", side_effect=_capture):
             assert channel.send(_msg()) is True
 
         assert set(sent) >= {"timestamp", "sign", "msg_type", "card"}
@@ -58,16 +48,16 @@ class TestFeishuSignature:
     def test_timestamp_is_seconds_and_changes_signature(self):
         sent: dict = {}
 
-        def _capture(req, timeout=10):  # noqa: ARG001 - 契约签名
-            sent.update(json.loads(req.data.decode("utf-8")))
+        def _capture(url, data=None, **kwargs):  # noqa: ARG001 - 契约签名
+            sent.update(json.loads((data or b"{}").decode("utf-8")))
             return _Resp({"code": 0})
 
         channel = FeishuChannel(webhook_url="https://x", secret="s3cr3t")
-        with patch("pilotstd.core.notification.channels.feishu.urlopen", side_effect=_capture):
+        with patch("pilotstd.core.notification.channels.feishu.requests.post", side_effect=_capture):
             channel.send(_msg())
         first = dict(sent)
         with (
-            patch("pilotstd.core.notification.channels.feishu.urlopen", side_effect=_capture),
+            patch("pilotstd.core.notification.channels.feishu.requests.post", side_effect=_capture),
             patch.object(time, "time", return_value=time.time() + 2),
         ):
             channel.send(_msg())
@@ -79,12 +69,12 @@ class TestFeishuSignature:
     def test_no_secret_keeps_request_body_unchanged(self):
         sent: dict = {}
 
-        def _capture(req, timeout=10):  # noqa: ARG001 - 契约签名
-            sent.update(json.loads(req.data.decode("utf-8")))
+        def _capture(url, data=None, **kwargs):  # noqa: ARG001 - 契约签名
+            sent.update(json.loads((data or b"{}").decode("utf-8")))
             return _Resp({"code": 0})
 
         channel = FeishuChannel(webhook_url="https://x")
-        with patch("pilotstd.core.notification.channels.feishu.urlopen", side_effect=_capture):
+        with patch("pilotstd.core.notification.channels.feishu.requests.post", side_effect=_capture):
             assert channel.send(_msg()) is True
 
         assert set(sent) == {"msg_type", "card"}, "未配密钥时请求体必须与既有行为逐字一致"

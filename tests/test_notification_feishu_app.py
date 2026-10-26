@@ -26,18 +26,10 @@ CARD = {"header": {"title": {"tag": "plain_text", "content": "t"}}, "elements": 
 
 
 class _Resp:
-    def __init__(self, payload: dict) -> None:
-        self.status = 200
-        self._payload = payload
-
-    def read(self) -> bytes:
-        return json.dumps(self._payload).encode("utf-8")
-
-    def __enter__(self) -> "_Resp":
-        return self
-
-    def __exit__(self, *a: object) -> None:
-        return None
+    def __init__(self, payload: dict, status: int = 200) -> None:
+        self.status_code = status
+        self.content = json.dumps(payload).encode("utf-8")
+        self.text = self.content.decode("utf-8")
 
 
 def _msg() -> NotificationMessage:
@@ -48,26 +40,34 @@ def _msg() -> NotificationMessage:
 
 def _stub(monkeypatch: Any, captured: list[tuple[str, str, dict]], *, token_ok: bool = True,
           send_code: int = 0, patch_code: int = 0) -> None:
-    """打桩 `urlopen`：记录 (method, url, body)，按端点返回可控响应。"""
+    """打桩 requests：记录 (method, url, body)，按端点返回可控响应。"""
 
-    def _fake(req: Any, timeout: int = 10) -> _Resp:
-        url = req.full_url
-        body = json.loads(req.data.decode("utf-8")) if req.data else {}
-        captured.append((req.get_method(), url, body))
-        if "tenant_access_token" in url:
+    def _fake(method: str):
+        def inner(url: str, data: bytes | None = None, **kwargs: Any) -> _Resp:
+            body = json.loads(data.decode("utf-8")) if data else {}
+            captured.append((method, url, body))
+            if "tenant_access_token" in url:
+                return _Resp(
+                    {"code": 0, "tenant_access_token": "tok"}
+                    if token_ok
+                    else {"code": 99, "msg": "bad app"}
+                )
+            if method == "PATCH":
+                return _Resp({"code": patch_code, "msg": "patch fail" if patch_code else ""})
             return _Resp(
-                {"code": 0, "tenant_access_token": "tok"} if token_ok else {"code": 99, "msg": "bad app"}
+                {
+                    "code": send_code,
+                    "msg": "send fail" if send_code else "",
+                    "data": {"message_id": "om_123"},
+                }
             )
-        if req.get_method() == "PATCH":
-            return _Resp({"code": patch_code, "msg": "patch fail" if patch_code else ""})
-        return _Resp(
-            {"code": send_code, "msg": "send fail" if send_code else "",
-             "data": {"message_id": "om_123"}}
-        )
+
+        return inner
 
     import pilotstd.core.notification.channels.feishu as feishu_mod
 
-    monkeypatch.setattr(feishu_mod, "urlopen", _fake)
+    monkeypatch.setattr(feishu_mod.requests, "post", _fake("POST"))
+    monkeypatch.setattr(feishu_mod.requests, "patch", _fake("PATCH"))
 
 
 def test_app_form_sends_card_and_keeps_message_id(monkeypatch) -> None:

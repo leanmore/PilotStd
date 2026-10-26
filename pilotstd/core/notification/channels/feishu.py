@@ -8,7 +8,8 @@ import json
 import logging
 import time
 from typing import TYPE_CHECKING, Any
-from urllib.request import Request, urlopen
+
+import requests
 
 from pilotstd.i18n import t
 
@@ -91,14 +92,14 @@ class FeishuChannel(NotificationChannel):
         if self._token and now < self._token_expire_at:
             return self._token
         payload = json.dumps({"app_id": self._app_id, "app_secret": self._app_secret}).encode("utf-8")
-        req = Request(
-            f"{self._api_base()}/auth/v3/tenant_access_token/internal",
-            data=payload,
-            headers={"Content-Type": "application/json"},
-        )
         try:
-            with urlopen(req, timeout=10) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
+            resp = requests.post(
+                f"{self._api_base()}/auth/v3/tenant_access_token/internal",
+                data=payload,
+                headers={"Content-Type": "application/json"},
+                timeout=10,
+            )
+            data = json.loads(resp.content.decode("utf-8"))
         except Exception as e:
             self.last_error = str(e)
             return ""
@@ -123,14 +124,14 @@ class FeishuChannel(NotificationChannel):
             }
         ).encode("utf-8")
         url = f"{self._api_base()}/im/v1/messages?receive_id_type={self._receive_id_type}"
-        req = Request(
-            url,
-            data=payload,
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {token}"},
-        )
         try:
-            with urlopen(req, timeout=15) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
+            resp = requests.post(
+                url,
+                data=payload,
+                headers={"Content-Type": "application/json", "Authorization": f"Bearer {token}"},
+                timeout=15,
+            )
+            data = json.loads(resp.content.decode("utf-8"))
         except Exception as e:
             self.last_error = str(e)
             logger.warning("feishu app message failed: %s", e)
@@ -172,15 +173,14 @@ class FeishuChannel(NotificationChannel):
         if not token:
             return False
         payload = json.dumps({"content": json.dumps(card, ensure_ascii=False)}).encode("utf-8")
-        req = Request(
-            f"{self._api_base()}/im/v1/messages/{message_id}",
-            data=payload,
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {token}"},
-            method="PATCH",
-        )
         try:
-            with urlopen(req, timeout=15) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
+            resp = requests.patch(
+                f"{self._api_base()}/im/v1/messages/{message_id}",
+                data=payload,
+                headers={"Content-Type": "application/json", "Authorization": f"Bearer {token}"},
+                timeout=15,
+            )
+            data = json.loads(resp.content.decode("utf-8"))
         except Exception as e:
             self.last_error = str(e)
             logger.warning("feishu edit message failed: %s", e)
@@ -333,37 +333,30 @@ class FeishuChannel(NotificationChannel):
             if self._secret:
                 request_body.update(self._sign())
             payload = json.dumps(request_body).encode("utf-8")
-            req = Request(self._url, data=payload, headers={"Content-Type": "application/json"})
-            with urlopen(req, timeout=10) as resp:
-                if resp.status == 200:
-                    data = json.loads(resp.read())
-                    # 飞书返回=0表示成功
-                    if data.get("code") == 0:
-                        return True, False
-                    msg = data.get("msg", "")
-                    self.last_error = t("notification.channel.feishu.api_failed").format(detail=msg)
-                    logger.warning("飞书通知失败: %s", msg)
-                    return False, looks_rate_limited(f"{data.get('code', '')} {msg}")
-                self.last_error = t("notification.channel.feishu.http_error").format(status=resp.status)
-                return False, is_retryable_http_status(resp.status)
+            resp = requests.post(
+                self._url, data=payload, headers={"Content-Type": "application/json"}, timeout=10
+            )
+            if resp.status_code == 200:
+                data = json.loads(resp.content)
+                # 飞书返回=0表示成功
+                if data.get("code") == 0:
+                    return True, False
+                msg = data.get("msg", "")
+                self.last_error = t("notification.channel.feishu.api_failed").format(detail=msg)
+                logger.warning("飞书通知失败: %s", msg)
+                return False, looks_rate_limited(f"{data.get('code', '')} {msg}")
+            self.last_error = t("notification.channel.feishu.http_error").format(
+                status=resp.status_code
+            )
+            return False, is_retryable_http_status(resp.status_code)
+        except (requests.RequestException, OSError) as e:
+            self.last_error = str(e)
+            logger.warning("飞书通知异常: %s", e, exc_info=True)
+            return False, True
         except Exception as e:
-            # 读取错误响应体用于诊断（回调返回非 200 时的具体错误）
-            body = ""
-            from urllib.error import HTTPError
-
-            status = 0
-            if isinstance(e, HTTPError):
-                status = e.code
-                try:
-                    body = e.read().decode("utf-8", errors="replace")[:500]
-                except Exception as read_exc:
-                    # 区分"服务端未返回 body"与"body 读取失败"，避免诊断信息静默丢失
-                    body = f"<body 读取失败: {read_exc}>"
-                    logger.debug("错误响应体读取失败: %s", read_exc)
-            # 透传具体错误描述
-            self.last_error = f"{e}: {body}" if body else str(e)
-            logger.warning("飞书通知异常: %s, body=%s", e, body, exc_info=True)
-            return False, is_retryable_http_status(status) if status else True
+            self.last_error = str(e)
+            logger.warning("飞书通知异常: %s", e, exc_info=True)
+            return False, False
 
     @staticmethod
     def validate_config(config: dict) -> bool:
