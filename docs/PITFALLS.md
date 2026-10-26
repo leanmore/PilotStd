@@ -199,3 +199,23 @@ git show <commit> -- pilotstd/core/db/_migrate_vN_*.py
 ### 可复用模式
 
 **"临时状态"要按生命周期管，不按工具目录管**。凡是 `tests/` 或脚本写入 `.<tool>/` 的，都视为会在下一次运行时复活的隐患。
+
+---
+
+## P-07 `'super' object has no attribute 'request'`：多重继承下的父类解析
+
+### 现象
+
+容器内报 `'super' object has no attribute 'request'`；核对容器 `session.py` 与本地 HEAD 为**同一 blob**，
+说明**不是"部署了旧代码"**，而是运行期父类解析问题。
+
+### 根因
+
+多重继承场景下 `super()` 解析到的父类不是预期的 requests 基类（MRO 顺序受 mixin 影响），
+调用链在错误父类上找 `request` 属性。
+
+### 修复与避免
+
+- 修复落在**子类实现**（显式指定父类/调整 MRO），不在调用点打补丁；
+- 避免：新增 mixin 时检查 MRO（`Cls.__mro__`），并对多继承类补一条最小回归用例；
+- 关联：`docs/DECISIONS.md` D-24 附近的下载/会话链结论。
