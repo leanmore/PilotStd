@@ -134,6 +134,14 @@
 | D-54 | `mask` 与 `password` 能否合并；G-045 阻断范围 | **两者必须分开**（`mask` 是输入控件形态，`password` 是敏感标记）；G-045 **B 类阻断**，并**重写为 4 项非恒真校验**（原第 1/2 项在派生实施后恒真） | 否决"合并为一个字段"（首次配置需明文输入但不需要 `secret`）；否决"沿用原 4 项校验"（恒真=无效门禁） | `plans/notification-system-design/07-impl-design-A.md` §7/§8 |
 | D-55 | MoviePilot 的哪些做法可以照搬 | **不照搬"动态发现渠道 + 方法扇出"**（PilotStd 是显式注册）；若要引入能力矩阵，**必须同时引入"声明 vs 实现"校验** | 否决"照搬自动发现"——与 PilotStd 显式注册架构冲突；否决"只抄矩阵不抄校验"——会复现 MoviePilot 的 QQ 漂移 | `plans/moviepilot-investigation/02-pilotstd-gap-analysis.md` A1/C3/C6/H1 |
 
+| D-56 | 任务模型（Task/TaskItem/TaskProgress）要不要新建表 | **不新增**：`task_queue` 已是 Task 实体本体（字段实测齐全），新增会形成双源；`fetch_task` 语义已被覆盖，**归并列入阶段 4 待议** | 否决"新建 Task 主表"——与现有 `task_queue` 双源；否决"现在就删 `fetch_task`"——需评估存量数据 | `plans/notification-redesign/02-目标架构.md` §2.3 |
+| D-57 | 渠道回调端点的鉴权与响应约束 | **不能走 Cookie+CSRF**（外部渠道无 Cookie）：加入 `AUTH_WHITELIST` + handler 内**逐渠道验签**（唯一安全边界）；**必须 200 且快**（只做验签+入队+返回，动作异步执行）；防重放=`message_id+nonce` 落库唯一约束；`callback_data ≤ 64 字节` | 否决"复用会话鉴权"（渠道拿不到 Cookie）；否决"回调内同步执行动作"（渠道 3–5s 超时）；否决"不落库防重放"（重复点击会重复执行） | 同上 §2.4 |
+| D-58 | 渠道能力差异怎么表达 | **基类新增 `capabilities` 属性**（返回 `ChannelCapabilities` 数据类），矩阵声明式；不再靠"人的记忆 + 5 个渲染器各自 if" | 否决"继续分散 if 判断"——能力差异不可枚举、新增渠道易漏；否决"运行时探测"（不稳定、不可测） | 同上 §2.5 |
+
+> **批次 2 的 0 条记录**：`plans/notification-system-design/08-统筹日程.md` —— **0 条**：该文是通知系统的日程与待办清单（统筹法分析），
+> 不含"选 A 不选 B"的取舍；其排期依赖已在 D-46（六阶段）与 D-47（回滚开关）中体现。
+> `06-spec-and-phasing.md` 的"步 A ∥ B1 → B2 → C、D6 在 D4 后"属**执行顺序细节**，并入 D-53 的实现约束，不单列条目。
+
 ## 附录 A：已失效决策（保留编号，不占"有效决策"名额）
 
 | ID | 事项 | 原裁决 | 现状 |
