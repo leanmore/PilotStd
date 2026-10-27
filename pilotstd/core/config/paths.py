@@ -65,6 +65,10 @@ def get_library_root(config: Any) -> str:
 
     _log = logging.getLogger("pilotstd.config")
     root = os.environ.get("STANDARD_ROOT") or config.get("storage.root_dir", os.path.expanduser("~/标准"))
+    # 类型守卫：config 返回非字符串（如测试里的 MagicMock）时不得当路径用——
+    # 否则 os.path 会把 mock 的 repr 当目录名，在 CWD 建出 `mock.cfg.get()` 这类垃圾目录（A-16）。
+    if not isinstance(root, (str, os.PathLike)):
+        raise TypeError(f"storage.root_dir must be a path string, got {type(root).__name__}")
     root = os.path.abspath(os.path.normpath(root))
     if not os.path.exists(root):
         try:

@@ -357,7 +357,7 @@ class TestStartWatching:
             "pilotstd.scan.watcher.FileWatcher",
             side_effect=ImportError("no watchdog"),
         ):
-            handler.start_watching()
+            handler.start_watching(root_paths=["/tmp/pilotstd-watch-test"])
 
         assert any("watchdog" in rec.message.lower() for rec in caplog.records)
 
@@ -371,7 +371,7 @@ class TestStartWatching:
             "pilotstd.scan.watcher.FileWatcher",
             side_effect=RuntimeError("unexpected"),
         ):
-            handler.start_watching()
+            handler.start_watching(root_paths=["/tmp/pilotstd-watch-test"])
 
         assert any("启动文件监控失败" in rec.message for rec in caplog.records)
 
