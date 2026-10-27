@@ -113,7 +113,9 @@ class TestNormalize:
 
 class TestMove:
     def test_dry_run(self, tmp_path, monkeypatch, capsys):
-        monkeypatch.setattr("pilotstd.cli.commands.move._make_manager", mock.MagicMock())
+        mgr = mock.MagicMock()
+        mgr.cfg.get.return_value = str(tmp_path)  # 避免 mock 当路径用（A-16）
+        monkeypatch.setattr("pilotstd.cli.commands.move._make_manager", lambda **kw: mgr)
         from pilotstd.cli.commands.move import cmd_move
 
         fp = _pdf(tmp_path)
@@ -123,7 +125,9 @@ class TestMove:
         assert "预览" in out or "preview" in out.lower() or "移动" in out
 
     def test_dry_run_multiple_files(self, tmp_path, monkeypatch, capsys):
-        monkeypatch.setattr("pilotstd.cli.commands.move._make_manager", mock.MagicMock())
+        mgr = mock.MagicMock()
+        mgr.cfg.get.return_value = str(tmp_path)  # 避免 mock 当路径用（A-16）
+        monkeypatch.setattr("pilotstd.cli.commands.move._make_manager", lambda **kw: mgr)
         from pilotstd.cli.commands.move import cmd_move
 
         f1 = _pdf(tmp_path, "GB 1-2020.pdf")
