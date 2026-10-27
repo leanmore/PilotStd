@@ -84,11 +84,17 @@ def _restore_i18n_language():
     本 fixture 在每个测试后恢复进入前的语言，保证任意运行顺序下
     测试渲染均为默认语言（zh_CN），消除顺序相关性。
     """
-    from pilotstd.i18n import get_language, set_language
+    from pilotstd import i18n
 
-    before = get_language()
+    before_lang = i18n.get_language()
+    # 不止语言：部分用例会替换 _translations/_loaded（如 unit/test_i18n 精简表），
+    # 只恢复语言仍会把"其它语言缺键"的状态漏给后续用例——这里连缓存一起快照/还原。
+    before_translations = i18n._translations
+    before_loaded = i18n._loaded
     yield
-    set_language(before)
+    i18n._translations = before_translations
+    i18n._loaded = before_loaded
+    i18n.set_language(before_lang)
 
 
 @pytest.fixture(scope="session")
