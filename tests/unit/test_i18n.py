@@ -172,9 +172,12 @@ class TestSetLanguage:
         # 必须先置 `_loaded = True`：`set_language()` 内部先调 `_ensure_loaded()`，
         # 否则懒加载会用**真实 JSON** 覆盖下面这份精简的 `_translations`。
         i18n._loaded = True
-        i18n._translations = {"zh_CN": {"hello": "你好"}}
         i18n.set_language("fr_FR")
         assert i18n.get_language() == i18n.DEFAULT_LANGUAGE
+        # 在 set_language 之后再写入精简翻译表：避免其它用例/懒加载在切换过程中
+        # 覆盖 _translations，导致本用例依赖执行顺序（2026-10-27 全量套件实测）。
+        i18n._loaded = True
+        i18n._translations = {i18n.get_language(): {"hello": "你好"}}
         assert i18n._("hello") == "你好"
 
     def test_triggers_lazy_load(self):
