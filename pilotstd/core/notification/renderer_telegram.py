@@ -127,6 +127,15 @@ class TelegramRenderer(BlockRenderer):
             return ""
         return _TELEGRAM_ESCAPE_CHARS.sub(r"\\\1", text)
 
+    def _render_plain_text(self, message: Any) -> str:
+        """无 blocks 的纯文本：MarkdownV2 转义 + 补标题（test 发送/简单正文走这里）。"""
+        body = self._escape(message.body or "")
+        title = message.title or ""
+        if title:
+            escaped_title = self._escape(title)
+            return f"*{escaped_title}*\n\n{body}" if body else f"*{escaped_title}*"
+        return body
+
     def _block_separator(self) -> str:
         """Telegram 消息块间用单空行分隔。"""
         return "\n\n"

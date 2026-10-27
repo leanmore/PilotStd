@@ -162,8 +162,8 @@ class BlockRenderer:
         """
         blocks: list[NotificationBlock] = getattr(message, "blocks", [])
         if not blocks:
-            # 回退：降级为纯文本
-            text = message.body if message.body else ""
+            # 回退：降级为纯文本（各渠道可覆盖钩子做转义/补标题）
+            text = self._render_plain_text(message)
         else:
             parts: list[str] = []
             title_part = self._render_title(message.title)
@@ -182,6 +182,13 @@ class BlockRenderer:
         if not text:
             text = message.title or _fallback_text()
         return text
+
+    def _render_plain_text(self, message: NotificationMessage) -> str:
+        """无结构块时的纯文本兜底；默认**逐字**返回正文（不转义、不加标题）。
+
+        渠道可覆盖：如 Telegram 需做 MarkdownV2 转义并补标题。
+        """
+        return message.body if message.body else ""
 
     # ── 渲染调度 ──
 

@@ -239,3 +239,36 @@ GB / DB / HB 三类都有。
 - 修复方向：`parse_std_number` 增加变形前缀兜底、与提取层共用同一 token 语法；
 - 避免：新增标准来源时，先拿 3 条真实样本跑"提取 → 解析"闭环，再上线；
 - 审计方法：源站列表/详情 ↔ 部署 API 逐条对照（本次方法可复用）。
+
+---
+
+## P-09 `if not blocks` 兜底把正文原样返回：MarkdownV2 保留字符导致 400
+
+### 现象
+
+`POST /api/notification/test` 发 Telegram，正文含 `.` 或 `(`/`)` 时返回 `{"ok":false,"error":"投递失败"}`；
+纯字母/连字符正常。真实环境实测（2026-10-27，局域网 Docker）。
+
+### 根因
+
+`renderer_base.py::render()` 在 `message.blocks` 为空时走兜底：
+
+```python
+if not blocks:
+    text = message.body if message.body else ""   # 原样返回，没走 _escape；标题也不渲染
+```
+
+Telegram 用 `parse_mode=MarkdownV2`，正文里的 `.` `(` `)` 未转义 → API 返回 400 `can't parse entities`。
+
+**与 A-13 的 requests 迁移无关**：`renderer_base.py` 在迁移期间零改动，所以"部署新代码也会失败"。
+
+### 修复
+
+- 基类新增可覆盖钩子 `_render_plain_text(message)`，默认逐字返回正文（其它渠道行为不变）；
+- `TelegramRenderer` 覆盖：`_escape` 正文与标题，输出 `*标题*\n\n正文`；
+- 回归：`tests/unit/core/test_renderer_plain_text.py`（3 例：转义+标题、带 blocks 走原路径、非 Telegram 逐字不变）。
+
+### 可复用模式
+
+**"兜底分支"最容易绕过安全/格式处理**——任何 `if not X: return raw` 的降级路径，都要问一句
+"这条路上有没有本该施加的转义/校验/日志"。本次是转义，下次可能是鉴权或脱敏。
