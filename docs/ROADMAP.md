@@ -48,7 +48,7 @@
 
 ### S2 通知二期 · 步 A：渠道收敛（2026-10-26 ~ 10-27，16h）
 
-> **状态核对（2026-10-24）：疑似已实现，待逐条验收。** 证据：`pilotstd/core/notification/channel_spec.py` 存在（226 行，`CHANNEL_SPECS`），且 `channel.py`、`manager.py`、`docker/api/notification.py` 均已从它派生；06 文档 L167 自标 ✅。**先核对再决定是否施工，避免重建已存在的东西。**
+> **状态核对（2026-10-24；2026-10-27 措辞收敛）：代码已核对，真实验收待批次。** 证据：`pilotstd/core/notification/channel_spec.py` 存在（226 行，`CHANNEL_SPECS`），且 `channel.py`、`manager.py`、`docker/api/notification.py` 均已从它派生；06 文档 L167 自标 ✅。**先核对再决定是否施工，避免重建已存在的东西。**
 
 | 项 | 内容 | 验收 |
 |---|---|---|
@@ -59,7 +59,7 @@
 
 ### S3 通知二期 · 步 B：事件收敛（2026-10-28 ~ 10-29，18h）
 
-> **状态核对（2026-10-24）：大部分已实现。** 证据：`tests/test_notification_e2e.py` 已 `from ...events import ALL_EVENT_KEYS`（派生而非复制）；前端生产代码**无硬编码事件键**；Q3 已落地（`_builders_batch.py:241,256` 按 `pending>0` 分支）。**Q11 已实现（2026-10-24，409ab1e）**：新增 uto_pipeline_summary，覆盖 44 事件。
+> **状态核对（2026-10-24；2026-10-27 措辞收敛）：代码已核对，真实验收待批次。** 证据：`tests/test_notification_e2e.py` 已 `from ...events import ALL_EVENT_KEYS`（派生而非复制）；前端生产代码**无硬编码事件键**；Q3 已落地（`_builders_batch.py:241,256` 按 `pending>0` 分支）。**Q11 已实现（2026-10-24，409ab1e）**：新增 uto_pipeline_summary，覆盖 44 事件。
 
 | 项 | 内容 | 验收 |
 |---|---|---|
@@ -70,7 +70,7 @@
 
 ### S4 通知二期 · 步 C：薄门面（2026-10-30 ~ 10-31，16h）
 
-> **状态核对（2026-10-24）：主体已实现。** `_dispatcher.py`、`tiered.py`（分档）、`user_moments.py`（用户时刻清单）均已存在；`manager.py` 292 有效行（G-049 限 340）。**待核**：N1 警告是否真的绕过静默、Q6 `_enabled` 语义、Q7 Windows 分流。
+> **状态核对（2026-10-24；2026-10-27 澄清）：代码已实现 + 单测/只读核对通过，待验证环境真实验收。** 注：`docs/records/2026-10-24-phase2-conformance.md` L49 的「实测 N1」指**单测模拟**（4 例回归），不是验证环境真实静音时段事件。 `_dispatcher.py`、`tiered.py`（分档）、`user_moments.py`（用户时刻清单）均已存在；`manager.py` 292 有效行（G-049 限 340）。**待真实验收**：N1 静音时段内警告是否立刻投递、Q6 关闭投递后 Web 端历史是否可见、Q7 Windows 端 15 个共享事件是否走托盘（需 Windows 端实跑）。
 
 | 核对项 | 判据 |
 |---|---|

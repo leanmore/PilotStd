@@ -3,7 +3,7 @@
 > 本文件是 `docs/technical-debt.md` 四分类之一：**未修**（正式债 + 可动作项 + 待裁定项）。
 > 判据：**有明确动作可做**、且尚未做完。做完即移入 [01-archive-closed.md](01-archive-closed.md)；
 > 定性为"不做/不划算"则移入 [02-accepted.md](02-accepted.md)；修完但需盯一段时间则进 [04-watch.md](04-watch.md)。
-> **最后核实：2026-10-16**（每条都注明核实方式与时间戳）。
+> **最后核实：2026-10-27**（每条都注明核实方式与时间戳）。
 > 回主档：[technical-debt.md](../technical-debt.md)
 
 ---
