@@ -272,3 +272,40 @@ Telegram 用 `parse_mode=MarkdownV2`，正文里的 `.` `(` `)` 未转义 → AP
 
 **"兜底分支"最容易绕过安全/格式处理**——任何 `if not X: return raw` 的降级路径，都要问一句
 "这条路上有没有本该施加的转义/校验/日志"。本次是转义，下次可能是鉴权或脱敏。
+
+---
+
+## P-10 i18n 全局状态未隔离：测试顺序依赖（`_("key")` 回退成 key）
+
+### 现象
+
+单独跑 `tests/unit/test_i18n.py` 全绿；插进全量套件后，
+`test_switch_to_unknown_language_falls_back_to_default` 断言
+`i18n._("hello") == "你好"` 失败，实际得到 `"hello"`。删除/新增测试文件改变执行顺序后红点出现或消失。
+
+### 根因
+
+`pilotstd/i18n/__init__.py` 的翻译状态是**模块级全局**：
+
+- `_translations`（dict，全部语言表）
+- `_loaded`（bool，懒加载标志）
+- `_lang_var`（ContextVar，当前语言）
+
+`_()` 的实现是 `_translations.get(_lang_var.get(), {}).get(key, key)`。
+某个用例把 `_translations` 改成精简表（如只留 `{"zh_CN": {"hello": "你好"}}`）后没有还原，
+后续用例在默认语言下取不到键 → 静默回退成 key 本身。
+`tests/conftest.py` 原有 autouse fixture 只恢复**语言**，不恢复翻译表与懒加载标志，所以污染仍然穿透。
+
+### 修复与回归
+
+- `tests/conftest.py::_restore_i18n_language`：进入时快照 `_translations`（浅拷贝）与 `_loaded`，
+  退出时还原，再恢复语言；
+- `tests/unit/test_i18n.py::test_switch_to_unknown_language_falls_back_to_default`：
+  把"写精简表"改到 `set_language()` 之后，按当前语言写入，避免切换过程中被懒加载覆盖；
+- 浅拷贝的边界：现有用例都是 `_translations = {...}` 整体重新赋值，浅拷贝足够；
+  若未来出现 `_translations[lang][key] = ...` 的**嵌套原地写**，必须升级为 `copy.deepcopy`。
+
+### 可复用模式
+
+**模块级可变全局状态 = 跨测试污染源**。判断一个 autouse fixture 是否"根治"，
+要看被测代码实际读了哪些全局量（本例是三个：语言、翻译表、加载标志），而不是只看最显眼的那个（语言）。
