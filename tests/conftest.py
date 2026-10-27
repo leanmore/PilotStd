@@ -89,7 +89,10 @@ def _restore_i18n_language():
     before_lang = i18n.get_language()
     # 不止语言：部分用例会替换 _translations/_loaded（如 unit/test_i18n 精简表），
     # 只恢复语言仍会把"其它语言缺键"的状态漏给后续用例——这里连缓存一起快照/还原。
-    before_translations = i18n._translations
+    # 浅拷贝：现有用例都是 `_translations = {...}` 整体重新赋值（grep 实测无
+    # `_translations[...] = ...` 的原地嵌套写）。若未来出现嵌套原地修改，
+    # 这里要升级为 copy.deepcopy，否则还原的仍是被改过的子 dict。
+    before_translations = dict(i18n._translations)
     before_loaded = i18n._loaded
     yield
     i18n._translations = before_translations
