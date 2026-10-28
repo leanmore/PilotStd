@@ -335,6 +335,7 @@ onMounted(() => { loadCfg(); loadSystemSections(); loadTabMeta() })
     <button
       v-for="t in allowedTabs"
       :key="t.key"
+      :data-tab="t.key"
       :class="{ active: activeTab === t.key }"
       @click="activeTab = t.key"
     >{{ t.label }}</button>

@@ -88,13 +88,13 @@ describe('SettingsView', () => {
 
   it('renders tab bar with all expected tabs', () => {
     const wrapper = mountComponent()
-    const tabs = wrapper.findAll('.tab-bar button')
+    const tabs = wrapper.findAll('.tab-bar button[data-tab]')
     expect(tabs.length).toBe(SETTINGS_TAB_KEYS.length)
   })
 
   it('defaults active tab to storage', () => {
     const wrapper = mountComponent()
-    const activeBtn = wrapper.find('.tab-bar button.active')
+    const activeBtn = wrapper.find('.tab-bar button[data-tab="storage"].active')
     expect(activeBtn.exists()).toBe(true)
     expect(activeBtn.text()).toBe('存储')
   })
@@ -102,7 +102,7 @@ describe('SettingsView', () => {
   it('has valid tabComponentMap with all 13 entries', () => {
     const wrapper = mountComponent()
     // 动态组件映射完整性 — 13 个 Tab 按钮 = 13 个组件映射
-    const tabs = wrapper.findAll('.tab-bar button')
+    const tabs = wrapper.findAll('.tab-bar button[data-tab]')
     expect(tabs.length).toBe(SETTINGS_TAB_KEYS.length)
     // 每个 Tab 按钮的 key 与 tabComponentMap 键对应
     const labels = tabs.map(btn => btn.text())
