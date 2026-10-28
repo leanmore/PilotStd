@@ -48,16 +48,24 @@ def test_notification(request: Request, body: dict, nmgr=Depends(_get_notificati
       channel: str     — 渠道名: wechat / telegram / feishu / dingtalk
       title: str       — 标题（可选）
       body: str        — 正文（可选）
+      level: str       — 级别（可选，仅 info / warning，默认 info）
       params: dict     — 渠道参数覆盖（可选，如临时测试其他 webhook）
+
+    level 白名单只为验证静音绕过（warning）而开，**不接受任意级别**，
+    避免端点演变成"任意级别测试接口"。
     """
     channel = body.get("channel", "")
     if channel not in CHANNEL_NAMES:
         return {"ok": False, "error": t("notification.api.unsupported_channel").format(ch=channel)}
 
+    level = str(body.get("level") or "info")
+    if level not in ("info", "warning"):
+        return {"ok": False, "error": "unsupported level, expected info or warning"}
+
     msg = NotificationMessage(
         title=body.get("title") or t("notification.api.test_title"),
         body=body.get("body") or t("notification.api.test_body"),
-        level="info",
+        level=level,
         event_type="test",
     )
     # 渠道参数覆盖（如测试前端的临时_）
