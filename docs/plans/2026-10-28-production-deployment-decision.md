@@ -65,5 +65,5 @@ curl -s http://127.0.0.1:9028/api/health
 **选定（2026-10-28）：B** —— 随 S5 发版一起部署。理由：避免两次重启；S5 自带回归门槛；Q7 仍挂起，但作为"已知未验项"写入发版说明，不阻塞部署；Q6 数据层已验，N1 待用户配置窗口。
 
 ## 七、部署事实（2026-10-28）
-- 验证环境已部署 `b72b3415`（CI bump v0.153.0；包含 `de8a689c` 的 level 白名单与 A-20）。
+- 验证环境已部署 `9c23a940`（CI bump v0.154.0；包含 A-20、level 白名单与 `test-event`）。
 - `/api/health` version 与 tag 一致；`b72b3415:CHANGELOG.md` 已含 v0.153.0（CI 自动生成）。CI 证据：`0cf16f34` 的 run **13/13 success**；`b72b3415` 只是版本 bump（仅 CHANGELOG/VERSION/__init__.py，7 行）⇒ 代码等价于 13/13 的构建。
