@@ -1,7 +1,7 @@
 # ADR-013: 健康检查与业务任务解耦轮询机制
 
 > 日期：2026-08-21（决策于 2026-08-15 会话 F145）
-> 状态：✅ Accepted（已实施，commit `1b2c2a1f`）
+> 状态：✅ Accepted（已实施，commit `feef8f6a`）
 > 来源：A4 会话转录提炼（`~/.claude/projects/d--PilotStd/` F145）
 > 关联：[[ADR-012]]
 
@@ -27,8 +27,8 @@
 ## 实施证据
 
 - `docker/health_check_service.py`（存在）
-- commit `1b2c2a1f`（19 文件 +429 行：v51 迁移两列 + 服务 + 调度 + API 新字段 + 前端 1h 轮询 + cooldown 橙点）
-- 相关修复：`518e5b06`（API 字段错位）、`df182a3d`（UPSERT 改造）、`317f6975`（CircuitBreaker key 改 standard_type + 三站探活 URL 各归其端点）
+- commit `feef8f6a`（19 文件 +429 行：v51 迁移两列 + 服务 + 调度 + API 新字段 + 前端 1h 轮询 + cooldown 橙点）
+- 相关修复：`12dd027a`（API 字段错位）、`355f62f5`（UPSERT 改造）、`38810e99`（CircuitBreaker key 改 standard_type + 三站探活 URL 各归其端点）
 
 ## 补充（2026-09-25，第三轮 P2）
 
@@ -44,3 +44,5 @@
    `log_failures`（探活传 False → 失败降 DEBUG），由 `_log_health_transition()` 按
    up→down 告警 / down→up 恢复 / 无变化 DEBUG 输出；`health_status` 仍照常写表、汇总行仍统计，
    **不掩盖真实错误**（状态变化与恢复都有留痕）。
+
+> 历史提交 hash 已按 `docs/debt/03-open.md` A-18 映射更新（旧→新与 subject 见该表）。

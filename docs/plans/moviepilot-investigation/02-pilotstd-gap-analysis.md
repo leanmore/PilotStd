@@ -1,6 +1,6 @@
 # PilotStd vs MoviePilot 差距分析报告
 
-> 对照对象：MoviePilot 后端 **v2.15.6**（commit `1528176b`）+ 前端 v3.1.1（commit `e999aa0`）
+> 对照对象：MoviePilot 后端 **v2.15.6**（commit `1528176b`（历史提交已不可考，见 A-18））+ 前端 v3.1.1（commit `e999aa0`）
 > 对照本体：PilotStd 工作区 `D:\PilotStd`（HEAD `f96b211e`，通知改造处于**阶段 2.5a 已完成**）
 > 证据来源：「01-moviepilot-notification-report.md」的全部结论均为源码实测（含 `路径:行号`）
 > **本报告只给差距与判断，不给改造方案**——方案按决策者要求另开一轮。

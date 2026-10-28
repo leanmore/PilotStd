@@ -245,6 +245,8 @@ GET {BASE}/viewGb?hcno=<H>     Referer: 全文下载页     timeout=120s, stream
 
 > 提示词里的 `c574ccda` 被描述为"可用的 `_search_hcno` 用 `/bzgk/gb/std_list`"——**实测：该提交确实用了这个 URL，但改的是 `pilotstd/download/adapters/gb688.py`（不是 `openstd_download.py`；后者改名发生在 `f247cf2e`）**。
 
+> **历史 hash 说明（2026-10-28）**：本节及 5.2 引用的 2026-05~06 提交 hash 属旧仓库历史，在当前仓库不可达（`git cat-file` 可查到对象但不在 main 历史）；不逐处改写叙述，统一见 `docs/debt/03-open.md` A-18。
+
 ### 5.2 `f4f812e7`（新平台重写）：三处改动同时埋下隐患
 
 `f4f812e7af887112f15bcf077bae57856a661321`（2026-06-04 13:42:20，`fix: 下载适配器重写 + pipeline入队去重——openstd新平台适配`），共 11 文件 +267/-271，其中 `pilotstd/download/adapters/openstd_download.py` 记 `358 ++++----`。

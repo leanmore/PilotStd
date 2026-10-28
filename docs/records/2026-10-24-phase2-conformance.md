@@ -27,7 +27,7 @@
 | Q8 | 只改 CLI 帮助文档 | **已实现（2026-10-24 改文档）** | `docs/guides/用户帮助文档.md` §九 增加定位说明：CLI 非交付物（exe `console=False`、无入口声明），仅供开发调试 |
 | Q9 | 新增"声明 vs 实现"门禁 | **改判已落地（2026-10-24）** | 原裁决"新增独立门禁"；经核对 B1 已覆盖同语义，改为并入 G-045 并在 `gates.md` G-045 节留痕，不新增编号 |
 | Q10 | 用户时刻清单作第二 SSOT | **已实现** | `user_moments.py`（111 行）+ `user_moments_data.json` |
-| Q11 | 新增管道级时刻 | **已实现（2026-10-24，`f409ab1e`）** | 新增 `auto_pipeline_summary`：`events.py` + `event_spec_data.py` + 构建器 + 三语文案 + 用户时刻 #38；`_auto.py` 两个入口收尾各发一次；G-045 覆盖 44/44 |
+| Q11 | 新增管道级时刻 | **已实现（2026-10-24，`0b13563f`）** | 新增 `auto_pipeline_summary`：`events.py` + `event_spec_data.py` + 构建器 + 三语文案 + 用户时刻 #38；`_auto.py` 两个入口收尾各发一次；G-045 覆盖 44/44 |
 | N1 | 警告绕过静默 | **已实现（2026-10-24）** | 原缺口：`_dispatcher.do_send:196` 不看级别；已改为 `_QUIET_BYPASS_LEVELS = {warning, error}` 分流，回归 `tests/unit/core/notification/test_dispatcher_quiet_bypass.py`（4 例） |
 | N2 | 终局不改写 | **符合** | 无任何 `edit_message` 调用点，改写路径不存在 |
 | N3 | 先补耗时埋点 | **部分实现** | 埋点已有：`_auto.py` 四阶段 `logger.info("阶段耗时 …")`、`announcement/monitor.py:45` 记 `elapsed_ms`、`NotificationMessage.elapsed_ms` 字段与 `tiered.parse_elapsed_ms`。**缺**：拿真实分布校准 30/60s 阈值（需积累样本后分析） |
@@ -47,9 +47,11 @@
 | 顺序 | 事项 | 类型 |
 |---|---|---|
 | 1 | ~~实测 N1（静音期内发警告）~~ **已完成并修复** | 代码 + 测试 |
-| 2 | ~~Q11 管道级时刻~~ **已完成（`f409ab1e`）** | 代码 + 文案 + 测试 |
+| 2 | ~~Q11 管道级时刻~~ **已完成（`0b13563f`）** | 代码 + 文案 + 测试 |
 | 3 | ~~Q9 补独立门禁或改判~~ **已改判并入 G-045** | 门禁 |
 | 4 | ~~Q1/Q2/Q6 核对~~ **已完成，均符合裁决** | 只读 |
 | 5 | ~~Q7/Q8/N3/N6/N7~~ **已核**：Q7/Q8 已实现、N3 部分（缺校准）、N6 无需动作、N7 失效 | 只读 |
 | 6 | ~~N4~~ **已核**：迁移代替双读，效果等价（待决策者确认是否接受） | 只读 |
 | 7 | 剩余：N5（企微/飞书能力补齐）——属后续功能，不在本轮 | 后续功能 |
+
+> 历史提交 hash 已按 `docs/debt/03-open.md` A-18 映射更新（旧→新与 subject 见该表）。
