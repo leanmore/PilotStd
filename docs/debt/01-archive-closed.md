@@ -1022,7 +1022,7 @@ python -m pytest tests/test_skip_census.py -q
 | # | 场景 | 期望 | 实测 |
 |---|---|---|---|
 | ① | 推送态新增 `docs/notes/leak_plan.md`（命中 `*_plan.md`）·**修复前**脚本 | 假绿 PASS | **`PASS: 无新增文件`**（exit 0）✅ 假绿复现 |
-| ① | 同场景 · **修复后**脚本（`COMPLIANCE_RANGE=before..sha`） | FAIL 拦截 | `范围: f544d34f..6e473096（变更 3 个文件，其中新增/改名 3 个）` → **结论: FAIL** ✅ |
+| ① | 同场景 · **修复后**脚本（`COMPLIANCE_RANGE=before..sha`） | FAIL 拦截 | `范围: f544d34f..6e473096（历史提交已不可考，见 A-18）（变更 3 个文件，其中新增/改名 3 个）` → **结论: FAIL** ✅ |
 | ② | 新增 `pilotstd/probe_ok.py`（白名单路径） | PASS（不误拦） | `结论: PASS` ✅ |
 | ③ | 仅修改已有文件（无新增） | PASS ＋ 防护不误触 | `变更 1 个文件，其中新增/改名 0 个` → `PASS: 无新增文件` ✅ |
 | ④ | 显式范围却 0 变更（`HEAD..HEAD`） | FAIL（防护生效） | `❌ FAIL: … 内变更文件数为 0 —— 范围取值异常（假绿防护：拒绝 PASS）` ✅ |
