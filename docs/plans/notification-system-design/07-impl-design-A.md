@@ -113,7 +113,7 @@
 
 ```json
 {
-  "spec_hash": "a1b2c3d4e5f60718",
+  "spec_hash": "a1b2c3d4e5f60718"  // 示例占位，非真实 hash,
   "channels": [
     {
       "name": "wechat",

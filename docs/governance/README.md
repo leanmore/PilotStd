@@ -103,3 +103,6 @@ A: `--required-only` 参数仅检查 `required` 级别能力。CI 也仅对 `req
 ## 2026-10-23 Node 安全基线
 
 - CI Node 固定 22.23.4；生产镜像无 Node 运行时。
+
+## 2026-10-28 归档协议历史 hash 标注
+- `archive_migration_protocol.md` 中两处旧提交 hash（`cdb6705`/`be50271`）已标「历史提交已不可考」；映射与背景见 `docs/debt/03-open.md` A-18。

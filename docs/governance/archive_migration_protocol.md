@@ -84,11 +84,11 @@ refactor(<模块>): <简述>
 
 | 日期 | 事件 | 关键 commit |
 |------|------|------------|
-| 2026-05-31 | `ProgressReporter` 类 + `heartbeat()` 函数实现于 `stress_01_pipeline.py:86-158`。功能：每 30s 或每 50 条输出查询进度（速率/ETA/内存/冷却状态），下载/归档阶段有心跳线程防卡死假象。 | `cdb6705` |
-| 2026-06-10 | v4.1 重构：新建 `stress_driver.py`（405 行），`git mv stress_01_pipeline.py stress_01_pipeline_archived.py`。新 driver 采用子进程架构，旧脚本中直接调用 Manager API 的模式被替换。 | `be50271` |
+| 2026-05-31 | `ProgressReporter` 类 + `heartbeat()` 函数实现于 `stress_01_pipeline.py:86-158`。功能：每 30s 或每 50 条输出查询进度（速率/ETA/内存/冷却状态），下载/归档阶段有心跳线程防卡死假象。 | `cdb6705`（历史提交已不可考，见 A-18） |
+| 2026-06-10 | v4.1 重构：新建 `stress_driver.py`（405 行），`git mv stress_01_pipeline.py stress_01_pipeline_archived.py`。新 driver 采用子进程架构，旧脚本中直接调用 Manager API 的模式被替换。 | `be50271`（历史提交已不可考，见 A-18） |
 | 2026-06-10 | `ProgressReporter` 和 `heartbeat()` **未迁移**至 `stress_driver.py`。归档 commit message 未提及能力迁移。登记簿不存在（尚未建立）。 | — |
 | 2026-06-12 | 代码审查标记"压测最终查询进度不可恢复"为未修复（`code_review_fixes_20260612.md:32`），但审查关注的是崩溃恢复，未发现心跳线程丢失。 | — |
-| 2026-06-22 | 用户执行全量压测，发现查询阶段无定时进度输出。追溯 git log 确认 `cdb6705` 实现 → `be50271` 归档丢失。 | 当前会话 |
+| 2026-06-22 | 用户执行全量压测，发现查询阶段无定时进度输出。追溯 git log 确认 `cdb6705`（历史提交已不可考，见 A-18） 实现 → `be50271`（历史提交已不可考，见 A-18） 归档丢失。 | 当前会话 |
 
 ### 丢失的能力清单
 
