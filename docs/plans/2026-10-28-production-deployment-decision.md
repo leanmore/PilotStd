@@ -66,4 +66,4 @@ curl -s http://127.0.0.1:9028/api/health
 
 ## 七、部署事实（2026-10-28）
 - 验证环境已部署 `b72b3415`（CI bump v0.153.0；包含 `de8a689c` 的 level 白名单与 A-20）。
-- `/api/health` version 与 tag 一致；CHANGELOG 尚未生成 v0.153.0（B3 待补）。
+- `/api/health` version 与 tag 一致；`git show b72b3415:CHANGELOG.md` 已含 v0.153.0（CI 自动生成）；仅 CI job 级 13/13 待确认。
