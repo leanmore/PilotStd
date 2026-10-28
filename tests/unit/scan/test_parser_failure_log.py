@@ -14,4 +14,4 @@ def test_parse_failure_log_has_four_fields(caplog) -> None:
     assert "path=___unmatchable___.xyz" in msg
     assert "type=.xyz" in msg
     assert "error=no_match" in msg
-    assert "detail=8 matchers tried" in msg
+    assert "detail=8_matchers" in msg

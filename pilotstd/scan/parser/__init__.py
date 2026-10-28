@@ -204,7 +204,7 @@ class StandardParser:
             filename,
             raw_ext,
             "no_match",
-            f"{len(channels)} matchers tried",
+            f"{len(channels)}_matchers",
         )
         return None
 

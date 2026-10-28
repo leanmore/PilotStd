@@ -64,4 +64,4 @@ StandardParser (入口)
 - [ADR-001](../../adr/ADR-001-modal-dialog-auto-clicker.md) — 事件驱动架构决策
 - [扫描模块](scan.md) — 文件扫描与解析器调用
 
-> **解析失败日志四段化（2026-10-28，A-9）**：`StandardParser.parse()` 未命中任何匹配器时输出 `解析失败: path=<文件名> type=<扩展名> error=no_match detail=<N> matchers tried`；沿用项目既有 `xxx失败: key=%s` 风格（参照 `announcement/base.py:184`、`core/audit.py:51`），便于 grep 与排障。
+> **解析失败日志四段化（2026-10-28，A-9）**：`StandardParser.parse()` 未命中任何匹配器时输出 `解析失败: path=<文件名> type=<扩展名> error=no_match detail=<N>_matchers（值**不含空格**，可直接按 `key=value` 解析）`；沿用项目既有 `xxx失败: key=%s` 风格（参照 `announcement/base.py:184`、`core/audit.py:51`），便于 grep 与排障。
