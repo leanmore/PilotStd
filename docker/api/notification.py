@@ -40,6 +40,35 @@ router.include_router(notification_policy.router)
 # 认证由 AuthMiddleware 保证，用户间隔离通过 user_id=Depends(_get_user_id)。
 
 
+@router.post("/api/notification/test-event")
+def test_event(request: Request, body: dict, nmgr=Depends(_get_notification_mgr)):
+    """发送一条**走 dispatcher** 的测试事件（验静音链路专用）。
+
+    与 `/test` 的区别：本端点调用 `nmgr._do_send(...)`，会经过
+    `_dispatcher.do_send` 的静音判断；`/test` 直接 `ch.send()`，绕过静音。
+    `level` 仅 info/warning；`bypass_aggregation=True` 只跳过聚合与分档节流，
+    不跳过静音、落库与发送。
+    """
+    channel = body.get("channel", "")
+    if channel not in CHANNEL_NAMES:
+        return {"ok": False, "error": t("notification.api.unsupported_channel").format(ch=channel)}
+    level = str(body.get("level") or "info")
+    if level not in ("info", "warning"):
+        return {"ok": False, "error": "unsupported level, expected info or warning"}
+    if channel not in getattr(nmgr, "_channels", {}):
+        return {"ok": False, "error": "channel not initialized"}
+
+    msg = NotificationMessage(
+        title=body.get("title") or t("notification.api.test_title"),
+        body=body.get("body") or t("notification.api.test_body"),
+        level=level,
+        event_type="test",
+    )
+    nmgr._do_send(msg, [channel], bypass_aggregation=True)
+    queued = level == "info" and nmgr._is_quiet_hours()
+    return {"ok": True, "queued": queued}
+
+
 @router.post("/api/notification/test")
 def test_notification(request: Request, body: dict, nmgr=Depends(_get_notification_mgr)):
     """发送测试通知到指定渠道。
