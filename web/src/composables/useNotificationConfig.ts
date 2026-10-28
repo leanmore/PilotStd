@@ -25,6 +25,7 @@ import {
   getNotificationPolicies,
   putNotificationConfig,
   putNotificationPolicy,
+  putQuietHours,
   testNotification,
   type ChannelSpec,
   type ChannelFieldSpec,
@@ -405,13 +406,20 @@ export function useNotificationConfig() {
   const quietHoursStart = ref(new Date(2024, 0, 1, 22, 0))
   const quietHoursEnd = ref(new Date(2024, 0, 1, 7, 0))
 
-  function saveQuietHours() {
+  async function saveQuietHours() {
     const hhmm = (d: Date) =>
       `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
-    quietPrefs.value = {
+    const payload = {
       enabled: quietHoursEnabled.value,
       start: hhmm(quietHoursStart.value),
       end: hhmm(quietHoursEnd.value),
+    }
+    quietPrefs.value = payload
+    try {
+      // 同步写服务端 config（A-20）：否则 UI 开关只改用户偏好，静音不生效
+      await putQuietHours(payload)
+    } catch (e: unknown) {
+      console.warn('[notification] quiet hours save failed', e)
     }
   }
 

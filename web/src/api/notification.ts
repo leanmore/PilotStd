@@ -198,6 +198,17 @@ export const getNotificationSpec = async (routeTag?: RouteTag): Promise<Notifica
 export const putNotificationConfig = async (data: NotificationConfigUpdate): Promise<{ ok: boolean }> =>
   (await http.put('/notification/config', data)).data
 
+export interface QuietHoursUpdate {
+  enabled: boolean
+  start: string
+  end: string
+}
+
+export const putQuietHours = async (
+  data: QuietHoursUpdate,
+): Promise<{ ok: boolean; enabled: boolean; start: string; end: string }> =>
+  (await http.put('/notification/quiet-hours', data)).data
+
 export const testNotification = async (
   channel: string,
   params?: Record<string, string>,

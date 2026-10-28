@@ -6,6 +6,7 @@ GET `/api/notification/spec`（可订阅事件清单，D5 新增）。
 """
 
 import logging
+from datetime import datetime
 
 from fastapi import Depends, Request
 from fastapi.responses import JSONResponse
@@ -171,6 +172,30 @@ def get_notification_spec() -> dict:
     （系统/安全类自动事件除外），顺序即规格声明顺序。
     """
     return {"events": [s.key for s in EVENT_SPECS if s.subscribable]}
+
+
+@router.put("/api/notification/quiet-hours")
+def update_quiet_hours(body: dict, mgr=Depends(get_manager_dep)):
+    """更新**全局**静音时段（服务端 `_suppression_queue` 判定所用）。
+
+    背景：UI 的静音开关原先只写 `user_preferences`，服务端读 `config.json` 的
+    `notification.quiet_hours_*`，两者不通（A-20）。本端点把这三个键落到
+    `config.json`，使 UI 配置真正生效；按用户静音属另一立项（A-21）。
+    """
+    enabled = bool(body.get("enabled", False))
+    start = str(body.get("start", "22:00"))
+    end = str(body.get("end", "07:00"))
+    for value in (start, end):
+        try:
+            datetime.strptime(value, "%H:%M")
+        except ValueError:
+            return JSONResponse(
+                {"ok": False, "error": "invalid time format, expected HH:MM"}, status_code=400
+            )
+    mgr.cfg.set("notification.quiet_hours_enabled", enabled)
+    mgr.cfg.set("notification.quiet_hours_start", start)
+    mgr.cfg.set("notification.quiet_hours_end", end)
+    return {"ok": True, "enabled": enabled, "start": start, "end": end}
 
 
 @router.put("/api/notification/config")
