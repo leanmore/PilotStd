@@ -211,9 +211,6 @@ pnpm run build        # vite build
 
 > **Windows 执行策略**：若 `pnpm` 报"禁止运行脚本"（`pnpm.ps1` 被 PowerShell ExecutionPolicy 拦截），改用 `pnpm.cmd`（例如 `pnpm.cmd run type-check`），并逐条检查退出码。
 
-```bash
-```
-
 教训来源：2026-10-25 曾误称"前端无自动化测试"，导致 A3/A4 两批前端改动只跑了 tsc/build/eslint，
 漏跑 vitest；其中 A3 把 `FavoritesView` 从 `fetch` 改为 `http` 后，`FavoritesView.test.ts` 7 条用例全红
 （mock 的仍是 `fetch`）。vitest 自 2026-06-17 初始提交即在仓库内——"没跑"不是"没有可跑"。
