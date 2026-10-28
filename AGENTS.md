@@ -209,12 +209,17 @@ pnpm test             # vitest run（**一直存在**，42+ 个 .test.ts；改�
 pnpm run build        # vite build
 ```
 
+> **Windows 执行策略**：若 `pnpm` 报"禁止运行脚本"（`pnpm.ps1` 被 PowerShell ExecutionPolicy 拦截），改用 `pnpm.cmd`（例如 `pnpm.cmd run type-check`），并逐条检查退出码。
+
+```bash
+```
+
 教训来源：2026-10-25 曾误称"前端无自动化测试"，导致 A3/A4 两批前端改动只跑了 tsc/build/eslint，
 漏跑 vitest；其中 A3 把 `FavoritesView` 从 `fetch` 改为 `http` 后，`FavoritesView.test.ts` 7 条用例全红
 （mock 的仍是 `fetch`）。vitest 自 2026-06-17 初始提交即在仓库内——"没跑"不是"没有可跑"。
 
 ---
 
-**版本**：v3.9  
-**行数**：约 215 行  
+**版本**：v3.10  
+**行数**：约 218 行  
 **变更**：§8.1 新增「查历史决策 / 准备改判 → docs/DECISIONS.md」一行（与 docs/index.md 同步，G-037 14 项对齐）。上一版（v3.8）：新增 §十「前端改动验证」——四件套（type-check/lint/test/build），并记录 2026-10-25 漏跑 vitest 的教训（vitest 自初始提交即在）。上一版（v3.7）：新增 §九「工具迁移」——记录 2026-08-21 删除 CLAUDE.md 后完全转向 DSH，并声明迁移发生在 48a9037b、删除提交未再搬运。上一版（v3.6）：第一节（环境架构）新增「**版本号**」事实条目——版本号由 CI 的 `version` 作业（`.github/workflows/ci.yml`）经 `scripts/version.py` 按 commit message 自动生成并打 tag，**不得用本地 tag 判断部署版本**（本地 tag 常滞后），镜像 sha 与 tag 不一致属设计内行为，**部署版本一律以 `/api/health` 的 `version` 为准**。触发实例：2026-10-16 下载适配器缺陷排查中，把本地最新 tag `v0.138.2` 当成"与部署版 `v0.138.3`/`7c521a7b` 对不上"的差异写进交付报告差异表——该机制此前**不存在于任何自动加载或必读文档**（本文件、docs/governance/development-flow.md 均无），故只能靠人事后纠正；登记于此使其随 Harness 启动自动加载。上一版（v3.5）：R-001 增补「**分配任何编号前必须先 `grep` 占用情况**」——债务 `T-xx`／门禁 `G-0xx`／迁移 `vNN`／ADR `ADR-0xx` 一律适用，且**不得给"已闭环的修复"套用债务编号**（修复不是债）。触发实例：2026-10-03 把工具调用的 PATH 修复误标为 `T-36`，而 `T-36` 早已是「空库迁移链固定打印 3 条告警」的登记号，按号交叉引用会落到完全不同的课题上——该错误只在有人按号去查时才暴露，故须前置 `grep`。上一版（v3.4）：R-010 增补「临时文件一律写在仓库之外」约束——临时文件误提交已发生两次（`_msg_tmp.txt` / `_msg7.txt`），根因是在仓库根目录创建临时文件后执行 `git add -A`；约束要求临时文件写入 `$env:TEMP` 等仓库外路径，提交消息用 `git commit -F <仓库外路径>`。上一版（v3.3）：登记 `docs/reference/download-pipeline.md` 为代码说明书——8.1 读取侧新增"涉及下载链/下载适配器"触发条件、8.2 回写侧新增 `pilotstd/download/` 对应行（技术债 #24；G-037 要求 8.1/8.2/index.md 三处一致，G-031 要求改 `pilotstd/download/` 同批改本文档）。上一版（v3.2）：第八节重组为"文档生命周期"两子节——8.1 读取侧（G-037 依赖，表格原样保留，说明文字保留"读文档触发条件表"入口字样以兼容门禁解析）；8.2 回写侧（R-006 补充：3 份代码说明书清单 + 执行规则）
