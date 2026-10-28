@@ -197,8 +197,15 @@ class StandardParser:
             if result is not None:
                 return result
 
-        # TODO(A-9): 统一失败日志格式（路径/类型/错误/详情），见 docs/debt/03-open.md
-        self.log.info("解析失败: %s", filename)
+        # A-9：统一失败日志为四段键值（与项目既有 "xxx失败: key=%s" 风格一致，见
+        # announcement/base.py、core/audit.py、core/cache_manager.py），便于 grep 与排障。
+        self.log.info(
+            "解析失败: path=%s type=%s error=%s detail=%s",
+            filename,
+            raw_ext,
+            "no_match",
+            f"{len(channels)} matchers tried",
+        )
         return None
 
     def _classify_code(self, logical_code: str) -> str:
