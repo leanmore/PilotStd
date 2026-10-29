@@ -109,3 +109,6 @@ A: `--required-only` 参数仅检查 `required` 级别能力。CI 也仅对 `req
 
 ## 2026-10-29 G-013 接受前端测试
 - `is_test_file` 增加 `web/src/**/*.test.ts`：前端修复带 vitest 变更即可用 `fix` 类型，不再被迫改 `chore`（A-19/B5）；详见 `gates.md` G-013 行。
+
+## 2026-10-29 渠道 schema 互证（A-3）
+- CI `test-backend` 增加 `scripts/check_channel_schema_parity.py`：校验 spec 派生 schema 与各渠道 `get_config_schema()` 的键/required/secret，失败阻断。

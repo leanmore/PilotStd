@@ -709,3 +709,5 @@ B1（声明类 vs 实现类）已覆盖同一语义、且每次 CI 都在跑；�
 ## 2026-10-23 Node 安全基线
 
 - CI NODE_VERSION 固定为 22.23.4，覆盖 2026-10-21 Node.js 安全公告；生产镜像无 Node 运行时。
+
+> **渠道 schema 互证（A-3，2026-10-29）**：CI `test-backend` 增加 `python scripts/check_channel_schema_parity.py`（spec 派生 schema ↔ 各渠道 `get_config_schema()`，校验键集合/required/secret）；失败阻断。
