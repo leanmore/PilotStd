@@ -106,3 +106,6 @@ A: `--required-only` 参数仅检查 `required` 级别能力。CI 也仅对 `req
 
 ## 2026-10-28 归档协议历史 hash 标注
 - `archive_migration_protocol.md` 中两处旧提交 hash（`cdb6705`/`be50271`）已标「历史提交已不可考」；映射与背景见 `docs/debt/03-open.md` A-18。
+
+## 2026-10-29 G-013 接受前端测试
+- `is_test_file` 增加 `web/src/**/*.test.ts`：前端修复带 vitest 变更即可用 `fix` 类型，不再被迫改 `chore`（A-19/B5）；详见 `gates.md` G-013 行。

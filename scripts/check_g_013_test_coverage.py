@@ -58,7 +58,11 @@ def is_test_file(path: str) -> bool:
     这类**文件名含 test 的生产脚本**当成测试变更 ⇒ 规则 0 被架空（2026-10-17 实测）。
     """
     normalized = path.replace('\\', '/').lower()
-    return normalized.startswith('tests/') or '/tests/' in normalized
+    if normalized.startswith('tests/') or '/tests/' in normalized:
+        return True
+    # 前端测试：web/src/**/*.test.ts（A-19/B5）。此前只认 tests/，导致前端修复
+    # 带 .test.ts 也被判定“无测试变更”，只能改用 chore 提交（语义失真）。
+    return bool(re.search(r'(^|/)web/src/.*\.test\.(ts|tsx|js|jsx)$', normalized))
 
 # 输入输出调用检测正则（比集合成员检查更精确）
 IO_PATTERN = re.compile(

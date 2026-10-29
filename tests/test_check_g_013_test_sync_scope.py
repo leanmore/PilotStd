@@ -52,3 +52,9 @@ def test_test_file_detection_requires_tests_dir() -> None:
     """文件名含 test 的脚本不算测试（否则规则 0 与规则 1 都会被架空）。"""
     assert gate.is_test_file("tests/test_x.py") is True
     assert gate.is_test_file("scripts/check_g_013_test_coverage.py") is False
+
+
+def test_frontend_vitest_counts_as_test_change() -> None:
+    """B5/A-19：web/src 下的 .test.ts 也算测试变更，前端修复可用 fix 类型。"""
+    assert gate.is_test_file("web/src/views/SettingsView.test.ts") is True
+    assert gate.is_test_file("web/src/views/SettingsView.vue") is False
