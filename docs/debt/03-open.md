@@ -34,7 +34,9 @@
 | **A-21** | **按用户静音时段**（A-20 只做了全局配置；`user_preferences.notification_quiet_hours` 仍不参与服务端判定） | 未修（新立项） | `_suppression_queue.is_quiet_hours()` 需要拿到 `user_id` 并读偏好；涉及 dispatcher/queue/manager 与多用户语义 | 触发条件＝出现多用户/按用户静音的产品需求时 |
 | **A-22** | **Q7：Windows 端 15 个共享事件是否走托盘（S4 真实验收）** | 挂起 | 需 Windows 端实跑：触发一个共享事件，确认进托盘且 Web 端仍收到；本机/CI 无法覆盖 | 触发条件＝用户有空在 Windows 本机跑一次（5 分钟） |
 | **A-23** | **`/api/notification/test` 绕过 `_dispatcher`，无法用于 N1（静音）验收** | ✅ **已修并验证（2026-10-28）** | 新增 `POST /api/notification/test-event`（`_do_send` + `bypass_aggregation=True`，经 `_dispatcher.do_send` 静音判断）；4 例测试；**B2 真实验收通过**：窗口 21:49–21:55，warning `queued=false` 且 21:49:53 success；info `queued=true`、窗口内无 log；21:58:55 补投 success；quiet 已恢复 false | 无（已收口） |
-| **A-24** | **B4：企微 `supports_callback` 前端联动**（单独立项，2026-10-29 用户拍板） | 未做 | `WechatChannel.capabilities().supports_callback` 仍为 False；需设置页开关 + 能力语义 + 测试；与 T-43 回调取证分开 | 触发条件＝安排该项时（无外部依赖） |
+| **A-24** | **B4：企微 `supports_callback` 通知卡片按钮** | ❌ **已取消（2026-10-29 决策）** | 理由：回调只做“已读确认”是伪需求（送达即已读），带动作回调（重试/审批）无真实需求；**回调基础设施保留**（端点/验签/解密/EventKey 解析）并复用于菜单点击事件；未来若出现“通知内直接操作”需求再重评 | 无（取消） |
+| **A-27** | **自定义菜单（企微/飞书/Telegram/钉钉）** | 调研中（2026-10-29 立项，当前主线） | 企微 a（3+5）、飞书 b（3+5 或 5+10，仅单聊）、Telegram c（命令列表）、钉钉 d（待补信息）；菜单动作映射、配置存储、静态/动态生成待方案确认；复用回调端点处理菜单 click | 方案确认后开工 |
+
 | **A-25** | **B7：P-06 备份成功误用 `anomaly_alert`** | ✅ **现有日志已可结案（2026-10-29）** | 全量 451 条日志：`anomaly_alert` 共 5 条，全部标题为「自动备份成功」，日期 `2026-10-12`/`2026-10-19`，均 failed；同一标题在 `2026-10-26` 已是 `task_result`（正确映射）⇒ **历史缺陷、当前已修复**。**限制**：API 列表不返回 `notify_event` 字段，以上用 `event_type` + 标题判定；若需精确核对 `notify_event` 需 DB 查询 | 无（已结案） |
 | **A-26** | **通知日志按 `end_date` 过滤会排除当日记录** | ✅ **已修并线上验证（2026-10-29）** | `get_logs` 对仅日期输入补 `T00:00:00`/`T23:59:59`；部署 `3f88dfce` 后实测 `start=end=2026-10-29` 返回 **53 条**（修复前为 0）；含 1 例单测 | 无（已收口） |
 | **A-18** | **历史文档中的短 hash 引用有失效项**（2026-10-27 全量审计） | ✅ **已修（2026-10-28）** | 对账：36（9 无法解析 + 27 not-in-main）→ 剔除 3 日期串与 1 个仅自引用的 `9982141d` → **32**；git 跟踪 6 文件 19 处：**9 处换现行 hash**（映射表见本节下方 A-18 表）、**10 处标「历史提交已不可考」**；`download-pipeline.md` 用统一说明；`docs/.local` 不修（ignored）。复核：跟踪文件中无未标注的失效 hash | 触发条件＝未来再 rebase 或引用新 hash 时 |
