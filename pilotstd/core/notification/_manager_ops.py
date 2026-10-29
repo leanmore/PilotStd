@@ -242,6 +242,11 @@ class NotificationOps:
             "size": size,
         }
 
+    def get_log_diagnostics(self, log_id: int) -> dict[str, Any] | None:
+        """按 id 读取一条日志的完整行（仅诊断端点使用，含敏感字段）。"""
+        row = self._db.fetchone("SELECT * FROM notification_log WHERE id = ?", (log_id,))
+        return dict(row) if row else None
+
     def get_failed_items(
         self, log_id: int, page: int = 1, size: int = 20, user_id: int | None = None
     ) -> dict[str, Any]:

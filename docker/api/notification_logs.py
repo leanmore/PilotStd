@@ -11,9 +11,11 @@ from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
+from pilotstd.core.notification._json_codec import loads_dict as _loads_dict
 from pilotstd.core.notification._json_codec import loads_list as _loads_list
 from pilotstd.i18n import t
 
+from ..auth import require_role
 from .notification_deps import _get_notification_mgr, _get_user_id
 
 logger = logging.getLogger(__name__)
@@ -25,6 +27,16 @@ router = APIRouter()
 class MarkReadRequest(BaseModel):
     id: int | None = None  # None 表示全部标记已读
 
+
+
+
+def task_context_view(raw: str, cfg) -> dict:
+    """按配置白名单裁剪 task_context（A-30；新增键只改配置，不改代码）。"""
+    if not raw:
+        return {}
+    data = _loads_dict(raw)
+    keys = cfg.get("notification.logs.task_context_whitelist", []) or []
+    return {k: data[k] for k in keys if k in data}
 
 @router.get("/api/notification/logs")
 def get_logs(
@@ -68,6 +80,9 @@ def get_logs(
                 # **不**把明细本体并进列表：一批次可能上千条 ⇒ 响应体爆炸（P3 风险 2）。
                 # 解析只作用于**当前页**（≤100 行），成本可忽略；解析失败按 0 处理（防御式）。
                 "failed_count": len(_loads_list(r.get("failed_items"))),
+                # A-30：只读暴露；task_context 按配置白名单裁剪
+                "notify_event": r.get("notify_event", ""),
+                "task_context": task_context_view(r.get("task_context", ""), nmgr._cfg),
             }
             for r in result["items"]
         ],
@@ -98,6 +113,31 @@ def get_failed_items(
         "page": result["page"],
         "page_size": result["size"],
         "items": result["items"],
+    }
+
+
+
+
+@router.get("/api/notification/logs/{log_id}/diagnostics")
+@require_role("admin")
+def get_log_diagnostics(
+    log_id: int,
+    request: Request,
+    nmgr=Depends(_get_notification_mgr),
+):
+    """管理员诊断：按 id 返回完整敏感字段（字段清单固定，不额外多返回）。
+
+    返回：`id` + `callback_data` / `channel_message_ids` / `actions` / `attachments`。
+    """
+    row = nmgr.ops.get_log_diagnostics(log_id)
+    if not row:
+        return JSONResponse({"error": "log not found"}, status_code=404)
+    return {
+        "id": row["id"],
+        "callback_data": row.get("callback_data") or "",
+        "channel_message_ids": _loads_dict(row.get("channel_message_ids")),
+        "actions": _loads_list(row.get("actions")),
+        "attachments": _loads_list(row.get("attachments")),
     }
 
 

@@ -111,6 +111,8 @@ FACTORY_DEFAULTS = {
     # 此处留空由管理器层在读取时做回退，用户可通过配置脚本覆盖
     # 静音时段
     "notification.quiet_hours_enabled": False,
+    # 日志列表只暴露这些 task_context 键（A-30；新增键只改配置不改代码）
+    "notification.logs.task_context_whitelist": ["duration_seconds", "stage_tier"],
     "notification.quiet_hours_start": "22:00",
     "notification.quiet_hours_end": "07:00",
     "adapter.circuit_breaker.failure_threshold": 3,
