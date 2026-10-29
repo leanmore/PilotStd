@@ -138,6 +138,12 @@ def get_config(request: Request, mgr=Depends(get_manager_dep), user_id: int = De
 
     return {
         "enabled": nmgr.enabled,
+        # 只读回显：静音时段实际值（B2 曾因无读取入口无法确认状态）
+        "quiet_hours": {
+            "enabled": bool(mgr.cfg.get("notification.quiet_hours_enabled", False)),
+            "start": str(mgr.cfg.get("notification.quiet_hours_start", "22:00")),
+            "end": str(mgr.cfg.get("notification.quiet_hours_end", "07:00")),
+        },
         # 四渠道配置：字段与默认值全部由 channel_spec 声明派生
         "channels": {
             s.name: build_channel(

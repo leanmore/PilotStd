@@ -705,7 +705,7 @@
     "notification.system.security_password_changed.body.account": "帳號",
     "notification.system.security_password_changed.body.from_ip": "來源位址",
     "notification.system.security_password_changed.body.sessions_kept": "已登入工作階段未失效（已知限制），如需強制登出請重啟服務。",
-    "notification.system.security_password_changed.body.hint": "若非本人操作，請立即聯絡管理員並檢查帳號安全。",
+    "notification.system.security_password_changed.body.hint": "若非本人操作，請立即修改密碼並檢查最近的登入記錄。",
     "notification.system.security_token_refreshed.title": "API 靜態權杖已輪換",
     "notification.system.security_token_refreshed.body.time": "輪換時間",
     "notification.system.security_token_refreshed.body.from_ip": "來源位址",

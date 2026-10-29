@@ -784,7 +784,7 @@
     "notification.system.security_password_changed.body.account": "Account",
     "notification.system.security_password_changed.body.from_ip": "Source address",
     "notification.system.security_password_changed.body.sessions_kept": "Existing sessions were not revoked (known limitation). Restart the service to force sign-out.",
-    "notification.system.security_password_changed.body.hint": "If this was not you, contact the administrator and review account security immediately.",
+    "notification.system.security_password_changed.body.hint": "If this was not you, change your password and review recent sign-in activity immediately.",
     "notification.system.security_token_refreshed.title": "API static token rotated",
     "notification.system.security_token_refreshed.body.time": "Rotated at",
     "notification.system.security_token_refreshed.body.from_ip": "Source address",

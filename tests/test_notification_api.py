@@ -258,6 +258,7 @@ def test_notif_config_returns_200_with_valid_user(notif_client_and_db, notif_coo
     client, _ = notif_client_and_db
     r = client.get("/api/notification/config", cookies=notif_cookies)
     assert r.status_code == 200, f"应返回 200，实际 {r.status_code}: {r.text}"
+    assert set(r.json()["quiet_hours"]) == {"enabled", "start", "end"}
 
 
 @pytest.mark.xdist_group("notification")

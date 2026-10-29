@@ -50,3 +50,5 @@
 - 新增函数必须有单元测试（G-034）
 - 提交前 Ruff / Mypy 零错误（G-031）
 - 禁止引入未使用的 import（G-020）
+
+- **通知文案 emoji**：信息类标题允许保留 emoji（如聚合通知 `📦`，已在 `glossary.json` 记录）；错误类文案禁止 emoji。新增例外必须写入 glossary，避免未来去 emoji 治理误删。

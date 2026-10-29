@@ -788,7 +788,7 @@
     "notification.system.security_password_changed.body.account": "账号",
     "notification.system.security_password_changed.body.from_ip": "来源地址",
     "notification.system.security_password_changed.body.sessions_kept": "已登录会话未失效（已知限制），如需强制下线请重启服务。",
-    "notification.system.security_password_changed.body.hint": "若非本人操作，请立即联系管理员并检查账号安全。",
+    "notification.system.security_password_changed.body.hint": "若非本人操作，请立即修改密码并检查最近的登录记录。",
     "notification.system.security_token_refreshed.title": "API 静态令牌已轮换",
     "notification.system.security_token_refreshed.body.time": "轮换时间",
     "notification.system.security_token_refreshed.body.from_ip": "来源地址",
