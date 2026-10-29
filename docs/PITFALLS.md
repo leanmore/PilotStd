@@ -309,3 +309,29 @@ Telegram 用 `parse_mode=MarkdownV2`，正文里的 `.` `(` `)` 未转义 → AP
 
 **模块级可变全局状态 = 跨测试污染源**。判断一个 autouse fixture 是否"根治"，
 要看被测代码实际读了哪些全局量（本例是三个：语言、翻译表、加载标志），而不是只看最显眼的那个（语言）。
+
+---
+
+## P-11 配置"双源分叉"：UI 读偏好、服务端读 config
+
+### 现象
+
+设置页显示「静音时段：已启用」，服务端 `GET /api/notification/config` 的 `quiet_hours.enabled` 却是 `false`；
+用户以为静音生效，实际通知照发。
+
+### 根因
+
+同一配置存在两份存储且读方不同：
+
+| 层 | 读 | 写 |
+|---|---|---|
+| UI | 用户偏好 `notification_quiet_hours` | `saveQuietHours` 同时写偏好 + `PUT /quiet-hours` |
+| 服务端 | `config.json` 的 `notification.quiet_hours_*` | 仅 API 写入 |
+
+通过 API/脚本改服务端（如 B2 验证恢复）后偏好未变 ⇒ UI 继续显示旧值。
+
+### 修复与预防
+
+- **服务端为唯一真相**：`loadConfig` 用 `cfg.quiet_hours` 覆盖 UI 状态并回写偏好；偏好降级为"加载前占位/缓存"。
+- 预防：**任何"UI 可改、服务端要用"的配置，只允许一份权威存储**；双写仅作为缓存同步，加载时必须回读权威。
+- 同类待查：`notification.enabled`（config + 偏好双写、偏好优先）、事件规则（config rules + DB policy 双写）。

@@ -264,6 +264,17 @@ export function useNotificationConfig() {
       await loadChannelSpecs()
       const cfg = await getNotificationConfig('/settings')
       enabled.value = cfg.enabled
+      // 静音时段以**服务端 config 为唯一真相**：偏好仅作加载前占位/缓存，
+      // 这里用服务端值覆盖并回写偏好，避免"页面显示已启用、服务端已关闭"的分叉（A-27）。
+      const serverQuiet = (cfg as { quiet_hours?: { enabled: boolean; start: string; end: string } }).quiet_hours
+      if (serverQuiet) {
+        quietPrefs.value = {
+          enabled: Boolean(serverQuiet.enabled),
+          start: serverQuiet.start || '22:00',
+          end: serverQuiet.end || '07:00',
+        }
+        loadQuietHoursFromPrefs()
+      }
       const rawChannels = (cfg.channels ?? {}) as unknown as Record<string, Record<string, unknown>>
       for (const spec of specs.value) {
         const form = channels.value[spec.name]

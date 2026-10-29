@@ -11,6 +11,7 @@ const {
   getNotificationConfigMock, putNotificationConfigMock, testNotificationMock,
   getNotificationChannelsMock, getNotificationSpecMock,
   getNotificationPoliciesMock, putNotificationPolicyMock,
+  putQuietHoursMock,
 } = vi.hoisted(() => ({
   getNotificationConfigMock: vi.fn(),
   putNotificationConfigMock: vi.fn(),
@@ -20,6 +21,7 @@ const {
   // 阶段 4 · P6 · 4b：双层订阅与"吞错可见化"回归需要它们（默认值在 beforeEach 里给）
   getNotificationPoliciesMock: vi.fn(),
   putNotificationPolicyMock: vi.fn(),
+  putQuietHoursMock: vi.fn(),
 }))
 
 vi.mock('@/api/notification', () => ({
@@ -30,6 +32,7 @@ vi.mock('@/api/notification', () => ({
   getNotificationSpec: getNotificationSpecMock,
   getNotificationPolicies: getNotificationPoliciesMock,
   putNotificationPolicy: putNotificationPolicyMock,
+  putQuietHours: putQuietHoursMock,
 }))
 /** 渠道元数据夹具：形状与 `GET /api/notification/channels` 一致（字段取最小可用集） */
 const CHANNEL_FIXTURE = {
@@ -129,6 +132,19 @@ describe('NotificationConfig', () => {
     await wrapper.vm.$nextTick()
 
     expect(wrapper.html()).toContain('启用通知')
+  })
+
+  it('静音时段显示以服务端 config 为准（覆盖本地偏好）', async () => {
+    getNotificationConfigMock.mockResolvedValue({
+      enabled: true,
+      channels: { wechat: { enabled: true, webhook_url: '' }, telegram: { enabled: false, bot_token: '', chat_id: '' }, feishu: { enabled: false, webhook_url: '' }, dingtalk: { enabled: false, webhook_url: '' } },
+      rules: {},
+      quiet_hours: { enabled: true, start: '23:00', end: '06:00' },
+    })
+    const wrapper = mountConfig()
+    await new Promise(r => setTimeout(r, 30))
+    await wrapper.vm.$nextTick()
+    expect(wrapper.html()).toContain('已启用')
   })
 
   it('事件选项由 API 返回集合渲染（D5：前端零硬编码）', async () => {

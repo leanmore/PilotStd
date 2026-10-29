@@ -46,6 +46,12 @@ export interface NotificationConfig {
  * 保存/更新配置的请求体：渠道内字段允许部分提交（敏感字段掩码/空值不提交，
  * 由后端保留 DB 原值——增量语义，见 NotificationConfig.vue cleanChannel）。
  */
+export interface QuietHoursConfig {
+  enabled: boolean
+  start: string
+  end: string
+}
+
 export interface NotificationConfigUpdate {
   enabled?: boolean
   channels?: {
