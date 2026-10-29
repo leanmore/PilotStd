@@ -41,5 +41,5 @@
 
 ## 四、待核小尾巴（不阻塞）
 
-1. **日志 +4 的来源**：B2 两条（warning/info）可解释 2 条；另 2 条疑为环境定时通知（batch_summary/daily）或配置变更告警。验证时 `192.168.1.18` 连接超时，未复核；环境恢复后按 `event_type` 核对。
+1. **日志 +4 的来源**：B2 两条（warning/info）可解释 2 条；另 2 条疑为环境定时通知（batch_summary/daily）或配置变更告警。**触发条件**：`192.168.1.18` 可连后，`GET /api/notification/logs?page_size=10` 取最近 4 条，确认其中 2 条为 `batch_summary`/`daily` 即结案；若不是，登记为 A-24 再查。
 2. **quiet-hours 验证前原值未快照**：恢复为默认 `enabled=false`。若验证前曾手动开启，需要重新打开一次（UI 开关或 `PUT /api/notification/quiet-hours`）。
