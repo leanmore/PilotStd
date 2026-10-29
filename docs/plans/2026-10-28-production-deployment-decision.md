@@ -67,3 +67,9 @@ curl -s http://127.0.0.1:9028/api/health
 ## 七、部署事实（2026-10-28）
 - 验证环境已部署 `9c23a940`（CI bump v0.154.0；包含 A-20、level 白名单与 `test-event`）。
 - `/api/health` version 与 tag 一致；`b72b3415:CHANGELOG.md` 已含 v0.153.0（CI 自动生成）。CI 证据：`0cf16f34` 的 run **13/13 success**；`b72b3415` 只是版本 bump（仅 CHANGELOG/VERSION/__init__.py，7 行）⇒ 代码等价于 13/13 的构建。
+
+## 八、验证环境部署核验（2026-10-29，`0e09e030`）
+- `quiet_hours` 只读字段：`enabled=false, start=22:00, end=07:00`（接口实测）✅
+- A-26 当日查询：`start=end=2026-10-29` 返回 57 条 ✅
+- P-11 前端修复：设置页静音显示「未启用」，与服务端一致 ✅
+- F-6 文案：提交 `d3da3dc8` 已在镜像内（ancestry 通过）；触发需改密码，**未做运行时触发**，以本地构建器渲染为据。
