@@ -6,6 +6,7 @@ import { createI18n } from 'vue-i18n'
 import zhCN from '@/locales/zh-CN.json'
 import en from '@/locales/en.json'
 import NotificationConfig from './NotificationConfig.vue'
+import { useUserPreferences } from '@/composables/useUserPreferences'
 
 const {
   getNotificationConfigMock, putNotificationConfigMock, testNotificationMock,
@@ -145,6 +146,22 @@ describe('NotificationConfig', () => {
     await new Promise(r => setTimeout(r, 30))
     await wrapper.vm.$nextTick()
     expect(wrapper.html()).toContain('已启用')
+  })
+
+  it('偏好 true + 服务端 false → 页面显示未启用（服务端覆盖偏好）', async () => {
+    const { quietHours } = useUserPreferences()
+    quietHours.value = { enabled: true, start: '22:00', end: '07:00' }
+    getNotificationConfigMock.mockResolvedValue({
+      enabled: true,
+      channels: { wechat: { enabled: true, webhook_url: '' }, telegram: { enabled: false, bot_token: '', chat_id: '' }, feishu: { enabled: false, webhook_url: '' }, dingtalk: { enabled: false, webhook_url: '' } },
+      rules: {},
+      quiet_hours: { enabled: false, start: '22:00', end: '07:00' },
+    })
+    const wrapper = mountConfig()
+    await new Promise(r => setTimeout(r, 30))
+    await wrapper.vm.$nextTick()
+    expect(wrapper.html()).toContain('未启用')
+    expect(quietHours.value.enabled).toBe(false)
   })
 
   it('事件选项由 API 返回集合渲染（D5：前端零硬编码）', async () => {

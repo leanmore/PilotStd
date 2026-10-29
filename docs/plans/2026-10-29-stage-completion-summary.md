@@ -36,7 +36,7 @@
 | 版本 | `9c23a940`（v0.154.0）或其后；构建需 `--build-arg APP_VERSION=$(git rev-parse --short HEAD)` |
 | 部署前 | `git pull` → 确认含 `ab219160`；CI 13/13（`ab219160` 已 success） |
 | 风险 | requests 迁移（dingtalk/feishu 未真实验证）；回滚到旧镜像即可 |
-| 验收 | `/api/health` version 匹配；发一条 ASCII + 一条含标点 `ok:true` |
+| 验收 | `/api/health` version 匹配；发一条 ASCII + 一条含标点 `ok:true`；**设置页静音时段显示与服务端一致（当前应为「未启用」）** |
 | 已知未验 | Q7 Windows 托盘；三渠道真发中 dingtalk/feishu；静音按用户 |
 
 ## 四、待核小尾巴（不阻塞）

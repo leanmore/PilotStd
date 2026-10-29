@@ -334,4 +334,12 @@ Telegram 用 `parse_mode=MarkdownV2`，正文里的 `.` `(` `)` 未转义 → AP
 
 - **服务端为唯一真相**：`loadConfig` 用 `cfg.quiet_hours` 覆盖 UI 状态并回写偏好；偏好降级为"加载前占位/缓存"。
 - 预防：**任何"UI 可改、服务端要用"的配置，只允许一份权威存储**；双写仅作为缓存同步，加载时必须回读权威。
-- 同类待查：`notification.enabled`（config + 偏好双写、偏好优先）、事件规则（config rules + DB policy 双写）。
+- 同类待查（**均未修，后果比静音更重**）：
+
+| 配置 | 双源 | 分叉后哪边赢 | 后果 | 触发条件 | 风险 |
+|---|---|---|---|---|---|
+| **通知总开关** `notification.enabled` | `config.json` + `user_preferences`（双写） | **偏好赢**（`manager._enabled`，`manager.py:87/156`） | **"改了不生效"**：UI 关过（偏好 false），运维改 `config.json` 的 `enabled=true`，服务端仍读 false，通知继续不发 | 直接改 config / 迁移/脚本写库 | **高于静音**：用户以为改成了 |
+| **事件规则** | `config.json` 的 `rules` + DB `notification_policy`（双写） | **DB policy 赢**（config rules 仅兜底） | **"改了不生效"**：只改 `PUT config.rules` 以为订阅生效，实际 policy 表仍是旧值 | 只走 config 写、policy 写失败/被跳过 | **高于静音**：静默漏通知 |
+| 静音时段 | `config.json` + 偏好（缓存） | **config 赢**（已修） | 显示与判定不一致 | API/脚本改服务端 | 基线 |
+
+> 结论：**总开关与事件规则是"改了不生效"，比静音的"显示不对"更危险**；修它们时同样要先定唯一真相，再改读取路径。
