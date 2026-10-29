@@ -4,7 +4,6 @@ import importlib.util
 from pathlib import Path
 
 from pilotstd.core.notification.channel_spec import CHANNEL_SPECS
-from pilotstd.core.notification.manager import _CHANNEL_CLASSES
 
 
 def _load():
