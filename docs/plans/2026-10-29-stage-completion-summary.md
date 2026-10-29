@@ -41,5 +41,5 @@
 
 ## 四、待核小尾巴（不阻塞）
 
-1. **日志 +4 的来源**：B2 两条（warning/info）可解释 2 条；另 2 条疑为环境定时通知（batch_summary/daily）或配置变更告警。**触发条件**：`192.168.1.18` 可连后，`GET /api/notification/logs?page_size=10` 取最近 4 条，确认其中 2 条为 `batch_summary`/`daily` 即结案；若不是，登记为 A-24 再查。
+1. ✅ **日志 +4 已结案（2026-10-29）**：B2 两条（B2W 21:49:53、B2I 21:58:55）+ **两条定时 security_alert（IP 更新部分失败，wechat failed / telegram success，21:49:25）** = 4；同一任务在 09:49/15:49 也各出现一次，确认是周期性检查，不是测试残留。
 2. **quiet-hours 验证前原值未快照**：恢复为默认 `enabled=false`。若验证前曾手动开启，需要重新打开一次（UI 开关或 `PUT /api/notification/quiet-hours`）。
