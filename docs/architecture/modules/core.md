@@ -478,3 +478,5 @@ pilotstd/core/
 **通知标准名（2026-10-24）**：NotificationMessage 增加 standard_name；时效性状态/失败/轮次汇总、查询失败、过期移动、替代补查、下载开始均拼接标准号与名称；聚合状态沿用名称。
 
 > **路径类型守卫（2026-10-27，A-16）**：`paths.get_library_root()` 对 `storage.root_dir` 增加类型检查——非 `str` 直接抛 `TypeError`（**不能**用 `isinstance(..., os.PathLike)` 判定，MagicMock 会被其 `__subclasshook__` 误判为 PathLike）（消息为英文，避免 G-047）。起因：测试把 `MagicMock` 当 `cfg` 传入时，mock 的返回值曾被当作路径，在 CWD 建出 `mock.cfg.get()` 目录；守卫让这类错误快速失败，不再产生垃圾目录。
+
+> **通知日志日期过滤（2026-10-29，A-26）**：`NotificationOps.get_logs` 对仅日期（`YYYY-MM-DD`）的 `start_date`/`end_date` 补时间边界（`T00:00:00`/`T23:59:59`）——原字符串比较会排除当日记录；带 `T` 的入参原样使用。

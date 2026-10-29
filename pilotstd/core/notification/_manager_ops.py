@@ -215,12 +215,14 @@ class NotificationOps:
         if status:
             conditions.append("status = ?")
             params.append(status)
+        # 日期过滤：允许调用方只传 YYYY-MM-DD（API 语义），补足时间边界；
+        # 否则字符串比较 `sent_at <= "2026-10-28"` 会排除当天所有记录（A-26）。
         if start_date:
             conditions.append("sent_at >= ?")
-            params.append(start_date)
+            params.append(start_date if "T" in start_date else f"{start_date}T00:00:00")
         if end_date:
             conditions.append("sent_at <= ?")
-            params.append(end_date)
+            params.append(end_date if "T" in end_date else f"{end_date}T23:59:59")
         if is_read is not None:
             conditions.append("is_read = ?")
             params.append(1 if is_read else 0)

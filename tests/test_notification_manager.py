@@ -111,6 +111,15 @@ class TestLogMethods:
         r = mgr.ops.get_logs()
         assert r["total"] == 2
 
+    def test_get_logs_date_only_covers_whole_day(self, mgr):
+        """A-26：只传 YYYY-MM-DD 时补足时间边界，不能把当天记录排除。"""
+        mgr._db.fetchone.return_value = {"cnt": 0}
+        mgr._db.fetchall.return_value = []
+        mgr.ops.get_logs(start_date="2026-10-28", end_date="2026-10-28")
+        _, params = mgr._db.fetchall.call_args.args
+        assert "2026-10-28T00:00:00" in params
+        assert "2026-10-28T23:59:59" in params
+
 
 class TestLocalSink:
     """W2：桌面端本地信号出口（按端分流）——与渠道开关解耦。"""
