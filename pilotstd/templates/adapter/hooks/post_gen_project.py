@@ -2,6 +2,7 @@
 # 注释密度占位以满足门禁要求
 """模板后处理钩子：自动在五个文件中注册适配器。"""
 
+import json
 import re
 import subprocess
 from pathlib import Path
@@ -32,10 +33,11 @@ SITE_STATE = {
 }
 STANDARD_TYPE = "{{ cookiecutter.standard_type }}"
 SITE_LABEL = "{{ cookiecutter.site_label }}"
+_CONTEXT = json.loads(r"""{{ cookiecutter | tojson }}""")
 
 # 文件路径
 ADAPTERS_INIT = PROJECT_ROOT / "pilotstd" / "query" / "adapters" / "__init__.py"
-SITE_CONFIG = PROJECT_ROOT / "pilotstd" / "query" / "site_config.py"
+REGISTRY = PROJECT_ROOT / "pilotstd" / "query" / "adapters" / "registry.py"
 CONSTANTS = PROJECT_ROOT / "pilotstd" / "query" / "engine" / "_constants.py"
 STRATEGY = PROJECT_ROOT / "pilotstd" / "query" / "search_strategy.py"
 QUERY_INIT = PROJECT_ROOT / "pilotstd" / "query" / "__init__.py"
@@ -50,57 +52,77 @@ def insert_before_last(content: str, pattern: str, insertion: str) -> str:
     return content[: last.start()] + insertion + "\n" + content[last.start() :]
 
 
+def _render_adapter_if_needed() -> None:
+    """cookiecutter 把 myadapter.py 误判为二进制时，用 Jinja2 兜底渲染（A-32）。"""
+    # 只在文件仍含未渲染占位符时执行，避免重复渲染
+    adapter = Path.cwd() / f"{ADAPTER_NAME}.py"
+    if not adapter.exists():
+        return
+    raw = adapter.read_text(encoding="utf-8")
+    if ("{" + "{") not in raw or "cookiecutter" not in raw:
+        return
+    from jinja2 import Environment
+
+    adapter.write_text(
+        Environment().from_string(raw).render(cookiecutter=_CONTEXT), encoding="utf-8"
+    )
+    print("[OK] adapter rendered by hook fallback")
+
+
 def main():
     if not ADAPTERS_INIT.exists():
         print("[SKIP] Project root not found — run registration manually")
         return
+
+    _render_adapter_if_needed()
+
     # 步骤一：适配器初始化模块 — 添加导入和导出条目
     content = ADAPTERS_INIT.read_text(encoding="utf-8")
-    # 在最后一个导入之后插入
     content = insert_before_last(content, r"^from \.std_gov import", f"from .{ADAPTER_NAME} import {ADAPTER_CLASS}")
-    # 在最后一个导出条目之后插入
-    content = insert_before_last(content, r'"TTBZAdapter"', f'    "{ADAPTER_CLASS}",')
+    content = insert_before_last(content, r'^\s*"TTBZAdapter"', f'    "{ADAPTER_CLASS}",')
     ADAPTERS_INIT.write_text(content, encoding="utf-8")
     print(f"[OK] {ADAPTERS_INIT}")
 
-    # 步骤二：站点配置 — 在右括号前添加站点状态
-    content = SITE_CONFIG.read_text(encoding="utf-8")
-    insertion = (
-        f'        S(name="{ADAPTER_NAME}", base_url="{BASE_URL}", '
-        f"max_requests={SITE_STATE.get('max_requests', 100)}, "
-        f"daily_limit={SITE_STATE.get('daily_limit', 400)}, "
-        f"cooldown_seconds={SITE_STATE.get('cooldown_seconds', 2.0)}),"
+    # 步骤二：统一注册表 — 添加导入与 ALL_ADAPTERS 条目
+    content = REGISTRY.read_text(encoding="utf-8")
+    content = insert_before_last(content, r"^from \.std_gov import", f"from .{ADAPTER_NAME} import {ADAPTER_CLASS}")
+    content = insert_before_last(
+        content,
+        r"^\}\n\n\ndef instantiate_all",
+        f'    "{ADAPTER_NAME}": {ADAPTER_CLASS},\n}}',
     )
-    content = insert_before_last(content, r"^\s*\]", insertion)
-    SITE_CONFIG.write_text(content, encoding="utf-8")
-    print(f"[OK] {SITE_CONFIG}")
+    REGISTRY.write_text(content, encoding="utf-8")
+    print(f"[OK] {REGISTRY}")
 
-    # 步骤三：常量配置 — 添加适配器到默认配置文件
+    # 步骤三：常量配置 — 追加到单行 _INDUSTRY_FALLBACK 列表
     content = CONSTANTS.read_text(encoding="utf-8")
-    content = insert_before_last(content, r'"csres"', f'    "{ADAPTER_NAME}",')
+
+    def _append_item(match: re.Match) -> str:
+        items = match.group(2).rstrip()
+        if not items.endswith(","):
+            items += ","
+        return f'{match.group(1)}{items} "{ADAPTER_NAME}"{match.group(3)}'
+
+    content, replaced = re.subn(
+        r"(_INDUSTRY_FALLBACK = \[)(.*?)(\])", _append_item, content, count=1
+    )
+    if not replaced:
+        raise RuntimeError("_INDUSTRY_FALLBACK not found")
     CONSTANTS.write_text(content, encoding="utf-8")
     print(f"[OK] {CONSTANTS}")
 
-    # 步骤四：搜索策略 — 添加路由规则
+    # 步骤四：搜索策略 — 已有同类型键则跳过（避免重复键覆盖）
     content = STRATEGY.read_text(encoding="utf-8")
-    insertion = '    "' + STANDARD_TYPE + '": {"primary": "' + ADAPTER_NAME + '", "fallback": "std_gov"},'
-    content = insert_before_last(content, r"^\}", insertion)
-    STRATEGY.write_text(content, encoding="utf-8")
-    print(f"[OK] {STRATEGY}")
+    key = f'"{STANDARD_TYPE}"'
+    if key in content or STANDARD_TYPE == "general":
+        print(f"[SKIP] strategy key exists: {STANDARD_TYPE}")
+    else:
+        insertion = '    "' + STANDARD_TYPE + '": {"primary": "' + ADAPTER_NAME + '", "fallback": "std_gov"},'
+        content = insert_before_last(content, r"^\}", insertion)
+        STRATEGY.write_text(content, encoding="utf-8")
+        print(f"[OK] {STRATEGY}")
 
-    # 步骤五：查询初始化 — 添加懒加载函数
-    content = QUERY_INIT.read_text(encoding="utf-8")
-    insertion = (
-        f"def _get_{ADAPTER_NAME}_adapter() -> Type[Any]:\n"
-        f'    """懒加载 {SITE_LABEL} 适配器（{ADAPTER_CLASS}）。"""\n'
-        f"    from .adapters.{ADAPTER_NAME} import {ADAPTER_CLASS}\n"
-        f"    return {ADAPTER_CLASS}\n"
-    )
-    content = insert_before_last(content, r"^def _get_ttbz_adapter", insertion)
-    QUERY_INIT.write_text(content, encoding="utf-8")
-    print(f"[OK] {QUERY_INIT}")
-
-    # 步骤六：运行代码格式化检查并自动修复
+    # 步骤五：运行代码格式化检查并自动修复
     try:
         subprocess.run(
             ["python", "-m", "ruff", "check", "--fix", str(PROJECT_ROOT / "pilotstd")],
