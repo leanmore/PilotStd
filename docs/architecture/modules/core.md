@@ -483,3 +483,4 @@ pilotstd/core/
 
 > **通知日志只读字段（2026-10-29，A-30）**：列表接口新增 `notify_event` 与按配置白名单裁剪的 `task_context`（默认 `duration_seconds`/`stage_tier`，新增键改 `notification.logs.task_context_whitelist`）；新增 `GET /api/notification/logs/{id}/diagnostics`（仅 admin，固定返回 callback_data/channel_message_ids/actions/attachments）。
 > **通知配置分层（A-28，2026-10-30）**：新增 pilotstd/core/config/scope.py 归属判定（系统级：总开关/回调密钥；用户级：静音/规则/渠道凭证）；scripts/migrate_notification_scope.py 默认 dry-run，--apply 前备份 config 与 user_preferences/notification_policy，静音键写入偏好且保留 config 原键（回滚）。
+> **A-28 更新（2026-10-30）**：渠道白名单键 `notification.channels.allowed` 归系统级；未知键告警一次；迁移脚本支持 `--reset`/`--force`，失败不写标记。

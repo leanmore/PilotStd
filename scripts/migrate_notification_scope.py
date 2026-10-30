@@ -48,7 +48,7 @@ def plan(config: dict) -> list[dict]:
 
 def _backup(config_path: Path, db_path: Path, backup_dir: Path) -> Path:
     # 备份 config 与两张用户级表，供回滚；目录带时间戳
-    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
     target = backup_dir / f"a28_scope_{stamp}"
     target.mkdir(parents=True, exist_ok=False)
     shutil.copy2(config_path, target / "config.json")
@@ -93,27 +93,40 @@ def apply(config: dict, db_path: Path) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    # 入口：默认 dry-run 只打印；--apply 才备份并写入
+    # 入口：默认 dry-run；--apply 备份后写入；--reset 只删标记
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", default="config/config.json")
     ap.add_argument("--db", default="data/pilotstd.db")
     ap.add_argument("--backup-dir", default="backups")
     ap.add_argument("--apply", action="store_true", help="实际写入（默认 dry-run）")
+    ap.add_argument("--force", action="store_true", help="忽略已迁移标记，强制重跑")
+    ap.add_argument("--reset", action="store_true", help="只删除迁移标记，不清数据")
     args = ap.parse_args(argv)
 
     config_path = Path(args.config)
     db_path = Path(args.db)
     if not config_path.exists():
-    # 前置校验：配置与数据库必须存在，避免半迁移
         print(f"[FAIL] config not found: {config_path}")
         return 1
     if not db_path.exists():
         print(f"[FAIL] db not found: {db_path}")
         return 1
 
-    config = json.loads(config_path.read_text(encoding="utf-8"))
-    if config.get(MARKER):
-        print("[SKIP] already migrated")
+    try:
+        config = json.loads(config_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        print(f"[FAIL] config read/parse failed: {exc}")
+        return 1
+
+    # 只删标记，保留已写数据，便于清单调整后重新迁移
+    if args.reset:
+        config.pop(MARKER, None)
+        config_path.write_text(json.dumps(config, ensure_ascii=False, indent=2), encoding="utf-8")
+        print("[RESET] marker removed; data kept")
+        return 0
+
+    if config.get(MARKER) and not args.force:
+        print("[SKIP] already migrated（--force 可重跑）")
         return 0
 
     rows = plan(config)
@@ -127,10 +140,15 @@ def main(argv: list[str] | None = None) -> int:
         print("[DRY-RUN] 未写入任何文件/数据库")
         return 0
 
-    target = _backup(config_path, db_path, Path(args.backup_dir))
-    # 先备份再写库：备份失败则中止，绝不留下部分迁移
-    print(f"[BACKUP] {target}")
-    apply(config, db_path)
+    try:
+        # 先备份再写库：备份失败则中止，绝不留下部分迁移
+        target = _backup(config_path, db_path, Path(args.backup_dir))
+        print(f"[BACKUP] {target}")
+        apply(config, db_path)
+    except (OSError, sqlite3.Error) as exc:
+        print(f"[FAIL] migration aborted, no marker written: {exc}")
+        return 1
+
     config[MARKER] = True
     config_path.write_text(json.dumps(config, ensure_ascii=False, indent=2), encoding="utf-8")
     print("[APPLY] done; 回滚：恢复备份 config + 删除对应 user_preferences 行")

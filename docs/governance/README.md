@@ -118,3 +118,6 @@ A: `--required-only` 参数仅检查 `required` 级别能力。CI 也仅对 `req
 
 ## 2026-10-30 A-28 配置分层与迁移
 - 新增 `pilotstd/core/config/scope.py` 与 `scripts/migrate_notification_scope.py`（dry-run 默认、备份、幂等）。
+
+## 2026-10-30 A-28 失败路径
+- 迁移脚本备份/写入失败不写标记；`--reset`/`--force`；未知键告警一次；渠道白名单键 `notification.channels.allowed`。
