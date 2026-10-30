@@ -115,3 +115,6 @@ A: `--required-only` 参数仅检查 `required` 级别能力。CI 也仅对 `req
 
 ## 2026-10-30 模板 hook 与 i18n 基线（A-31）
 - hook 回归改为三处注册面（`__init__.py`/`registry.py`/`_INDUSTRY_FALLBACK`）；i18n 基线移除已无命中的模板 hook 条目。
+
+## 2026-10-30 A-28 配置分层与迁移
+- 新增 `pilotstd/core/config/scope.py` 与 `scripts/migrate_notification_scope.py`（dry-run 默认、备份、幂等）。
