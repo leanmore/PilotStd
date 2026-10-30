@@ -112,3 +112,6 @@ A: `--required-only` 参数仅检查 `required` 级别能力。CI 也仅对 `req
 
 ## 2026-10-29 渠道 schema 互证（A-3）
 - CI `test-backend` 增加 `scripts/check_channel_schema_parity.py`：校验 spec 派生 schema 与各渠道 `get_config_schema()` 的键/required/secret，失败阻断。
+
+## 2026-10-30 模板 hook 与 i18n 基线（A-31）
+- hook 回归改为三处注册面（`__init__.py`/`registry.py`/`_INDUSTRY_FALLBACK`）；i18n 基线移除已无命中的模板 hook 条目。

@@ -191,7 +191,6 @@
   "pilotstd/task/scheduler.py": 5,
   "pilotstd/tasks/date_reminder.py": 3,
   "pilotstd/tasks/favorite_download.py": 19,
-  "pilotstd/templates/adapter/hooks/post_gen_project.py": 2,
   "pilotstd/ui/core/_self_check.py": 12,
   "pilotstd/ui/core/event_bus.py": 1,
   "pilotstd/ui/core/handlers/_announce.py": 3,

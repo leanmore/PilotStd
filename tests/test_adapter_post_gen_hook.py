@@ -39,10 +39,12 @@ def _fake_root(tmp_path: Path) -> Path:
         "pilotstd/query/adapters/__init__.py": (
             'from .std_gov import StdGovAdapter\n\n__all__ = [\n    "TTBZAdapter",\n]\n'
         ),
-        "pilotstd/query/site_config.py": "SITES = [\n]\n",
-        "pilotstd/query/engine/_constants.py": 'ORDER = ("csres",)\n',
-        "pilotstd/query/search_strategy.py": "ROUTES = {\n}\n",
-        "pilotstd/query/__init__.py": "def _get_ttbz_adapter() -> Type[Any]:\n    return TTBZAdapter\n",
+        "pilotstd/query/adapters/registry.py": (
+            'from .std_gov import StdGovAdapter\n\n'
+            'ALL_ADAPTERS = {\n    "ttbz": TTBZAdapter,\n}\n\n\ndef instantiate_all():\n    return []\n'
+        ),
+        "pilotstd/query/engine/_constants.py": '_INDUSTRY_FALLBACK = ["csres"]\n',
+        "pilotstd/query/search_strategy.py": 'ROUTES = {\n}\n',
     }
     for rel, body in files.items():
         path = tmp_path / rel
@@ -58,7 +60,7 @@ def test_hook_renders_without_leftover_placeholder():
     compile(rendered, str(HOOK), "exec")
 
 
-def test_hook_registers_adapter_in_five_files(tmp_path: Path):
+def test_hook_registers_adapter_in_three_files(tmp_path: Path):
     """跑一遍钩子：五个文件都应出现注册痕迹，且不得残留未渲染占位符。"""
     root = _fake_root(tmp_path)
     script = root / "_hook_rendered.py"
@@ -69,10 +71,8 @@ def test_hook_registers_adapter_in_five_files(tmp_path: Path):
 
     checks = {
         "pilotstd/query/adapters/__init__.py": [f"from .{ADAPTER} import {CLASS}", f'"{CLASS}",'],
-        "pilotstd/query/site_config.py": [f'S(name="{ADAPTER}"'],
-        "pilotstd/query/engine/_constants.py": [f'"{ADAPTER}",'],
-        "pilotstd/query/search_strategy.py": [f'"primary": "{ADAPTER}"'],
-        "pilotstd/query/__init__.py": [f"def _get_{ADAPTER}_adapter"],
+        "pilotstd/query/adapters/registry.py": [f"from .{ADAPTER} import {CLASS}", f'"{ADAPTER}": {CLASS}'],
+        "pilotstd/query/engine/_constants.py": [f'"{ADAPTER}"'],
     }
     for rel, needles in checks.items():
         text = (root / rel).read_text(encoding="utf-8")
