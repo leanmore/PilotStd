@@ -93,6 +93,26 @@ def looks_rate_limited(text: str) -> bool:
     return any(hint in lowered for hint in _RATE_LIMIT_HINTS)
 
 
+# A-42（T-42）：已取证的渠道限流错误码。查不到的渠道保持空集 + 关键词兜底。
+CHANNEL_RATE_LIMIT_CODES: dict[str, frozenset[int]] = {
+    "wechat": frozenset({45009}),  # api freq out of limit
+    "feishu": frozenset({99991400}),  # request trigger frequency limit
+    "dingtalk": frozenset(),  # 官方文档为 JS 渲染，暂未取证
+    "telegram": frozenset(),  # 仅 HTTP 429，无业务码
+}
+
+
+def is_rate_limited(channel: str, code: object, text: str) -> bool:
+    """限流判定：**码优先**，未取证/未命中码时回退关键词。"""
+    try:
+        numeric = int(str(code))
+    except (TypeError, ValueError):
+        numeric = None
+    if numeric is not None and numeric in CHANNEL_RATE_LIMIT_CODES.get(channel, frozenset()):
+        return True
+    return looks_rate_limited(text)
+
+
 class NotificationChannel(ABC):
     """通知渠道抽象基类。"""
 

@@ -485,3 +485,4 @@ pilotstd/core/
 > **通知配置分层（A-28，2026-10-30）**：新增 pilotstd/core/config/scope.py 归属判定（系统级：总开关/回调密钥；用户级：静音/规则/渠道凭证）；scripts/migrate_notification_scope.py 默认 dry-run，--apply 前备份 config 与 user_preferences/notification_policy，静音键写入偏好且保留 config 原键（回滚）。
 > **A-28 更新（2026-10-30）**：渠道白名单键 `notification.channels.allowed` 归系统级；未知键告警一次；迁移脚本支持 `--reset`/`--force`，失败不写标记。
 > **A-28 阶段二（2026-10-31）**：enabled_for(user_id) 组合系统 AND 用户；静音判定偏好优先、解析失败回退 config；_is_quiet_hours 兼容无参替身。
+> **T-42（2026-10-31）**：渠道限流改为“码优先 + 关键词兜底”；已取证 企微 45009 / 飞书 99991400，钉钉/Telegram 保持兜底。

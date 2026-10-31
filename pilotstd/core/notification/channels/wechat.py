@@ -15,7 +15,7 @@ if TYPE_CHECKING:  # pragma: no cover - 仅类型检查
     from ..interaction import ChannelCapabilities
 from ..renderer import MarkdownRenderer, split_for_channel
 from ..renderer_wecom_card import WeChatCardRenderer
-from .base import NotificationChannel, is_retryable_http_status, looks_rate_limited
+from .base import NotificationChannel, is_rate_limited, is_retryable_http_status
 
 logger = logging.getLogger(__name__)
 
@@ -167,7 +167,7 @@ class WechatChannel(NotificationChannel):
             return True, False
         errmsg = str(body.get("errmsg", ""))
         self.last_error = f"errcode={errcode} errmsg={errmsg}"
-        return False, looks_rate_limited(f"{errcode} {errmsg}")
+        return False, is_rate_limited("wechat", errcode, errmsg)
 
     def _send_by_app(self, message: NotificationMessage) -> bool:
         """应用形态：发送 `template_card`（模板卡片）。"""

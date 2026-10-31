@@ -19,7 +19,7 @@ from ..interaction import ANCHOR_MESSAGE_ID, MessageHandle
 if TYPE_CHECKING:  # pragma: no cover - 仅类型检查
     from ..interaction import ChannelCapabilities
 from ..renderer import CHANNEL_TEXT_LIMITS, FeishuCardRenderer, split_for_channel
-from .base import NotificationChannel, is_retryable_http_status, looks_rate_limited
+from .base import NotificationChannel, is_rate_limited, is_retryable_http_status
 
 logger = logging.getLogger(__name__)
 
@@ -344,7 +344,7 @@ class FeishuChannel(NotificationChannel):
                 msg = data.get("msg", "")
                 self.last_error = t("notification.channel.feishu.api_failed").format(detail=msg)
                 logger.warning("飞书通知失败: %s", msg)
-                return False, looks_rate_limited(f"{data.get('code', '')} {msg}")
+                return False, is_rate_limited("feishu", data.get("code"), msg)
             self.last_error = t("notification.channel.feishu.http_error").format(
                 status=resp.status_code
             )

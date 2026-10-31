@@ -26,7 +26,7 @@ from ..channel import NotificationMessage
 if TYPE_CHECKING:  # pragma: no cover - 仅类型检查
     from ..interaction import ChannelCapabilities
 from ..renderer import DingTalkCardRenderer, MarkdownRenderer, split_for_channel
-from .base import NotificationChannel, is_retryable_http_status, looks_rate_limited
+from .base import NotificationChannel, is_rate_limited, is_retryable_http_status
 
 logger = logging.getLogger(__name__)
 
@@ -166,7 +166,7 @@ class DingTalkChannel(NotificationChannel):
             errmsg = data.get("errmsg") or t("notification.channel.api_unknown_error")
             self.last_error = t("notification.channel.dingtalk.api_failed").format(detail=errmsg)
             logger.warning("钉钉通知失败: %s", errmsg)
-            return False, looks_rate_limited(f"{data.get('errcode', '')} {errmsg}")
+            return False, is_rate_limited("dingtalk", data.get("errcode"), errmsg)
         except (requests.RequestException, OSError) as e:
             # 网络类异常（连接重置/超时/域名解析失败）属瞬时故障 → 可重试
             self.last_error = str(e)
