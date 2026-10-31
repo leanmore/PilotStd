@@ -714,3 +714,4 @@ B1（声明类 vs 实现类）已覆盖同一语义、且每次 CI 都在跑；�
 > **i18n 基线（A-31，2026-10-30）**：模板 hook 已无中文硬编码命中，从 `scripts/i18n_hardcoded_python_baseline.json` 移除该文件条目；hook 回归同步为“三处注册面”。
 > **A-28 迁移脚本（2026-10-30）**：scripts/migrate_notification_scope.py 默认 dry-run；--apply 先备份 config 与 user_preferences/notification_policy；静音键保留 config 原键。
 > **A-28 失败路径（2026-10-30）**：迁移脚本备份/写入失败返回 1 且不写标记；`--reset` 只删标记、`--force` 重跑；未知键告警一次。
+> **A-28 阶段二 B（2026-10-31）**：`/test-event` 系统关/用户关分别拦截；迁移脚本 `--rollback` 先导出全部 `notification%` 偏好再删迁移键与标记。

@@ -101,6 +101,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--apply", action="store_true", help="实际写入（默认 dry-run）")
     ap.add_argument("--force", action="store_true", help="忽略已迁移标记，强制重跑")
     ap.add_argument("--reset", action="store_true", help="只删除迁移标记，不清数据")
+    ap.add_argument("--rollback", action="store_true", help="导出偏好→删迁移键→删标记")
     args = ap.parse_args(argv)
 
     config_path = Path(args.config)
@@ -117,6 +118,30 @@ def main(argv: list[str] | None = None) -> int:
     except (OSError, ValueError) as exc:
         print(f"[FAIL] config read/parse failed: {exc}")
         return 1
+
+    # 回滚：先导出全部 notification* 偏好，再删迁移写入的键与标记
+    if args.rollback:
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+        target = Path(args.backup_dir) / f"a28_rollback_{stamp}"
+        target.mkdir(parents=True, exist_ok=True)
+        conn = sqlite3.connect(db_path)
+        try:
+            cur = conn.execute(
+                "SELECT user_id, preference_key, preference_value FROM user_preferences "
+                "WHERE preference_key LIKE 'notification%'"
+            )
+            rows = [dict(zip([c[0] for c in cur.description], r)) for r in cur]
+            (target / "preferences.json").write_text(
+                json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
+            conn.execute("DELETE FROM user_preferences WHERE preference_key=?", (QUIET_PREF,))
+            conn.commit()
+        finally:
+            conn.close()
+        config.pop(MARKER, None)
+        config_path.write_text(json.dumps(config, ensure_ascii=False, indent=2), encoding="utf-8")
+        print(f"[ROLLBACK] backup={target}")
+        return 0
 
     # 只删标记，保留已写数据，便于清单调整后重新迁移
     if args.reset:

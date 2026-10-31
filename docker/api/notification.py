@@ -41,7 +41,12 @@ router.include_router(notification_policy.router)
 
 
 @router.post("/api/notification/test-event")
-def test_event(request: Request, body: dict, nmgr=Depends(_get_notification_mgr)):
+def test_event(
+    request: Request,
+    body: dict,
+    nmgr=Depends(_get_notification_mgr),
+    user_id: int = Depends(_get_user_id),
+):
     """发送一条**走 dispatcher** 的测试事件（验静音链路专用）。
 
     与 `/test` 的区别：本端点调用 `nmgr._do_send(...)`，会经过
@@ -49,6 +54,10 @@ def test_event(request: Request, body: dict, nmgr=Depends(_get_notification_mgr)
     `level` 仅 info/warning；`bypass_aggregation=True` 只跳过聚合与分档节流，
     不跳过静音、落库与发送。
     """
+    # 系统关/用户关都拦截；响应区分是谁关的
+    if not nmgr.enabled_for(user_id):
+        reason = "system" if not nmgr._system_enabled else "user"
+        return {"ok": False, "error": f"notification disabled: {reason}"}
     channel = body.get("channel", "")
     if channel not in CHANNEL_NAMES:
         return {"ok": False, "error": t("notification.api.unsupported_channel").format(ch=channel)}
