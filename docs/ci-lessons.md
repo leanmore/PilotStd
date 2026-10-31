@@ -276,3 +276,9 @@
 ## 2026-10-23 Node 安全基线
 
 CI 的 NODE_VERSION 从浮动 22 固定到 22.23.4，修复 2026-10-21 Node.js 安全公告（Brotli RCE、DNS/TLS 等）；生产镜像无 Node 运行时。
+
+## 门禁实际入口（2026-10-31）
+- core.hooksPath = .husky；pre-commit hook 在 .husky/pre-commit，不是 .git/hooks。
+- check_all.sh 是另一套入口（子集），与 husky 独立。
+- 定位门禁失败：ash .husky/pre-commit > log 2>&1，不要用 git commit（包装层会截断）。
+
