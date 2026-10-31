@@ -23,7 +23,7 @@ def test_unknown_code_without_keyword_is_not_rate_limited():
 def test_logs_hit_path(caplog):
     import logging
 
-    with caplog.at_level(logging.DEBUG):
+    with caplog.at_level(logging.INFO):
         is_rate_limited("wechat", 45009, "x")
         is_rate_limited("dingtalk", 1, "rate limit")
     assert "rate_limited_by=code" in caplog.text

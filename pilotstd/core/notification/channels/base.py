@@ -109,11 +109,11 @@ def is_rate_limited(channel: str, code: object, text: str) -> bool:
     except (TypeError, ValueError):
         numeric = None
     if numeric is not None and numeric in CHANNEL_RATE_LIMIT_CODES.get(channel, frozenset()):
-        logger.debug("rate_limited_by=code channel=%s code=%s", channel, numeric)
+        logger.info("rate_limited_by=code channel=%s code=%s", channel, numeric)
         return True
     by_keyword = looks_rate_limited(text)
     if by_keyword:
-        logger.debug("rate_limited_by=keyword channel=%s", channel)
+        logger.info("rate_limited_by=keyword channel=%s", channel)
     return by_keyword
 
 
