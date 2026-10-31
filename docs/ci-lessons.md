@@ -281,4 +281,7 @@ CI 的 NODE_VERSION 从浮动 22 固定到 22.23.4，修复 2026-10-21 Node.js �
 - core.hooksPath = .husky；pre-commit hook 在 .husky/pre-commit，不是 .git/hooks。
 - check_all.sh 是另一套入口（子集），与 husky 独立。
 - 定位门禁失败：ash .husky/pre-commit > log 2>&1，不要用 git commit（包装层会截断）。
-
+## 本地全量 ≠ CI 全量（2026-10-31）
+- CI 用 `CI=true` 跳过国内站点 e2e（GitHub runner 访问国内站点被阻断）。
+- 办公室做代码回归用 `CI=true pytest ...` 对齐 CI 集合；国内站点适配器验证单独跑 `test_e2e_adapters.py`。
+- 不要把 CI 绿当作“国内站点已验”；也不要把本地站点 e2e 红当代码问题。
