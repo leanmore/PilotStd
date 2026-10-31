@@ -5,7 +5,7 @@
 | 模块路径 | `pilotstd/core/` |
 | G-031 映射 | `pilotstd/core/`（2026-09-25 落地：`DOC_SYNC_MAP` 已含该条，改任何 core 文件都会要求同步本文件） |
 | 核心类 | `Database` / `ConfigManager` / `CacheManager` / `NotificationManager` |
-| 子模块数 | 122 个 `.py`（新增 `db/_migrate_v69_reheal_notification_credentials.py`（通知渠道凭据自愈迁移，体检 **D-5**，2026-10-17）；上一轮新增 `notification/wechat_crypto.py`（企业微信回调加解密，**T-43**）；上一轮新增 `_builders_system_security.py`（安全族构建器）——**T-41/5 (2/2)** 拆分以守 G-010；主模块 `_builders_system.py` **再导出**迁出名字。上一轮新增 `_builders_common.py`（构建器共享助手）与 `_builders_batch_download.py`（下载族构建器）——**T-41/5** 拆分以守 G-010；主模块 `_builders_batch.py` **再导出**迁出名字。上一轮新增 `aggregate_keys.py`：聚合分组键语义（**T-41/4** 拆分以守 G-010；以**纯函数（组合）**形式提供，`NotificationAggregator` 用薄委托调用并**再导出** `_GROUP_SEP`/`agg_key_mode`）。上一轮新增 `renderer_base.py`（渲染器共享基座）与 `renderer_telegram.py`（Telegram 渲染器）——**T-41/3** 拆分以守 G-010；`renderer.py` 保留 Markdown/飞书/钉钉/桌面渲染器并**再导出**迁出名字。上一轮新增 `event_spec_data.py`：事件声明数据（**T-41/1** 拆分以守 G-010；`event_spec.py` 保留数据类/工厂/值域闭集，并按声明原位置**延迟导入** `EVENT_SPECS`）；再上一轮新增 `channel_spec_data.py`：渠道声明数据（阶段 3 · Step 4 ③ 拆分以守 G-010；`channel_spec.py` 保留数据类与再导出））（**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-10-17**；顶层 = 3 个包 config / db / notification + 23 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
+| 子模块数 | 123 个 `.py`（新增 `db/_migrate_v69_reheal_notification_credentials.py`（通知渠道凭据自愈迁移，体检 **D-5**，2026-10-17）；上一轮新增 `notification/wechat_crypto.py`（企业微信回调加解密，**T-43**）；上一轮新增 `_builders_system_security.py`（安全族构建器）——**T-41/5 (2/2)** 拆分以守 G-010；主模块 `_builders_system.py` **再导出**迁出名字。上一轮新增 `_builders_common.py`（构建器共享助手）与 `_builders_batch_download.py`（下载族构建器）——**T-41/5** 拆分以守 G-010；主模块 `_builders_batch.py` **再导出**迁出名字。上一轮新增 `aggregate_keys.py`：聚合分组键语义（**T-41/4** 拆分以守 G-010；以**纯函数（组合）**形式提供，`NotificationAggregator` 用薄委托调用并**再导出** `_GROUP_SEP`/`agg_key_mode`）。上一轮新增 `renderer_base.py`（渲染器共享基座）与 `renderer_telegram.py`（Telegram 渲染器）——**T-41/3** 拆分以守 G-010；`renderer.py` 保留 Markdown/飞书/钉钉/桌面渲染器并**再导出**迁出名字。上一轮新增 `event_spec_data.py`：事件声明数据（**T-41/1** 拆分以守 G-010；`event_spec.py` 保留数据类/工厂/值域闭集，并按声明原位置**延迟导入** `EVENT_SPECS`）；再上一轮新增 `channel_spec_data.py`：渠道声明数据（阶段 3 · Step 4 ③ 拆分以守 G-010；`channel_spec.py` 保留数据类与再导出））（**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-10-17**；顶层 = 3 个包 config / db / notification + 23 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
 | Schema 版本 | `CURRENT_SCHEMA_VERSION = 69`（`db/_constants.py`；v69＝通知渠道凭据自愈：旧迁移失败却已写"已迁移"标记时，从 config.json 重做一次加密写入，2026-10-17 体检 D-5） |
 | 状态 | 活跃 |
 
@@ -487,3 +487,6 @@ pilotstd/core/
 > **A-28 阶段二（2026-10-31）**：enabled_for(user_id) 组合系统 AND 用户；静音判定偏好优先、解析失败回退 config；_is_quiet_hours 兼容无参替身。
 > **T-42（2026-10-31）**：渠道限流改为“码优先 + 关键词兜底”；已取证 企微 45009 / 飞书 99991400，钉钉/Telegram 保持兜底。
 > **rate_limited_by（2026-10-31）**：限流命中日志从 debug 提升到 info（code/keyword），便于事后排查误判。
+
+> **A-21 v71（2026-10-31）**：notification_log/queue 加 user_id（DEFAULT 1）+ 回填 + 用户维度索引；读写路径未改，中间态仍单用户（全 1）。
+

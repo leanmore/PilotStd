@@ -28,6 +28,7 @@ class _Db:
         self.conn.executescript(
             """
             CREATE TABLE notification_log (
+    user_id INTEGER NOT NULL DEFAULT 1,
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 event_type TEXT, channel TEXT, title TEXT, body TEXT, standard_number TEXT,
                 status TEXT, error_msg TEXT, sent_at TEXT, is_read INTEGER DEFAULT 0,

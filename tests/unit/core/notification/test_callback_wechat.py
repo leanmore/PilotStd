@@ -30,6 +30,7 @@ class _Db:
             """
             -- 与生产表列集一致（Schema 一致性门禁要求测试替身不得缺列）
             CREATE TABLE notification_log (
+    user_id INTEGER NOT NULL DEFAULT 1,
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 event_type TEXT, channel TEXT, title TEXT, body TEXT, standard_number TEXT,
                 status TEXT, error_msg TEXT, sent_at TEXT, is_read INTEGER DEFAULT 0,

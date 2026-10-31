@@ -1259,6 +1259,7 @@ class TestDbMigrations(unittest.TestCase):
         conn = sqlite3.connect(db_path)
         conn.execute("""
             CREATE TABLE IF NOT EXISTS notification_log (
+    user_id INTEGER NOT NULL DEFAULT 1,
     id INTEGER,
     event_type TEXT NOT NULL,
     channel TEXT NOT NULL,
@@ -1310,6 +1311,7 @@ class TestDbMigrations(unittest.TestCase):
         conn = sqlite3.connect(db_path)
         conn.execute("""
             CREATE TABLE IF NOT EXISTS notification_log (
+    user_id INTEGER NOT NULL DEFAULT 1,
     id INTEGER,
     event_type TEXT NOT NULL,
     channel TEXT NOT NULL,
@@ -1357,6 +1359,7 @@ class TestDbMigrations(unittest.TestCase):
         conn = sqlite3.connect(db_path)
         conn.execute("""
             CREATE TABLE IF NOT EXISTS notification_log (
+    user_id INTEGER NOT NULL DEFAULT 1,
     id INTEGER,
     event_type TEXT NOT NULL,
     channel TEXT NOT NULL,

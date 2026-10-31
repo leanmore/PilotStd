@@ -293,15 +293,15 @@ class GreySamplingReport(unittest.TestCase):
         self.assertEqual(calls1, calls2, "渠道调用序列（标题）在两档间不一致")
 
     def test_schema_has_all_columns_including_task_kind(self):
-        """落库层：真实库的 `notification_log` 有 **26 列**，且 `task_kind` 列存在（2.5a）。
+        """落库层：真实库的 `notification_log` 有 **28 列**，且 `task_kind` 列存在（2.5a）。
 
         演化：2b-启用期为 25 列且**故意无** task_kind（防腐化闸门）；2.5a 按裁决翻转——
-        现在是 26 列且必须有。
+        现在是 28 列且必须有。
         """
         self._run_stage("2")  # 采样会记录本次库的列集
         # v67（2026-10-05 通知聚合 B1）新增 failed_items 列 ⇒ 27；
         # 本断言只锁"本表列数"这一契约快照，改列时必须同步改本数字（先例：4ee9028d 之后同类测试不再锁绝对版本号）。
-        self.assertEqual(len(self.schema_columns), 27)
+        self.assertEqual(len(self.schema_columns), 28)
         for col in ("message_id", "task_context", "actions", "channel_message_ids", "content_type", "task_kind"):
             self.assertIn(col, self.schema_columns)
 

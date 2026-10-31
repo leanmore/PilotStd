@@ -180,3 +180,8 @@ from ._migrate_v69_reheal_notification_credentials import (  # noqa: E402, F401
 from ._migrate_v70_announcement_record_language import (  # noqa: E402, F401
     _migrate_v70_announcement_record_language,
 )
+
+# 第七十一版：通知日志/队列增加 user_id（A-21 数据模型层）
+from ._migrate_v71_notification_user_id import (  # noqa: E402, F401
+    _migrate_v71_notification_user_id,
+)

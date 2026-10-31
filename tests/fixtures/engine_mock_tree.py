@@ -72,6 +72,7 @@ class EngineCoreMock:
 
 NOTIFICATION_SCHEMA = """
 CREATE TABLE IF NOT EXISTS notification_log (
+    user_id INTEGER NOT NULL DEFAULT 1,
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     event_type TEXT NOT NULL,
     channel TEXT NOT NULL,
@@ -102,6 +103,7 @@ CREATE TABLE IF NOT EXISTS notification_log (
 );
 
 CREATE TABLE IF NOT EXISTS notification_queue (
+    user_id INTEGER NOT NULL DEFAULT 1,
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     event_type TEXT NOT NULL,
     event_data TEXT NOT NULL,
