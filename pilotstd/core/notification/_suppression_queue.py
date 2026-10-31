@@ -151,16 +151,31 @@ class SuppressionQueue:
         fields["channel_message_ids"] = _json_codec.loads_dict(data.get("channel_message_ids"))
         return NotificationMessage(**fields), channels
 
-    def release(self) -> tuple[int, list[str]]:
-        """补发所有已到期的压制通知，返回（补发条数, 失败明细）。
+    def expire(self) -> int:
+        """把超过保留期的 suppressed 消息标记 expired，返回条数（系统关也执行）。"""
+        now_dt = datetime.now()
+        expire_hours = int(self._cfg.get("notification.queue_expire_hours", 72))
+        cutoff = (now_dt - timedelta(hours=expire_hours)).isoformat()
+        expired = self._db.fetchall(
+            "SELECT id FROM notification_queue WHERE status='suppressed' AND created_at < ?",
+            (cutoff,),
+        )
+        for row in expired:
+            self._db.execute("UPDATE notification_queue SET status='expired' WHERE id=?", (row["id"],))
+        if expired:
+            logger.info("notification queue expired: %d (older than %dh)", len(expired), expire_hours)
+        return len(expired)
 
-        失败明细交宿主记录日志（同 enqueue 的口径：日志文案留在基线内的宿主模块）。
-        """
-        now = datetime.now().isoformat()
+    def release(self) -> tuple[int, list[str]]:
+        """补发到期的压制通知（先清过期；系统开关由宿主判断）。"""
+        now_dt = datetime.now()
+        self.expire()
+        limit = int(self._cfg.get("notification.release_max_per_tick", 100))
+        now = now_dt.isoformat()
         rows = self._db.fetchall(
             "SELECT id, event_type, event_data FROM notification_queue "
-            "WHERE status='suppressed' AND scheduled_time <= ?",
-            (now,),
+            "WHERE status='suppressed' AND scheduled_time <= ? LIMIT ?",
+            (now, limit),
         )
         if not rows:
             return 0, []

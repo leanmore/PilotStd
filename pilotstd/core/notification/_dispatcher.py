@@ -187,12 +187,8 @@ _QUIET_BYPASS_LEVELS = frozenset({"warning", "error"})
 
 
 def _quiet(host: Any) -> bool:
-    """兼容无参/带 user_id 的宿主实现。"""
-    fn = host._is_quiet_hours
-    try:
-        return bool(fn(getattr(host, "_user_id", None)))
-    except TypeError:
-        return bool(fn())
+    """按宿主绑定的 user_id 判定静音（接口 B：显式传参）。"""
+    return bool(host._is_quiet_hours(getattr(host, "_user_id", None)))
 
 
 def do_send(

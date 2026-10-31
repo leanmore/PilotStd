@@ -265,9 +265,9 @@ class NotificationManager:
         """
         self._local_sink = sink
 
-    def _is_quiet_hours(self) -> bool:
+    def _is_quiet_hours(self, user_id: int | None = None) -> bool:
         """检查当前是否在静音时段内（实现见 `_suppression_queue`）。"""
-        return self._queue.is_quiet_hours()
+        return self._queue.is_quiet_hours(user_id)
 
     def _enqueue_notification(self, msg: NotificationMessage, target_channels: list[str]) -> None:
         """静音时段内暂存通知到 notification_queue 表（实现见 `_suppression_queue`）。
@@ -278,7 +278,10 @@ class NotificationManager:
         logger.info("通知 %s 在静音时段内，已暂存，计划 %s 补发", msg.event_type, scheduled)
 
     def release_suppressed_notifications(self) -> int:
-        """补发所有已到期的压制通知，返回补发条数（实现见 `_suppression_queue`）。"""
+        """补发到期的压制通知；系统关时只清过期、不补发。"""
+        self._queue.expire()
+        if not self._system_enabled:
+            return 0
         count, failures = self._queue.release()
         for detail in failures:
             logger.error("补发通知失败: %s", detail)

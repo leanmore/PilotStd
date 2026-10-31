@@ -20,7 +20,7 @@ class _Host:
         self.queued: list[str] = []
         self.sent: list[str] = []
 
-    def _is_quiet_hours(self) -> bool:
+    def _is_quiet_hours(self, user_id: int | None = None) -> bool:
         return self._quiet
 
     def _enqueue_notification(self, msg: NotificationMessage, channels: list[str]) -> None:

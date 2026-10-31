@@ -324,7 +324,7 @@ class TestQueueJsonRoundTrip1c(unittest.TestCase):
         from pilotstd.core.notification.manager import NotificationManager
         from tests.fixtures.engine_mock_tree import ConfigStub
 
-        cfg = ConfigStub({"notification.enabled": False, "notification.aggregate_enabled": False})
+        cfg = ConfigStub({"notification.enabled": True, "notification.aggregate_enabled": False})
         db = MagicMock()
         db.fetchone.return_value = None
         db.fetchall.return_value = []
