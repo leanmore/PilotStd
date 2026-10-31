@@ -16,6 +16,7 @@ Mixin）：宿主构造本对象并注入三样能力，本模块不反向依赖
 from __future__ import annotations
 
 import json
+import logging
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, Callable
 
@@ -28,6 +29,8 @@ if TYPE_CHECKING:
 
 # 静音补发的**标量字段白名单**（唯一数据源）：写入侧与重建侧共用同一常量，
 # 根治"两份字面量漂移"——新增字段只需改这里，两侧自动同步。
+logger = logging.getLogger(__name__)
+
 _QUEUE_MESSAGE_FIELDS = (
     "event_type",
     "title",
@@ -67,13 +70,28 @@ class SuppressionQueue:
         self._db = db
         self._send_now = send_now
 
-    def is_quiet_hours(self) -> bool:
-        """检查当前是否在静音时段内（跨天支持 22:00-07:00）。"""
-        if not self._cfg.get("notification.quiet_hours_enabled", False):
-            return False
-        now = datetime.now().time()
+    def is_quiet_hours(self, user_id: int | None = None) -> bool:
+        """检查静音时段；有 user_id 时偏好优先，解析失败回退 config。"""
+        enabled = self._cfg.get("notification.quiet_hours_enabled", False)
         start_str = self._cfg.get("notification.quiet_hours_start", "22:00")
         end_str = self._cfg.get("notification.quiet_hours_end", "07:00")
+        if user_id is not None:
+            try:
+                row = self._db.fetchone(
+                    "SELECT preference_value FROM user_preferences "
+                    "WHERE user_id=? AND preference_key='notification_quiet_hours'",
+                    (user_id,),
+                )
+                if row:
+                    pref = json.loads(row["preference_value"])
+                    enabled = bool(pref.get("enabled", True))
+                    start_str = pref.get("start", start_str)
+                    end_str = pref.get("end", end_str)
+            except Exception:
+                logger.warning("quiet-hours preference invalid, fallback to config: user_id=%s", user_id)
+        if not enabled:
+            return False
+        now = datetime.now().time()
         start = datetime.strptime(start_str, "%H:%M").time()
         end = datetime.strptime(end_str, "%H:%M").time()
         if start <= end:

@@ -184,6 +184,17 @@ def _throttled(host: Any, msg: NotificationMessage) -> bool:
 _QUIET_BYPASS_LEVELS = frozenset({"warning", "error"})
 
 
+
+
+def _quiet(host: Any) -> bool:
+    """兼容无参/带 user_id 的宿主实现。"""
+    fn = host._is_quiet_hours
+    try:
+        return bool(fn(getattr(host, "_user_id", None)))
+    except TypeError:
+        return bool(fn())
+
+
 def do_send(
     host: Any,
     msg: NotificationMessage,
@@ -199,7 +210,7 @@ def do_send(
             t("notification.tiered.throttled").format(event=msg.event_type, topic=msg.target_id or "-")
         )
         return
-    if host._is_quiet_hours() and msg.level not in _QUIET_BYPASS_LEVELS:
+    if _quiet(host) and msg.level not in _QUIET_BYPASS_LEVELS:
         host._enqueue_notification(msg, target_channels)
         return
     if host.aggregator is not None and not bypass_aggregation:

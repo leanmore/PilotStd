@@ -43,9 +43,11 @@ class TestUserEnabledFromDb:
         mgr = self._make(None, cfg_enabled=False)
         assert mgr._enabled is False
 
-    def test_db_enabled_overrides_config_disabled(self):
+    # A-28 决策 C 语义变更：旧“偏好覆盖系统” → 新“系统 AND 用户”。
+    # 系统关时，偏好 true 也不能打开（对应 A-28 in docs/plans/2026-10-30-a28-phase2-plan.md）。
+    def test_system_disabled_wins_over_db_true(self):
         mgr = self._make({"preference_value": "true"}, cfg_enabled=False)
-        assert mgr._enabled is True
+        assert mgr._enabled is False
 
     def test_db_disabled_overrides_config_enabled(self):
         mgr = self._make({"preference_value": False}, cfg_enabled=True)
@@ -53,12 +55,12 @@ class TestUserEnabledFromDb:
 
     def test_db_json_string_value(self):
         mgr = self._make({"preference_value": "true"}, cfg_enabled=False)
-        assert mgr._enabled is True
+        assert mgr._enabled is False
 
     def test_db_non_parseable_string(self):
-        # 非 JSON 字符串按布尔语义解析
+        # 非 JSON 字符串按布尔语义解析；系统关时仍以系统为准
         mgr = self._make({"preference_value": "true"}, cfg_enabled=False)
-        assert mgr._enabled is True
+        assert mgr._enabled is False
         mgr2 = self._make({"preference_value": "0"}, cfg_enabled=True)
         assert mgr2._enabled is False
 

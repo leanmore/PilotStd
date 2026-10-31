@@ -84,11 +84,10 @@ class NotificationManager:
                 _log_trace_id(),
                 exc_info=True,
             )
-        self._enabled = config.get("notification.enabled", False)
-        # 用户级配置优先：user_preferences 表（数据库）覆盖 config.json，保证 Web 端设置实际生效
+        # A-28 C：系统级总开关 AND 用户偏好（系统关时常规事件全停）
+        self._system_enabled = bool(config.get("notification.enabled", False))
         db_enabled = self._read_user_enabled()
-        if db_enabled is not None:
-            self._enabled = db_enabled
+        self._enabled = self._system_enabled and (db_enabled if db_enabled is not None else True)
         self._channels: dict[str, Any] = {}
         # 日志/查询/清理（组合式，见 _manager_ops.NotificationOps）
         self.ops = NotificationOps(self)
@@ -152,7 +151,14 @@ class NotificationManager:
         """通知功能是否启用（数据库 user_preferences 优先，config.json 兜底）。"""
         return cast(bool, self._enabled)
 
-    def _read_user_enabled(self) -> bool | None:
+    def enabled_for(self, user_id: int | None = None) -> bool:
+        """按用户返回有效开关：系统关恒关；否则偏好缺省 True。"""
+        if not self._system_enabled:
+            return False
+        pref = self._read_user_enabled(user_id)
+        return pref if pref is not None else True
+
+    def _read_user_enabled(self, user_id: int | None = None) -> bool | None:
         """从 user_preferences 表读取当前用户的 notification.enabled。
 
         返回 None 表示数据库无有效记录，调用方回退到 config.json 值。
@@ -162,7 +168,7 @@ class NotificationManager:
             row = self._db.fetchone(
                 "SELECT preference_value FROM user_preferences "
                 "WHERE user_id=? AND preference_key='notification.enabled'",
-                (self._user_id,),
+                (user_id if user_id is not None else self._user_id,),
             )
         except Exception:
             return None
