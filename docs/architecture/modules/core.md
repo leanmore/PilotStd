@@ -490,3 +490,6 @@ pilotstd/core/
 
 > **A-21 v71（2026-10-31）**：notification_log/queue 加 user_id（DEFAULT 1）+ 回填 + 用户维度索引；读写路径未改，中间态仍单用户（全 1）。
 > **A-21 第二步（2026-10-31）**：日志读写带 `user_id`；`GET /logs` 普通用户强制自身、`?all=true` 仅 admin、与 `user_id` 互斥 400；failed-items 已按 user 过滤；release 仍内部定时任务。
+
+> **A-21 收口（2026-11-01）**：写路径 user_id 空值显式归 1；get_current_role fail-safe；日志读写按 user 隔离。
+

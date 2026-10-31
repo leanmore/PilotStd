@@ -40,8 +40,8 @@ class TestE2EStdGov(unittest.TestCase):
     @unittest.skipIf(_CI, "CI 环境跳过网络依赖测试")
     @unittest.skip("外部 API 行为不稳定，std_gov 搜索结果可能变更")
     def test_gb_exact_match(self):
-        """GB/T 19001-2016 应返回 exact"""
-        r = self.a.query_with_strategy("GB/T", 19001, 2016)
+        """GB/T 24001-2016 应返回 exact"""
+        r = self.a.query_with_strategy("GB/T", 24001, 2016)
         if r is None:
             self.skipTest("std_gov 无响应")
         self.assertIsNotNone(r)
@@ -193,13 +193,13 @@ class TestE2ECrossAdapter(unittest.TestCase):
                 self.assertIn(r.match_status, ("exact", "newer"))
         self.assertTrue(found, "SH/T 1610-2011 应在至少一个站点可查")
 
-    def test_gbt19001_in_stdgov_and_njbz365(self):
-        """GB/T 19001-2016 在 std_gov 和 njbz365 应都可查，match_status 一致"""
+    def test_gbt24001_in_stdgov_and_njbz365(self):
+        """GB/T 24001-2016 在 std_gov 和 njbz365 应都可查，match_status 一致"""
         std_gov = StdGovAdapter()
         njbz = Njbz365Adapter()
 
-        r_gov = std_gov.query_with_strategy("GB/T", 19001, 2016)
-        r_njbz = njbz.query_with_strategy("GB/T", 19001, 2016)
+        r_gov = std_gov.query_with_strategy("GB/T", 24001, 2016)
+        r_njbz = njbz.query_with_strategy("GB/T", 24001, 2016)
 
         statuses = set()
         for r in (r_gov, r_njbz):
@@ -212,7 +212,7 @@ class TestE2ECrossAdapter(unittest.TestCase):
                 )
 
         # 至少一个站点查到且状态不矛盾
-        self.assertGreater(len(statuses), 0, "GB/T 19001-2016 应在至少一个站点可查")
+        self.assertGreater(len(statuses), 0, "GB/T 24001-2016 应在至少一个站点可查")
 
     def test_ahbz_cross_check_with_stdgov(self):
         """ahbz 和 std_gov 对同一国标的查询结果 status 应不矛盾（A-39：24001 两站均 exact）"""
@@ -238,10 +238,10 @@ class TestE2EAhbz(unittest.TestCase):
         self.a = AhbzAdapter()
 
     def test_gb_exact_match(self):
-        """GB/T 19001-2016 在 ahbz 应返回 exact"""
-        r = self.a.query_with_strategy("GB/T", 19001, 2016)
+        """GB/T 24001-2016 在 ahbz 应返回 exact"""
+        r = self.a.query_with_strategy("GB/T", 24001, 2016)
         if r is None or not r.is_found():
-            self.skipTest("ahbz 对 GB/T 19001 无结果")
+            self.skipTest("ahbz 对 GB/T 24001 无结果")
         self.assertEqual(r.match_status, "exact", f"期望 exact，实际 {r.match_status}")
 
     def test_sh_exact_match(self):
@@ -318,7 +318,7 @@ class TestSiteUnavailable(unittest.TestCase):
         from pilotstd.query.adapters.njbz365 import Njbz365Adapter
 
         adapter = Njbz365Adapter()
-        r = adapter.query_with_strategy("GB/T", 19001, 2016)
+        r = adapter.query_with_strategy("GB/T", 24001, 2016)
         if r is None:
             self.skipTest("njbz365 无响应")
         self.assertIsNotNone(r)
@@ -355,7 +355,7 @@ class TestNetworkDisconnect(unittest.TestCase):
         adapter = HbbaAdapter()
         adapter._search = MagicMock(side_effect=ConnectionError("模拟断网"))
         engine = QueryEngine(adapters=[adapter], cache=cache, use_cache=False)
-        items = [("GB/T", 19001, 2016, "", None, "GB/T 19001-2016")]
+        items = [("GB/T", 24001, 2016, "", None, "GB/T 24001-2016")]
         try:
             results = engine.query_batch_parsed(items)
             self.assertEqual(len(results), 1)

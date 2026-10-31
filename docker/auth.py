@@ -72,7 +72,7 @@ def get_current_user_id(request: Request) -> int:
 
 
 def get_current_role(request: Request) -> str:
-    """从请求 Cookie 解码当前角色（无 token/无效时按普通用户）。"""
+    """从请求 Cookie 解码当前角色（fail-safe：任何解析失败返回 "user"）。"""
     token = request.cookies.get(COOKIE_NAME)
     if not token:
         return "user"

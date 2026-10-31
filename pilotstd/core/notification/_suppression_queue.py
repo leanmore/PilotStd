@@ -134,7 +134,7 @@ class SuppressionQueue:
         self._db.execute(
             "INSERT INTO notification_queue (event_type, event_data, status, scheduled_time, created_at, user_id) "
             "VALUES (?, ?, 'suppressed', ?, ?, ?)",
-            (msg.event_type, event_data, scheduled.isoformat(), now.isoformat(), user_id),
+            (msg.event_type, event_data, scheduled.isoformat(), now.isoformat(), user_id or 1),
         )
         return scheduled.isoformat()
 

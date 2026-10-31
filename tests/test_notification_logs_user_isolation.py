@@ -55,3 +55,21 @@ def test_admin_without_user_id_sees_self(monkeypatch):
 
 def test_admin_all_means_no_user_filter(monkeypatch):
     assert _call(monkeypatch, role="admin", all=True, current=1) is None
+
+
+def test_get_current_role_without_token_is_user():
+    from docker.auth import get_current_role
+
+    class Req:
+        cookies: dict = {}
+
+    assert get_current_role(Req()) == "user"
+
+
+def test_get_current_role_invalid_token_is_user():
+    from docker.auth import COOKIE_NAME, get_current_role
+
+    class Req:
+        cookies = {COOKIE_NAME: "not-a-jwt"}
+
+    assert get_current_role(Req()) == "user"
