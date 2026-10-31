@@ -124,3 +124,7 @@ A: `--required-only` 参数仅检查 `required` 级别能力。CI 也仅对 `req
 
 ## 2026-10-31 A-28 阶段二 B
 - /test-event 系统关/用户关分别拦截；迁移 --rollback 导出全部 notification% 偏好后删迁移键与标记。
+
+## 2026-10-31 A-6 统计脚本
+- scripts/notification_429_baseline.py 按渠道统计 total/failed/429；本地库仅参考。
+
