@@ -77,8 +77,8 @@ class NotificationOps:
                 "message_id, correlation_id, delivery_status, ack_status, "
                 "task_id, notify_event, content_type, task_context, "
                 "actions, callback_data, attachments, channel_message_ids, "
-                "task_kind, failed_items) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "task_kind, failed_items, user_id) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     event_type,
                     channel,
@@ -109,6 +109,7 @@ class NotificationOps:
                     msg.task_kind,
                     # 通知聚合 B1-2：失败明细（list[dict[str,str]]）走 JSON 文本列（先例见 task_context 等）
                     _json_codec.dumps(msg.failed_items),
+                    self._mgr._user_id,
                 ),
             )
             return int(getattr(cur, "lastrowid", 0) or 0) or None
@@ -203,8 +204,9 @@ class NotificationOps:
         start_date: str | None = None,
         end_date: str | None = None,
         is_read: bool | None = None,
+        user_id: int | None = None,
     ) -> dict[str, Any]:
-        """获取通知日志列表（分页 + 筛选），供 API 层调用。"""
+        """获取通知日志列表（分页 + 筛选）；user_id 非空时只查该用户。"""
         db = self._db
         conditions: list[str] = []
         params: list[Any] = []
@@ -223,6 +225,9 @@ class NotificationOps:
         if end_date:
             conditions.append("sent_at <= ?")
             params.append(end_date if "T" in end_date else f"{end_date}T23:59:59")
+        if user_id is not None:
+            conditions.append("user_id = ?")
+            params.append(user_id)
         if is_read is not None:
             conditions.append("is_read = ?")
             params.append(1 if is_read else 0)

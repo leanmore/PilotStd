@@ -71,6 +71,18 @@ def get_current_user_id(request: Request) -> int:
     return user_id
 
 
+def get_current_role(request: Request) -> str:
+    """从请求 Cookie 解码当前角色（无 token/无效时按普通用户）。"""
+    token = request.cookies.get(COOKIE_NAME)
+    if not token:
+        return "user"
+    try:
+        payload = jwt.decode(token, SECRET, algorithms=["HS256"])
+    except JWTError:
+        return "user"
+    return str(payload.get("role", "user"))
+
+
 def require_role(role: str):
     """装饰器：要求当前用户具有指定角色。
 

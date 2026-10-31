@@ -274,7 +274,7 @@ class NotificationManager:
 
         日志文案留在本模块：新模块受 G-047"零中文硬编码"约束，故它只返回计划补发时刻。
         """
-        scheduled = self._queue.enqueue(msg, target_channels)
+        scheduled = self._queue.enqueue(msg, target_channels, self._user_id)
         logger.info("通知 %s 在静音时段内，已暂存，计划 %s 补发", msg.event_type, scheduled)
 
     def release_suppressed_notifications(self) -> int:

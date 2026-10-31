@@ -215,19 +215,19 @@ class TestE2ECrossAdapter(unittest.TestCase):
         self.assertGreater(len(statuses), 0, "GB/T 19001-2016 应在至少一个站点可查")
 
     def test_ahbz_cross_check_with_stdgov(self):
-        """ahbz 和 std_gov 对同一国标的查询结果 status 应不矛盾"""
+        """ahbz 和 std_gov 对同一国标的查询结果 status 应不矛盾（A-39：24001 两站均 exact）"""
         ahbz = AhbzAdapter()
         std_gov = StdGovAdapter()
 
-        r_ahbz = ahbz.query_with_strategy("GB/T", 19001, 2016)
-        r_gov = std_gov.query_with_strategy("GB/T", 19001, 2016)
+        r_ahbz = ahbz.query_with_strategy("GB/T", 24001, 2016)
+        r_gov = std_gov.query_with_strategy("GB/T", 24001, 2016)
 
         found = False
         for r in (r_ahbz, r_gov):
             if r and r.is_found():
                 found = True
                 self.assertIn(r.match_status, ("exact", "newer"))
-        self.assertTrue(found, "GB/T 19001-2016 应在新站点 ahbz 或 std_gov 查到")
+        self.assertTrue(found, "GB/T 24001-2016 应在新站点 ahbz 或 std_gov 查到")
 
 
 @unittest.skipIf(_CI, "CI 环境跳过网络依赖测试")

@@ -7,7 +7,7 @@ GET `/api/notification/unread-count`。
 
 import logging
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
@@ -15,7 +15,7 @@ from pilotstd.core.notification._json_codec import loads_dict as _loads_dict
 from pilotstd.core.notification._json_codec import loads_list as _loads_list
 from pilotstd.i18n import t
 
-from ..auth import require_role
+from ..auth import get_current_role, require_role
 from .notification_deps import _get_notification_mgr, _get_user_id
 
 logger = logging.getLogger(__name__)
@@ -48,9 +48,24 @@ def get_logs(
     start_date: str | None = Query(None),
     end_date: str | None = Query(None),
     is_read: bool | None = Query(None),
+    all: bool = Query(False),
+    user_id: int | None = Query(None),
     nmgr=Depends(_get_notification_mgr),
+    current_user: int = Depends(_get_user_id),
 ):
-    """查询通知发送日志（分页+筛选）。"""
+    """查询通知发送日志（分页+筛选）；all=true 仅管理员可用。"""
+    if all and user_id is not None:
+        raise HTTPException(400, "all and user_id are mutually exclusive")
+    role = get_current_role(request)
+    if all:
+        if role != "admin":
+            raise HTTPException(403, "admin only")
+        filter_user = None
+    elif user_id is None or role != "admin":
+        # 普通用户（含 admin 未传 user_id）强制只看自己
+        filter_user = current_user
+    else:
+        filter_user = user_id
     result = nmgr.ops.get_logs(
         page=page,
         size=page_size,
@@ -59,6 +74,7 @@ def get_logs(
         start_date=start_date,
         end_date=end_date,
         is_read=is_read,
+        user_id=filter_user,
     )
     return {
         "total": result["total"],

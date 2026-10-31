@@ -99,7 +99,9 @@ class SuppressionQueue:
         else:
             return now >= start or now <= end
 
-    def enqueue(self, msg: NotificationMessage, target_channels: list[str]) -> str:
+    def enqueue(
+        self, msg: NotificationMessage, target_channels: list[str], user_id: int = 1
+    ) -> str:
         """静音时段内暂存通知到 notification_queue 表；返回计划补发时刻（ISO 文本）。
 
         **日志文案留在宿主**：G-047 对"不在存量基线中的新文件"要求零中文硬编码，
@@ -130,9 +132,9 @@ class SuppressionQueue:
             ensure_ascii=False,
         )
         self._db.execute(
-            "INSERT INTO notification_queue (event_type, event_data, status, scheduled_time, created_at) "
-            "VALUES (?, ?, 'suppressed', ?, ?)",
-            (msg.event_type, event_data, scheduled.isoformat(), now.isoformat()),
+            "INSERT INTO notification_queue (event_type, event_data, status, scheduled_time, created_at, user_id) "
+            "VALUES (?, ?, 'suppressed', ?, ?, ?)",
+            (msg.event_type, event_data, scheduled.isoformat(), now.isoformat(), user_id),
         )
         return scheduled.isoformat()
 

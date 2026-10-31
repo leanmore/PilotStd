@@ -489,4 +489,4 @@ pilotstd/core/
 > **rate_limited_by（2026-10-31）**：限流命中日志从 debug 提升到 info（code/keyword），便于事后排查误判。
 
 > **A-21 v71（2026-10-31）**：notification_log/queue 加 user_id（DEFAULT 1）+ 回填 + 用户维度索引；读写路径未改，中间态仍单用户（全 1）。
-
+> **A-21 第二步（2026-10-31）**：日志读写带 `user_id`；`GET /logs` 普通用户强制自身、`?all=true` 仅 admin、与 `user_id` 互斥 400；failed-items 已按 user 过滤；release 仍内部定时任务。
