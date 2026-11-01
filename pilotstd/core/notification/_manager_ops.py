@@ -109,8 +109,8 @@ class NotificationOps:
                     msg.task_kind,
                     # 通知聚合 B1-2：失败明细（list[dict[str,str]]）走 JSON 文本列（先例见 task_context 等）
                     _json_codec.dumps(msg.failed_items),
-                    # 系统任务归 user 1；多用户下需 A-21 第三步处理
-                    self._mgr._user_id or 1,
+                    # A-21 第三步：归属来自消息上下文；0=系统任务
+                    msg.user_id,
                 ),
             )
             return int(getattr(cur, "lastrowid", 0) or 0) or None

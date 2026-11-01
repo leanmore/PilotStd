@@ -25,6 +25,7 @@ from pilotstd.i18n import t
 
 from ._links import attach_web_actions
 from .channel import NotificationMessage
+from .context import NotificationContext
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +39,7 @@ def _record_when_disabled() -> bool:
     return raw.strip().lower() not in ("v0", "0", "false", "off")
 
 
-def _log_skipped(host: Any, event_type: str, event_data: dict) -> None:
+def _log_skipped(host: Any, event_type: str, event_data: dict, user_id: int = 0) -> None:
     """关闭投递时写"仅记录"行：每订阅渠道一行。
 
     无订阅渠道时不写（避免为"没有收件人"的事件凭空造行——那不是可观测性而是噪声）。
@@ -56,6 +57,7 @@ def _log_skipped(host: Any, event_type: str, event_data: dict) -> None:
     if not channels:
         return
     msg = host._build_message(event_type, event_data)
+    msg.user_id = user_id
     reason = t("notification.manager.skipped_disabled")
     sent_at = datetime.now().isoformat()
     for ch_name in channels:
@@ -68,6 +70,7 @@ def send_event(
     event_data: dict[str, Any],
     bypass_aggregation: bool = False,
     target_channels: list[str] | None = None,
+    context: Any = None,
 ) -> None:
     """根据策略表分发通知到各渠道（经过聚合器缓冲）。
 
@@ -78,6 +81,8 @@ def send_event(
     使用：故障渠道很可能就是问题本身，必须能定向发给**旁路**渠道（策略表无法表达
     "除某渠道外的全部渠道"）。
     """
+    ctx = context or NotificationContext(scope="system")
+    log_user_id = ctx.log_user_id
     # W2（共享事件按端分流）：桌面端把事件落到**本地信号**（托盘气泡）。
     # 必须在 `_enabled` 早退**之前**——渠道开关（默认关闭）与"本端是否可见"是两件事；
     # 若先早退，这些事件在 Windows 端就"两头都不落"（Docker 端的渠道/Web 由那边的 manager 负责）。
@@ -89,7 +94,7 @@ def send_event(
         # 只写库、**不调用渠道 send()**，且不参与投递健康统计（status="skipped"）。
         # 回滚：NOTIFY_RECORD_WHEN_DISABLED=v0（默认开）。
         if _record_when_disabled():
-            _log_skipped(host, event_type, event_data)
+            _log_skipped(host, event_type, event_data, log_user_id)
         logger.debug(t("notification.manager.skip_disabled").format(event=event_type))
         return
     if target_channels is None:
@@ -102,6 +107,7 @@ def send_event(
         return
 
     msg = host._build_message(event_type, event_data)
+    msg.user_id = log_user_id
     # 批次键透传（通知聚合 B1 · E2，2026-10-05）：构建器**不感知批次**（它是"单条消息长什么样"的出处），
     # 批次标识由**调用方在导入/批量入口生成**后经 payload 传入，这里只做搬运——
     # 落在 `NotificationMessage.correlation_id` 上，供聚合器的①批次键（`correlation_id × notify_event`）

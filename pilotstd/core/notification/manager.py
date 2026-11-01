@@ -18,6 +18,7 @@ from ._message_builders import _build_fallback_message
 from ._policy import NotificationPolicyHelper
 from .channel import NotificationMessage
 from .channel_spec import CHANNEL_SPECS, channel_class
+from .context import NotificationContext
 from .delivery_health import NotificationDeliveryHealth
 from .event_spec import EVENT_SPECS
 
@@ -229,9 +230,11 @@ class NotificationManager:
         event_data: dict[str, Any],
         bypass_aggregation: bool = False,
         target_channels: list[str] | None = None,
+        context: NotificationContext | None = None,
     ) -> None:
-        """根据策略表分发通知到各渠道（编排实现在 `_dispatcher.send_event`；签名即契约）。"""
-        _dispatcher.send_event(self, event_type, event_data, bypass_aggregation, target_channels)
+        """根据策略表分发通知；context 决定归属（默认 system=0）。"""
+        ctx = context or NotificationContext(scope="system")
+        _dispatcher.send_event(self, event_type, event_data, bypass_aggregation, target_channels, ctx)
 
     def _validate_message(self, msg: NotificationMessage, event_type: str) -> None:
         """构建器产出契约校验（实现在 `_dispatcher.validate_message`）。"""
@@ -274,7 +277,7 @@ class NotificationManager:
 
         日志文案留在本模块：新模块受 G-047"零中文硬编码"约束，故它只返回计划补发时刻。
         """
-        scheduled = self._queue.enqueue(msg, target_channels, self._user_id)
+        scheduled = self._queue.enqueue(msg, target_channels, msg.user_id)
         logger.info("通知 %s 在静音时段内，已暂存，计划 %s 补发", msg.event_type, scheduled)
 
     def release_suppressed_notifications(self) -> int:
