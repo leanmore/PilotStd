@@ -41,8 +41,14 @@ class _RecordingNotifier:
     def __init__(self) -> None:
         self.calls: list[tuple[str, dict[str, Any]]] = []
 
-    def send_event(self, event_type: str, payload: dict[str, Any] | None = None) -> None:
-        """记录一次事件（与真实签名一致：`(event_type, payload)`）。"""
+    def send_event(
+        self,
+        event_type: str,
+        payload: dict[str, Any] | None = None,
+        *,
+        context: Any = None,
+    ) -> None:
+        """记录一次事件（与真实签名一致：`(event_type, payload, *, context)`）。"""
         self.calls.append((event_type, payload or {}))
 
     def events(self) -> list[str]:

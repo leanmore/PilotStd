@@ -187,3 +187,6 @@ StandardManager (BaseFacade)
 
 > **A-21 3b-2（2026-11-01）**：ScanHandler.scan_directory/stream 支持 NotificationContext；API /api/scan 以 admin 身份传入，定时 scan_and_index 固定 system。
 
+
+> **A-21 3b-2 query（2026-11-01）**：QueryHandler.query/query_stream 支持 NotificationContext；UI 查询 worker 传 desktop user=1（单用户注释）。
+

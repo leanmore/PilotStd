@@ -21,6 +21,7 @@ from pilotstd.core import status as status_dict
 from pilotstd.core.status import Status
 
 from ...core.notification.batch import ensure_batch_key
+from ...core.notification.context import NotificationContext
 from ...core.std_utils import GB_CODES, classify_std_code
 from ...query.models import BatchQueryStats, QueryResult
 
@@ -203,9 +204,13 @@ class QuerySubsystem:
         )
 
     def _finalize_query(
-        self, items: list[Any], results: list[QueryResult]
+        self,
+        items: list[Any],
+        results: list[QueryResult],
+        context: NotificationContext | None = None,
     ) -> tuple[list[QueryResult], BatchQueryStats]:
         """统计 + 分类路由 + 待确认持久化 + 汇总报告。"""
+        ctx = context or NotificationContext(scope="system")
         # 通知聚合 B1 · E1：**一次批量查询 = 一个批次**。批次键让本次查询汇总通知走①批次键
         # （`correlation_id × notify_event`）收敛成一条；为空则退化 ②日常键（按实体分组）。
         # 外层若有导入上下文（batch_scope）则共用其键 ⇒ 与下载/规范化/存档合成一条。
@@ -229,7 +234,7 @@ class QuerySubsystem:
                     payload = {"standard_number": std_no, "error": err}
                     if std_name:
                         payload["standard_name"] = std_name
-                    self._core.notification_mgr.send_event("query_failed", payload)
+                    self._core.notification_mgr.send_event("query_failed", payload, context=ctx)
         except Exception as e:
             logger.warning("查询失败通知发送失败: %s", e)
 
@@ -245,6 +250,7 @@ class QuerySubsystem:
                     self._core.notification_mgr.send_event(
                         "query_empty",
                         {"total": stats.total},
+                        context=ctx,
                     )
                 else:
                     self._core.notification_mgr.send_event(
@@ -258,6 +264,7 @@ class QuerySubsystem:
                             "failed_items": [],
                             "correlation_id": query_batch_key,
                         },
+                        context=ctx,
                     )
         except Exception as e:
             logger.warning("查询汇总通知发送失败: %s", e)
@@ -271,6 +278,7 @@ class QuerySubsystem:
         result_callback: Callable[[int, Any], None] | None = None,
         site: str | None = None,
         _adapter: Any = None,
+        context: NotificationContext | None = None,
     ) -> tuple[list[QueryResult], BatchQueryStats]:
         """批量查询标准的有效性状态。"""
         items = parsed_list or self._core.parsed_results
@@ -295,7 +303,7 @@ class QuerySubsystem:
         else:
             results = self._query_via_cache(items, result_callback, progress_callback=engine_progress)
 
-        return self._finalize_query(items, results)
+        return self._finalize_query(items, results, context)
 
     def query_stream(
         self,
@@ -304,6 +312,7 @@ class QuerySubsystem:
         on_result: Callable[[int, Any], None] | None = None,
         site: str | None = None,
         force_refresh: bool = False,
+        context: NotificationContext | None = None,
     ) -> tuple[list[QueryResult], BatchQueryStats]:
         """流式查询（线程安全），包装 query() 提供流式回调接口。"""
         return self.query(
@@ -312,6 +321,7 @@ class QuerySubsystem:
             progress_callback=on_progress,
             result_callback=on_result,
             site=site,
+            context=context,
         )
 
     # ══════════════════════════════════════════════════════════ 分隔

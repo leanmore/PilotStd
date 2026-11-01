@@ -350,6 +350,7 @@ class TestQueryHandler(unittest.TestCase):
                 progress_callback=mock_query.call_args[1]["progress_callback"],
                 result_callback=mock_query.call_args[1]["result_callback"],
                 site=None,
+                context=None,
             )
 
     # ── _report_category_breakdown ──

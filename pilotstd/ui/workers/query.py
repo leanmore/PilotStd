@@ -8,6 +8,7 @@ from typing import Any
 
 from PyQt6.QtCore import QThread, pyqtSignal
 
+from ...core.notification.context import NotificationContext
 from ._common import (
     _WORKER_BATCH_SIZE,
     _WORKER_FLUSH_INTERVAL,
@@ -98,6 +99,8 @@ class QueryWorker(QThread):
                 on_result=on_result,
                 site=self._site,
                 force_refresh=self._force_refresh,
+                # 桌面单用户模式，user_id 固定 1；多用户桌面需从登录态取
+                context=NotificationContext(scope="user", user_id=1),
             )
         except WorkerAborted:
             logger.info("[QueryWorker] 收到停止请求，已在中止点退出")
