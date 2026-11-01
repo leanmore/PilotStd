@@ -26,7 +26,10 @@ def _make_mock_mgr(tmpdir):
     """创建 mock manager，模拟 archive_standards 移动文件。"""
     mgr = mock.MagicMock()
 
-    def fake_archive(parsed_list, progress_callback=None, on_result=None, overwrite=False):
+    def fake_archive(
+        parsed_list, progress_callback=None, on_result=None, overwrite=False, context=None
+    ):
+        mgr.last_context = context
         for i, p in enumerate(parsed_list):
             # 模拟文件移动
             src = getattr(p, "source_path", "")

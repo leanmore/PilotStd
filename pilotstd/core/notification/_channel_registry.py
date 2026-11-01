@@ -8,6 +8,8 @@ from __future__ import annotations
 import logging
 from typing import Any, cast
 
+from pilotstd import ADMIN_ROLE
+
 from .channel_spec import CHANNEL_SPECS
 
 logger = logging.getLogger(__name__)
@@ -73,7 +75,9 @@ def admin_user_ids(host: Any) -> list[int]:
     """所有管理员 id；users 表不存在时回退默认用户（兼容旧库/测试）。"""
     # 真实空管理员列表 ⇒ 返回空（system 不发送）；仅旧库/测试缺表才回退
     try:
-        rows = host._db.fetchall("SELECT id FROM users WHERE role='admin' AND id > 0 ORDER BY id")
+        rows = host._db.fetchall(
+            "SELECT id FROM users WHERE role=? AND id > 0 ORDER BY id", (ADMIN_ROLE,)
+        )
     except Exception:
         logger.warning("users table unavailable; fallback to default user for system delivery")
         return [host._user_id]

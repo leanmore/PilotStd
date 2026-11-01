@@ -496,3 +496,6 @@ pilotstd/core/
 
 > **A-21 第三步 3a（2026-11-01）**：新增 NotificationContext（user/admin/system）；send_event 接收 context，默认 system 落库 0；消息携带 user_id；渠道凭据路径未改（仍 manager 构造时初始化）。
 > **A-21 3b-4（2026-11-01）**：渠道实例按 user_id 缓存（`_channel_registry`）；system 事件投递到所有 admin，无 admin 不发；`msg.delivery_user_id` 决定投递 owner，`msg.user_id` 只记归属（system=0）。
+
+> **A-21 3b-4 修正（2026-11-01）**：admin 角色查询改用 ADMIN_ROLE 参数，避免 G-028 硬编码；渠道缓存逻辑不变。
+
