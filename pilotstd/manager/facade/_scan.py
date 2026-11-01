@@ -11,6 +11,7 @@ import os
 from typing import TYPE_CHECKING, Any, Optional
 
 from ...core.config import get_library_root
+from ...core.notification.context import NotificationContext
 from ...models import ParsedStdInfo
 
 if TYPE_CHECKING:
@@ -28,8 +29,9 @@ class ScanHandler:
         self._core = core
 
     # 扫描_—扫描目录，识别文件名中的标准号
-    def scan_directory(self, root_path: str) -> list[ParsedStdInfo]:
+    def scan_directory(self, root_path: str, context: NotificationContext | None = None) -> list[ParsedStdInfo]:
         """扫描目录，识别文件名中的标准号。"""
+        ctx = context or NotificationContext(scope="system")
         result = self._core.scanner.scan([root_path])
         self._core.last_skipped_dirs = result.skipped_dirs
         self._core.scanner._seen_hashes.clear()
@@ -80,9 +82,10 @@ class ScanHandler:
                             "failed": max(failed_count, 0),
                             "failed_files": failed_files[:10],
                         },
+                        context=ctx,
                     )
                 elif failed_count == 0:
-                    self._core.notification_mgr.send_event("scan_empty", {})
+                    self._core.notification_mgr.send_event("scan_empty", {}, context=ctx)
         except Exception as e:
             logger.warning("扫描完成通知发送失败: %s", e)
 
@@ -101,8 +104,10 @@ class ScanHandler:
         root_path: str,
         on_progress: Any = None,
         on_batch: Any = None,
+        context: NotificationContext | None = None,
     ) -> list[ParsedStdInfo]:
         """流式扫描目录（线程安全）。"""
+        ctx = context or NotificationContext(scope="system")
         result = self._core.scanner.scan([root_path])
         self._core.last_skipped_dirs = result.skipped_dirs
 
@@ -164,9 +169,10 @@ class ScanHandler:
                             "failed": max(failed_count, 0),
                             "failed_files": failed_files[:10],
                         },
+                        context=ctx,
                     )
                 elif failed_count == 0:
-                    self._core.notification_mgr.send_event("scan_empty", {})
+                    self._core.notification_mgr.send_event("scan_empty", {}, context=ctx)
         except Exception as e:
             logger.warning("扫描完成通知发送失败: %s", e)
 
@@ -197,9 +203,12 @@ class ScanHandler:
                                 "failed": result.get("failed", 0),
                                 "failed_files": [],
                             },
+                            context=NotificationContext(scope="system"),
                         )
                     elif result.get("indexed", 0) == 0 and result.get("failed", 0) == 0:
-                        self._core.notification_mgr.send_event("scan_empty", {})
+                        self._core.notification_mgr.send_event(
+                            "scan_empty", {}, context=NotificationContext(scope="system")
+                        )
             except Exception as e:
                 logger.warning("定时扫描通知发送失败: %s", e)
             return result
@@ -210,6 +219,7 @@ class ScanHandler:
                     self._core.notification_mgr.send_event(
                         "auto_scan_failed",
                         {"path": root_path or "默认", "error": str(e)[:200]},
+                        context=NotificationContext(scope="system"),
                     )
                 except Exception as e2:
                     logger.warning("扫描失败通知发送失败: %s", e2)
@@ -241,9 +251,10 @@ class ScanHandler:
         root_path: str,
         on_progress: Any = None,
         on_batch: Any = None,
+        context: NotificationContext | None = None,
     ) -> list[ParsedStdInfo]:
         """流式扫描目录（别名，保持命名一致性）。
 
         委托 scan_directory_stream，不重写逻辑。
         """
-        return self.scan_directory_stream(root_path, on_progress, on_batch)
+        return self.scan_directory_stream(root_path, on_progress, on_batch, context)

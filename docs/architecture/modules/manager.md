@@ -184,3 +184,6 @@ StandardManager (BaseFacade)
 **通知标准名（2026-10-24）**：替代关系补查、查询失败、废止移动等事件同时携带 standard_name，通知构建器统一拼接标准号与名称。
 
 **通知标准名（2026-10-24）**：分类器/查询失败/归档移动事件补齐 standard_name，避免只发标准号。
+
+> **A-21 3b-2（2026-11-01）**：ScanHandler.scan_directory/stream 支持 NotificationContext；API /api/scan 以 admin 身份传入，定时 scan_and_index 固定 system。
+

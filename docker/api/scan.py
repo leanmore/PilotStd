@@ -7,9 +7,10 @@ from fastapi import Body, Depends, Request
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
 
+from pilotstd.core.notification.context import NotificationContext
 from pilotstd.core.path_guard import get_allowed_roots, validate_path_in_root
 
-from ..auth import require_role
+from ..auth import get_current_user_id, require_role
 from ..manager import get_manager_dep
 from .models import ScanIndexResponse
 
@@ -35,6 +36,7 @@ def scan_directory(
     path: str = "/inbox",
     run_id: str | None = Body(None, embed=True),
     mgr=Depends(get_manager_dep),
+    user_id: int = Depends(get_current_user_id),
 ):
     """扫描目录中的标准文件，返回文件列表及统计。走 facade 去重+解析。"""
     try:
@@ -47,7 +49,9 @@ def scan_directory(
     mgr.pipeline_store.create(run_id)
 
     try:
-        parsed_list = mgr.scan_directory(safe_path)
+        parsed_list = mgr.scan_directory(
+            safe_path, context=NotificationContext(scope="admin", user_id=user_id)
+        )
     except Exception as exc:
         mgr.pipeline_store.update_step(
             run_id,

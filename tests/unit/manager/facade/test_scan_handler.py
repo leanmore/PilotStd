@@ -1,6 +1,6 @@
 """_scan.py (ScanHandler) 覆盖率补齐 — 目标: 0% → 95%+"""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 
@@ -79,6 +79,7 @@ class TestScanDirectory:
         mock_core.notification_mgr.send_event.assert_any_call(
             "scan_complete",
             {"total": 3, "success": 2, "failed": 0, "failed_files": []},
+            context=ANY,
         )
 
     def test_empty_directory_sends_scan_empty(self, handler, mock_core):
@@ -87,7 +88,7 @@ class TestScanDirectory:
 
         result = handler.scan_directory("/empty")
         assert result == []
-        mock_core.notification_mgr.send_event.assert_called_with("scan_empty", {})
+        mock_core.notification_mgr.send_event.assert_called_with("scan_empty", {}, context=ANY)
 
     def test_notification_manager_none_no_crash(self, handler, mock_core):
         """notification_mgr=None → 不发送通知，不崩溃。"""
@@ -217,7 +218,7 @@ class TestScanDirectoryStream:
 
         result = handler.scan_directory_stream("/root")
         assert result == []
-        mock_core.notification_mgr.send_event.assert_called_with("scan_empty", {})
+        mock_core.notification_mgr.send_event.assert_called_with("scan_empty", {}, context=ANY)
 
     def test_stream_notification_exception_caught(self, handler, mock_core):
         """流式通知抛异常 → 捕获继续。"""
@@ -268,6 +269,7 @@ class TestScanAndIndex:
         mock_core.notification_mgr.send_event.assert_any_call(
             "scan_complete",
             {"total": 3, "success": 3, "failed": 0, "failed_files": []},
+            context=ANY,
         )
 
     def test_empty_result_sends_scan_empty(self, handler, mock_core):
@@ -279,7 +281,7 @@ class TestScanAndIndex:
         }
 
         handler.scan_and_index()
-        mock_core.notification_mgr.send_event.assert_called_with("scan_empty", {})
+        mock_core.notification_mgr.send_event.assert_called_with("scan_empty", {}, context=ANY)
 
     def test_scheduled_svc_exception_sends_auto_scan_failed(self, handler, mock_core, tmp_path):
         """scheduled_svc 异常 → auto_scan_failed 通知 + 返回兜底结果。"""
@@ -291,6 +293,7 @@ class TestScanAndIndex:
         mock_core.notification_mgr.send_event.assert_any_call(
             "auto_scan_failed",
             {"path": scan_path, "error": "DB error"},
+            context=ANY,
         )
 
     def test_scheduled_svc_exception_no_notification_mgr(self, handler, mock_core):
