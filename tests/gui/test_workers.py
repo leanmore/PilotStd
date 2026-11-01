@@ -45,7 +45,7 @@ def test_query_worker_stops_on_stop(qtbot):
     mgr = MagicMock()
     query_started = threading.Event()
 
-    def delayed_query(parsed_list, progress_callback=None):
+    def delayed_query(parsed_list, progress_callback=None, **kwargs):
         # 通知主线程查询已开始，然后短暂等待让 stop() 有机会执行
         query_started.set()
         time.sleep(0.2)

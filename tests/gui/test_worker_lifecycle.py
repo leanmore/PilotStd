@@ -378,7 +378,7 @@ class _SlowStreamMgr:
                 on_result(i, None)
         return ([], None) if on_result is not None else []
 
-    def scan_stream(self, root_path: str, on_progress: Any = None, on_batch: Any = None) -> list[Any]:
+    def scan_stream(self, root_path: str, on_progress: Any = None, on_batch: Any = None, **kw: Any) -> list[Any]:
         return self._loop(on_progress)
 
     def query_stream(self, parsed_list: Any, on_progress: Any = None, on_result: Any = None, **kw: Any) -> Any:
@@ -437,7 +437,7 @@ class _ExceptionSwallowingMgr(_SlowStreamMgr):
     中断会被吞掉并继续跑完整条流 → 中断失效。故本类专门守卫"控制流异常不被兜底捕获"。
     """
 
-    def scan_stream(self, root_path: str, on_progress: Any = None, on_batch: Any = None) -> list[Any]:
+    def scan_stream(self, root_path: str, on_progress: Any = None, on_batch: Any = None, **kw: Any) -> list[Any]:
         self.started.set()
         for i in range(self.total):
             time.sleep(_STREAM_ITEM_S)

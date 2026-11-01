@@ -196,3 +196,6 @@ StandardManager (BaseFacade)
 
 > **A-21 3b-4（2026-11-01）**：OrganizeHandler.archive_standards 接收 NotificationContext；UI 归档 worker 固定 user=1；渠道缓存按 user_id，system 投递所有 admin。
 
+
+> **A-21 3b-2 修正（2026-11-01）**：QueryHandler.query/query_stream 透传 context（此前 UI 传 context 被 facade 丢弃，GUI 查询测试暴露）。
+

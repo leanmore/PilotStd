@@ -7,6 +7,7 @@ import logging
 from typing import TYPE_CHECKING, Any, cast
 
 from pilotstd.core import status as status_dict
+from pilotstd.core.notification.context import NotificationContext
 
 from ...core.std_utils import GB_CODES
 from ...query.models import BatchQueryStats, QueryResult
@@ -44,9 +45,12 @@ class QueryHandler:
         result_callback=None,
         site: str | None = None,
         _adapter: Any = None,
+        context: NotificationContext | None = None,
     ) -> tuple[list[QueryResult], BatchQueryStats]:
         """批量查询标准的有效性状态。委托 QuerySubsystem。"""
-        return self._qs.query(parsed_list, force_refresh, progress_callback, result_callback, site, _adapter)
+        return self._qs.query(
+            parsed_list, force_refresh, progress_callback, result_callback, site, _adapter, context
+        )
 
     def query_stream(
         self,
@@ -55,9 +59,10 @@ class QueryHandler:
         on_result=None,
         site: str | None = None,
         force_refresh: bool = False,
+        context: NotificationContext | None = None,
     ) -> tuple[list[QueryResult], BatchQueryStats]:
         """流式查询入口，包装 query() 提供流式回调接口。"""
-        return self._qs.query_stream(parsed_list, on_progress, on_result, site, force_refresh)
+        return self._qs.query_stream(parsed_list, on_progress, on_result, site, force_refresh, context)
 
     def record_pending(self, pending_items: list[Any]) -> None:
         self._qs.record_pending(pending_items)
