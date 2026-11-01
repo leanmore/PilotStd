@@ -24,3 +24,20 @@ def test_system_logs_zero():
 def test_system_rejects_user_id():
     with pytest.raises(ValueError):
         NotificationContext(scope="system", user_id=1)
+
+
+def test_send_event_defaults_to_system_zero(monkeypatch):
+    """旧调用不传 context：默认 system，落库 0（3a 行为）。"""
+    from pilotstd.core.notification import _dispatcher
+    from pilotstd.core.notification.manager import NotificationManager
+
+    captured = {}
+    monkeypatch.setattr(
+        _dispatcher,
+        "send_event",
+        lambda host, event, data, bypass, targets, ctx: captured.setdefault("ctx", ctx),
+    )
+    mgr = object.__new__(NotificationManager)
+    NotificationManager.send_event(mgr, "scan_complete", {})
+    assert captured["ctx"].scope == "system"
+    assert captured["ctx"].log_user_id == 0
