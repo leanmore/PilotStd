@@ -20,7 +20,7 @@
 | # | 项 | 状态 | 证据 |
 |---|---|---|---|
 | 0 | 部署前备份 DB | ✅ | `pilotstd_manual_20261101_215239.bak`（264.45 MB，/api/backup/list） |
-| 1 | 部署 `0788b09c`（/api/system/update 或 compose pull） | ⬜ 阻塞 | 等待包含该提交的 GHCR 镜像；CI 尚未产出（repo-compliance/ GUI 历史失败） |
+| 1 | 部署 `0788b09c`（/api/system/update 或 compose pull） | ❌ 阻塞 | 镜像已产出（GHCR latest created `2026-11-01T14:58:47Z`）；`POST /api/system/update` 返回 **503 docker.sock 未挂载**；本机无 docker CLI、无 SSH 私钥，无法在宿主机执行 compose |
 | 2 | `/api/health` / `/api/system/version` 版本变化 | ⬜ | |
 | 3 | **v71 首次真实迁移**（schema 70→71、user_id 回填、索引耗时、可回滚） | ⬜ | |
 | 4 | A-30 线上验证（notify_event/task_context/诊断 admin） | ⬜ | |
