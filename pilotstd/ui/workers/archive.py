@@ -13,6 +13,7 @@ from PyQt6.QtCore import QThread, pyqtSignal
 from pilotstd.core.status import Status
 
 from ...core.file_utils import make_standard_filename
+from ...core.notification.context import NotificationContext
 from ...organizer.industry_lookup import get_folder_name
 from ._common import (
     _WORKER_BATCH_SIZE,
@@ -105,7 +106,12 @@ class ArchiveWorker(QThread):
 
             logger.info("[ArchiveWorker] about to call archive_standards")
             self._mgr.archive_standards(
-                self.parsed_list, progress_callback=on_progress, on_result=on_result, overwrite=self._overwrite
+                self.parsed_list,
+                progress_callback=on_progress,
+                on_result=on_result,
+                overwrite=self._overwrite,
+                # 桌面单用户模式，user_id 固定 1；多用户桌面需从登录态取
+                context=NotificationContext(scope="user", user_id=1),
             )
             logger.info("[ArchiveWorker] archive_standards returned")
             if batch and not self._stopped and not self.isInterruptionRequested():

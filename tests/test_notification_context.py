@@ -35,9 +35,10 @@ def test_send_event_defaults_to_system_zero(monkeypatch):
     monkeypatch.setattr(
         _dispatcher,
         "send_event",
-        lambda host, event, data, bypass, targets, ctx: captured.setdefault("ctx", ctx),
+        lambda host, event, data, bypass, targets, ctx, **kw: captured.setdefault("ctx", ctx),
     )
     mgr = object.__new__(NotificationManager)
+    mgr._user_id = 1
     NotificationManager.send_event(mgr, "scan_complete", {})
     assert captured["ctx"].scope == "system"
     assert captured["ctx"].log_user_id == 0

@@ -83,6 +83,8 @@ class NotificationMessage:
     task_kind: str = ""
     # 事件归属用户（A-21 第三步）：0=系统任务；不读全局 manager._user_id
     user_id: int = 0
+    # 投递使用的渠道 owner：system 时为各 admin；user/admin 时同 user_id
+    delivery_user_id: int = 0
     # 任务上下文快照（Task/TaskItem/TaskProgress 的扁平投影）。
     # **契约**：写入端一律经 `_json_codec.dumps` 转 JSON 字符串入库（SQLite 无原生 JSON 类型）；
     # 读取端经 `loads_dict` 还原为 dict，非 dict / 非法 JSON / None 一律回退 `{}`

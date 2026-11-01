@@ -10,7 +10,7 @@ from typing import Any, Callable, Optional, cast
 from pilotstd.i18n import t
 
 from ..db import Database
-from . import _dispatcher, _suppression_queue
+from . import _channel_registry, _dispatcher, _suppression_queue
 from ._credentials import CredentialHelper
 from ._format_utils import do_test_send, format_standard_status_changed_aggregated
 from ._manager_ops import NotificationOps
@@ -90,6 +90,8 @@ class NotificationManager:
         db_enabled = self._read_user_enabled()
         self._enabled = self._system_enabled and (db_enabled if db_enabled is not None else True)
         self._channels: dict[str, Any] = {}
+        # A-21 3b-4：按 user_id 的渠道缓存；self._channels 是 manager 默认用户的缓存
+        self._channel_cache: dict[int, dict[str, Any]] = {self._user_id: self._channels}
         # 日志/查询/清理（组合式，见 _manager_ops.NotificationOps）
         self.ops = NotificationOps(self)
         self._init_event_builders()
@@ -190,37 +192,21 @@ class NotificationManager:
             return bool(value)
         return None
 
-    def _init_channels(self) -> None:
-        """从 user_credentials 表加载各渠道配置并初始化渠道实例。
+    def _build_channels(self, user_id: int) -> dict[str, Any]:
+        """按 user_id 构造渠道实例（实现在 `_channel_registry`）。"""
+        return _channel_registry.build_channels(self, user_id)
 
-        构造形态由 `channel_spec` 声明驱动（`ctor` 为按序传入的凭证字段，
-        `ctor_required` 为构造前必须非空的字段）——新增渠道无需改本方法。
-        """
-        creds: dict[str, dict[str, str]] = {}
-        if self._cred_helper:
-            creds = self._cred_helper.get_all(self._user_id)
-        for spec in CHANNEL_SPECS:
-            try:
-                ch_cfg = creds.get(spec.name) or {}
-                enabled = ch_cfg.get("enabled", True)
-                if isinstance(enabled, str):
-                    enabled = enabled.lower() not in ("false", "0", "")
-                if not enabled:
-                    continue
-                args = tuple((ch_cfg.get(f) or "").strip() for f in spec.ctor)
-                guards = tuple((ch_cfg.get(f) or "").strip() for f in spec.ctor_required)
-                if not all(guards):
-                    continue
-                # 双形态渠道（webhook / app 二选一）：任一形态字段齐全才初始化；
-                # 否则构造空实例后每次发送都记 failed，污染日志并触发误告警。
-                forms = getattr(spec, "forms", ())
-                if forms and not any(
-                    all((ch_cfg.get(field) or "").strip() for field in form.required) for form in forms
-                ):
-                    continue
-                self._channels[spec.name] = _CHANNEL_CLASSES[spec.name](*args)
-            except Exception as e:
-                logger.warning("通知渠道 %s 初始化失败: %s", spec.name, e)
+    def _init_channels(self) -> None:
+        self._channels.update(self._build_channels(self._user_id))
+
+    def channels_for(self, user_id: int) -> dict[str, Any]:
+        return _channel_registry.channels_for(self, user_id)
+
+    def invalidate_channels(self, user_id: int) -> None:
+        _channel_registry.invalidate(self, user_id)
+
+    def _admin_user_ids(self) -> list[int]:
+        return _channel_registry.admin_user_ids(self)
 
     # ── 发送事件 ──────────────────────────────────────────────
 
@@ -233,8 +219,29 @@ class NotificationManager:
         context: NotificationContext | None = None,
     ) -> None:
         """根据策略表分发通知；context 决定归属（默认 system=0）。"""
+        legacy = context is None
         ctx = context or NotificationContext(scope="system")
-        _dispatcher.send_event(self, event_type, event_data, bypass_aggregation, target_channels, ctx)
+        if legacy:
+            # 未接线的旧调用：日志仍记 system(0)，但投递沿用 manager 默认用户（兼容旧库/测试）
+            owners = [self._user_id]
+        elif ctx.scope == "system":
+            owners = self._admin_user_ids()
+            if not owners:
+                logger.warning("系统通知无管理员可投递，已跳过: %s", event_type)
+                return
+        else:
+            assert ctx.user_id is not None
+            owners = [ctx.user_id]
+        for owner in owners:
+            _dispatcher.send_event(
+                self,
+                event_type,
+                event_data,
+                bypass_aggregation,
+                target_channels,
+                ctx,
+                delivery_user_id=owner,
+            )
 
     def _validate_message(self, msg: NotificationMessage, event_type: str) -> None:
         """构建器产出契约校验（实现在 `_dispatcher.validate_message`）。"""

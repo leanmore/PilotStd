@@ -3,7 +3,7 @@
 import json
 import logging
 import warnings
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 
@@ -162,6 +162,7 @@ class TestArchiveStandards:
         handler._core.notification_mgr.send_event.assert_any_call(
             "expire_standard_moved",
             {"standard_number": "GB 1-2020", "target_path": "/src/expired.pdf"},
+            context=ANY,
         )
 
     def test_no_notification_mgr_no_crash(self, handler):

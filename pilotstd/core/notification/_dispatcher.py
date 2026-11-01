@@ -39,14 +39,16 @@ def _record_when_disabled() -> bool:
     return raw.strip().lower() not in ("v0", "0", "false", "off")
 
 
-def _log_skipped(host: Any, event_type: str, event_data: dict, user_id: int = 0) -> None:
+def _log_skipped(
+    host: Any, event_type: str, event_data: dict, user_id: int = 0, delivery: int = 0
+) -> None:
     """关闭投递时写"仅记录"行：每订阅渠道一行。
 
     无订阅渠道时不写（避免为"没有收件人"的事件凭空造行——那不是可观测性而是噪声）。
     只调用 `host._log`，**不碰渠道对象**，故 `send()` 不可能被调用。
     """
     try:
-        channels = host._policy.get_channels_for_event(host._user_id, event_type, event_data)
+        channels = host._policy.get_channels_for_event(delivery, event_type, event_data)
     except Exception:  # noqa: BLE001 - 可见性记录不得影响主流程
         logger.debug(t("notification.manager.visibility_policy_failed"), exc_info=True)
         return
@@ -58,6 +60,7 @@ def _log_skipped(host: Any, event_type: str, event_data: dict, user_id: int = 0)
         return
     msg = host._build_message(event_type, event_data)
     msg.user_id = user_id
+    msg.delivery_user_id = delivery
     reason = t("notification.manager.skipped_disabled")
     sent_at = datetime.now().isoformat()
     for ch_name in channels:
@@ -71,6 +74,7 @@ def send_event(
     bypass_aggregation: bool = False,
     target_channels: list[str] | None = None,
     context: Any = None,
+    delivery_user_id: int | None = None,
 ) -> None:
     """根据策略表分发通知到各渠道（经过聚合器缓冲）。
 
@@ -83,6 +87,11 @@ def send_event(
     """
     ctx = context or NotificationContext(scope="system")
     log_user_id = ctx.log_user_id
+    delivery = (
+        delivery_user_id
+        if delivery_user_id is not None
+        else (ctx.user_id if ctx.user_id is not None else host._user_id)
+    )
     # W2（共享事件按端分流）：桌面端把事件落到**本地信号**（托盘气泡）。
     # 必须在 `_enabled` 早退**之前**——渠道开关（默认关闭）与"本端是否可见"是两件事；
     # 若先早退，这些事件在 Windows 端就"两头都不落"（Docker 端的渠道/Web 由那边的 manager 负责）。
@@ -94,11 +103,11 @@ def send_event(
         # 只写库、**不调用渠道 send()**，且不参与投递健康统计（status="skipped"）。
         # 回滚：NOTIFY_RECORD_WHEN_DISABLED=v0（默认开）。
         if _record_when_disabled():
-            _log_skipped(host, event_type, event_data, log_user_id)
+            _log_skipped(host, event_type, event_data, log_user_id, delivery)
         logger.debug(t("notification.manager.skip_disabled").format(event=event_type))
         return
     if target_channels is None:
-        target_channels = host._policy.get_channels_for_event(host._user_id, event_type, event_data)
+        target_channels = host._policy.get_channels_for_event(delivery, event_type, event_data)
     if not target_channels:
         logger.info(t("notification.manager.skip_no_channels").format(event=event_type))
         return
@@ -108,6 +117,7 @@ def send_event(
 
     msg = host._build_message(event_type, event_data)
     msg.user_id = log_user_id
+    msg.delivery_user_id = delivery
     # 批次键透传（通知聚合 B1 · E2，2026-10-05）：构建器**不感知批次**（它是"单条消息长什么样"的出处），
     # 批次标识由**调用方在导入/批量入口生成**后经 payload 传入，这里只做搬运——
     # 落在 `NotificationMessage.correlation_id` 上，供聚合器的①批次键（`correlation_id × notify_event`）
@@ -234,8 +244,18 @@ def send_now(host: Any, msg: NotificationMessage, target_channels: list[str]) ->
     "实际没发出去却显示成功"）；回填失败只记 warning，**绝不重发/回滚**（用户裁定）。
     """
     event_type = msg.event_type
+    channels_for = getattr(host, "channels_for", None)
+    host_uid = getattr(host, "_user_id", 0)
+    if not isinstance(host_uid, int):
+        host_uid = 0
+    owner = getattr(msg, "delivery_user_id", 0)
+    if not isinstance(owner, int) or owner <= 0:
+        owner = host_uid
+    available = channels_for(owner) if callable(channels_for) and owner != host_uid else host._channels
+    if not isinstance(available, dict):
+        available = host._channels
     for ch_name in target_channels:
-        channel = host._channels.get(ch_name)
+        channel = available.get(ch_name)
         sent_at = datetime.now().isoformat()
         if channel is None:
             # 渠道未配置/未启用：策略层可能仍返回该渠道名，但不应伪造失败记录

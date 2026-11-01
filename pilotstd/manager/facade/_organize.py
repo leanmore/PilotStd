@@ -16,6 +16,7 @@ from pilotstd.core.status import Status
 
 from ...core.notification import EVENT_ARCHIVE_COMPLETE
 from ...core.notification.batch import ensure_batch_key
+from ...core.notification.context import NotificationContext
 from ...core.std_utils import classify_std_code
 from ...i18n import t
 from ...models import ParsedStdInfo
@@ -199,8 +200,10 @@ class OrganizeHandler:
         progress_callback: Any = None,
         on_result: Any = None,
         overwrite: bool = False,
+        context: NotificationContext | None = None,
     ) -> dict[str, Any]:
         """统一归档入口：所有端（CLI/Web/WinUI）均通过此方法归档。"""
+        ctx = context or NotificationContext(scope="system")
         items = parsed_list if parsed_list is not None else self._core.parsed_results
         total = len(items)
         # 通知聚合 B1 · E1：**一次归档 = 一个批次**。批次键驱动聚合器走①批次键
@@ -239,7 +242,9 @@ class OrganizeHandler:
                         }
                         if getattr(p, "std_name", ""):
                             payload["standard_name"] = p.std_name
-                        self._core.notification_mgr.send_event("expire_standard_moved", payload)
+                        self._core.notification_mgr.send_event(
+                            "expire_standard_moved", payload, context=ctx
+                        )
                 except Exception as e:
                     logger.warning("发送废止标准通知失败: %s, error=%s", std_no, e)
         try:
@@ -264,6 +269,7 @@ class OrganizeHandler:
                         # 无该键时降级为空列表 ⇒ 契约（G-045：声明的 key 必须由生产者提供）得到满足）
                         "failed_items": result.get("failed_items", []),
                     },
+                    context=ctx,
                 )
         except Exception as e:
             logger.warning("发送归档完成通知失败: %s", e)

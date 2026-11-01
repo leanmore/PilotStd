@@ -193,3 +193,6 @@ StandardManager (BaseFacade)
 
 > **A-21 3b-2 download/auto/UI（2026-11-01）**：DownloadHandler/AutoHandler 接收 context 并透传；桌面 scan/query/download/auto worker 固定 user=1（单用户注释）；收藏通知抽 _notify_favorite_created。
 
+
+> **A-21 3b-4（2026-11-01）**：OrganizeHandler.archive_standards 接收 NotificationContext；UI 归档 worker 固定 user=1；渠道缓存按 user_id，system 投递所有 admin。
+
