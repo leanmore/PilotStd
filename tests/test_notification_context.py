@@ -41,3 +41,13 @@ def test_send_event_defaults_to_system_zero(monkeypatch):
     NotificationManager.send_event(mgr, "scan_complete", {})
     assert captured["ctx"].scope == "system"
     assert captured["ctx"].log_user_id == 0
+
+
+def test_favorites_entry_wires_user_context():
+    """3b-1：收藏入口必须显式传 user context（防回退 system）。"""
+    from pathlib import Path
+
+    source = (
+        Path(__file__).resolve().parents[1] / "docker" / "api" / "favorites.py"
+    ).read_text(encoding="utf-8")
+    assert 'NotificationContext(scope="user", user_id=user_id)' in source

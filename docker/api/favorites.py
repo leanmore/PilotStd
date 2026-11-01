@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 from pilotstd.core.config import get_db_path
 from pilotstd.core.db.database import Database
 from pilotstd.core.name_resolution import fetch_resolved_names
+from pilotstd.core.notification.context import NotificationContext
 
 from ..auth import get_current_user_id
 from ..manager import get_manager_dep
@@ -213,7 +214,7 @@ def add_favorite(
                     "standard_no": std_no,
                     "standard_name": (record["std_name"] or "") or "未知标准",
                     "standard_type": standard_type, "publish_date": publish_date or "",
-                },
+                }, context=NotificationContext(scope="user", user_id=user_id),
             )
     except Exception as e:
         logger.warning("收藏成功事件通知发送失败 favorite_id=%s: %s", favorite_id, e)
