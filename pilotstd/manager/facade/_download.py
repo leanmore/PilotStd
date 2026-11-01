@@ -6,6 +6,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
+from pilotstd.core.notification.context import NotificationContext
 from pilotstd.core.status import Status
 
 from ...download.models import BatchDownloadStats, DownloadTask
@@ -55,7 +56,10 @@ class DownloadHandler:
 
     # 下载—批量下载分类结果中的标准文件
     def download(
-        self, query_results: list[Any] | None = None, _adapter: Any = None
+        self,
+        query_results: list[Any] | None = None,
+        _adapter: Any = None,
+        context: NotificationContext | None = None,
     ) -> tuple[list[DownloadTask], BatchDownloadStats]:
         """下载分类结果中的标准文件。
         _adapter: DI 注入，可传入 mock 下载适配器覆盖默认适配器。
@@ -78,7 +82,7 @@ class DownloadHandler:
                     break
 
         completed, stats = self._core.download_engine.download_batch(
-            tasks, notification_mgr=self._core.notification_mgr
+            tasks, notification_mgr=self._core.notification_mgr, context=context
         )
         self._core.download_tasks = completed
         self._post_process_download(completed, tasks)
@@ -94,7 +98,11 @@ class DownloadHandler:
 
     # 下载_—流式下载（线程安全），逐条下载并回调进度和结果
     def download_stream(
-        self, on_progress: Any = None, on_result: Any = None, _adapter: Any = None
+        self,
+        on_progress: Any = None,
+        on_result: Any = None,
+        _adapter: Any = None,
+        context: NotificationContext | None = None,
     ) -> tuple[list[DownloadTask], BatchDownloadStats]:
         """流式下载（线程安全）。
         _adapter: DI 注入，可传入 mock 下载适配器覆盖默认适配器。
@@ -169,6 +177,7 @@ class DownloadHandler:
                         "failed": stats.failed,
                         "skipped": stats.skipped_exists,
                     },
+                    context=context,
                 )
             except Exception as e:
                 logger.warning("批量下载完成通知发送失败: %s", e)

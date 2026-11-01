@@ -267,7 +267,7 @@ def test_download_batch_generates_batch_key_and_passes_it() -> None:
         encoding="utf-8"
     )
     assert '_ensure_batch_key("dl")' in src, "批次键必须在入口取用（优先共用导入上下文键）"
-    assert 'self._notify_download_complete(notification_mgr, stats, _batch_key)' in src, "批次键必须透传"
+    assert 'self._notify_download_complete(notification_mgr, stats, _batch_key, context)' in src, "批次键必须透传"
     assert '"correlation_id": correlation_id' in src, "批次键必须进 payload（供分发层搬运）"
 
 

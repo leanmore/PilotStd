@@ -190,3 +190,6 @@ StandardManager (BaseFacade)
 
 > **A-21 3b-2 query（2026-11-01）**：QueryHandler.query/query_stream 支持 NotificationContext；UI 查询 worker 传 desktop user=1（单用户注释）。
 
+
+> **A-21 3b-2 download/auto/UI（2026-11-01）**：DownloadHandler/AutoHandler 接收 context 并透传；桌面 scan/query/download/auto worker 固定 user=1（单用户注释）；收藏通知抽 _notify_favorite_created。
+

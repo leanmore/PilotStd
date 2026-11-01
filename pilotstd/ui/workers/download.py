@@ -5,6 +5,7 @@ from typing import Any
 
 from PyQt6.QtCore import QThread, pyqtSignal
 
+from ...core.notification.context import NotificationContext
 from ._common import (
     _WORKER_BATCH_SIZE,
     _WORKER_FLUSH_INTERVAL,
@@ -64,7 +65,12 @@ class DownloadWorker(QThread):
                 self.progress.emit(_pct(cur, total))
 
             logger.info("[DownloadWorker] about to call download_stream")
-            self._mgr.download_stream(on_progress=on_progress, on_result=on_result)
+            self._mgr.download_stream(
+                on_progress=on_progress,
+                on_result=on_result,
+                # 桌面单用户模式，user_id 固定 1；多用户桌面需从登录态取
+                context=NotificationContext(scope="user", user_id=1),
+            )
             logger.info("[DownloadWorker] download_stream returned")
             if batch and not self._stopped and not self.isInterruptionRequested():
                 self.batch_ready.emit(batch)

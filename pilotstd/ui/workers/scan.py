@@ -8,6 +8,7 @@ from typing import Any
 
 from PyQt6.QtCore import QThread, pyqtSignal
 
+from ...core.notification.context import NotificationContext
 from ._common import WorkerAborted, _log_progress, check_stop, wait_pause_or_abort
 
 logger = logging.getLogger(__name__)
@@ -61,7 +62,13 @@ class ScanWorker(QThread):
                     _log_progress(logger, "扫描", cur, total, _t_start)
                     _last_log = now
 
-            parsed = self._mgr.scan_stream(self._root_path, on_progress=on_progress, on_batch=on_batch)
+            parsed = self._mgr.scan_stream(
+                self._root_path,
+                on_progress=on_progress,
+                on_batch=on_batch,
+                # 桌面单用户模式，user_id 固定 1；多用户桌面需从登录态取
+                context=NotificationContext(scope="user", user_id=1),
+            )
             self.unrecognized = []
             parsed_count = len(parsed)
         except WorkerAborted:

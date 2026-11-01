@@ -8,6 +8,7 @@ import time as _time
 from typing import TYPE_CHECKING, Any
 
 from ...core.notification.batch import batch_scope
+from ...core.notification.context import NotificationContext
 
 if TYPE_CHECKING:
     from ._core import ManagerCore
@@ -39,7 +40,9 @@ class AutoPipeline:
 
     # ── 一键自动运行（同步版） ────────────────────────────
 
-    def auto_run(self, root_path: str, _adapter: Any = None) -> dict[str, int]:
+    def auto_run(
+        self, root_path: str, _adapter: Any = None, context: NotificationContext | None = None
+    ) -> dict[str, int]:
         """一键自动运行：扫描 → 查询 → 下载 → 归类。
         _adapter: DI 注入，可传入 mock 适配器链覆盖默认适配器。
         """
@@ -47,9 +50,11 @@ class AutoPipeline:
         # 四阶段通知共用同一批次键，被聚合器按①批次键收敛为**一条**（需求①"一次导入汇总成 1 条"）。
         # 用作用域而非层层传参：见 pilotstd/core/notification/batch.py 的模块 docstring。
         with batch_scope("imp"):
-            return self._auto_run_impl(root_path, _adapter)
+            return self._auto_run_impl(root_path, _adapter, context=context)
 
-    def _auto_run_impl(self, root_path: str, _adapter: Any = None) -> dict[str, int]:
+    def _auto_run_impl(
+        self, root_path: str, _adapter: Any = None, context: NotificationContext | None = None
+    ) -> dict[str, int]:
         """`auto_run` 的实际实现（批次作用域由入口负责打开，见 `auto_run` 的注释）。"""
         report: dict[str, int] = {
             "scan": 0,
@@ -100,10 +105,12 @@ class AutoPipeline:
             report["fallback_mirrored"],
         )
         logger.info("自动运行完成: %s", report)
-        self._notify_auto_pipeline_summary(report)
+        self._notify_auto_pipeline_summary(report, context)
         return report
 
-    def _notify_auto_pipeline_summary(self, report: dict[str, int]) -> None:
+    def _notify_auto_pipeline_summary(
+        self, report: dict[str, int], context: NotificationContext | None = None
+    ) -> None:
         """管道级终局汇总（Q11）：四阶段跑完后发一条，替代让用户自己拼 4 条阶段通知。
 
         只取 report 里的四个稳定键；`mirror_*` 属收容细节，不进用户可见汇总。
@@ -119,6 +126,7 @@ class AutoPipeline:
                 "download_success": report.get("download_success", 0),
                 "organize_moved": report.get("organize_moved", 0),
             },
+            context=context,
         )
 
     # ── 内部阶段方法 ──────────────────────────────────────
@@ -210,6 +218,7 @@ class AutoPipeline:
         on_archive_result: Any = None,
         on_stage_change: Any = None,
         _adapter: Any = None,
+        context: NotificationContext | None = None,
     ) -> dict[str, int]:
         """流式自动管线（线程安全）。
         _adapter: DI 注入，可传入 mock 适配器链覆盖默认适配器。
@@ -227,6 +236,7 @@ class AutoPipeline:
                 on_download_result=on_download_result,
                 on_archive_result=on_archive_result,
                 on_stage_change=on_stage_change,
+                context=context,
             )
 
     def _auto_run_stream_impl(
@@ -240,6 +250,7 @@ class AutoPipeline:
         on_download_result: Any = None,
         on_archive_result: Any = None,
         on_stage_change: Any = None,
+        context: NotificationContext | None = None,
     ) -> dict[str, int]:
         """`auto_run_stream` 的实际实现（批次作用域由入口 `auto_run_stream` 负责打开）。
 
@@ -284,5 +295,5 @@ class AutoPipeline:
         result = self._auto_stage_archive_and_fallback(
             parsed, root_path, on_archive_result, on_stage_change, report, t_stage
         )
-        self._notify_auto_pipeline_summary(result)
+        self._notify_auto_pipeline_summary(result, context)
         return result

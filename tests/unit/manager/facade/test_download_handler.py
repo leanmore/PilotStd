@@ -1,6 +1,6 @@
 """_download.py (DownloadHandler) 覆盖率补齐 — 目标: 20% → 85%+"""
 
-from unittest.mock import MagicMock
+from unittest.mock import ANY, MagicMock
 
 import pytest
 
@@ -210,6 +210,7 @@ class TestDownloadStream:
         mock_core.notification_mgr.send_event.assert_called_once_with(
             "batch_download_complete",
             {"total": 1, "success": 1, "failed": 0, "skipped": 0},
+            context=ANY,
         )
 
     def test_stream_notification_counts_failure(self, handler, mock_core):
@@ -235,6 +236,7 @@ class TestDownloadStream:
         mock_core.notification_mgr.send_event.assert_called_once_with(
             "batch_download_complete",
             {"total": 1, "success": 0, "failed": 1, "skipped": 0},
+            context=ANY,
         )
 
     def test_stream_notification_skipped_maps_to_skipped(self, handler, mock_core):
@@ -264,6 +266,7 @@ class TestDownloadStream:
         mock_core.notification_mgr.send_event.assert_called_once_with(
             "batch_download_complete",
             {"total": 1, "success": 0, "failed": 0, "skipped": 1},
+            context=ANY,
         )
 
     def test_stream_no_tasks_sends_zero_summary(self, handler, mock_core):
@@ -276,6 +279,7 @@ class TestDownloadStream:
         mock_core.notification_mgr.send_event.assert_called_once_with(
             "batch_download_complete",
             {"total": 0, "success": 0, "failed": 0, "skipped": 0},
+            context=ANY,
         )
 
 

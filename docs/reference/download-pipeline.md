@@ -401,3 +401,6 @@ GB/T 标准被误判成非国标（已由 `test_slash_codes_are_routable` 钉住
    ```
 
 - **2026-10-18（D-17）**：`download/session.py` 的 `request` 覆写与 `requests.Session.request` 签名不完全一致（仅注入默认 timeout），以 `# type: ignore[override]` 标注；运行行为不变。
+
+> **A-21 3b-2（2026-11-01）**：下载完成通知接收 NotificationContext；engine/facade 透传，桌面 worker 固定 user=1。
+

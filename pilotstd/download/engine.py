@@ -16,6 +16,7 @@ from ..core.file_utils import (
     make_standard_filename,
 )
 from ..core.frozen import is_frozen
+from ..core.notification.context import NotificationContext
 from ..core.path_guard import validate_path_in_root
 from ..core.std_utils import is_gb_code
 from .adapters.base import BaseDownloadAdapter
@@ -250,7 +251,10 @@ class DownloadEngine:
 
     @staticmethod
     def _notify_download_complete(
-        notification_mgr: Any, stats: BatchDownloadStats, correlation_id: str = ""
+        notification_mgr: Any,
+        stats: BatchDownloadStats,
+        correlation_id: str = "",
+        context: NotificationContext | None = None,
     ) -> None:
         """发送批量下载完成通知。
 
@@ -273,12 +277,17 @@ class DownloadEngine:
                     # 通知聚合 B1-1：失败明细（4 列口径；G-045 契约要求声明的 key 由生产者提供）
                     "failed_items": stats.failed_items,
                 },
+                context=context,
             )
         except Exception as e:
             logger.warning("批量下载完成通知发送失败: %s", e)
 
     def download_batch(
-        self, tasks: List[DownloadTask], skip_adopted: bool = True, notification_mgr: Any = None
+        self,
+        tasks: List[DownloadTask],
+        skip_adopted: bool = True,
+        notification_mgr: Any = None,
+        context: NotificationContext | None = None,
     ) -> tuple[List[DownloadTask], BatchDownloadStats]:
         """批量下载，支持网络失败自动重试。"""
         import time as _time
@@ -316,7 +325,7 @@ class DownloadEngine:
 
         completed = [r for r in results if r is not None]
         self._collect_batch_stats(completed, stats)
-        self._notify_download_complete(notification_mgr, stats, _batch_key)
+        self._notify_download_complete(notification_mgr, stats, _batch_key, context)
 
         return completed, stats
 
