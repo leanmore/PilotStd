@@ -9,6 +9,9 @@ export interface WechatChannelConfig {
   agentid?: string
   corpsecret?: string
   proxy_url?: string
+  touser?: string
+  token?: string
+  encoding_aes_key?: string
 }
 
 export interface TelegramChannelConfig {
@@ -21,12 +24,21 @@ export interface FeishuChannelConfig {
   enabled: boolean
   webhook_url: string
   secret?: string
+  app_id?: string
+  app_secret?: string
+  receive_id?: string
+  receive_id_type?: string
 }
 
 export interface DingTalkChannelConfig {
   enabled: boolean
   webhook_url: string
   secret?: string
+  app_key?: string
+  app_secret?: string
+  robot_code?: string
+  card_template_id?: string
+  open_conversation_id?: string
 }
 
 export type ChannelConfig = WechatChannelConfig | TelegramChannelConfig | FeishuChannelConfig | DingTalkChannelConfig

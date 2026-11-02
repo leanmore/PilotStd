@@ -505,3 +505,6 @@ pilotstd/core/
 
 > **凭证清空审计（2026-11-02）**：允许空串清除的字段=webhook_url/proxy_url/corpid/agentid/touser/robot_code/card_template_id/open_conversation_id/app_id/receive_id/receive_id_type/chat_id；secret/token/password 类仍保留旧值。前端所有字段均为可编辑 InputText/Password，无 disabled。
 
+
+> **A 组通知契约（2026-11-02）**：webhook_url 三渠道改 mask=false（空串可清空）；wechat.token 改 text_password+mask；diff 复用 CLEARABLE_EMPTY_FIELDS。
+

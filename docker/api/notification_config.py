@@ -90,10 +90,15 @@ def _diff_credential_changes(
             if isinstance(field_value, str) and field_value.strip() in masked_values:
                 continue
             if field == "enabled":
-                if old.get(field, "") == ("true" if field_value else "false"):
+                normalized = "true" if field_value else "false"
+                if old.get(field, "") == normalized:
                     continue
             elif isinstance(field_value, str) and field_value.strip() == "":
-                continue
+                # 可清空字段（代理/URL/标识）的空串是显式删除 ⇒ 旧值非空时算变更
+                if not (
+                    field in CredentialHelper.CLEARABLE_EMPTY_FIELDS and old.get(field, "")
+                ):
+                    continue
             elif old.get(field, "") == field_value:
                 continue
             changed_channels.append(ch_name)
