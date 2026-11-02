@@ -205,6 +205,8 @@ def add_favorite(
     # ── 通知专项（第二阶段）：收藏成功事件 ──
     # 通知失败不得阻塞收藏主流程（异常捕获包裹，仅记录日志）
     try:
+        # 临时诊断（A-35 定位后降级 debug/删除）：确认路由确实进入事件块
+        logger.info("[A35-DIAG] enter favorite_created block user_id=%s", user_id)
         payload = {
             "user_id": user_id,
             "record_id": data.record_id,
@@ -222,17 +224,25 @@ def add_favorite(
 
 def _notify_favorite_created(mgr, user_id: int, payload: dict) -> None:
     """收藏成功事件：按当前用户归属发送（3b-1 接线）。"""
+    # 临时诊断（A-35 定位后降级 debug/删除）
+    logger.info("[A35-DIAG] enter _notify_favorite_created user_id=%s", user_id)
     if not mgr or not mgr.notification_mgr:
         logger.warning(
             "favorite_created notification skipped: manager.notification_mgr is None (user_id=%s)",
             user_id,
         )
         return
-    mgr.notification_mgr.send_event(
-        "favorite_created",
-        payload,
-        context=NotificationContext(scope="user", user_id=user_id),
-    )
+    logger.info("[A35-DIAG] before send favorite_created user_id=%s", user_id)
+    try:
+        mgr.notification_mgr.send_event(
+            "favorite_created",
+            payload,
+            context=NotificationContext(scope="user", user_id=user_id),
+        )
+        logger.info("[A35-DIAG] favorite_created send completed user_id=%s", user_id)
+    except Exception as e:
+        logger.error("[A35-DIAG] favorite_created send failed user_id=%s: %s", user_id, e)
+        raise
 
 
 # ════════════════════════════════════════════════════════════════ 分隔

@@ -68,3 +68,12 @@ def test_notify_favorite_created_sends_once_with_user_context():
     assert data == payload
     assert ctx.scope == "user"
     assert ctx.user_id == 3
+def test_notify_favorite_created_without_manager_is_safe():
+    """manager/notification_mgr 缺失时只告警，不抛异常、不调用 send_event。"""
+    from unittest.mock import MagicMock
+
+    from docker.api.favorites import _notify_favorite_created
+
+    mgr = MagicMock()
+    mgr.notification_mgr = None
+    _notify_favorite_created(mgr, 3, {"user_id": 3})  # 不抛异常即通过
