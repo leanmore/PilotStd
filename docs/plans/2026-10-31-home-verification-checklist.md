@@ -25,8 +25,8 @@
 | 3 | **v71 首次真实迁移**（schema 70→71、user_id 回填、索引耗时、可回滚） | ✅ | `_schema_version` MAX=**71**；`notification_log.user_id`/`notification_queue.user_id` 存在；索引 `idx_nl_user_sent`、`idx_nq_user_status` 存在；回填 `notification_log` user1=568、user0=2，queue user1=26；启动重启 18:34:31 后服务正常 |
 | 4 | A-30 线上验证（notify_event/task_context/诊断 admin） | ✅ | `GET /api/notification/logs?limit=1` 返回 `notify_event`/`task_context`；admin 访问 `/logs/2483/diagnostics` 200；user2 访问同端点 403 |
 | 5 | A-28 阶段二验证（静音显示、test-event、rollback） | ⚠️ 部分 | `/api/notification/config` quiet_hours enabled=true 22:00-07:00 与设置页一致；user2 `/test-event` 返回 `ok=true`（但日志 `user_id=0`，见 A-35）；未执行 `--rollback`（会改静音配置，未获批） |
-| 6 | A-35 多用户隔离（见下） | ❌ 阻塞 | 已建 `a35_user2`（id=3）并收藏记录（`user_favorites` id=120 user_id=3）；但 `favorite_created` **未产生 notification_log**（user1 同样无），推测收藏路由的 `mgr.notification_mgr` 为空；user2 `/test-event` 日志 `user_id=0`。需修收藏事件接线后再验 |
-| 7 | A-6 429 基线（线上口径） | ⬜ | |
+| 6 | A-35 多用户隔离（见下） | ⏳ 待新镜像 | 已修：`/test-event` 写 `user_id/delivery_user_id` 并按 `channels_for(user_id)` 校验；收藏通知增加 `manager.notification_mgr is None` 告警与 send_event 单测（commit `95e7ae68`）。已建 `a35_user2`（id=3），待部署后重跑收藏与日志验证 |
+| 7 | A-6 429 基线（线上口径） | ✅ | `/api/notification/logs` 全量 SQL：telegram 399 total / 14 failed / 10 429（2.51%）；wechat 141/141 failed / 0 429（token_tunnel 失败）；feishu 16/16/0；dingtalk 16/16/0。2026-11-02 18:58 取数 |
 | 8 | D-14 耗时分布（A-30 后） | ⬜ | |
 | 9 | 阶段六真隔离构建 + health | ⬜ | |
 
