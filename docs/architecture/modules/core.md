@@ -502,3 +502,6 @@ pilotstd/core/
 
 > **通知凭证（2026-11-02）**：CredentialHelper.set_channel 允许 proxy_url 空串显式清除；其它空串仍保留旧值（防误清 secret）。
 
+
+> **凭证清空审计（2026-11-02）**：允许空串清除的字段=webhook_url/proxy_url/corpid/agentid/touser/robot_code/card_template_id/open_conversation_id/app_id/receive_id/receive_id_type/chat_id；secret/token/password 类仍保留旧值。前端所有字段均为可编辑 InputText/Password，无 disabled。
+

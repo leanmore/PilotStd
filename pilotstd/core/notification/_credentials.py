@@ -30,8 +30,28 @@ class CredentialHelper:
 
     # 掩码特征集合（兼容不同前端风格），命中即视为"未修改"跳过写回
     MASKED_VALUES = {"***", "•••", "******", "MASKED_", "**********"}
-    # 允许用空串显式清除的非敏感字段（代理地址清空必须是"删除键"，不能沿用旧值）
-    CLEARABLE_EMPTY_FIELDS = frozenset({"proxy_url"})
+    # 允许用空串显式清除的非敏感字段（URL/账号标识/可选路由字段）。
+    # 敏感字段（secret/token/password 类）不在集合内：空串仍表示"未修改"，避免误清凭据。
+    CLEARABLE_EMPTY_FIELDS = frozenset(
+        {
+            # wechat：群机器人 URL、应用标识、代理、收件人
+            "webhook_url",
+            "proxy_url",
+            "corpid",
+            "agentid",
+            "touser",
+            # dingtalk：群机器人 URL、应用机器人标识/模板/会话
+            "robot_code",
+            "card_template_id",
+            "open_conversation_id",
+            # feishu：群机器人 URL、应用标识/收件人/类型
+            "app_id",
+            "receive_id",
+            "receive_id_type",
+            # telegram：会话标识
+            "chat_id",
+        }
+    )
 
     def __init__(self, db: Any, config_dir: str) -> None:
         self._db = db

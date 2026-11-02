@@ -125,3 +125,33 @@ class TestCredentialsMerge:
         decrypted = json.loads(fernet.decrypt(stored.encode()).decode())
         assert "proxy_url" not in decrypted
         assert decrypted["corpsecret"] == "REAL"
+    def test_all_non_sensitive_fields_can_be_cleared_and_secrets_kept(self):
+        """所有非敏感 URL/标识字段可清空；secret/token 类空串仍保留旧值。"""
+        import json
+
+        from cryptography.fernet import Fernet
+
+        from pilotstd.core.notification._credentials import CredentialHelper
+
+        clearable = CredentialHelper.CLEARABLE_EMPTY_FIELDS
+        sensitive = {
+            "corpsecret", "token", "encoding_aes_key", "secret",
+            "app_key", "app_secret", "bot_token",
+        }
+        assert clearable.isdisjoint(sensitive)
+
+        key = Fernet.generate_key()
+        fernet = Fernet(key)
+        helper = _make_helper(key)
+        existing = _encrypt(fernet, {**{f: "old" for f in clearable}, **{f: "REAL" for f in sensitive}})
+        helper._db.fetchone.return_value = {"credentials": existing}
+        inserts = _capture_inserts(helper._db)
+
+        helper.set_channel(1, "wechat", {**{f: "" for f in clearable}, **{f: "" for f in sensitive}})
+
+        stored = inserts[0][1][2]
+        decrypted = json.loads(fernet.decrypt(stored.encode()).decode())
+        for field in clearable:
+            assert field not in decrypted, field
+        for field in sensitive:
+            assert decrypted[field] == "REAL", field
