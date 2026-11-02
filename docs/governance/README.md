@@ -131,3 +131,6 @@ A: `--required-only` 参数仅检查 `required` 级别能力。CI 也仅对 `req
 
 > **2026-11-02**：新增 CI 门禁 check_response_model_coverage.py（B 组 API 契约），gates.md 已同步。
 
+
+> **2026-11-02 修正**：response_model 覆盖检查改为 AST 静态扫描。
+

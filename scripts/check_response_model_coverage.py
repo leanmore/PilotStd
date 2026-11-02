@@ -1,50 +1,75 @@
 #!/usr/bin/env python3
-"""B 组护栏：所有 /api 路由必须声明 response_model（流式/文件响应显式豁免）。"""
+"""B 组护栏：所有 /api 路由必须声明 response_model（流式/文件响应显式豁免）。
+
+用 AST 静态扫描，避免在 CI 的 repo-compliance 作业里 import 整个应用（该作业不装运行依赖）。
+"""
 
 from __future__ import annotations
 
+import ast
 import sys
 from pathlib import Path
 
-from fastapi.routing import APIRoute
-
 ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+SCAN_DIRS = [ROOT / "docker" / "api", ROOT / "docker"]
+METHODS = {"get", "post", "put", "delete", "patch"}
 
 # 这些端点成功响应是 Response/FileResponse/StreamingResponse，没有 JSON 模型可校验
 ALLOWLIST = {
-    ("GET", "/api/notification/callback/wechat"),
-    ("POST", "/api/notification/callback/{channel}"),
-    ("GET", "/api/export/standards"),
-    ("GET", "/api/admin/logs/app"),
-    ("GET", "/api/backgrounds/{filename}"),
+    "/api/notification/callback/wechat",
+    "/api/notification/callback/{channel}",
+    "/api/export/standards",
+    "/api/admin/logs/app",
+    "/api/backgrounds/{filename}",
 }
 
 
-def missing_response_models(app) -> list[tuple[tuple[str, ...], str]]:
-    """返回未声明 response_model 的 /api 路由。"""
-    missing = []
-    for route in app.routes:
-        if not isinstance(route, APIRoute) or not route.path.startswith("/api"):
+def _decorator_path(node: ast.FunctionDef | ast.AsyncFunctionDef) -> str | None:
+    """返回该函数上第一个 HTTP 路由装饰器的路径；不是路由则 None。"""
+    for dec in node.decorator_list:
+        if not isinstance(dec, ast.Call):
             continue
-        if route.response_model is not None:
-            continue
-        methods = tuple(sorted(route.methods))
-        if any((m, route.path) in ALLOWLIST for m in methods):
-            continue
-        missing.append((methods, route.path))
+        func = dec.func
+        if isinstance(func, ast.Attribute) and func.attr in METHODS and dec.args:
+            arg = dec.args[0]
+            if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+                return arg.value
+    return None
+
+
+def missing_response_models() -> list[tuple[str, str]]:
+    """静态扫描所有受管目录，返回 (方法, 路径) 缺少 response_model 的项。"""
+    missing: list[tuple[str, str]] = []
+    for directory in SCAN_DIRS:
+        for path in sorted(directory.glob("*.py")):
+            tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+            for node in ast.walk(tree):
+                if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    continue
+                route = _decorator_path(node)
+                if not route or not route.startswith("/api"):
+                    continue
+                if route in ALLOWLIST:
+                    continue
+                for dec in node.decorator_list:
+                    if not isinstance(dec, ast.Call):
+                        continue
+                    func = dec.func
+                    if not (isinstance(func, ast.Attribute) and func.attr in METHODS):
+                        continue
+                    if any(kw.arg == "response_model" for kw in dec.keywords):
+                        break
+                else:
+                    missing.append((node.name, route))
     return missing
 
 
 def main() -> int:
-    """加载应用并检查全部 /api 路由。"""
-    from docker.app import app
-
-    missing = missing_response_models(app)
+    """执行静态检查，失败时打印缺失项。"""
+    missing = missing_response_models()
     if missing:
-        for methods, path in missing:
-            print(f"[FAIL] {','.join(methods)} {path} 缺少 response_model")
+        for func, route in missing:
+            print(f"[FAIL] {func} {route} 缺少 response_model")
         return 1
     print("PASS: 所有 /api 路由均声明 response_model（5 个流式/文件端点豁免）")
     return 0

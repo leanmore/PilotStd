@@ -4,6 +4,4 @@ from scripts.check_response_model_coverage import missing_response_models
 
 
 def test_all_api_routes_have_response_model():
-    from docker.app import app
-
-    assert missing_response_models(app) == []
+    assert missing_response_models() == []
