@@ -380,6 +380,16 @@ def parse_text_table(text: str) -> list[dict[str, Any]]:
     return results
 
 
+def _clean_std_name(name: str) -> str:
+    """清理名称尾部粘连的实施日期/行号与 WPS 控制字符。"""
+    # 网页/附件表格常把下一列日期、序号拼进名称列
+    name = re.split(r"\s{2,}\d{4}-\d{2}-\d{2}", str(name), maxsplit=1)[0]
+    # 去掉控制字符（WPS 二进制残渣常以 \r/控制符开头）
+    name = re.sub(r"[\x00-\x1f\x7f]+", " ", name)
+    # 折叠空白，保留中文内部单空格
+    return re.sub(r"\s+", " ", name).strip()
+
+
 def _code_key(item: dict[str, Any]) -> str:
     """标准号去重键：代号 + 名称前20字符，用于 HTML 与附件交叉去重。
 
@@ -389,18 +399,16 @@ def _code_key(item: dict[str, Any]) -> str:
     """
     code = re.sub(r"\s*[—－–−]\s*", "-", str(item.get("std_code", "")))
     code = re.sub(r"\s+", " ", code).strip()
-    name = str(item.get("std_name", ""))
-    # 去掉名称后粘连的“实施日期 + 行号”与 WPS 二进制残渣
-    name = re.split(r"\s{2,}\d{4}-\d{2}-\d{2}", name, maxsplit=1)[0]
-    name = name.strip()
+    name = _clean_std_name(str(item.get("std_name", "")))
     return code + "|" + name[:20]
 
 
 def _dedupe_by_code(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """按归一化标准号键去重，保留首次出现的条目。"""
+    """按归一化标准号键去重，并在返回前清理名称。"""
     seen: set[str] = set()
     deduped: list[dict[str, Any]] = []
     for item in items:
+        item["std_name"] = _clean_std_name(str(item.get("std_name", "")))
         key = _code_key(item)
         if key in seen:
             continue
@@ -515,11 +523,11 @@ def parse_announcement_detail(
 
     if html_items:
         logger.info("HTML table parsed %d rows", len(html_items))
-        return html_items, meta
+        return _dedupe_by_code(html_items), meta
 
     if att_items:
         logger.info("attachment parsed %d rows", len(att_items))
-        return att_items, meta
+        return _dedupe_by_code(att_items), meta
 
     title = meta.get("title", "") or ""
     logger.warning("公告详情页未能解析出标准列表: %s", title[:80])  # i18n-allow: 既有日志文案，保持中文排查可读

@@ -269,3 +269,8 @@ def test_code_key_normalizes_dash_and_name_tail():
     b = {"std_code": "GB 11887—2026", "std_name": "首饰 贵金属纯度、标识和命名规则  2027-11-01  20"}
     assert _code_key(a) == _code_key(b)
     assert len(_dedupe_by_code([a, b])) == 1
+def test_clean_std_name_strips_date_row_and_wps_garbage():
+    from pilotstd.announcement.parser import _clean_std_name
+
+    dirty = "甲醇燃料水上加注作业安全规程  2027-11-01  \r\r\r薛娴 愁 愁 弈 愁"
+    assert _clean_std_name(dirty) == "甲醇燃料水上加注作业安全规程"
