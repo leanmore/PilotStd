@@ -106,3 +106,22 @@ class TestCredentialsMerge:
 
         decrypted = json.loads(fernet.decrypt(stored.encode()).decode())
         assert decrypted["bot_token"] == "123456:REAL"  # 空值被拦截
+    def test_empty_proxy_url_clears_existing_value(self):
+        """空 proxy_url 必须删除旧值；空 secret 仍保留旧值。"""
+        import json
+
+        from cryptography.fernet import Fernet
+
+        key = Fernet.generate_key()
+        fernet = Fernet(key)
+        helper = _make_helper(key)
+        existing = _encrypt(fernet, {"proxy_url": "https://qyapi.weixin.qq.com/", "corpsecret": "REAL"})
+        helper._db.fetchone.return_value = {"credentials": existing}
+        inserts = _capture_inserts(helper._db)
+
+        helper.set_channel(1, "wechat", {"proxy_url": "", "corpsecret": ""})
+
+        stored = inserts[0][1][2]
+        decrypted = json.loads(fernet.decrypt(stored.encode()).decode())
+        assert "proxy_url" not in decrypted
+        assert decrypted["corpsecret"] == "REAL"

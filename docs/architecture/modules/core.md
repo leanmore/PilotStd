@@ -499,3 +499,6 @@ pilotstd/core/
 
 > **A-21 3b-4 修正（2026-11-01）**：admin 角色查询改用 ADMIN_ROLE 参数，避免 G-028 硬编码；渠道缓存逻辑不变。
 
+
+> **通知凭证（2026-11-02）**：CredentialHelper.set_channel 允许 proxy_url 空串显式清除；其它空串仍保留旧值（防误清 secret）。
+

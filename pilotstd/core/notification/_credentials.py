@@ -30,6 +30,8 @@ class CredentialHelper:
 
     # 掩码特征集合（兼容不同前端风格），命中即视为"未修改"跳过写回
     MASKED_VALUES = {"***", "•••", "******", "MASKED_", "**********"}
+    # 允许用空串显式清除的非敏感字段（代理地址清空必须是"删除键"，不能沿用旧值）
+    CLEARABLE_EMPTY_FIELDS = frozenset({"proxy_url"})
 
     def __init__(self, db: Any, config_dir: str) -> None:
         self._db = db
@@ -144,6 +146,9 @@ class CredentialHelper:
                 merged[k] = "true" if v else "false"
             # 拦截空值（清空语义），防止覆盖真实凭据；类型安全：非 str 值转 str 写入
             elif isinstance(v, str) and v.strip() == "":
+                # 代理地址等非敏感可选字段：空串 = 显式清除（否则旧值永远删不掉）
+                if k in self.CLEARABLE_EMPTY_FIELDS:
+                    merged.pop(k, None)
                 continue
             else:
                 merged[k] = str(v)
