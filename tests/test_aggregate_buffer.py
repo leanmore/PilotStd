@@ -631,3 +631,21 @@ class TestAggregateContract(unittest.TestCase):
             mock_logger.error.assert_called_once()
             # 校验失败 → 不进入发送
             mgr._do_send.assert_not_called()
+def test_daily_aggregation_is_per_user():
+    """A-35：user1/user2 的日常聚合桶必须分开，不能并进同一条。"""
+    agg = NotificationAggregator(sender_func=MagicMock(), window_seconds=999.0)
+    m1 = NotificationMessage(
+        title="收藏成功",
+        event_type="favorite_created",
+        notify_event="user_activity",
+        user_id=1,
+        delivery_user_id=1,
+    )
+    m2 = NotificationMessage(
+        title="收藏成功",
+        event_type="favorite_created",
+        notify_event="user_activity",
+        user_id=3,
+        delivery_user_id=3,
+    )
+    assert agg._group_key(m1) != agg._group_key(m2)

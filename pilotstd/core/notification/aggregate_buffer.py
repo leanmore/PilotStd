@@ -435,6 +435,8 @@ class NotificationAggregator:
             standard_number=first_msg.standard_number,
             standard_name=getattr(first_msg, "standard_name", None),
             event_type=event_type,
+            user_id=first_msg.user_id,
+            delivery_user_id=first_msg.delivery_user_id,
             link=first_msg.link,
             icon=first_msg.icon,
             aggregated_count=count,

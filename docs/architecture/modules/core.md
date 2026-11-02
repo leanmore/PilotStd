@@ -514,3 +514,6 @@ pilotstd/core/
 
 > **2026-11-02 Telegram 编码**：发送 payload 改 ensure_ascii=False + charset=utf-8，避免中文被客户端显示为 \\uXXXX 转义。
 
+
+> **2026-11-02 A-35 聚合隔离**：daily 聚合键加投递用户段（2/daily/u<id>），合并消息显式保留 user_id/delivery_user_id；修复收藏事件被并成 user_id=0 的 daily 通知。
+

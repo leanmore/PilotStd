@@ -92,7 +92,9 @@ def group_key(msg: NotificationMessage) -> str:
     # 的结果混成一条会误导用户。
     task_kind = (getattr(msg, "task_kind", "") or "").strip()
     if notify == "user_activity" or task_kind == "favorite_download":
-        return f"2{_GROUP_SEP}daily"
+        # A-35：按投递用户分桶，禁止 user2 的收藏并进 user1 的 daily 聚合
+        owner = getattr(msg, "delivery_user_id", 0) or getattr(msg, "user_id", 0) or 0
+        return f"2{_GROUP_SEP}daily{_GROUP_SEP}u{owner}"
     return f"2{_GROUP_SEP}{notify}{_GROUP_SEP}{entity}" if entity else f"2{_GROUP_SEP}{notify}"
 
 
@@ -124,5 +126,7 @@ def group_entity(group: str) -> str:
     if agg_key_mode() == "v1":
         return parts[1] if len(parts) > 1 else ""
     if len(parts) >= 3 and parts[0] == "2":
+        if parts[1] == "daily":
+            return ""
         return parts[2]
     return ""
