@@ -64,7 +64,10 @@ def test_event(
     level = str(body.get("level") or "info")
     if level not in ("info", "warning"):
         return {"ok": False, "error": "unsupported level, expected info or warning"}
-    if channel not in getattr(nmgr, "_channels", {}):
+    user_channels = nmgr.channels_for(user_id)
+    if not isinstance(user_channels, dict):
+        user_channels = getattr(nmgr, "_channels", {})
+    if channel not in user_channels:
         return {"ok": False, "error": "channel not initialized"}
 
     msg = NotificationMessage(
@@ -72,6 +75,8 @@ def test_event(
         body=body.get("body") or t("notification.api.test_body"),
         level=level,
         event_type="test",
+        user_id=user_id,
+        delivery_user_id=user_id,
     )
     nmgr._do_send(msg, [channel], bypass_aggregation=True)
     queued = level == "info" and nmgr._is_quiet_hours()

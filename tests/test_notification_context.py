@@ -52,3 +52,19 @@ def test_favorites_entry_wires_user_context():
         Path(__file__).resolve().parents[1] / "docker" / "api" / "favorites.py"
     ).read_text(encoding="utf-8")
     assert 'NotificationContext(scope="user", user_id=user_id)' in source
+def test_notify_favorite_created_sends_once_with_user_context():
+    """3b-1 盲区：收藏成功后必须真的调用 send_event 一次，且带 user context。"""
+    from unittest.mock import MagicMock
+
+    from docker.api.favorites import _notify_favorite_created
+
+    mgr = MagicMock()
+    payload = {"user_id": 3, "record_id": 1}
+    _notify_favorite_created(mgr, 3, payload)
+    mgr.notification_mgr.send_event.assert_called_once()
+    event, data = mgr.notification_mgr.send_event.call_args.args
+    ctx = mgr.notification_mgr.send_event.call_args.kwargs["context"]
+    assert event == "favorite_created"
+    assert data == payload
+    assert ctx.scope == "user"
+    assert ctx.user_id == 3

@@ -205,16 +205,15 @@ def add_favorite(
     # ── 通知专项（第二阶段）：收藏成功事件 ──
     # 通知失败不得阻塞收藏主流程（异常捕获包裹，仅记录日志）
     try:
-        if mgr and mgr.notification_mgr:
-            payload = {
-                "user_id": user_id,
-                "record_id": data.record_id,
-                "standard_no": std_no,
-                "standard_name": (record["std_name"] or "") or "未知标准",
-                "standard_type": standard_type,
-                "publish_date": publish_date or "",
-            }
-            _notify_favorite_created(mgr, user_id, payload)
+        payload = {
+            "user_id": user_id,
+            "record_id": data.record_id,
+            "standard_no": std_no,
+            "standard_name": (record["std_name"] or "") or "未知标准",
+            "standard_type": standard_type,
+            "publish_date": publish_date or "",
+        }
+        _notify_favorite_created(mgr, user_id, payload)
     except Exception as e:
         logger.warning("收藏成功事件通知发送失败 favorite_id=%s: %s", favorite_id, e)
 
@@ -223,6 +222,12 @@ def add_favorite(
 
 def _notify_favorite_created(mgr, user_id: int, payload: dict) -> None:
     """收藏成功事件：按当前用户归属发送（3b-1 接线）。"""
+    if not mgr or not mgr.notification_mgr:
+        logger.warning(
+            "favorite_created notification skipped: manager.notification_mgr is None (user_id=%s)",
+            user_id,
+        )
+        return
     mgr.notification_mgr.send_event(
         "favorite_created",
         payload,
