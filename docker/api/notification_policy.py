@@ -39,7 +39,30 @@ class PolicyUpdateRequest(BaseModel):
     event_classes: list[str] | None = None
 
 
-@router.get("/api/notification/policy")
+class PolicyItem(BaseModel):
+    """单条渠道订阅策略（类别层与高级事件层原样返回，由前端决定呈现）。"""
+
+    id: int
+    channel: str
+    enabled: bool
+    events: list[str]
+    event_classes: list[str]
+    updated_at: str
+
+
+class PolicyListResponse(BaseModel):
+    """某用户全部渠道策略的列表响应。"""
+
+    policies: list[PolicyItem]
+
+
+class PolicyUpdateResponse(BaseModel):
+    """策略保存成功响应。"""
+
+    ok: bool
+
+
+@router.get("/api/notification/policy", response_model=PolicyListResponse)
 def get_policy(request: Request, nmgr=Depends(_get_notification_mgr), user_id: int = Depends(_get_user_id)):
     """获取通知策略配置（渠道事件订阅，按用户隔离）。"""
     try:
@@ -50,7 +73,7 @@ def get_policy(request: Request, nmgr=Depends(_get_notification_mgr), user_id: i
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
-@router.put("/api/notification/policy")
+@router.put("/api/notification/policy", response_model=PolicyUpdateResponse)
 def put_policy(
     request: Request,
     data: PolicyUpdateRequest,

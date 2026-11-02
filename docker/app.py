@@ -15,6 +15,7 @@ load_dotenv(os.path.join(os.path.dirname(__file__) or ".", "..", ".env"))
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
 from pilotstd.services.favorite_chain_processor import process_chain
 
@@ -307,6 +308,14 @@ async def lifespan(app: FastAPI):
 
 from pilotstd import __version__ as _app_version  # noqa: E402
 
+
+class HealthResponse(BaseModel):
+    """容器健康检查响应。"""
+
+    status: str
+    version: str
+
+
 app = FastAPI(title="PilotStd API", version=_app_version, lifespan=lifespan)
 
 
@@ -375,7 +384,7 @@ app.include_router(auto_router)
 
 
 # 健康检查端点（使用）
-@app.get("/api/health")
+@app.get("/api/health", response_model=HealthResponse)
 async def health_check():
     """健康检查端点，返回服务状态和版本号。供 Docker HEALTHCHECK 指令探测容器存活。"""
     return {

@@ -6,6 +6,7 @@ import uuid
 from fastapi import Body, Depends, Request
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
+from pydantic import BaseModel
 
 from pilotstd.core.notification.context import NotificationContext
 from pilotstd.core.path_guard import get_allowed_roots, validate_path_in_root
@@ -15,6 +16,40 @@ from ..manager import get_manager_dep
 from .models import ScanIndexResponse
 
 router = APIRouter(tags=["scan"])
+
+
+# ── 响应模型（成功分支契约；路径越界/扫描失败仍走 JSONResponse）──
+
+
+class ScanFileItem(BaseModel):
+    """扫描文件条目：文件路径、大小、解析状态与标准四要素。"""
+
+    name: str
+    full_path: str
+    size: int
+    status: str
+    standard_number: str
+    logical_code: str
+    number: int
+    year: int
+    part: int | None = None
+    num_prefix: str
+    num_suffix: str
+    ext: str
+    language: str
+    std_name: str
+
+
+class ScanDirectoryResponse(BaseModel):
+    """扫描目录响应：运行 ID、文件统计与文件条目列表。"""
+
+    run_id: str
+    total: int
+    pdf_count: int
+    word_count: int
+    dup_skipped: int
+    skipped_dirs: int
+    files: list[ScanFileItem]
 
 
 def _validate_path(user_path: str, mgr=None) -> str:
@@ -29,7 +64,7 @@ def _validate_path(user_path: str, mgr=None) -> str:
 
 
 # 扫描端点：解析路径 → 调用 StandardManager 扫描文件列表
-@router.post("/api/scan")
+@router.post("/api/scan", response_model=ScanDirectoryResponse)
 @require_role("admin")
 def scan_directory(
     request: Request,

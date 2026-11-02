@@ -35,6 +35,110 @@ def _build_site_labels() -> dict[str, str]:
 _SITE_LABELS = _build_site_labels()
 router = APIRouter(tags=["settings"])
 
+
+class SettingsTabItem(BaseModel):
+    """设置页单个 Tab 的元数据：键名、权限分级、排序值与中文标签。"""
+
+    key: str
+    scope: str
+    order: int
+    label: str
+
+
+class SettingsMetadataResponse(BaseModel):
+    """设置页 Tab 元数据响应。"""
+
+    tabs: list[SettingsTabItem]
+
+
+class SystemSettingsResponse(BaseModel):
+    """系统配置响应：版本号 + 各配置分区。
+
+    各分区的值来自动态配置存储（类型随配置项而定），故分区内部保留为
+    ``dict[str, Any]``；分区键与 GET /api/settings 的返回结构一一对应。
+    """
+
+    version: str
+    storage: dict[str, Any]
+    organize: dict[str, Any]
+    file: dict[str, Any]
+    network: dict[str, Any]
+    scan: dict[str, Any]
+    query: dict[str, Any]
+    tasks: dict[str, Any]
+    appearance: dict[str, Any]
+    ocr: dict[str, Any]
+
+
+class OkResponse(BaseModel):
+    """仅返回 ok 的通用成功响应。"""
+
+    ok: bool
+
+
+class SiteConfigResponse(BaseModel):
+    """单个查询适配器的站点配置（含配额、冷却与健康检查状态）。"""
+
+    name: str
+    label: str
+    url: str
+    priority: int
+    maxRequests: int
+    dailyLimit: int
+    coolingSeconds: int
+    requestInterval: float
+    remainingQuota: int
+    coolingRemaining: int
+    last_health_check: str | None = None
+    health_status: str | None = None
+
+
+class SiteConfigListResponse(BaseModel):
+    """站点配置列表响应。"""
+
+    sites: list[SiteConfigResponse]
+
+
+class SiteConfigUpdateResponse(BaseModel):
+    """站点配置更新成功响应：success 标志与更新后的完整站点配置。"""
+
+    success: bool
+    site: SiteConfigResponse | None = None
+
+
+class StaticTokenResponse(BaseModel):
+    """静态 API 令牌响应。"""
+
+    token: str
+
+
+class StaticTokenRefreshResponse(BaseModel):
+    """静态令牌刷新响应：新令牌、刷新时刻、落库结果与告警警告。"""
+
+    token: str
+    refreshed_at: str
+    db_synced: bool
+    warnings: list[str]
+
+
+class SettingFieldSchema(BaseModel):
+    """配置 Schema 中的单个字段定义（键、所属 Tab、控件类型、默认值等）。"""
+
+    key: str
+    tab: str
+    field_type: str
+    default: Any
+    placeholder: str
+    options: list[dict[str, Any]]
+    help_text: str
+    required: bool
+
+
+class SettingsSchemaResponse(BaseModel):
+    """配置 Schema 响应：按 Tab 分组的字段定义。"""
+
+    tabs: dict[str, list[SettingFieldSchema]]
+
 # ═══════════════════════════════════════════════════════════════ 分隔
 # 版本三0:定义（单一数据源）
 # ═══════════════════════════════════════════════════════════════ 分隔
@@ -71,7 +175,7 @@ TAB_LABELS: dict[str, str] = {
 }
 
 
-@router.get("/api/settings/metadata")
+@router.get("/api/settings/metadata", response_model=SettingsMetadataResponse)
 @require_role("admin")
 def get_settings_metadata(request: Request):
     """返回设置页 Tab 元数据：scope 分级 + order 排序。
@@ -94,7 +198,7 @@ def get_settings_metadata(request: Request):
     return {"tabs": tabs}
 
 
-@router.get("/api/settings")
+@router.get("/api/settings", response_model=SystemSettingsResponse)
 @require_role("admin")
 def get_settings(request: Request, mgr=Depends(get_manager_dep)):
     """读取当前系统配置，包括存储、扫描、查询、定时任务、外观（Windows 基线 + Docker 特有项）。"""
@@ -195,7 +299,7 @@ def _sync_task_schedules(cfg: Any, tasks: dict) -> None:
         update_job(job_id, cron, enabled)
 
 
-@router.put("/api/settings")
+@router.put("/api/settings", response_model=OkResponse)
 @require_role("admin")
 def put_settings(request: Request, data: dict, mgr=Depends(get_manager_dep)):
     """保存系统配置并更新定时任务调度。"""
@@ -290,7 +394,7 @@ def _build_site_config(name: str, mgr) -> dict | None:
         return None
 
 
-@router.get("/api/settings/sites")
+@router.get("/api/settings/sites", response_model=SiteConfigListResponse)
 @require_role("admin")
 def get_sites(request: Request, mgr=Depends(get_manager_dep)):
     """返回全部查询适配器的站点配置（含健康检查状态），单站点异常不影响整体。"""
@@ -307,7 +411,7 @@ def get_sites(request: Request, mgr=Depends(get_manager_dep)):
     return {"sites": sites}
 
 
-@router.put("/api/settings/sites/{name}")
+@router.put("/api/settings/sites/{name}", response_model=SiteConfigUpdateResponse)
 @require_role("admin")
 def put_site(request: Request, name: str, data: SiteConfigUpdate, mgr=Depends(get_manager_dep)):
     """更新站点限额配置，持久化 + 内存热更新。"""
@@ -364,14 +468,14 @@ def put_site(request: Request, name: str, data: SiteConfigUpdate, mgr=Depends(ge
 # ── 静态令牌管理 ──────────────────────────────────────────────────
 
 
-@router.get("/api/settings/token")
+@router.get("/api/settings/token", response_model=StaticTokenResponse)
 @require_role("admin")
 def get_token(request: Request):
     """返回当前静态 API 令牌值（仅管理员）。"""
     return {"token": get_static_token()}
 
 
-@router.post("/api/settings/token/refresh")
+@router.post("/api/settings/token/refresh", response_model=StaticTokenRefreshResponse)
 @require_role("admin")
 def refresh_token(request: Request, mgr=Depends(get_manager_dep)):
     """重新生成静态令牌（立即生效，旧令牌立即失效）。
@@ -420,7 +524,7 @@ def refresh_token(request: Request, mgr=Depends(get_manager_dep)):
 # ──配置（单一数据源）─────────────────────────────────────
 
 
-@router.get("/api/settings/schema")
+@router.get("/api/settings/schema", response_model=SettingsSchemaResponse)
 @require_role("admin")
 def get_schema(request: Request):
     """返回配置 Schema——按 Tab 分组的完整字段定义。

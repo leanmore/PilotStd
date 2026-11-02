@@ -6,15 +6,61 @@
 import importlib
 import logging
 from datetime import datetime, timezone
+from typing import Any
 
 from fastapi import Depends
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
+from pydantic import BaseModel
 
 from ..manager import get_manager_dep
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["adapter"])
+
+
+class AdapterStatusItem(BaseModel):
+    """单个适配器的熔断/冷却状态。"""
+
+    name: str
+    display_name: str
+    status: str
+    frozen_until: str | None
+    remaining_seconds: int
+    freeze_count: int
+    first_freeze_time: str | None
+    fail_streak: int
+    last_health_check: str | None
+    health_status: str | None
+
+
+class AdapterStatusListResponse(BaseModel):
+    """适配器状态列表响应。"""
+
+    adapters: list[AdapterStatusItem]
+
+
+class AdapterCircuitConfig(BaseModel):
+    """熔断配置：失败阈值、冻结时长阶梯与重置窗口。"""
+
+    failure_threshold: int
+    freeze_durations: list[int]
+    reset_window_hours: int
+
+
+class AdapterConfigUpdateResponse(BaseModel):
+    """熔断配置更新结果：提示语与更新后的完整配置。"""
+
+    message: str
+    config: AdapterCircuitConfig
+
+
+class AdapterTestResponse(BaseModel):
+    """单个适配器连通性测试结果；details 为适配器管理器返回的完整状态。"""
+
+    ok: bool
+    message: str
+    details: dict[str, Any]
 
 _DEFAULT_CONFIG = {
     "failure_threshold": 3,
@@ -61,7 +107,7 @@ def _get_all_query_adapters() -> list[str]:
     return sorted(names)
 
 
-@router.get("/api/adapter/status")
+@router.get("/api/adapter/status", response_model=AdapterStatusListResponse)
 def get_adapter_status(mgr=Depends(get_manager_dep), type: str | None = None):
     """查询适配器的熔断状态。可选 type=announcement 仅公告适配器，type=query 仅查询适配器。"""
     if type == "announcement":
@@ -130,7 +176,7 @@ def get_adapter_status(mgr=Depends(get_manager_dep), type: str | None = None):
     return {"adapters": adapters}
 
 
-@router.get("/api/adapter/config")
+@router.get("/api/adapter/config", response_model=AdapterCircuitConfig)
 def get_adapter_config(mgr=Depends(get_manager_dep)):
     """读取当前熔断配置（含默认值兜底）。"""
     cfg = mgr.cfg
@@ -144,7 +190,7 @@ def get_adapter_config(mgr=Depends(get_manager_dep)):
     }
 
 
-@router.put("/api/adapter/config")
+@router.put("/api/adapter/config", response_model=AdapterConfigUpdateResponse)
 def update_adapter_config(body: dict, mgr=Depends(get_manager_dep)):
     """更新熔断配置，立即生效（热加载）。"""
     errors = []
@@ -197,7 +243,7 @@ def update_adapter_config(body: dict, mgr=Depends(get_manager_dep)):
     }
 
 
-@router.post("/api/adapter/test")
+@router.post("/api/adapter/test", response_model=AdapterTestResponse)
 def test_adapter(name: str, mgr=Depends(get_manager_dep)):
     """测试单个适配器的连通性。"""
     if not hasattr(mgr, "adapter_manager"):

@@ -8,6 +8,7 @@ from typing import Any, cast
 from fastapi import BackgroundTasks, Depends
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
+from pydantic import BaseModel
 
 from pilotstd.constants.announce_types import SOURCE_SITE_TO_TYPE
 
@@ -18,6 +19,130 @@ router = APIRouter(tags=["announce"])
 logger = logging.getLogger(__name__)
 
 FAILURES_FILE = os.path.join(os.environ.get("DATA_DIR", "/app/data"), "announce_failures.json")
+
+# ════════════════════════════════════════════════════════════════ 分隔
+# 响应模型：与各路由成功返回的字典键一一对应（错误分支原样返回，不参与校验）
+# ════════════════════════════════════════════════════════════════ 分隔
+
+
+class AnnounceAdapterItem(BaseModel):
+    """单个公告适配器的抓取结果：站点名、类型、条数、状态与错误信息。"""
+
+    name: str
+    type: str
+    count: int
+    status: str
+    error_msg: str
+
+
+class AnnounceErrorItem(BaseModel):
+    """抓取失败条目：来源标识与错误原因。"""
+
+    source: str
+    error: str
+
+
+class AnnounceCheckResponse(BaseModel):
+    """公告抓取返回体：同步摘要（匹配数、新增数）或后台受理提示。"""
+
+    ok: bool | None = None
+    count: int | None = None
+    failures: int | None = None
+    msg: str | None = None
+    error: str | None = None
+    matched: int | None = None
+    updated: int | None = None
+    total_announcements: int | None = None
+    adapters: list[AnnounceAdapterItem] | None = None
+    errors: list[AnnounceErrorItem] | None = None
+    gb_count: int | None = None
+    hb_count: int | None = None
+    db_count: int | None = None
+    gb_standards: int | None = None
+    hb_standards: int | None = None
+    db_standards: int | None = None
+    total_standards: int | None = None
+
+
+class AnnounceResultItem(BaseModel):
+    """公告列表条目：公告号、标题、条数、发布日期、来源站点与标准类型。"""
+
+    announce_no: str
+    announcement_title: str
+    standard_count: int | None
+    publish_date: str
+    source_site: str
+    standard_type: str
+
+
+class AnnounceResultsResponse(BaseModel):
+    """公告列表响应：合并公告头与记录后的去重结果集。"""
+
+    results: list[AnnounceResultItem]
+
+
+class AnnounceOcrStatusResponse(BaseModel):
+    """本地文字识别诊断结果：依赖可用性、识别服务与模型目录状态。"""
+
+    configured_provider: str
+    provider: str | None = None
+    rapidocr: bool
+    pypdfium2: bool
+    onnxruntime: bool
+    model_dir: str | None = None
+    model_dir_writable: bool | None = None
+    installed_models: str | None = None
+    model_error: str | None = None
+
+
+class AnnounceFetchLogItem(BaseModel):
+    """公告抓取记录条目：标准号、来源站点、标题与抓取时间。"""
+
+    standard_number: str
+    source_site: str
+    title: str
+    fetched_at: str
+
+
+class AnnounceFetchLogResponse(BaseModel):
+    """公告抓取记录响应：总条数与条目列表。"""
+
+    total: int
+    items: list[AnnounceFetchLogItem]
+
+
+class AnnounceReconcileItem(BaseModel):
+    """公告对账不一致条目：来源站点、公告号、声明条数、入库条数与差值。"""
+
+    source_site: str
+    announce_no: str
+    declared: int
+    actual: int
+    diff: int
+
+
+class AnnounceReconcileResponse(BaseModel):
+    """公告对账响应：不一致条目与总数。"""
+
+    items: list[AnnounceReconcileItem]
+    total: int
+
+
+class AnnounceStatsBreakdown(BaseModel):
+    """公告统计分组：全量或今日新增的总数与各类型计数。"""
+
+    all: int
+    gb: int
+    hb: int
+    db: int
+
+
+class AnnounceStatsResponse(BaseModel):
+    """公告统计响应：全量记录数、已匹配数与今日新增，各自按类型分组。"""
+
+    total: AnnounceStatsBreakdown
+    matched: int
+    new: AnnounceStatsBreakdown
 
 
 def check_announce(since_date: str = "", mgr=None, types: list[str] | None = None) -> dict:
@@ -136,7 +261,7 @@ def _sync_wait_check(since_date: str = "", mgr=None, types: list[str] | None = N
     )
 
 
-@router.post("/api/announce/check")
+@router.post("/api/announce/check", response_model=AnnounceCheckResponse, response_model_exclude_none=True)
 def api_check_announce(
     since_date: str = "",
     sync: bool = False,
@@ -221,7 +346,7 @@ def _build_announce_results_query(source_site: str, from_date: str, to_date: str
     return query, params
 
 
-@router.get("/api/announce/results")
+@router.get("/api/announce/results", response_model=AnnounceResultsResponse)
 def get_announce_results(
     source_site: str = "",
     from_date: str = "",
@@ -249,7 +374,7 @@ def get_announce_results(
     return {"results": results}
 
 
-@router.get("/api/announce/ocr-status")
+@router.get("/api/announce/ocr-status", response_model=AnnounceOcrStatusResponse, response_model_exclude_none=True)
 def announce_ocr_status(mgr=Depends(get_manager_dep)):
     """本地 OCR 安装/依赖/模型目录诊断（不执行识别）。"""
     import importlib.util
@@ -279,7 +404,7 @@ def announce_ocr_status(mgr=Depends(get_manager_dep)):
     return result
 
 
-@router.get("/api/announce/fetch-log")
+@router.get("/api/announce/fetch-log", response_model=AnnounceFetchLogResponse)
 def get_announcement_records(limit: int = 100, mgr=Depends(get_manager_dep)):
     """查询公告抓取记录（全量，含未匹配），供压测样本生成。"""
     items = mgr._announce_svc.get_announcement_sources(limit=limit)
@@ -291,7 +416,7 @@ _stats_cache: dict = {"data": None, "ts": 0}
 _STATS_CACHE_TTL = 300  # 5 分钟
 
 
-@router.get("/api/announce/reconcile")
+@router.get("/api/announce/reconcile", response_model=AnnounceReconcileResponse)
 def announce_reconcile(mgr=Depends(get_manager_dep)):
     """P2 防漏巡检：源站声明条数 vs 实际入库记录数。"""
     from pilotstd.announcement.reconcile import find_announcement_count_mismatches
@@ -300,7 +425,7 @@ def announce_reconcile(mgr=Depends(get_manager_dep)):
     return {"items": items, "total": len(items)}
 
 
-@router.get("/api/announce/stats")
+@router.get("/api/announce/stats", response_model=AnnounceStatsResponse)
 def get_announce_stats(mgr=Depends(get_manager_dep)):
     """公告统计数据（标准总数/已匹配/今日新增，按国标/行标/地标分类）。5分钟缓存。
 

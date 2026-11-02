@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel
 
 from pilotstd import __version__
 
@@ -20,6 +21,100 @@ logger = logging.getLogger(__name__)
 IMAGE_REGISTRY = "ghcr.io/leanmore/pilotstd"
 IMAGE_LATEST = f"{IMAGE_REGISTRY}:latest"
 IMAGE_VERSIONED = f"{IMAGE_REGISTRY}:v{__version__}"
+
+
+class SystemVersionResponse(BaseModel):
+    """版本信息响应：当前版本、版本标签与镜像地址。"""
+
+    version: str
+    tag: str
+    image: str
+    image_latest: str
+
+
+class SystemUpdateNotNeededResponse(BaseModel):
+    """镜像更新检查结果：已是最新版本。"""
+
+    updated: bool
+    message: str
+    version: str
+    digest: str
+
+
+class SystemUpdateAppliedResponse(BaseModel):
+    """镜像更新结果：已拉取新镜像，restarted 表示是否已重建容器。"""
+
+    updated: bool
+    restarted: bool
+    method: str
+    message: str
+    old_digest: str
+    new_digest: str
+
+
+# 更新端点两种成功形态：无更新 / 已拉取并尝试重建
+SystemUpdateResponse = SystemUpdateNotNeededResponse | SystemUpdateAppliedResponse
+
+
+class SystemAdapterHealth(BaseModel):
+    """适配器健康摘要：适配器总数与状态正常的数量。"""
+
+    count: int
+    available: int
+
+
+class SystemHealthResponse(BaseModel):
+    """系统健康检查响应：整体 ok、各检查项状态与适配器摘要。"""
+
+    ok: bool
+    timestamp: str
+    database: str
+    cache: str
+    adapters: SystemAdapterHealth | str
+
+
+class SystemCpuInfo(BaseModel):
+    """CPU 使用情况：占用百分比与逻辑核心数。"""
+
+    percent: float
+    count: int | None
+
+
+class SystemMemoryInfo(BaseModel):
+    """内存使用情况（字节）。"""
+
+    total: int
+    available: int
+    percent: float
+
+
+class SystemDiskInfo(BaseModel):
+    """根分区磁盘使用情况（字节）。"""
+
+    total: int
+    used: int
+    free: int
+    percent: float
+
+
+class SystemResourcesResponse(BaseModel):
+    """系统资源使用情况响应。"""
+
+    cpu: SystemCpuInfo
+    memory: SystemMemoryInfo
+    disk: SystemDiskInfo
+    timestamp: str
+    error: str | None = None
+
+
+class SystemResourcesUnavailable(BaseModel):
+    """psutil 未安装时的资源响应。"""
+
+    error: str
+
+
+# 资源端点两种成功形态：正常采集 / psutil 缺失
+SystemResourcesPayload = SystemResourcesResponse | SystemResourcesUnavailable
 
 
 def _get_image_tag() -> str:
@@ -58,7 +153,7 @@ def _run_docker(args: list, timeout: int = 120) -> subprocess.CompletedProcess:
     )
 
 
-@router.get("/version")
+@router.get("/version", response_model=SystemVersionResponse)
 async def get_version(request: Request):
     """返回当前版本和镜像信息（公开接口）。
 
@@ -149,7 +244,7 @@ def _notify_update_failed(mgr: Any, error: str) -> None:
         logger.warning("镜像更新失败通知发送失败: %s", e)
 
 
-@router.post("/update")
+@router.post("/update", response_model=SystemUpdateResponse)
 @require_role("admin")
 async def update_container(request: Request, mgr=Depends(get_manager_dep)):
     """拉取最新镜像并检查是否有更新（仅管理员）。需挂载 /var/run/docker.sock。
@@ -206,7 +301,7 @@ async def update_container(request: Request, mgr=Depends(get_manager_dep)):
         raise HTTPException(500, f"更新失败: {e}")
 
 
-@router.get("/health")
+@router.get("/health", response_model=SystemHealthResponse)
 @require_role("admin")
 def system_health(request: Request, mgr=Depends(get_manager_dep)) -> dict:
     """系统健康检查。
@@ -256,7 +351,7 @@ def system_health(request: Request, mgr=Depends(get_manager_dep)) -> dict:
     return result
 
 
-@router.get("/resources")
+@router.get("/resources", response_model=SystemResourcesPayload)
 @require_role("admin")
 def system_resources(request: Request):
     """获取系统资源使用情况。"""

@@ -128,3 +128,6 @@ A: `--required-only` 参数仅检查 `required` 级别能力。CI 也仅对 `req
 ## 2026-10-31 A-6 统计脚本
 - scripts/notification_429_baseline.py 按渠道统计 total/failed/429；本地库仅参考。
 
+
+> **2026-11-02**：新增 CI 门禁 check_response_model_coverage.py（B 组 API 契约），gates.md 已同步。
+

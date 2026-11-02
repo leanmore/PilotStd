@@ -107,6 +107,6 @@ def test_endpoint_is_wired_with_hard_page_size_cap() -> None:
     src = (Path(__file__).resolve().parents[1] / "docker" / "api" / "notification_logs.py").read_text(
         encoding="utf-8"
     )
-    assert '@router.get("/api/notification/logs/{log_id}/failed-items")' in src, "明细端点未接线"
+    assert '@router.get("/api/notification/logs/{log_id}/failed-items"' in src, "明细端点未接线"
     assert "page_size: int = Query(20, ge=1, le=100)" in src, "明细端点必须有 page_size 限幅（≤100）"
     assert "page: int = Query(1, ge=1)" in src, "明细端点必须有 page 下界约束"

@@ -7,10 +7,12 @@ GET `/api/notification/spec`（可订阅事件清单，D5 新增）。
 
 import logging
 from datetime import datetime
+from typing import Any
 
 from fastapi import Depends, Request
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
+from pydantic import BaseModel
 
 from pilotstd.core.audit import write_audit
 from pilotstd.core.notification import NotificationManager
@@ -37,6 +39,58 @@ router = APIRouter()
 
 # 需掩码的字段名（由 channel_spec 声明派生；实测等于既有硬编码四项）
 _MASKED_FIELDS: frozenset[str] = masked_field_names()
+
+
+class QuietHoursView(BaseModel):
+    """静音时段只读回显（全局值，服务端抑制队列判定所用）。"""
+
+    enabled: bool
+    start: str
+    end: str
+
+
+class NotificationConfigResponse(BaseModel):
+    """通知配置读响应：全局开关、静音时段、四渠道配置视图（凭证已掩码）与事件规则。
+
+    `channels` 的内层键与 `rules` 的事件键均由 `channel_spec` / `event_spec` 声明**动态派生**，
+    故用 `dict[str, Any]` 原样透传，避免新增渠道/事件时被模型静默裁剪。
+    """
+
+    enabled: bool
+    quiet_hours: QuietHoursView
+    channels: dict[str, dict[str, Any]]
+    rules: dict[str, Any]
+
+
+class NotificationChannelsResponse(BaseModel):
+    """渠道与通知层级结构元数据（不含任何凭证值；`spec_hash` 供前端做内容级缓存失效）。"""
+
+    spec_hash: str
+    channels: list[dict[str, Any]]
+    notify_events: list[str]
+    event_class_map: dict[str, str]
+
+
+class NotificationSpecResponse(BaseModel):
+    """可订阅事件清单（顺序即事件规格声明顺序）。"""
+
+    events: list[str]
+
+
+class QuietHoursUpdateResponse(BaseModel):
+    """静音时段更新成功响应（回显落库后的生效值）。"""
+
+    ok: bool
+    enabled: bool
+    start: str
+    end: str
+
+
+class NotificationConfigUpdateResponse(BaseModel):
+    """通知配置保存成功响应（`warnings` 为凭证变更告警的失败提示）。"""
+
+    ok: bool
+    warnings: list[str]
 
 
 def _find_masked_field(body: dict, cred_helper: CredentialHelper | None) -> str:
@@ -109,7 +163,7 @@ def _diff_credential_changes(
 
 
 
-@router.get("/api/notification/config")
+@router.get("/api/notification/config", response_model=NotificationConfigResponse)
 def get_config(request: Request, mgr=Depends(get_manager_dep), user_id: int = Depends(_get_user_id)):
     """读取当前用户的渠道凭证配置。"""
     nmgr = mgr.notification_mgr
@@ -161,7 +215,7 @@ def get_config(request: Request, mgr=Depends(get_manager_dep), user_id: int = De
     }
 
 
-@router.get("/api/notification/channels")
+@router.get("/api/notification/channels", response_model=NotificationChannelsResponse)
 def get_notification_channels() -> dict:
     """渠道元数据（由 `channel_spec` 单一来源派生），供前端渲染渠道列表与配置表单。
 
@@ -175,7 +229,7 @@ def get_notification_channels() -> dict:
     return {"spec_hash": spec_hash(payload), **payload}
 
 
-@router.get("/api/notification/spec")
+@router.get("/api/notification/spec", response_model=NotificationSpecResponse)
 def get_notification_spec() -> dict:
     """可订阅事件清单（**唯一来源＝事件规格**）：供前端渲染事件选项。
 
@@ -185,7 +239,7 @@ def get_notification_spec() -> dict:
     return {"events": [s.key for s in EVENT_SPECS if s.subscribable]}
 
 
-@router.put("/api/notification/quiet-hours")
+@router.put("/api/notification/quiet-hours", response_model=QuietHoursUpdateResponse)
 def update_quiet_hours(body: dict, mgr=Depends(get_manager_dep)):
     """更新**全局**静音时段（服务端 `_suppression_queue` 判定所用）。
 
@@ -209,7 +263,7 @@ def update_quiet_hours(body: dict, mgr=Depends(get_manager_dep)):
     return {"ok": True, "enabled": enabled, "start": start, "end": end}
 
 
-@router.put("/api/notification/config")
+@router.put("/api/notification/config", response_model=NotificationConfigUpdateResponse)
 def update_config(
     request: Request,
     body: dict,

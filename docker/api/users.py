@@ -42,14 +42,43 @@ class ChangePasswordRequest(BaseModel):
     new_password: str
 
 
-@router.get("/api/users")
+class UserItem(BaseModel):
+    """用户列表条目：用户 id、用户名、角色与创建时间。"""
+
+    id: int
+    username: str
+    role: str
+    created_at: str = ""
+
+
+class UserListResponse(BaseModel):
+    """用户列表响应：users 为全部用户条目。"""
+
+    users: list[UserItem]
+
+
+class OkResponse(BaseModel):
+    """仅返回 ok 的通用成功响应。"""
+
+    ok: bool
+
+
+class ChangePasswordResponse(BaseModel):
+    """修改密码成功响应：ok、本次撤销的会话数与告警发送过程中的警告。"""
+
+    ok: bool
+    sessions_revoked: int
+    warnings: list[str]
+
+
+@router.get("/api/users", response_model=UserListResponse)
 @require_role("admin")
 def api_list_users(request: Request):
     """列出所有用户（仅管理员）。"""
     return {"users": list_users()}
 
 
-@router.post("/api/users")
+@router.post("/api/users", response_model=OkResponse)
 @require_role("admin")
 def api_add_user(request: Request, body: AddUserRequest):
     """添加用户（仅管理员）。
@@ -95,7 +124,7 @@ def api_add_user(request: Request, body: AddUserRequest):
     return {"ok": True}
 
 
-@router.delete("/api/users/{user_id}")
+@router.delete("/api/users/{user_id}", response_model=OkResponse)
 @require_role("admin")
 def api_delete_user(request: Request, user_id: int, mgr=Depends(get_manager_dep)):
     """删除用户（仅管理员，admin 用户不可删除）。
@@ -123,7 +152,7 @@ def api_delete_user(request: Request, user_id: int, mgr=Depends(get_manager_dep)
     return {"ok": True}
 
 
-@router.put("/api/users/password")
+@router.put("/api/users/password", response_model=ChangePasswordResponse)
 def api_change_password(request: Request, body: ChangePasswordRequest, mgr=Depends(get_manager_dep)):
     """修改当前登录用户的密码（自助操作，仅需登录认证）。
 

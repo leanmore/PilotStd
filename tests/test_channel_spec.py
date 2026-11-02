@@ -63,7 +63,7 @@ EXPECTED_CTOR = {
     "telegram": ("bot_token", "chat_id"),
 }
 EXPECTED_MASKED = {
-    "webhook_url",
+    "token",
     "bot_token",
     "secret",
     "corpsecret",
@@ -140,10 +140,10 @@ class TestSpecLiteralBaseline(unittest.TestCase):
         self.assertEqual(set(masked_field_names()), EXPECTED_MASKED)
 
     def test_mask_and_password_are_independent(self):
-        """`mask` 与 `password` 不是同一集合——`webhook_url` 掩码但用明文控件。"""
+        """`mask` 与 `password` 不是同一集合——`webhook_url` 可清空但用明文控件。"""
         webhook = spec_for("wechat").fields[0]
         self.assertEqual(webhook.name, "webhook_url")
-        self.assertTrue(webhook.mask, "webhook_url 必须在 API 响应中掩码")
+        self.assertFalse(webhook.mask, "webhook_url 需可清空，不能在 API 响应中掩码")
         self.assertFalse(webhook.password, "webhook_url 的输入控件是明文 InputText")
         corpsecret = spec_for("wechat").fields[3]
         self.assertEqual(corpsecret.name, "corpsecret")

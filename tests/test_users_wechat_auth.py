@@ -119,8 +119,17 @@ class TestUsersWechatAuth(unittest.TestCase):
 
     def test_admin_200(self):
         """wechat_ip/status admin → 200（require_role 放行）。"""
-        mock_mgr = self.client.app.dependency_overrides[get_manager_dep]()
-        mock_mgr.wechat_ip_service.get_status.return_value = {"ok": True}
+        mock_mgr = MagicMock()
+        mock_mgr.wechat_ip_service.get_status.return_value = {
+            "current_ip": "1.2.3.4",
+            "current_ip_known": True,
+            "last_ip": "1.2.3.4",
+            "ip_changed": False,
+            "cookie_valid": True,
+            "enabled": True,
+            "last_check_at": "2026-11-02T00:00:00",
+        }
+        self.client.app.dependency_overrides[get_manager_dep] = lambda: mock_mgr
 
         self._set_cookie("admin", with_session=True)
         r = self.client.get("/api/wechat-ip/status")

@@ -3,6 +3,7 @@ import logging
 
 from fastapi import Body, Depends, HTTPException
 from fastapi.routing import APIRouter
+from pydantic import BaseModel
 
 from pilotstd.core.path_guard import get_allowed_roots, validate_path_in_root
 from pilotstd.models import ParsedStdInfo
@@ -13,6 +14,18 @@ from ._pipeline import safe_update_step
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["archive"])
+
+
+class ArchiveResponse(BaseModel):
+    """归档结果：移动/失败/跳过计数与逐条处理明细。"""
+
+    moved: int = 0
+    failed: int = 0
+    skipped_exists: int = 0
+    word_mirrored: int = 0
+    skipped_source: int = 0
+    dedup_skipped: int = 0
+    details: list[str] = []
 
 
 def _config_root(mgr) -> str:
@@ -42,7 +55,7 @@ def _validate_source_path(path: str, config_root: str) -> None:
     raise HTTPException(status_code=400, detail=f"source_path outside allowed roots: {path}")
 
 
-@router.post("/api/archive")
+@router.post("/api/archive", response_model=ArchiveResponse)
 def archive_files(
     items: list[dict] = Body(..., embed=True),
     run_id: str = Body(..., embed=True),

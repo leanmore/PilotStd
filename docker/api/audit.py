@@ -7,9 +7,11 @@
 """
 
 import logging
+from typing import Any
 
 from fastapi import Query, Request
 from fastapi.routing import APIRouter
+from pydantic import BaseModel
 
 from pilotstd.core.audit import read_audit
 
@@ -22,7 +24,18 @@ router = APIRouter(tags=["audit"])
 _MAX_LIMIT = 500
 
 
-@router.get("/api/admin/audit")
+class AuditLogListResponse(BaseModel):
+    """审计日志分页响应：条目、本页数量、上限、偏移与是否还有更多。"""
+
+    # 明细字段的结构随操作类型变化（对象或原始字符串），故条目按动态字典返回
+    items: list[dict[str, Any]]
+    count: int
+    limit: int
+    offset: int
+    has_more: bool
+
+
+@router.get("/api/admin/audit", response_model=AuditLogListResponse)
 @require_role("admin")
 def get_audit_logs(
     request: Request,

@@ -6,6 +6,7 @@ import logging
 from fastapi import Depends, Query
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
+from pydantic import BaseModel
 
 from pilotstd.core import status as status_dict
 from pilotstd.core.db._constants import DatabaseError
@@ -16,11 +17,40 @@ from ..manager import get_manager_dep
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["standards"])
 
+
+class StandardStatusStatsResponse(BaseModel):
+    """标准状态计数响应：现行、已废止、未知三类。"""
+
+    active: int
+    inactive: int
+    unknown: int
+
+
+class StandardStatusItem(BaseModel):
+    """单个标准的状态条目：数据值 status（中文）与稳定英文键 status_key 并存。"""
+
+    id: int
+    standard_number: str
+    status: str
+    std_name: str
+    last_checked_at: str | None
+    check_count: int
+    status_key: str
+
+
+class StandardStatusListResponse(BaseModel):
+    """标准状态分页列表响应。"""
+
+    total: int
+    page: int
+    page_size: int
+    items: list[StandardStatusItem]
+
 # 对外 API 的合法状态取值（由状态字典派生；A 阶段 #32-A 建立、C 阶段继续作为契约常量）
 _VALID_STATUSES = status_dict.API_VALID_STATUSES
 
 
-@router.get("/api/standards/status/stats")
+@router.get("/api/standards/status/stats", response_model=StandardStatusStatsResponse)
 def get_status_stats(mgr=Depends(get_manager_dep)):
     """返回各状态的标准计数（现行/已废止/未知）。"""
     try:
@@ -39,7 +69,7 @@ def get_status_stats(mgr=Depends(get_manager_dep)):
         return JSONResponse({"error": f"查询失败: {e}"}, status_code=500)
 
 
-@router.get("/api/standards/status")
+@router.get("/api/standards/status", response_model=StandardStatusListResponse)
 def get_standards_status(
     status: str | None = Query(None, description="英文键（active/withdrawn/unknown）或历史中文值（现行/已废止/未知）"),
     standard_no: str | None = Query(None),

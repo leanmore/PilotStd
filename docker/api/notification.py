@@ -17,6 +17,7 @@ import logging
 
 from fastapi import Depends, Request
 from fastapi.routing import APIRouter
+from pydantic import BaseModel
 
 from pilotstd.core.notification import NotificationMessage
 from pilotstd.core.notification.channel_spec import CHANNEL_NAMES
@@ -40,7 +41,28 @@ router.include_router(notification_policy.router)
 # 认证由 AuthMiddleware 保证，用户间隔离通过 user_id=Depends(_get_user_id)。
 
 
-@router.post("/api/notification/test-event")
+class TestEventOkResponse(BaseModel):
+    """测试事件已受理结果（`queued=True` 表示 info 级别在静音时段被排队）。"""
+
+    ok: bool
+    queued: bool
+
+
+class TestEventErrorResponse(BaseModel):
+    """测试事件被拒绝的原因（通知已关闭 / 渠道未初始化 / 级别不合法）。"""
+
+    ok: bool
+    error: str
+
+
+class TestSendResponse(BaseModel):
+    """单渠道测试发送结果（发送成功时 `error` 为空串，失败时为原因文案）。"""
+
+    ok: bool
+    error: str
+
+
+@router.post("/api/notification/test-event", response_model=TestEventOkResponse | TestEventErrorResponse)
 def test_event(
     request: Request,
     body: dict,
@@ -83,7 +105,7 @@ def test_event(
     return {"ok": True, "queued": queued}
 
 
-@router.post("/api/notification/test")
+@router.post("/api/notification/test", response_model=TestSendResponse)
 def test_notification(request: Request, body: dict, nmgr=Depends(_get_notification_mgr)):
     """发送测试通知到指定渠道。
 

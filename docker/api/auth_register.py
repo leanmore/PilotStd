@@ -7,6 +7,7 @@ import time
 from fastapi import Form, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
+from pydantic import BaseModel
 
 from pilotstd.core.audit import write_audit
 from pilotstd.core.notification.security_notifier import client_ip
@@ -21,6 +22,16 @@ from ..auth import (
 from ..users import add_user, get_user_by_username, get_user_role, init_users_table
 
 router = APIRouter(tags=["auth"])
+
+
+class RegisterResponse(BaseModel):
+    """自助注册成功响应：账号身份与登录态（成功时另经 Set-Cookie 下发会话令牌）。"""
+
+    ok: bool
+    username: str
+    role: str
+    must_change_password: bool
+
 
 _ENABLE_REGISTRATION = os.environ.get("ENABLE_REGISTRATION", "false").lower() == "true"
 _registration_attempts: dict[str, list[float]] = {}
@@ -52,7 +63,7 @@ def _audit_registration(
     )
 
 
-@router.post("/api/auth/register")
+@router.post("/api/auth/register", response_model=RegisterResponse)
 def register(request: Request, username: str = Form(""), password: str = Form(...)):
     """用户自助注册 — ENABLE_REGISTRATION=true 时开放。
 

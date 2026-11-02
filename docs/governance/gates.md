@@ -718,3 +718,6 @@ B1（声明类 vs 实现类）已覆盖同一语义、且每次 CI 都在跑；�
 
 > **A-6 统计脚本（2026-10-31）**：scripts/notification_429_baseline.py 按渠道统计 total/failed/429；本地库结果仅作参考。
 
+
+> **2026-11-02 契约门禁**：CI 新增 check_response_model_coverage.py（全部 /api 路由必须声明 response_model，5 个流式/文件端点豁免）。
+

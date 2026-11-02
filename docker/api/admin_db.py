@@ -45,6 +45,20 @@ class DbQueryRequest(BaseModel):
     confirm_dangerous: bool = False
 
 
+# ── 响应模型 ──────────────────────────────────────────────
+
+
+class DbQueryResponse(BaseModel):
+    """Admin SQL 执行成功响应：结果行、行数、耗时与截断标记（非查询为 None）。"""
+
+    success: bool
+    rows: list[dict[str, Any]]
+    row_count: int
+    execution_time_ms: int
+    sql: str
+    truncated: bool | None
+
+
 # ──抽象语法树校验工具─────────────────────────────────
 
 
@@ -177,7 +191,7 @@ def _audit_and_respond(action: str, sql: str, params: list[Any], detail: dict, c
     return JSONResponse({"success": False, "error": msg, "code": code}, status_code=status)
 
 
-@router.post("/query")
+@router.post("/query", response_model=DbQueryResponse)
 @require_role(ADMIN_ROLE)
 def admin_db_query(req: DbQueryRequest, request: Request) -> dict[str, Any]:
     """Admin 数据库安全查询/操作端点。"""

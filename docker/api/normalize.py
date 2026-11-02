@@ -3,6 +3,7 @@ import logging
 
 from fastapi import Body, Depends, HTTPException
 from fastapi.routing import APIRouter
+from pydantic import BaseModel
 
 from pilotstd.models import ParsedStdInfo
 
@@ -11,6 +12,23 @@ from ._pipeline import safe_update_step
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["normalize"])
+
+# ════════════════════════════════════════════════════════════════ 分隔
+# 响应模型：与路由成功返回的字典键一一对应
+# ════════════════════════════════════════════════════════════════ 分隔
+
+
+class NormalizeResultItem(BaseModel):
+    """单条规范化结果：源文件路径与新文件名。"""
+
+    source_path: str
+    new_filename: str
+
+
+class NormalizeResponse(BaseModel):
+    """文件规范化响应：逐条源路径与新文件名的映射。"""
+
+    results: list[NormalizeResultItem]
 
 
 def _dict_to_parsed(item: dict) -> ParsedStdInfo:
@@ -63,7 +81,7 @@ def _dict_to_parsed(item: dict) -> ParsedStdInfo:
     )
 
 
-@router.post("/api/normalize")
+@router.post("/api/normalize", response_model=NormalizeResponse)
 def normalize_files(
     items: list[dict] = Body(..., embed=True),
     run_id: str = Body(..., embed=True),

@@ -7,6 +7,7 @@ import logging
 
 from fastapi import Depends, Request
 from fastapi.routing import APIRouter
+from pydantic import BaseModel
 
 from pilotstd.core.audit import get_current_user_id as audit_actor_id
 from pilotstd.core.audit import write_audit
@@ -20,11 +21,42 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["cache"])
 
 
+class CacheConfigResponse(BaseModel):
+    """缓存配置响应：最大容量、自动清理开关与清理比例。"""
+
+    max_size_mb: int
+    auto_cleanup: bool
+    cleanup_ratio: float
+
+
+class CacheConfigUpdateResponse(BaseModel):
+    """缓存配置保存结果。"""
+
+    ok: bool
+
+
+class CacheStatsResponse(BaseModel):
+    """缓存统计响应：总容量、配置参数与各缓存表按数据状态的行数。"""
+
+    total_size_mb: float
+    max_size_mb: int
+    auto_cleanup: bool
+    cleanup_ratio: float
+    tables: dict[str, dict[str, int]]
+
+
+class CacheCleanupResponse(BaseModel):
+    """缓存强制清理结果：ok 与清理后的统计。"""
+
+    ok: bool
+    stats: CacheStatsResponse
+
+
 def _get_cache_mgr(mgr=Depends(get_manager_dep)) -> CacheManager:
     return CacheManager(mgr.db)
 
 
-@router.get("/api/cache/config")
+@router.get("/api/cache/config", response_model=CacheConfigResponse)
 @require_role("admin")
 def get_config(request: Request, mgr=Depends(get_manager_dep)):
     """获取缓存配置，返回 max_size_mb、auto_cleanup、cleanup_ratio 等参数。"""
@@ -32,7 +64,7 @@ def get_config(request: Request, mgr=Depends(get_manager_dep)):
     return cm.get_config()
 
 
-@router.put("/api/cache/config")
+@router.put("/api/cache/config", response_model=CacheConfigUpdateResponse)
 @require_role("admin")
 def put_config(request: Request, body: dict, mgr=Depends(get_manager_dep)):
     """保存缓存配置，支持更新 max_size_mb、auto_cleanup、cleanup_ratio。
@@ -46,7 +78,7 @@ def put_config(request: Request, body: dict, mgr=Depends(get_manager_dep)):
     return {"ok": True}
 
 
-@router.get("/api/cache/stats")
+@router.get("/api/cache/stats", response_model=CacheStatsResponse)
 @require_role("admin")
 def get_stats(request: Request, mgr=Depends(get_manager_dep)):
     """获取缓存统计信息，包括当前大小、文件数、命中率等。"""
@@ -54,7 +86,7 @@ def get_stats(request: Request, mgr=Depends(get_manager_dep)):
     return cm.get_stats()
 
 
-@router.post("/api/cache/cleanup")
+@router.post("/api/cache/cleanup", response_model=CacheCleanupResponse)
 @require_role("admin")
 def trigger_cleanup(request: Request, mgr=Depends(get_manager_dep)):
     """手动触发缓存清理（强制模式），返回清后统计。仅管理员可操作。

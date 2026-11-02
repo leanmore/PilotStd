@@ -1,15 +1,58 @@
 # 用户配置 API — 统一偏好设置 + 已废弃的 layout/settings 别名
 import logging
+from typing import Any
 
 from fastapi import Depends, Request
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
+from pydantic import BaseModel
 
 from ..auth import get_current_user_id
 from ..manager import get_manager_dep
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["user"])
+
+
+class UserPreferencesResponse(BaseModel):
+    """全部首选项响应：preferences 为 key → 任意 JSON 值 的键值对字典。"""
+
+    preferences: dict[str, Any]
+
+
+class UserPreferenceResponse(BaseModel):
+    """单个首选项响应：key 与对应值；键不存在时 value 为 None 且无 updated_at。"""
+
+    key: str
+    value: Any = None
+    updated_at: str | None = None
+
+
+class UserPreferenceSaveResponse(BaseModel):
+    """单个首选项保存/删除成功响应：回显被操作的键。"""
+
+    ok: bool
+    key: str
+
+
+class UserPreferencesBatchSaveResponse(BaseModel):
+    """批量首选项保存成功响应：返回本次实际写入的键数量。"""
+
+    ok: bool
+    count: int
+
+
+class UserSettingsResponse(BaseModel):
+    """[DEPRECATED] 统一设置响应：仪表盘布局（JSON 字符串）+ 全部首选项。"""
+
+    layout: str | None = None
+    preferences: dict[str, Any]
+
+
+class OkResponse(BaseModel):
+    """仅返回 ok 的通用成功响应。"""
+
+    ok: bool
 
 
 def _deprecated_warn(request: Request, endpoint: str, replacement: str) -> None:
@@ -24,13 +67,13 @@ def _deprecated_warn(request: Request, endpoint: str, replacement: str) -> None:
 # ──统一首选项（22）──────────────────────
 
 
-@router.get("/api/user/preferences")
+@router.get("/api/user/preferences", response_model=UserPreferencesResponse)
 def get_all_preferences(request: Request, user_id: int = Depends(get_current_user_id), mgr=Depends(get_manager_dep)):
     """获取当前用户的所有首选项（键值对字典）。"""
     return mgr.user_service.get_preferences(user_id)
 
 
-@router.get("/api/user/preferences/{key:path}")
+@router.get("/api/user/preferences/{key:path}", response_model=UserPreferenceResponse)
 def get_preference(
     key: str, request: Request, user_id: int = Depends(get_current_user_id), mgr=Depends(get_manager_dep)
 ):
@@ -38,7 +81,7 @@ def get_preference(
     return mgr.user_service.get_preference(user_id, key)
 
 
-@router.put("/api/user/preferences/{key:path}")
+@router.put("/api/user/preferences/{key:path}", response_model=UserPreferenceSaveResponse)
 def put_preference(
     key: str, data: dict, request: Request, user_id: int = Depends(get_current_user_id), mgr=Depends(get_manager_dep)
 ):
@@ -48,7 +91,7 @@ def put_preference(
     return mgr.user_service.save_preference(user_id, key, data["value"])
 
 
-@router.put("/api/user/preferences")
+@router.put("/api/user/preferences", response_model=UserPreferencesBatchSaveResponse)
 def put_preferences_batch(
     data: dict, request: Request, user_id: int = Depends(get_current_user_id), mgr=Depends(get_manager_dep)
 ):
@@ -60,7 +103,7 @@ def put_preferences_batch(
     return result
 
 
-@router.delete("/api/user/preferences/{key:path}")
+@router.delete("/api/user/preferences/{key:path}", response_model=UserPreferenceSaveResponse)
 def delete_preference(
     key: str, request: Request, user_id: int = Depends(get_current_user_id), mgr=Depends(get_manager_dep)
 ):
@@ -71,14 +114,14 @@ def delete_preference(
 # ──统一设置（已废弃：请使用 /api/user/preferences/{key}）──
 
 
-@router.get("/api/user/settings")
+@router.get("/api/user/settings", response_model=UserSettingsResponse)
 def get_settings(request: Request, user_id: int = Depends(get_current_user_id), mgr=Depends(get_manager_dep)):
     """[DEPRECATED] 获取统一设置 — 请使用 GET /api/user/preferences/{key}"""
     _deprecated_warn(request, "/api/user/settings", "GET /api/user/preferences/{key}")
     return mgr.user_service.get_user_settings(user_id)
 
 
-@router.put("/api/user/settings")
+@router.put("/api/user/settings", response_model=OkResponse)
 def put_settings(
     data: dict, request: Request, user_id: int = Depends(get_current_user_id), mgr=Depends(get_manager_dep)
 ):

@@ -308,3 +308,6 @@ PKCS#7 **按 32 字节块**填充、解密后校验 `receiveid`（企微为 corp
 > 2026-10-21：`announcement_record` 增加 `language`（语种）/`foreign_name`（外文名称），唯一键扩展为 `(source_site,pid,standard_number,language)`；v70 迁移重建表。
 
 > 2026-10-21：`announcement_record` 增加 `language`（语种）/`foreign_name`（外文名称），唯一键扩展为 `(source_site,pid,standard_number,language)`；v70 迁移重建表。
+
+> **2026-11-02 契约收口**：全部 /api 路由已声明 response_model（5 个流式/文件端点豁免）；CI 新增 check_response_model_coverage；前后端 interface 子集测试 tests/test_frontend_contract.py。
+

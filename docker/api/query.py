@@ -2,9 +2,11 @@
 import json
 import os
 from dataclasses import asdict
+from typing import Any
 
 from fastapi import Body, Depends
 from fastapi.routing import APIRouter
+from pydantic import BaseModel
 
 from pilotstd.core.status import status_key
 
@@ -20,7 +22,60 @@ QUERY_RESULTS_FILE = os.path.join(
 )
 
 
-@router.post("/api/query")
+# ── 响应模型（成功分支契约）──
+
+
+class QueryStatsResponse(BaseModel):
+    """批量查询统计：总数、命中、可下载与未命中计数。"""
+
+    total: int
+    found: int
+    downloadable: int
+    not_found: int
+
+
+class QueryResultItem(BaseModel):
+    """单条查询结果：标准号、名称、有效性状态、来源与可下载标记。"""
+
+    standard_number: str
+    standard_name: str = ""
+    status: str = ""
+    replaces: str = ""
+    implementation_date: str = ""
+    responsible_dept: str = ""
+    is_adopted: bool = False
+    match_status: str = ""
+    source_site: str = ""
+    source: str = ""
+    publish_date: str = ""
+    abolition_date: str = ""
+    hcno: str = ""
+    split_into: str = ""
+    is_downloadable: bool = True
+    error_message: str = ""
+
+
+class QueryResponse(BaseModel):
+    """批量查询响应：统计与逐条查询结果。"""
+
+    stats: QueryStatsResponse
+    results: list[QueryResultItem]
+
+
+class SaveQueryResponse(BaseModel):
+    """查询结果保存响应：是否成功与保存条数。"""
+
+    ok: bool
+    count: int
+
+
+class QueryResultsResponse(BaseModel):
+    """已保存查询结果响应：磁盘文件中的结果条目列表。"""
+
+    results: list[dict[str, Any]]
+
+
+@router.post("/api/query", response_model=QueryResponse)
 def query_standards(
     numbers: list[str] = Body(embed=True),
     force_refresh: bool = False,
@@ -69,7 +124,7 @@ def query_standards(
     }
 
 
-@router.post("/api/query/save")
+@router.post("/api/query/save", response_model=SaveQueryResponse)
 def save_query_results(results: list[dict] = Body()):
     """保存查询结果到持久化文件，供下载/规范化/待确认页面导入。"""
     os.makedirs(os.path.dirname(QUERY_RESULTS_FILE), exist_ok=True)
@@ -78,7 +133,7 @@ def save_query_results(results: list[dict] = Body()):
     return {"ok": True, "count": len(results)}
 
 
-@router.get("/api/query/results")
+@router.get("/api/query/results", response_model=QueryResultsResponse)
 def get_query_results():
     """读取已保存的查询结果。
 

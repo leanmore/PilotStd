@@ -45,7 +45,66 @@ class ValidityConfigUpdate(BaseModel):
         return v
 
 
-@router.get("/api/validity/config")
+class ValidityConfigResponse(BaseModel):
+    """时效性检查配置响应：周期、频率、执行时间与运行期状态。"""
+
+    batch_size: int
+    batch_interval: int
+    check_ratio: int
+    total_weeks: int
+    frequency_weeks: int
+    first_weekday: int
+    execute_time: str
+    first_execution: str | None
+    next_run: str | None
+    checked_count: int
+    round_completed: bool
+    frequency: str
+    update_interval: int
+
+
+class ValidityConfigUpdateResponse(BaseModel):
+    """时效性检查配置更新结果：是否成功与提示信息。"""
+
+    ok: bool
+    message: str
+
+
+class ValidityRunResponse(BaseModel):
+    """立即执行时效性检查的结果：检查数量与变化数量。"""
+
+    ok: bool
+    checked: int
+    changed: int
+
+
+class ValidityHistoryItem(BaseModel):
+    """单日时效性检查历史：日期、检查数、变化数与状态。"""
+
+    check_date: str
+    checked_count: int
+    changed_count: int | None
+    status: str
+
+
+class ValidityHistoryResponse(BaseModel):
+    """时效性检查历史分页响应：总数、页码、每页条数与记录。"""
+
+    total: int
+    page: int
+    page_size: int
+    items: list[ValidityHistoryItem]
+
+
+class ValidityEnqueueResponse(BaseModel):
+    """时效性检查入队结果：是否成功、已入队数量与提交总数。"""
+
+    ok: bool
+    enqueued: int
+    total: int
+
+
+@router.get("/api/validity/config", response_model=ValidityConfigResponse)
 def get_validity_config(mgr=Depends(get_manager_dep)):
     """读取时效性检查配置，未设置时返回默认值。
 
@@ -88,7 +147,7 @@ def _live_validity_next_run() -> str | None:
         return None
 
 
-@router.put("/api/validity/config")
+@router.put("/api/validity/config", response_model=ValidityConfigUpdateResponse)
 def update_validity_config(body: dict, mgr=Depends(get_manager_dep)):
     """更新时效性检查配置。
 
@@ -190,7 +249,7 @@ def update_validity_config(body: dict, mgr=Depends(get_manager_dep)):
     return {"ok": True, "message": "配置已更新"}
 
 
-@router.post("/api/validity/run")
+@router.post("/api/validity/run", response_model=ValidityRunResponse)
 def run_validity_check(mgr=Depends(get_manager_dep)):
     """立即触发时效性检查——调用底层 run_validity_check()。"""
     from pilotstd.core.validity_checker import run_validity_check as do_check
@@ -210,7 +269,7 @@ def run_validity_check(mgr=Depends(get_manager_dep)):
         return JSONResponse({"error": result.get("error", "执行失败")}, status_code=500)
 
 
-@router.get("/api/validity/history")
+@router.get("/api/validity/history", response_model=ValidityHistoryResponse)
 def get_validity_history(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
@@ -220,7 +279,7 @@ def get_validity_history(
     return mgr.validity_service.get_history(page, page_size)
 
 
-@router.post("/api/validity/enqueue")
+@router.post("/api/validity/enqueue", response_model=ValidityEnqueueResponse)
 def enqueue_validity_check(body: dict, mgr=Depends(get_manager_dep)):
     """将指定文件路径加入时效性检查队列。"""
     file_paths: list[str] = body.get("file_paths", []) if isinstance(body.get("file_paths"), list) else []

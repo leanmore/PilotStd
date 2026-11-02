@@ -90,7 +90,13 @@ class TestCacheAuth(unittest.TestCase):
         """4 个接口 admin → 200（require_role 放行 admin）。"""
         mock_cm = mock_cm_cls.return_value
         mock_cm.get_config.return_value = {"max_size_mb": 100, "auto_cleanup": True, "cleanup_ratio": 0.8}
-        mock_cm.get_stats.return_value = {"size_mb": 0, "file_count": 0}
+        mock_cm.get_stats.return_value = {
+            "total_size_mb": 0.0,
+            "max_size_mb": 100,
+            "auto_cleanup": True,
+            "cleanup_ratio": 0.8,
+            "tables": {},
+        }
         mock_cm.set_config.return_value = None
         mock_cm.cleanup.return_value = None
 

@@ -508,3 +508,6 @@ pilotstd/core/
 
 > **A 组通知契约（2026-11-02）**：webhook_url 三渠道改 mask=false（空串可清空）；wechat.token 改 text_password+mask；diff 复用 CLEARABLE_EMPTY_FIELDS。
 
+
+> **2026-11-02 B 组**：新增 _announce_detail_models.py 承载公告明细响应模型，避免 announce_detail.py 越过 G-010。
+

@@ -6,6 +6,7 @@ from datetime import datetime
 from fastapi import Depends, Request
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
+from pydantic import BaseModel
 
 from pilotstd.core.audit import get_current_user_id as audit_actor_id
 from pilotstd.core.audit import write_audit
@@ -16,6 +17,32 @@ from ..manager import get_manager_dep
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["backup"])
+
+
+# 单个备份文件：名称、大小、创建时间
+class BackupItem(BaseModel):
+    """单个备份文件信息：文件名、字节大小与创建时间。"""
+
+    id: str
+    name: str
+    size: int
+    size_mb: float
+    created_at: str
+
+
+class BackupListResponse(BaseModel):
+    """备份文件列表响应。"""
+
+    items: list[BackupItem]
+    count: int
+
+
+# 手动备份创建结果
+class BackupCreateResponse(BaseModel):
+    """手动备份创建成功响应。"""
+
+    ok: bool
+    message: str
 
 
 def _get_backup_dir(mgr) -> str:
@@ -32,7 +59,7 @@ def _get_backup_dir(mgr) -> str:
 # 读操作端点（list_backups）不写审计——只读不改变状态，无留痕价值。
 
 
-@router.get("/api/backup/list")
+@router.get("/api/backup/list", response_model=BackupListResponse)
 @require_role("admin")
 def list_backups(request: Request, mgr=Depends(get_manager_dep)):
     """获取所有备份列表（**仅管理员**）。
@@ -68,7 +95,7 @@ def list_backups(request: Request, mgr=Depends(get_manager_dep)):
     return {"items": backups, "count": len(backups)}
 
 
-@router.post("/api/backup/create")
+@router.post("/api/backup/create", response_model=BackupCreateResponse)
 @require_role("admin")
 def create_backup(request: Request, mgr=Depends(get_manager_dep)):
     """手动创建数据库备份（**仅管理员**）。

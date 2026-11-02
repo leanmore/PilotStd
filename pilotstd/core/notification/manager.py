@@ -422,5 +422,13 @@ class NotificationManager:
     def get_policies(self, user_id: int) -> list[dict[str, Any]]:
         return self._policy.get_policies(user_id)
 
-    def save_policy(self, user_id: int, channel: str, enabled: bool | None, events: list[str] | None) -> None:
-        self._policy.save_policy(user_id, channel, enabled, events)
+    def save_policy(
+        self,
+        user_id: int,
+        channel: str,
+        enabled: bool | None,
+        events: list[str] | None,
+        event_classes: list[str] | None = None,
+    ) -> None:
+        """保存某用户渠道策略（事件 + 类别双层）。"""
+        self._policy.save_policy(user_id, channel, enabled, events, event_classes)

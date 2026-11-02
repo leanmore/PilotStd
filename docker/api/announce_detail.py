@@ -5,12 +5,32 @@ from urllib.parse import urlparse
 
 from fastapi import BackgroundTasks, Depends, HTTPException, Query
 from fastapi.routing import APIRouter
+from pydantic import BaseModel
 
 from pilotstd.announcement._content_cleaner import clean_announcement_content  # 防绕过：确保写入前清洗
 from pilotstd.constants.announce_types import SOURCE_SITE_TO_ANNC as SOURCE_MAP
 
 from ..manager import get_manager_dep
+from ._announce_detail_models import (
+    AnnouncementBatchApproveResponse,
+    AnnouncementDetailLiteResponse,
+    AnnouncementDetailResponse,
+    AnnouncementParseResponse,
+    AnnouncementParseStatusResponse,
+    AnnouncementRecordsPageResponse,
+    AnnouncementReparseResponse,
+    AnnouncementSourceHeaderItem,
+)
 from ._announce_detail_parse import _now_iso, _parse_attachment_bg
+
+
+class AnnouncementUpdateResponse(BaseModel):
+    """公告记录单行修改结果。"""
+
+    id: int
+    status: str
+    updated_at: str
+
 
 router = APIRouter(tags=["announce"])
 logger = logging.getLogger(__name__)
@@ -65,6 +85,11 @@ def get_site_name(url: str) -> str:
     return domain
 
 
+# ════════════════════════════════════════════════════════════════ 分隔
+# 响应模型：与各路由成功返回的字典键一一对应（错误分支原样返回，不参与校验）
+# ════════════════════════════════════════════════════════════════ 分隔
+
+
 
 
 # ════════════════════════════════════════════════════════════════ 分隔
@@ -72,7 +97,7 @@ def get_site_name(url: str) -> str:
 # ════════════════════════════════════════════════════════════════ 分隔
 
 
-@router.get("/api/announcements/{announce_no}/records")
+@router.get("/api/announcements/{announce_no}/records", response_model=AnnouncementRecordsPageResponse)
 def get_announcement_records_paginated(
     announce_no: str,
     page: int = Query(1, ge=1, description="页码，从 1 开始"),
@@ -143,7 +168,7 @@ def _fetch_announcement_records(db, announce_no: str, source_site: str) -> list[
     return rows
 
 
-@router.get("/api/announcements/{announce_no}")
+@router.get("/api/announcements/{announce_no}", response_model=AnnouncementDetailResponse)
 def get_announcement_detail(
     announce_no: str,
     source: str | None = Query(None, description="来源标识（annc_gb/annc_hb/annc_db）"),
@@ -236,7 +261,7 @@ def get_announcement_detail(
 # ════════════════════════════════════════════════════════════════ 分隔
 
 
-@router.get("/api/announcements/{announce_no}/lite")
+@router.get("/api/announcements/{announce_no}/lite", response_model=AnnouncementDetailLiteResponse)
 def get_announcement_detail_lite(
     announce_no: str,
     source: str | None = Query(None, description="来源标识（annc_gb/annc_hb/annc_db）"),
@@ -328,7 +353,7 @@ def get_announcement_detail_lite(
 # ════════════════════════════════════════════════════════════════ 分隔
 
 
-@router.get("/api/announcements/by-no/{announce_no}")
+@router.get("/api/announcements/by-no/{announce_no}", response_model=list[AnnouncementSourceHeaderItem])
 def get_announcement_by_no(announce_no: str, mgr=Depends(get_manager_dep)):
     """旧链接兼容：返回该编号下所有来源的公告头列表。"""
     db = mgr.db
@@ -344,7 +369,11 @@ def get_announcement_by_no(announce_no: str, mgr=Depends(get_manager_dep)):
 # ════════════════════════════════════════════════════════════════ 分隔
 
 
-@router.post("/api/announcements/{announce_no}/parse")
+@router.post(
+    "/api/announcements/{announce_no}/parse",
+    response_model=AnnouncementParseResponse,
+    response_model_exclude_none=True,
+)
 def trigger_parse(
     announce_no: str,
     background_tasks: BackgroundTasks,
@@ -427,7 +456,7 @@ def trigger_parse(
 # ════════════════════════════════════════════════════════════════ 分隔
 
 
-@router.post("/api/announcements/{announce_no}/reparse")
+@router.post("/api/announcements/{announce_no}/reparse", response_model=AnnouncementReparseResponse)
 def reparse_from_source(
     announce_no: str,
     source: str | None = Query(None, description="来源标识（annc_gb/annc_hb/annc_db）"),
@@ -442,7 +471,7 @@ def reparse_from_source(
     return result
 
 
-@router.get("/api/announcements/{announce_no}/parse-status")
+@router.get("/api/announcements/{announce_no}/parse-status", response_model=AnnouncementParseStatusResponse)
 def get_parse_status(
     announce_no: str,
     source: str | None = Query(None, description="来源标识（annc_gb/annc_hb/annc_db）"),
@@ -472,7 +501,7 @@ def get_parse_status(
 # ════════════════════════════════════════════════════════════════ 分隔
 
 
-@router.patch("/api/announcement-record/{record_id}")
+@router.patch("/api/announcement-record/{record_id}", response_model=AnnouncementUpdateResponse)
 def update_record(record_id: int, data: dict, mgr=Depends(get_manager_dep)):
     """前端双击单元格后调用，保存单行修改。"""
     db = mgr.db
@@ -513,7 +542,7 @@ def update_record(record_id: int, data: dict, mgr=Depends(get_manager_dep)):
 # ════════════════════════════════════════════════════════════════ 分隔
 
 
-@router.post("/api/announcement-record/batch-approve")
+@router.post("/api/announcement-record/batch-approve", response_model=AnnouncementBatchApproveResponse)
 def batch_approve(data: dict, mgr=Depends(get_manager_dep)):
     """批量确认：将选中记录状态改为 approved。事务保证原子性。"""
     db = mgr.db

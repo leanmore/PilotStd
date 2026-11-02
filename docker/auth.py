@@ -10,6 +10,7 @@ from fastapi import Form, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
 from jose import JWTError, jwt
+from pydantic import BaseModel
 
 from pilotstd import ADMIN_ROLE
 from pilotstd.core.audit import write_audit
@@ -43,6 +44,30 @@ from .users import (
 
 # 登录表一次性初始化标志（login() 用；属登录流程状态，不随后端常量外移）
 _init_done = False
+
+
+class LoginResponse(BaseModel):
+    """登录成功响应。"""
+
+    ok: bool
+    username: str
+    role: str
+    must_change_password: bool
+
+
+class AuthMeResponse(BaseModel):
+    """当前登录用户身份。"""
+
+    id: int
+    username: str
+    role: str
+
+
+class LogoutResponse(BaseModel):
+    """登出响应。"""
+
+    ok: bool
+
 
 router = APIRouter(tags=["auth"])
 logger = logging.getLogger(__name__)
@@ -284,7 +309,7 @@ def _is_https(request: Request) -> bool:
     return cast(bool, forwarded == "https")
 
 
-@router.post("/api/login")
+@router.post("/api/login", response_model=LoginResponse)
 def login(
     request: Request,
     username: str = Form(""),
@@ -344,7 +369,7 @@ def login(
     return resp
 
 
-@router.get("/api/auth/me")
+@router.get("/api/auth/me", response_model=AuthMeResponse)
 def auth_me(request: Request):
     """返回当前登录用户的身份信息（用户名 + 角色），供前端权限渲染用。
 
@@ -375,7 +400,7 @@ def auth_me(request: Request):
     return {"username": fallback_user["username"] if fallback_user else "", "role": role or ""}
 
 
-@router.post("/api/logout")
+@router.post("/api/logout", response_model=LogoutResponse)
 def logout(request: Request):
     """用户登出：从会话存储中移除 token，清除客户端 Cookie。"""
     token = request.cookies.get(COOKIE_NAME)

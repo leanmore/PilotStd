@@ -1,4 +1,5 @@
 // web/src/api/query.ts — 查询与待确认
+import type { AxiosResponse } from 'axios'
 import http from './http'
 import type { QueryResponse, PendingItem } from '../types/api'
 import type { RouteTag } from '../types/route-tag'
@@ -6,11 +7,16 @@ import type { RouteTag } from '../types/route-tag'
 export const postQuery = async (numbers: string[], forceRefresh: boolean = false, runId?: string): Promise<QueryResponse> =>
   (await http.post('/query', { numbers, run_id: runId }, { params: forceRefresh ? { force_refresh: true } : {} })).data
 
-export const saveQueryResults = async (results: QueryResponse['results']): Promise<{ ok?: boolean }> =>
+export const saveQueryResults = async (results: QueryResponse['results']): Promise<{ ok?: boolean; count?: number }> =>
   (await http.post('/query/save', results)).data
 
-export const getQueryResults = (options?: { routeTag?: RouteTag }) =>
-  http.get('/query/results', options)
+export interface QueryResultsResponse {
+  results: QueryResponse['results']
+}
+
+export const getQueryResults = (
+  options?: { routeTag?: RouteTag },
+): Promise<AxiosResponse<QueryResultsResponse>> => http.get<QueryResultsResponse>('/query/results', options)
 
 export const getPendingItems = async (): Promise<{ items: PendingItem[] }> =>
   (await http.get('/pending')).data

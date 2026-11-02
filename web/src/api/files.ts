@@ -9,7 +9,11 @@ export const getFiles = async (path: string, routeTag?: RouteTag): Promise<ListF
 export const postScan = async (path: string, recursive: boolean = true, runId?: string): Promise<ScanResponse> =>
   (await http.post('/scan', { run_id: runId || null }, { params: { path, recursive: String(recursive) } })).data
 
-export const postNormalize = async (items: NormalizeResult[], runId: string): Promise<{ results: NormalizeResult[] }> =>
+export interface NormalizeResponse {
+  results: NormalizeResult[]
+}
+
+export const postNormalize = async (items: NormalizeResult[], runId: string): Promise<NormalizeResponse> =>
   (await http.post('/normalize', { items, run_id: runId })).data
 
 export const postArchive = async (items: NormalizeResult[], word_source_root?: string, runId?: string): Promise<SuccessResponse> =>

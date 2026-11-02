@@ -81,6 +81,74 @@ class BatchStatusRequest(BaseModel):
     record_ids: List[int] = Field(..., max_length=500)
 
 
+# ── 响应模型（成功分支契约；错误分支仍走 HTTPException/JSONResponse）──
+
+
+class FavoriteAddResponse(BaseModel):
+    """收藏创建成功响应：状态、收藏 ID；已存在收藏时附当前状态。"""
+
+    status: str
+    favorite_id: int
+    current_status: Optional[str] = None
+
+
+class FavoriteRemoveResponse(BaseModel):
+    """取消收藏成功响应：处理结果状态；无法立即中断或已归档时附提示。"""
+
+    status: str
+    note: Optional[str] = None
+
+
+class FavoriteListItem(BaseModel):
+    """收藏列表单条：收藏关系、公告记录与最新下载队列状态。"""
+
+    id: int
+    user_id: int
+    record_id: int
+    status: str
+    local_path: Optional[str] = None
+    error_message: Optional[str] = None
+    created_at: str
+    updated_at: str
+    standard_type: str
+    standard_number: Optional[str] = None
+    announce_no: Optional[str] = None
+    standard_name: str
+    download_status: Optional[str] = None
+    download_error: Optional[str] = None
+    last_attempt: Optional[str] = None
+    download_updated_at: Optional[str] = None
+
+
+class FavoriteListResponse(BaseModel):
+    """收藏列表响应：当前用户的收藏条目列表。"""
+
+    favorites: List[FavoriteListItem]
+
+
+class FavoritesExportResponse(BaseModel):
+    """收藏导出 JSON 分支响应：导出条目列表（CSV 分支为流式表格）。"""
+
+    favorites: List[FavoriteListItem]
+
+
+class FavoriteStatusItem(BaseModel):
+    """批量收藏状态单条：收藏状态与下载队列四字段进度。"""
+
+    favorite_id: int
+    status: str
+    download_status: Optional[str] = None
+    download_error: Optional[str] = None
+    last_attempt: Optional[str] = None
+    download_updated_at: Optional[str] = None
+
+
+class FavoriteStatusBatchResponse(BaseModel):
+    """批量收藏状态响应：以 record_id 字符串为键，未收藏的记录值为 null。"""
+
+    statuses: Dict[str, Optional[FavoriteStatusItem]]
+
+
 # ════════════════════════════════════════════════════════════════ 分隔
 # 内部辅助
 # ════════════════════════════════════════════════════════════════ 分隔
@@ -123,7 +191,7 @@ def _find_duplicate_favorite(
 # ════════════════════════════════════════════════════════════════ 分隔
 
 
-@router.post("/api/favorites")
+@router.post("/api/favorites", response_model=FavoriteAddResponse, response_model_exclude_none=True)
 def add_favorite(
     data: FavoriteCreate,
     user_id: int = Depends(get_current_user_id),
@@ -257,7 +325,11 @@ def _notify_favorite_created(mgr, user_id: int, payload: dict) -> None:
 # ════════════════════════════════════════════════════════════════ 分隔
 
 
-@router.delete("/api/favorites/{record_id}")
+@router.delete(
+    "/api/favorites/{record_id}",
+    response_model=FavoriteRemoveResponse,
+    response_model_exclude_none=True,
+)
 def remove_favorite(
     record_id: int,
     user_id: int = Depends(get_current_user_id),
@@ -314,7 +386,7 @@ _DOWNLOAD_FIELDS = (
 )
 
 
-@router.get("/api/favorites")
+@router.get("/api/favorites", response_model=FavoriteListResponse)
 def list_favorites(
     user_id: int = Depends(get_current_user_id),
     status: Optional[str] = None,
@@ -359,7 +431,7 @@ def list_favorites(
 # ════════════════════════════════════════════════════════════════ 分隔
 
 
-@router.post("/api/favorites/batch-status")
+@router.post("/api/favorites/batch-status", response_model=FavoriteStatusBatchResponse)
 def batch_get_favorite_status(
     req: BatchStatusRequest,
     user_id: int = Depends(get_current_user_id),
@@ -404,7 +476,7 @@ def batch_get_favorite_status(
 # ════════════════════════════════════════════════════════════════ 分隔
 
 
-@router.get("/api/favorites/export")
+@router.get("/api/favorites/export", response_model=FavoritesExportResponse)
 def export_favorites(
     user_id: int = Depends(get_current_user_id),
     format: str = Query("csv", description="csv 或 json"),

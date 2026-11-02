@@ -3,7 +3,14 @@ import http from './http'
 import type { RouteTag } from '../types/route-tag'
 import type { UserListResponse, SuccessResponse } from '../types/api'
 
-export const login = async (username: string, password: string): Promise<SuccessResponse> =>
+export interface LoginResponse {
+  ok: boolean
+  username: string
+  role: string
+  must_change_password: boolean
+}
+
+export const login = async (username: string, password: string): Promise<LoginResponse> =>
   (await http.post('/login', new URLSearchParams({ username, password }))).data
 
 export const getUsers = async (routeTag?: RouteTag): Promise<UserListResponse> =>

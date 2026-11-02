@@ -5,6 +5,7 @@ import os
 from fastapi import Depends
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
+from pydantic import BaseModel
 
 from pilotstd.core.path_guard import get_allowed_roots, validate_path_in_root
 
@@ -13,6 +14,12 @@ from .models import ListFilesResponse
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["organize"])
+
+
+class CleanEmptyResponse(BaseModel):
+    """清理空目录响应：本次删除的空目录数量。"""
+
+    cleaned: int
 
 
 def _validate_path(user_path: str, cfg) -> str:
@@ -69,7 +76,7 @@ def list_files(path: str = "/standards", mgr=Depends(get_manager_dep)):
     }
 
 
-@router.post("/api/clean-empty")
+@router.post("/api/clean-empty", response_model=CleanEmptyResponse)
 def clean_empty_dirs(path: str = "/standards", mgr=Depends(get_manager_dep)):
     """清除指定目录下的所有空文件夹。"""
     try:

@@ -3,6 +3,7 @@ from typing import Optional
 
 from fastapi import Body, Depends, File, Form, HTTPException, UploadFile
 from fastapi.routing import APIRouter
+from pydantic import BaseModel
 
 from pilotstd.core.notification.batch import batch_scope
 
@@ -12,7 +13,50 @@ from ._pipeline import safe_update_step
 router = APIRouter(tags=["download"])
 
 
-@router.post("/api/download")
+# ── 响应模型（成功分支契约；错误分支仍走 HTTPException）──
+
+
+class DownloadResultItem(BaseModel):
+    """单条下载任务结果：标准号、标准名、状态、保存路径与错误信息。"""
+
+    standard_number: str
+    standard_name: str
+    status: str
+    saved_path: str
+    error: str | None = None
+
+
+class DownloadStatsResponse(BaseModel):
+    """批量下载统计：总数与成功/失败/跳过计数。"""
+
+    total: int
+    success: int
+    failed: int
+    skipped: int
+    skipped_exists: int
+
+
+class DownloadBatchResponse(BaseModel):
+    """批量下载响应：统计与逐条任务结果。"""
+
+    stats: DownloadStatsResponse
+    results: list[DownloadResultItem]
+
+
+class DownloadImportResponse(BaseModel):
+    """下载列表导入响应：解析结果、统计与逐条任务结果。"""
+
+    valid: list[str]
+    invalid: list[str]
+    duplicates: list[str]
+    total: int
+    success: int
+    failed: int
+    skipped: int
+    results: list[DownloadResultItem]
+
+
+@router.post("/api/download", response_model=DownloadBatchResponse)
 def download_standards(
     numbers: list[str] = Body(embed=True),
     run_id: str = Body(..., embed=True),
@@ -70,7 +114,7 @@ def download_standards(
     }
 
 
-@router.post("/api/download/import")
+@router.post("/api/download/import", response_model=DownloadImportResponse)
 async def import_downloads(
     text: Optional[str] = Form(None),
     file: Optional[UploadFile] = File(None),

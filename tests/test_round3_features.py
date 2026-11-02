@@ -208,7 +208,18 @@ class TestPipelineRuns(unittest.TestCase):
         """自定义分页参数正确传递。"""
         mock_mgr = MagicMock()
         mock_mgr.db.fetchone.return_value = {"cnt": 50}
-        mock_mgr.db.fetchall.return_value = [{"run_id": f"r{i}"} for i in range(5)]
+        mock_mgr.db.fetchall.return_value = [
+            {
+                "run_id": f"r{i}",
+                "current_step": "scan",
+                "status": "running",
+                "progress": 10,
+                "error_message": "",
+                "created_at": "2026-11-02T00:00:00",
+                "updated_at": "2026-11-02T00:00:00",
+            }
+            for i in range(5)
+        ]
         self.client.app.dependency_overrides[get_manager_dep] = lambda: mock_mgr
         r = self.client.get("/api/tasks/runs?page=2&page_size=5")
         self.assertEqual(r.status_code, 200)

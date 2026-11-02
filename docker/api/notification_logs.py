@@ -6,6 +6,7 @@ GET `/api/notification/unread-count`。
 """
 
 import logging
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
@@ -28,6 +29,82 @@ class MarkReadRequest(BaseModel):
     id: int | None = None  # None 表示全部标记已读
 
 
+class NotificationLogItem(BaseModel):
+    """通知日志列表单行（失败明细只给条数，明细另由失败明细端点按需取）。"""
+
+    id: int
+    event_type: str
+    channel: str
+    title: str
+    body: str
+    standard_number: str | None = None
+    status: str
+    error_msg: str | None = None
+    sent_at: str
+    is_read: int
+    failed_count: int
+    notify_event: str
+    task_context: dict[str, Any]
+
+
+class NotificationLogPageResponse(BaseModel):
+    """通知日志分页响应。"""
+
+    total: int
+    page: int
+    page_size: int
+    items: list[NotificationLogItem]
+
+
+class FailedNotificationItem(BaseModel):
+    """失败明细单条（4 列固定口径，`error_message` 为服务端已脱敏文案）。"""
+
+    standard_number: str
+    standard_name: str
+    error_type: str
+    error_message: str
+
+
+class FailedItemsPageResponse(BaseModel):
+    """失败明细分页响应（服务端解析 JSON 后分页，`page_size` 上限 100）。"""
+
+    total: int
+    page: int
+    page_size: int
+    items: list[FailedNotificationItem]
+
+
+class LogDiagnosticsResponse(BaseModel):
+    """单条日志的完整诊断信息（仅管理员可见，含敏感字段原值）。"""
+
+    id: int
+    callback_data: str
+    channel_message_ids: dict[str, Any]
+    actions: list[dict[str, Any]]
+    attachments: list[dict[str, Any]]
+
+
+class MarkReadResponse(BaseModel):
+    """标记已读结果（`count` 为本次标记条数；全部标记时按既有语义为 0）。"""
+
+    ok: bool
+    count: int
+    message: str
+
+
+class UnreadCountResponse(BaseModel):
+    """未读通知数量。"""
+
+    count: int
+
+
+class DeleteLogsResponse(BaseModel):
+    """通知日志清理结果（`deleted` 为实际删除条数）。"""
+
+    ok: bool
+    deleted: int
+
+
 
 
 def task_context_view(raw: str, cfg) -> dict:
@@ -38,7 +115,7 @@ def task_context_view(raw: str, cfg) -> dict:
     keys = cfg.get("notification.logs.task_context_whitelist", []) or []
     return {k: data[k] for k in keys if k in data}
 
-@router.get("/api/notification/logs")
+@router.get("/api/notification/logs", response_model=NotificationLogPageResponse)
 def get_logs(
     request: Request,
     page: int = Query(1, ge=1),
@@ -105,7 +182,7 @@ def get_logs(
     }
 
 
-@router.get("/api/notification/logs/{log_id}/failed-items")
+@router.get("/api/notification/logs/{log_id}/failed-items", response_model=FailedItemsPageResponse)
 def get_failed_items(
     log_id: int,
     request: Request,
@@ -134,7 +211,7 @@ def get_failed_items(
 
 
 
-@router.get("/api/notification/logs/{log_id}/diagnostics")
+@router.get("/api/notification/logs/{log_id}/diagnostics", response_model=LogDiagnosticsResponse)
 @require_role("admin")
 def get_log_diagnostics(
     log_id: int,
@@ -157,7 +234,7 @@ def get_log_diagnostics(
     }
 
 
-@router.post("/api/notification/read")
+@router.post("/api/notification/read", response_model=MarkReadResponse)
 def mark_notification_read(request: MarkReadRequest, nmgr=Depends(_get_notification_mgr)):
     """标记单条或全部通知为已读。id=None 表示全部标记已读。"""
     try:
@@ -178,7 +255,7 @@ def mark_notification_read(request: MarkReadRequest, nmgr=Depends(_get_notificat
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
-@router.get("/api/notification/unread-count")
+@router.get("/api/notification/unread-count", response_model=UnreadCountResponse)
 def get_unread_count(request: Request, nmgr=Depends(_get_notification_mgr)):
     """获取未读通知数量。"""
     try:
@@ -189,7 +266,7 @@ def get_unread_count(request: Request, nmgr=Depends(_get_notification_mgr)):
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
-@router.delete("/api/notification/logs")
+@router.delete("/api/notification/logs", response_model=DeleteLogsResponse)
 def delete_notification_logs(
     request: Request,
     days: int = Query(30, ge=1, le=365),

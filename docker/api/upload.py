@@ -5,6 +5,7 @@ import uuid
 from fastapi import Depends, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.routing import APIRouter
+from pydantic import BaseModel
 
 from ..manager import get_manager_dep
 
@@ -26,6 +27,18 @@ _MAGIC_SIGNATURES = {
     b"RIFF": "image/webp",  # RIFF....WEBP，需进一步验证
 }
 _MAX_SIZE = 10 * 1024 * 1024  # 10MB
+
+
+class UploadResponse(BaseModel):
+    """图片上传成功响应：可访问的 URL。"""
+
+    url: str
+
+
+class LoginBackgroundResponse(BaseModel):
+    """登录页背景图 URL 响应（未配置时为空串）。"""
+
+    url: str
 
 
 def _validate_image(content: bytes, ext: str) -> None:
@@ -58,7 +71,7 @@ def _validate_image(content: bytes, ext: str) -> None:
     raise HTTPException(400, "无法识别的文件类型，仅允许 JPEG/PNG/GIF/WebP/SVG")
 
 
-@router.post("/api/upload")
+@router.post("/api/upload", response_model=UploadResponse)
 async def upload_file(file: UploadFile = File(...)):
     """上传图片，返回访问路径。"""
     ext = os.path.splitext(file.filename or ".png")[1].lower()
@@ -87,7 +100,7 @@ def get_upload(filename: str):
     return FileResponse(path)
 
 
-@router.get("/api/login-background")
+@router.get("/api/login-background", response_model=LoginBackgroundResponse)
 def get_login_background(mgr=Depends(get_manager_dep)):
     """返回登录页背景图 URL（公开接口，无需认证）。
 

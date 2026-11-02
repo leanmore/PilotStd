@@ -10,6 +10,7 @@ from typing import Any, cast
 from fastapi import HTTPException, Request
 from fastapi.responses import FileResponse
 from fastapi.routing import APIRouter
+from pydantic import BaseModel
 
 from pilotstd.core.audit import get_current_user_id as audit_actor_id
 from pilotstd.core.audit import write_audit
@@ -19,6 +20,44 @@ from pilotstd.core.notification.security_notifier import client_ip
 from ..auth import require_role
 
 router = APIRouter(tags=["logs"])
+
+
+class LogsResponse(BaseModel):
+    """日志行响应：行内容、总行数、末行时间戳；文件缺失或读取失败时给 path/note。"""
+
+    lines: list[str]
+    total: int | None = None
+    lastTimestamp: str | None = None
+    path: str | None = None
+    note: str | None = None
+
+
+class ClearLogsResponse(BaseModel):
+    """日志清理结果：删除行数；文件不存在/清空全部给 note，按时间窗清理给 kept。"""
+
+    ok: bool
+    deleted: int
+    note: str | None = None
+    kept: int | None = None
+
+
+class RotatedLogItem(BaseModel):
+    """轮转日志文件条目：文件名、字节数、修改时间与行数估算。"""
+
+    name: str
+    size_bytes: int
+    mtime_iso: str
+    lines_estimate: int
+
+
+class RotatedLogContentResponse(BaseModel):
+    """轮转日志内容响应：分页读取的元信息与行内容。"""
+
+    filename: str
+    total_lines: int
+    returned_lines: int
+    offset: int
+    content: list[str]
 
 # 日志文件路径（写入的.）
 _LOG_PATH = os.path.join(_get_log_dir(), "app.log")
@@ -47,7 +86,7 @@ def _extract_timestamp(line: str) -> str | None:
     return m2.group(1) if m2 else None
 
 
-@router.get("/api/logs")
+@router.get("/api/logs", response_model=LogsResponse, response_model_exclude_none=True)
 @require_role("admin")
 def get_logs(request: Request, tail: int = 50, since: str = ""):
     """返回日志行。支持增量模式。
@@ -155,7 +194,7 @@ def _audit_log_purge(
     )
 
 
-@router.delete("/api/admin/logs")
+@router.delete("/api/admin/logs", response_model=ClearLogsResponse, response_model_exclude_none=True)
 @require_role("admin")
 def clear_logs(
     request: Request,
@@ -316,14 +355,14 @@ def _read_rotated_impl(filename: str, offset: int, limit: int, grep: str, contex
     }
 
 
-@router.get("/api/logs/rotated")
+@router.get("/api/logs/rotated", response_model=list[RotatedLogItem])
 @require_role("admin")
 def list_rotated_logs(request: Request) -> list[dict]:
     """返回轮转日志文件列表。"""
     return _list_rotated_impl()
 
 
-@router.get("/api/logs/rotated/{filename}")
+@router.get("/api/logs/rotated/{filename}", response_model=RotatedLogContentResponse)
 @require_role("admin")
 def read_rotated_log(
     request: Request,

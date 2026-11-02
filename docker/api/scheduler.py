@@ -1,15 +1,55 @@
 # 容器//调度器脚本—调度器状态接口
 from datetime import datetime
+from typing import Any
 
 from fastapi import Depends, Query
 from fastapi.routing import APIRouter
+from pydantic import BaseModel
 
 from ..manager import get_manager_dep
 
 router = APIRouter(tags=["scheduler"])
 
+# 响应模型：任务条目、调度状态、执行历史与聚合统计
 
-@router.get("/api/scheduler/status")
+
+class SchedulerJobItem(BaseModel):
+    """调度任务条目：标识、下次执行时间、触发器与最近执行结果。"""
+
+    id: str
+    next_run_time: str | None
+    trigger: str
+    pending: bool
+    last_run_time: str | None
+    last_run_status: str | None
+    last_error_message: str | None
+
+
+class SchedulerStatusResponse(BaseModel):
+    """调度器状态响应：运行标志、任务数量、任务列表与时间戳。"""
+
+    running: bool
+    job_count: int
+    jobs: list[SchedulerJobItem]
+    timestamp: str
+
+
+class SchedulerHistoryResponse(BaseModel):
+    """调度执行历史分页响应：总数、记录列表、页码与每页条数。"""
+
+    total: int
+    items: list[dict[str, Any]]
+    page: int | None = None
+    size: int | None = None
+
+
+class SchedulerHistoryStatsResponse(BaseModel):
+    """调度任务聚合统计响应：任务维度的成功率与耗时列表。"""
+
+    tasks: list[dict[str, Any]]
+
+
+@router.get("/api/scheduler/status", response_model=SchedulerStatusResponse)
 def get_scheduler_status(mgr=Depends(get_manager_dep)):
     """获取调度器状态：任务列表、下次执行时间、运行状态 + 最近执行结果。"""
     from docker.scheduler import scheduler
@@ -40,7 +80,7 @@ def get_scheduler_status(mgr=Depends(get_manager_dep)):
     }
 
 
-@router.get("/api/scheduler/history")
+@router.get("/api/scheduler/history", response_model=SchedulerHistoryResponse, response_model_exclude_unset=True)
 def get_scheduler_history(
     task_name: str = Query(default=""),
     page: int = Query(default=1, ge=1),
@@ -53,7 +93,7 @@ def get_scheduler_history(
     return get_task_history(task_name=name, page=page, size=size)
 
 
-@router.get("/api/scheduler/history/stats")
+@router.get("/api/scheduler/history/stats", response_model=SchedulerHistoryStatsResponse)
 def get_scheduler_history_stats():
     """获取每个任务的聚合统计：成功率、平均耗时、最近错误。"""
     from pilotstd.core.task_history import get_task_stats

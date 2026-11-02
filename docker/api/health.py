@@ -7,6 +7,7 @@ import time
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -49,7 +50,24 @@ def _check_parser(mgr) -> bool:
     return hasattr(mgr, "parser") and mgr.parser is not None
 
 
-@router.get("/api/health")
+class HealthServices(BaseModel):
+    """健康检查的服务可用性：数据库、监控服务与解析器。"""
+
+    database: bool
+    monitor_service: bool
+    parser: bool
+
+
+class HealthCheckResponse(BaseModel):
+    """健康检查响应：总体状态、时间戳、版本号与服务明细。"""
+
+    status: str
+    timestamp: str
+    version: str
+    services: HealthServices
+
+
+@router.get("/api/health", response_model=HealthCheckResponse)
 def health_check(request: Request):
     """健康检查：返回各服务状态、版本号、时间戳。
 

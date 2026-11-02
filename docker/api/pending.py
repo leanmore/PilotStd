@@ -1,6 +1,9 @@
 # 容器//脚本—待确认标准重新查询接口
+from typing import Any
+
 from fastapi import Body, Depends
 from fastapi.routing import APIRouter
+from pydantic import BaseModel
 
 from pilotstd.core.db.database import Database
 from pilotstd.core.name_resolution import fetch_resolved_names, resolve_name
@@ -14,8 +17,35 @@ from .favorites import get_db
 
 router = APIRouter(tags=["pending"])
 
+# ════════════════════════════════════════════════════════════════ 分隔
+# 响应模型：与各路由成功返回的字典键一一对应
+# ════════════════════════════════════════════════════════════════ 分隔
 
-@router.get("/api/pending")
+
+class PendingRequeryItem(BaseModel):
+    """重新查询结果条目：标准号、名称、状态、状态键、来源与匹配状态。"""
+
+    standard_number: str
+    standard_name: str
+    status: str
+    status_key: str
+    source_site: str
+    match_status: Any = ""  # 真实值为字符串；保留任意类型以兼容外部占位值
+
+
+class PendingRequeryResponse(BaseModel):
+    """待确认标准重新查询响应：逐条查询结果。"""
+
+    results: list[PendingRequeryItem]
+
+
+class PendingListResponse(BaseModel):
+    """待确认列表响应：数据表原始行原样透传（列集随迁移演进）。"""
+
+    items: list[dict[str, Any]]
+
+
+@router.get("/api/pending", response_model=PendingListResponse)
 def get_pending(db: Database = Depends(get_db), mgr=Depends(get_manager_dep)):
     """获取所有待确认项（来自 pending_lookup 表；名称统一为「最高可得阶段名」）。
 
@@ -40,7 +70,7 @@ def get_pending(db: Database = Depends(get_db), mgr=Depends(get_manager_dep)):
     return {"items": items}
 
 
-@router.post("/api/pending/requery")
+@router.post("/api/pending/requery", response_model=PendingRequeryResponse)
 def requery_pending(numbers: list[str] = Body(), site: str = "", mgr=Depends(get_manager_dep)):
     """对待确认标准进行重新查询。指定 site 时置顶该站点，否则引擎自动路由。"""
     results, _ = mgr.query_by_numbers(numbers, preferred_site=site)
