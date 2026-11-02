@@ -50,3 +50,15 @@
 - 每项完成后在此表打 ✅ 并附提交/输出路径。
 | **v71 验证环境首次迁移** | v70+真实数据首次启动跑 v71：回填 user_id=1、建索引耗时；服务不可用窗口；迁移前备份 DB；失败回滚 | 验证环境 | 迁移成功、耗时可控、可回滚 | 本地干净库已验证（空数据） |
 
+## 2026-11-02 部署后验证（v0.169.0 / 87304a8c）
+
+| 项 | 结果 | 证据 |
+|---|---|---|
+| 部署版本 | ✅ | `/api/health` build `87304a8c`；`/api/system/version` `0.169.0` |
+| wechat `proxy_url` 清空落库 | ✅ | `PUT /api/notification/config {"channels":{"wechat":{"proxy_url":""}}}` → `GET` 返回 `proxy_url=""`，`corpid` 保留 |
+| 微信 gettoken | ✅ | 清空后 `/api/notification/test` → `{"ok":true}`；`/test-event` warning 落库 `channel=wechat status=success user_id=1` |
+| A-35 user1 投递/日志 | ✅ | warning test-event → `notification_log id=2499 user_id=1 telegram success` |
+| A-35 user2 未绑定跳过 | ✅ | `/test-event` → `channel not initialized`；无 user1 代发、无新增日志 |
+| A-35 system 事件 | ✅ | `daily` 事件 `user_id=0`，telegram 成功（id=2498） |
+| A-35 收藏事件 | ❌ 未闭环 | 三处 `[A35-DIAG]` 均出现（进入事件块→helper→send completed），但 `notification_log` 无 `favorite_created`；说明 `send_event` 内部早退（禁用/静音/无渠道/校验），需下一轮加 dispatcher 侧诊断 |
+| 契约门禁 | ✅ | CI `repo-compliance` success；本地 `check_response_model_coverage.py` PASS；`test_frontend_contract` 通过 |
