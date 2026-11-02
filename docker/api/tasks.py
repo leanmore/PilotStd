@@ -6,15 +6,87 @@ import logging
 from fastapi import Depends, Query, Request
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
+from pydantic import BaseModel
 
 from ..auth import require_role
 from ..manager import get_manager_dep
+
+
+class TaskItem(BaseModel):
+    """任务队列单行（列表/详情共用字段）。"""
+
+    task_id: str
+    task_type: str
+    status: str
+    total_items: int = 0
+    completed_items: int = 0
+    failed_items: int = 0
+    retry_count: int = 0
+    max_retries: int = 3
+    queue_name: str = "default"
+    error_log: str = ""
+    result_json: str = ""
+    created_at: str
+    started_at: str = ""
+    finished_at: str = ""
+
+
+class TaskListResponse(BaseModel):
+    """任务列表分页响应。"""
+
+    total: int
+    page: int
+    page_size: int
+    items: list[TaskItem]
+
+
+class TaskCreateResponse(BaseModel):
+    """任务创建成功响应。"""
+
+    ok: bool
+    task_id: str
+    status: str
+
+
+class OkResponse(BaseModel):
+    """仅返回 ok 的通用响应。"""
+
+    ok: bool
+
+
+class PipelineRunItem(BaseModel):
+    """管道运行历史单行。"""
+
+    run_id: str
+    current_step: str
+    status: str
+    progress: int
+    error_message: str | None = None
+    created_at: str
+    updated_at: str
+
+
+class PipelineRunListResponse(BaseModel):
+    """管道运行历史分页响应。"""
+
+    total: int
+    page: int
+    page_size: int
+    items: list[PipelineRunItem]
+
+
+class PipelineRunDetailResponse(PipelineRunItem):
+    """管道运行详情（含解析后的 step_results）。"""
+
+    step_results: dict
+
+
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["tasks"])
 
 
-@router.get("/api/tasks")
+@router.get("/api/tasks", response_model=TaskListResponse)
 @require_role("admin")
 def list_tasks(
     request: Request,
@@ -57,7 +129,7 @@ def list_tasks(
     }
 
 
-@router.get("/api/tasks/runs")
+@router.get("/api/tasks/runs", response_model=PipelineRunListResponse)
 @require_role("admin")
 def list_pipeline_runs(
     request: Request,
@@ -78,7 +150,7 @@ def list_pipeline_runs(
     return {"total": total, "page": page, "page_size": page_size, "items": rows}
 
 
-@router.get("/api/tasks/{task_id}")
+@router.get("/api/tasks/{task_id}", response_model=TaskItem)
 @require_role("admin")
 def get_task(request: Request, task_id: str, mgr=Depends(get_manager_dep)):
     """获取单个任务的详细信息，包括类型、状态、进度、错误日志和结果。"""
@@ -99,7 +171,7 @@ def get_task(request: Request, task_id: str, mgr=Depends(get_manager_dep)):
     }
 
 
-@router.post("/api/tasks")
+@router.post("/api/tasks", response_model=TaskCreateResponse)
 @require_role("admin")
 def create_task(request: Request, body: dict, mgr=Depends(get_manager_dep)):
     """创建任务并入队。Body: {task_type, total_items?, max_retries?, queue_name?}"""
@@ -120,7 +192,7 @@ def create_task(request: Request, body: dict, mgr=Depends(get_manager_dep)):
     }
 
 
-@router.post("/api/tasks/{task_id}/retry")
+@router.post("/api/tasks/{task_id}/retry", response_model=OkResponse)
 @require_role("admin")
 def retry_task(request: Request, task_id: str, mgr=Depends(get_manager_dep)):
     """重试失败任务。"""
@@ -139,7 +211,7 @@ def retry_task(request: Request, task_id: str, mgr=Depends(get_manager_dep)):
     return {"ok": True}
 
 
-@router.post("/api/tasks/{task_id}/cancel")
+@router.post("/api/tasks/{task_id}/cancel", response_model=OkResponse)
 @require_role("admin")
 def cancel_task(request: Request, task_id: str, mgr=Depends(get_manager_dep)):
     """取消运行中任务。"""
@@ -147,7 +219,7 @@ def cancel_task(request: Request, task_id: str, mgr=Depends(get_manager_dep)):
     return {"ok": ok}
 
 
-@router.get("/api/tasks/runs/{run_id}")
+@router.get("/api/tasks/runs/{run_id}", response_model=PipelineRunDetailResponse)
 @require_role("admin")
 def get_pipeline_run(request: Request, run_id: str, mgr=Depends(get_manager_dep)):
     """查询管道执行状态（扫描→查询→下载→规范化→归档）。"""

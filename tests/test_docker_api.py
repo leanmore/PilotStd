@@ -953,3 +953,9 @@ class TestAPIEndpoints(unittest.TestCase):
         basenames = [r.replace("\\", "/").rstrip("/").split("/")[-1] for r in roots]
         self.assertIn("inbox", basenames, f"/inbox 不在允许的目录范围内: {roots}")
         self.assertIn("standards", basenames, f"/standards 不在允许的目录范围内: {roots}")
+def test_tasks_response_models_contract():
+    """tasks 路由响应模型字段与前端所需字段保持一致。"""
+    from docker.api.tasks import TaskItem, TaskListResponse
+
+    assert {"task_id", "task_type", "status", "created_at"} <= set(TaskItem.model_fields)
+    assert {"total", "page", "page_size", "items"} == set(TaskListResponse.model_fields)
