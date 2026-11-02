@@ -261,3 +261,11 @@ class TestStandardSampleCodes(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+def test_code_key_normalizes_dash_and_name_tail():
+    """2026 年第 45 号：网页用 -、附件用 —，且名称尾部粘日期/行号。"""
+    from pilotstd.announcement.parser import _code_key, _dedupe_by_code
+
+    a = {"std_code": "GB 11887-2026", "std_name": "首饰 贵金属纯度、标识和命名规则"}
+    b = {"std_code": "GB 11887—2026", "std_name": "首饰 贵金属纯度、标识和命名规则  2027-11-01  20"}
+    assert _code_key(a) == _code_key(b)
+    assert len(_dedupe_by_code([a, b])) == 1

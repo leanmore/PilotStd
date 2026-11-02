@@ -381,8 +381,32 @@ def parse_text_table(text: str) -> list[dict[str, Any]]:
 
 
 def _code_key(item: dict[str, Any]) -> str:
-    """标准号去重键：代号 + 名称前20字符，用于 HTML 与附件交叉去重。"""
-    return item.get("std_code", "") + "|" + item.get("std_name", "")[:20]  # type: ignore[no-any-return]  # dict.get 返回 Any
+    """标准号去重键：代号 + 名称前20字符，用于 HTML 与附件交叉去重。
+
+    标准号中的破折号有 `-`/`—`/`－` 等多种写法（网页与 WPS 附件常不一致），
+    名称末尾还可能粘上实施日期/行号；不归一化会让同一标准被算成两条
+    （2026 年第 45 号公告曾因此把 21 项解析成 42 项）。
+    """
+    code = re.sub(r"\s*[—－–−]\s*", "-", str(item.get("std_code", "")))
+    code = re.sub(r"\s+", " ", code).strip()
+    name = str(item.get("std_name", ""))
+    # 去掉名称后粘连的“实施日期 + 行号”与 WPS 二进制残渣
+    name = re.split(r"\s{2,}\d{4}-\d{2}-\d{2}", name, maxsplit=1)[0]
+    name = name.strip()
+    return code + "|" + name[:20]
+
+
+def _dedupe_by_code(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """按归一化标准号键去重，保留首次出现的条目。"""
+    seen: set[str] = set()
+    deduped: list[dict[str, Any]] = []
+    for item in items:
+        key = _code_key(item)
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(item)
+    return deduped
 
 
 def _ocr_pdf(pdf_bytes: bytes, ocr_provider: Any) -> str:
@@ -476,7 +500,7 @@ def parse_announcement_detail(
         logger.info("attachment %d rows > HTML %d rows; use attachment as primary", len(att_items), len(html_items))
         for item in att_items:
             item["_attachment_primary"] = True
-        return att_items, meta
+        return _dedupe_by_code(att_items), meta
 
     # 交叉去重：网页为主，附件补充未覆盖的标准号
     if html_items and att_items:
@@ -487,7 +511,7 @@ def parse_announcement_detail(
                 html_items.append(item)
                 new_count += 1
         logger.info("HTML %d rows + attachment %d rows", len(html_items) - new_count, new_count)
-        return html_items, meta
+        return _dedupe_by_code(html_items), meta
 
     if html_items:
         logger.info("HTML table parsed %d rows", len(html_items))
