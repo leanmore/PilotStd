@@ -26,7 +26,7 @@
 | 4 | A-30 线上验证（notify_event/task_context/诊断 admin） | ✅ | `GET /api/notification/logs?limit=1` 返回 `notify_event`/`task_context`；admin 访问 `/logs/2483/diagnostics` 200；user2 访问同端点 403 |
 | 5 | A-28 阶段二验证（静音显示、test-event、rollback） | ⚠️ 部分 | `/api/notification/config` quiet_hours enabled=true 22:00-07:00 与设置页一致；user2 `/test-event` 返回 `ok=true`（但日志 `user_id=0`，见 A-35）；未执行 `--rollback`（会改静音配置，未获批） |
 | 6 | A-35 多用户隔离（见下） | ⏳ 待新镜像 | 已修：`/test-event` 写 `user_id/delivery_user_id` 并按 `channels_for(user_id)` 校验；收藏通知增加 `manager.notification_mgr is None` 告警与 send_event 单测（commit `95e7ae68`）。已建 `a35_user2`（id=3），待部署后重跑收藏与日志验证 |
-| 7 | A-6 429 基线（线上口径） | ✅ | `/api/notification/logs` 全量 SQL：telegram 399 total / 14 failed / 10 429（2.51%）；wechat 141/141 failed / 0 429（token_tunnel 失败）；feishu 16/16/0；dingtalk 16/16/0。2026-11-02 18:58 取数 |
+| 7 | A-6 429 基线（线上口径） | ✅ | `/api/notification/logs` 全量 SQL：telegram 399 total / 14 failed / 10 429（2.51%）；wechat 141 total / 141 failed / 0 429（已配置但 100% 失败，token tunnel，待查）；feishu 16/16/0、dingtalk 16/16/0（**未配置渠道，失败是预期**，不计入渠道健康度）。2026-11-02 18:58 取数 |
 | 8 | D-14 耗时分布（A-30 后） | ⬜ | |
 | 9 | 阶段六真隔离构建 + health | ⬜ | |
 
@@ -36,6 +36,13 @@
 - [ ] 投递各收各：user2 未绑定渠道 ⇒ 跳过，不发给 user1；
 - [ ] 无串号：user2 日志不出现在 user1 普通视角；
 - [ ] system 事件投递所有 admin，日志 `user_id=0`。
+
+
+### A-6 渠道健康度口径（2026-11-02 修正）
+
+- **已配置渠道**（wechat/telegram）才计入健康度；
+- **未配置渠道**（feishu/dingtalk）失败是预期，不计入分母；
+- wechat 当前 `141/141 failed`，错误 `<urlopen error Tunnel connection failed: 400 Bad Request>`，自 2026-10-19 起每日 100% 失败，待查。
 
 ## 备注
 
