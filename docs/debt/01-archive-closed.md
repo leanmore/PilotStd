@@ -1611,3 +1611,40 @@ GUI 设置页 (ui/core/handlers/_settings*.py)          Web API (docker/api/sett
 
 | **✅ 已关闭（2026-10-05 口径差澄清 + S-1 分类统一）** **[事实差 · 分类口径] 「`notify_event` 7 类」与实测「6 类」不一致（Z-24=B 登记）** | 2026-10-05 聚合设计批次 2 前置盘点（`event_spec.py` 全量 41 事件统计） | **口径差说明（关闭依据）**：`mapping.py` 的 `NOTIFY_EVENTS` **声明全集含 `manual_test`（手动测试路径，无业务事件承接）** ⇒ 声明侧当时为 **7 类**；而 **41 个业务事件只覆盖其中 6 类** ⇒ 「7 类 / 6 类」**是口径不同，不是文档写错** ✅。**本批（S-1）已统一**：拆 `task_lifecycle` 为 `task_progress`/`task_result`/`task_failure`、新增 `user_activity`（`normalize_complete`/`archive_complete` 改归 `batch_summary`）⇒ 全集 **10 类**（含 `manual_test`），并**取消"7±1"数量封顶**，改为"类别清单以 `event_spec.py` 为准"；`channel.py` 注释同步更新 ✅。 | **处置：已关闭** ✅（口径已在代码与文档两侧统一；`09`？无 —— 后续分类调整须同时改 `event_spec.py` 与 `NOTIFY_EVENTS`）。 | 2026-10-05 |
 
+
+
+## 2026-11-02 E 组契约/通知收口归档
+
+来源：全项目前后端契约收口（A/B/C/E）。以下条目已完成或已取消，从 03-open 移入。
+
+| 原编号 | 归档原因 |
+|---|---|
+| A-1 | **P7-12：`docker/api/tasks.py:138` 越过 DAO 直调私有 `mgr.task_queue._persist(task)`** |
+| A-2 | **G-049 防膨胀门禁只覆盖 `manager.py`**（`scripts/check_g_049_manager_size.py:18` 的 `TARGET`） |
+| A-3 | **`channel_spec.schema ↔ get_config_schema()` 互证门禁缺失**（现只有字段级断言 `tests/test_channel_spec.py:72-119`） |
+| A-6 | **`known-issues.md` 第 4 项：Telegram 429 的 55.6% 未复测** |
+| A-9 | **解析失败日志格式未统一**（`pilotstd/scan/parser/__init__.py` 的 `TODO(P2)`） |
+| A-10 | **设置页 Tab 定位依赖 DOM 顺序**（`web/src/views/settings/constants.ts` 的 `TODO(P2-FOLLOWUP)`） |
+| A-11 | **两条自定义 eslint 规则"已定义但未执行"**（`web/eslint.config.js` 把 `custom/no-raw-i18n-key`、`custom/no-sensitive-persist` 设为 error，但 package.json 无 lint 脚本、CI 无 eslint 步骤） |
+| A-12 | **6 个适配器的 `_search` 无直接测试**（`ccsn`/`sppt`/`sppt_local`/`jtst`/`mee`/`nrsis`；`tests/` 中 grep 零命中） |
+| A-19 | **G-013 不认前端 vitest，前端修复被迫用 `chore`** |
+| A-20 | **UI 静音时段开关不生效**（前端只写 `user_preferences`，服务端 `_suppression_queue` 读 `config.json`） |
+| A-21 | **按用户静音时段**（A-20 只做了全局配置；`user_preferences.notification_quiet_hours` 仍不参与服务端判定） |
+| A-23 | **`/api/notification/test` 绕过 `_dispatcher`，无法用于 N1（静音）验收** |
+| A-24 | **B4：企微 `supports_callback` 通知卡片按钮** |
+| A-25 | **B7：P-06 备份成功误用 `anomaly_alert`** |
+| A-26 | **通知日志按 `end_date` 过滤会排除当日记录** |
+| A-28 | **通知配置权威源**（合并原 A-28 `enabled` + A-29 `rules`）：`config.json` 与偏好/DB policy 双源，存在“改了不生效” |
+| A-30 | **日志 API 不返回 `notify_event`/`task_context`**，A-6/D-14 无法取数 |
+| A-31 | **cookiecutter 模板 hook 已过期，真实 CLI 生成失败** |
+| A-35 | **事件发送路径仍用单例 `_user_id`**（A-28 阶段二已知限制）：并发多用户时事件会串号；配置读函数已参数化，事件路径未改 |
+| A-36 | **静音队列无容量/过期/补发限速**：系统长期关闭会堆积，重开可能一次补发数百条 |
+| A-39 | **已关闭（选 ②）**：`test_ahbz_cross_check_with_stdgov` 改用 GB/T 24001-2016；实测 std_gov/ahbz 均 exact（19001 在 std_gov 仅模糊） |
+| A-18 | **历史文档中的短 hash 引用有失效项**（2026-10-27 全量审计） |
+| A-16 | **根目录 `MagicMock/` 目录由测试副作用生成**：全量跑完必现（历史 76 个） |
+| A-15 | **`nrsis` 站点无 HTTPS（已知事实）**：适配器使用 `http://` 与站点现状一致 |
+| A-13 | **两套 HTTP 栈**：4 个通知渠道用 `urllib.request`，其余 21 个文件用 `requests` |
+| A-14 | **`docs/architecture/modules/query.md` 适配器清单逐行数据失真**：只列 8/22 个适配器，表内行数为旧快照（`njbz365` 写 385、实测 149） |
+
+| A-34 | 偶发顺序失败未复现，不构成待办 |
+| A-38 | 复核为误报（std_gov 带 q 参数正常），非缺陷 |
