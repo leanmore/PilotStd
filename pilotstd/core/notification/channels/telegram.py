@@ -110,11 +110,15 @@ class TelegramChannel(NotificationChannel):
         }
         if reply_markup:
             payload_body["reply_markup"] = reply_markup
-        payload = json.dumps(payload_body).encode("utf-8")
+        # ensure_ascii=False：直接发送 UTF-8 中文，避免客户端把 \uXXXX 转义显示成乱码
+        payload = json.dumps(payload_body, ensure_ascii=False).encode("utf-8")
         url = f"https://api.telegram.org/bot{self._token}/sendMessage"
         try:
             resp = requests.post(
-                url, data=payload, headers={"Content-Type": "application/json"}, timeout=10
+                url,
+                data=payload,
+                headers={"Content-Type": "application/json; charset=utf-8"},
+                timeout=10,
             )
             if resp.status_code != 200:
                 # 与 urllib 路径对齐：非 200 抛 HTTPError，统一走下方同一个错误分支

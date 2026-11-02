@@ -511,3 +511,6 @@ pilotstd/core/
 
 > **2026-11-02 B 组**：新增 _announce_detail_models.py 承载公告明细响应模型，避免 announce_detail.py 越过 G-010。
 
+
+> **2026-11-02 Telegram 编码**：发送 payload 改 ensure_ascii=False + charset=utf-8，避免中文被客户端显示为 \\uXXXX 转义。
+
