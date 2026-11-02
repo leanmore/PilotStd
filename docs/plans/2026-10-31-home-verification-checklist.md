@@ -62,3 +62,10 @@
 | A-35 system 事件 | ✅ | `daily` 事件 `user_id=0`，telegram 成功（id=2498） |
 | A-35 收藏事件 | ❌ 未闭环 | 三处 `[A35-DIAG]` 均出现（进入事件块→helper→send completed），但 `notification_log` 无 `favorite_created`；说明 `send_event` 内部早退（禁用/静音/无渠道/校验），需下一轮加 dispatcher 侧诊断 |
 | 契约门禁 | ✅ | CI `repo-compliance` success；本地 `check_response_model_coverage.py` PASS；`test_frontend_contract` 通过 |
+
+### A-35 收藏事件根因（2026-11-02 定位）
+
+- `favorite_created` 实际已发送，但被聚合器并入 **daily** 桶：`notification_log id=2498 event_type=daily user_id=0 body=收藏成功×2`。
+- 根因：`aggregate_keys.group_key` 的 daily 桶键不含用户；`aggregate_buffer._send_merged` 重造消息时未搬运 `user_id/delivery_user_id`。
+- 修复（`3bd06bc0` 待部署）：daily 键加 `u<delivery_user_id>` 段；合并消息显式保留归属；新增分组隔离测试。
+- 另：`2026年第45号` 42 行已清理为 21 行（21 个 `-` + 21 个 `—` 重复；末行名称含 WPS 残渣），解析器已加破折号归一化与名称清洗。
