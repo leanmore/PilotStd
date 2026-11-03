@@ -20,6 +20,7 @@ from typing import Any, Optional
 
 from pilotstd.core.config import get_db_path
 from pilotstd.core.db.database import Database
+from pilotstd.core.notification.context import NotificationContext
 from pilotstd.download.engine import ADOPTED_SKIP_MESSAGE
 
 logger = logging.getLogger(__name__)
@@ -387,6 +388,8 @@ def _notify_abandoned(user_id: int, record_id: int, error: str) -> None:
                 "standard_info": std_info,
                 "error": error,
             },
+            # 单条放弃是「某用户的收藏」→ 按该用户投递；批量汇总（207/239）仍为系统语义
+            context=NotificationContext(scope="user", user_id=user_id) if user_id and user_id > 0 else None,
         )
     except Exception:
         logger.warning("发送归档放弃通知失败", exc_info=True)

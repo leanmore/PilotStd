@@ -10,11 +10,17 @@ from pilotstd.core.config import ConfigManager, get_db_path
 from pilotstd.core.db._constants import DatabaseError
 from pilotstd.core.db.database import Database
 from pilotstd.core.name_resolution import fetch_resolved_name
+from pilotstd.core.notification.context import NotificationContext
 from pilotstd.download.engine import ADOPTED_SKIP_MESSAGE
 from pilotstd.organizer.industry_lookup import build_code_mapping
 from pilotstd.scan.parser import StandardParser
 
 logger = logging.getLogger(__name__)
+
+
+def _user_context(user_id: int) -> NotificationContext | None:
+    """收藏链路的事件归属：user_id 有效时按用户投递，否则退回旧行为（system/默认用户）。"""
+    return NotificationContext(scope="user", user_id=user_id) if user_id and user_id > 0 else None
 # 收藏下载归档过程中的异常
 
 
@@ -172,6 +178,7 @@ def _notify_download_failed(
                 "error": error,
                 "favorite_id": favorite_id,
             },
+            context=_user_context(user_id),
         )
     except Exception as e:
         logger.warning("发送下载失败通知失败: %s", e)
@@ -199,6 +206,7 @@ def _notify_download_started(user_id: int, standard_number: str, favorite_id: in
                 "standard_type": meta["standard_type"],
                 "favorite_id": favorite_id,
             },
+            context=_user_context(user_id),
         )
     except Exception as e:
         logger.warning("发送下载开始通知失败: %s", e)
@@ -230,6 +238,7 @@ def _notify_download_complete(
                 "local_path": local_path,
                 "status": "success",
             },
+            context=_user_context(user_id),
         )
     except Exception as e:
         logger.warning("发送下载完成通知失败: %s", e)

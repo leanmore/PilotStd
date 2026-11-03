@@ -473,7 +473,9 @@ class TestNotifyDownloadFailed:
 
         # 载荷契约（2026-10-05 名称解析统一批次一）：_fetch_std_meta 返回**字典**且键名为
         # 对外边界统一的全写形式（standard_name/standard_type）；名称值由回退链 ③→②→① 取得。
-        mock_sm.notification_mgr.send_event.assert_called_once_with(
+        # 2026-11-03：下载事件按收藏所属用户投递，故额外带 context（user_id>0 时）。
+        call = mock_sm.notification_mgr.send_event.call_args
+        assert call.args == (
             "download_failed",
             {
                 "user_id": 100,
@@ -484,6 +486,8 @@ class TestNotifyDownloadFailed:
                 "favorite_id": 5,
             },
         )
+        assert call.kwargs["context"].scope == "user"
+        assert call.kwargs["context"].user_id == 100
 
     def test_exception_is_silent(self):
         mock_sm = MagicMock()

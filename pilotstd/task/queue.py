@@ -26,6 +26,27 @@ class TaskQueue:
         self._handlers: Dict[TaskType, Callable[..., Any]] = {}
         self._task_timeout = task_timeout  # handler 超时秒数，超时后任务标记 FAILED
         self._ensure_table()
+        self._register_default_handlers()
+
+    def _register_default_handlers(self) -> None:
+        """为所有任务类型装上兜底 handler，避免任务永久停在 pending。
+
+        当前没有真实实现的类型走 `_unimplemented`：立即置 FAILED 并写清原因。
+        原因：调度器每 2 秒轮询 pending，`start()` 无 handler 会抛 ValueError 被吞成
+        一条 warning，任务状态仍是 pending ⇒ 列表里永远"进行中"，用户无从判断。
+        真实 handler 一旦注册（`register_handler`）会覆盖这里的兜底值。
+        """
+        # setdefault 而非直接赋值：便于子类/测试在构造后先注册真实 handler 再初始化
+        for task_type in TaskType:
+            self._handlers.setdefault(task_type, self._unimplemented)
+
+    def _unimplemented(self, task: TaskInfo) -> TaskInfo:
+        """未实现任务的终止态：FAILED + 明确文案（不是"永久 pending"）。"""
+        # 显式置 FAILED，_run 的收尾逻辑不会把它改回 COMPLETED（见 _run 的状态判断）
+        task.status = TaskStatus.FAILED
+        task.error_log = f"任务类型 {task.task_type.value} 尚未实现（无可执行 handler）"  # i18n-allow: 任务列表展示文案
+        task.updated_at = datetime.now().isoformat()
+        return task
 
     # 公共接口
 

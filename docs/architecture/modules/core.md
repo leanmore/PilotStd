@@ -519,3 +519,5 @@ pilotstd/core/
 
 > **2026-11-03 有效性检查接通**：`run_validity_check` / `_process_validity_batch` 新增 `query_engine` 透传，L2 适配器比对从「仅测试可达」变为运行时可走；三级结论带 `evidence`（L1/L2/L3），副作用（搬「过期作废」/替代标准入 `download_queue`）改为**仅 L2 且 `validity.auto_move_expired=true`** 才执行，默认关闭，L1 名称关键词命中只记录不搬文件。`docker/scheduler.py` 的定时任务原以无参方式被 APScheduler 调用（三个依赖恒为 None、检查静默且无 L2），现于函数内惰性从 `get_manager()` 补齐。契约见 `tests/test_batch3_validity_wiring.py`。
 
+> **2026-11-03 按钮 token 归属**：`_dispatcher.send_now` 铸按钮 token 由 `host._user_id`（恒为 manager 默认用户 1）改为解析出的 `delivery_user_id`；非默认用户的交互通知不会再拿别人的凭据验签。后台任务（收藏下载/到期提醒/单条放弃）的 `send_event` 补 `NotificationContext(scope="user")`，日志与投递同时按用户（此前落 user_id=0 且投给默认用户）。契约见 `tests/test_batch4_queue_and_notify.py`。
+

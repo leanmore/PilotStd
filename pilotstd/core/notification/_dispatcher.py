@@ -275,9 +275,9 @@ def send_now(host: Any, msg: NotificationMessage, target_channels: list[str]) ->
                 sent_at,
             )
         # ② 铸 token：仅在"消息带动作"时（无动作的通知保持 callback_data 为空，语义不变）
-        # `_user_id` 用 getattr 兜底：宿主（含测试替身）可能不声明该属性；取不到就**不铸 token**
-        # ⇒ 渲染器按 fail-safe 不出按钮（不产生"点了没反应"的按钮）。
-        owner_id = getattr(host, "_user_id", None)
+        # owner 必须用**解析出的投递用户**（delivery_user_id），不能用 host._user_id：
+        # 后者恒为 manager 默认用户（1），非默认用户收到的按钮会拿别人的凭据验签。
+        owner_id = owner if isinstance(owner, int) and owner > 0 else getattr(host, "_user_id", None)
         if two_phase and log_id and getattr(msg, "actions", None) and isinstance(owner_id, int):
             token = f"{log_id}:{owner_id}"
             msg.callback_data = token
