@@ -4,11 +4,13 @@
 import logging
 from typing import Optional
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from pydantic import BaseModel
 
 from pilotstd.query.routing.scorer import _collect_runtime_state, score_adapter
 from pilotstd.query.site_config import ADAPTER_DEFAULT_PROFILES
+
+from ..auth import require_role
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/query", tags=["debug"])
@@ -48,20 +50,19 @@ def _collect_real_runtime_state() -> dict[str, dict]:
 
 
 @router.post("/debug", response_model=list[AdapterScoreResponse])
-async def debug_route(request: DebugRequest):
+@require_role("admin")
+def debug_route(request: Request, payload: DebugRequest):
     """返回完整评分链，支持模拟运行时状态进行 what-if 分析。
 
-    请求示例：
-        {"query": "NB/T 1234", "simulate_runtime": {"csres": {"daily_used": 200}}}
-
-    返回按分数降序排列的适配器评分列表。
+    仅管理员：该端点暴露全部适配器评分与运行时状态（配额/冷却），
+    属内部诊断面，不应开放给普通登录用户。
     """
-    runtime = request.simulate_runtime if request.simulate_runtime else _collect_real_runtime_state()
+    runtime = payload.simulate_runtime if payload.simulate_runtime else _collect_real_runtime_state()
 
     results: list[AdapterScoreResponse] = []
     for adapter_name in ADAPTER_DEFAULT_PROFILES:
         adapter_state = runtime.get(adapter_name, {}) if runtime else {}
-        r = score_adapter(adapter_name, request.query, adapter_state)
+        r = score_adapter(adapter_name, payload.query, adapter_state)
         results.append(AdapterScoreResponse(adapter=adapter_name, score=r.score, reasons=r.reasons))
 
     results.sort(key=lambda x: x.score, reverse=True)

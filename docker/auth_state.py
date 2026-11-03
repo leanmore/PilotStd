@@ -70,7 +70,8 @@ AUTH_WHITELIST: list[tuple[str, set[str]]] = [
     ("/api/logout", set()),
     ("/api/health", set()),
     ("/api/system/version", {"GET"}),
-    ("/api/logs", {"GET"}),
+    # `/api/logs` 原为免鉴权放行（历史遗留）：它与其它端点一样只靠 require_role 取角色，
+    # 放行等于跳过会话撤销/CSRF/速率限制三道闸门。2026-11-03 移出白名单。
     # 登录页背景图 URL（公开接口）：仅暴露 appearance.login_bg 单字段，替代
     # 仅管理员的 GET /api/settings 在未登录态下的 401 拦截问题
     ("/api/login-background", set()),
@@ -90,8 +91,13 @@ API_RATE_WINDOW = 60  # 窗口 60 秒
 
 
 def verify_api_key(token: str) -> dict | None:
-    """验证 API Key。返回 {key_id, scopes} 或 None。
+    """验证 API Key。返回 {key_id} 或 None。
+
     token 以 "pst_" 开头，提取后 SHA256 哈希查表，验证 is_active=1。
+
+    **不返回 scopes**：`api_keys.scopes` 列历史上只写不读（没有任何调用方按它授权），
+    留着会让人误以为存在按 scope 的最小权限。2026-11-03 起不再解析/暴露该字段；
+    授权仍由路由的 `@require_role` 决定（管理端点要求 admin，其余端点登录即可）。
     """
     if not token.startswith("pst_"):
         return None
@@ -102,7 +108,7 @@ def verify_api_key(token: str) -> dict | None:
 
     db = Database(get_db_path())
     row = db.fetchone(
-        "SELECT key_id, scopes FROM api_keys WHERE key_hash = ? AND is_active = 1",
+        "SELECT key_id FROM api_keys WHERE key_hash = ? AND is_active = 1",
         (key_hash,),
     )
     if row is None:
@@ -112,12 +118,6 @@ def verify_api_key(token: str) -> dict | None:
         "UPDATE api_keys SET last_used_at = datetime('now', 'localtime') WHERE key_hash = ?",
         (key_hash,),
     )
-    try:
-        import json
-
-        scopes = json.loads(row["scopes"]) if row["scopes"] else []
-    except (json.JSONDecodeError, TypeError):
-        scopes = []
-    return {"key_id": row["key_id"], "scopes": scopes}
+    return {"key_id": row["key_id"]}
 
 

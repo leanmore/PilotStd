@@ -186,16 +186,19 @@ class ConfigManager:
             if os.path.exists(self._filepath):
                 with open(self._filepath, "r", encoding="utf-8") as f:
                     raw = json.load(f)
-                from .crypto import _get_fernet, _walk_sensitive
+                from .crypto import _get_fernet, _walk_sensitive, has_plaintext_sensitive
 
                 f_obj = _get_fernet(os.path.dirname(self._filepath))
                 # 解密敏感字段后才是内存中的可用数据
                 self._data = _walk_sensitive(raw, encrypt=False, fernet=f_obj)
+                # 一次性自愈：历史版本用点号后缀判定敏感字段，baidu_api_key / bot_token /
+                # webhook_url 等一直以明文落盘。这里检测到明文就写回一次（写回即加密）。
+                has_plaintext = has_plaintext_sensitive(self._data)
                 # #31-P2：先留存改动前快照，仅当补默认值/迁移旧键真的改了内容才写回
                 before = copy.deepcopy(self._data)
                 self.populate_defaults(FACTORY_DEFAULTS)
                 _migrate_ui_keys(self)
-                if self._data != before:
+                if self._data != before or has_plaintext:
                     self.save()
                 return
         except (json.JSONDecodeError, OSError):

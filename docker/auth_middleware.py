@@ -82,7 +82,6 @@ class AuthMiddleware(BaseHTTPMiddleware):
         key_info = verify_api_key(api_token)
         if key_info:
             request.state.api_key_id = key_info["key_id"]
-            request.state.api_key_scopes = key_info["scopes"]
             return True
         # _前缀验证失败直接401（不回落令牌）
         if api_token.startswith("pst_"):

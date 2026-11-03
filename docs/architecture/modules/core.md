@@ -521,3 +521,5 @@ pilotstd/core/
 
 > **2026-11-03 按钮 token 归属**：`_dispatcher.send_now` 铸按钮 token 由 `host._user_id`（恒为 manager 默认用户 1）改为解析出的 `delivery_user_id`；非默认用户的交互通知不会再拿别人的凭据验签。后台任务（收藏下载/到期提醒/单条放弃）的 `send_event` 补 `NotificationContext(scope="user")`，日志与投递同时按用户（此前落 user_id=0 且投给默认用户）。契约见 `tests/test_batch4_queue_and_notify.py`。
 
+> **2026-11-03 配置密钥加密补全**：`config/crypto.py` 的敏感后缀原只认点号形式（`.api_key` 等），`ocr.baidu_api_key`、`telegram.bot_token`、`dingtalk.app_secret`、`wechat.webhook_url`、`wechat_ip.encrypt_secret` 一直明文落盘；现补下划线写法与渠道字段，并在 `ConfigManager._load()` 检测到明文时**自愈写回**（`has_plaintext_sensitive`）。离线迁移脚本 `scripts/encrypt_config_secrets.py`。DB 侧 `user_credentials` 本来就是 Fernet 加密，未改动。契约见 `tests/test_batch5_security.py`。
+

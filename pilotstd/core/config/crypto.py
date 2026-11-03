@@ -11,6 +11,18 @@ _SENSITIVE_SUFFIXES = (
     ".secret_id",
     ".access_key_id",
     ".access_key_secret",
+    # 下划线写法：本项目实际键名是 baidu_api_key / tencent_secret_id / aliyun_access_key_id，
+    # 只匹配点号后缀会把它们全部漏掉（2026-11-03 实测）。
+    "_api_key",
+    "_secret_key",
+    "_secret_id",
+    "_access_key_id",
+    "_access_key_secret",
+    # 其余按实测清单补全（渠道凭据 / 抓取密钥）
+    ".bot_token",
+    ".app_secret",
+    ".webhook_url",
+    ".encrypt_secret",
 )
 
 
@@ -130,3 +142,19 @@ def _walk_sensitive(data: dict[str, Any], *, encrypt: bool, fernet: Any, prefix:
 
 def _is_sensitive(full_key: str) -> bool:
     return any(full_key.endswith(s) for s in _SENSITIVE_SUFFIXES)
+
+
+def has_plaintext_sensitive(data: dict[str, Any], prefix: str = "") -> bool:
+    """是否还有敏感字段以明文存放（用于「读出→加密→写回」的一次性自愈）。
+
+    递归遍历时拼接完整键路径（与 `_walk_sensitive` 同口径）；只有字符串、非空、
+    且**不是** Fernet 密文（`gAAAAA` 前缀）才算明文。
+    """
+    for k, v in data.items():
+        full_key = f"{prefix}.{k}" if prefix else k
+        if isinstance(v, dict):
+            if has_plaintext_sensitive(v, full_key):
+                return True
+        elif isinstance(v, str) and v and not v.startswith("gAAAAA") and _is_sensitive(full_key):
+            return True
+    return False

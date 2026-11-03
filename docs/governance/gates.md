@@ -530,6 +530,11 @@ B1（声明类 vs 实现类）已覆盖同一语义、且每次 CI 都在跑；�
 
 ## 执行入口：`scripts/check_all.sh` 模式
 
+> **运维脚本（非门禁，2026-11-03）**：`scripts/encrypt_config_secrets.py` —— 把 `config.json`
+> 里仍以明文保存的敏感字段（`*_api_key`/`*_secret_key`/`bot_token`/`app_secret`/`webhook_url`/
+> `encrypt_secret`）一次性加密写回。它**不参与任何门禁模式**，仅供部署前离线执行；
+> 日常加载时的自愈由 `ConfigManager._load()` 内 `has_plaintext_sensitive()` 负责。
+
 | 模式 | 内容 | 是否写文件 | 归属 |
 |------|------|-----------|------|
 | `--fast` | G-010 代码规模、**G-005 日志规范**、G-011 动态属性、G-015 相对导入、G-012 SQL Schema/注释密度、**G-048 架构文档模块计数**、**G-049 manager.py 防膨胀**、**G-039 冲突标记**、**G-040 i18n 硬编码**、**G-047 Python 侧 i18n 硬编码**、**G-043 敏感端点审计**、**G-044 术语与禁用词**、**G-045 通知覆盖度**、**G-046 通知链路审计**、vue-tsc、G-027 组件 `defineOptions`、`_wait_worker` 防回潮 | 否 | 通用 |
