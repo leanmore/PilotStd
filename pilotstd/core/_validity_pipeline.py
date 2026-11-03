@@ -83,8 +83,8 @@ def _enqueue_gb_replacement(db: Any, new_standard: str, new_name: str) -> None:
         logger.warning("替代标准入下载队列失败: %s, error=%s", new_standard, e)  # i18n-allow: 内部日志
 
 
-def _record_change(db: Any, std_no: str, new_status: str, result: dict) -> dict:
-    """记录一次状态变更，并把 GB 替代标准放入下载队列。"""
+def _record_change(db: Any, std_no: str, new_status: str, result: dict, apply_side_effects: bool = False) -> dict:
+    """记录一次状态变更；仅在证据充分（L2 且开关开启）时才把替代标准放入下载队列。"""
     detail = {
         "standard": std_no,
         "name": _std_name(db, std_no),
@@ -92,11 +92,12 @@ def _record_change(db: Any, std_no: str, new_status: str, result: dict) -> dict:
         "new_standard": result.get("new_standard", ""),
         "new_standard_name": result.get("new_standard_name", ""),
     }
-    _enqueue_gb_replacement(
-        db,
-        str(result.get("new_standard", "") or ""),
-        str(result.get("new_standard_name", "") or ""),
-    )
+    if apply_side_effects:
+        _enqueue_gb_replacement(
+            db,
+            str(result.get("new_standard", "") or ""),
+            str(result.get("new_standard_name", "") or ""),
+        )
     return detail
 
 
@@ -107,11 +108,13 @@ def _process_validity_batch(
     notification_mgr: Any,
     batch_size: int,
     batch_interval: int,
+    query_engine: Any = None,
 ) -> tuple[int, list[str], list[dict], list[dict]]:
     """逐条检查标准时效性，更新状态，发送批量通知。
 
     返回 (changed, changed_list, failed_list, change_detail)——
     change_detail 供最终批次报告的"变更详情"节使用（B-11）。
+    `query_engine` 非空时 L2（适配器实时查询）才可达；为空则仍只有 L1/L3。
     """
 
     changed = 0
@@ -120,7 +123,7 @@ def _process_validity_batch(
     change_detail: list[dict] = []
     for i, std_no in enumerate(candidates):
         try:
-            result = checker.check_standard(std_no)
+            result = checker.check_standard(std_no, query_engine=query_engine)
             if result:
                 old_row = db.fetchone(
                     f"SELECT status FROM {_TABLE} WHERE standard_number=?",
@@ -128,17 +131,23 @@ def _process_validity_batch(
                 )
                 old_status = old_row["status"] if old_row else None
                 new_status = result["status"] or Status.ACTIVE.value
+                evidence = str(result.get("evidence", "L3"))
                 checker.update_status(
                     std_no,
                     new_status,
                     notification_mgr,
                     str(result.get("new_standard", "") or ""),
                     str(result.get("new_standard_name", "") or ""),
+                    evidence=evidence,
                 )
                 if old_status and old_status != new_status:
                     changed_list.append(std_no)
                     changed += 1
-                    change_detail.append(_record_change(db, std_no, new_status, result))
+                    change_detail.append(
+                        _record_change(
+                            db, std_no, new_status, result, checker.should_apply_side_effects(evidence)
+                        )
+                    )
                     if len(change_detail) % 10 == 0 and notification_mgr:
                         try:
                             notification_mgr.send_event(
@@ -237,9 +246,16 @@ def _finalize_validity_round(
 
 # ── 统一入口 ──
 def run_validity_check(
-    notification_mgr: Any = None, db: Any = None, adapter_mgr: Any = None, update_counters: bool = False
+    notification_mgr: Any = None,
+    db: Any = None,
+    adapter_mgr: Any = None,
+    update_counters: bool = False,
+    query_engine: Any = None,
 ) -> dict:
-    """执行时效性检查，供 API 和调度器共同调用。"""
+    """执行时效性检查，供 API 和调度器共同调用。
+
+    `query_engine` 传空时 L2 适配器比对不可达（只有 L1/L3）；API 与调度器都应传入。
+    """
     if not _VALIDITY_LOCK.acquire(blocking=False):
         return {"ok": False, "checked": 0, "changed": 0, "error": "检查正在执行中"}
     try:
@@ -262,7 +278,7 @@ def run_validity_check(
             return {"ok": True, "checked": 0, "changed": 0}
 
         changed, changed_list, failed_list, change_detail = _process_validity_batch(
-            candidates, checker, db, notification_mgr, batch_size, batch_interval
+            candidates, checker, db, notification_mgr, batch_size, batch_interval, query_engine
         )
 
         adapters_status = _finalize_validity_round(

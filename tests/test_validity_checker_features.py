@@ -40,11 +40,14 @@ def test_enqueue_gb_replacement(tmp_path) -> None:
 
 
 class _Checker:
-    def check_standard(self, std):
-        return {"status": "已废止", "new_standard": "GB/T 1-2024", "new_standard_name": "新标准"}
+    def check_standard(self, std, query_engine=None):
+        return {"status": "已废止", "new_standard": "GB/T 1-2024", "new_standard_name": "新标准", "evidence": "L2"}
 
-    def update_status(self, *args):
+    def update_status(self, *args, **kwargs):
         return None
+
+    def should_apply_side_effects(self, evidence):
+        return True
 
 
 class _Notify:

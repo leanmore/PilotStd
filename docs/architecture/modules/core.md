@@ -517,3 +517,5 @@ pilotstd/core/
 
 > **2026-11-02 A-35 聚合隔离**：daily 聚合键加投递用户段（2/daily/u<id>），合并消息显式保留 user_id/delivery_user_id；修复收藏事件被并成 user_id=0 的 daily 通知。
 
+> **2026-11-03 有效性检查接通**：`run_validity_check` / `_process_validity_batch` 新增 `query_engine` 透传，L2 适配器比对从「仅测试可达」变为运行时可走；三级结论带 `evidence`（L1/L2/L3），副作用（搬「过期作废」/替代标准入 `download_queue`）改为**仅 L2 且 `validity.auto_move_expired=true`** 才执行，默认关闭，L1 名称关键词命中只记录不搬文件。`docker/scheduler.py` 的定时任务原以无参方式被 APScheduler 调用（三个依赖恒为 None、检查静默且无 L2），现于函数内惰性从 `get_manager()` 补齐。契约见 `tests/test_batch3_validity_wiring.py`。
+

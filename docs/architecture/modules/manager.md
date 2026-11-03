@@ -196,6 +196,8 @@ StandardManager (BaseFacade)
 
 > **A-21 3b-4（2026-11-01）**：OrganizeHandler.archive_standards 接收 NotificationContext；UI 归档 worker 固定 user=1；渠道缓存按 user_id，system 投递所有 admin。
 
+> **2026-11-03 `/api/standards/status` JOIN 补年份**：`StandardService.get_list` 与 `standard_validity` 的连接条件由 `代号 + 顺序号` 改为带年份（`year>0` 拼 `-year`，否则退回无年份），修复 `last_checked_at` / `check_count` 恒为空（实测 100 条采样全空）。契约见 `tests/test_batch3_validity_wiring.py::test_join_with_year_returns_last_checked`。
+
 
 > **A-21 3b-2 修正（2026-11-01）**：QueryHandler.query/query_stream 透传 context（此前 UI 传 context 被 facade 丢弃，GUI 查询测试暴露）。
 

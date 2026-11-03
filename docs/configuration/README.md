@@ -37,8 +37,20 @@
 | 字段 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
 | `announcement.enabled` | bool | false | 启用公告自动抓取 |
-| `query.announcement_url` | string | `http://localhost:9028` | 公告 API 地址 |
-| `query.announcement_api_key` | string | `""` | 公告 API 密钥 |
+| `query.use_announcement_match` | bool | false | 是否优先查对端公告缓存；false 时直接走实时适配器 |
+| `query.announcement_url` | string | `http://localhost:9028` | 对端公告缓存 API 地址 |
+| `query.announcement_api_key` | string | `""` | 对端公告缓存 API 密钥 |
+
+> **`query.announcement_api_key` 为空 = 该通道未启用（设计如此，不是配置缺失）**：
+> `pilotstd/manager/facade/_query_subsystem.py:67-68` 在密钥为空时直接返回 `None`，
+> 不发起请求；调用链继续走「未命中缓存 → 实时引擎」，结果标注 `source="live_fallback"`
+> （`:159`）。也就是说：
+> - 默认（`use_announcement_match=false`）→ 查询来源 = 实时适配器引擎；
+> - 若开启 `use_announcement_match=true` 且填了密钥 → 先查对端 `GET /api/announce/lookup`，
+>   未命中项仍回退实时引擎；
+> - 若开启但密钥为空 → 全部视为未命中，等价于只用实时引擎（多一次无谓的分支，不报错）。
+>
+> 该通道用于「Windows 端复用群晖端已抓取的公告缓存」，两端不在同一部署时无需配置。
 
 ### 时效性检查配置 [src: `defaults.py:92-102`]
 
@@ -51,6 +63,7 @@
 | `validity.batch_size` | int | 50 | 单批大小(条/批) |
 | `validity.batch_interval` | int | 5 | 批间隔(秒) |
 | `validity.check_ratio` | int | 25 | 检查比例(%) |
+| `validity.auto_move_expired` | bool | false | 允许自动搬「过期作废」/替代标准入下载队列；仅 L2 结论 + 开启时才执行 |
 
 ### 执行联动公式
 

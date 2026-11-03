@@ -393,12 +393,15 @@ def start_scheduler():
     logger.info("APScheduler 已启动")
 
 
-def _check_validity_schedule(notification_mgr=None, adapter_mgr=None):
+def _check_validity_schedule(notification_mgr=None, adapter_mgr=None, query_engine=None):
     """定时调度器定时触发器唤醒函数：直接执行时效性检查。
 
     第四十三号：使用定时触发器替代五分钟轮询与下次运行比较。
     调度频率由时间表达式（周几、时、分）控制，
     此函数每次被唤醒即执行一次检查。
+
+    APScheduler 以**无参**方式调用本函数，故依赖必须在此惰性补齐；否则定时检查
+    既没有通知出口、也没有 L2 适配器比对（2026-11-03 实测补齐）。
     """
     from pilotstd.core.validity_checker import run_validity_check
 
@@ -412,7 +415,23 @@ def _check_validity_schedule(notification_mgr=None, adapter_mgr=None):
         config.set("validity.first_execution", now_utc.isoformat())
         config.save()
 
-    run_validity_check(notification_mgr=notification_mgr, update_counters=True, adapter_mgr=adapter_mgr)
+    if notification_mgr is None or adapter_mgr is None or query_engine is None:
+        try:
+            from .manager import get_manager
+
+            mgr = get_manager()
+            notification_mgr = notification_mgr or mgr.notification_mgr
+            adapter_mgr = adapter_mgr or mgr.adapter_manager
+            query_engine = query_engine or mgr.query_engine
+        except Exception as exc:  # noqa: BLE001 — 依赖缺失时仍要跑检查，只降级
+            logger.warning("validity: 运行期依赖补齐失败，按降级模式执行: %s", exc)  # i18n-allow: 内部运维日志
+
+    run_validity_check(
+        notification_mgr=notification_mgr,
+        update_counters=True,
+        adapter_mgr=adapter_mgr,
+        query_engine=query_engine,
+    )
 
     # 更新下次预计执行时间（日志展示用）
     next_job = scheduler.get_job(_VALIDITY_JOB_ID)

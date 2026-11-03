@@ -98,14 +98,17 @@ class StandardService:
 
         total = db.fetchone(f"SELECT COUNT(*) AS cnt FROM file_index f {where_sql}", tuple(params))
 
-        # 左连接标准有效性表获取检查时间与次数（一对一关系，无需分组）
+        # 左连接标准有效性表获取检查时间与次数（一对一关系，无需分组）。
+        # JOIN 键必须带年份：`standard_validity.standard_number` 存的是 `GB 19001-2020`
+        # 这种完整号，只用 `代号 + 顺序号` 永远匹配不上（实测 100 条采样 last_checked_at 全空）。
         rows = db.fetchall(
             f"SELECT f.id, (f.logical_code || ' ' || f.number) AS standard_number,"
             f" f.status, f.std_name,"
             f" v.last_checked_at, COALESCE(v.check_count, 0) AS check_count"
             f" FROM file_index f"
             f" LEFT JOIN standard_validity v"
-            f" ON (f.logical_code || ' ' || f.number) = v.standard_number"
+            f" ON (f.logical_code || ' ' || f.number ||"
+            f"     CASE WHEN f.year > 0 THEN '-' || f.year ELSE '' END) = v.standard_number"
             f" {where_sql}"
             f" ORDER BY f.logical_code, f.number, f.part LIMIT ? OFFSET ?",
             tuple(params + [size, offset]),

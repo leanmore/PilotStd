@@ -255,7 +255,11 @@ def run_validity_check(mgr=Depends(get_manager_dep)):
     from pilotstd.core.validity_checker import run_validity_check as do_check
 
     result = do_check(
-        notification_mgr=mgr.notification_mgr, db=mgr.db, adapter_mgr=mgr.adapter_manager, update_counters=False
+        notification_mgr=mgr.notification_mgr,
+        db=mgr.db,
+        adapter_mgr=mgr.adapter_manager,
+        update_counters=False,
+        query_engine=mgr.query_engine,
     )
     if result["ok"]:
         try:

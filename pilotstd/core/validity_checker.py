@@ -69,6 +69,19 @@ class ValidityChecker:
 
     # ── 状态更新 ──────────────────────────────────────────────
 
+    def should_apply_side_effects(self, evidence: str) -> bool:
+        """是否允许执行有副作用的动作（搬文件/入下载队列）。
+
+        只有 **L2（适配器实时查询）** 的结论才够格：L1 是名称关键词猜测、L3 是历史行，
+        二者单独命中「废止/被代替」不得搬文件或入队（2026-11-03 修）。
+        默认关闭（`validity.auto_move_expired=false`）：要自动搬文件必须显式开启。
+        """
+        if evidence != "L2":
+            return False
+        from .config import ConfigManager
+
+        return bool(ConfigManager().get("validity.auto_move_expired", False))
+
     def update_status(
         self,
         standard_number: str,
@@ -76,9 +89,11 @@ class ValidityChecker:
         notification_mgr: Any = None,
         new_standard: str = "",
         new_standard_name: str = "",
+        evidence: str = "L3",
     ) -> None:
         """更新标准时效性状态，设置下次检查时间=now + total_weeks*7 天。
         状态变更时同步更新 last_changed_at，未变化时仅更新 updated_at。
+        evidence 标记结论来源（L1/L2/L3），决定是否允许搬文件等副作用。
         """
         now = datetime.now(timezone.utc)
         now_iso = now.isoformat()
@@ -129,7 +144,15 @@ class ValidityChecker:
                     except Exception as e:
                         logger.warning("状态变更通知发送失败: %s, error=%s", standard_number, e)
                 if new_status in ABOLISHED_STATUSES_WITH_EXPIRED:
-                    self._move_expired_file(standard_number)
+                    if self.should_apply_side_effects(evidence):
+                        self._move_expired_file(standard_number)
+                    else:
+                        logger.info(
+                            # i18n-allow: 内部日志
+                            "validity: 不自动搬文件（证据=%s，需 L2 + auto_move_expired）: %s",
+                            evidence,
+                            standard_number,
+                        )
             else:
                 self._db.execute(
                     f"UPDATE {_TABLE} SET last_checked_at=?, next_check_at=?, "
@@ -275,6 +298,7 @@ class ValidityChecker:
             if row:
                 result = self._determine_status(standard_number, row)
                 if result:
+                    result["evidence"] = "L1"
                     result.update(self._replacement_info(standard_number))
                     return result
         except Exception:
@@ -294,6 +318,7 @@ class ValidityChecker:
                         info = {
                             "status": results[0].status or Status.ACTIVE.value,
                             "previous": None,
+                            "evidence": "L2",
                         }
                         info.update(self._replacement_info(standard_number))
                         return info
@@ -310,6 +335,7 @@ class ValidityChecker:
             info = {
                 "status": row["status"],
                 "previous": row["last_status"],
+                "evidence": "L3",
             }
             info.update(self._replacement_info(standard_number))
             return info
