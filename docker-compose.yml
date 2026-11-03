@@ -65,7 +65,9 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:9028/api/health"]
+      # 迁移（如 v72 重算 standard_count）在 Database.__init__ 内执行，21 万行约 8-10s；
+      # timeout 必须留足余量，start_period 覆盖首启迁移，避免容器被误判不健康而重启。
       interval: 30s
-      timeout: 5s
+      timeout: 30s
       retries: 3
-      start_period: 10s
+      start_period: 40s

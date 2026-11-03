@@ -44,7 +44,8 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:9028/api/health"]
+      # 迁移在 Database.__init__ 内执行（v72 全量重算约 8-10s），timeout/start_period 必须留足余量
       interval: 30s
-      timeout: 5s
+      timeout: 30s
       retries: 3
-      start_period: 10s
+      start_period: 40s
