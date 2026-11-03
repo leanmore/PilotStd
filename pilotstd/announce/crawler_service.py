@@ -7,6 +7,7 @@ check_filtered: 按 types 过滤的变体，供 CLI 调用。
 
 from __future__ import annotations
 
+import logging
 import os
 from datetime import datetime
 from typing import Any
@@ -15,6 +16,8 @@ from pilotstd.announcement.adapters import SamrDbCrawler, SamrGbCrawler, SamrHbC
 from pilotstd.announcement.engine import AnnounceEngine
 from pilotstd.announcement.matcher import AnnouncementMatcher
 from pilotstd.core.config import get_data_dir
+
+logger = logging.getLogger(__name__)
 
 _STD_TYPE_DISPLAY: dict[str, str] = {
     "gb": "national",
@@ -145,17 +148,54 @@ class AnnounceCrawler:
         items = adapter._process_one_detail(payload, self._get_ocr_provider(), lambda pid: None)
         if not items:
             raise ValueError("reparse produced no records")
-        db.execute(
-            # 同一公告号可能因源站 PID 变更留下旧 pid 的记录；按 source_site + announce_no
-            # 一起清理，否则旧行会与新解析结果并存，reconcile 永远对不上。
-            "DELETE FROM announcement_record WHERE source_site=? AND (pid=? OR TRIM(announce_no)=?)",
-            (source_site, ann["pid"], announce_no),
-        )
+
+        # 先**原地 upsert** 再清理旧行：直接 DELETE 会撞 `user_favorites.record_id` 等外键
+        # （2026-11-03 线上 reparse 30 号实测 FOREIGN KEY constraint failed）。
+        # upsert 命中唯一键时保留 row id，收藏引用不会断。
         self.engine.matcher.match_and_update(
             items,
             source_site=source_site,
             standard_category=adapter.standard_category,
+            update_existing=True,
         )
+
+        # 清理本次未解析出来的旧行（源站删条目 / PID 变更残留）：被收藏、下载记录或提醒
+        # 引用的行**保留**并告警——删掉会让用户收藏变成悬空外键。
+        from pilotstd.announcement.parser import normalize_std_code
+
+        keep_codes = sorted({normalize_std_code(str(i.get("std_code", ""))) for i in items})
+        placeholders = ",".join("?" for _ in keep_codes)
+        referenced = (
+            "SELECT record_id FROM user_favorites WHERE record_id IS NOT NULL"
+            " UNION SELECT record_id FROM favorite_downloads WHERE record_id IS NOT NULL"
+            " UNION SELECT record_id FROM date_reminder_log WHERE record_id IS NOT NULL"
+        )
+        params: list[Any] = [source_site, ann["pid"], announce_no]
+        params.extend(keep_codes)
+        stale = db.fetchall(
+            "SELECT id FROM announcement_record"
+            " WHERE source_site=? AND (pid=? OR TRIM(announce_no)=?)"
+            f"   AND standard_number NOT IN ({placeholders})"
+            f"   AND id NOT IN ({referenced})",
+            tuple(params),
+        )
+        if stale:
+            ids = [r["id"] for r in stale]
+            db.executemany("DELETE FROM announcement_record WHERE id=?", [(i,) for i in ids])
+            logger.info("reparse 清理旧记录: announce=%s removed=%d", announce_no, len(ids))  # i18n-allow: 内部日志
+        blocked = db.fetchone(
+            "SELECT COUNT(*) AS c FROM announcement_record"
+            " WHERE source_site=? AND (pid=? OR TRIM(announce_no)=?)"
+            f"   AND standard_number NOT IN ({placeholders})"
+            f"   AND id IN ({referenced})",
+            tuple(params),
+        )
+        if blocked and blocked["c"]:
+            logger.warning(
+                # i18n-allow: 内部日志
+                "reparse 有 %d 条旧记录被收藏/提醒引用，已保留: announce=%s", blocked["c"], announce_no
+            )
+
         db.execute(
             "UPDATE announcements SET parse_status='completed', updated_at=? WHERE TRIM(announce_no)=?",
             (datetime.now().isoformat(), announce_no),

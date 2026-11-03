@@ -31,6 +31,7 @@ class AnnouncementMatcher:
         items: list[dict[str, Any]],
         source_site: str = "announcement",
         standard_category: str | None = None,
+        update_existing: bool = False,
     ) -> dict[str, Any]:
         """逐条公告明细比对 file_index，命中则写入两张表（批量模式）。
 
@@ -60,7 +61,7 @@ class AnnouncementMatcher:
 
         # 批量写入：先写记录表再写缓存表，减少数据库往返次数
         if log_rows:
-            inserted, ignored = self._bulk_insert_records(log_rows)
+            inserted, ignored = self._bulk_insert_records(log_rows, update_existing=update_existing)
             result["inserted"] = inserted
             result["duplicates"] = ignored
             logger.info(
@@ -276,14 +277,34 @@ class AnnouncementMatcher:
 
     _BATCH_SIZE = 50
 
-    def _bulk_insert_records(self, rows: list[tuple[Any, ...]]) -> tuple[int, int]:
+    def _bulk_insert_records(
+        self, rows: list[tuple[Any, ...]], update_existing: bool = False
+    ) -> tuple[int, int]:
         """批量插入公告记录到 announcement_record 表，返回 (实际插入, 被唯一键忽略)。
 
         `INSERT OR IGNORE` 会静默丢弃冲突行，调用方曾因此看不到"解析 42 条、入库 21 条"
         的差异；这里用 rowcount 把两个数都暴露出来。
+
+        `update_existing=True`（仅单条公告重解析用）改为 `ON CONFLICT DO UPDATE`：
+        命中唯一键时**原地更新**，保留 row id —— 否则 `DELETE + INSERT` 会因
+        `user_favorites.record_id` 等外键引用而直接 `FOREIGN KEY constraint failed`
+        （2026-11-03 线上 reparse 30 号实测）。
         """
         if not rows:
             return 0, 0
+        suffix = ""
+        if update_existing:
+            suffix = (
+                " ON CONFLICT(source_site, pid, standard_number, language) DO UPDATE SET "
+                "announce_no=excluded.announce_no, std_name=excluded.std_name, "
+                "publish_date=excluded.publish_date, implement_date=excluded.implement_date, "
+                "expiry_date=excluded.expiry_date, superseded_by=excluded.superseded_by, "
+                "confidence=excluded.confidence, row_index=excluded.row_index, "
+                "status=excluded.status, fetched_at=excluded.fetched_at, "
+                "matched=excluded.matched, announcement_title=excluded.announcement_title, "
+                "standard_count=excluded.standard_count, standard_type=excluded.standard_type, "
+                "foreign_name=excluded.foreign_name"
+            )
         inserted = 0
         # 分批插入：避免单条数据库查询过长导致性能下降
         for i in range(0, len(rows), self._BATCH_SIZE):
@@ -291,12 +312,13 @@ class AnnouncementMatcher:
             placeholders = ",".join("(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)" for _ in batch)
             flat_values = [item for row in batch for item in row]
             cur = self._db.execute(
-                "INSERT OR IGNORE INTO announcement_record "
+                "INSERT INTO announcement_record "
                 "(source_site, pid, announce_no, standard_number, std_name, "
                 "publish_date, implement_date, expiry_date, superseded_by, confidence, row_index,"
                 " status, fetched_at, matched, announcement_title, standard_count, standard_type,"
                 " language, foreign_name) "
-                f"VALUES {placeholders}",
+                f"VALUES {placeholders}"
+                + (suffix if update_existing else " ON CONFLICT DO NOTHING"),
                 flat_values,
             )
             inserted += int(cur.rowcount or 0)

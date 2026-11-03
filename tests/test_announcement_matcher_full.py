@@ -457,7 +457,9 @@ class TestBulkInsertRecords(unittest.TestCase):
         self.matcher._bulk_insert_records(rows)
         self.db.execute.assert_called_once()
         sql = self.db.execute.call_args[0][0]
-        self.assertIn("INSERT OR IGNORE", sql)
+        # 默认路径：冲突即忽略（等价旧 INSERT OR IGNORE，但走显式 ON CONFLICT）
+        self.assertIn("INSERT INTO", sql)
+        self.assertIn("ON CONFLICT DO NOTHING", sql)
         self.assertIn("announcement_record", sql)
 
     def test_batch_splitting(self):

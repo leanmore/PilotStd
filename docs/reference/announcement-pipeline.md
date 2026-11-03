@@ -161,4 +161,12 @@ GB/DB/HB 公告头完整；详情记录缺口为 DB 9月第8号 18 条、HB 9月
 > ② 附件把「代替标准号」列末字挤进名称列（`部 2026-11-01  249`），残留 1 条假标准（509→510）；
 > `_METADATA_DATE_PREFIX` 由「行首日期」放宽为「名称开头 0~3 字符内出现日期」。
 > 部署后自检：reparse 30 号应返回 `records=509`，且 `standard_count=509`。
+>
+> **2026-11-03 reparse 外键修复**：单条公告重解析原实现是「先 DELETE 该公告全部记录再插入」，
+> 若这些记录被 `user_favorites.record_id` / `favorite_downloads.record_id` /
+> `date_reminder_log.record_id` 引用，DELETE 直接触发
+> `sqlite3.IntegrityError: FOREIGN KEY constraint failed`（线上 reparse 30 号实测 500）。
+> 现改为：**先按唯一键原地 upsert**（`ON CONFLICT(source_site,pid,standard_number,language) DO UPDATE`，
+> 保留 row id，收藏引用不断）→ 再清理本次未解析出来的旧行；**被引用的旧行保留并记 WARNING**，
+> 绝不制造悬空外键。契约：`tests/test_reparse_cleanup.py`（含「收藏引用时 id 不变、名称已更新」）。
 
