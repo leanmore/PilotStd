@@ -243,10 +243,9 @@ class TestAnnouncementParserDeep(unittest.TestCase):
         self.assertIsNotNone(m)
 
     def test_code_key(self):
-        from pilotstd.announcement.parser import _code_key
+        from pilotstd.announcement.parser import normalize_std_code
 
-        key = _code_key({"std_code": "GB/T", "std_name": "Standard"})
-        self.assertIn("GB/T", key)
+        self.assertEqual(normalize_std_code("GB/T 1—2020"), "GB/T 1-2020")
 
     def test_parse_wps_text_realistic(self):
         from pilotstd.announcement.parser import parse_wps_text

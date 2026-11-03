@@ -11,6 +11,7 @@ from pilotstd.core.status import Status
 from ..core.db import Database
 from ..core.file_index import FILE_INDEX_TABLE
 from ._content_cleaner import clean_announcement_content  # noqa: F401 — 重导出
+from .parser import normalize_std_code
 from .source_corrections import correct_std_code
 
 logger = logging.getLogger(__name__)
@@ -43,7 +44,7 @@ class AnnouncementMatcher:
 
             standard_category = SOURCE_SITE_TO_STANDARD_TYPE.get(source_site, "Unknown")
 
-        result: dict[str, Any] = {"matched": 0, "updated": 0, "details": []}
+        result: dict[str, Any] = {"matched": 0, "updated": 0, "inserted": 0, "duplicates": 0, "details": []}
         if not items:
             return result
 
@@ -59,7 +60,15 @@ class AnnouncementMatcher:
 
         # 批量写入：先写记录表再写缓存表，减少数据库往返次数
         if log_rows:
-            self._bulk_insert_records(log_rows)
+            inserted, ignored = self._bulk_insert_records(log_rows)
+            result["inserted"] = inserted
+            result["duplicates"] = ignored
+            logger.info(
+                "announcement_record 入库: inserted=%d duplicates=%d (items=%d)",  # i18n-allow: 内部入库日志
+                inserted,
+                ignored,
+                len(log_rows),
+            )
             # 入库成功后回写_，确保有数据的公告不显示"待解析"
             announce_nos = {row[2] for row in log_rows}
             for anno in announce_nos:
@@ -134,6 +143,9 @@ class AnnouncementMatcher:
         confidence = item.get("confidence", 0.0)
         row_index = item.get("row_index", 0)
         std_code = correct_std_code(source_site, announce_no, std_name, std_code)
+        # 入库唯一键口径：破折号归一（- / — / － / – / −）。否则同一标准以两种写法
+        # 各落一行，UNIQUE(source_site,pid,standard_number,language) 拦不住。
+        std_code = normalize_std_code(std_code)
 
         parsed = self._parse_std_code(std_code)
         if not parsed:
@@ -264,16 +276,21 @@ class AnnouncementMatcher:
 
     _BATCH_SIZE = 50
 
-    def _bulk_insert_records(self, rows: list[tuple[Any, ...]]) -> None:
-        """批量插入公告记录到 announcement_record 表，按 _BATCH_SIZE 分批。"""
+    def _bulk_insert_records(self, rows: list[tuple[Any, ...]]) -> tuple[int, int]:
+        """批量插入公告记录到 announcement_record 表，返回 (实际插入, 被唯一键忽略)。
+
+        `INSERT OR IGNORE` 会静默丢弃冲突行，调用方曾因此看不到"解析 42 条、入库 21 条"
+        的差异；这里用 rowcount 把两个数都暴露出来。
+        """
         if not rows:
-            return
+            return 0, 0
+        inserted = 0
         # 分批插入：避免单条数据库查询过长导致性能下降
         for i in range(0, len(rows), self._BATCH_SIZE):
             batch = rows[i : i + self._BATCH_SIZE]
             placeholders = ",".join("(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)" for _ in batch)
             flat_values = [item for row in batch for item in row]
-            self._db.execute(
+            cur = self._db.execute(
                 "INSERT OR IGNORE INTO announcement_record "
                 "(source_site, pid, announce_no, standard_number, std_name, "
                 "publish_date, implement_date, expiry_date, superseded_by, confidence, row_index,"
@@ -282,6 +299,8 @@ class AnnouncementMatcher:
                 f"VALUES {placeholders}",
                 flat_values,
             )
+            inserted += int(cur.rowcount or 0)
+        return inserted, len(rows) - inserted
 
     def _bulk_upsert_cache(self, rows: list[tuple[Any, ...]]) -> None:
         """批量 upsert 公告缓存到 announcement_match 表，按 _BATCH_SIZE 分批。"""

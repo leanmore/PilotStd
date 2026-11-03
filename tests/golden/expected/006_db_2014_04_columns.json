@@ -1,0 +1,31 @@
+{
+  "_verified": true,
+  "_source_url": "reconstructed://db-2014-04-columns",
+  "_notes": "按 2014 年第4号（总第172号）实测缺陷重建的样例：① 名称列粘连实施日期与行号（列错位/日期残片）；② 同一标准号在网页里混用全角破折号，需去重为 1 行。原始 HTML 未入库，故本文件是重建样例而非抓取快照。",
+  "items": [
+    {
+      "std_code": "DB11/T 1-2014",
+      "std_name": "标准一",
+      "replaces_code": "",
+      "publish_date": "2014-05-16",
+      "implementation_date": "2014-07-01",
+      "expiry_date": ""
+    },
+    {
+      "std_code": "DB11/T 2-2014",
+      "std_name": "标准二",
+      "replaces_code": "",
+      "publish_date": "2014-05-16",
+      "implementation_date": "2014-07-01",
+      "expiry_date": ""
+    },
+    {
+      "std_code": "DB11/T 3—2014",
+      "std_name": "标准三",
+      "replaces_code": "",
+      "publish_date": "2014-05-16",
+      "implementation_date": "2014-07-01",
+      "expiry_date": ""
+    }
+  ]
+}

@@ -304,7 +304,10 @@ def _extract_language(text: str) -> str:
     return ""
 
 
-_METADATA_DATE_PREFIX = re.compile(r"^\s*\d{4}\s*[-/.年]\s*\d{1,2}")
+# 名称列被「代替标准号」列挤过来的日期残片：`2026-11-01`、`第 2026-11-01 249`、
+# `部 2026-11-01 249`（WPS 附件把上一列末尾的字也带过来）等。
+# 判据：日期出现在名称开头 0~3 个字符内 —— 正常标准名不会以「一两个字 + 日期」开头。
+_METADATA_DATE_PREFIX = re.compile(r"^.{0,3}?\d{4}\s*[-/.年]\s*\d{1,2}")
 _METADATA_HEADERS = ("序号", "备案号", "标准编号", "标准名称", "批准日期", "实施日期")  # i18n-allow: 源站表头识别
 
 
@@ -390,30 +393,65 @@ def _clean_std_name(name: str) -> str:
     return re.sub(r"\s+", " ", name).strip()
 
 
-def _code_key(item: dict[str, Any]) -> str:
-    """标准号去重键：代号 + 名称前20字符，用于 HTML 与附件交叉去重。
+def normalize_std_code(code: str) -> str:
+    """标准号归一化（委托 `core.std_utils.normalize_std_code`，全项目唯一比较口径）。
 
-    标准号中的破折号有 `-`/`—`/`－` 等多种写法（网页与 WPS 附件常不一致），
-    名称末尾还可能粘上实施日期/行号；不归一化会让同一标准被算成两条
-    （2026 年第 45 号公告曾因此把 21 项解析成 42 项）。
+    覆盖 `- — － – − ‑ ﹣`、软连字符、零宽字符与连接符两侧空格；网页解析、附件解析、
+    合并、去重、入库唯一键五处共用。
     """
-    code = re.sub(r"\s*[—－–−]\s*", "-", str(item.get("std_code", "")))
-    code = re.sub(r"\s+", " ", code).strip()
-    name = _clean_std_name(str(item.get("std_name", "")))
-    return code + "|" + name[:20]
+    from pilotstd.core.std_utils import normalize_std_code as _normalize
+
+    return _normalize(code)
 
 
-def _dedupe_by_code(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """按归一化标准号键去重，并在返回前清理名称。"""
-    seen: set[str] = set()
+# 判定「完全重复」时必须逐字段一致的全部解析字段（缺一不可：差一个年份/日期/标点都不合并）
+_DEDUPE_FIELDS = (
+    "std_code",
+    "std_name",
+    "foreign_name",
+    "language",
+    "replaces_code",
+    "publish_date",
+    "implementation_date",
+    "expiry_date",
+    "record_no",
+    "dept",
+)
+
+
+def _normalize_field(field: str, value: Any) -> str:
+    """把单个解析字段归一化到可比较形态（标准号走唯一实现，名称走清洗+折空白）。"""
+    text = str(value or "")
+    if field in ("std_code", "replaces_code"):
+        return normalize_std_code(text)
+    if field == "std_name":
+        return re.sub(r"\s+", " ", _clean_std_name(text)).strip()
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def item_key(item: dict[str, Any]) -> tuple[str, ...]:
+    """全字段比较键：任一字段不同即视为两条不同记录。"""
+    return tuple(_normalize_field(f, item.get(f, "")) for f in _DEDUPE_FIELDS)
+
+
+def _dedupe_full_fields(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """**全字段 100% 一致**才去重（保留首次出现），并清理名称。
+
+    旧实现用「标准号 + 名称前20字」做键，会把"同年号但日期/代替号不同"的两条误合并；
+    现改为逐字段归一化后全等才丢弃。差异必须保留——解析错误由解析器修，不靠去重掩盖。
+    日志口径：`dedupe: 42 -> 21 (dropped 21)`。
+    """
+    seen: set[tuple[str, ...]] = set()
     deduped: list[dict[str, Any]] = []
     for item in items:
         item["std_name"] = _clean_std_name(str(item.get("std_name", "")))
-        key = _code_key(item)
+        key = item_key(item)
         if key in seen:
             continue
         seen.add(key)
         deduped.append(item)
+    if len(deduped) != len(items):
+        logger.info("dedupe: %d -> %d (dropped %d)", len(items), len(deduped), len(items) - len(deduped))
     return deduped
 
 
@@ -508,26 +546,30 @@ def parse_announcement_detail(
         logger.info("attachment %d rows > HTML %d rows; use attachment as primary", len(att_items), len(html_items))
         for item in att_items:
             item["_attachment_primary"] = True
-        return _dedupe_by_code(att_items), meta
+        return _dedupe_full_fields(att_items), meta
 
-    # 交叉去重：网页为主，附件补充未覆盖的标准号
+    # 交叉合并：网页为主，附件补充未覆盖的标准号。
+    # 判「有没有」必须用**归一化后**的标准号（源站网页/附件常把 - 写成 —），
+    # 合并完成后再跑一次全字段去重。
     if html_items and att_items:
-        codes = {_code_key(i) for i in html_items}
+        codes = {normalize_std_code(i.get("std_code", "")) for i in html_items}
         new_count = 0
         for item in att_items:
-            if _code_key(item) not in codes:
+            code = normalize_std_code(item.get("std_code", ""))
+            if code not in codes:
                 html_items.append(item)
+                codes.add(code)
                 new_count += 1
         logger.info("HTML %d rows + attachment %d rows", len(html_items) - new_count, new_count)
-        return _dedupe_by_code(html_items), meta
+        return _dedupe_full_fields(html_items), meta
 
     if html_items:
         logger.info("HTML table parsed %d rows", len(html_items))
-        return _dedupe_by_code(html_items), meta
+        return _dedupe_full_fields(html_items), meta
 
     if att_items:
         logger.info("attachment parsed %d rows", len(att_items))
-        return _dedupe_by_code(att_items), meta
+        return _dedupe_full_fields(att_items), meta
 
     title = meta.get("title", "") or ""
     logger.warning("公告详情页未能解析出标准列表: %s", title[:80])  # i18n-allow: 既有日志文案，保持中文排查可读

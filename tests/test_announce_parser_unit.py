@@ -12,7 +12,7 @@ import unittest
 from pilotstd.announcement.parser import (
     STD_CODE_PATTERN,
     _build_header_map,
-    _code_key,
+    item_key,
     parse_announcement_meta,
     parse_html_table,
     parse_text_table,
@@ -155,11 +155,22 @@ class TestParseWpsText(unittest.TestCase):
         self.assertIn("危险化学品", text)
 
 
-class TestCodeKey(unittest.TestCase):
-    """去重键生成——HTML 与附件交叉去重。"""
+class TestItemKey(unittest.TestCase):
+    """全字段比较键——HTML 与附件交叉去重（2026-11-03 起为「100% 一致才合并」）。"""
 
-    def test_same_std_same_key(self):
-        """前20字符相同的标准名称生成相同去重键"""
+    def test_same_all_fields_same_key(self):
+        a = {
+            "std_code": "GB 17681-2024",
+            "std_name": "危险化学品重大危险源安全监控技术规范及其实施指南",
+        }
+        b = {
+            "std_code": "GB 17681—2024",
+            "std_name": "危险化学品重大危险源安全监控技术规范及其实施指南",
+        }
+        self.assertEqual(item_key(a), item_key(b))  # 仅破折号写法不同
+
+    def test_name_diff_beyond_20_chars_is_not_merged(self):
+        """旧实现按名称前20字符截断会把两条不同的记录当成重复；现在必须保留。"""
         a = {
             "std_code": "GB 17681-2024",
             "std_name": "危险化学品重大危险源安全监控技术规范及其实施指南",
@@ -168,12 +179,12 @@ class TestCodeKey(unittest.TestCase):
             "std_code": "GB 17681-2024",
             "std_name": "危险化学品重大危险源安全监控技术规范及其实施指南（含勘误）",
         }
-        self.assertEqual(_code_key(a), _code_key(b))  # 前20字符完全相同
+        self.assertNotEqual(item_key(a), item_key(b))
 
     def test_different_std_different_key(self):
         a = {"std_code": "GB 17681-2024", "std_name": "危险化学品"}
         b = {"std_code": "GB 30871-2022", "std_name": "特殊作业安全规范"}
-        self.assertNotEqual(_code_key(a), _code_key(b))
+        self.assertNotEqual(item_key(a), item_key(b))
 
 
 class TestOCRConfig(unittest.TestCase):

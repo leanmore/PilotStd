@@ -11,7 +11,6 @@ if root_dir not in sys.path:
 from pilotstd.announcement.parser import (
     _build_header_map,
     _clean_wps_name,
-    _code_key,
     _find_col,
     parse_announcement_meta,
     parse_html_table,
@@ -55,15 +54,20 @@ class TestCleanWpsName(unittest.TestCase):
         self.assertEqual(result, '')
 
 
-class TestCodeKey(unittest.TestCase):
-    def test_extracts_code_and_number(self):
-        key = _code_key({'std_code': 'GB', 'std_name': 'Test Standard'})
-        self.assertIn('GB', key)
-        self.assertIn('Test', key)
+class TestItemKey(unittest.TestCase):
+    def test_全字段键对空值稳定(self):
+        from pilotstd.announcement.parser import item_key
 
-    def test_empty_fields(self):
-        key = _code_key({'std_code': '', 'std_name': ''})
-        self.assertEqual(key, '|')
+        self.assertEqual(item_key({"std_code": "", "std_name": ""}), ("", "", "", "", "", "", "", "", "", ""))
+
+    def test_任一行段差异即不同键(self):
+        from pilotstd.announcement.parser import item_key
+
+        a = {"std_code": "GB 1-2020", "std_name": "名", "publish_date": "2026-01-01"}
+        b = {"std_code": "GB 1—2020", "std_name": "名", "publish_date": "2026-01-01"}
+        c = {"std_code": "GB 1-2020", "std_name": "名", "publish_date": "2026-01-02"}
+        self.assertEqual(item_key(a), item_key(b))
+        self.assertNotEqual(item_key(a), item_key(c))
 
 
 class TestFindCol(unittest.TestCase):
@@ -261,14 +265,55 @@ class TestStandardSampleCodes(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-def test_code_key_normalizes_dash_and_name_tail():
-    """2026 年第 45 号：网页用 -、附件用 —，且名称尾部粘日期/行号。"""
-    from pilotstd.announcement.parser import _code_key, _dedupe_by_code
+def test_full_field_dedupe_merges_only_when_every_field_equal():
+    """全字段 100% 一致才合并：破折号/名称尾部日期归一后相同 → 1 条。"""
+    from pilotstd.announcement.parser import _dedupe_full_fields, item_key, normalize_std_code
 
     a = {"std_code": "GB 11887-2026", "std_name": "首饰 贵金属纯度、标识和命名规则"}
     b = {"std_code": "GB 11887—2026", "std_name": "首饰 贵金属纯度、标识和命名规则  2027-11-01  20"}
-    assert _code_key(a) == _code_key(b)
-    assert len(_dedupe_by_code([a, b])) == 1
+    assert normalize_std_code(a["std_code"]) == normalize_std_code(b["std_code"])
+    assert item_key(a) == item_key(b)
+    assert len(_dedupe_full_fields([a, b])) == 1
+
+
+def test_full_field_dedupe_keeps_rows_with_any_difference():
+    """任一字段时间/日期/标点不同都必须保留（去重不得掩盖解析差异）。"""
+    from pilotstd.announcement.parser import _dedupe_full_fields
+
+    base = {
+        "std_code": "GB 11887-2026",
+        "std_name": "首饰 贵金属纯度",
+        "replaces_code": "GB 11887-2012",
+        "publish_date": "2026-10-30",
+        "implementation_date": "2027-11-01",
+    }
+    other_year = dict(base, std_code="GB 11887-2027")
+    other_impl = dict(base, implementation_date="2027-12-01")
+    other_repl = dict(base, replaces_code="")
+    assert len(_dedupe_full_fields([dict(base), dict(other_year)])) == 2
+    assert len(_dedupe_full_fields([dict(base), dict(other_impl)])) == 2
+    assert len(_dedupe_full_fields([dict(base), dict(other_repl)])) == 2
+
+
+def test_normalize_std_code_covers_invisible_chars_and_spaces():
+    """软连字符/零宽字符/连接符两侧空格必须归一为同一个标准号。"""
+    from pilotstd.announcement.parser import normalize_std_code
+
+    expected = "GB/T 1-2020"
+    for raw in (
+        "GB/T 1-2020",
+        "GB/T 1—2020",
+        "GB/T 1－2020",
+        "GB/T 1–2020",
+        "GB/T 1−2020",
+        "GB/T 1 - 2020",
+        "GB/T 1\u00ad-2020",
+        "GB/T\u200b 1-2020",
+        "GB/T 1-2020\ufeff",
+    ):
+        assert normalize_std_code(raw) == expected, raw
+
+
 def test_clean_std_name_strips_date_row_and_wps_garbage():
     from pilotstd.announcement.parser import _clean_std_name
 

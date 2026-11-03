@@ -185,3 +185,9 @@ from ._migrate_v70_announcement_record_language import (  # noqa: E402, F401
 from ._migrate_v71_notification_user_id import (  # noqa: E402, F401
     _migrate_v71_notification_user_id,
 )
+
+# 第七十二版：公告记录按归一化标准号去重 + standard_count 重算
+# （42→21 存量修复；函数自带注册装饰器，幂等）
+from ._migrate_v72_announcement_dedupe import (  # noqa: E402, F401
+    _migrate_v72_announcement_dedupe,
+)

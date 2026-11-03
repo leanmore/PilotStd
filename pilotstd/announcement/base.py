@@ -243,8 +243,19 @@ class BaseAnnounceCrawler(ABC):
         return items
 
     def _is_amendment(self, ann: dict[str, Any]) -> bool:
-        """修改单公告：标题声明“第N号修改单”，正文附件是修改内容，不是标准清单。"""
-        return "修改单" in str(ann.get("title", "") or "")
+        """修改单公告：**整份公告**就是一份修改单，正文附件是修改内容而非标准清单。
+
+        不能只看标题里有没有「修改单」——混合型公告的标题是
+        「…等 508 项推荐性国家标准和 1 项推荐性国家标准修改单的公告」，
+        按子串判断会把 508 条标准整份误判成修改单（reparse 直接返回 0 条）。
+        判据：标题带「N 项…标准 / N 项…修改单」的批量计数 ⇒ 是正常清单公告。
+        """
+        title = str(ann.get("title", "") or "")
+        if "修改单" not in title:
+            return False
+        if re.search(r"\d+\s*项[^，。]{0,20}(标准|修改单)", title):  # i18n-allow: 正则匹配标题中文关键词
+            return False
+        return True
 
     def _parse_amendment(self, ann: dict[str, Any]) -> list[dict[str, Any]]:
         """从修改单公告标题提取被修改标准，不解析附件里的修改内容表格。"""

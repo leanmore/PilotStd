@@ -253,6 +253,14 @@ CODE_WIDTH_TRANS = str.maketrans(
         "\u4e00": "-",  # i18n-allow: 字符归一化表，不是用户文案
         "\u04bb": "-",
         "\u3000": " ",
+        # 软连字符与零宽字符：从 PDF/网页复制时常见，肉眼不可见但会让同一标准号不等。
+        # 这里映射为空格而**不是删除**，保证 translate 前后长度不变（parser 用
+        # normalize_std_code_text 的匹配下标去切原文，长度一变就会截断标准号）。
+        "\u00ad": " ",
+        "\u200b": " ",
+        "\u200c": " ",
+        "\u200d": " ",
+        "\ufeff": " ",
     }
 )
 
@@ -263,8 +271,23 @@ STD_CODE_TOKEN_PATTERN = re.compile(
 
 
 def normalize_std_code_text(text: str) -> str:
-    """全角/误打连接符归一化；仅用于匹配，展示层可保留原始写法。"""
+    """**长度保持**的字符级归一化（全角/各种破折号/零宽字符 → 半角）。
+
+    专供「先用正则匹配、再用匹配下标回切原文」的解析路径使用：任何删除/压缩空白的
+    操作都会让下标错位并截断标准号。比较/入库请用 `normalize_std_code`。
+    """
     return str(text).translate(CODE_WIDTH_TRANS)
+
+
+def normalize_std_code(text: str) -> str:
+    """标准号**比较/入库**的唯一归一化实现。
+
+    在长度保持版基础上再消除连接符两侧空格、折叠空白；网页解析、附件解析、合并、
+    去重、入库唯一键五处共用。展示层仍保留源站原始写法。
+    """
+    s = normalize_std_code_text(text)
+    s = re.sub(r"\s*-\s*", "-", s)
+    return re.sub(r"\s+", " ", s).strip()
 
 
 def _try_parse_sample_code(text: str) -> dict[str, Any] | None:

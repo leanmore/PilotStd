@@ -13,7 +13,6 @@ if root_dir not in sys.path:
 from pilotstd.announcement.parser import (
     _build_header_map,
     _clean_wps_name,
-    _code_key,
     _find_col,
     _parse_entry_fields,
     download_attachment,
@@ -291,22 +290,28 @@ class TestCleanWpsName(unittest.TestCase):
         self.assertEqual(result, "内容")
 
 
-class TestCodeKey(unittest.TestCase):
-    """_code_key 测试。"""
+class TestItemKey(unittest.TestCase):
+    """item_key（全字段比较键）测试。"""
 
-    def test_combines_code_and_name(self):
-        key = _code_key({"std_code": "GB", "std_name": "Test Standard"})
-        self.assertIn("GB", key)
-        self.assertIn("Test", key)
+    def test_normalizes_code_and_name(self):
+        from pilotstd.announcement.parser import item_key
+
+        a = item_key({"std_code": "GB 1—2020", "std_name": "名称  带空格"})
+        b = item_key({"std_code": "GB 1-2020", "std_name": "名称 带空格"})
+        self.assertEqual(a, b)
 
     def test_empty_fields(self):
-        key = _code_key({"std_code": "", "std_name": ""})
-        self.assertEqual(key, "|")
+        from pilotstd.announcement.parser import item_key
 
-    def test_name_truncated_to_20(self):
-        key = _code_key({"std_code": "GB/T 1.1", "std_name": "A" * 50})
-        parts = key.split("|")
-        self.assertEqual(len(parts[1]), 20)
+        self.assertEqual(item_key({"std_code": "", "std_name": ""})[0], "")
+
+    def test_any_field_difference_changes_key(self):
+        from pilotstd.announcement.parser import item_key
+
+        base = {"std_code": "GB/T 1.1-2020", "std_name": "A", "implementation_date": "2021-01-01"}
+        self.assertNotEqual(
+            item_key(base), item_key(dict(base, implementation_date="2021-01-02"))
+        )
 
 
 class TestParseTextTable(unittest.TestCase):
