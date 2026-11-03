@@ -75,10 +75,16 @@ def _is_feat_or_fix_commit(commit_msg):
 
 # 执行 git 命令并返回标准输出；失败返回空串（调用方按「无输出」处理，不抛异常）。
 def _run_git(args):
-    """运行 git 命令，返回 stdout（去除末尾换行）。失败返回空字符串。"""
+    """运行 git 命令，返回 stdout（去除末尾换行）。失败返回空字符串。
+
+    固定 `core.quotepath=false`：默认 git 会把非 ASCII 路径输出成
+    `"docs/guides/Docker\\344\\275\\277..."` 的引号转义形式，而触发规则用的是字面路径
+    （如 `docs/guides/Docker使用指南.md`）⇒ 明明同批改了文档也会被判成"未更新"，
+    在 CI 的 `--strict-block` 下直接阻断（2026-11-03 实测）。
+    """
     try:
         result = subprocess.run(
-            ["git"] + args,
+            ["git", "-c", "core.quotepath=false"] + args,
             capture_output=True,
             encoding="utf-8",
             timeout=30,

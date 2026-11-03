@@ -534,6 +534,12 @@ B1（声明类 vs 实现类）已覆盖同一语义、且每次 CI 都在跑；�
 > 里仍以明文保存的敏感字段（`*_api_key`/`*_secret_key`/`bot_token`/`app_secret`/`webhook_url`/
 > `encrypt_secret`）一次性加密写回。它**不参与任何门禁模式**，仅供部署前离线执行；
 > 日常加载时的自愈由 `ConfigManager._load()` 内 `has_plaintext_sensitive()` 负责。
+>
+> **docs 同步检查修复（2026-11-03）**：`scripts/_docs_sync_io._run_git` 统一加
+> `-c core.quotepath=false`。原因：git 默认把非 ASCII 路径输出成
+> `"docs/guides/Docker\344\275\277..."` 的转义形式，而触发规则按字面路径比对
+> ⇒ 同批改了 `docs/guides/Docker使用指南.md` 仍被判"未更新"，CI `--strict-block` 直接阻断
+> （run 1250 即因此失败、docker/version 作业被跳过）。修复后同一 range 判定通过。
 
 | 模式 | 内容 | 是否写文件 | 归属 |
 |------|------|-----------|------|
