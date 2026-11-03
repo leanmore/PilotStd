@@ -1,4 +1,4 @@
-﻿# 开发指南
+# 开发指南
 
 > 更新日期：2026-06-30
 > 适用于 G-010 治理后的项目结构
@@ -168,12 +168,17 @@ config 的 `outputFolder`/`outputDir`、工作流上传 `path`、本节说明。
 **环境版本声明**：`ci.yml` 顶部 `env` 定义 `PYTHON_VERSION: '3.12'` 与 `NODE_VERSION: '22'`；
 容器基础镜像为 `python:3.12-slim`；`pyproject.toml` 声明 `requires-python >= 3.12`。
 
-## 测试覆盖状态（2026-10-21）
+## 测试覆盖状态（2026-11-03）
 
 D-13 批次新增 9 个测试文件（扫描器错误分支、ParserCore/ResultBuilder 边界、国外标准后处理、
 版次/文件名正则、ExactMatcher 分支、对账 API、HB 第9号真实样本）。关键文件覆盖：
 scan/scanner.py 99%、scan/parser/_core.py 100%、_foreign.py 100%、
 _result_builder.py 98%、_exact_matcher.py 95%。
+
+2026-11-03 五批修复新增 6 个测试文件（启动阻断 8 例、公告全字段去重 6 例、有效性接线 8 例、
+队列与通知归属 5 例、安全 7 例、45/30 号真实样本 5 例），并补 2 份真实公告 HTML fixture
+（`tests/fixtures/announcement_gb_2026_{45,30}.html`）与 2014 列错位 golden（006）。
+本机全量：`pytest tests --ignore=tests/gui --ignore=tests/e2e` ⇒ **5915 passed / 10 skipped**。
 
 ## 相关文档
 

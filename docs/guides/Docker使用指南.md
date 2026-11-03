@@ -268,7 +268,14 @@ docker compose build --no-cache
 docker compose up -d
 ```
 
-### 4.4 备份
+### 4.4 健康检查与首次启动迁移
+
+`docker-compose.yml` 的 healthcheck 为 `interval 30s / timeout 30s / retries 3 / start_period 40s`。
+首次启动若执行数据库迁移（如 v72 重算 21 万行 `standard_count`，实测约 8–10s），
+`start_period` 内的失败不计入重试、`timeout` 也已放宽，避免容器因启动慢被误判不健康而重启。
+迁移前会自动生成 `pre_migration_v{旧}_to_v{新}.bak`，可用 `GET /api/backup/list` 确认。
+
+### 4.5 备份
 
 需备份的文件：
 - `data/pilotstd.db` — SQLite 数据库（核心）
