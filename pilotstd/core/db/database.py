@@ -123,19 +123,31 @@ class Database:
 
     @property
     def schema_version(self) -> int:
-        try:
-            row = self.fetchone("SELECT MAX(version) FROM _schema_version")
-            if row and row["MAX(version)"] is not None:
-                val = row["MAX(version)"]
-                if isinstance(val, bytes):
-                    val = val.decode("utf-8")
-                return int(val)
+        """读取库内 schema 版本。
+
+        只有「表不存在」或「表为空」才返回 0（全新库/尚未初始化）；**读取过程中的
+        任何 SQL 失败都必须上抛**——把读失败当 0 会让 `_run_migrations` 认为这是空库，
+        从 v1 重跑全部迁移并跳过迁移前备份（数据破坏路径）。
+        """
+        exists = self.fetchone(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='_schema_version'"
+        )
+        if not exists:
             return 0
-        except DatabaseError:
+        row = self.fetchone("SELECT MAX(version) AS v FROM _schema_version")
+        if not row or row["v"] is None:
             return 0
-        except Exception as e:
-            logging.getLogger("pilotstd.db").warning("读取 schema 版本失败: %s", e)
-            return 0
+        val = row["v"]
+        if isinstance(val, bytes):
+            val = val.decode("utf-8")
+        return int(val)
+
+    def _has_user_tables(self) -> bool:
+        """是否已存在业务表（用于识别「没有 _schema_version 的旧库」）。"""
+        rows = self.fetchall(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+        )
+        return bool(rows)
 
     def _run_migrations(self) -> None:
         """检查 schema 版本并按序执行未完成的迁移（带备份和 checksum 校验）。"""
@@ -151,14 +163,17 @@ class Database:
             raise DatabaseError("无法获取迁移锁，另一个进程可能正在进行迁移")
 
         try:
-            # 非空库迁移前创建完整备份
-            if current > 0:
+            # 非空库迁移前创建完整备份。判定「非空」不能只看 current：没有
+            # _schema_version 的旧库 current=0 但已有业务表，同样必须先有回滚点。
+            # 备份失败一律中止——绝不在无备份的情况下改 schema。
+            if current > 0 or self._has_user_tables():
                 backup_path = os.path.join(
                     os.path.dirname(self._db_path),
                     "backups",
                     f"pre_migration_v{current}_to_v{target}.bak",
                 )
-                self.backup(backup_path)
+                if not self.backup(backup_path):
+                    raise DatabaseError("迁移前备份失败，已中止迁移")
 
             self._ensure_schema_version_table()
 

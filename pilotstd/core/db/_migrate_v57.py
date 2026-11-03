@@ -100,22 +100,43 @@ def _table_exists(db: Any, table: str) -> bool:
     return row is not None
 
 
+def _mappable_source_sites() -> list[str]:
+    """返回能映射到具体类型的 source_site（排除映射结果为空/Unknown 的项）。
+
+    回填只允许处理这些来源：映射不到的行必须**保持 'Unknown' 不动**，否则
+    UPDATE 写回 'Unknown' 会让 `WHERE standard_type='Unknown'` 恒真、循环永不退出。
+    """
+    return [site for site, std_type in _SOURCE_SITE_MAP.items() if std_type and std_type != "Unknown"]
+
+
 def _backfill_announcement_record(db: Any) -> int:
-    """Step2：分批回填 announcement_record（source_site 精确映射 → chunk 更新）。"""
+    """Step2：分批回填 announcement_record（source_site 精确映射 → chunk 更新）。
+
+    幂等/可重入：只选取「可映射来源」的行，每行必被改成非 Unknown 值，
+    因此下一轮 SELECT 不会再把它们选出来；映射不到的行不参与，第二次执行 affected=0。
+    """
     if not _table_exists(db, "announcement_record"):
         _log.info("v57: 表 announcement_record 不存在，跳过回填")
         return 0
+    sites = _mappable_source_sites()
+    if not sites:
+        _log.info("v57: 无可映射的 source_site，跳过回填")  # i18n-allow: 迁移日志
+        return 0
+    placeholders = ",".join("?" for _ in sites)
     updated = 0
     while True:
         rows = db.fetchall(
             "SELECT id, source_site FROM announcement_record "
-            "WHERE standard_type='Unknown' AND source_site IS NOT NULL LIMIT ?",
-            (_CHUNK_SIZE,),
+            f"WHERE standard_type='Unknown' AND source_site IN ({placeholders}) LIMIT ?",
+            (*sites, _CHUNK_SIZE),
         )
         if not rows:
             break
         for r in rows:
             st = _SOURCE_SITE_MAP.get(r["source_site"], "Unknown")
+            if st == "Unknown":
+                # 防御：绝不做「写回 Unknown」的空更新，否则条件恒真
+                continue
             db.execute(
                 "UPDATE announcement_record SET standard_type=? WHERE id=?", (st, r["id"])
             )
@@ -134,12 +155,15 @@ def _backfill_favorite_tables(db: Any) -> tuple[int, int, int]:
     uf = fd = dq = 0
 
     # 3a: user_favorites —— record_id → announcement_record.standard_type
+    # 只取「关联行已有具体类型」的记录：LEFT JOIN + COALESCE 会把未命中的行算成
+    # 'Unknown' 再写回 'Unknown'，导致 WHERE 恒真（v57 历史缺陷）。
     if _table_exists(db, "user_favorites") and _table_exists(db, "announcement_record"):
         while True:
             rows = db.fetchall(
-                "SELECT uf.id, COALESCE(ar.standard_type, 'Unknown') AS st "
-                "FROM user_favorites uf LEFT JOIN announcement_record ar ON uf.record_id = ar.id "
-                "WHERE uf.standard_type='Unknown' LIMIT ?",
+                "SELECT uf.id, ar.standard_type AS st "
+                "FROM user_favorites uf JOIN announcement_record ar ON uf.record_id = ar.id "
+                "WHERE uf.standard_type='Unknown' AND ar.standard_type IS NOT NULL "
+                "AND ar.standard_type <> 'Unknown' LIMIT ?",
                 (_CHUNK_SIZE,),
             )
             if not rows:
@@ -155,9 +179,10 @@ def _backfill_favorite_tables(db: Any) -> tuple[int, int, int]:
     if _table_exists(db, "favorite_downloads") and _table_exists(db, "announcement_record"):
         while True:
             rows = db.fetchall(
-                "SELECT fd.id, COALESCE(ar.standard_type, 'Unknown') AS st "
-                "FROM favorite_downloads fd LEFT JOIN announcement_record ar ON fd.record_id = ar.id "
-                "WHERE fd.standard_type='Unknown' LIMIT ?",
+                "SELECT fd.id, ar.standard_type AS st "
+                "FROM favorite_downloads fd JOIN announcement_record ar ON fd.record_id = ar.id "
+                "WHERE fd.standard_type='Unknown' AND ar.standard_type IS NOT NULL "
+                "AND ar.standard_type <> 'Unknown' LIMIT ?",
                 (_CHUNK_SIZE,),
             )
             if not rows:
@@ -173,10 +198,11 @@ def _backfill_favorite_tables(db: Any) -> tuple[int, int, int]:
     if _table_exists(db, "download_queue") and _table_exists(db, "announcement_record"):
         while True:
             rows = db.fetchall(
-                "SELECT dq.id, COALESCE(ar.standard_type, 'Unknown') AS st "
-                "FROM download_queue dq LEFT JOIN announcement_record ar "
+                "SELECT dq.id, ar.standard_type AS st "
+                "FROM download_queue dq JOIN announcement_record ar "
                 "ON dq.standard_number = ar.standard_number "
-                "WHERE dq.standard_type='Unknown' LIMIT ?",
+                "WHERE dq.standard_type='Unknown' AND ar.standard_type IS NOT NULL "
+                "AND ar.standard_type <> 'Unknown' LIMIT ?",
                 (_CHUNK_SIZE,),
             )
             if not rows:
