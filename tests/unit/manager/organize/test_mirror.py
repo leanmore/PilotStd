@@ -288,8 +288,9 @@ class TestMirrorIntoExistingDst:
         with patch("shutil.move"), patch("os.chmod") as mock_chmod:
             mirror._mirror_into_existing_dst(dst, src_dir, result)
 
+        # safe_move 现在保留读位（mode | S_IWRITE | S_IREAD），不能再按“恰好等于”断言
         chmod_calls = [
-            c for c in mock_chmod.call_args_list if c.args[1] == stat.S_IWRITE
+            c for c in mock_chmod.call_args_list if c.args[1] & stat.S_IWRITE
         ]
         assert len(chmod_calls) >= 1
 
@@ -343,8 +344,9 @@ class TestMirrorWholeDirectory:
         with patch("shutil.move"), patch("os.chmod") as mock_chmod:
             mirror._mirror_whole_directory(dst, src_dir, result)
 
+        # safe_move 现在保留读位（mode | S_IWRITE | S_IREAD），不能再按“恰好等于”断言
         chmod_calls = [
-            c for c in mock_chmod.call_args_list if c.args[1] == stat.S_IWRITE
+            c for c in mock_chmod.call_args_list if c.args[1] & stat.S_IWRITE
         ]
         assert len(chmod_calls) >= 1
 

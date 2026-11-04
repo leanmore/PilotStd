@@ -261,9 +261,13 @@ class TestPerformanceBaseline(TestTaskHistoryCommon):
 
         latencies.sort()
         p95 = latencies[int(len(latencies) * 0.95)]
-        # CI 共享 runner 的 CPU 争用会让 50ms 绝对阈值偶发误报（run 1071/1085 实测）；
-        # 本地仍保持 50ms，CI 放宽到 150ms，仅用于防"数量级退化"。
-        threshold = 150.0 if os.getenv("CI") else 50.0
+        # CI 共享 runner 的 CPU 争用会让绝对阈值偶发误报（run 1071/1085 实测）；
+        # xdist 并行跑测试时本进程还会与 N-1 个 worker 抢 CPU，50/150ms 都失去意义，
+        # 故并行下放宽到 400ms，仅用于拦截“数量级退化”（2026-11-04 CI 实测）。
+        if os.getenv("PYTEST_XDIST_WORKER"):
+            threshold = 400.0
+        else:
+            threshold = 150.0 if os.getenv("CI") else 50.0
         self.assertLess(p95, threshold, f"P95={p95:.1f}ms 超过 {threshold:.0f}ms 阈值")
 
     def test_stats_query_fast(self):
