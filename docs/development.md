@@ -168,7 +168,7 @@ config 的 `outputFolder`/`outputDir`、工作流上传 `path`、本节说明。
 **环境版本声明**：`ci.yml` 顶部 `env` 定义 `PYTHON_VERSION: '3.12'` 与 `NODE_VERSION: '22'`；
 容器基础镜像为 `python:3.12-slim`；`pyproject.toml` 声明 `requires-python >= 3.12`。
 
-## 测试覆盖状态（2026-11-03）
+## 测试覆盖状态（2026-11-04）
 
 D-13 批次新增 9 个测试文件（扫描器错误分支、ParserCore/ResultBuilder 边界、国外标准后处理、
 版次/文件名正则、ExactMatcher 分支、对账 API、HB 第9号真实样本）。关键文件覆盖：
@@ -178,7 +178,10 @@ _result_builder.py 98%、_exact_matcher.py 95%。
 2026-11-03 五批修复新增 6 个测试文件（启动阻断 8 例、公告全字段去重 6 例、有效性接线 8 例、
 队列与通知归属 5 例、安全 7 例、45/30 号真实样本 5 例），并补 2 份真实公告 HTML fixture
 （`tests/fixtures/announcement_gb_2026_{45,30}.html`）与 2014 列错位 golden（006）。
-本机全量：`pytest tests --ignore=tests/gui --ignore=tests/e2e` ⇒ **5915 passed / 10 skipped**。
+本机全量：`pytest tests --ignore=tests/gui --ignore=tests/e2e` ⇒ **5974 passed / 10 skipped**。
+2026-11-04 又新增 6 个测试文件（交叉比对斜杠代号、有效性 L1/L2、下载落盘防线、采标判定、
+搬家闭环、任务暂停/原子认领、写权限收口、第三批边缘修复），并补齐 CI 暴露的
+`safe_move` POSIX 权限缺陷回归。
 
 ## 相关文档
 

@@ -201,11 +201,14 @@ def safe_move(src: str, dst: str, on_exists: str = "skip") -> bool:
                     logger.warning("无法生成唯一文件名(已达99): %s", dst)
                     return False
                 logger.info("目标已存在但内容不同，改用: %s", dst)
-        # 清除只读属性（跨盘符移动时只读文件会导致删除步骤失败）
+        # 清除只读属性（跨盘符移动时只读文件会导致删除步骤失败）。
+        # ⚠️ 只加写位、保留读位：POSIX 上 `chmod(src, S_IWRITE)` 会把文件改成 0o200
+        # （无读权限），随后 copy2 读源文件直接 PermissionError，Linux 容器里搬
+        # “过期作废”因此永远失败（2026-11-04 CI 实测）。
         if os.path.isfile(src):
             import stat
 
-            os.chmod(src, stat.S_IWRITE)
+            os.chmod(src, os.stat(src).st_mode | stat.S_IWRITE | stat.S_IREAD)
         # 复制到临时文件，完成后原子替换
         tmp_dst = dst + ".tmp"
         shutil.copy2(src, tmp_dst)

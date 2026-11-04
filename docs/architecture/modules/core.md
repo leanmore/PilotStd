@@ -548,3 +548,7 @@ pilotstd/core/
 > 保留索引可用性，并同时按 `std_name` 与 `file_path` 排除修改单。
 > 保留期清理区分时区：`audit_logs.timestamp` 是 UTC（`datetime('now')`），
 > `pipeline_runs.created_at` 是本地时间（`datetime('now','localtime')`）。
+
+> **2026-11-04 safe_move 权限修复**：`chmod(src, S_IWRITE)` 在 POSIX 上会清掉读位（0o200），
+> 随后 `copy2` 读源文件触发 PermissionError，Linux 容器搬“过期作废”因此必然失败；
+> 改为 `st_mode | S_IWRITE | S_IREAD` 保留读位。契约：`tests/test_validity_move_closure.py`。
