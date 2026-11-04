@@ -624,6 +624,8 @@ class TestAggregateContract(unittest.TestCase):
         # 本用例手工拼装管理器（不跑 __init__），故补一个 ops 替身——
         # 本用例的判据是"空消息跳过 + 记 Error"，投影不在判据内。
         mgr.ops = MagicMock()
+        # D5-3：无 context 的旧调用改为系统广播，显式给出管理员列表
+        mgr._admin_user_ids = MagicMock(return_value=[1])
 
         # 日志发出方随实现迁移：send_event 的编排已移至 _dispatcher（步 C B2）
         with unittest.mock.patch("pilotstd.core.notification._dispatcher.logger") as mock_logger:

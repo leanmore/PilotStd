@@ -1247,15 +1247,16 @@ class TestFileIndexRepository(unittest.TestCase):
         self.assertEqual(result[0]["effect_status"], Status.ACTIVE.value)
         self.assertEqual(result[1]["effect_status"], "")
 
-    def test_get_full_info_sql_uses_like_prefix_for_cache_join(self) -> None:
-        """JOIN 应使用 LIKE 前缀匹配（兼容新旧连接号格式）"""
+    def test_get_full_info_sql_uses_exact_normalized_key(self) -> None:
+        """JOIN 必须用精确归一化键（去斜杠代号+编号[.分部]-年代号），不能用前缀 LIKE。"""
         repo = self._make_repo()
 
         repo.get_full_info("GB", 12345)
 
         call_sql: str = self.mock_db.fetchall.call_args[0][0]
-        self.assertIn("LIKE", call_sql)
-        self.assertIn("|| ' ' ||", call_sql)  # SQLite 字符串拼接
+        self.assertNotIn("LIKE", call_sql)
+        self.assertIn("REPLACE(", call_sql)
+        self.assertIn("'-' || fi.year", call_sql)
 
     # ================================================================
     # stop

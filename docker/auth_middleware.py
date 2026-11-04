@@ -48,6 +48,7 @@ _USER_WRITE_ALLOWED_EXACT = frozenset(
         "/api/notification/config",
         "/api/notification/policy",
         "/api/notification/test",
+        "/api/users/password",  # 自助改密：端点内部校验 old_password（裁决 D-3）
     }
 )
 _USER_WRITE_ALLOWED_PREFIX = ("/api/user/",)

@@ -230,7 +230,7 @@ class TestGetFullInfo:
         db.execute(
             f"INSERT INTO {NETWORK_CACHE_TABLE} (standard_number, result_json, cached_at) VALUES (?, ?, ?)",
             (
-                "SH 200",
+                "SH 200-2021",
                 json.dumps({"status": Status.ACTIVE.value, "standard_name": "行标名", "match_status": "exact"}),
                 "2024-01-01",
             ),
