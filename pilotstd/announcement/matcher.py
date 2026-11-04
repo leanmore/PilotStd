@@ -234,11 +234,18 @@ class AnnouncementMatcher:
             # “被代替”匹配的是**旧标准**：公告年代号是新标准的年份，不能据此判“发现新版”，
             # 否则旧标准永远写不进被代替缓存、还会生成不存在的标准号（2026-11-04 审计 P0）。
             cache_year = announce_year if match_type != "replaced" else 0
-            new_key = self._cache_key(fi_row, cache_year)
+            # 缓存键的代号统一用**公告解析出的规范写法**（GB/T）；索引里可能存 GBT，
+            # 若沿用索引写法会让按 standard_number 的查询（validity L1 / 前端）找不到。
+            cache_code = (
+                str(fi_row.get("logical_code") or "")
+                if match_type == "replaced"
+                else str(parsed.get("logical_code") or fi_row.get("logical_code") or "")
+            )
+            new_key = self._cache_key(cache_code, fi_row, cache_year)
             if new_key in written_new_keys:
                 continue
             updated, is_new_version = self._build_cache_row(
-                fi_row, item, match_type, source_site, now, cache_rows, cache_year
+                fi_row, item, match_type, source_site, now, cache_rows, cache_year, cache_code
             )
             if is_new_version:
                 written_new_keys.add(new_key)
@@ -276,11 +283,11 @@ class AnnouncementMatcher:
         return None
 
     @staticmethod
-    def _cache_key(fi_row, year: int) -> str:
+    def _cache_key(code: str, fi_row, year: int) -> str:
         """缓存键：`代号 编号[.分部]-年代号`（分部标准必须带分部号，见 D7 修复）。"""
         part = int(fi_row.get("part") or -1)
         suffix = f".{part}" if part > 0 else ""
-        return f"{fi_row['logical_code']} {fi_row['number']}{suffix}-{year}"
+        return f"{code} {fi_row['number']}{suffix}-{year}"
 
     def _find_in_file_index(
         self, logical_code: str, number: int, year: int = 0
@@ -315,6 +322,7 @@ class AnnouncementMatcher:
         now,
         cache_rows,
         announce_year: int = 0,
+        cache_code: str = "",
     ) -> tuple[bool, bool]:
         """构建公告缓存行：根据实施日期判定状态（现行/即将实施/被代替），写入缓存列表。
 
@@ -326,11 +334,9 @@ class AnnouncementMatcher:
         永远不会有“本地缺少新版”的对比结果（2026-11-04 实测）。
         """
         fi_year = int(fi_row.get("year") or 0)
+        code = cache_code or str(fi_row.get("logical_code") or "")
         is_new_version = bool(announce_year and fi_year and announce_year > fi_year)
-        if is_new_version:
-            std_number = self._cache_key(fi_row, announce_year)
-        else:
-            std_number = self._cache_key(fi_row, fi_year)
+        std_number = self._cache_key(code, fi_row, announce_year if is_new_version else fi_year)
         today = datetime.now().date()
         implementation_date = item.get("implementation_date", "")
         publish_date = item.get("publish_date", "")

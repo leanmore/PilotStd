@@ -561,7 +561,10 @@ class TestMatchAndUpdate(unittest.TestCase):
             self.assertEqual(result["matched"], 1)
             self.assertEqual(result["updated"], 1)
             # 验证缓存表
-            cache = db.fetchone("SELECT * FROM announcement_match WHERE standard_number=?", ("GBT 1-2020",))
+            # 缓存键统一用公告解析出的规范代号（GB/T），即使索引行存的是 GBT
+            cache = db.fetchone(
+                "SELECT * FROM announcement_match WHERE standard_number=?", ("GB/T 1-2020",)
+            )
             self.assertIsNotNone(cache)
             # 用 json 检查缓存内容
             import json
