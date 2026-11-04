@@ -27,6 +27,7 @@ def parser():
         ("GB1234-20.pdf", 2020, "GB"),
         ("GB1234-86.pdf", 1986, "GB"),
         ("GB/T 1234-20.pdf", 2020, "GB/T"),
+        ("GB1234-20 标准名称.pdf", 2020, "GB"),
     ],
 )
 def test_short_year_expanded(parser, name, year, code):

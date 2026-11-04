@@ -189,3 +189,8 @@ GB/DB/HB 公告头完整；详情记录缺口为 DB 9月第8号 18 条、HB 9月
 > 通过 `pilotstd.core.notification.notify_system` 钩子发 `task_execution_failed`
 > 系统通知（容器 `docker/app.py` 启动时注入 manager 的 `send_event`）。
 > 无钩子（如单元测试/桌面端未接入）时静默降级，不影响抓取。
+
+> **2026-11-04 审计补丁**：`replaced`（被代替）匹配改用**旧标准自身年代号**建缓存键
+> （此前误用新公告年份，导致旧标准永远写不进“被代替”、并生成不存在的标准号）；
+> 缓存键补上分部号（`GB/T 1234.1-2020`），与 `get_full_info` 的精确 JOIN 对齐；
+> 同一公告的多条同号旧版只写一次“发现新版”行，避免计数虚高。

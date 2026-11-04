@@ -43,6 +43,21 @@ _CHANNEL_CLASSES: dict[str, Any] = {s.name: channel_class(s) for s in CHANNEL_SP
 _QUEUE_MESSAGE_FIELDS = _suppression_queue._QUEUE_MESSAGE_FIELDS
 
 
+def _resolve_default_user(db: Database, user_id: int) -> int:
+    """把 `user_id<=0`（系统级）解析为真实管理员 id；解析不到时回退 1（旧库兼容）。"""
+    if user_id > 0:
+        return user_id
+    try:
+        row = db.fetchone(
+            "SELECT id FROM users WHERE role=? AND id > 0 ORDER BY id LIMIT 1", ("admin",)
+        )
+        if row and int(row["id"]) > 0:
+            return int(row["id"])
+    except Exception as exc:  # noqa: BLE001 — 旧库/测试替身没有 users 表时回退
+        logger.warning("resolve default notification user failed: %s", exc)
+    return 1
+
+
 class NotificationManager:
     """通知管理器。
 
@@ -58,7 +73,9 @@ class NotificationManager:
     def __init__(self, config: Any, db: Database, user_id: int):
         self._cfg = config
         self._db = db
-        self._user_id = user_id
+        # user_id <= 0 表示“系统级”：解析为一个真实管理员作为默认渠道宿主，
+        # 否则 _channels 会按 0 号用户构造（无凭据 → 空），旧库无管理员时也无处回退（D5-3）。
+        self._user_id = _resolve_default_user(db, user_id)
         self._policy = NotificationPolicyHelper(db, config)
         # 静音暂存/补发：组合式注入（发送实现走 lambda ⇒ 每次补发再取 self._send_now，
         # 保证测试里替换 `mgr._send_now` 仍然生效）

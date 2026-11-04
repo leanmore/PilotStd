@@ -12,6 +12,7 @@ from pilotstd.query.search_strategy import is_adopted
         "MODBUS 通信协议",  # 旧实现命中“MOD”→ 误判
         "GB/T 1234-2020 基础规范",
         "采用本标准规定的试验方法",
+        "ISO9000 族标准",  # 数字粘连不算独立词
     ],
 )
 def test_non_adopted_names(name):

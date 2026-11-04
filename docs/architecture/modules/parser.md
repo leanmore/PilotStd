@@ -74,3 +74,7 @@ StandardParser (入口)
 > （`GB1234-20` → 2020、`GB1234-86` → 1986；`NumberExtractor.normalize_year` 同步修正）；
 > 国内标准不再清空 `language`，`(英文版)`/`（英文版）` 也能被识别，中英文版本因此在
 > 文件名/索引里可区分。契约：`tests/test_batch3_edge_fixes.py`。
+
+> **2026-11-04 审计补丁**：两位年份展开支持带后缀文件名（`GB1234-20 标准名称.pdf`）；
+> `make_standard_filename` 在 `std_name` 已含“第N号修改单”时不再追加 `file_kind`，
+> 避免文件名出现重复标识。

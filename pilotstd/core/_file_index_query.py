@@ -196,6 +196,10 @@ class FileIndexQuery:
             "REPLACE(fi.logical_code,'/','') || ' ' || fi.number ||"
             " CASE WHEN fi.part > 0 THEN '.' || fi.part ELSE '' END || '-' || fi.year"
         )
+        normalized = logical_code.replace("/", "")
+        slash = f"{normalized[:2]}/{normalized[2:]}" if len(normalized) > 2 else normalized
+        codes = tuple({logical_code, normalized, slash})
+        placeholders = ",".join("?" for _ in codes)
         rows = self._db.fetchall(
             f"SELECT fi.*, "
             f"nc.result_json AS nc_result_json, "
@@ -207,8 +211,8 @@ class FileIndexQuery:
             f"ON REPLACE(nc.standard_number,'/','') = ({fi_key}) "
             f"LEFT JOIN {ANNOUNCEMENT_CACHE_TABLE} ac "
             f"ON REPLACE(ac.standard_number,'/','') = ({fi_key}) "
-            f"WHERE REPLACE(fi.logical_code,'/','') = ? AND fi.number = ?",
-            (logical_code.replace("/", ""), number),
+            f"WHERE fi.logical_code IN ({placeholders}) AND fi.number = ?",
+            (*codes, number),
         )
         result = []
         for row in rows:

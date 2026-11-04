@@ -542,3 +542,9 @@ pilotstd/core/
 > 排除历史脏行。L2 检查改为受控并发（`validity.l2_concurrency`，默认 3），
 > 只并发网络查询、DB 写入仍在主线程串行。`FileIndexQuery.get_full_info` 的 JOIN 由前缀 LIKE 改为
 > **精确归一化键**（去斜杠代号+编号[.分部]-年代号），不再把 `GB/T 12340` 误配到 `GB/T 1234`。契约：`tests/test_batch3_edge_fixes.py`。
+
+> **2026-11-04 审计补丁（搬家/保留期）**：`_move_expired_file` 部分失败时**回滚已搬文件**
+> 再返回 None，避免下一轮拿失效旧路径无限重试；搬文件 SQL 改用 `logical_code IN (...)`
+> 保留索引可用性，并同时按 `std_name` 与 `file_path` 排除修改单。
+> 保留期清理区分时区：`audit_logs.timestamp` 是 UTC（`datetime('now')`），
+> `pipeline_runs.created_at` 是本地时间（`datetime('now','localtime')`）。

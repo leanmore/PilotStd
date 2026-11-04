@@ -100,3 +100,20 @@ def test_no_query_engine_falls_back_to_l3(tmp_path):
     res = ValidityChecker(db).check_standard("GB 1-2020")
     assert res["evidence"] == "L3"
     assert res["status"] == "废止"
+
+
+def test_legacy_abolished_status_is_normalized(tmp_path):
+    """结构化缓存里历史值“废止/作废/过期”必须按废止处理，而不是漏判为现行。"""
+    db = _db(tmp_path)
+    _add_announcement(db, "GB/T 9999-2020", "某标准")
+    for legacy in ("废止", "作废", "过期"):
+        db.execute("DELETE FROM announcement_match")
+        db.execute(
+            "INSERT INTO announcement_match (standard_number, source_site, result_json, cached_at)"
+            " VALUES ('GB/T 9999-2020','announcement_gb',?, '2026-01-01')",
+            (json.dumps({"status": legacy}, ensure_ascii=False),),
+        )
+        engine = _Engine("现行")
+        res = ValidityChecker(db).check_standard("GB/T 9999-2020", query_engine=engine)
+        assert res["status"] in ("已废止", "废止", "作废", "过期"), legacy
+        assert engine.calls == 0

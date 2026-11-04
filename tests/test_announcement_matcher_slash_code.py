@@ -16,11 +16,11 @@ def _db(tmp_path):
     return Database(str(tmp_path / "m.db"))
 
 
-def _insert_fi(db, path, code, number, year, name="本地标准"):
+def _insert_fi(db, path, code, number, year, name="本地标准", part=-1):
     db.execute(
         "INSERT INTO file_index (file_path, logical_code, number, year, part, std_name,"
         " file_hash, status, scanned_at) VALUES (?,?,?,?,?,?,?,?,?)",
-        (path, code, number, year, -1, name, "h" + path, "现行", "2026-01-01"),
+        (path, code, number, year, part, name, "h" + path, "现行", "2026-01-01"),
     )
 
 
@@ -125,3 +125,38 @@ def test_same_year_updates_in_place(tmp_path):
     assert res["new_versions"] == []
     row = db.fetchone("SELECT standard_number FROM announcement_match")
     assert row["standard_number"] == "GB/T 1234-2020"
+
+
+def test_replaced_match_keeps_old_key(tmp_path):
+    """被代替匹配的是旧标准：不得用新标准年代号改写缓存键（审计 P0）。"""
+    db = _db(tmp_path)
+    _insert_fi(db, "/lib/GB_T 5678-2010.pdf", "GB/T", 5678, 2010, "旧标准")
+    item = {
+        "std_code": "GB/T 1234-2020",
+        "std_name": "新标准",
+        "announce_no": "2026年第1号",
+        "_pid": "p1",
+        "publish_date": "2026-01-01",
+        "implementation_date": "2026-06-01",
+        "announcement_title": "公告",
+        "replaces_code": "GB/T 5678-2010",
+    }
+    res = AnnouncementMatcher(db).match_and_update([item], source_site="announcement_gb")
+
+    rows = db.fetchall("SELECT standard_number, result_json FROM announcement_match")
+    assert len(rows) == 1
+    assert rows[0]["standard_number"] == "GB/T 5678-2010"
+    assert json.loads(rows[0]["result_json"])["status"] == "被代替"
+    assert res["new_versions"] == []
+
+
+def test_part_standard_cache_key_includes_part(tmp_path):
+    """分部标准的缓存键必须带 .part，否则 get_full_info 的精确 JOIN 匹配不上。"""
+    db = _db(tmp_path)
+    _insert_fi(db, "/lib/GB_T 1234.1-2020.pdf", "GB/T", 1234, 2020, "一分部", part=1)
+    res = AnnouncementMatcher(db).match_and_update(
+        [_announce("GB/T 1234.1-2020", 2020)], source_site="announcement_gb"
+    )
+    assert res["matched"] == 1
+    row = db.fetchone("SELECT standard_number FROM announcement_match")
+    assert row["standard_number"] == "GB/T 1234.1-2020"

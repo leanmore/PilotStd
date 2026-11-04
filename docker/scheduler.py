@@ -241,8 +241,10 @@ def _cleanup_retention():
     pipeline_days = int(cfg.get("pipeline.retention_days", 90) or 90)
     db = _get_db()
     try:
+        # audit_logs.timestamp 由 SQLite CURRENT_TIMESTAMP 写入（UTC）；pipeline_runs.created_at
+        # 由 Python datetime.now() 写入（本地时区）——两者不能共用一个 now 基准（2026-11-04 审计）。
         audit_deleted = db.execute(
-            "DELETE FROM audit_logs WHERE timestamp < datetime('now','localtime', ?)",
+            "DELETE FROM audit_logs WHERE timestamp < datetime('now', ?)",
             (f"-{audit_days} days",),
         ).rowcount
         pipeline_deleted = db.execute(

@@ -9,7 +9,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 from .db import Database
-from .status import ABOLISHED_STATUSES_WITH_EXPIRED, Status
+from .status import ABOLISHED_STATUSES_WITH_EXPIRED, Status, normalize_status
 
 logger = logging.getLogger(__name__)
 
@@ -230,17 +230,23 @@ class ValidityChecker:
             logger.warning("无法解析标准号，跳过搬文件: %s", standard_number)  # i18n-allow: 内部日志
             return []
         part = parsed.get("part")
+        raw_code = str(parsed["raw_code"])
+        normalized = raw_code.replace("/", "")
+        slash = f"{normalized[:2]}/{normalized[2:]}" if len(normalized) > 2 else normalized
+        codes = tuple({raw_code, normalized, slash})
+        placeholders = ",".join("?" for _ in codes)
         expire_name = str(ConfigManager().get("storage.expire_folder", "过期作废") or "过期作废")
         try:
             root = get_library_root(ConfigManager())
             dir_builder = DirBuilder(root, expire_dir_name=expire_name)
             mover = FileMover(dir_builder)
             rows = self._db.fetchall(
-                "SELECT file_path FROM file_index"  # i18n-allow: SQL 含中文关键词“修改单”
-                " WHERE REPLACE(logical_code,'/','')=? AND number=? AND year=?"
+                "SELECT file_path, std_name FROM file_index"
+                f" WHERE logical_code IN ({placeholders}) AND number=? AND year=?"  # i18n-allow: SQL
                 "   AND (? IS NULL OR part = ?)"
-                "   AND COALESCE(std_name,'') NOT LIKE '%修改单%'",
-                (parsed["raw_code"].replace("/", ""), parsed["number"], parsed["year"], part, part),
+                "   AND COALESCE(std_name,'') NOT LIKE '%修改单%'"
+                "   AND COALESCE(file_path,'') NOT LIKE '%修改单%'",  # i18n-allow: SQL 含中文关键词“修改单”
+                (*codes, parsed["number"], parsed["year"], part, part),
             )
         except Exception as exc:  # noqa: BLE001 — 查询/构造失败视为本轮失败，交由上层放弃写库
             logger.warning("准备搬文件失败: %s (%s)", standard_number, exc)  # i18n-allow: 内部日志
@@ -267,14 +273,33 @@ class ValidityChecker:
             else:
                 failed.append(path)
         if failed:
+            # 回滚已搬走的文件：否则“不再写废止状态”的下一轮会拿着失效的旧路径重试，
+            # 形成永久停滞（2026-11-04 审计风险 3）。
+            self._rollback_moves(moved)
             logger.warning(
-                "过期文件移动失败 %d 个，保持原状态待重试: %s %s",  # i18n-allow: 内部日志
+                "过期文件移动失败 %d 个，已回滚 %d 个，保持原状态待重试: %s %s",  # i18n-allow: 内部日志
                 len(failed),
+                len(moved),
                 standard_number,
                 failed,
             )
             return None
         return moved
+
+    @staticmethod
+    def _rollback_moves(moved: list[tuple[str, str]]) -> None:
+        """把已移动的文件搬回原路径（尽力而为，失败只记日志）。"""
+        import os
+        import shutil
+
+        for old_path, new_path in reversed(moved):
+            try:
+                if os.path.exists(new_path) and not os.path.exists(old_path):
+                    os.makedirs(os.path.dirname(old_path), exist_ok=True)
+                    shutil.move(new_path, old_path)
+            except OSError as exc:
+                # i18n-allow: 内部运维日志
+                logger.error("回滚过期文件失败: %s -> %s (%s)", new_path, old_path, exc)
 
     def _file_index_exists(self) -> bool:
         """兼容测试替身/旧库：没有 file_index 表时不做路径排除。"""
@@ -294,6 +319,7 @@ class ValidityChecker:
             " SELECT 1 FROM file_index f"
             " WHERE REPLACE(f.file_path, '\\\\', '/') LIKE ?"
             " AND (f.logical_code || ' ' || f.number ||"
+            " CASE WHEN f.part > 0 THEN '.' || f.part ELSE '' END ||"
             " CASE WHEN f.year > 0 THEN '-' || f.year ELSE '' END) = v.standard_number)"
         )
         return clause, pattern
@@ -363,8 +389,8 @@ class ValidityChecker:
         # ──1:公告缓存表（只信“否定”，不信“肯定”，且不阻断 L2）──
         try:
             # 1a. 优先读 matcher 已算好的结构化状态（被代替/现行/即将实施）
-            cached = self._cached_announcement_status(standard_number)
-            if cached in (Status.WITHDRAWN_NORMALIZED.value, Status.SUPERSEDED.value):
+            cached = normalize_status(self._cached_announcement_status(standard_number))
+            if cached in ABOLISHED_STATUSES_WITH_EXPIRED:
                 info: dict[str, Optional[str]] = {
                     "status": cached,
                     "previous": None,

@@ -207,26 +207,54 @@ class AnnouncementMatcher:
         if not matches:
             return
         result["matched"] += 1
+        self._write_matches(
+            matches, item, match_type, source_site, now, cache_rows, result, parsed, announce_year, std_code
+        )
+
+    def _write_matches(
+        self,
+        matches: list[dict[str, Any]],
+        item: dict[str, Any],
+        match_type: str,
+        source_site: str,
+        now: str,
+        cache_rows: list[tuple[Any, ...]],
+        result: dict[str, Any],
+        parsed: dict[str, Any],
+        announce_year: int,
+        std_code: str,
+    ) -> None:
+        """把命中的 index 行写成缓存：被代替用旧版年份，发现新版不覆盖旧行。"""
+        written_new_keys: set[str] = set()
         for fi_row in matches:
             fi_year = int(fi_row.get("year") or 0)
             # 公告年代号更旧（重抓历史公告）时不得覆盖本地新版缓存
             if announce_year and fi_year and announce_year < fi_year:
                 continue
+            # “被代替”匹配的是**旧标准**：公告年代号是新标准的年份，不能据此判“发现新版”，
+            # 否则旧标准永远写不进被代替缓存、还会生成不存在的标准号（2026-11-04 审计 P0）。
+            cache_year = announce_year if match_type != "replaced" else 0
+            new_key = self._cache_key(fi_row, cache_year)
+            if new_key in written_new_keys:
+                continue
             updated, is_new_version = self._build_cache_row(
-                fi_row, item, match_type, source_site, now, cache_rows, announce_year
+                fi_row, item, match_type, source_site, now, cache_rows, cache_year
             )
-            if updated:
-                result["updated"] += 1
-                detail = f"{fi_row['logical_code']} {fi_row['number']}-{fi_row['year']}"
-                if match_type == "replaced":
-                    detail += f" -> {std_code}"
-                if is_new_version:
-                    # i18n-allow: 内部日志
-                    detail += f" (发现新版 {parsed['logical_code']} {parsed['number']}-{announce_year})"
-                    result.setdefault("new_versions", []).append(
-                        f"{parsed['logical_code']} {parsed['number']}-{announce_year}"
-                    )
-                result["details"].append(detail)
+            if is_new_version:
+                written_new_keys.add(new_key)
+            if not updated:
+                continue
+            result["updated"] += 1
+            detail = f"{fi_row['logical_code']} {fi_row['number']}-{fi_row['year']}"
+            if match_type == "replaced":
+                detail += f" -> {std_code}"
+            if is_new_version:
+                # i18n-allow: 内部日志
+                detail += f" (发现新版 {parsed['logical_code']} {parsed['number']}-{announce_year})"
+                result.setdefault("new_versions", []).append(
+                    f"{parsed['logical_code']} {parsed['number']}-{announce_year}"
+                )
+            result["details"].append(detail)
 
     def _parse_std_code(self, std_code: str) -> Optional[dict[str, Any]]:
         """解析标准编号字符串为 logical_code + number + year。委托公用解析器。
@@ -247,24 +275,36 @@ class AnnouncementMatcher:
             }
         return None
 
+    @staticmethod
+    def _cache_key(fi_row, year: int) -> str:
+        """缓存键：`代号 编号[.分部]-年代号`（分部标准必须带分部号，见 D7 修复）。"""
+        part = int(fi_row.get("part") or -1)
+        suffix = f".{part}" if part > 0 else ""
+        return f"{fi_row['logical_code']} {fi_row['number']}{suffix}-{year}"
+
     def _find_in_file_index(
         self, logical_code: str, number: int, year: int = 0
     ) -> list[dict[str, Any]]:
         """在 file_index 中查找匹配记录：代号双向兼容 + 同号多版本按年代号优先。
 
         - 代号：`GB/T` ↔ `GBT` 双向兼容（历史行可能存任一种写法）；
+          用 `IN (?, ?)` 而不是 `REPLACE(...)`，避免函数包列导致索引失效；
         - 年代号：先找同年代号的行；没有再退回同号全部行（用于“发现新版”判定）。
         """
         normalized = logical_code.replace("/", "")
+        slash = f"{normalized[:2]}/{normalized[2:]}" if len(normalized) > 2 else normalized
+        codes = tuple({logical_code, normalized, slash})
+        placeholders = ",".join("?" for _ in codes)
         base = (
             f"SELECT * FROM {FILE_INDEX_TABLE} "
-            "WHERE REPLACE(logical_code,'/','')=? AND number=?"
+            f"WHERE logical_code IN ({placeholders}) AND number=?"
         )
+        params: tuple[Any, ...] = (*codes, number)
         if year:
-            same_year = self._db.fetchall(base + " AND year=?", (normalized, number, year))
+            same_year = self._db.fetchall(base + " AND year=?", (*params, year))
             if same_year:
                 return same_year
-        return self._db.fetchall(base, (normalized, number))
+        return self._db.fetchall(base, params)
 
     def _build_cache_row(
         self,
@@ -288,9 +328,9 @@ class AnnouncementMatcher:
         fi_year = int(fi_row.get("year") or 0)
         is_new_version = bool(announce_year and fi_year and announce_year > fi_year)
         if is_new_version:
-            std_number = f"{fi_row['logical_code']} {fi_row['number']}-{announce_year}"
+            std_number = self._cache_key(fi_row, announce_year)
         else:
-            std_number = f"{fi_row['logical_code']} {fi_row['number']}-{fi_row['year']}"
+            std_number = self._cache_key(fi_row, fi_year)
         today = datetime.now().date()
         implementation_date = item.get("implementation_date", "")
         publish_date = item.get("publish_date", "")

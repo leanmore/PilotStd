@@ -42,8 +42,7 @@ logger = logging.getLogger(__name__)
 _USER_WRITE_ALLOWED_EXACT = frozenset(
     {
         "/api/query",  # 查询是 POST，但只读语义
-        "/api/favorites",
-        "/api/favorites/batch-status",
+        "/api/query/save",  # 保存查询结果（用户自身操作）
         "/api/notification/read",
         "/api/notification/config",
         "/api/notification/policy",
@@ -51,7 +50,7 @@ _USER_WRITE_ALLOWED_EXACT = frozenset(
         "/api/users/password",  # 自助改密：端点内部校验 old_password（裁决 D-3）
     }
 )
-_USER_WRITE_ALLOWED_PREFIX = ("/api/user/",)
+_USER_WRITE_ALLOWED_PREFIX = ("/api/user/", "/api/favorites")
 _WRITE_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
 # API Key 强只读：仅放行这一个只读 POST（查询），其余写方法一律 403。
 _API_KEY_ALLOWED_POST = frozenset({"/api/query"})

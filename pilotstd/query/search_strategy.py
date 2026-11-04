@@ -255,7 +255,7 @@ def ts_to_date(ts: Any) -> str:
 # 命中后下载被永久跳过（engine.download_single → SKIPPED）。改为：
 #   1) 英文标记要求词边界（前后不能是字母），避免 MODBUS/ISO9000 这类粘连词误伤；
 #   2) 中文只认“采标 / 采用国际标准 / 采用国外标准”，不再单认“采用”。
-_ADOPTION_RE = re.compile(r"(?<![A-Za-z])(?:ISO|IEC|IDT|MOD|EQV)(?![A-Za-z])")
+_ADOPTION_RE = re.compile(r"(?<![A-Za-z0-9])(?:ISO|IEC|IDT|MOD|EQV)(?![A-Za-z0-9])")
 _ADOPTION_CN = ("采标", "采用国际标准", "采用国外标准")
 
 

@@ -315,7 +315,9 @@ def make_standard_filename(
     part_str = f".{part}" if part else ""
     name_part = f" {safe_name_for_filename(re.sub(r'<[^>]+>', '', std_name))}" if std_name else ""
     lang_part = f"({language})" if language else ""
-    kind_part = f" {file_kind}" if file_kind else ""
+    # 修改单标识可能已包含在 std_name 里（"…第1号修改单"），避免重复追加成
+    # "第1号修改单 第1号修改单"（2026-11-04 审计）。
+    kind_part = f" {file_kind}" if file_kind and file_kind not in (std_name or "") else ""
     num_display = raw_number if raw_number else str(number)
     # 罗马数字前缀（≥2字符，如//）：直接用罗马数字替代阿拉伯数字
     if num_prefix and len(num_prefix) >= 2 and all(c in "IVXLCDM" for c in num_prefix.upper()):

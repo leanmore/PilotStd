@@ -87,6 +87,8 @@ class TaskQueue:
             return
         task.status = TaskStatus.RUNNING
         task.updated_at = now
+        # 同步完整字段（error_log/result_json 等），避免重试任务带着上一轮的错误信息。
+        self._persist(task)
 
         t = threading.Thread(target=self._run, args=(task, handler), daemon=True)
         t.start()

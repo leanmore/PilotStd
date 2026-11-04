@@ -129,6 +129,11 @@ FACTORY_DEFAULTS = {
     "validity.batch_size": 50,
     "validity.batch_interval": 5,
     "validity.check_ratio": 25,
+    # L2 实时查询的受控并发（仅并发网络查询，DB 写入串行）
+    "validity.l2_concurrency": 3,
+    # 审计日志 / 管道运行记录保留天数（定时任务 retention_cleanup 使用）
+    "audit.retention_days": 180,
+    "pipeline.retention_days": 90,
     # 有副作用的动作（搬「过期作废」/替代标准入下载队列）默认关闭：
     # 只有 L2（适配器实时查询）结论 + 本开关为 true 才执行，L1/L3 一律只记录。
     "validity.auto_move_expired": False,

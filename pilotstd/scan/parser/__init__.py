@@ -49,7 +49,8 @@ _AMENDMENT_RE = re.compile(r"第\s*(\d+)\s*号\s*修改单")
 
 # 两位年份：`GB1234-20` / `GB/T 1234-86`（D1-1）。只匹配“代号+编号-两位数字”结尾。
 _SHORT_YEAR_RE = re.compile(
-    r"^(?P<head>[A-Z]{2,}(?:\s*/\s*[A-Z]+)?\s*[\d\.]+\s*-\s*)(?P<yy>\d{2})$"
+    r"^(?P<head>[A-Z]{2,}(?:\s*/\s*[A-Z]+)?\s*[\d\.]+\s*-\s*)(?P<yy>\d{2})"
+    r"(?P<tail>(?:\s.*)?)$"
 )
 
 
@@ -183,7 +184,7 @@ class StandardParser:
             return text
         yy = int(m.group("yy"))
         full = 2000 + yy if yy < 70 else 1900 + yy
-        return f"{m.group('head')}{full}"
+        return f"{m.group('head')}{full}{m.group('tail')}"
 
     def _enrich_and_finalize(
         self,
