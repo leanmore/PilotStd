@@ -45,7 +45,14 @@ class AnnouncementMatcher:
 
             standard_category = SOURCE_SITE_TO_STANDARD_TYPE.get(source_site, "Unknown")
 
-        result: dict[str, Any] = {"matched": 0, "updated": 0, "inserted": 0, "duplicates": 0, "details": []}
+        result: dict[str, Any] = {
+            "matched": 0,
+            "updated": 0,
+            "inserted": 0,
+            "duplicates": 0,
+            "details": [],
+            "new_versions": [],
+        }
         if not items:
             return result
 
@@ -151,15 +158,20 @@ class AnnouncementMatcher:
         parsed = self._parse_std_code(std_code)
         if not parsed:
             return
+        announce_year = int(parsed.get("year") or 0)
 
-        matches = self._find_in_file_index(parsed["logical_code"], parsed["number"])
+        matches = self._find_in_file_index(
+            parsed["logical_code"], parsed["number"], announce_year
+        )
         match_type = "new"
 
         # 直接匹配失败时，用_尝试替代号匹配
         if not matches and replaces_code:
             replaced_parsed = self._parse_std_code(replaces_code)
             if replaced_parsed:
-                matches = self._find_in_file_index(replaced_parsed["logical_code"], replaced_parsed["number"])
+                matches = self._find_in_file_index(
+                    replaced_parsed["logical_code"], replaced_parsed["number"], announce_year
+                )
                 match_type = "replaced"
 
         matched = 1 if matches else 0
@@ -191,29 +203,62 @@ class AnnouncementMatcher:
             return
         result["matched"] += 1
         for fi_row in matches:
-            updated = self._build_cache_row(fi_row, item, match_type, source_site, now, cache_rows)
+            fi_year = int(fi_row.get("year") or 0)
+            # 公告年代号更旧（重抓历史公告）时不得覆盖本地新版缓存
+            if announce_year and fi_year and announce_year < fi_year:
+                continue
+            updated, is_new_version = self._build_cache_row(
+                fi_row, item, match_type, source_site, now, cache_rows, announce_year
+            )
             if updated:
                 result["updated"] += 1
                 detail = f"{fi_row['logical_code']} {fi_row['number']}-{fi_row['year']}"
                 if match_type == "replaced":
                     detail += f" -> {std_code}"
+                if is_new_version:
+                    detail += f" (发现新版 {parsed['logical_code']} {parsed['number']}-{announce_year})"
+                    result.setdefault("new_versions", []).append(
+                        f"{parsed['logical_code']} {parsed['number']}-{announce_year}"
+                    )
                 result["details"].append(detail)
 
     def _parse_std_code(self, std_code: str) -> Optional[dict[str, Any]]:
-        """解析标准编号字符串为 logical_code + number。委托公用解析器。"""
+        """解析标准编号字符串为 logical_code + number + year。委托公用解析器。
+
+        ⚠️ 必须回传 `raw_code`（带斜杠形态，如 `GB/T`）而不是 `code`：`file_index`
+        存的是解析器产出的 `logical_code`（`GB/T`、`DB11/T`），而 `parse_std_number`
+        的 `code` 已去掉斜杠（`GBT`）。用 `code` 查索引会让全部斜杠类标准匹配失败
+        （2026-11-04 生产实测：含斜杠公告 201,499 条，matched=1 仅 1 条）。
+        """
         from ..core.std_utils import parse_std_number
 
         r = parse_std_number(std_code)
         if r:
-            return {"logical_code": r["code"], "number": r["number"]}
+            return {
+                "logical_code": r.get("raw_code") or r["code"],
+                "number": r["number"],
+                "year": int(r.get("year") or 0),
+            }
         return None
 
-    def _find_in_file_index(self, logical_code: str, number: int) -> list[dict[str, Any]]:
-        """在 file_index 中查找匹配 logical_code + number 的记录。"""
-        return self._db.fetchall(
-            f"SELECT * FROM {FILE_INDEX_TABLE} WHERE logical_code=? AND number=?",
-            (logical_code, number),
+    def _find_in_file_index(
+        self, logical_code: str, number: int, year: int = 0
+    ) -> list[dict[str, Any]]:
+        """在 file_index 中查找匹配记录：代号双向兼容 + 同号多版本按年代号优先。
+
+        - 代号：`GB/T` ↔ `GBT` 双向兼容（历史行可能存任一种写法）；
+        - 年代号：先找同年代号的行；没有再退回同号全部行（用于“发现新版”判定）。
+        """
+        normalized = logical_code.replace("/", "")
+        base = (
+            f"SELECT * FROM {FILE_INDEX_TABLE} "
+            "WHERE REPLACE(logical_code,'/','')=? AND number=?"
         )
+        if year:
+            same_year = self._db.fetchall(base + " AND year=?", (normalized, number, year))
+            if same_year:
+                return same_year
+        return self._db.fetchall(base, (normalized, number))
 
     def _build_cache_row(
         self,
@@ -223,9 +268,23 @@ class AnnouncementMatcher:
         source_site,
         now,
         cache_rows,
-    ) -> bool:
-        """构建公告缓存行：根据实施日期判定状态（现行/即将实施/被代替），写入缓存列表。"""
-        std_number = f"{fi_row['logical_code']} {fi_row['number']}-{fi_row['year']}"
+        announce_year: int = 0,
+    ) -> tuple[bool, bool]:
+        """构建公告缓存行：根据实施日期判定状态（现行/即将实施/被代替），写入缓存列表。
+
+        返回 `(是否写入, 是否“发现新版”)`。
+
+        **发现新版**：公告年代号大于本地文件年代号时，以公告自身年代号建缓存键
+        （如 `GB/T 1234-2020`），并标注 `is_new_version=True` / `local_year`，
+        **不覆盖**本地旧版（2010）的状态行——否则旧版会被贴上新版状态，且
+        永远不会有“本地缺少新版”的对比结果（2026-11-04 实测）。
+        """
+        fi_year = int(fi_row.get("year") or 0)
+        is_new_version = bool(announce_year and fi_year and announce_year > fi_year)
+        if is_new_version:
+            std_number = f"{fi_row['logical_code']} {fi_row['number']}-{announce_year}"
+        else:
+            std_number = f"{fi_row['logical_code']} {fi_row['number']}-{fi_row['year']}"
         today = datetime.now().date()
         implementation_date = item.get("implementation_date", "")
         publish_date = item.get("publish_date", "")
@@ -245,22 +304,31 @@ class AnnouncementMatcher:
 
         cache_data = {
             "status": status,
-            "standard_name": fi_row["std_name"] or item.get("std_name", ""),
+            "standard_name": (item.get("std_name", "") if is_new_version else fi_row["std_name"])
+            or item.get("std_name", "")
+            or fi_row["std_name"],
             "replaces": item.get("replaces_code", ""),
             "publish_date": publish_date,
             "implementation_date": implementation_date,
             "announcement_title": item.get("announcement_title", ""),
             "attachment_url": item.get("attachment_url", ""),
             "attachment_path": item.get("attachment_path", ""),
-            "match_status": "exact",
+            "match_status": "new_version" if is_new_version else "exact",
+            "is_new_version": is_new_version,
+            "local_year": fi_year if is_new_version else None,
             "is_adopted": False,
             "source_site": source_site,
         }
 
         result_json = json.dumps(cache_data, ensure_ascii=False)
         cache_rows.append((std_number, source_site, result_json, now, None))
-        logger.info("公告更新缓存: %s -> %s", std_number, status)
-        return True
+        logger.info(
+            "公告更新缓存: %s -> %s%s",  # i18n-allow: 内部日志
+            std_number,
+            status,
+            "（发现新版）" if is_new_version else "",  # i18n-allow: 内部日志
+        )
+        return True, is_new_version
 
     def _get_complete_pids(self, source_site: str) -> Set[str]:
         """返回已完全解析的公告 PID 集合（所有条目 std_name 均非空）。"""

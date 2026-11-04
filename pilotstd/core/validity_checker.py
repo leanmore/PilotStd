@@ -2,6 +2,7 @@
 # 标准时效性检查模块 — 跟踪标准现行/废止状态变更
 # 1:本地公告缓存表2:网络适配器查询3:历史状态对比
 
+import json
 import logging
 import random
 from datetime import datetime, timedelta, timezone
@@ -289,18 +290,34 @@ class ValidityChecker:
 
         返回: {"status": str, "previous": str|None} 或 None（查询失败）
         """
-        # ──1:公告缓存表（仅 announcement_record 含 std_name 列）──
+        # ──1:公告缓存表（只信“否定”，不信“肯定”，且不阻断 L2）──
         try:
+            # 1a. 优先读 matcher 已算好的结构化状态（被代替/现行/即将实施）
+            cached = self._cached_announcement_status(standard_number)
+            if cached in (Status.WITHDRAWN_NORMALIZED.value, Status.SUPERSEDED.value):
+                info: dict[str, Optional[str]] = {
+                    "status": cached,
+                    "previous": None,
+                    "evidence": "L1",
+                }
+                info.update(self._replacement_info(standard_number))
+                return info
+            # 1b. 名称关键词只作为“废止”的正证据；不再把“公告里出现过”当成现行证据，
+            #     否则适配器（L2）永远看不到真实状态（2026-11-04 实测：适配器调用 0 次）。
             row = self._db.fetchone(
-                "SELECT std_name FROM announcement_record WHERE standard_number=? LIMIT 1",
+                # i18n-allow: SQL 里匹配中文关键词“修改单”
+                "SELECT std_name FROM announcement_record"
+                " WHERE standard_number=? AND COALESCE(std_name,'') NOT LIKE '%修改单%' LIMIT 1",
                 (standard_number,),
             )
-            if row:
-                result = self._determine_status(standard_number, row)
-                if result:
-                    result["evidence"] = "L1"
-                    result.update(self._replacement_info(standard_number))
-                    return result
+            if row and self._name_says_abolished(str(row.get("std_name") or "")):
+                info = {
+                    "status": Status.WITHDRAWN_NORMALIZED.value,
+                    "previous": None,
+                    "evidence": "L1",
+                }
+                info.update(self._replacement_info(standard_number))
+                return info
         except Exception:
             logger.exception("查询公告缓存失败: %s", standard_number)  # i18n-allow: 内部日志
 
@@ -364,25 +381,47 @@ class ValidityChecker:
             logger.warning("replacement lookup failed for %s", standard_number, exc_info=True)
         return {}
 
-    def _determine_status(self, standard_number: str, row: dict) -> Optional[dict[str, Optional[str]]]:
-        """从缓存行判断现行/废止状态。"""
-        std_name = row.get("std_name", "")
-        name_lower = std_name.lower() if std_name else ""
-        # 废止标记词
-        for keyword in (
-            Status.WITHDRAWN.value,
-            Status.VOIDED.value,
-            Status.SUPERSEDED.value,
-            "abolished",
-            "withdrawn",
-            "obsolete",
-        ):
-            if keyword in name_lower:
-                return {"status": Status.WITHDRAWN_NORMALIZED.value, "previous": None}
-        # 有名称但无废止标记 → 现行
-        if std_name:
-            return {"status": Status.ACTIVE.value, "previous": None}
-        return None
+    def _cached_announcement_status(self, standard_number: str) -> str:
+        """读 `announcement_match.result_json.status`（matcher 计算的结构化状态）。
+
+        这是公告侧唯一的权威状态来源；`announcement_record` 没有公告类型/状态列，
+        只靠名称关键词无法判断“废止”（2026-11-04 审计结论）。
+        """
+        row = None
+        try:
+            row = self._db.fetchone(
+                "SELECT result_json FROM announcement_match"
+                " WHERE standard_number=? ORDER BY cached_at DESC LIMIT 1",
+                (standard_number,),
+            )
+        except Exception as exc:  # noqa: BLE001 — 读缓存失败按“无状态”处理，但必须留痕
+            logger.warning("read announcement_match status failed: %s (%s)", standard_number, exc)
+        if not row or not row.get("result_json"):
+            return ""
+        data: dict[str, Any] = {}
+        try:
+            loaded = json.loads(row["result_json"])
+            if isinstance(loaded, dict):
+                data = loaded
+        except (TypeError, ValueError) as exc:
+            logger.warning("invalid announcement_match json: %s (%s)", standard_number, exc)
+        return str(data.get("status") or "")
+
+    @staticmethod
+    def _name_says_abolished(std_name: str) -> bool:
+        """名称里出现废止类词才算“废止”的正证据（保守判定，避免误杀）。"""
+        name_lower = (std_name or "").lower()
+        return any(
+            keyword in name_lower
+            for keyword in (
+                Status.WITHDRAWN.value,
+                Status.VOIDED.value,
+                Status.SUPERSEDED.value,
+                "abolished",
+                "withdrawn",
+                "obsolete",
+            )
+        )
 
     # ── 统计 ──────────────────────────────────────────────────
 

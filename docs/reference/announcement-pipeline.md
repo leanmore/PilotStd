@@ -170,3 +170,13 @@ GB/DB/HB 公告头完整；详情记录缺口为 DB 9月第8号 18 条、HB 9月
 > 保留 row id，收藏引用不断）→ 再清理本次未解析出来的旧行；**被引用的旧行保留并记 WARNING**，
 > 绝不制造悬空外键。契约：`tests/test_reparse_cleanup.py`（含「收藏引用时 id 不变、名称已更新」）。
 
+
+> **2026-11-04 交叉比对修复（D4-1 / D4-2）**：`matcher._parse_std_code` 改用
+> `parse_std_number().raw_code`（带斜杠形态 `GB/T`），并让 `_find_in_file_index` 用
+> `REPLACE(logical_code,'/','')` 做 **`GB/T` ↔ `GBT` 双向兼容**；同号多版本先按年代号精确匹配。
+> 公告年代号大于本地文件年号时，按**公告自身年代号**写 `announcement_match` 行并标注
+> `is_new_version=true` / `local_year` / `match_status=new_version`（“发现新版”），
+> **不覆盖**旧版状态；公告更旧时直接跳过，避免回退覆盖。
+> 修复前生产实测：含斜杠公告 201,499 条，`matched=1` 仅 1 条。契约：
+> `tests/test_announcement_matcher_slash_code.py`（含 `GBT 1234-2020.pdf` 扫描入库后与
+> `GB/T 1234-2020` 公告匹配的回归）。

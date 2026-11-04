@@ -523,3 +523,10 @@ pilotstd/core/
 
 > **2026-11-03 配置密钥加密补全**：`config/crypto.py` 的敏感后缀原只认点号形式（`.api_key` 等），`ocr.baidu_api_key`、`telegram.bot_token`、`dingtalk.app_secret`、`wechat.webhook_url`、`wechat_ip.encrypt_secret` 一直明文落盘；现补下划线写法与渠道字段，并在 `ConfigManager._load()` 检测到明文时**自愈写回**（`has_plaintext_sensitive`）。离线迁移脚本 `scripts/encrypt_config_secrets.py`。DB 侧 `user_credentials` 本来就是 Fernet 加密，未改动。契约见 `tests/test_batch5_security.py`。
 
+
+> **2026-11-04 有效性 L1 修复（D3-2）**：`check_standard` 的 L1 改为**只信否定**——先读
+> `announcement_match.result_json.status`，仅在「被代替/已废止」时直接采信；
+> `announcement_record.std_name` 只作为“废止”的正证据（且排除修改单行），
+> **不再因为“公告里出现过该标准号”就判现行并 return**，L2 适配器恢复可达。
+> 修复前实测：公告记录存在时适配器调用 0 次、废止标准被判现行。契约：
+> `tests/test_validity_l1_l2.py`（含修改单名称不污染本体）。

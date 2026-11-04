@@ -175,13 +175,13 @@ class TestParseStdCode(unittest.TestCase):
     def test_valid_gb_code(self):
         result = self.matcher._parse_std_code("GB/T 1.1-2020")
         self.assertIsNotNone(result)
-        self.assertEqual(result["logical_code"], "GBT")  # parse_std_number 去除 /
+        self.assertEqual(result["logical_code"], "GB/T")  # 入库代号保留斜杠形态
         self.assertEqual(result["number"], 1)  # type: ignore[index]
 
     def test_valid_db_code(self):
         result = self.matcher._parse_std_code("DB35/T 1234-2020")
         self.assertIsNotNone(result)
-        self.assertEqual(result["logical_code"], "DB35T")  # parse_std_number 去除 /
+        self.assertEqual(result["logical_code"], "DB35/T")  # 入库代号保留斜杠形态
         self.assertEqual(result["number"], 1234)  # type: ignore[index]
 
     def test_invalid_code_returns_none(self):
@@ -225,9 +225,12 @@ class TestBuildCacheRow(unittest.TestCase):
         }
         cache_rows = []
 
-        updated = self.matcher._build_cache_row(fi_row, item, "new", "test_site", "2024-01-01T00:00:00", cache_rows)
+        updated, is_new = self.matcher._build_cache_row(
+            fi_row, item, "new", "test_site", "2024-01-01T00:00:00", cache_rows
+        )
 
         self.assertTrue(updated)
+        self.assertFalse(is_new)
         self.assertEqual(len(cache_rows), 1)
         std_number, source, result_json, cached_at, expires_at = cache_rows[0]
         self.assertIn("GBT 1-2020", std_number)
