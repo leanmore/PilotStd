@@ -47,6 +47,11 @@ logger = logging.getLogger(__name__)
 # 修改单标识：`第1号修改单` / `第 2 号修改单` / `修改单(第1号)`（D1-2）。
 _AMENDMENT_RE = re.compile(r"第\s*(\d+)\s*号\s*修改单")
 
+# 两位年份：`GB1234-20` / `GB/T 1234-86`（D1-1）。只匹配“代号+编号-两位数字”结尾。
+_SHORT_YEAR_RE = re.compile(
+    r"^(?P<head>[A-Z]{2,}(?:\s*/\s*[A-Z]+)?\s*[\d\.]+\s*-\s*)(?P<yy>\d{2})$"
+)
+
 
 class StandardParser:
     """增强型标准文件名解析器，支持精确匹配和模糊匹配，兼容历史两位年份。
@@ -156,14 +161,29 @@ class StandardParser:
     # ──公共接口────────────────────────────────────────────
 
     def _preprocess_input(self, filename: str) -> tuple[str, str, str, str]:
-        """输入规范化：路径→文件名、清理、语言检测、文件属性标记。
+        """输入规范化：路径→文件名、清理、两位年份展开、语言检测、文件属性标记。
         返回 (cleaned, raw_ext, language, basename)。"""
         basename = os.path.splitext(filename)[0]
         raw_ext = os.path.splitext(filename)[1] or ".pdf"
-        cleaned = self._clean(basename)
+        cleaned = self._expand_short_year(self._clean(basename))
         language = self._detect_language(basename)
         self._current_file_kind = self._detect_file_kind(basename)
         return cleaned, raw_ext, language, basename
+
+    @staticmethod
+    def _expand_short_year(text: str) -> str:
+        """把 `GB1234-20` 这类两位年份展开为四位（D1-1）。
+
+        两位年份按“70 分界”换算（20→2020、86→1986），避免 `normalize_year` 的
+        1900+yy 把 2000 年代标准算成 1920。仅在“代号+编号-两位数字结尾”时生效，
+        不影响 `1234.5` 这类分部号。
+        """
+        m = _SHORT_YEAR_RE.match(text)
+        if not m:
+            return text
+        yy = int(m.group("yy"))
+        full = 2000 + yy if yy < 70 else 1900 + yy
+        return f"{m.group('head')}{full}"
 
     def _enrich_and_finalize(
         self,
@@ -243,7 +263,7 @@ class StandardParser:
         family = self._classify_code(info.logical_code)
         if family == "domestic":
             info.num_prefix = ""
-            info.language = ""  # 国内标准不标语言版本
+            # 保留 language：同一标准的中文版/英文版必须能在索引里区分（D1-3）。
         elif family == "iso_iec":
             pass  # ISO/IEC 保留语言标记
         elif family == "foreign":

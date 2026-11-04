@@ -2,6 +2,7 @@
 # ValidityChecker 单元测试 — 覆盖所有方法和分支路径
 # 使用 unittest.TestCase + MagicMock，不依赖 pytest fixture
 
+import json
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -17,6 +18,24 @@ from pilotstd.core.validity_checker import (
 # ════════════════════════════════════════════════════════════════════
 # 辅助：构造带 __getitem__ 的 mock fetchone/fetchall 返回值
 # ════════════════════════════════════════════════════════════════════
+
+
+class _MakeDB:
+    """按 SQL 关键字分派的轻量 DB 替身（L1 现在查两张表）。"""
+
+    def __init__(self):
+        from unittest.mock import MagicMock
+
+        self.rows: dict[str, object] = {}
+        self.execute = MagicMock()
+        self.fetchall = MagicMock(return_value=[])
+        self.fetchone = self._fetchone
+
+    def _fetchone(self, sql, params=None):
+        for table, row in self.rows.items():
+            if table in str(sql):
+                return row
+        return None
 
 
 def _row(**kwargs):
@@ -409,203 +428,124 @@ class TestRandomSlice(unittest.TestCase):
 
 
 class TestCheckStandard(unittest.TestCase):
-    """覆盖 check_standard：L1 命中/L2 命中/L3 命中/全部未命中。"""
+    """覆盖 check_standard：L1 只信否定 / L2 可达 / L3 回退。"""
 
     def setUp(self):
-        self.mock_db = MagicMock()
-        self.mock_db.fetchall.return_value = _rows(
-            {"name": "id"}, {"name": "standard_number"}, {"name": "last_changed_at"}
-        )
+        self.mock_db = _MakeDB()
         self.checker = ValidityChecker(self.mock_db)
-        self.mock_db.reset_mock()
 
-    # ── L1 命中 ──
-
-    def test_l1_hit_announcement_match(self):
-        """L1: announcement_match 表命中 → 返回 status='现行'。"""
-        self.mock_db.fetchone.return_value = _row(
-            std_name="GB/T 12345 某某标准",
-            publish_date="2020-01-01",
+    def test_l1_structured_superseded_short_circuits(self):
+        self.mock_db.rows["announcement_match"] = _row(
+            result_json=json.dumps({"status": Status.SUPERSEDED.value})
         )
-        result = self.checker.check_standard("GB/T 12345")
-        self.assertIsNotNone(result)
-        self.assertEqual(result["status"], Status.ACTIVE.value)
-        self.assertIsNone(result["previous"])
+        qe = MagicMock()
+        result = self.checker.check_standard("GB/T 12345", query_engine=qe)
+        self.assertEqual(result["status"], Status.SUPERSEDED.value)
+        self.assertEqual(result["evidence"], "L1")
+        qe.query_standards.assert_not_called()
 
-    def test_l1_hit_announcement_record(self):
-        """L1: announcement_match 未命中，announcement_record 命中 → 返回废止。"""
-        self.mock_db.fetchone.side_effect = [
-            _row(std_name="GB/T 12345 被代替标准"),
-        ]
-        result = self.checker.check_standard("GB/T 12345")
-        self.assertIsNotNone(result)
+    def test_l1_abolished_name_is_negative_evidence(self):
+        self.mock_db.rows["announcement_record"] = _row(std_name="GB/T 1 已废止")
+        result = self.checker.check_standard("GB/T 1")
         self.assertEqual(result["status"], Status.WITHDRAWN_NORMALIZED.value)
-
-    def test_l1_exception_falls_to_l2(self):
-        """L1 查询抛异常 → 抑制后继续 L2。"""
-        self.mock_db.fetchone.side_effect = [
-            Exception("table missing"),  # announcement_record 异常
-            _row(status=Status.ACTIVE.value, last_status=None),  # L3 fallback
-        ]
-        mock_qe = MagicMock()
-        result = self.checker.check_standard("GB/T 12345", query_engine=mock_qe)
-        self.assertIsNotNone(result)
-
-    # ── L2 命中 ──
+        self.assertEqual(result["evidence"], "L1")
 
     @patch("pilotstd.core.std_utils.parse_std_number")
-    def test_l2_hit_query_engine(self, mock_parse):
-        """L1 未命中 → L2 query_engine 返回 is_found=True → 返回状态。"""
-        self.mock_db.fetchone.return_value = None
-        mock_parse.return_value = {"code": "GB", "number": "12345", "year": 2020}
-
+    def test_record_present_does_not_block_adapter(self, mock_parse):
+        self.mock_db.rows["announcement_record"] = _row(std_name="某标准")
+        mock_parse.return_value = {"code": "GB", "number": 12345, "year": 2020}
         mock_result = MagicMock()
         mock_result.is_found.return_value = True
-        mock_result.status = Status.ACTIVE.value
-        mock_qe = MagicMock()
-        mock_qe.query_standards.return_value = [mock_result]
+        mock_result.status = Status.WITHDRAWN_NORMALIZED.value
+        qe = MagicMock()
+        qe.query_standards.return_value = [mock_result]
 
-        result = self.checker.check_standard("GB/T 12345", query_engine=mock_qe)
-        self.assertIsNotNone(result)
-        self.assertEqual(result["status"], Status.ACTIVE.value)
+        result = self.checker.check_standard("GB/T 12345", query_engine=qe)
+        self.assertEqual(result["evidence"], "L2")
+        self.assertEqual(result["status"], Status.WITHDRAWN_NORMALIZED.value)
+        qe.query_standards.assert_called_once()
 
     @patch("pilotstd.core.std_utils.parse_std_number")
     def test_l2_parse_failed_falls_to_l3(self, mock_parse):
-        """L2 parse_std_number 返回 None → 落到 L3。"""
-        self.mock_db.fetchone.side_effect = [
-            None,
-            _row(status=Status.ACTIVE.value, last_status=None),
-        ]
+        self.mock_db.rows["standard_validity"] = _row(status=Status.ACTIVE.value, last_status=None)
         mock_parse.return_value = None
-        mock_qe = MagicMock()
-
-        result = self.checker.check_standard("INVALID", query_engine=mock_qe)
-        self.assertIsNotNone(result)
+        result = self.checker.check_standard("INVALID", query_engine=MagicMock())
         self.assertEqual(result["status"], Status.ACTIVE.value)
 
     @patch("pilotstd.core.std_utils.parse_std_number")
     def test_l2_result_not_found_falls_to_l3(self, mock_parse):
-        """L2 is_found()=False → 落到 L3。"""
-        self.mock_db.fetchone.side_effect = [
-            None,
-            _row(status=Status.UNKNOWN.value, last_status=None),
-        ]
-        mock_parse.return_value = {"code": "GB", "number": "12345", "year": 2020}
-
-        # 使用 MagicMock 替代 QueryResult，避免参数名不匹配
+        self.mock_db.rows["standard_validity"] = _row(status=Status.UNKNOWN.value, last_status=None)
+        mock_parse.return_value = {"code": "GB", "number": 12345, "year": 2020}
         mock_result = MagicMock()
         mock_result.is_found.return_value = False
-        mock_qe = MagicMock()
-        mock_qe.query_standards.return_value = [mock_result]
-
-        result = self.checker.check_standard("GB/T 12345", query_engine=mock_qe)
-        self.assertIsNotNone(result)
+        qe = MagicMock()
+        qe.query_standards.return_value = [mock_result]
+        result = self.checker.check_standard("GB/T 12345", query_engine=qe)
         self.assertEqual(result["status"], Status.UNKNOWN.value)
 
     @patch("pilotstd.core.std_utils.parse_std_number")
     def test_l2_query_engine_raises_falls_to_l3(self, mock_parse):
-        """L2 query_engine 抛异常 → 抑制，落到 L3。"""
-        self.mock_db.fetchone.side_effect = [
-            None,
-            _row(status=Status.ACTIVE.value, last_status=None),
-        ]
-        mock_parse.return_value = {"code": "GB", "number": "12345", "year": 2020}
-        mock_qe = MagicMock()
-        mock_qe.query_standards.side_effect = RuntimeError("network error")
-
-        result = self.checker.check_standard("GB/T 12345", query_engine=mock_qe)
-        self.assertIsNotNone(result)
+        self.mock_db.rows["standard_validity"] = _row(status=Status.ACTIVE.value, last_status=None)
+        mock_parse.return_value = {"code": "GB", "number": 12345, "year": 2020}
+        qe = MagicMock()
+        qe.query_standards.side_effect = RuntimeError("network error")
+        result = self.checker.check_standard("GB/T 12345", query_engine=qe)
         self.assertEqual(result["status"], Status.ACTIVE.value)
 
-    # ── L3 命中 ──
-
     def test_l3_hit_standard_validity(self):
-        """L1/L2 未命中 → L3 standard_validity 有记录 → 返回 last_status。"""
-        self.mock_db.fetchone.side_effect = [
-            None,
-            _row(status=Status.ACTIVE.value, last_status=Status.WITHDRAWN_NORMALIZED.value),
-        ]
+        self.mock_db.rows["standard_validity"] = _row(
+            status=Status.ACTIVE.value, last_status=Status.WITHDRAWN_NORMALIZED.value
+        )
         result = self.checker.check_standard("GB/T 99999")
-        self.assertIsNotNone(result)
         self.assertEqual(result["status"], Status.ACTIVE.value)
         self.assertEqual(result["previous"], Status.WITHDRAWN_NORMALIZED.value)
 
-    # ── 全部未命中 ──
-
     def test_all_miss(self):
-        """三级全部未命中 → 返回 None。"""
-        self.mock_db.fetchone.return_value = None
-        result = self.checker.check_standard("NONEXISTENT")
-        self.assertIsNone(result)
+        self.assertIsNone(self.checker.check_standard("NONEXISTENT"))
 
     def test_no_query_engine_skips_l2(self):
-        """无 query_engine → 跳过 L2，直接走 L3。"""
-        self.mock_db.fetchone.side_effect = [
-            None,
-            _row(status=Status.ACTIVE.value, last_status=None),
-        ]
+        self.mock_db.rows["standard_validity"] = _row(status=Status.ACTIVE.value, last_status=None)
         result = self.checker.check_standard("GB/T 99999")
-        self.assertIsNotNone(result)
         self.assertEqual(result["status"], Status.ACTIVE.value)
 
 
-# ════════════════════════════════════════════════════════════════════
-# TestDetermineStatus
-# ════════════════════════════════════════════════════════════════════
-
-
-class TestDetermineStatus(unittest.TestCase):
-    """覆盖 _determine_status：6 种废止关键词/现行/空名称/None名称。"""
+class TestStatusHelpers(unittest.TestCase):
+    """覆盖 L1 判定辅助：名称关键词 / 结构化缓存读取。"""
 
     def setUp(self):
-        mock_db = MagicMock()
-        mock_db.fetchall.return_value = _rows({"name": "id"}, {"name": "standard_number"}, {"name": "last_changed_at"})
-        self.checker = ValidityChecker(mock_db)
+        self.checker = ValidityChecker.__new__(ValidityChecker)
 
-    def test_keyword_fei_zhi(self):
-        r = self.checker._determine_status("GB/T 1", {"std_name": "关于废止某某标准"})
-        self.assertEqual(r["status"], Status.WITHDRAWN_NORMALIZED.value)
+    def test_name_fei_zhi(self):
+        self.assertTrue(self.checker._name_says_abolished("关于废止某某标准"))
 
-    def test_keyword_zuo_fei(self):
-        r = self.checker._determine_status("GB/T 1", {"std_name": "某某标准 已作废"})
-        self.assertEqual(r["status"], Status.WITHDRAWN_NORMALIZED.value)
+    def test_name_zuo_fei(self):
+        self.assertTrue(self.checker._name_says_abolished("某某标准 已作废"))
 
-    def test_keyword_bei_dai_ti(self):
-        r = self.checker._determine_status("GB/T 1", {"std_name": "被代替 GB/T 12345"})
-        self.assertEqual(r["status"], Status.WITHDRAWN_NORMALIZED.value)
+    def test_name_bei_dai_ti(self):
+        self.assertTrue(self.checker._name_says_abolished("被代替 GB/T 12345"))
 
-    def test_keyword_abolished(self):
-        r = self.checker._determine_status("BS 1", {"std_name": "Standard (abolished)"})
-        self.assertEqual(r["status"], Status.WITHDRAWN_NORMALIZED.value)
+    def test_name_english_keywords(self):
+        for name in ("Standard (abolished)", "Withdrawn standard", "OBSOLETE STANDARD"):
+            self.assertTrue(self.checker._name_says_abolished(name), name)
 
-    def test_keyword_withdrawn(self):
-        r = self.checker._determine_status("ISO 1", {"std_name": "Withdrawn standard"})
-        self.assertEqual(r["status"], Status.WITHDRAWN_NORMALIZED.value)
+    def test_normal_name_is_not_abolished(self):
+        self.assertFalse(self.checker._name_says_abolished("国家标准"))
+        self.assertFalse(self.checker._name_says_abolished(""))
+        self.assertFalse(self.checker._name_says_abolished(None))
 
-    def test_keyword_obsolete(self):
-        r = self.checker._determine_status("ISO 1", {"std_name": "Obsolete standard"})
-        self.assertEqual(r["status"], Status.WITHDRAWN_NORMALIZED.value)
+    def test_cached_status_reads_json(self):
+        db = _MakeDB()
+        db.rows["announcement_match"] = _row(
+            result_json=json.dumps({"status": Status.SUPERSEDED.value})
+        )
+        checker = ValidityChecker(db)
+        self.assertEqual(checker._cached_announcement_status("GB/T 1"), Status.SUPERSEDED.value)
 
-    def test_name_no_keyword_active(self):
-        r = self.checker._determine_status("GB/T 1", {"std_name": "国家标准"})
-        self.assertEqual(r["status"], Status.ACTIVE.value)
-
-    def test_empty_name_none(self):
-        r = self.checker._determine_status("GB/T 1", {"std_name": ""})
-        self.assertIsNone(r)
-
-    def test_missing_std_name_key(self):
-        r = self.checker._determine_status("GB/T 1", {})
-        self.assertIsNone(r)
-
-    def test_none_std_name(self):
-        r = self.checker._determine_status("GB/T 1", {"std_name": None})
-        self.assertIsNone(r)
-
-    def test_case_insensitive_obsolete(self):
-        """大小写不敏感：OBSOLETE 也命中。"""
-        r = self.checker._determine_status("ISO 1", {"std_name": "OBSOLETE STANDARD"})
-        self.assertEqual(r["status"], Status.WITHDRAWN_NORMALIZED.value)
+    def test_cached_status_invalid_json_returns_empty(self):
+        db = _MakeDB()
+        db.rows["announcement_match"] = _row(result_json="{not-json")
+        checker = ValidityChecker(db)
+        self.assertEqual(checker._cached_announcement_status("GB/T 1"), "")
 
 
 # ════════════════════════════════════════════════════════════════════

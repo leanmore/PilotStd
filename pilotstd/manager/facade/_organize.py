@@ -308,6 +308,7 @@ class OrganizeHandler:
     def organize_files(self, file_paths: list[str]) -> dict[str, Any]:
         """接受文件路径列表，解析后走完整 organizer_service 归档。"""
         parsed: list[ParsedStdInfo] = []
+        unparsed: list[str] = []
         for path in file_paths:
             if not os.path.isfile(path):
                 continue
@@ -315,9 +316,27 @@ class OrganizeHandler:
             if info:
                 info.source_path = path
                 parsed.append(info)
+            else:
+                unparsed.append(path)
+        # 无法解析的文件不会被归档也不会进索引，必须计数告警（D1-1），
+        # 否则用户只看到“无有效文件”却不知道是哪个命名不被支持。
+        if unparsed:
+            logger.warning(
+                "归档跳过无法解析的文件 %d 个: %s",
+                len(unparsed),
+                [os.path.basename(p) for p in unparsed[:10]],
+            )  # i18n-allow: 内部运维日志
         if not parsed:
-            return {"moved": 0, "failed": 0, "skipped_exists": 0, "details": ["无有效文件"]}
-        return self.archive_standards(parsed)  # type: ignore[no-any-return]
+            return {
+                "moved": 0,
+                "failed": 0,
+                "skipped_exists": 0,
+                "unparsed": len(unparsed),
+                "details": ["无有效文件"],
+            }
+        result = self.archive_standards(parsed)  # type: ignore[no-any-return]
+        result["unparsed"] = len(unparsed)
+        return result
 
     # _—接受文件路径列表，解析后标记废止并走主线归档
     def expire_files(self, file_paths: list[str]) -> dict[str, Any]:
@@ -450,6 +469,6 @@ class OrganizeHandler:
                      "correlation_id": normalize_batch_key},
                 )
         except Exception as e:
-            logger.warning("规范化完成通知发送失败: %s", e)
+            logger.warning("规范化完成通知发送失败: %s", e)  # i18n-allow: 内部日志
 
         return results

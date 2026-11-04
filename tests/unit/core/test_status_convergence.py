@@ -89,18 +89,13 @@ def test_all_status_values_are_reachable_from_enum():
 
 
 def test_validity_checker_status_output_matches_enum():
-    """`ValidityChecker._determine_status` 的返回值与枚举值逐字一致。"""
+    """`_name_says_abolished` 只产生枚举里的废止语义，不再凭空判“现行”。"""
     from pilotstd.core.validity_checker import ValidityChecker
 
-    checker = ValidityChecker.__new__(ValidityChecker)  # 只测纯判定逻辑，不建 DB 连接
+    checker = ValidityChecker.__new__(ValidityChecker)
 
-    abolished = checker._determine_status("GB/T 1-2020", {"std_name": "关于废止 GB/T 1-2020 的公告"})
-    assert abolished is not None
-    assert abolished["status"] == Status.WITHDRAWN_NORMALIZED.value
-
-    active = checker._determine_status("GB/T 1-2020", {"std_name": "某标准"})
-    assert active is not None
-    assert active["status"] == Status.ACTIVE.value
+    assert checker._name_says_abolished("关于废止 GB/T 1-2020 的公告") is True
+    assert checker._name_says_abolished("某标准") is False
 
 
 @pytest.mark.parametrize("member", list(Status))

@@ -187,9 +187,15 @@ class FileIndexQuery:
 
     def get_full_info(self, logical_code: str, number: int) -> list[dict[str, Any]]:
         """联合本地文件索引与两个缓存表，返回离线完整信息。
-        JOIN 使用 LIKE 前缀匹配，兼容新旧两种连接号格式。
-        网络缓存优先，过期后回退到公告缓存。
+
+        JOIN 用**精确归一化键**（去斜杠代号 + 编号[.分部]-年代号）而不是前缀 LIKE：
+        原实现 `LIKE 'GB/T 1234%'` 会把 `GB/T 12340-2020`、`GB/T 1234.1-2020` 全部
+        误配到同一条索引行（2026-11-04 审计 D7）。
         """
+        fi_key = (
+            "REPLACE(fi.logical_code,'/','') || ' ' || fi.number ||"
+            " CASE WHEN fi.part > 0 THEN '.' || fi.part ELSE '' END || '-' || fi.year"
+        )
         rows = self._db.fetchall(
             f"SELECT fi.*, "
             f"nc.result_json AS nc_result_json, "
@@ -198,11 +204,11 @@ class FileIndexQuery:
             f"ac.cached_at AS ac_cached_at "
             f"FROM {FILE_INDEX_TABLE} fi "
             f"LEFT JOIN {NETWORK_CACHE_TABLE} nc "
-            f"ON nc.standard_number LIKE (fi.logical_code || ' ' || fi.number || '%') "
+            f"ON REPLACE(nc.standard_number,'/','') = ({fi_key}) "
             f"LEFT JOIN {ANNOUNCEMENT_CACHE_TABLE} ac "
-            f"ON ac.standard_number LIKE (fi.logical_code || ' ' || fi.number || '%') "
-            f"WHERE fi.logical_code = ? AND fi.number = ?",
-            (logical_code, number),
+            f"ON REPLACE(ac.standard_number,'/','') = ({fi_key}) "
+            f"WHERE REPLACE(fi.logical_code,'/','') = ? AND fi.number = ?",
+            (logical_code.replace("/", ""), number),
         )
         result = []
         for row in rows:

@@ -29,30 +29,26 @@ def checker(db):
 # _determine_status — 纯关键字匹配
 # ════════════════════════════════════════════════════════════
 
-class TestDetermineStatus:
+class TestStatusHelpers:
+    """L1 辅助：名称关键词只作为“废止”的正证据。"""
+
     def test_abolished_keyword(self, checker):
-        r = checker._determine_status("GB 1", {"std_name": "GB 1（废止）"})
-        assert r["status"] == Status.WITHDRAWN_NORMALIZED.value
+        assert checker._name_says_abolished("GB 1（废止）") is True
 
     def test_withdrawn_keyword(self, checker):
-        r = checker._determine_status("GB 2", {"std_name": "GB 2 Withdrawn"})
-        assert r["status"] == Status.WITHDRAWN_NORMALIZED.value
+        assert checker._name_says_abolished("GB 2 Withdrawn") is True
 
     def test_obsolete_keyword(self, checker):
-        r = checker._determine_status("GB 3", {"std_name": "GB 3 Obsolete"})
-        assert r["status"] == Status.WITHDRAWN_NORMALIZED.value
+        assert checker._name_says_abolished("GB 3 Obsolete") is True
 
     def test_current_standard(self, checker):
-        r = checker._determine_status("GB 4", {"std_name": "GB 4 现行标准"})
-        assert r["status"] == Status.ACTIVE.value
+        assert checker._name_says_abolished("GB 4 现行标准") is False
 
-    def test_empty_name_returns_none(self, checker):
-        r = checker._determine_status("GB 5", {"std_name": ""})
-        assert r is None
+    def test_empty_name(self, checker):
+        assert checker._name_says_abolished("") is False
 
-    def test_no_std_name_returns_none(self, checker):
-        r = checker._determine_status("GB 6", {})
-        assert r is None
+    def test_none_name(self, checker):
+        assert checker._name_says_abolished(None) is False
 
 
 # ════════════════════════════════════════════════════════════
@@ -181,34 +177,50 @@ class TestUpdateStatus:
 # check_standard — L1/L2/L3 管线
 # ════════════════════════════════════════════════════════════
 
+class _MakeDB:
+    """按 SQL 关键字分派返回值的 DB 替身（L1 现在查两张表）。"""
+
+    def __init__(self):
+        from unittest.mock import MagicMock
+
+        self.rows: dict[str, object] = {}
+        self.execute = MagicMock()
+        self.fetchall = MagicMock(return_value=[])
+        self.fetchone = self._fetchone
+
+    def _fetchone(self, sql, params=None):
+        for table, row in self.rows.items():
+            if table in str(sql):
+                return row
+        return None
+
+
 class TestCheckStandard:
-    def test_l1_cache_hit(self, checker, db):
-        db.fetchone.return_value = {"std_name": "GB 1 现行标准"}
-        r = checker.check_standard("GB/T 1-2020")
-        assert r["status"] == Status.ACTIVE.value
+    def test_l1_abolished_name(self):
+        db = _MakeDB()
+        db.rows["announcement_record"] = {"std_name": "GB 1（废止）"}
+        r = ValidityChecker(db).check_standard("GB/T 1-2020")
+        assert r["status"] == Status.WITHDRAWN_NORMALIZED.value
+        assert r["evidence"] == "L1"
 
-    def test_l1_cache_abolished(self, checker, db):
-        db.fetchone.return_value = {"std_name": "GB 1（废止）"}
-        r = checker.check_standard("GB/T 1-2020")
+    def test_record_without_status_does_not_block_l2(self):
+        db = _MakeDB()
+        db.rows["announcement_record"] = {"std_name": "GB 1 现行标准"}
+        qe = MagicMock()
+        qe.query_standards.return_value = []
+        r = ValidityChecker(db).check_standard("GB/T 1-2020", query_engine=qe)
+        assert r is None
+        qe.query_standards.assert_called_once()
+
+    def test_l3_returns_history(self):
+        db = _MakeDB()
+        db.rows["standard_validity"] = {
+            "status": Status.WITHDRAWN_NORMALIZED.value,
+            "last_status": Status.ACTIVE.value,
+        }
+        r = ValidityChecker(db).check_standard("GB/T 1-2020")
         assert r["status"] == Status.WITHDRAWN_NORMALIZED.value
 
-    def test_l1_exception_falls_to_l3(self, checker, db):
-        db.fetchone.side_effect = [
-            RuntimeError("L1 fail"),  # announcement_record
-            {"status": Status.ACTIVE.value, "last_status": Status.WITHDRAWN_NORMALIZED.value},  # L3
-        ]
-        r = checker.check_standard("GB/T 1-2020")
-        assert r["status"] == Status.ACTIVE.value
-
-    def test_l3_returns_history(self, checker, db):
-        db.fetchone.side_effect = [
-            None,  # announcement_record
-            {"status": Status.WITHDRAWN_NORMALIZED.value, "last_status": Status.ACTIVE.value},  # L3
-        ]
-        r = checker.check_standard("GB/T 1-2020")
-        assert r["status"] == Status.WITHDRAWN_NORMALIZED.value
-
-    def test_all_levels_fail_returns_none(self, checker, db):
-        db.fetchone.return_value = None
-        r = checker.check_standard("GB/T 1-2020")
+    def test_all_levels_fail_returns_none(self):
+        r = ValidityChecker(_MakeDB()).check_standard("GB/T 1-2020")
         assert r is None

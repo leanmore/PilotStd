@@ -178,4 +178,15 @@ class CircuitBreaker:
             self.freeze_count,
             duration // 60,
         )
+        # 熔断必须对外可见：走系统通知钩子（容器层注入 manager），无钩子时静默降级（D4-4）。
+        from pilotstd.core.notification import notify_system
+
+        notify_system(
+            "task_execution_failed",
+            {
+                "task_name": f"公告适配器 {self._site}",  # i18n-allow: 系统通知文案
+                # i18n-allow: 系统通知文案
+                "error": f"连续失败触发熔断，冻结 {duration // 60} 分钟（第 {self.freeze_count} 次）",
+            },
+        )
         return True

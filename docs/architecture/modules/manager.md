@@ -205,3 +205,6 @@ StandardManager (BaseFacade)
 > **2026-11-04 通知归属（D5-3）**：`StandardManager` 的 `user_id` 默认改为 `0`（系统级）；
 > `NotificationManager.send_event` 在无 `NotificationContext` 时按**系统广播**投递给全部管理员
 > （旧实现固定投 user 1），用户主动操作仍显式传 `scope="user"`。
+
+> **2026-11-04 归档计数（D1-1）**：`OrganizeHandler.organize_files` 返回 `unparsed`
+> 字段并记录 WARNING；无法解析的文件不再静默消失。

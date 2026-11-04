@@ -184,3 +184,8 @@ GB/DB/HB 公告头完整；详情记录缺口为 DB 9月第8号 18 条、HB 9月
 > **2026-11-04 修改单隔离（D4-3）**：`matcher` 遇到 `std_name` 含“修改单”只写
 > `announcement_record`，**不写** `announcement_match`——修改单与本体共用标准号，
 > 写缓存会用修改单的实施日期覆盖本体状态。
+
+> **2026-11-04 熔断通知（D4-4）**：`CircuitBreaker.record_failure` 触发冻结时，
+> 通过 `pilotstd.core.notification.notify_system` 钩子发 `task_execution_failed`
+> 系统通知（容器 `docker/app.py` 启动时注入 manager 的 `send_event`）。
+> 无钩子（如单元测试/桌面端未接入）时静默降级，不影响抓取。

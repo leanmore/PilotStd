@@ -229,6 +229,40 @@ def _date_reminder_wrapper(notification_mgr=None):
 register_job_func("date_reminder", _date_reminder_wrapper)
 
 
+def _cleanup_retention():
+    """按保留期清理 `audit_logs` / `pipeline_runs`（D6-3，2026-11-04）。
+
+    这两张表此前无任何清理机制（notification_log 有 30 天策略）：审计日志随每次
+    拒绝/写操作增长、管道记录随每次五步流水线增长，长期会把库撑大。
+    保留期可配置：`audit.retention_days`（默认 180）/ `pipeline.retention_days`（默认 90）。
+    """
+    cfg = ConfigManager()
+    audit_days = int(cfg.get("audit.retention_days", 180) or 180)
+    pipeline_days = int(cfg.get("pipeline.retention_days", 90) or 90)
+    db = _get_db()
+    try:
+        audit_deleted = db.execute(
+            "DELETE FROM audit_logs WHERE timestamp < datetime('now','localtime', ?)",
+            (f"-{audit_days} days",),
+        ).rowcount
+        pipeline_deleted = db.execute(
+            "DELETE FROM pipeline_runs WHERE created_at < datetime('now','localtime', ?)",
+            (f"-{pipeline_days} days",),
+        ).rowcount
+        logger.info(
+            "[cleanup] 保留期清理完成: audit=%d（%d天） pipeline=%d（%d天）",
+            audit_deleted,
+            audit_days,
+            pipeline_deleted,
+            pipeline_days,
+        )
+    except Exception:
+        logger.exception("[cleanup] 保留期清理失败")
+
+
+register_job_func("retention_cleanup", _cleanup_retention)
+
+
 def _release_suppressed_notifications(notification_mgr=None):
     """每5分钟检查并补发静音时段暂存的通知。"""
     if notification_mgr is None:
@@ -367,6 +401,8 @@ def start_scheduler():
     # 通知日志定期清理（从配置读取间隔）
     cleanup_interval = int(cfg.get("notification.log_cleanup_interval_hours", 24))
     _add_interval_job("notification_cleanup", cleanup_interval * 3600)
+    # 审计日志 / 管道运行记录保留期清理（每天一次）
+    _add_interval_job("retention_cleanup", 24 * 3600)
     # 静音时段补发：每 5 分钟检查一次
     _add_interval_job("release_suppressed", 300)
     # D-2：长任务周期进度汇报（每分钟扫描；实际按 5~10 分钟节流）
@@ -475,7 +511,7 @@ def reschedule_validity_job():
             replace_existing=True,
         )
     logger.info(
-        "validity 调度已更新: day_of_week=%d, %02d:%02d UTC",
+        "validity 调度已更新: day_of_week=%d, %02d:%02d UTC",  # i18n-allow: 内部运维日志
         kwargs["day_of_week"],
         kwargs["hour"],
         kwargs["minute"],
@@ -507,7 +543,7 @@ def stop_scheduler():
     except Exception as e:
         # 关停路径：锁残留会被下一进程按超时接管，但不能静默
         logger.warning("release scheduler lock failed: %s", e)
-    logger.info("APScheduler 已停止")
+    logger.info("APScheduler 已停止")  # i18n-allow: 内部运维日志
 
 
 def update_job(job_id: str, cron: str, enabled: bool):

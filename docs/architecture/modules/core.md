@@ -536,3 +536,9 @@ pilotstd/core/
 > **放弃写废止状态**（下轮重试），杜绝“库说废止、文件还在原位”。选取范围精确到 `part`
 > 并排除 `std_name LIKE '%修改单%'`；移动成功后 `UPDATE file_index SET file_path=?, status=?`，
 > 索引不再指向已不存在的旧路径。契约：`tests/test_validity_move_closure.py`。
+
+> **2026-11-04 口径与并发（D3-5/D3-6）**：`checked_count` 只累加**成功**样本
+> （失败/超时不计）；`round_completed` 的分母改为 `standard_number GLOB '[A-Z]*'`，
+> 排除历史脏行。L2 检查改为受控并发（`validity.l2_concurrency`，默认 3），
+> 只并发网络查询、DB 写入仍在主线程串行。`FileIndexQuery.get_full_info` 的 JOIN 由前缀 LIKE 改为
+> **精确归一化键**（去斜杠代号+编号[.分部]-年代号），不再把 `GB/T 12340` 误配到 `GB/T 1234`。契约：`tests/test_batch3_edge_fixes.py`。

@@ -69,3 +69,8 @@ StandardParser (入口)
 > **2026-11-04 修改单独立身份（D1-2）**：文件名命中 `第N号修改单` 时，`file_kind` 追加
 > `第N号修改单`（随 `make_standard_filename` 写入文件名与索引名），使修改单与本体在
 > `file_index`/目录中可区分；扫描代号仍统一为带斜杠形态（`GBT 1234-2020.pdf` → `GB/T`）。
+
+> **2026-11-04 解析边界修复（D1-1/D1-3）**：两位年份按 **70 分界**展开
+> （`GB1234-20` → 2020、`GB1234-86` → 1986；`NumberExtractor.normalize_year` 同步修正）；
+> 国内标准不再清空 `language`，`(英文版)`/`（英文版）` 也能被识别，中英文版本因此在
+> 文件名/索引里可区分。契约：`tests/test_batch3_edge_fixes.py`。

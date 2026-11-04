@@ -109,76 +109,102 @@ def _process_validity_batch(
     batch_size: int,
     batch_interval: int,
     query_engine: Any = None,
+    l2_workers: int = 1,
 ) -> tuple[int, list[str], list[dict], list[dict]]:
     """逐条检查标准时效性，更新状态，发送批量通知。
 
-    返回 (changed, changed_list, failed_list, change_detail)——
-    change_detail 供最终批次报告的"变更详情"节使用（B-11）。
+    返回 (changed, changed_list, failed_list, change_detail)。
     `query_engine` 非空时 L2（适配器实时查询）才可达；为空则仍只有 L1/L3。
+    `l2_workers > 1` 时**只并发执行网络查询**（check_standard），DB 写入仍在主线程
+    串行执行——`Database` 是 thread-local 连接 + 写锁，读可并发（D3-6）。
     """
+    from concurrent.futures import ThreadPoolExecutor
+
+    def _check_one(std_no: str):
+        try:
+            return std_no, checker.check_standard(std_no, query_engine=query_engine), None
+        except Exception as exc:  # noqa: BLE001 — 单条失败不得中断整轮
+            return std_no, None, exc
+
+    if l2_workers > 1 and query_engine is not None and len(candidates) > 1:
+        with ThreadPoolExecutor(max_workers=min(l2_workers, len(candidates))) as pool:
+            checked = list(pool.map(_check_one, candidates))
+    else:
+        checked = [_check_one(std_no) for std_no in candidates]
 
     changed = 0
     changed_list: list[str] = []
     failed_list: list[dict] = []
     change_detail: list[dict] = []
-    for i, std_no in enumerate(candidates):
-        try:
-            result = checker.check_standard(std_no, query_engine=query_engine)
-            if result:
-                old_row = db.fetchone(
-                    f"SELECT status FROM {_TABLE} WHERE standard_number=?",
-                    (std_no,),
-                )
-                old_status = old_row["status"] if old_row else None
-                new_status = result["status"] or Status.ACTIVE.value
-                evidence = str(result.get("evidence", "L3"))
-                checker.update_status(
-                    std_no,
-                    new_status,
-                    notification_mgr,
-                    str(result.get("new_standard", "") or ""),
-                    str(result.get("new_standard_name", "") or ""),
-                    evidence=evidence,
-                )
-                if old_status and old_status != new_status:
-                    changed_list.append(std_no)
-                    changed += 1
-                    change_detail.append(
-                        _record_change(
-                            db, std_no, new_status, result, checker.should_apply_side_effects(evidence)
-                        )
-                    )
-                    if len(change_detail) % 10 == 0 and notification_mgr:
-                        try:
-                            notification_mgr.send_event(
-                                "validity_batch_report",
-                                {
-                                    "count": 0,
-                                    "changed": 10,
-                                    "failed": 0,
-                                    "adapter_status": {},
-                                    "change_detail": change_detail[-10:],
-                                },
-                            )
-                        except Exception as e:
-                            logger.warning("时效性批次报告通知发送失败: %s", e)
-        except Exception as e:
-            failed_list.append({"standard": std_no, "name": _std_name(db, std_no), "error": str(e)})
-            if notification_mgr:
-                try:
-                    failed_payload = {
-                        "standard_number": std_no,
-                        "error": str(e),
-                    }
-                    failed_name = _std_name(db, std_no)
-                    if isinstance(failed_name, str) and failed_name:
-                        failed_payload["standard_name"] = failed_name
-                    notification_mgr.send_event("validity_standard_failed", failed_payload)
-                except Exception as e2:
-                    logger.warning("标准检查失败通知发送失败: %s, error=%s", std_no, e2)
+    for i, (std_no, result, error) in enumerate(checked):
+        if error is not None:
+            failed_list.append({"standard": std_no, "name": _std_name(db, std_no), "error": str(error)})
+            _notify_failed(notification_mgr, db, std_no, error)
+        elif result and _apply_validity_result(
+            std_no, result, checker, db, notification_mgr, change_detail
+        ):
+            changed_list.append(std_no)
+            changed += 1
         if i > 0 and i % batch_size == 0 and batch_interval > 0:
             _time.sleep(batch_interval)
     return changed, changed_list, failed_list, change_detail
+
+
+def _apply_validity_result(
+    std_no: str,
+    result: dict,
+    checker: ValidityChecker,
+    db: Any,
+    notification_mgr: Any,
+    change_detail: list[dict],
+) -> bool:
+    """把单条检查结果落库；状态确有变化时追加变更明细并每 10 条发一次批次报告。"""
+    old_row = db.fetchone(f"SELECT status FROM {_TABLE} WHERE standard_number=?", (std_no,))
+    old_status = old_row["status"] if old_row else None
+    new_status = result["status"] or Status.ACTIVE.value
+    evidence = str(result.get("evidence", "L3"))
+    checker.update_status(
+        std_no,
+        new_status,
+        notification_mgr,
+        str(result.get("new_standard", "") or ""),
+        str(result.get("new_standard_name", "") or ""),
+        evidence=evidence,
+    )
+    if not old_status or old_status == new_status:
+        return False
+    change_detail.append(
+        _record_change(db, std_no, new_status, result, checker.should_apply_side_effects(evidence))
+    )
+    if len(change_detail) % 10 == 0 and notification_mgr:
+        try:
+            notification_mgr.send_event(
+                "validity_batch_report",
+                {
+                    "count": 0,
+                    "changed": 10,
+                    "failed": 0,
+                    "adapter_status": {},
+                    "change_detail": change_detail[-10:],
+                },
+            )
+        except Exception as e:
+            logger.warning("时效性批次报告通知发送失败: %s", e)
+    return True
+
+
+def _notify_failed(notification_mgr: Any, db: Any, std_no: str, error: Exception) -> None:
+    """单条检查失败的通知（失败不阻断整轮）。"""
+    if not notification_mgr:
+        return
+    try:
+        failed_payload = {"standard_number": std_no, "error": str(error)}
+        failed_name = _std_name(db, std_no)
+        if isinstance(failed_name, str) and failed_name:
+            failed_payload["standard_name"] = failed_name
+        notification_mgr.send_event("validity_standard_failed", failed_payload)
+    except Exception as e2:
+        logger.warning("标准检查失败通知发送失败: %s, error=%s", std_no, e2)
 
 
 # ── 阶段3：通知 + 汇总统计 ──
@@ -202,10 +228,18 @@ def _finalize_validity_round(
 
     if update_counters:
         current_count = config.get("validity.checked_count", 0)
-        new_count = current_count + len(candidates)
+        # 失败样本不计入“已检查”：否则超时/适配器异常也会推进轮次（D3-5）。
+        failed_standards = {str(f.get("standard", "")) for f in failed_list}
+        success_count = max(0, len(candidates) - len(failed_standards))
+        new_count = current_count + success_count
         config.set("validity.checked_count", new_count)
         try:
-            total_row = db.fetchone("SELECT COUNT(*) AS cnt FROM standard_validity")
+            # 只统计**格式合法**的标准号：历史库里存在 ` 11120-2011` 这类缺代号的脏行，
+            # 它们永远无法被解析检查，计入分母会让 round_completed 永远不成立。
+            total_row = db.fetchone(
+                "SELECT COUNT(*) AS cnt FROM standard_validity"
+                " WHERE standard_number GLOB '[A-Z]*'"
+            )
             total = total_row["cnt"] if total_row else 0
             if total > 0 and new_count >= total:
                 config.set("validity.round_completed", True)
@@ -272,13 +306,14 @@ def run_validity_check(
         check_ratio = config.get("validity.check_ratio", 25)
         batch_size = config.get("validity.batch_size", 50)
         batch_interval = config.get("validity.batch_interval", 5)
+        l2_workers = int(config.get("validity.l2_concurrency", 3) or 3)
 
         candidates, _sample_size = _sample_due_standards(checker, check_ratio)
         if not candidates:
             return {"ok": True, "checked": 0, "changed": 0}
 
         changed, changed_list, failed_list, change_detail = _process_validity_batch(
-            candidates, checker, db, notification_mgr, batch_size, batch_interval, query_engine
+            candidates, checker, db, notification_mgr, batch_size, batch_interval, query_engine, l2_workers
         )
 
         adapters_status = _finalize_validity_round(

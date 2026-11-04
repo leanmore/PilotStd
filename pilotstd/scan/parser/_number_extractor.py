@@ -10,10 +10,13 @@ class NumberExtractor:
 
     @staticmethod
     def normalize_year(year_str: str) -> int:
-        """年份归一化：两位年份（<100）补 1900 前缀，四位年份直接返回。"""
+        """年份归一化：两位年份按 70 分界补全（20→2020、86→1986），四位直接返回。
+
+        原实现一律 `1900 + yy`，会把 2000 年代的标准算成 1920（D1-1 审计发现）。
+        """
         year = int(year_str)
         if year < 100:
-            return 1900 + year
+            return 2000 + year if year < 70 else 1900 + year
         return year
 
     @staticmethod
