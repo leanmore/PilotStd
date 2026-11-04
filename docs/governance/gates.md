@@ -535,6 +535,10 @@ B1（声明类 vs 实现类）已覆盖同一语义、且每次 CI 都在跑；�
 > `encrypt_secret`）一次性加密写回。它**不参与任何门禁模式**，仅供部署前离线执行；
 > 日常加载时的自愈由 `ConfigManager._load()` 内 `has_plaintext_sensitive()` 负责。
 >
+> **审计工具（非门禁，2026-11-05）**：`scripts/audit_api_matrix.py` —— 抽取后端路由/角色与
+> 前端 `http.*` 调用，输出“写操作缺显式 admin 装饰器 / 前端调用 admin-only 接口 /
+> 死调用 / 页面缺 `meta.permission`”矩阵（`--md` / `--json`）。仅供阶段审计使用，**不参与门禁模式**。
+>
 > **docs 同步检查修复（2026-11-03）**：`scripts/_docs_sync_io._run_git` 统一加
 > `-c core.quotepath=false`。原因：git 默认把非 ASCII 路径输出成
 > `"docs/guides/Docker\344\275\277..."` 的转义形式，而触发规则按字面路径比对
