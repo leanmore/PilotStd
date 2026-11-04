@@ -198,3 +198,8 @@ GB/DB/HB 公告头完整；详情记录缺口为 DB 9月第8号 18 条、HB 9月
 > **2026-11-04 缓存键代号归一**：`announcement_match.standard_number` 的代号统一用**公告解析出的规范写法**
 > （`GB/T`），不再沿用 `file_index.logical_code` 的写法（历史行可能是 `GBT`）。否则按标准号查询
 > （validity L1、前端）会漏掉“发现新版”行；被代替匹配仍用旧标准自身的代号与年代号。
+
+> **2026-11-04 reparse 旧行清理补强**：除“本次未解析出的标准号”外，还要删除
+> **本次未重写**的历史行（`fetched_at < 本次开始时间`）——历史解析缺 `language` 等字段会留下
+> “同号不同唯一键”的残留，reconcile 会永久显示 declared≠actual（线上 2026年第8号：131 声明 / 216 实际）。
+> 被收藏/下载/提醒引用的行仍保留并告警。契约：`tests/test_reparse_cleanup.py`。

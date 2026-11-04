@@ -129,3 +129,41 @@ def test_update_existing_keeps_announcement_scope(tmp_path) -> None:
     assert len(rows) == 2
     assert rows[0]["announce_no"] == "2026年第1号"
     assert rows[1]["announce_no"] == "2026年第2号"
+
+
+def test_reparse_removes_stale_rows_not_rewritten(tmp_path) -> None:
+    """历史残留行（同号不同 language、fetched_at 早于本次）必须清掉；被引用的保留。"""
+    db = Database(str(tmp_path / "stale.db"))
+    db.execute("INSERT INTO users (id, username, password_hash, salt) VALUES (1,'u1','x','s')")
+    db.execute(
+        "INSERT INTO announcements (source_site, pid, announce_no, title, publish_date)"
+        " VALUES ('announcement_gb','p1','2026年第8号','测试','2026-01-01')"
+    )
+    rows = [
+        ("", "2020-01-01"),  # 会被 upsert 命中并刷新
+        ("英文", "2020-01-01"),  # 同号不同键的历史残留 → 应删除
+        ("日文", "2020-01-01"),  # 被收藏引用 → 必须保留
+    ]
+    ids = {}
+    for lang, fetched in rows:
+        db.execute(
+            "INSERT INTO announcement_record (source_site, pid, announce_no, standard_number,"
+            " std_name, fetched_at, language) VALUES ('announcement_gb','p1','2026年第8号',"
+            " 'GB/T 1-2020','标准',?,?)",
+            (fetched, lang),
+        )
+        ids[lang] = db.fetchone("SELECT MAX(id) AS id FROM announcement_record")["id"]
+    db.execute("INSERT INTO user_favorites (user_id, record_id) VALUES (1, ?)", (ids["日文"],))
+
+    adapter = MagicMock()
+    adapter.source_site = "announcement_gb"
+    adapter.standard_category = "NationalStd"
+    adapter._process_one_detail.return_value = [
+        {"std_code": "GB/T 1-2020", "std_name": "标准", "announce_no": "2026年第8号", "_pid": "p1"}
+    ]
+    result = _crawler(db, adapter, AnnouncementMatcher(db)).reparse_from_source("2026年第8号")
+
+    assert result["records"] == 1
+    langs = [r["language"] for r in db.fetchall("SELECT language FROM announcement_record")]
+    assert "英文" not in langs, "未重写的旧版本行应被清理"
+    assert "日文" in langs, "被收藏引用的行必须保留"

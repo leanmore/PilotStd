@@ -152,6 +152,7 @@ class AnnounceCrawler:
         # 先**原地 upsert** 再清理旧行：直接 DELETE 会撞 `user_favorites.record_id` 等外键
         # （2026-11-03 线上 reparse 30 号实测 FOREIGN KEY constraint failed）。
         # upsert 命中唯一键时保留 row id，收藏引用不会断。
+        cutoff = datetime.now().isoformat()
         self.engine.matcher.match_and_update(
             items,
             source_site=source_site,
@@ -159,8 +160,10 @@ class AnnounceCrawler:
             update_existing=True,
         )
 
-        # 清理本次未解析出来的旧行（源站删条目 / PID 变更残留）：被收藏、下载记录或提醒
-        # 引用的行**保留**并告警——删掉会让用户收藏变成悬空外键。
+        # 清理两类旧行：①本次未解析出来的（源站删条目 / PID 变更残留）；
+        # ②**本次未写入**的旧版本行（fetched_at < cutoff）——历史解析缺 language 等字段时
+        # 会产生“同号不同键”的残留，重复行会让 reconcile 永久对不上（2026-11-04 线上 8 号实测）。
+        # 被收藏、下载记录或提醒引用的行**保留**并告警——删掉会让用户收藏变成悬空外键。
         from pilotstd.announcement.parser import normalize_std_code
 
         keep_codes = sorted({normalize_std_code(str(i.get("std_code", ""))) for i in items})
@@ -170,13 +173,13 @@ class AnnounceCrawler:
             " UNION SELECT record_id FROM favorite_downloads WHERE record_id IS NOT NULL"
             " UNION SELECT record_id FROM date_reminder_log WHERE record_id IS NOT NULL"
         )
-        params: list[Any] = [source_site, ann["pid"], announce_no]
-        params.extend(keep_codes)
-        stale = db.fetchall(
-            "SELECT id FROM announcement_record"
+        stale_where = (
             " WHERE source_site=? AND (pid=? OR TRIM(announce_no)=?)"
-            f"   AND standard_number NOT IN ({placeholders})"
-            f"   AND id NOT IN ({referenced})",
+            f"   AND (standard_number NOT IN ({placeholders}) OR COALESCE(fetched_at,'') < ?)"
+        )
+        params: list[Any] = [source_site, ann["pid"], announce_no, *keep_codes, cutoff]
+        stale = db.fetchall(
+            "SELECT id FROM announcement_record" + stale_where + f" AND id NOT IN ({referenced})",
             tuple(params),
         )
         if stale:
@@ -184,10 +187,7 @@ class AnnounceCrawler:
             db.executemany("DELETE FROM announcement_record WHERE id=?", [(i,) for i in ids])
             logger.info("reparse 清理旧记录: announce=%s removed=%d", announce_no, len(ids))  # i18n-allow: 内部日志
         blocked = db.fetchone(
-            "SELECT COUNT(*) AS c FROM announcement_record"
-            " WHERE source_site=? AND (pid=? OR TRIM(announce_no)=?)"
-            f"   AND standard_number NOT IN ({placeholders})"
-            f"   AND id IN ({referenced})",
+            "SELECT COUNT(*) AS c FROM announcement_record" + stale_where + f" AND id IN ({referenced})",
             tuple(params),
         )
         if blocked and blocked["c"]:
