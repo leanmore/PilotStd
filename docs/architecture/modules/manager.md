@@ -201,3 +201,7 @@ StandardManager (BaseFacade)
 
 > **A-21 3b-2 修正（2026-11-01）**：QueryHandler.query/query_stream 透传 context（此前 UI 传 context 被 facade 丢弃，GUI 查询测试暴露）。
 
+
+> **2026-11-04 通知归属（D5-3）**：`StandardManager` 的 `user_id` 默认改为 `0`（系统级）；
+> `NotificationManager.send_event` 在无 `NotificationContext` 时按**系统广播**投递给全部管理员
+> （旧实现固定投 user 1），用户主动操作仍显式传 `scope="user"`。

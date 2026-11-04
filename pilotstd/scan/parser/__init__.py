@@ -3,6 +3,7 @@
 
 import logging
 import os
+import re
 from typing import Dict, Optional
 
 from ...models import ParsedStdInfo
@@ -42,6 +43,9 @@ from ._result_builder import ResultBuilder
 from ._text_cleaner import TextCleaner
 
 logger = logging.getLogger(__name__)
+
+# 修改单标识：`第1号修改单` / `第 2 号修改单` / `修改单(第1号)`（D1-2）。
+_AMENDMENT_RE = re.compile(r"第\s*(\d+)\s*号\s*修改单")
 
 
 class StandardParser:
@@ -175,6 +179,13 @@ class StandardParser:
         info.ext = raw_ext
         if language:
             info.language = language
+        amendment = _AMENDMENT_RE.search(filename)
+        if amendment:
+            # 修改单是独立文件（GB/T 19411-2024 第1号修改单），必须与本体可区分：
+            # 用 file_kind 承载“第N号修改单”，文件名/索引名都会带上（D1-2）。
+            marker = f"第{amendment.group(1)}号修改单"  # i18n-allow: 文件名标识，进 file_kind
+            info.file_kind = f"{info.file_kind} {marker}".strip()
+        # i18n-allow: 内部调试日志
         logger.debug("解析: %s -> %s %s (%s)", filename, info.logical_code, info.get_full_number(), channel)
         return self._post_process(info)
 
@@ -200,7 +211,7 @@ class StandardParser:
         # A-9：统一失败日志为四段键值（与项目既有 "xxx失败: key=%s" 风格一致，见
         # announcement/base.py、core/audit.py、core/cache_manager.py），便于 grep 与排障。
         self.log.info(
-            "解析失败: path=%s type=%s error=%s detail=%s",
+            "解析失败: path=%s type=%s error=%s detail=%s",  # i18n-allow: 内部排障日志
             filename,
             raw_ext,
             "no_match",

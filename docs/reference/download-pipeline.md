@@ -404,3 +404,10 @@ GB/T 标准被误判成非国标（已由 `test_slash_codes_are_routable` 钉住
 
 > **A-21 3b-2（2026-11-01）**：下载完成通知接收 NotificationContext；engine/facade 透传，桌面 worker 固定 user=1。
 
+
+> **2026-11-04 落盘防线（D2-1/D2-2）**：`DownloadEngine._save_file` 增加**内容二次校验**
+> （`.pdf` 必须 `%PDF-` 开头，`.doc/.docx` 不小于 512 字节），不合格直接 `FAILED` 并保留具体
+> 错误文案（不再被“文件保存失败”覆盖）；落盘改为 `.part` + `flush/fsync` + `os.replace`
+> 原子替换，写一半失败会清理临时文件，不再留下残文件。采标判定（`query/search_strategy`）
+> 由裸子串改为**词边界正则**，`MODBUS`/“采用…方法”不再被误判为采标而永久跳过下载。
+> 契约：`tests/test_download_integrity.py`、`tests/test_adoption_regex.py`。

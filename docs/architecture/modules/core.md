@@ -530,3 +530,9 @@ pilotstd/core/
 > **不再因为“公告里出现过该标准号”就判现行并 return**，L2 适配器恢复可达。
 > 修复前实测：公告记录存在时适配器调用 0 次、废止标准被判现行。契约：
 > `tests/test_validity_l1_l2.py`（含修改单名称不污染本体）。
+
+> **2026-11-04 废止搬家闭环（D3-1/D3-3/D3-4）**：`update_status` 改为**先搬文件、成功后再写库**；
+> `_move_expired_file` 返回 `[(旧路径, 新路径)]`，任一文件移动失败返回 `None`，调用方据此
+> **放弃写废止状态**（下轮重试），杜绝“库说废止、文件还在原位”。选取范围精确到 `part`
+> 并排除 `std_name LIKE '%修改单%'`；移动成功后 `UPDATE file_index SET file_path=?, status=?`，
+> 索引不再指向已不存在的旧路径。契约：`tests/test_validity_move_closure.py`。

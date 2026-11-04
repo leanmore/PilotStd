@@ -15,6 +15,7 @@ from fastapi.responses import JSONResponse
 from jose import JWTError, jwt
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from pilotstd import ADMIN_ROLE
 from pilotstd.i18n import t
 
 from ._static_token import _ensure_static_token_in_db
@@ -33,6 +34,31 @@ from .auth_state import (
 from .session_store import get_session_store
 
 logger = logging.getLogger(__name__)
+
+# 写操作统一要求 admin（D5-1，2026-11-04）：此前仅有部分路由带 @require_role，
+# 普通用户可直接 POST /api/validity/run、/api/organize、/api/announcements/{no}/reparse 等，
+# 触发全库搬家/重解析/归档。这里在中间件层统一收口（默认拒绝），仅放行下列
+# **用户自有数据**的写接口（它们内部都按 session user_id 过滤）：
+_USER_WRITE_ALLOWED_EXACT = frozenset(
+    {
+        "/api/query",  # 查询是 POST，但只读语义
+        "/api/favorites",
+        "/api/favorites/batch-status",
+        "/api/notification/read",
+        "/api/notification/config",
+        "/api/notification/policy",
+        "/api/notification/test",
+    }
+)
+_USER_WRITE_ALLOWED_PREFIX = ("/api/user/",)
+_WRITE_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
+# API Key 强只读：仅放行这一个只读 POST（查询），其余写方法一律 403。
+_API_KEY_ALLOWED_POST = frozenset({"/api/query"})
+
+
+def _user_may_write(path: str) -> bool:
+    """普通用户可写的接口白名单（用户自有数据 + 只读查询）。"""
+    return path in _USER_WRITE_ALLOWED_EXACT or path.startswith(_USER_WRITE_ALLOWED_PREFIX)
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
@@ -141,6 +167,9 @@ class AuthMiddleware(BaseHTTPMiddleware):
         # 接口校验
         try:
             if self._authenticate_api_key(request):
+                # API Key 强只读：非 GET/HEAD/OPTIONS 一律 403（D5-2）
+                if request.method in _WRITE_METHODS and path not in _API_KEY_ALLOWED_POST:
+                    return JSONResponse({"error": t("auth.api.forbidden")}, 403)
                 return await call_next(request)
         except HTTPException:
             return JSONResponse({"error": t("auth.api.unauthorized")}, 401)
@@ -165,6 +194,22 @@ class AuthMiddleware(BaseHTTPMiddleware):
             row = db.fetchone("SELECT id FROM users WHERE username = ?", (sub,))
             if row:
                 user_id = row["id"]
+
+        # 写操作统一要求 admin（D5-1，2026-11-04）：默认拒绝，仅用户自有数据例外。
+        role = str(payload.get("role", "user"))
+        if request.method in _WRITE_METHODS and role != ADMIN_ROLE and not _user_may_write(path):
+            try:
+                from pilotstd.core.audit import write_audit
+
+                write_audit(
+                    action="ACCESS_DENIED",
+                    resource=f"{request.method} {path}",
+                    detail={"reason": "write_requires_admin", "role": role},
+                    user_id=user_id,
+                )
+            except Exception as exc:  # noqa: BLE001 — 审计失败不改变拒绝结果，但必须留痕
+                logger.warning("audit write failed on write-denied: %s", exc)
+            return JSONResponse({"error": t("auth.api.forbidden")}, 403)
 
         if user_id is not None:
             token_ctx = set_current_user_id(user_id)

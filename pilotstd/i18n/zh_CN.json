@@ -864,6 +864,7 @@
     "notification.api.log_pref_write_failed": "通知启用状态写入用户偏好表失败: {error}",
     "notification.api.log_channel_config_rejected": "渠道 {channel} 配置保存被拒绝: {error}",
     "auth.api.unauthorized": "认证失败",
+    "auth.api.forbidden": "权限不足",
     "auth.api.session_expired": "会话已过期，请重新登录",
     "auth.api.rate_limited": "请求过于频繁，请稍后重试",
     "auth.log.session_cleanup": "会话清理: 移除 {count} 条过期",

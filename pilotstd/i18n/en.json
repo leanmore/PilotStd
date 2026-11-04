@@ -860,6 +860,7 @@
     "notification.api.log_pref_write_failed": "Failed to persist the notification-enabled flag to user preferences: {error}",
     "notification.api.log_channel_config_rejected": "Channel {channel} config save rejected: {error}",
     "auth.api.unauthorized": "Authentication failed",
+    "auth.api.forbidden": "Forbidden",
     "auth.api.session_expired": "Session expired; please log in again",
     "auth.api.rate_limited": "Too many requests; please retry later",
     "auth.log.session_cleanup": "Session cleanup: removed {count} expired entries",

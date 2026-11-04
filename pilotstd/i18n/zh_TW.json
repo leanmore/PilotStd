@@ -781,6 +781,7 @@
     "notification.api.log_pref_write_failed": "通知啟用狀態寫入使用者偏好表失敗: {error}",
     "notification.api.log_channel_config_rejected": "渠道 {channel} 設定儲存被拒絕: {error}",
     "auth.api.unauthorized": "認證失敗",
+    "auth.api.forbidden": "權限不足",
     "auth.api.session_expired": "工作階段已過期，請重新登入",
     "auth.api.rate_limited": "請求過於頻繁，請稍後重試",
     "auth.log.session_cleanup": "工作階段清理: 移除 {count} 筆過期",

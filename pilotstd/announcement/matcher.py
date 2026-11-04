@@ -199,6 +199,11 @@ class AnnouncementMatcher:
             )
         )
 
+        # 修改单只入 announcement_record，不写 announcement_match：
+        # 它与本体共用标准号，写缓存会用修改单的实施日期覆盖本体状态（D4-3）。
+        if "修改单" in (std_name or ""):
+            return
+
         if not matches:
             return
         result["matched"] += 1
@@ -216,6 +221,7 @@ class AnnouncementMatcher:
                 if match_type == "replaced":
                     detail += f" -> {std_code}"
                 if is_new_version:
+                    # i18n-allow: 内部日志
                     detail += f" (发现新版 {parsed['logical_code']} {parsed['number']}-{announce_year})"
                     result.setdefault("new_versions", []).append(
                         f"{parsed['logical_code']} {parsed['number']}-{announce_year}"

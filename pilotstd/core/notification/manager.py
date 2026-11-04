@@ -222,8 +222,11 @@ class NotificationManager:
         legacy = context is None
         ctx = context or NotificationContext(scope="system")
         if legacy:
-            # 未接线的旧调用：日志仍记 system(0)，但投递沿用 manager 默认用户（兼容旧库/测试）
-            owners = [self._user_id]
+            # 未接线的旧调用：**系统级通知**——投递给全部管理员。
+            # 旧实现固定投给 manager 默认用户（恒为 1），后台任务通知因此全部落在 user 1
+            # 头上，其他管理员收不到（D5-3，2026-11-04 审计）。
+            # 日志仍记 system(0)；旧库/无管理员时回退默认用户，保持兼容。
+            owners = self._admin_user_ids() or [self._user_id]
         elif ctx.scope == "system":
             owners = self._admin_user_ids()
             if not owners:

@@ -180,3 +180,7 @@ GB/DB/HB 公告头完整；详情记录缺口为 DB 9月第8号 18 条、HB 9月
 > 修复前生产实测：含斜杠公告 201,499 条，`matched=1` 仅 1 条。契约：
 > `tests/test_announcement_matcher_slash_code.py`（含 `GBT 1234-2020.pdf` 扫描入库后与
 > `GB/T 1234-2020` 公告匹配的回归）。
+
+> **2026-11-04 修改单隔离（D4-3）**：`matcher` 遇到 `std_name` 含“修改单”只写
+> `announcement_record`，**不写** `announcement_match`——修改单与本体共用标准号，
+> 写缓存会用修改单的实施日期覆盖本体状态。

@@ -69,13 +69,24 @@ class TaskQueue:
         return task
 
     def start(self, task: TaskInfo) -> None:
-        """在后台线程中启动任务。"""
+        """在后台线程中启动任务。
+
+        **原子认领**（D6-1）：只有把 `pending` 成功改成 `running` 的调用方才能启动，
+        避免多 worker / 多个轮询器对同一任务重复执行。
+        """
         handler = self._handlers.get(task.task_type)
         if handler is None:
             raise ValueError(f"未注册的处理类型: {task.task_type}")
+        now = datetime.now().isoformat()
+        cur = self._db.execute(
+            f"UPDATE {TASK_TABLE} SET status=?, updated_at=? WHERE task_id=? AND status=?",
+            (TaskStatus.RUNNING.value, now, task.task_id, TaskStatus.PENDING.value),
+        )
+        if int(cur.rowcount or 0) == 0:
+            logger.debug("任务认领失败（已被其他执行器领取）: %s", task.task_id)
+            return
         task.status = TaskStatus.RUNNING
-        task.updated_at = datetime.now().isoformat()
-        self._persist(task)
+        task.updated_at = now
 
         t = threading.Thread(target=self._run, args=(task, handler), daemon=True)
         t.start()
@@ -84,10 +95,10 @@ class TaskQueue:
         return self._set_status(task_id, TaskStatus.PAUSED)
 
     def resume(self, task: TaskInfo) -> None:
-        """恢复已暂停的任务，重新标记为 RUNNING 并启动。"""
-        task.status = TaskStatus.RUNNING
-        task.updated_at = datetime.now().isoformat()
-        self._persist(task)
+        """恢复已暂停的任务：先置回 pending，再由 `start` 原子认领并启动。"""
+        if not self._set_status(task.task_id, TaskStatus.PENDING):
+            return
+        task.status = TaskStatus.PENDING
         self.start(task)
 
     def cancel(self, task_id: str) -> bool:
@@ -115,8 +126,14 @@ class TaskQueue:
         return [self._row_to_task(r) for r in rows]
 
     def get_pending(self) -> List[TaskInfo]:
-        """返回所有待处理或暂停状态的任务（按创建时间排序）。"""
-        rows = self._db.fetchall(f"SELECT * FROM {TASK_TABLE} WHERE status IN ('pending','paused') ORDER BY created_at")
+        """返回待处理任务（**不含 paused**）。
+
+        paused 必须留给显式 `resume`：旧实现把 paused 也返回，轮询器 2 秒后就会把
+        用户刚暂停的任务重新拉起（D6-2，2026-11-04 审计确认）。
+        """
+        rows = self._db.fetchall(
+            f"SELECT * FROM {TASK_TABLE} WHERE status=? ORDER BY created_at", (TaskStatus.PENDING.value,)
+        )
         return [self._row_to_task(r) for r in rows]
 
     def clear_finished(self) -> int:
@@ -176,7 +193,7 @@ class TaskQueue:
             return
 
         if exc_holder[0] is not None:
-            logger.exception("任务执行异常: %s", task.task_id)
+            logger.exception("任务执行异常: %s", task.task_id)  # i18n-allow: 内部日志
             with self._lock:
                 task.status = TaskStatus.FAILED
                 task.error_log = str(exc_holder[0])

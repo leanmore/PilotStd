@@ -90,12 +90,11 @@ class BaseFacade:
         db: Optional[Database] = None,
         query_adapters: Optional[List[BaseAdapter]] = None,
         download_adapters: Optional[List[BaseDownloadAdapter]] = None,
-        user_id: int = 1,
+        user_id: int = 0,
     ) -> None:
-        # 通知收件人（阶段 1a 顺手项）：原先在 _init_services/_init_notification 里
-        # 硬编码 user_id=1，现改为构造时注入但**默认仍为 1**。
-        # 这是为将来多用户留门，不是当前阻塞——当前为单用户部署，
-        # 且 51 个 send_event 调用点与 send_event 签名均不改（Q6 裁决：技术债，非阻塞）。
+        # 通知收件人：默认 0 = **系统级**（投递给全部管理员），不再默认落 user 1。
+        # 用户主动操作（收藏/下载/提醒）必须显式传 NotificationContext(scope="user")，
+        # 由调度任务与后台事件走系统广播（D5-3，2026-11-04 审计）。
         self._facade_user_id = user_id
         # 1.初始化_核心容器（先占位，后面逐步填充）
         self._core = ManagerCore(

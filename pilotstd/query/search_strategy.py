@@ -251,13 +251,20 @@ def ts_to_date(ts: Any) -> str:
         return ""
 
 
-ADOPTION_KW = ["ISO", "IEC", "IDT", "MOD", "EQV", "采标", "采用"]
+# 采标关键词（2026-11-04 收紧）：原实现用裸子串，`MODBUS`/`采用…方法` 全部误判为采标，
+# 命中后下载被永久跳过（engine.download_single → SKIPPED）。改为：
+#   1) 英文标记要求词边界（前后不能是字母），避免 MODBUS/ISO9000 这类粘连词误伤；
+#   2) 中文只认“采标 / 采用国际标准 / 采用国外标准”，不再单认“采用”。
+_ADOPTION_RE = re.compile(r"(?<![A-Za-z])(?:ISO|IEC|IDT|MOD|EQV)(?![A-Za-z])")
+_ADOPTION_CN = ("采标", "采用国际标准", "采用国外标准")
 
 
 def is_adopted(name: str, en_name: str = "") -> bool:
-    """统一的采标判定：中文名 + 英文名中匹配采标关键词。"""
+    """统一的采标判定：中文名命中采标短语，或英文名出现带词边界的 ISO/IEC/IDT/MOD/EQV。"""
     text = f"{name} {en_name}"
-    return any(kw in text for kw in ADOPTION_KW)
+    if any(keyword in text for keyword in _ADOPTION_CN):
+        return True
+    return bool(_ADOPTION_RE.search(text.upper()))
 
 
 # ── 查询调度：按标准类型映射适配器优先级 ────────────────────

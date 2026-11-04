@@ -68,7 +68,7 @@ def test_l1_abolished_does_not_move_file(db, monkeypatch):
     )
     checker = ValidityChecker(db)
     moved = []
-    monkeypatch.setattr(checker, "_move_expired_file", lambda n: moved.append(n))
+    monkeypatch.setattr(checker, "_move_expired_file", lambda n, s: (moved.append(n), [])[1])
 
     checker.update_status("GB 1-2020", "已废止", evidence="L1")
 
@@ -81,7 +81,7 @@ def test_l2_abolished_moves_only_when_switch_on(db, monkeypatch):
     )
     checker = ValidityChecker(db)
     moved = []
-    monkeypatch.setattr(checker, "_move_expired_file", lambda n: moved.append(n))
+    monkeypatch.setattr(checker, "_move_expired_file", lambda n, s: (moved.append(n), [])[1])
 
     monkeypatch.setattr("pilotstd.core.config.ConfigManager.get", lambda self, k, d=None: False)
     checker.update_status("GB 1-2020", "已废止", evidence="L2")

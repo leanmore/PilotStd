@@ -166,7 +166,8 @@ class DownloadEngine:
             task.status = DownloadStatus.SUCCESS
         else:
             task.status = DownloadStatus.FAILED
-            task.error_message = "文件保存失败"
+            if not task.error_message:
+                task.error_message = "文件保存失败"
         return task
 
     def _execute_retry_batch(
@@ -462,7 +463,12 @@ class DownloadEngine:
         return None
 
     def _save_file(self, task: DownloadTask, content: bytes, adapter: BaseDownloadAdapter) -> bool:
-        """保存下载内容到规范命名的文件。"""
+        """保存下载内容到规范命名的文件。
+
+        **内容二次校验**（D2-1）：引擎是落盘前最后一道防线，站点返回的 HTML 错误页/
+        空壳文档必须拒绝，不能因为适配器漏判就当成标准文件入库。
+        **原子落盘**（D2-2）：先写 `.part` 再 `os.replace`，写一半失败不会留下残文件。
+        """
         try:
             final_path = self._resolve_target_path(task)
             try:
@@ -472,20 +478,38 @@ class DownloadEngine:
                 task.error_message = "路径校验失败"
                 return False
 
-            with open(final_path, "wb") as f:
-                f.write(content)
-
-            # 校验下载内容类型与扩展名一致
             ext = os.path.splitext(final_path)[1].lower()
-            if ext == ".pdf" and not content[:5] == b"%PDF-":
-                logger.warning("文件类型异常，非PDF: %s", final_path)
-            elif ext in (".doc", ".docx") and len(content) < 512:
-                logger.warning("文件过小，可能非有效文档: %s (%d bytes)", final_path, len(content))
+            if ext == ".pdf" and content[:5] != b"%PDF-":
+                logger.warning(
+                    "拒绝入库(非PDF): %s | 前32字节=%r", final_path, content[:32]
+                )
+                task.error_message = "下载内容非 PDF（疑似错误页）"
+                return False
+            if ext in (".doc", ".docx") and len(content) < 512:
+                logger.warning("拒绝入库(文档过小): %s (%d bytes)", final_path, len(content))
+                task.error_message = "下载内容过小，疑似无效文档"
+                return False
+
+            tmp_path = final_path + ".part"
+            try:
+                with open(tmp_path, "wb") as f:
+                    f.write(content)
+                    f.flush()
+                    os.fsync(f.fileno())
+                os.replace(tmp_path, final_path)
+            except OSError:
+                if os.path.exists(tmp_path):
+                    try:
+                        os.remove(tmp_path)
+                    except OSError:
+                        logger.warning("清理临时文件失败: %s", tmp_path)
+                raise
 
             task.saved_path = final_path
             logger.info(f"保存成功: {final_path}")
             return True
         except OSError as e:
+            # i18n-allow: API error 字段的中文契约文案
             logger.error(f"保存失败: {task.standard_number} - {e}")
             task.error_message = str(e)
             return False

@@ -106,105 +106,175 @@ class ValidityChecker:
             f"SELECT status, check_count FROM {_TABLE} WHERE standard_number=?",
             (standard_number,),
         )
-        if row:
-            if row["status"] != new_status:
-                self._db.execute(
-                    f"UPDATE {_TABLE} SET status=?, last_checked_at=?, next_check_at=?, "
-                    "last_status=?, last_status_updated_at=?, last_changed_at=?, "
-                    "check_count=check_count+1, updated_at=? WHERE standard_number=?",
-                    (new_status, now_iso, next_check, row["status"], now_iso, now_iso, now_iso, standard_number),
-                )
-                if notification_mgr:
-                    try:
-                        # 第一步：标准废止事件已合并进本事件，
-                        # 通过"是否已过期"字段区分废止（替代原独立事件，避免双通知）
-                        is_expired = new_status == Status.WITHDRAWN_NORMALIZED.value
-                        standard_name = ""
-                        try:
-                            name_row = self._db.fetchone(
-                                "SELECT std_name FROM announcement_record WHERE standard_number=? LIMIT 1",
-                                (standard_number,),
-                            )
-                            if name_row and "std_name" in name_row.keys():
-                                standard_name = str(name_row["std_name"] or "")
-                        except (KeyError, IndexError, TypeError):
-                            standard_name = ""
-                        payload = {
-                            "standard_number": standard_number,
-                            "old_status": row["status"],
-                            "new_status": new_status,
-                            "is_expired": is_expired,
-                            "changed_at": datetime.now().isoformat(),
-                        }
-                        if standard_name:
-                            payload["standard_name"] = standard_name
-                        if new_standard:
-                            payload["new_standard"] = new_standard
-                            payload["new_standard_name"] = new_standard_name
-                        notification_mgr.send_event("standard_status_changed", payload)
-                    except Exception as e:
-                        logger.warning("状态变更通知发送失败: %s, error=%s", standard_number, e)
-                if new_status in ABOLISHED_STATUSES_WITH_EXPIRED:
-                    if self.should_apply_side_effects(evidence):
-                        self._move_expired_file(standard_number)
-                    else:
-                        logger.info(
-                            # i18n-allow: 内部日志
-                            "validity: 不自动搬文件（证据=%s，需 L2 + auto_move_expired）: %s",
-                            evidence,
-                            standard_number,
-                        )
-            else:
-                self._db.execute(
-                    f"UPDATE {_TABLE} SET last_checked_at=?, next_check_at=?, "
-                    "check_count=check_count+1, updated_at=? WHERE standard_number=?",
-                    (now_iso, next_check, now_iso, standard_number),
-                )
-        else:
+        status_changed = bool(row and row["status"] != new_status)
+        should_move = (
+            status_changed
+            and new_status in ABOLISHED_STATUSES_WITH_EXPIRED
+            and self.should_apply_side_effects(evidence)
+        )
+        # 先搬文件、成功后再写库：移动失败时保持原状态（下一轮重试），
+        # 绝不出现“库说废止、文件还在原位”的不一致（D3-1）。
+        if should_move and not self._move_files_before_abandon(standard_number, new_status):
+            return
+        if not row:
             self._db.execute(
                 f"INSERT INTO {_TABLE} (standard_number, status, last_checked_at, "
                 "next_check_at, last_changed_at, check_count, created_at, updated_at) "
                 "VALUES (?, ?, ?, ?, ?, 1, ?, ?)",
                 (standard_number, new_status, now_iso, next_check, now_iso, now_iso, now_iso),
             )
+            return
+        if not status_changed:
+            self._db.execute(
+                f"UPDATE {_TABLE} SET last_checked_at=?, next_check_at=?, "
+                "check_count=check_count+1, updated_at=? WHERE standard_number=?",
+                (now_iso, next_check, now_iso, standard_number),
+            )
+            return
+        self._db.execute(
+            f"UPDATE {_TABLE} SET status=?, last_checked_at=?, next_check_at=?, "
+            "last_status=?, last_status_updated_at=?, last_changed_at=?, "
+            "check_count=check_count+1, updated_at=? WHERE standard_number=?",
+            (new_status, now_iso, next_check, row["status"], now_iso, now_iso, now_iso, standard_number),
+        )
+        self._notify_status_changed(
+            notification_mgr, standard_number, new_status, row["status"], new_standard, new_standard_name
+        )
+        if new_status in ABOLISHED_STATUSES_WITH_EXPIRED and not should_move:
+            logger.info(
+                # i18n-allow: 内部日志
+                "validity: 不自动搬文件（证据=%s，需 L2 + auto_move_expired）: %s",
+                evidence,
+                standard_number,
+            )
+
+    def _move_files_before_abandon(self, standard_number: str, new_status: str) -> bool:
+        """搬文件成功返回 True；失败返回 False（调用方放弃写废止状态）。"""
+        moved = self._move_expired_file(standard_number, new_status)
+        if moved is None:
+            logger.warning(
+                # i18n-allow: 内部运维日志
+                "validity: 文件移动失败，暂不写废止状态，等待下轮重试: %s",
+                standard_number,
+            )
+            return False
+        for old_path, new_path in moved:
+            # 移动成功后回写索引，避免查询结果指向已不存在的旧路径（D3-3）
+            self._db.execute(
+                "UPDATE file_index SET file_path=?, status=? WHERE file_path=?",
+                (new_path, new_status, old_path),
+            )
+        return True
+
+    def _notify_status_changed(
+        self,
+        notification_mgr: Any,
+        standard_number: str,
+        new_status: str,
+        old_status: str,
+        new_standard: str,
+        new_standard_name: str,
+    ) -> None:
+        """发送状态变更通知（废止并入本事件，用 is_expired 区分）。"""
+        if not notification_mgr:
+            return
+        try:
+            standard_name = ""
+            try:
+                name_row = self._db.fetchone(
+                    "SELECT std_name FROM announcement_record WHERE standard_number=? LIMIT 1",
+                    (standard_number,),
+                )
+                if name_row and "std_name" in name_row.keys():
+                    standard_name = str(name_row["std_name"] or "")
+            except (KeyError, IndexError, TypeError):
+                standard_name = ""
+            payload = {
+                "standard_number": standard_number,
+                "old_status": old_status,
+                "new_status": new_status,
+                "is_expired": new_status == Status.WITHDRAWN_NORMALIZED.value,
+                "changed_at": datetime.now().isoformat(),
+            }
+            if standard_name:
+                payload["standard_name"] = standard_name
+            if new_standard:
+                payload["new_standard"] = new_standard
+                payload["new_standard_name"] = new_standard_name
+            notification_mgr.send_event("standard_status_changed", payload)
+        except Exception as e:
+            logger.warning("状态变更通知发送失败: %s, error=%s", standard_number, e)
 
     # ── 到期标准查询 ──────────────────────────────────────────
 
-    def _move_expired_file(self, standard_number: str) -> None:
-        """状态变为废止/被代替后，把库内对应文件移到分类下的过期作废目录。"""
+    def _move_expired_file(
+        self, standard_number: str, new_status: str
+    ) -> Optional[list[tuple[str, str]]]:
+        """把该标准对应文件移到“过期作废”目录，返回 `[(旧路径, 新路径)]`。
+
+        返回 `None` 表示**至少一个文件移动失败**——调用方据此放弃写“废止”状态，
+        避免库与磁盘不一致（D3-1）。
+        选取范围精确到 `part`（D3-4），并排除修改单文件（修改单随本体，不单独搬）。
+        """
+        import os
+
+        from ..organizer.dir_builder import DirBuilder
+        from ..organizer.industry_lookup import build_code_mapping
+        from ..organizer.mover import FileMover
+        from ..scan.parser import StandardParser
+        from .config import ConfigManager, get_library_root
+        from .std_utils import parse_std_number
+
+        parsed = parse_std_number(standard_number)
+        if not parsed:
+            logger.warning("无法解析标准号，跳过搬文件: %s", standard_number)  # i18n-allow: 内部日志
+            return []
+        part = parsed.get("part")
+        expire_name = str(ConfigManager().get("storage.expire_folder", "过期作废") or "过期作废")
         try:
-            import os
-
-            from ..organizer.dir_builder import DirBuilder
-            from ..organizer.industry_lookup import build_code_mapping
-            from ..organizer.mover import FileMover
-            from ..scan.parser import StandardParser
-            from .config import ConfigManager, get_library_root
-            from .std_utils import parse_std_number
-
-            parsed = parse_std_number(standard_number)
-            if not parsed:
-                return
             root = get_library_root(ConfigManager())
-            expire_name = str(ConfigManager().get("storage.expire_folder", "过期作废") or "过期作废")
             dir_builder = DirBuilder(root, expire_dir_name=expire_name)
             mover = FileMover(dir_builder)
             rows = self._db.fetchall(
-                "SELECT file_path FROM file_index WHERE number=? AND year=? AND logical_code IN (?, ?)",
-                (parsed["number"], parsed["year"], parsed["raw_code"], parsed["code"]),
+                "SELECT file_path FROM file_index"  # i18n-allow: SQL 含中文关键词“修改单”
+                " WHERE REPLACE(logical_code,'/','')=? AND number=? AND year=?"
+                "   AND (? IS NULL OR part = ?)"
+                "   AND COALESCE(std_name,'') NOT LIKE '%修改单%'",
+                (parsed["raw_code"].replace("/", ""), parsed["number"], parsed["year"], part, part),
             )
-            for row in rows:
-                path = str(row["file_path"] or "")
-                if not path or expire_name in path.replace("\\", "/").split("/"):
-                    continue
-                info = StandardParser(build_code_mapping()).parse(os.path.basename(path))
-                if not info:
-                    continue
-                info.source_path = path
-                info.effect_status = Status.WITHDRAWN.value
-                mover.move_to_code_dir(path, info)
-        except Exception as exc:
-            logger.warning("自动移动过期文件失败: %s, error=%s", standard_number, exc)  # i18n-allow: 内部日志
+        except Exception as exc:  # noqa: BLE001 — 查询/构造失败视为本轮失败，交由上层放弃写库
+            logger.warning("准备搬文件失败: %s (%s)", standard_number, exc)  # i18n-allow: 内部日志
+            return None
+
+        moved: list[tuple[str, str]] = []
+        failed: list[str] = []
+        for row in rows:
+            path = str(row["file_path"] or "")
+            if not path or expire_name in path.replace("\\", "/").split("/"):
+                continue
+            info = StandardParser(build_code_mapping()).parse(os.path.basename(path))
+            if not info:
+                continue
+            info.source_path = path
+            info.effect_status = new_status
+            try:
+                dst = mover.move_to_code_dir(path, info)
+            except Exception as exc:  # noqa: BLE001 — 单个文件异常不应中断其余文件
+                logger.warning("移动过期文件异常: %s (%s)", path, exc)  # i18n-allow: 内部日志
+                dst = None
+            if dst:
+                moved.append((path, dst))
+            else:
+                failed.append(path)
+        if failed:
+            logger.warning(
+                "过期文件移动失败 %d 个，保持原状态待重试: %s %s",  # i18n-allow: 内部日志
+                len(failed),
+                standard_number,
+                failed,
+            )
+            return None
+        return moved
 
     def _file_index_exists(self) -> bool:
         """兼容测试替身/旧库：没有 file_index 表时不做路径排除。"""

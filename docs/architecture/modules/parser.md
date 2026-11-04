@@ -65,3 +65,7 @@ StandardParser (入口)
 - [扫描模块](scan.md) — 文件扫描与解析器调用
 
 > **解析失败日志四段化（2026-10-28，A-9）**：`StandardParser.parse()` 未命中任何匹配器时输出 `解析失败: path=<文件名> type=<扩展名> error=no_match detail=<N>_matchers（值**不含空格**，可直接按 `key=value` 解析）`；沿用项目既有 `xxx失败: key=%s` 风格（参照 `announcement/base.py:184`、`core/audit.py:51`），便于 grep 与排障。
+
+> **2026-11-04 修改单独立身份（D1-2）**：文件名命中 `第N号修改单` 时，`file_kind` 追加
+> `第N号修改单`（随 `make_standard_filename` 写入文件名与索引名），使修改单与本体在
+> `file_index`/目录中可区分；扫描代号仍统一为带斜杠形态（`GBT 1234-2020.pdf` → `GB/T`）。
