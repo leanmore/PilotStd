@@ -1,7 +1,7 @@
-<!-- Meta: Last-Reviewed=2026-07-16 | Review-Cycle=90d | Status=Active -->
+<!-- Meta: Last-Reviewed=2026-11-05 | Review-Cycle=90d | Status=Active -->
 # PilotStd Docker 使用指南
 
-**日期**: 2026-05-29 | **版本**: v1.0
+**日期**: 2026-11-05 | **版本**: v1.1
 **适用**: 群晖 DSM 7.2+ (Container Manager, Docker Engine 24.0.2) / 其他支持 Docker Compose 的 Linux 系统
 
 ---
@@ -19,7 +19,7 @@
 
 ### A.1 获取 docker-compose.yml
 
-复制 `docker-compose.example.yml` → 改名为 `docker-compose.yml`。
+直接使用仓库根目录的 `docker-compose.yml`（已是 `image:` 形式）；如需自定义卷路径，可参考 `docs/reference/docker-compose.example.yml`。
 
 将 `build:` 段替换为 `image:`：
 
@@ -36,7 +36,25 @@ services:
 
 ### A.2 配置 `.env`
 
-同 [2.1](#21-配置环境变量)。
+在 compose 同目录创建 `.env`（容器通过 `./.env:/app/.env` 读取）：
+
+```bash
+# 必填：超级管理员用户名（不能是 admin）
+SUPERUSER=superadmin
+# 强烈建议：超级管理员初始密码（不填则启动时随机生成并打印到日志）
+SUPERUSER_PASSWORD=your_strong_password
+# 强烈建议：JWT 签名密钥（固定后重启不会导致会话全部失效）
+JWT_SECRET=your_random_secret
+
+# 群晖用户权限（SSH 执行 id -u / id -g 查看）
+PUID=1026
+PGID=100
+
+STANDARD_ROOT=/volume1/standards
+TZ=Asia/Shanghai
+```
+
+> `ADMIN_PASSWORD` 只用于旧版内置 `admin` 账号；当前版本请用 `SUPERUSER` + `SUPERUSER_PASSWORD`。
 
 ### A.3 拉取并启动
 
@@ -98,12 +116,10 @@ docker compose version    # 应显示 Compose V2
 | `docker-compose.yml` | 服务编排（可复制 `docs/reference/docker-compose.example.yml` 改名为 `docker-compose.yml`） |
 | `.dockerignore` | 排除无用文件 |
 | `entrypoint.sh` | 容器入口脚本 |
-| `app.py`, `auth.py`, `scheduler.py` | FastAPI 模块 |
-| `api/` 目录（含 9 个 `.py`） | API 路由 |
+| `docker/` 目录（含 `api/` 40+ 路由模块） | 后端服务与 API |
 | `pilotstd/` 目录（整个） | 核心模块 |
-| `main.py` | 入口 |
 | `web/dist/` 目录 | 前端构建产物 |
-| `requirements.txt` | Python 依赖清单 |
+| `docker/requirements-docker.txt` | Python 依赖清单 |
 
 方式一：开发机直接复制：
 ```bash
@@ -153,21 +169,23 @@ scp d:\PilotStd\.dockerignore your-nas-user@nas-ip:/volume1/docker/pilotstd/
 在 `/volume1/docker/pilotstd/` 下创建 `.env` 文件：
 
 ```bash
+# 必填：超级管理员用户名（不能是 admin）
+SUPERUSER=superadmin
+# 强烈建议：超级管理员初始密码（不填则随机生成并打印到容器日志）
+SUPERUSER_PASSWORD=your_strong_password
+# 强烈建议：JWT 签名密钥（固定后重启不会导致会话全部失效）
+JWT_SECRET=your_random_secret
+
 # NAS 用户权限（SSH 进群晖执行 id -u 和 id -g 查看）
 PUID=1026
 PGID=100
 
-# 路径
-STANDARD_ROOT=/volume1/standards
-SCAN_SOURCE=/volume1/media
-
-# 安全（必改！）
-ADMIN_PASSWORD=your_strong_password
-JWT_SECRET=your_random_secret
-
-# 时区
+# 标准库根目录（容器内路径，与 compose 卷映射对应）
+STANDARD_ROOT=/standards
 TZ=Asia/Shanghai
 ```
+
+> 扫描源在 Web「设置 → 存储」中选择，不需要 `SCAN_SOURCE` 环境变量。
 
 ### 2.5 启动
 
@@ -176,6 +194,7 @@ TZ=Asia/Shanghai
 SSH 进入群晖或使用终端：
 ```bash
 cd /volume1/docker/pilotstd
+docker compose pull
 docker compose up -d
 ```
 
@@ -186,7 +205,7 @@ docker compose logs -f   # 查看日志，按 Ctrl+C 退出
 
 ### 2.6 访问
 
-浏览器打开 `http://<NAS-IP>:9028`，输入 `.env` 中设置的 `ADMIN_PASSWORD`。
+浏览器打开 `http://<NAS-IP>:9028`，用户名填 `.env` 中的 `SUPERUSER`，密码填 `SUPERUSER_PASSWORD`（未设置密码时，用 `docker compose logs pilotstd | grep 密码` 查看启动日志中的随机密码）。
 
 ---
 
@@ -263,10 +282,11 @@ docker compose restart
 
 ```bash
 cd /volume1/docker/pilotstd
-docker compose down
-docker compose build --no-cache
+docker compose pull
 docker compose up -d
 ```
+
+> `docker compose build` 仅适用于方式 B（本地构建）；方式 A 没有 `build:` 段，执行 build 会报错。
 
 ### 4.4 健康检查与首次启动迁移
 
@@ -275,17 +295,40 @@ docker compose up -d
 `start_period` 内的失败不计入重试、`timeout` 也已放宽，避免容器因启动慢被误判不健康而重启。
 迁移前会自动生成 `pre_migration_v{旧}_to_v{新}.bak`，可用 `GET /api/backup/list` 确认。
 
-### 4.5 备份
+### 4.5 备份与恢复
 
 需备份的文件：
 - `data/pilotstd.db` — SQLite 数据库（核心）
+- `data/.fernet_key` — 渠道凭据加密密钥（丢失会导致已保存凭据不可解密）
 - `data/config.json` — 配置文件
 - `.env` — 环境变量
+
+迁移前系统会自动在 `data/backups/` 生成 `pre_migration_v{旧}_to_v{新}.bak`。
 
 ```bash
 # 在群晖上定期执行
 cp /volume1/docker/pilotstd/data/pilotstd.db /volume1/backup/pilotstd_$(date +%Y%m%d).db
 ```
+
+**下载备份（管理员）**：
+
+```bash
+curl -b cookie.txt -o backup.bak \
+  http://<NAS-IP>:9028/api/backup/download/pre_migration_v71_to_v72.bak
+```
+
+`GET /api/backup/list` 列出全部备份；`GET /api/backup/download/{name}` 下载（admin-only，
+文件名必须是单层 `.bak`/`.db`，不接受路径）。
+
+**恢复**：
+
+```bash
+docker compose down
+cp /volume1/backup/pilotstd_20261105.db data/pilotstd.db
+docker compose up -d
+```
+
+恢复后启动时自动跑迁移；若版本落后会先备份到 `data/backups/`。
 
 ---
 

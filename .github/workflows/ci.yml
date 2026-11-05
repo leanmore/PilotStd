@@ -259,6 +259,9 @@ jobs:
       - name: G-051 — API 权限矩阵（写端点必须显式 admin / 前端无死调用）
         run: python scripts/audit_api_matrix.py --check
 
+      - name: G-052 — 文档漂移（路由/配置/表名与 docs 对齐）
+        run: python scripts/check_docs_drift.py
+
       - name: Upload coverage data
         uses: actions/upload-artifact@v6
         with:

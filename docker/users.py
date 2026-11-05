@@ -73,7 +73,7 @@ def init_users_table() -> None:
 
 def _ensure_superuser(db: Database, username: str) -> None:
     """确保超级用户存在且角色为 admin（使用 bcrypt 存储密码）。
-    - 不存在 → 创建（自动生成或使用 ADMIN_PASSWORD 环境变量）
+    - 不存在 → 创建（自动生成或使用 SUPERUSER_PASSWORD（旧版 ADMIN_PASSWORD）环境变量）
     - 存在但 role != 'admin' → 校准为 admin
     - 存在且 role == 'admin' → 跳过
     """
@@ -85,14 +85,16 @@ def _ensure_superuser(db: Database, username: str) -> None:
     )
 
     if not existing:
-        admin_pass = os.environ.get("ADMIN_PASSWORD") or secrets.token_urlsafe(12)
-        must_change = 0 if os.environ.get("ADMIN_PASSWORD") else 1
-        if not os.environ.get("ADMIN_PASSWORD"):
+        # 优先 SUPERUSER_PASSWORD（compose/文档口径）；ADMIN_PASSWORD 保留为旧版兼容
+        env_pass = os.environ.get("SUPERUSER_PASSWORD") or os.environ.get("ADMIN_PASSWORD")
+        admin_pass = env_pass or secrets.token_urlsafe(12)
+        must_change = 0 if env_pass else 1
+        if not env_pass:
             print(
                 f"\n{'=' * 60}\n"
-                f"  ⚠️  ADMIN_PASSWORD 环境变量未设置！\n"
+                f"  ⚠️  SUPERUSER_PASSWORD（或旧版 ADMIN_PASSWORD）环境变量未设置！\n"
                 f"  已自动生成管理员密码: {admin_pass}\n"
-                f"  请保存此密码，或设置 ADMIN_PASSWORD 环境变量。\n"
+                f"  请保存此密码，或设置 SUPERUSER_PASSWORD 环境变量。\n"
                 f"{'=' * 60}\n"
             )
         password_hash = get_password_hash(admin_pass)
