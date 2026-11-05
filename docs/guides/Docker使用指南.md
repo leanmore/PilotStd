@@ -54,7 +54,7 @@ STANDARD_ROOT=/volume1/standards
 TZ=Asia/Shanghai
 ```
 
-> `ADMIN_PASSWORD` 只用于旧版内置 `admin` 账号；当前版本请用 `SUPERUSER` + `SUPERUSER_PASSWORD`。
+> `ADMIN_PASSWORD` 只用于旧版内置 `admin` 账号；**v0.170.2 起** `SUPERUSER_PASSWORD` 为正式口径（`ADMIN_PASSWORD` 仍兼容）。
 
 ### A.3 拉取并启动
 

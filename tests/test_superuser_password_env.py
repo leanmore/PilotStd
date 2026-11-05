@@ -37,3 +37,16 @@ def test_legacy_admin_password_fallback(db, monkeypatch):
     _ensure_superuser(db, "legacy_admin")
     row = _row(db, "legacy_admin")
     assert verify_password_with_salt("LegacyPass456", row["password_hash"], row["salt"])
+
+
+def test_no_password_env_generates_random_and_requires_change(db, monkeypatch):
+    """两个密码变量都未设置：生成随机密码，并标记必须修改密码。"""
+    monkeypatch.delenv("SUPERUSER_PASSWORD", raising=False)
+    monkeypatch.delenv("ADMIN_PASSWORD", raising=False)
+    _ensure_superuser(db, "auto_admin")
+    row = db.fetchone(
+        "SELECT password_hash, salt, must_change_password FROM users WHERE username = ?",
+        ("auto_admin",),
+    )
+    assert row["password_hash"]
+    assert row["must_change_password"] == 1
