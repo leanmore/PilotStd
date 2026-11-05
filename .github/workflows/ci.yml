@@ -259,7 +259,7 @@ jobs:
       - name: G-051 — API 权限矩阵（写端点必须显式 admin / 前端无死调用）
         run: python scripts/audit_api_matrix.py --check
 
-
+      - name: Upload coverage data
         uses: actions/upload-artifact@v6
         with:
           name: coverage-data
