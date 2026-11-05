@@ -13,6 +13,7 @@ import Tag from 'primevue/tag'
 import ProgressBar from 'primevue/progressbar'
 import DataView from 'primevue/dataview'
 import Paginator from 'primevue/paginator'
+import { TASK_HISTORY_PAGE_SIZES, resolveRows } from '@/utils/pagination'
 import { parseStandardNumber } from '@/utils/standardParser'
 import LogBar from '@/components/LogBar.vue'
 
@@ -144,6 +145,11 @@ const paginatedHistory = computed(() => {
 function onHistoryPage(e: any) {
   historyPage.value = e.page
   setItem('task_history_page', String(e.page))
+  const next = resolveRows(e.rows, historyRows.value, TASK_HISTORY_PAGE_SIZES)
+  if (next !== historyRows.value) {
+    historyRows.value = next
+    historyPage.value = 0
+  }
 }
 
 function saveHistory(status: 'success'|'partial'|'fail') {
@@ -380,7 +386,7 @@ function statusLabel(s: string) {
         </div>
       </template>
     </DataView>
-    <Paginator :rows="historyRows" :totalRecords="history.length" @page="onHistoryPage" class="mt-2" />
+    <Paginator :rows="historyRows" :rowsPerPageOptions="TASK_HISTORY_PAGE_SIZES" :totalRecords="history.length" @page="onHistoryPage" class="mt-2" />
   </div>
 
   <!-- 历史详情弹窗 -->

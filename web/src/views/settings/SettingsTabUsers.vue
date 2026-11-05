@@ -9,6 +9,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useConfirm } from 'primevue/useconfirm'
 import { getUsers, addUser, deleteUser, changePassword } from '@/api'
+import { getApiErrorMessage } from '@/api/http'
 import { useAppStore } from '@/stores/app'
 import Button from 'primevue/button'
 import DataView from 'primevue/dataview'
@@ -46,7 +47,7 @@ async function doAdd() {
     userErr.value = ''
     loadUsers()
   } catch (e: any) {
-    userErr.value = e.response?.data?.detail || t('settings.users.add_failed')
+    userErr.value = getApiErrorMessage(e)
   }
 }
 

@@ -11,6 +11,7 @@ import { SOURCE_TO_URL } from '@/constants/sourceMapping'
 import Button from 'primevue/button'
 import DataView from 'primevue/dataview'
 import Paginator from 'primevue/paginator'
+import { ANNOUNCE_PAGE_SIZES, resolveRows } from '@/utils/pagination'
 import AppCalendar from '@/components/AppCalendar.vue'
 import UnifiedFilterBar from '@/components/UnifiedFilterBar.vue'
 import LogBar from '@/components/LogBar.vue'
@@ -104,6 +105,12 @@ const paginatedResults = computed(() => {
 function onPage(e: any) {
   page.value = e.page
   setItem('announce_page', String(e.page))
+  const next = resolveRows(e.rows, rows.value, ANNOUNCE_PAGE_SIZES)
+  if (next !== rows.value) {
+    rows.value = next
+    page.value = 0
+    setItem('announce_rows', String(next))
+  }
 }
 </script>
 
@@ -140,7 +147,7 @@ function onPage(e: any) {
         </div>
       </template>
     </DataView>
-    <Paginator :rows="rows" :totalRecords="results.length" @page="onPage" class="mt-2" />
+    <Paginator :rows="rows" :rowsPerPageOptions="ANNOUNCE_PAGE_SIZES" :totalRecords="results.length" @page="onPage" class="mt-2" />
     <LogBar class="mt-3" />
   </template>
   <div v-else class="empty-state mt-4">
