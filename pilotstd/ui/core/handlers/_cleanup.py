@@ -15,7 +15,6 @@ from typing import TYPE_CHECKING, Any, Callable
 
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtWidgets import (
-    QApplication,
     QDialog,
     QFileDialog,
     QHBoxLayout,
@@ -276,11 +275,13 @@ class CleanupHandler:
         worker.move_done.connect(lambda n: result.update({"moved": n}))
         worker.move_done.connect(progress.close)
         worker.finished.connect(worker.deleteLater)
-        worker.start()
+        from PyQt6.QtCore import QEventLoop
 
-        # 保持对话框打开直到工作者完成
-        while worker.isRunning():
-            QApplication.processEvents()
+        loop = QEventLoop()
+        worker.move_done.connect(loop.quit)
+        worker.finished.connect(loop.quit)
+        worker.start()
+        loop.exec()
         return result["moved"]
 
     def on_collect_unrecognized(self) -> None:

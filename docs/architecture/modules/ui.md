@@ -147,3 +147,8 @@ Handler Handler  Handler    (worker)   Handler
 
 - [管理模块](manager.md) — `StandardManager` 门面架构
 - [ADR-001](../../adr/ADR-001-modal-dialog-auto-clicker.md) — 模态对话框自动处理
+
+> **2026-11-05 线程生命周期（B1）**：设置对话框在 OCR 模型下载线程运行期间拒绝关闭；
+> 关闭时统一 `requestInterruption()` + `wait()`（禁止 terminate）。未识别文件搬移改用 `QEventLoop`
+> 等待 `FileMoveWorker`，不再 `processEvents()` 空转。更新下载线程由主窗口持有并在 `_stop_workers()`
+> 中优雅停止。桌面端后台任务通知统一改为 `NotificationContext(scope="system")`（不再硬编码 user_id=1）。

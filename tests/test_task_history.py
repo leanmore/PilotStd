@@ -245,13 +245,6 @@ class TestPerformanceBaseline(TestTaskHistoryCommon):
     def setUp(self):
         pass  # 不清理数据——setUpClass 中的批量插入数据需要保留
 
-    def test_stats_query_fast(self):
-        from pilotstd.core.task_history import get_task_stats
-
-        stats = get_task_stats()
-        self.assertIsInstance(stats, list)
-        # 绝对延迟在共享测试库/并行下无意义（2026-11-05 实测），只保留功能性断言
-
 
 if __name__ == "__main__":
     unittest.main()

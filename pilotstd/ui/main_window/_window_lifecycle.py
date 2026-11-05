@@ -127,6 +127,16 @@ class _WindowLifecycleMixin(_MixinBase):
             self._core.query.stop_workers()
             self._core.archive.stop_workers()
             self._core.auto.stop_workers()
+        update_worker = getattr(self, "_update_worker", None)
+        if update_worker is not None:
+            stop_worker_gracefully(
+                update_worker,
+                signals=(
+                    getattr(update_worker, "progress_msg", None),
+                    getattr(update_worker, "download_ready", None),
+                    getattr(update_worker, "download_failed", None),
+                ),
+            )
         for attr in ("_drive_thread",):
             w = getattr(self, attr, None)
             if w is None:

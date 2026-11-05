@@ -392,6 +392,21 @@ class SettingsHandler:
         worker.download_failed.connect(self._on_ocr_model_download_failed)
         worker.start()
 
+    def has_running_workers(self) -> bool:
+        """是否有后台下载线程仍在运行（设置对话框关闭前检查）。"""
+        w = self._ocr_download_worker
+        return bool(w is not None and w.isRunning())
+
+    def stop_workers(self) -> None:
+        """请求停止 OCR 模型下载线程并等待（下载函数无中断点，最多等 3s）。"""
+        w = self._ocr_download_worker
+        if w is None:
+            return
+        if w.isRunning():
+            w.requestInterruption()
+            w.wait(3000)
+        self._ocr_download_worker = None
+
     def _on_ocr_model_downloaded(self, path: str) -> None:
         if self._ocr_model_status is not None:
             self._ocr_model_status.setText(f"已安装：{path}")  # i18n-allow

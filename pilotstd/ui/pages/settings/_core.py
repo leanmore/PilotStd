@@ -44,6 +44,14 @@ class SettingsPage(QWidget):
         if self._config:
             self._handler.load_all_configs()
 
+    def has_running_workers(self) -> bool:
+        """是否存在后台下载线程（模型下载）。"""
+        return self._handler.has_running_workers()
+
+    def stop_workers(self) -> None:
+        """停止设置页所有后台线程。"""
+        self._handler.stop_workers()
+
     def save_to_config(self) -> None:
         """委托 handler 保存所有设置，保留原公开 API 签名。"""
         self._handler.save_all_configs()

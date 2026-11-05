@@ -95,6 +95,7 @@
     "resumed": "已恢复",
     "settings_updated": "设置已更新",
     "settings_saved": "设置已保存并生效。",
+    "settings_download_in_progress": "模型正在下载，完成前无法关闭设置窗口，请稍候。",
     "please_import_first": "请先导入文件或文件夹。",
     "please_import_before_query": "请先导入文件或文件夹，再查询。",
     "please_import_before_download": "请先导入并查询，再下载。",

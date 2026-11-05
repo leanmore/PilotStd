@@ -238,10 +238,12 @@ def _download_update_file(self, release: dict) -> None:
     from pilotstd.ui.workers.update_download import UpdateDownloadWorker
 
     worker = UpdateDownloadWorker(release, self)
+    self._update_worker = worker
     worker.progress_msg.connect(lambda msg: self.status_changed.emit(msg))
     worker.download_ready.connect(self._prompt_restart)
     worker.download_failed.connect(lambda err: self.status_changed.emit(f"更新下载失败: {err}"))
     worker.finished.connect(worker.deleteLater)
+    worker.finished.connect(lambda: setattr(self, "_update_worker", None))
     worker.start()
 
 

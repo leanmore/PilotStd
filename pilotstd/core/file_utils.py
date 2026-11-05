@@ -5,6 +5,8 @@ import logging
 import os
 import re
 import shutil
+import time
+import uuid
 from datetime import datetime
 from typing import Optional
 
@@ -168,59 +170,92 @@ def _sha256_file(path: str) -> str:
     return hash_file_content(path)
 
 
-def safe_move(src: str, dst: str, on_exists: str = "skip") -> bool:
-    """安全移动文件：先复制到目标临时文件，再原子替换，最后删源文件。
 
-    跨文件系统时 shutil.move 实际是"复制+删除"，非原子操作；
-    改为 copy2 → .tmp → os.replace → 删源，任何一步失败都不会丢数据。
+
+def _win_long_path(path: str) -> str:
+    r"""Windows 长路径（>240）加 `\\?\` 前缀；非 Windows 或短路径原样返回。"""
+    if os.name != "nt" or not path:
+        return path
+    absolute = os.path.abspath(path)
+    if len(absolute) < 240 or absolute.startswith("\\\\?\\"):
+        return absolute
+    return "\\\\?\\" + absolute
+
+
+def _retry_os(fn, attempts: int = 3, base_delay: float = 0.15):
+    """对 Windows 文件占用（PermissionError）做短退避重试；其他 OSError 直接抛。"""
+    last: PermissionError | None = None
+    for i in range(attempts):
+        try:
+            return fn()
+        except PermissionError as e:
+            last = e
+            if i < attempts - 1:
+                time.sleep(base_delay * (2**i))
+    assert last is not None
+    raise last
+
+
+def safe_move(src: str, dst: str, on_exists: str = "skip") -> bool:
+    r"""安全移动文件：先复制到目标临时文件，再原子替换，最后删源文件。
+
+    覆盖场景：跨盘符（copy+replace）、Windows 长路径（>240 加 `\\?\`）、
+    源/目标被占用（PermissionError 短退避重试）、同一目标并发写（临时文件名含 pid+uuid）。
 
     on_exists:
         "skip" — 目标已存在时比 SHA-256：相同跳过，不同追加序号 (2)/(3)/...
         "overwrite" — 目标已存在则覆盖
     """
+    tmp_dst = ""
     try:
-        os.makedirs(os.path.dirname(dst), exist_ok=True)
-        if os.path.exists(dst):
+        dst_dir = os.path.dirname(dst)
+        if dst_dir:
+            os.makedirs(_win_long_path(dst_dir), exist_ok=True)
+        src_l = _win_long_path(src)
+        dst_l = _win_long_path(dst)
+
+        if os.path.exists(dst_l):
             if on_exists == "overwrite":
-                os.remove(dst)
+                _retry_os(lambda: os.remove(dst_l))
             else:
-                # 先比文件大小：大小不同则内容必然不同，跳过昂贵的全文件哈希
-                if os.path.isfile(src) and os.path.isfile(dst):
-                    if os.path.getsize(src) == os.path.getsize(dst):
-                        if _sha256_file(src) == _sha256_file(dst):
+                if os.path.isfile(src_l) and os.path.isfile(dst_l):
+                    if os.path.getsize(src_l) == os.path.getsize(dst_l):
+                        if _sha256_file(src_l) == _sha256_file(dst_l):
                             logger.debug("目标已存在且内容相同，跳过: %s", dst)
                             return False
-                # 内容不同或无法比对 → 追加序号
                 base, ext = os.path.splitext(dst)
                 for n in range(2, 100):
                     alt = f"{base} ({n}){ext}"
-                    if not os.path.exists(alt):
+                    if not os.path.exists(_win_long_path(alt)):
                         dst = alt
+                        dst_l = _win_long_path(alt)
                         break
                 else:
                     logger.warning("无法生成唯一文件名(已达99): %s", dst)
                     return False
                 logger.info("目标已存在但内容不同，改用: %s", dst)
-        # 清除只读属性（跨盘符移动时只读文件会导致删除步骤失败）。
-        # ⚠️ 只加写位、保留读位：POSIX 上 `chmod(src, S_IWRITE)` 会把文件改成 0o200
-        # （无读权限），随后 copy2 读源文件直接 PermissionError，Linux 容器里搬
-        # “过期作废”因此永远失败（2026-11-04 CI 实测）。
-        if os.path.isfile(src):
+
+        if os.path.isfile(src_l):
             import stat
 
-            os.chmod(src, os.stat(src).st_mode | stat.S_IWRITE | stat.S_IREAD)
-        # 复制到临时文件，完成后原子替换
-        tmp_dst = dst + ".tmp"
-        shutil.copy2(src, tmp_dst)
-        os.replace(tmp_dst, dst)
-        # 目标写入成功后才删除源文件
-        os.remove(src)
+            # 只加写位、保留读位：POSIX 上 chmod(src, S_IWRITE) 会把文件改成 0o200
+            os.chmod(src_l, os.stat(src_l).st_mode | stat.S_IWRITE | stat.S_IREAD)
+
+        # 唯一临时文件：并发搬同一目标时不会互相覆盖（固定 .tmp 会被后来的进程截断）
+        tmp_dst = f"{dst_l}.{os.getpid()}.{uuid.uuid4().hex}.tmp"
+        _retry_os(lambda: shutil.copy2(src_l, tmp_dst))
+        _retry_os(lambda: os.replace(tmp_dst, dst_l))
+        try:
+            _retry_os(lambda: os.remove(src_l))
+        except PermissionError as e:
+            # 源文件被占用（PDF 阅读器等）：目标已完整落盘，保留源文件并告警，绝不丢数据
+            # i18n-allow: 内部日志
+            logger.warning("目标已写入但源文件无法删除（被占用）: %s (%s)", src, e)
+            return True
         logger.info("移动成功: %s -> %s", src, dst)
         return True
     except OSError as e:
-        # 清理可能残留的临时文件
-        tmp_dst = dst + ".tmp"
-        if os.path.exists(tmp_dst):
+        if tmp_dst and os.path.exists(tmp_dst):
             try:
                 os.remove(tmp_dst)
             except OSError as cleanup_error:

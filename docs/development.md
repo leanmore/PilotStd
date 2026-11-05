@@ -197,9 +197,11 @@ _result_builder.py 98%、_exact_matcher.py 95%。
 
 ## 测试基线（2026-11-05）
 
-- 后端全量：`6009 passed, 10 skipped`（`pytest tests/ -q -n auto`）。
+- 后端全量：`6015 passed, 10 skipped`（`pytest tests/ -q -n auto`）。
 - 前端：`vitest 346 passed`；`type-check` / `lint` / `build` 全绿。
 - 阶段 2 新增：`test_archive_reconcile.py`（C-2 启动对账）、`test_part_cleanup.py`（C-3）、
   `test_backup_download.py`（C-4 下载与路径穿透）、`test_migrations_blank_db.py`（空白库 v1→v72）。
 - 阶段 3 新增：`test_check_docs_drift.py`（G-052 文档漂移门禁）、`test_superuser_password_env.py`
   （SUPERUSER_PASSWORD 优先于旧版 ADMIN_PASSWORD）。
+- 阶段 5 新增：`test_safe_move_windows.py`（长路径/占用/跨盘）、`test_db_locked_retry.py`
+  （database is locked 退避重试）。

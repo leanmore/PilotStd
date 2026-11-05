@@ -111,7 +111,7 @@ class ArchiveWorker(QThread):
                 on_result=on_result,
                 overwrite=self._overwrite,
                 # 桌面单用户模式，user_id 固定 1；多用户桌面需从登录态取
-                context=NotificationContext(scope="user", user_id=1),
+                context=NotificationContext(scope="system"),
             )
             logger.info("[ArchiveWorker] archive_standards returned")
             if batch and not self._stopped and not self.isInterruptionRequested():

@@ -282,20 +282,42 @@ class Database:
         """执行写 SQL（INSERT/UPDATE/DELETE），自动提交，异常时回滚。"""
         with self._write_lock:
             conn = self._get_conn()
-            try:
-                cur = conn.execute(sql, params)
-                conn.commit()
-                return cur
-            except (sqlite3.IntegrityError, sqlite3.OperationalError, sqlite3.DatabaseError) as e:
+            # WAL + busy_timeout 之外的兜底：极端写竞争（双端/外部进程）时指数退避重试
+            for attempt in range(3):
                 try:
-                    conn.rollback()
-                except Exception as rollback_error:
-                    logging.getLogger("pilotstd.db").debug("rollback failed: %s", rollback_error)
-                if getattr(self, "_in_migration", False) and "duplicate column name" in str(e):
-                    logging.getLogger("pilotstd.db").debug("迁移期重复列，按幂等跳过: %s", sql)
-                else:
-                    logging.getLogger("pilotstd.db").exception("SQL执行失败: %s", sql)
-                raise DatabaseError("数据库操作失败") from e
+                    cur = conn.execute(sql, params)
+                    conn.commit()
+                    return cur
+                except sqlite3.OperationalError as e:
+                    if "database is locked" in str(e).lower() and attempt < 2:
+                        try:
+                            conn.rollback()
+                        except Exception as rollback_error:
+                            logging.getLogger("pilotstd.db").debug("rollback failed: %s", rollback_error)
+                        time.sleep(0.15 * (2**attempt))
+                        continue
+                    try:
+                        conn.rollback()
+                    except Exception as rollback_error:
+                        logging.getLogger("pilotstd.db").debug("rollback failed: %s", rollback_error)
+                    self._log_sql_failure(sql, e)
+                    raise DatabaseError("数据库操作失败") from e
+                except (sqlite3.IntegrityError, sqlite3.DatabaseError) as e:
+                    try:
+                        conn.rollback()
+                    except Exception as rollback_error:
+                        logging.getLogger("pilotstd.db").debug("rollback failed: %s", rollback_error)
+                    self._log_sql_failure(sql, e)
+                    raise DatabaseError("数据库操作失败") from e
+            # i18n-allow: 内部异常
+            raise DatabaseError("数据库操作失败：重试耗尽")
+
+    def _log_sql_failure(self, sql: str, error: Exception) -> None:
+        """记录失败 SQL；迁移期的 duplicate column 属幂等预期，降级为 debug。"""
+        if getattr(self, "_in_migration", False) and "duplicate column name" in str(error):
+            logging.getLogger("pilotstd.db").debug("迁移期重复列，按幂等跳过: %s", sql)
+        else:
+            logging.getLogger("pilotstd.db").exception("SQL执行失败: %s", sql)
 
     def executemany(self, sql: str, seq: Sequence[Any]) -> sqlite3.Cursor:
         """批量执行写 SQL，自动提交，异常时回滚。"""
@@ -318,6 +340,7 @@ class Database:
             return [dict(r) for r in rows]
         except (sqlite3.IntegrityError, sqlite3.OperationalError, sqlite3.DatabaseError) as e:
             logging.getLogger("pilotstd.db").exception("SQL查询失败: %s", sql)
+            # i18n-allow: 内部异常
             raise DatabaseError("数据库查询失败") from e
 
     def fetchone(self, sql: str, params: Sequence[Any] = ()) -> Optional[dict[str, Any]]:

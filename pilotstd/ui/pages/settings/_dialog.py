@@ -37,6 +37,15 @@ class SettingsDialog(QDialog):
         btn_layout.addWidget(btn_cancel)
         layout.addLayout(btn_layout)
 
+    def closeEvent(self, event) -> None:
+        """模型下载线程运行中时不允许关闭对话框（QThread 运行中被销毁会崩溃）。"""
+        if self.page.has_running_workers():
+            QMessageBox.information(self, _("settings_title"), _("settings_download_in_progress"))
+            event.ignore()
+            return
+        self.page.stop_workers()
+        super().closeEvent(event)
+
     def _on_accept(self) -> None:
         self.page.save_to_config()
         QMessageBox.information(self, _("settings_title"), _("settings_saved"))

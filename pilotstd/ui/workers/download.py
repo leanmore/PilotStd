@@ -69,7 +69,7 @@ class DownloadWorker(QThread):
                 on_progress=on_progress,
                 on_result=on_result,
                 # 桌面单用户模式，user_id 固定 1；多用户桌面需从登录态取
-                context=NotificationContext(scope="user", user_id=1),
+                context=NotificationContext(scope="system"),
             )
             logger.info("[DownloadWorker] download_stream returned")
             if batch and not self._stopped and not self.isInterruptionRequested():

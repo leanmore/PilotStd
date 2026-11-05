@@ -100,7 +100,7 @@ class QueryWorker(QThread):
                 site=self._site,
                 force_refresh=self._force_refresh,
                 # 桌面单用户模式，user_id 固定 1；多用户桌面需从登录态取
-                context=NotificationContext(scope="user", user_id=1),
+                context=NotificationContext(scope="system"),
             )
         except WorkerAborted:
             logger.info("[QueryWorker] 收到停止请求，已在中止点退出")

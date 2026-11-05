@@ -78,6 +78,7 @@
     "resumed": "已恢復",
     "settings_updated": "設定已更新",
     "settings_saved": "設定已儲存並生效。",
+    "settings_download_in_progress": "模型正在下載，完成前無法關閉設定視窗，請稍候。",
     "please_import_first": "請先匯入檔案或資料夾。",
     "please_import_before_query": "請先匯入檔案或資料夾，再查詢。",
     "please_import_before_download": "請先匯入並查詢，再下載。",

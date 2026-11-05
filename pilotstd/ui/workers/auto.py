@@ -64,7 +64,7 @@ class AutoWorker(QThread):
                 on_archive_result=lambda i, s: _stage(self.archive_result.emit, i, s),
                 on_stage_change=lambda s, c, t: _stage(self.stage_changed.emit, s, c, t),
                 # 桌面单用户模式，user_id 固定 1；多用户桌面需从登录态取
-                context=NotificationContext(scope="user", user_id=1),
+                context=NotificationContext(scope="system"),
             )
         except WorkerAborted:
             logger.info("[AutoWorker] 收到停止请求，已在中止点退出")

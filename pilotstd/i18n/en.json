@@ -96,6 +96,7 @@
     "resumed": "Resumed",
     "settings_updated": "Settings updated",
     "settings_saved": "Settings saved and applied.",
+    "settings_download_in_progress": "The OCR model is downloading. Please wait before closing settings.",
     "please_import_first": "Please import a file or folder first.",
     "please_import_before_query": "Please import a file or folder before querying.",
     "please_import_before_download": "Please import and query before downloading.",
