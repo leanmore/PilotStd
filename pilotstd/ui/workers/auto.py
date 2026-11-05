@@ -1,13 +1,13 @@
 # 项目//工作者/脚本—，从工作者脚本拆分
 # 分隔
 # 统一自动管线：串行执行扫描→查询→下载→归档。
-
 import logging
 from typing import Any
 
 from PyQt6.QtCore import QThread, pyqtSignal
 
 from ...core.notification.context import NotificationContext
+from ..errors import format_ui_error
 from ._common import WorkerAborted, check_stop
 
 logger = logging.getLogger(__name__)
@@ -69,7 +69,7 @@ class AutoWorker(QThread):
         except WorkerAborted:
             logger.info("[AutoWorker] 收到停止请求，已在中止点退出")
         except Exception as e:
-            self.error.emit(str(e))
+            self.error.emit(format_ui_error(e))
         finally:
             _elapsed = _time.monotonic() - _t_start
             logger.info("[AutoWorker] elapsed=%.1fs stages=%s", _elapsed, list(report.keys()) if report else "none")

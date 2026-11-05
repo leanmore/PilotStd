@@ -1,7 +1,6 @@
 # 项目//工作者/归档脚本—，从工作者脚本拆分
 # 分隔
 # 后台归档线程：文件移动 + 磁盘空间检查 + 断点续做。
-
 import logging
 import os
 import shutil
@@ -15,6 +14,7 @@ from pilotstd.core.status import Status
 from ...core.file_utils import make_standard_filename
 from ...core.notification.context import NotificationContext
 from ...organizer.industry_lookup import get_folder_name
+from ..errors import format_ui_error
 from ._common import (
     _WORKER_BATCH_SIZE,
     _WORKER_FLUSH_INTERVAL,
@@ -119,7 +119,7 @@ class ArchiveWorker(QThread):
         except WorkerAborted:
             logger.info("[ArchiveWorker] 收到停止请求，已在中止点退出")
         except Exception as e:
-            self.error.emit(str(e))
+            self.error.emit(format_ui_error(e))
         finally:
             _elapsed = _time.monotonic() - _t_start
             logger.info("[ArchiveWorker] elapsed=%.1fs", _elapsed)

@@ -1,11 +1,11 @@
 # 项目//工作者/下载脚本—，从工作者脚本拆分
-
 import logging
 from typing import Any
 
 from PyQt6.QtCore import QThread, pyqtSignal
 
 from ...core.notification.context import NotificationContext
+from ..errors import format_ui_error
 from ._common import (
     _WORKER_BATCH_SIZE,
     _WORKER_FLUSH_INTERVAL,
@@ -77,7 +77,7 @@ class DownloadWorker(QThread):
         except WorkerAborted:
             logger.info("[DownloadWorker] 收到停止请求，已在中止点退出")
         except Exception as e:
-            self.error.emit(str(e))
+            self.error.emit(format_ui_error(e))
         finally:
             _elapsed = _time.monotonic() - _t_start
             logger.info("[DownloadWorker] elapsed=%.1fs", _elapsed)

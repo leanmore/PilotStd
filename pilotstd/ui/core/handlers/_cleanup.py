@@ -27,6 +27,8 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
 )
 
+from ...errors import format_ui_error
+
 if TYPE_CHECKING:
     from PyQt6.QtWidgets import QWidget
 
@@ -64,7 +66,7 @@ class FileMoveWorker(QThread):
                 logger.info("未识别文件已搬迁: %s", rel)
             except OSError as e:
                 logger.error("搬迁失败: %s: %s", src, e)
-                self.error_occurred.emit(str(e))
+                self.error_occurred.emit(format_ui_error(e))
         self.move_done.emit(moved)
 
 

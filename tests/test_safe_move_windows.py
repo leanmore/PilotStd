@@ -53,12 +53,16 @@ def test_safe_move_keeps_source_when_forever_locked(tmp_path, monkeypatch):
     dst = tmp_path / "out" / "locked.pdf"
     src.write_bytes(b"%PDF-1.7")
 
-    def always_locked(path):
-        raise PermissionError("file in use")
+    real_remove = os.remove
 
-    monkeypatch.setattr("pilotstd.core.file_utils.os.remove", always_locked)
-    assert safe_move(str(src), str(dst)) is True
-    assert dst.exists(), "目标必须完整落盘"
+    def locked_only_source(path):
+        if os.path.abspath(path) == os.path.abspath(str(src)):
+            raise PermissionError("file in use")
+        return real_remove(path)
+
+    monkeypatch.setattr("pilotstd.core.file_utils.os.remove", locked_only_source)
+    assert safe_move(str(src), str(dst)) is False
+    assert not dst.exists(), "失败时回滚目标副本，避免留下重复文件"
     assert src.exists(), "源文件被占用时必须保留，绝不丢数据"
 
 

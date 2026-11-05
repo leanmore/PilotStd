@@ -564,5 +564,5 @@ pilotstd/core/
 
 > **2026-11-05 文件移动与并发（B3/B4）**：`safe_move` 支持 Windows 长路径（>240 自动加 `\\?\` 前缀）、
 > 源/目标被占用时 `PermissionError` 指数退避重试（3 次），临时文件改为 `pid+uuid` 防并发截断；
-> 源文件最终仍被占用时目标完整落盘且源保留（绝不丢数据）。`Database.execute` 对
+> 源文件最终仍被占用时回滚目标副本并返回 False（源保留、无重复文件；2026-11-05 晚修正）。`Database.execute` 对
 > `database is locked` 增加 3 次指数退避重试，叠加 WAL + `busy_timeout=5000`。

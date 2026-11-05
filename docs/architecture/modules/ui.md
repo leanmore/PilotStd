@@ -152,3 +152,7 @@ Handler Handler  Handler    (worker)   Handler
 > 关闭时统一 `requestInterruption()` + `wait()`（禁止 terminate）。未识别文件搬移改用 `QEventLoop`
 > 等待 `FileMoveWorker`，不再 `processEvents()` 空转。更新下载线程由主窗口持有并在 `_stop_workers()`
 > 中优雅停止。桌面端后台任务通知统一改为 `NotificationContext(scope="system")`（不再硬编码 user_id=1）。
+
+> **2026-11-05 文件占用与错误提示**：`safe_move` 在源文件被占用且重试耗尽时回滚目标副本、保留源文件并返回 False；
+> `pilotstd/ui/errors.py::format_ui_error()` 把 `WinError 32/5`、`ENOSPC` 映射为中文提示（含文件名），
+> 全部 7 个 worker 与归档/清理 handler 统一走该出口，不再向用户展示英文堆栈。

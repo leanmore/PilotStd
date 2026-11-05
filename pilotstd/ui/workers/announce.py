@@ -4,12 +4,12 @@
 # 中断契约（技术债 #17a）：两个回调都是**检查点**——`announce_stream` 的循环由
 # 回调驱动，若只"跳过发射"不抛异常，底层仍会把三个适配器全抓完，
 # 线程必然拖到 `stop_worker_gracefully` 超时并进入保活（#17b 已接受的代价）。
-
 import logging
 from typing import Any
 
 from PyQt6.QtCore import QThread, pyqtSignal
 
+from ..errors import format_ui_error
 from ._common import WorkerAborted, check_stop, wait_pause_or_abort
 
 logger = logging.getLogger(__name__)
@@ -70,7 +70,7 @@ class AnnounceWorker(QThread):
             logger.info("[AnnounceWorker] 收到停止请求，已在中止点退出")
         except Exception as e:
             self._error = str(e)
-            self.error.emit(str(e))
+            self.error.emit(format_ui_error(e))
         finally:
             # 任何路径（正常/异常/中止）都恰好发射一次，调用方据此收尾
             self.finished_signal.emit()

@@ -1,7 +1,6 @@
 # 项目//工作者/扫描脚本—，从工作者脚本拆分
 # 分隔
 # 后台扫描线程：文件遍历+解析在后台执行，主线程只更新用户界面。
-
 import logging
 import time as _time
 from typing import Any
@@ -9,6 +8,7 @@ from typing import Any
 from PyQt6.QtCore import QThread, pyqtSignal
 
 from ...core.notification.context import NotificationContext
+from ..errors import format_ui_error
 from ._common import WorkerAborted, _log_progress, check_stop, wait_pause_or_abort
 
 logger = logging.getLogger(__name__)
@@ -74,7 +74,7 @@ class ScanWorker(QThread):
         except WorkerAborted:
             logger.info("[ScanWorker] 收到停止请求，已在中止点退出")
         except Exception as e:
-            self.error.emit(str(e))
+            self.error.emit(format_ui_error(e))
             failed_count = 1
         finally:
             _elapsed = _time.monotonic() - _t_start

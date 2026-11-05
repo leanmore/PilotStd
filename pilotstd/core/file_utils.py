@@ -248,10 +248,16 @@ def safe_move(src: str, dst: str, on_exists: str = "skip") -> bool:
         try:
             _retry_os(lambda: os.remove(src_l))
         except PermissionError as e:
-            # 源文件被占用（PDF 阅读器等）：目标已完整落盘，保留源文件并告警，绝不丢数据
+            # 源文件被占用（PDF 阅读器等）：回滚刚写入的目标副本，保持“未移动”状态，
+            # 由调用方提示用户关闭占用程序后重试；绝不留下重复文件或丢数据。
             # i18n-allow: 内部日志
-            logger.warning("目标已写入但源文件无法删除（被占用）: %s (%s)", src, e)
-            return True
+            logger.warning("源文件被占用，移动失败并回滚目标: %s (%s)", src, e)
+            try:
+                os.remove(dst_l)
+            except OSError as rollback_error:
+                # i18n-allow: 内部日志
+                logger.error("回滚目标失败（源与目标均保留）: %s (%s)", dst, rollback_error)
+            return False
         logger.info("移动成功: %s -> %s", src, dst)
         return True
     except OSError as e:

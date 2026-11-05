@@ -1,10 +1,10 @@
 # 项目//工作者/脚本—，从工作者脚本拆分
-
 import logging
 from typing import Any
 
 from PyQt6.QtCore import QThread, pyqtSignal
 
+from ..errors import format_ui_error
 from ._common import WorkerAborted, _pct, check_stop, wait_pause_or_abort
 
 logger = logging.getLogger(__name__)
@@ -52,7 +52,7 @@ class NormalizeWorker(QThread):
         except WorkerAborted:
             logger.info("[NormalizeWorker] 收到停止请求，已在中止点退出")
         except Exception as e:
-            self.error.emit(str(e))
+            self.error.emit(format_ui_error(e))
         finally:
             _elapsed = _time.monotonic() - _t_start
             logger.info("[NormalizeWorker] elapsed=%.1fs", _elapsed)
