@@ -18,6 +18,7 @@ from docker.api.auto import router as auto_router
 from docker.api.export import router as export_router
 from docker.api.scheduler import router as scheduler_router
 from docker.manager import get_manager_dep
+from tests._auth_helpers import admin_cookies
 
 
 @pytest.fixture()
@@ -32,7 +33,7 @@ def client(mgr: MagicMock) -> TestClient:
     app.include_router(export_router)
     app.include_router(auto_router)
     app.dependency_overrides[get_manager_dep] = lambda: mgr
-    return TestClient(app)
+    return TestClient(app, cookies=admin_cookies())
 
 
 # ── 调度器 ───────────────────────────────────────────────────────────

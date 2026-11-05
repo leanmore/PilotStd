@@ -1,10 +1,11 @@
 # 容器//脚本—数据质量检查接口
 import logging
 
-from fastapi import Depends
+from fastapi import Depends, Request
 from fastapi.routing import APIRouter
 from pydantic import BaseModel, ConfigDict, Field
 
+from ..auth import require_role
 from ..manager import get_manager_dep
 
 logger = logging.getLogger(__name__)
@@ -42,6 +43,7 @@ class QualityRunResponse(BaseModel):
 
 
 @router.post("/api/quality/run", response_model=QualityRunResponse, response_model_exclude_unset=True)
-def run_quality_check(mgr=Depends(get_manager_dep)):
+@require_role("admin")
+def run_quality_check(request: Request, mgr=Depends(get_manager_dep)):
     """运行数据质量检查。"""
     return mgr.quality_service.run_check()

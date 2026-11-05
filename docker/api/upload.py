@@ -2,11 +2,12 @@
 import os
 import uuid
 
-from fastapi import Depends, File, HTTPException, UploadFile
+from fastapi import Depends, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.routing import APIRouter
 from pydantic import BaseModel
 
+from ..auth import require_role
 from ..manager import get_manager_dep
 
 router = APIRouter(tags=["upload"])
@@ -72,7 +73,8 @@ def _validate_image(content: bytes, ext: str) -> None:
 
 
 @router.post("/api/upload", response_model=UploadResponse)
-async def upload_file(file: UploadFile = File(...)):
+@require_role("admin")
+async def upload_file(request: Request, file: UploadFile = File(...)):
     """上传图片，返回访问路径。"""
     ext = os.path.splitext(file.filename or ".png")[1].lower()
     if ext not in ALLOWED_EXT:

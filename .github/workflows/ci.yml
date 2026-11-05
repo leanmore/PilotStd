@@ -256,7 +256,10 @@ jobs:
       - name: G-039 — 禁止合并冲突标记
         run: python scripts/check_no_conflict_markers.py
 
-      - name: Upload coverage data
+      - name: G-051 — API 权限矩阵（写端点必须显式 admin / 前端无死调用）
+        run: python scripts/audit_api_matrix.py --check
+
+
         uses: actions/upload-artifact@v6
         with:
           name: coverage-data

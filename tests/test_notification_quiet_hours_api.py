@@ -16,8 +16,9 @@ def _mgr() -> MagicMock:
 
 def _call(body: dict, mgr: MagicMock):
     from docker.api.notification_config import update_quiet_hours
+    from tests._auth_helpers import admin_request
 
-    return update_quiet_hours(body, mgr=mgr)
+    return update_quiet_hours(admin_request(), body, mgr=mgr)
 
 
 def test_writes_three_config_keys():

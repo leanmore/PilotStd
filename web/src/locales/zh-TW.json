@@ -3,6 +3,9 @@
     "title": "PilotStd"
   },
   "nav": {
+    "forbidden": "無權限存取",
+    "forbidden_desc": "目前帳號沒有存取此頁面的權限。",
+    "back_home": "返回首頁",
     "home": "首頁",
     "task": "任務",
     "scan": "掃描",
@@ -478,7 +481,9 @@
   },
   "http": {
     "network_error": "網路連線異常",
-    "timeout": "請求逾時"
+    "timeout": "請求逾時",
+    "api_error": "請求失敗：{message}",
+    "forbidden": "權限不足"
   },
   "legacy": {
     "redirecting": "正在跳轉..."
@@ -601,6 +606,7 @@
     }
   },
   "settings": {
+    "admin_only": "僅管理員可修改系統設定；你可以在此調整主題與語言。",
     "storage": {
       "root_dir": "標準庫根目錄",
       "expire_folder": "過期資料夾名",

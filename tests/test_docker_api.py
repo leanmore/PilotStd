@@ -18,6 +18,7 @@ from jose import jwt
 from docker.auth import COOKIE_NAME
 from docker.manager import get_manager_dep
 from pilotstd.core.status import Status
+from tests._auth_helpers import admin_cookies, admin_request
 
 
 def _admin_token() -> str:
@@ -73,7 +74,7 @@ class TestAPIEndpoints(unittest.TestCase):
         app.include_router(query_router)
         app.include_router(download_router)
         app.include_router(users_router)
-        cls.client = TestClient(app)
+        cls.client = TestClient(app, cookies=admin_cookies())
 
     def setUp(self):
         """注入 admin JWT cookie + 覆盖 get_current_user_id。"""
@@ -446,6 +447,7 @@ class TestAPIEndpoints(unittest.TestCase):
         with self.assertLogs("docker.api.archive", level="WARNING") as cm:
             with self.assertRaises(ValueError):
                 archive_files(
+                    admin_request(method="POST", path="/api/archive"),
                     items=[{"source_path": "/inbox/GB 150-2011.pdf", "logical_code": ""}],
                     run_id="test-run",
                     word_source_root="",

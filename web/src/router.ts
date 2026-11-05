@@ -7,6 +7,7 @@ import LoginView from './views/LoginView.vue'
 
 const routes = [
   { path: '/login', component: LoginView, meta: { guest: true } },
+  { path: '/403', component: () => import('./views/ForbiddenView.vue'), meta: { guest: true } },
   { path: '/register', component: () => import('./views/RegisterView.vue'), meta: { guest: true } },
   {
     path: '/',
@@ -22,7 +23,7 @@ const routes = [
     meta: {
       titleKey: 'nav.task', icon: 'pi pi-play', color: 'var(--primary)',
       showInSidebar: true, showInQuickActions: true, quickActionType: 'navigation',
-      quickActionOrder: 1, sidebarOrder: 2,
+      quickActionOrder: 1, sidebarOrder: 2, permission: 'admin',
     },
   },
   {
@@ -99,19 +100,19 @@ const routes = [
   },
   { path: '/scheduler', component: () => import('./views/SchedulerStatus.vue'), meta: {
     titleKey: 'nav.scheduler', icon: 'pi pi-clock', color: 'var(--text-dim)',
-    showInSidebar: true, sidebarOrder: 10,
+    showInSidebar: true, sidebarOrder: 10, permission: 'admin',
   } },
-  { path: '/quality', component: () => import('./views/QualityView.vue') },
-  { path: '/backup', component: () => import('./views/BackupView.vue') },
-  { path: '/resources', component: () => import('./views/SystemResources.vue') },
-  { path: '/query-history', component: () => import('./views/QueryHistory.vue') },
-  { path: '/download-queue', component: () => import('./views/DownloadQueue.vue') },
+  { path: '/quality', component: () => import('./views/QualityView.vue'), meta: { permission: 'admin' } },
+  { path: '/backup', component: () => import('./views/BackupView.vue'), meta: { permission: 'admin' } },
+  { path: '/resources', component: () => import('./views/SystemResources.vue'), meta: { permission: 'admin' } },
+  { path: '/query-history', component: () => import('./views/QueryHistory.vue'), meta: { permission: 'admin' } },
+  { path: '/download-queue', component: () => import('./views/DownloadQueue.vue'), meta: { permission: 'admin' } },
   {
     path: '/download/import',
     component: () => import('./views/DownloadImport.vue'),
     meta: {
       titleKey: 'nav.download_import', icon: 'pi pi-download', color: 'var(--primary)',
-      showInSidebar: true, sidebarOrder: 5,
+      showInSidebar: true, sidebarOrder: 5, permission: 'admin',
     },
   },
   // #49 虚拟路由：动作型快捷操作（不渲染到侧边栏，不在 URL 中可访问）
@@ -126,6 +127,11 @@ const routes = [
   },
 ]
 
+/** 路由权限判定：只有 meta.permission==='admin' 的路由要求 admin 角色。 */
+export function hasRouteAccess(permission: unknown, role: string): boolean {
+  return permission !== 'admin' || role === 'admin'
+}
+
 const router = createRouter({ history: createWebHistory(), routes })
 
 router.beforeEach(async (to, from, next) => {
@@ -137,14 +143,22 @@ router.beforeEach(async (to, from, next) => {
   }
   if (to.meta.guest) return next()
   const store = useAppStore()
-  if (store.loggedIn) return next()
-  try {
-    await http.get('/stats', { skipGlobalAuthRedirect: true })
-    store.loggedIn = true
-    next()
-  } catch {
-    next('/login')
+  if (!store.loggedIn) {
+    try {
+      await http.get('/stats', { skipGlobalAuthRedirect: true })
+      store.loggedIn = true
+    } catch {
+      return next('/login')
+    }
   }
+  // 角色可能在首屏异步加载（硬刷新直达管理页）：先补齐身份再判定，避免误判 403
+  if (to.meta.permission === 'admin' && !store.username) {
+    try { await store.loadPreferences() } catch { /* 保持默认角色，交给下方判定 */ }
+  }
+  if (!hasRouteAccess(to.meta.permission, store.role)) {
+    return next('/403')
+  }
+  return next()
 })
 
 export default router

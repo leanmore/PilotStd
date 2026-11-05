@@ -64,3 +64,10 @@
 - 公告页“刷新列表”现在会先触发一次源站同步（等同立即抓取），再重载列表；零记录公告头也会显示。
 
 > 2026-10-23：Windows 设置 → OCR 增加“识别方式”（云端优先/本地优先）与“下载本地 OCR 模型”；模型从 RapidOCR 官方 wheel 下载并校验 SHA256，安装到 `<PilotStd 根目录>/models/ocr/rapidocr/1.2.3`。Windows 与 Web/Docker 使用同一套 ONNX 模型。
+
+> **2026-11-05 路由权限与错误提示契约**：管理页（`/task`、`/scheduler`、`/quality`、`/backup`、
+> `/resources`、`/query-history`、`/download-queue`、`/download/import`）在 `router.ts` 标注
+> `meta.permission: 'admin'`，`beforeEach` 用 `hasRouteAccess()` 判定，普通用户重定向 `/403`；
+> `/settings` 仍对普通用户开放，但只渲染主题/语言，不请求 admin-only 的 `/api/settings`。
+> 后端 403 统一返回 `{code, message_key, detail}`；`http.ts` 拦截器优先用 `message_key` 走 i18n，
+> 其次 `detail`/`error`，并把结果写入 `err.userMessage`（`getApiErrorMessage()` 取用），避免白屏。

@@ -5,13 +5,14 @@ import os
 from datetime import datetime
 from typing import Any, cast
 
-from fastapi import BackgroundTasks, Depends
+from fastapi import BackgroundTasks, Depends, Request
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
 from pydantic import BaseModel
 
 from pilotstd.constants.announce_types import SOURCE_SITE_TO_TYPE
 
+from ..auth import require_role
 from ..manager import get_manager as _get_mgr
 from ..manager import get_manager_dep
 
@@ -262,7 +263,9 @@ def _sync_wait_check(since_date: str = "", mgr=None, types: list[str] | None = N
 
 
 @router.post("/api/announce/check", response_model=AnnounceCheckResponse, response_model_exclude_none=True)
+@require_role("admin")
 def api_check_announce(
+    request: Request,
     since_date: str = "",
     sync: bool = False,
     types: str = "",

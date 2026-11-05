@@ -1,12 +1,13 @@
 # 容器//脚本—文件规范化接口（通过统一入口）
 import logging
 
-from fastapi import Body, Depends, HTTPException
+from fastapi import Body, Depends, HTTPException, Request
 from fastapi.routing import APIRouter
 from pydantic import BaseModel
 
 from pilotstd.models import ParsedStdInfo
 
+from ..auth import require_role
 from ..manager import get_manager_dep
 from ._pipeline import safe_update_step
 
@@ -82,7 +83,9 @@ def _dict_to_parsed(item: dict) -> ParsedStdInfo:
 
 
 @router.post("/api/normalize", response_model=NormalizeResponse)
+@require_role("admin")
 def normalize_files(
+    request: Request,
     items: list[dict] = Body(..., embed=True),
     run_id: str = Body(..., embed=True),
     mgr=Depends(get_manager_dep),

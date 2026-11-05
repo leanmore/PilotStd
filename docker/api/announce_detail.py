@@ -3,13 +3,14 @@ import logging
 from typing import Any
 from urllib.parse import urlparse
 
-from fastapi import BackgroundTasks, Depends, HTTPException, Query
+from fastapi import BackgroundTasks, Depends, HTTPException, Query, Request
 from fastapi.routing import APIRouter
 from pydantic import BaseModel
 
 from pilotstd.announcement._content_cleaner import clean_announcement_content  # 防绕过：确保写入前清洗
 from pilotstd.constants.announce_types import SOURCE_SITE_TO_ANNC as SOURCE_MAP
 
+from ..auth import require_role
 from ..manager import get_manager_dep
 from ._announce_detail_models import (
     AnnouncementBatchApproveResponse,
@@ -374,7 +375,9 @@ def get_announcement_by_no(announce_no: str, mgr=Depends(get_manager_dep)):
     response_model=AnnouncementParseResponse,
     response_model_exclude_none=True,
 )
+@require_role("admin")
 def trigger_parse(
+    request: Request,
     announce_no: str,
     background_tasks: BackgroundTasks,
     source: str | None = Query(None, description="来源标识（annc_gb/annc_hb/annc_db）"),
@@ -457,7 +460,9 @@ def trigger_parse(
 
 
 @router.post("/api/announcements/{announce_no}/reparse", response_model=AnnouncementReparseResponse)
+@require_role("admin")
 def reparse_from_source(
+    request: Request,
     announce_no: str,
     source: str | None = Query(None, description="来源标识（annc_gb/annc_hb/annc_db）"),
     mgr=Depends(get_manager_dep),
@@ -502,7 +507,8 @@ def get_parse_status(
 
 
 @router.patch("/api/announcement-record/{record_id}", response_model=AnnouncementUpdateResponse)
-def update_record(record_id: int, data: dict, mgr=Depends(get_manager_dep)):
+@require_role("admin")
+def update_record(request: Request, record_id: int, data: dict, mgr=Depends(get_manager_dep)):
     """前端双击单元格后调用，保存单行修改。"""
     db = mgr.db
 
@@ -543,7 +549,8 @@ def update_record(record_id: int, data: dict, mgr=Depends(get_manager_dep)):
 
 
 @router.post("/api/announcement-record/batch-approve", response_model=AnnouncementBatchApproveResponse)
-def batch_approve(data: dict, mgr=Depends(get_manager_dep)):
+@require_role("admin")
+def batch_approve(request: Request, data: dict, mgr=Depends(get_manager_dep)):
     """批量确认：将选中记录状态改为 approved。事务保证原子性。"""
     db = mgr.db
     ids = data.get("ids", [])

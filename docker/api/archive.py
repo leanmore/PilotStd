@@ -1,13 +1,14 @@
 # 容器//归档脚本—文件归档接口（移动到标准库目录结构）
 import logging
 
-from fastapi import Body, Depends, HTTPException
+from fastapi import Body, Depends, HTTPException, Request
 from fastapi.routing import APIRouter
 from pydantic import BaseModel
 
 from pilotstd.core.path_guard import get_allowed_roots, validate_path_in_root
 from pilotstd.models import ParsedStdInfo
 
+from ..auth import require_role
 from ..manager import get_manager_dep
 from ._pipeline import safe_update_step
 
@@ -56,7 +57,9 @@ def _validate_source_path(path: str, config_root: str) -> None:
 
 
 @router.post("/api/archive", response_model=ArchiveResponse)
+@require_role("admin")
 def archive_files(
+    request: Request,
     items: list[dict] = Body(..., embed=True),
     run_id: str = Body(..., embed=True),
     word_source_root: str = Body("", embed=True),

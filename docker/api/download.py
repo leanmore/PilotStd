@@ -1,12 +1,13 @@
 # 容器//下载脚本—标准文件下载接口
 from typing import Optional
 
-from fastapi import Body, Depends, File, Form, HTTPException, UploadFile
+from fastapi import Body, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.routing import APIRouter
 from pydantic import BaseModel
 
 from pilotstd.core.notification.batch import batch_scope
 
+from ..auth import require_role
 from ..manager import get_manager_dep
 from ._pipeline import safe_update_step
 
@@ -57,7 +58,9 @@ class DownloadImportResponse(BaseModel):
 
 
 @router.post("/api/download", response_model=DownloadBatchResponse)
+@require_role("admin")
 def download_standards(
+    request: Request,
     numbers: list[str] = Body(embed=True),
     run_id: str = Body(..., embed=True),
     mgr=Depends(get_manager_dep),
@@ -115,7 +118,9 @@ def download_standards(
 
 
 @router.post("/api/download/import", response_model=DownloadImportResponse)
+@require_role("admin")
 async def import_downloads(
+    request: Request,
     text: Optional[str] = Form(None),
     file: Optional[UploadFile] = File(None),
     mgr=Depends(get_manager_dep),

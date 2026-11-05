@@ -23,6 +23,7 @@ from fastapi.testclient import TestClient
 from docker.api.download import router as download_router
 from docker.api.quality import router as quality_router
 from docker.manager import get_manager_dep
+from tests._auth_helpers import admin_cookies
 
 
 def _task(number: str = "GB/T 12345-2020", status: str = "success") -> SimpleNamespace:
@@ -55,7 +56,7 @@ def client(mgr: MagicMock) -> TestClient:
     app.include_router(download_router)
     app.include_router(quality_router)
     app.dependency_overrides[get_manager_dep] = lambda: mgr
-    return TestClient(app)
+    return TestClient(app, cookies=admin_cookies())
 
 
 def test_import_requires_text_or_file(client: TestClient, mgr: MagicMock) -> None:

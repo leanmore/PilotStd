@@ -11,8 +11,10 @@ import { useI18n } from 'vue-i18n'
 import ConfirmDialog from 'primevue/confirmdialog'
 import Toast from 'primevue/toast'
 import { getSettings, putSettings, getSettingsSchema, uploadFile, getSettingsMetadata } from '@/api'
+import { getApiErrorMessage } from '@/api/http'
 import type { TabMeta } from '@/api/settings'
 import { useAppStore } from '@/stores/app'
+import { THEMES } from '@/config/themes'
 import { usePreferencesStore } from '@/stores/preferences'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
@@ -34,6 +36,7 @@ import 'primeicons/primeicons.css'
 defineOptions({ name: 'SettingsView' })
 
 const store = useAppStore()
+const isAdmin = computed(() => store.role === 'admin')
 
 // ═══════════════════════════════════════════
 // 共享配置状态（通过 provide 传递给子 Tab 组件）
@@ -79,7 +82,7 @@ async function loadCfg() {
     schemaMap.value = map
     schemaTabs.value = tabs
   }
-  catch { cfgErr.value = t('settings.load_failed') }
+  catch (e) { cfgErr.value = getApiErrorMessage(e) }
 }
 
 async function saveCfg() {
@@ -87,8 +90,8 @@ async function saveCfg() {
     await putSettings(cfg.value)
     saved.value = true; cfgErr.value = ''
     setTimeout(() => saved.value = false, 2000)
-  } catch {
-    saved.value = false; cfgErr.value = t('settings.save_failed_retry')
+  } catch (e) {
+    saved.value = false; cfgErr.value = getApiErrorMessage(e)
   }
 }
 
@@ -322,12 +325,17 @@ watch(systemSections, (val) => {
 // ═══════════════════════════════════════════
 // 生命周期
 // ═══════════════════════════════════════════
-onMounted(() => { loadCfg(); loadSystemSections(); loadTabMeta() })
+onMounted(() => {
+  // 普通用户不请求 /api/settings（admin-only），只保留主题/语言两项本地设置
+  if (!isAdmin.value) return
+  loadCfg(); loadSystemSections(); loadTabMeta()
+})
 </script>
 
 <template>
   <ConfirmDialog />
   <Toast />
+  <template v-if="isAdmin">
   <h1>{{ t('settings.title') }}</h1>
 
   <!-- 标签页导航栏 -->
@@ -373,7 +381,30 @@ onMounted(() => { loadCfg(); loadSystemSections(); loadTabMeta() })
   </div>
 </template>
 
+<template v-else>
+  <h1>{{ t('settings.title') }}</h1>
+  <div class="user-settings">
+    <p class="text-dim">{{ t('settings.admin_only') }}</p>
+    <label class="row">
+      <span>{{ t('settings.theme') }}</span>
+      <select v-model="store.theme">
+        <option v-for="(cfg, key) in THEMES" :key="key" :value="key">{{ t(cfg.labelKey) }}</option>
+      </select>
+    </label>
+    <label class="row">
+      <span>{{ t('settings.locale') }}</span>
+      <select v-model="store.locale">
+        <option v-for="opt in localeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+      </select>
+    </label>
+  </div>
+</template>
+</template>
+
 <style scoped>
+.user-settings { max-width: 520px; margin-top: 16px; display: flex; flex-direction: column; gap: 16px; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.row select { padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); }
 /* ── 标签页导航 ── */
 .tab-bar {
   display: flex;

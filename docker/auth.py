@@ -14,6 +14,7 @@ from pydantic import BaseModel
 
 from pilotstd import ADMIN_ROLE
 from pilotstd.core.audit import write_audit
+from pilotstd.i18n import t
 
 # ── 再导出：状态/常量/中间件迁至 auth_state / auth_middleware，保持既有 import 路径可用 ──
 from .auth_middleware import AuthMiddleware as AuthMiddleware
@@ -108,67 +109,93 @@ def get_current_role(request: Request) -> str:
     return str(payload.get("role", "user"))
 
 
+def _resolve_identity(request: Request | None) -> tuple[str, str]:
+    """从 cookie 解析当前角色与主体；无 request/无 token/无效 token 一律按匿名 user。
+
+    v3.0 起 JWT 的 `sub` 是 **user_id**（`_generate_token` 写 `str(user_id)`），不是 username，
+    故返回 (role, subject) 而非 username。
+    """
+    current_role, subject = "user", "unknown"
+    if request is None:
+        return current_role, subject
+    token = request.cookies.get(COOKIE_NAME)
+    if not token:
+        return current_role, subject
+    try:
+        payload = jwt.decode(token, SECRET, algorithms=["HS256"])
+        current_role = payload.get("role", "user")
+        subject = payload.get("sub", "unknown")
+    except JWTError as e:
+        # 无效/过期 cookie 属预期，按匿名处理；不记录 token 本身
+        logging.getLogger(__name__).debug("jwt cookie invalid, treated as anonymous: %s", e)
+    return current_role, subject
+
+
+def _deny_request(request, func, role, current_role: str, subject: str):
+    """拒绝访问：HTTP 路由返回统一错误契约，普通 Service 方法抛 HTTPException。"""
+    audit_user_id, audit_username = _resolve_audit_identity(subject)
+    write_audit(
+        action="ACCESS_DENIED",
+        resource=f"{request.method} {request.url.path}" if request else func.__name__,
+        detail={"required_role": role, "actual_role": current_role, "username": audit_username},
+        user_id=audit_user_id,
+    )
+    if request is None:
+        raise HTTPException(403, "权限不足")
+    return JSONResponse(
+        {"code": "forbidden", "message_key": "auth.api.forbidden", "detail": t("auth.api.forbidden")},
+        status_code=403,
+    )
+
+
+def _extract_request(args, kwargs) -> Request | None:
+    """从位置参数/关键字参数里找出 FastAPI 的 Request 对象。"""
+    for arg in args:
+        if isinstance(arg, Request):
+            return arg
+    for value in kwargs.values():
+        if isinstance(value, Request):
+            return value
+    return None
+
+
 def require_role(role: str):
     """装饰器：要求当前用户具有指定角色。
 
     v3.0 权限控制标准入口。拒绝时写 ACCESS_DENIED 审计日志。
-    支持 FastAPI 路由函数和普通 Service 方法。
+    支持 FastAPI 路由函数（含 async）和普通 Service 方法。
 
     Usage:
         @router.put("/api/settings")
         @require_role("admin")
         def put_settings(...): ...
     """
+    import inspect
     from functools import wraps
 
     def decorator(func):
+        """把角色校验包到目标函数外层。"""
+
         @wraps(func)
         def wrapper(*args, **kwargs):
-            # 从参数中提取对象
-            request = None
-            for arg in args:
-                if isinstance(arg, Request):
-                    request = arg
-                    break
-            if request is None:
-                for v in kwargs.values():
-                    if isinstance(v, Request):
-                        request = v
-                        break
-
-            # 从令牌获取当前角色与主体
-            # ⚠️ v3.0 起 JWT 的 `sub` 是 **user_id**（`_generate_token` 写 `str(user_id)`），
-            # 不是 username——故变量名为 subject 而非 username（L-04 修复）。
-            current_role = "user"
-            subject = "unknown"
-            if request is not None:
-                token = request.cookies.get(COOKIE_NAME)
-                if token:
-                    try:
-                        payload = jwt.decode(token, SECRET, algorithms=["HS256"])
-                        current_role = payload.get("role", "user")
-                        subject = payload.get("sub", "unknown")
-                    except JWTError as e:
-                        # 无效/过期 cookie 属预期，按匿名处理；不记录 token 本身
-                        logging.getLogger(__name__).debug("jwt cookie invalid, treated as anonymous: %s", e)
-
+            """同步端点：校验角色后调用原函数。"""
+            request = _extract_request(args, kwargs)
+            current_role, subject = _resolve_identity(request)
             if current_role != ADMIN_ROLE and current_role != role:
-                # L-04：审计需可读的 username，但 `sub` 是 user_id → 在拒绝路径上反查。
-                audit_user_id, audit_username = _resolve_audit_identity(subject)
-                write_audit(
-                    action="ACCESS_DENIED",
-                    resource=f"{request.method} {request.url.path}" if request else func.__name__,
-                    detail={
-                        "required_role": role,
-                        "actual_role": current_role,
-                        "username": audit_username,
-                    },
-                    # 显式传 user_id，使审计列与 detail 一致（不再依赖 ContextVar 是否存在）
-                    user_id=audit_user_id,
-                )
-                raise HTTPException(403, "权限不足")
-
+                return _deny_request(request, func, role, current_role, subject)
             return func(*args, **kwargs)
+
+        if inspect.iscoroutinefunction(func):
+            @wraps(func)
+            async def async_wrapper(*args, **kwargs):
+                """异步端点的角色校验包装：校验通过后 await 原函数。"""
+                request = _extract_request(args, kwargs)
+                current_role, subject = _resolve_identity(request)
+                if current_role != ADMIN_ROLE and current_role != role:
+                    return _deny_request(request, func, role, current_role, subject)
+                return await func(*args, **kwargs)
+
+            return async_wrapper
 
         return wrapper
 

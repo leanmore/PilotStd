@@ -29,6 +29,7 @@ from pilotstd.core.notification.security_notifier import client_ip, notify_crede
 from pilotstd.i18n import t
 from pilotstd.manager.facade import StandardManager
 
+from ..auth import require_role
 from ..manager import get_manager_dep
 from .notification_deps import _get_user_id
 
@@ -240,7 +241,8 @@ def get_notification_spec() -> dict:
 
 
 @router.put("/api/notification/quiet-hours", response_model=QuietHoursUpdateResponse)
-def update_quiet_hours(body: dict, mgr=Depends(get_manager_dep)):
+@require_role("admin")
+def update_quiet_hours(request: Request, body: dict, mgr=Depends(get_manager_dep)):
     """更新**全局**静音时段（服务端 `_suppression_queue` 判定所用）。
 
     背景：UI 的静音开关原先只写 `user_preferences`，服务端读 `config.json` 的

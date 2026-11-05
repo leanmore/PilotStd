@@ -3,6 +3,9 @@
     "title": "PilotStd"
   },
   "nav": {
+    "forbidden": "无权限访问",
+    "forbidden_desc": "当前账号没有访问该页面的权限。",
+    "back_home": "返回首页",
     "home": "首页",
     "task": "任务",
     "scan": "扫描",
@@ -478,7 +481,9 @@
   },
   "http": {
     "network_error": "网络连接异常",
-    "timeout": "请求超时"
+    "timeout": "请求超时",
+    "api_error": "请求失败：{message}",
+    "forbidden": "权限不足"
   },
   "legacy": {
     "redirecting": "正在跳转..."
@@ -601,6 +606,7 @@
     }
   },
   "settings": {
+    "admin_only": "仅管理员可修改系统设置；你可以在此调整主题与语言。",
     "storage": {
       "root_dir": "标准库根目录",
       "expire_folder": "过期文件夹名",

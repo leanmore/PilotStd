@@ -2,13 +2,14 @@
 import logging
 import os
 
-from fastapi import Depends
+from fastapi import Depends, Request
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
 from pydantic import BaseModel
 
 from pilotstd.core.path_guard import get_allowed_roots, validate_path_in_root
 
+from ..auth import require_role
 from ..manager import get_manager_dep
 from .models import ListFilesResponse
 
@@ -77,7 +78,8 @@ def list_files(path: str = "/standards", mgr=Depends(get_manager_dep)):
 
 
 @router.post("/api/clean-empty", response_model=CleanEmptyResponse)
-def clean_empty_dirs(path: str = "/standards", mgr=Depends(get_manager_dep)):
+@require_role("admin")
+def clean_empty_dirs(request: Request, path: str = "/standards", mgr=Depends(get_manager_dep)):
     """清除指定目录下的所有空文件夹。"""
     try:
         safe_path = _validate_path(path, mgr.cfg)

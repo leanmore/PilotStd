@@ -1,11 +1,12 @@
 # 容器//脚本—一键处理接口
 from typing import Any
 
-from fastapi import Depends
+from fastapi import Depends, Request
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
 from pydantic import BaseModel
 
+from ..auth import require_role
 from ..manager import get_manager_dep
 
 router = APIRouter(tags=["auto"])
@@ -20,7 +21,8 @@ class AutoRunResponse(BaseModel):
 
 
 @router.post("/api/auto", response_model=AutoRunResponse)
-def auto_run(mgr=Depends(get_manager_dep)):
+@require_role("admin")
+def auto_run(request: Request, mgr=Depends(get_manager_dep)):
     """一键处理：扫描 → 查询 → 下载 → 归档。"""
     try:
         results = mgr.auto_run()

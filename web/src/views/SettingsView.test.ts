@@ -26,6 +26,7 @@ vi.mock('@/api', () => ({
 
 // mock http 模块（熔断配置等）
 vi.mock('@/api/http', () => ({
+  getApiErrorMessage: vi.fn(() => 'mock error'),
   default: {
     get: vi.fn().mockResolvedValue({ data: { failure_threshold: 3, freeze_durations: [30, 120, 360, 720], reset_window_hours: 24 } }),
     put: vi.fn().mockResolvedValue({ data: { ok: true } }),
@@ -48,6 +49,7 @@ const routes = [{ path: '/settings', component: SettingsView }]
 function mountComponent(locale: 'zh-CN' | 'en' = 'zh-CN') {
   const pinia = createPinia()
   setActivePinia(pinia)
+  useAppStore().role = 'admin'
   const i18n = createI18n({ legacy: false, locale, messages: { 'zh-CN': zhCN, en } })
   const router = createRouter({ history: createMemoryHistory(), routes })
 
@@ -135,5 +137,23 @@ describe('SettingsView', () => {
     expect(english.find('h1').text()).toBe('Settings')
     expect(english.html()).toContain('Apply')
     expect(english.html()).toContain('OK')
+  })
+})
+
+describe('SettingsView 普通用户', () => {
+  it('不加载 admin API，只渲染外观设置', async () => {
+    vi.clearAllMocks()
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    useAppStore().role = 'user'
+    const i18n = createI18n({ legacy: false, locale: 'zh-CN', messages: { 'zh-CN': zhCN, en } })
+    const router = createRouter({ history: createMemoryHistory(), routes })
+    const wrapper = shallowMount(SettingsView, {
+      global: { plugins: [pinia, i18n, router, ConfirmationService, ToastService], stubs: { ConfirmDialog: true, Toast: true } },
+    })
+    await nextTick()
+    const api = await import('@/api')
+    expect(api.getSettings).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain(zhCN.settings.admin_only)
   })
 })

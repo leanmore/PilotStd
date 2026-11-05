@@ -149,6 +149,8 @@ export function setNetworkErrorNotifier(notifier: NetworkErrorNotifier): void {
 
 /** 判定是否为鉴权类 401（Token 缺失/失效/会话过期）；业务级 401（如"用户不存在"）返回 false，不触发全局登出 */
 function _isAuthExpired401(err: AxiosError): boolean {
+  // 先看状态码：403 的 `{"error":"..."}` 不是会话失效，绝不能触发全局登出
+  if (err.response?.status !== 401) return false
   const data = (err.response as { data?: unknown } | undefined)?.data
   if (data && typeof data === 'object') {
     const body = data as { error?: unknown; detail?: unknown }
@@ -160,6 +162,31 @@ function _isAuthExpired401(err: AxiosError): boolean {
     }
   }
   return false
+}
+
+/** 从后端错误体提取用户可读文案：message_key 优先走 i18n，其次 detail/error。 */
+function _apiMessage(data: unknown): string {
+  if (!data || typeof data !== 'object') return ''
+  const body = data as { message_key?: unknown; params?: unknown; detail?: unknown; error?: unknown }
+  if (typeof body.message_key === 'string' && body.message_key) {
+    try {
+      return i18n.global.t(body.message_key, (body.params as Record<string, unknown>) || {})
+    } catch {
+      return body.message_key
+    }
+  }
+  if (typeof body.detail === 'string' && body.detail) return body.detail
+  if (typeof body.error === 'string' && body.error) return body.error
+  return ''
+}
+
+/** 供业务层取错误文案（优先拦截器归一化结果，其次兜底通用文案）。 */
+export function getApiErrorMessage(err: unknown): string {
+  const anyErr = err as { userMessage?: string; response?: { status?: number } } | undefined
+  if (anyErr?.userMessage) return anyErr.userMessage
+  const status = anyErr?.response?.status
+  if (status === 403) return i18n.global.t('http.forbidden')
+  return i18n.global.t('http.api_error', { message: i18n.global.t('http.network_error') })
 }
 // [FIX-401] 结束
 
@@ -185,6 +212,11 @@ http.interceptors.response.use(
       } else if (code === 'ECONNABORTED' || code === 'ETIMEDOUT' || (err.message || '').toLowerCase().includes('timeout')) {
         networkErrorNotifier?.(i18n.global.t('http.timeout'))
       }
+    }
+    // 统一错误契约：403/400/422/500 都把可读文案挂到 err.userMessage，供业务层直接展示
+    const message = _apiMessage(err.response?.data)
+    if (message) {
+      ;(err as unknown as { userMessage?: string }).userMessage = message
     }
     // 仅鉴权类 401 触发全局登出；业务级 401（skipGlobalAuthRedirect 或非鉴权消息）由调用方自行降级
     if (_isAuthExpired401(err) && !err.config?.skipGlobalAuthRedirect && unauthorizedHandler) {

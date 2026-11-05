@@ -46,6 +46,7 @@
 | G-048 | 架构文档模块计数一致性 | `docs/architecture/modules/core.md` 的「子模块数」必须等于 `pilotstd/core/` 递归全部 `.py` 数（含 `__init__.py`，不含 `__pycache__`） | 文档数字与实际文件数不符 | `scripts/check_g_048_core_module_count.py` | ✅ 已部署 |
 | G-049 | 通知模块防膨胀门禁 | `pilotstd/core/notification/`：`manager.py` **≤340**、`aggregate_buffer.py` **≤400**、`_builders_batch.py` **≤380**、`callback_service.py` / `_builders_system.py` / `_manager_ops.py` **≤350**、`renderer.py` **≤300**（有效代码行，口径与 G-010 一致；静态规格数据表 `*_data.py` 不纳入） | 任一文件有效行超上限（输出文件/当前值/上限） | `scripts/check_g_049_manager_size.py` | ✅ 已部署（A-2，2026-10-18 扩展） |
 | G-050 | 静默吞错棘轮 | 三类失败不可见：`except: pass`、`except → return 空/False/None`、`except` 内 `logger.debug`（`pilotstd/`+`docker/`，排除 templates） | 任一文件任一类别计数 > 基线 | `scripts/check_g_050_silent_errors.py` | ✅ 已部署（v2.07；基线 `scripts/silent_errors_baseline.json`） |
+| G-051 | API 权限矩阵 | 写操作路由必须有显式 `@require_role("admin")`（或用户白名单/公开白名单），前端 `http.*` 调用必须能匹配到后端路由 | 任一缺口（`--check`） | `scripts/audit_api_matrix.py` | ✅ 已部署（2026-11-05） |
 | repo-compliance | 入仓合规检查 | 五条入仓标准 | 违规 | `.github/scripts/check-repo-compliance.sh` | ✅ 已部署 |
 
 ---

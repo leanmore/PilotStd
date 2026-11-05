@@ -2,11 +2,12 @@
 import logging
 from typing import Any
 
-from fastapi import Depends
+from fastapi import Depends, Request
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
 from pydantic import BaseModel
 
+from ..auth import require_role
 from ..manager import get_manager_dep
 
 logger = logging.getLogger(__name__)
@@ -45,7 +46,8 @@ class AnnounceTaskResultsResponse(BaseModel):
 
 
 @router.post("/api/announcements/fetch", response_model=AnnounceFetchTaskResponse)
-def trigger_fetch(body: dict | None = None, mgr=Depends(get_manager_dep)):
+@require_role("admin")
+def trigger_fetch(request: Request, body: dict | None = None, mgr=Depends(get_manager_dep)):
     """触发异步公告抓取。可选 adapter_name（不传则抓取全部）。"""
     body = body or {}
     adapter_name = body.get("adapter_name", "")

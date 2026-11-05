@@ -6,11 +6,12 @@
 # ///队列→将指定文件加入时效性检查队列
 import logging
 
-from fastapi import Depends, Query
+from fastapi import Depends, Query, Request
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
 from pydantic import BaseModel, Field, validator
 
+from ..auth import require_role
 from ..manager import get_manager_dep
 
 logger = logging.getLogger(__name__)
@@ -148,7 +149,8 @@ def _live_validity_next_run() -> str | None:
 
 
 @router.put("/api/validity/config", response_model=ValidityConfigUpdateResponse)
-def update_validity_config(body: dict, mgr=Depends(get_manager_dep)):
+@require_role("admin")
+def update_validity_config(request: Request, body: dict, mgr=Depends(get_manager_dep)):
     """更新时效性检查配置。
 
     保存后立即调用调度更新函数更新定时触发器。
@@ -250,7 +252,8 @@ def update_validity_config(body: dict, mgr=Depends(get_manager_dep)):
 
 
 @router.post("/api/validity/run", response_model=ValidityRunResponse)
-def run_validity_check(mgr=Depends(get_manager_dep)):
+@require_role("admin")
+def run_validity_check(request: Request, mgr=Depends(get_manager_dep)):
     """立即触发时效性检查——调用底层 run_validity_check()。"""
     from pilotstd.core.validity_checker import run_validity_check as do_check
 
@@ -284,7 +287,8 @@ def get_validity_history(
 
 
 @router.post("/api/validity/enqueue", response_model=ValidityEnqueueResponse)
-def enqueue_validity_check(body: dict, mgr=Depends(get_manager_dep)):
+@require_role("admin")
+def enqueue_validity_check(request: Request, body: dict, mgr=Depends(get_manager_dep)):
     """将指定文件路径加入时效性检查队列。"""
     file_paths: list[str] = body.get("file_paths", []) if isinstance(body.get("file_paths"), list) else []
     if not file_paths:

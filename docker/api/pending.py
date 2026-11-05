@@ -1,7 +1,7 @@
 # 容器//脚本—待确认标准重新查询接口
 from typing import Any
 
-from fastapi import Body, Depends
+from fastapi import Body, Depends, Request
 from fastapi.routing import APIRouter
 from pydantic import BaseModel
 
@@ -9,6 +9,7 @@ from pilotstd.core.db.database import Database
 from pilotstd.core.name_resolution import fetch_resolved_names, resolve_name
 from pilotstd.core.status import status_key
 
+from ..auth import require_role
 from ..manager import get_manager_dep
 
 # 复用收藏模块已定义的"请求级 Database 依赖"（请求结束自动关闭连接），避免在多个路由模块
@@ -71,7 +72,8 @@ def get_pending(db: Database = Depends(get_db), mgr=Depends(get_manager_dep)):
 
 
 @router.post("/api/pending/requery", response_model=PendingRequeryResponse)
-def requery_pending(numbers: list[str] = Body(), site: str = "", mgr=Depends(get_manager_dep)):
+@require_role("admin")
+def requery_pending(request: Request, numbers: list[str] = Body(), site: str = "", mgr=Depends(get_manager_dep)):
     """对待确认标准进行重新查询。指定 site 时置顶该站点，否则引擎自动路由。"""
     results, _ = mgr.query_by_numbers(numbers, preferred_site=site)
 

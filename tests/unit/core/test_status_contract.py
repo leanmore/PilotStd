@@ -172,9 +172,10 @@ class _StubRequeryManager:
 
 def test_pending_requery_exposes_status_key():
     from docker.api.pending import requery_pending
+    from tests._auth_helpers import admin_request
 
     mgr = _StubRequeryManager()
-    resp = requery_pending(numbers=["GB/T 1-2020"], site="", mgr=mgr)
+    resp = requery_pending(admin_request(), numbers=["GB/T 1-2020"], site="", mgr=mgr)
 
     row = resp["results"][0]
     assert row["status"] == Status.ACTIVE.value

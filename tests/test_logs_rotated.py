@@ -1,6 +1,8 @@
 # tests/test_logs_rotated.py — 轮转日志访问端点测试
 """覆盖列表、分页读取、grep+context、非法文件名、未鉴权、空文件/不存在文件。"""
 
+import json
+
 import pytest
 from fastapi import HTTPException
 from starlette.requests import Request
@@ -95,8 +97,10 @@ class TestSecurity:
         assert e.value.status_code == 400
 
     def test_unauthorized_403(self, monkeypatch):
-        # 无 cookie → require_role 判 user → 403
+        # 无 cookie → require_role 判 user → 403（统一错误契约）
         req = _make_request(None)
-        with pytest.raises(HTTPException) as e:
-            logs_mod.list_rotated_logs(req)
-        assert e.value.status_code == 403
+        resp = logs_mod.list_rotated_logs(req)
+        assert resp.status_code == 403
+        body = json.loads(resp.body)
+        assert body["code"] == "forbidden"
+        assert body["message_key"] == "auth.api.forbidden"

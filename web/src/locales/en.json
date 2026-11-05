@@ -3,6 +3,9 @@
     "title": "PilotStd"
   },
   "nav": {
+    "forbidden": "Access denied",
+    "forbidden_desc": "Your account does not have permission to view this page.",
+    "back_home": "Back to home",
     "home": "Home",
     "task": "Task",
     "scan": "Scan",
@@ -478,7 +481,9 @@
   },
   "http": {
     "network_error": "Network connection error",
-    "timeout": "Request timed out"
+    "timeout": "Request timed out",
+    "api_error": "Request failed: {message}",
+    "forbidden": "Permission denied"
   },
   "legacy": {
     "redirecting": "Redirecting..."
@@ -601,6 +606,7 @@
     }
   },
   "settings": {
+    "admin_only": "Only administrators can change system settings; you can still adjust theme and language here.",
     "storage": {
       "root_dir": "Library Root Dir",
       "expire_folder": "Expire Folder Name",

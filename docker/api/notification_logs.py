@@ -267,6 +267,7 @@ def get_unread_count(request: Request, nmgr=Depends(_get_notification_mgr)):
 
 
 @router.delete("/api/notification/logs", response_model=DeleteLogsResponse)
+@require_role("admin")
 def delete_notification_logs(
     request: Request,
     days: int = Query(30, ge=1, le=365),

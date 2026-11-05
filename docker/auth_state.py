@@ -68,6 +68,9 @@ API_TOKEN_HEADER = "X-API-KEY"  # 静态令牌 Header（参考 MoviePilot）
 AUTH_WHITELIST: list[tuple[str, set[str]]] = [
     ("/api/login", set()),
     ("/api/logout", set()),
+    # 自助注册：端点内部由 ENABLE_REGISTRATION 开关 + 每 IP 5 次/小时限流 + 审计控制
+    # （docker/api/auth_register.py），因此必须免鉴权，否则开关打开也会被中间件 401。
+    ("/api/auth/register", set()),
     ("/api/health", set()),
     ("/api/system/version", {"GET"}),
     # `/api/logs` 原为免鉴权放行（历史遗留）：它与其它端点一样只靠 require_role 取角色，

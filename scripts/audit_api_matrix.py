@@ -417,7 +417,8 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="API × 前端 × 权限矩阵审计")
     parser.add_argument("--md")
     parser.add_argument("--json", dest="json_path")
-    parser.add_argument("--strict", action="store_true")
+    parser.add_argument("--strict", action="store_true", help="存在死调用时退出 1")
+    parser.add_argument("--check", action="store_true", help="门禁模式：写端点缺 admin 或前端死调用即退出 1")
     args = parser.parse_args(argv)
 
     routes = parse_backend(_public_prefixes())
@@ -441,6 +442,11 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  WRITE_NO_ADMIN {item['path']} {item['methods']} {item['file']}:{item['func']}")
     if args.strict and report["unmatched"]:
         return 1
+    if args.check:
+        problems = report["unmatched"] + report["write_without_admin"]
+        if problems:
+            print(f"CHECK FAILED: {len(problems)} problems (unmatched/write_without_admin)")
+            return 1
     return 0
 
 

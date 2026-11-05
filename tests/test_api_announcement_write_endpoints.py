@@ -24,6 +24,7 @@ from fastapi.testclient import TestClient
 
 from docker.api import announce_detail
 from docker.manager import get_manager_dep
+from tests._auth_helpers import admin_cookies
 
 
 @pytest.fixture()
@@ -47,7 +48,7 @@ def client(mgr: MagicMock) -> TestClient:
     app = FastAPI()
     app.include_router(announce_detail.router)
     app.dependency_overrides[get_manager_dep] = lambda: mgr
-    return TestClient(app)
+    return TestClient(app, cookies=admin_cookies())
 
 
 def _insert_announcement(db, no: str = "ANNOUNCE-2026-001", attachment: str = "") -> int:

@@ -36,7 +36,7 @@ vi.mock('axios', () => {
   }
 })
 
-import { setNetworkErrorNotifier, setUnauthorizedHandler } from '@/api/http'
+import { getApiErrorMessage, setNetworkErrorNotifier, setUnauthorizedHandler } from '@/api/http'
 
 describe('http 401 拦截器与 setUnauthorizedHandler', () => {
   beforeEach(() => {
@@ -217,5 +217,37 @@ describe('http 请求拦截器：Cookie Token → Authorization 注入（FIX-401
       if (desc) Object.defineProperty(document, 'cookie', desc)
       else delete (document as any).cookie
     }
+  })
+})
+
+describe('http 403 与统一错误契约', () => {
+  beforeEach(() => {
+    setUnauthorizedHandler(() => {})
+    vi.clearAllMocks()
+  })
+
+  it('403 带 error 字段不得触发全局登出（状态码优先）', async () => {
+    const handler = vi.fn()
+    setUnauthorizedHandler(handler)
+    const rejected = responseRejectedHandlers[0]
+    await expect(
+      rejected({ response: { status: 403, data: { error: '权限不足' } }, config: {} }),
+    ).rejects.toBeTruthy()
+    expect(handler).not.toHaveBeenCalled()
+  })
+
+  it('message_key 优先映射 i18n，并写入 userMessage', async () => {
+    const rejected = responseRejectedHandlers[0]
+    const err: any = { response: { status: 403, data: { code: 'forbidden', message_key: 'http.forbidden' } }, config: {} }
+    await expect(rejected(err)).rejects.toBeTruthy()
+    expect(err.userMessage).toBe('权限不足')
+    expect(getApiErrorMessage(err)).toBe('权限不足')
+  })
+
+  it('无 message_key 时回退 detail', async () => {
+    const rejected = responseRejectedHandlers[0]
+    const err: any = { response: { status: 400, data: { detail: '密码长度不能少于 8 位' } }, config: {} }
+    await expect(rejected(err)).rejects.toBeTruthy()
+    expect(getApiErrorMessage(err)).toBe('密码长度不能少于 8 位')
   })
 })

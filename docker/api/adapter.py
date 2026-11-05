@@ -8,11 +8,12 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import Depends
+from fastapi import Depends, Request
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
 from pydantic import BaseModel
 
+from ..auth import require_role
 from ..manager import get_manager_dep
 
 logger = logging.getLogger(__name__)
@@ -191,7 +192,8 @@ def get_adapter_config(mgr=Depends(get_manager_dep)):
 
 
 @router.put("/api/adapter/config", response_model=AdapterConfigUpdateResponse)
-def update_adapter_config(body: dict, mgr=Depends(get_manager_dep)):
+@require_role("admin")
+def update_adapter_config(request: Request, body: dict, mgr=Depends(get_manager_dep)):
     """更新熔断配置，立即生效（热加载）。"""
     errors = []
     # 校验_
@@ -244,7 +246,8 @@ def update_adapter_config(body: dict, mgr=Depends(get_manager_dep)):
 
 
 @router.post("/api/adapter/test", response_model=AdapterTestResponse)
-def test_adapter(name: str, mgr=Depends(get_manager_dep)):
+@require_role("admin")
+def test_adapter(request: Request, name: str, mgr=Depends(get_manager_dep)):
     """测试单个适配器的连通性。"""
     if not hasattr(mgr, "adapter_manager"):
         return JSONResponse({"ok": False, "message": "适配器管理器未初始化"}, status_code=503)
