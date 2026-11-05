@@ -5,7 +5,7 @@
 | 模块路径 | `pilotstd/core/` |
 | G-031 映射 | `pilotstd/core/`（2026-09-25 落地：`DOC_SYNC_MAP` 已含该条，改任何 core 文件都会要求同步本文件） |
 | 核心类 | `Database` / `ConfigManager` / `CacheManager` / `NotificationManager` |
-| 子模块数 | 126 个 `.py`（新增 `db/_migrate_v72_announcement_dedupe.py`（公告记录按归一化标准号去重 + `standard_count` 重算，2026-11-03）；上一轮新增 `db/_migrate_v69_reheal_notification_credentials.py`（通知渠道凭据自愈迁移，体检 **D-5**，2026-10-17）；再上一轮新增 `notification/wechat_crypto.py`（企业微信回调加解密，**T-43**）；（**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-11-03**；顶层 = 3 个包 config / db / notification + 23 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
+| 子模块数 | 127 个 `.py`（新增 `archive_reconcile.py`（启动归档对账，C-2，2026-11-05）；上一轮新增 `db/_migrate_v72_announcement_dedupe.py`（公告记录按归一化标准号去重 + `standard_count` 重算，2026-11-03）；上一轮新增 `db/_migrate_v69_reheal_notification_credentials.py`（通知渠道凭据自愈迁移，体检 **D-5**，2026-10-17）；再上一轮新增 `notification/wechat_crypto.py`（企业微信回调加解密，**T-43**）；（**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-11-03**；顶层 = 3 个包 config / db / notification + 23 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
 | Schema 版本 | `CURRENT_SCHEMA_VERSION = 72`（`db/_constants.py`；v72＝公告记录按归一化标准号去重 + `standard_count` 重算，2026-11-03；v69＝通知渠道凭据自愈，2026-10-17 体检 D-5） |
 | 状态 | 活跃 |
 
@@ -557,3 +557,7 @@ pilotstd/core/
 > v37 前按“无 user_id”重建 `notification_policy`（v35 已带该列且 UNIQUE 引用，SQLite 不能直接 DROP），v37 后补
 > 唯一索引 `uq_policy_user_channel`。目的：让 v23/v37 走正常路径，不再靠 `except` 吞 `OperationalError`；
 > 已执行迁移源码保持不可变（P-106）。契约：`tests/test_migrations_blank_db.py`。
+
+> **2026-11-05 启动归档对账（archive_reconcile）**：应用启动时扫描 `file_index`，路径不存在的文件
+> 到“过期作废”目录按同名回填；仍找不到记 WARNING；过期目录中未被 `file_index` 引用的文件移入
+> `<root>/.recycle/expired_orphans/<时间戳>/`。用于兜底“搬运完成、DB 未提交”的强杀窗口（C-2）。

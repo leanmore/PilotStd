@@ -55,6 +55,10 @@ def test_user_cannot_call_global_write(client):
     client.cookies.set(COOKIE_NAME, _with_session(client, "user"))
     r = client.post("/api/validity/run", headers={"X-CSRF-Token": "csrf-test"})
     assert r.status_code == 403
+    body = r.json()
+    assert body["code"] == "forbidden"
+    assert body["message_key"] == "auth.api.forbidden"
+    assert "detail" in body
 
 
 def test_admin_can_call_global_write(client):

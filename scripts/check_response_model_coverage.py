@@ -14,13 +14,16 @@ ROOT = Path(__file__).resolve().parents[1]
 SCAN_DIRS = [ROOT / "docker" / "api", ROOT / "docker"]
 METHODS = {"get", "post", "put", "delete", "patch"}
 
-# 这些端点成功响应是 Response/FileResponse/StreamingResponse，没有 JSON 模型可校验
+# 这些端点成功响应是 Response/FileResponse/StreamingResponse，没有 JSON 模型可校验。
+# 维护规则：新增流式/文件端点（如备份下载）时必须同步加入本清单，否则 G-0 契约检查会误报。
+# 扫描方式为 AST 静态分析，不导入 FastAPI 运行依赖。
 ALLOWLIST = {
     "/api/notification/callback/wechat",
     "/api/notification/callback/{channel}",
     "/api/export/standards",
     "/api/admin/logs/app",
     "/api/backgrounds/{filename}",
+    "/api/backup/download/{name}",
 }
 
 

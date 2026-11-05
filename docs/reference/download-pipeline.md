@@ -411,3 +411,6 @@ GB/T 标准被误判成非国标（已由 `test_slash_codes_are_routable` 钉住
 > 原子替换，写一半失败会清理临时文件，不再留下残文件。采标判定（`query/search_strategy`）
 > 由裸子串改为**词边界正则**，`MODBUS`/“采用…方法”不再被误判为采标而永久跳过下载。
 > 契约：`tests/test_download_integrity.py`、`tests/test_adoption_regex.py`。
+
+> **2026-11-05 启动清理 .part**：`DownloadEngine.__init__` 调用 `cleanup_stale_parts()`，删除下载目录中
+> mtime 超过 1 小时的 `*.part`（1 小时内可能仍在下载，保留），避免中断残留在重启后长期堆积（C-3）。

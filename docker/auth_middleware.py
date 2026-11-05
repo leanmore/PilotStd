@@ -61,6 +61,14 @@ def _user_may_write(path: str) -> bool:
     return path in _USER_WRITE_ALLOWED_EXACT or path.startswith(_USER_WRITE_ALLOWED_PREFIX)
 
 
+def _error_response(code: str, message_key: str, status: int) -> JSONResponse:
+    """统一错误契约：与 @require_role 返回的 {code, message_key, detail} 完全一致。"""
+    return JSONResponse(
+        {"code": code, "message_key": message_key, "detail": t(message_key)},
+        status_code=status,
+    )
+
+
 class AuthMiddleware(BaseHTTPMiddleware):
     """鉴权中间件：白名单放行 + Origin/Referer 校验 + Cookie JWT 校验 + API Key 校验 + CSRF 检查。"""
 
@@ -83,7 +91,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             if not _api_rate_limit[client_ip]:
                 del _api_rate_limit[client_ip]
             elif len(_api_rate_limit[client_ip]) >= API_RATE_LIMIT:
-                return JSONResponse({"error": t("auth.api.rate_limited")}, 429)
+                return _error_response("rate_limited", "auth.api.rate_limited", 429)
             _api_rate_limit[client_ip].append(now)
         return None
 
@@ -169,16 +177,16 @@ class AuthMiddleware(BaseHTTPMiddleware):
             if self._authenticate_api_key(request):
                 # API Key 强只读：非 GET/HEAD/OPTIONS 一律 403（D5-2）
                 if request.method in _WRITE_METHODS and path not in _API_KEY_ALLOWED_POST:
-                    return JSONResponse({"error": t("auth.api.forbidden")}, 403)
+                    return _error_response("forbidden", "auth.api.forbidden", 403)
                 return await call_next(request)
         except HTTPException:
-            return JSONResponse({"error": t("auth.api.unauthorized")}, 401)
+            return _error_response("unauthorized", "auth.api.unauthorized", 401)
 
         # 令牌+跨站伪造防护校验→注入
         try:
             payload = self._authenticate_session(request)
         except HTTPException as e:
-            return JSONResponse({"error": t("auth.api.unauthorized")}, e.status_code)
+            return _error_response("unauthorized", "auth.api.unauthorized", e.status_code)
 
         # 版本三0:注入_到请求上下文（/防止异步泄漏）
         from pilotstd.core.config import get_db_path
@@ -209,7 +217,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 )
             except Exception as exc:  # noqa: BLE001 — 审计失败不改变拒绝结果，但必须留痕
                 logger.warning("audit write failed on write-denied: %s", exc)
-            return JSONResponse({"error": t("auth.api.forbidden")}, 403)
+            return _error_response("forbidden", "auth.api.forbidden", 403)
 
         if user_id is not None:
             token_ctx = set_current_user_id(user_id)

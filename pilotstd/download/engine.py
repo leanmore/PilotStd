@@ -21,6 +21,7 @@ from ..core.path_guard import validate_path_in_root
 from ..core.std_utils import is_gb_code
 from .adapters.base import BaseDownloadAdapter
 from .models import ADOPTED_SKIP_MESSAGE, BatchDownloadStats, DownloadStatus, DownloadTask
+from .part_cleanup import cleanup_stale_parts
 from .session import SessionManager
 
 logger = logging.getLogger(__name__)
@@ -64,6 +65,14 @@ class DownloadEngine:
         self._max_retries = max_retries  # 网络失败最大重试次数
 
         ensure_dir(self._save_root)
+        # 启动清理：删除超过 1 小时的 .part（下载中断残留；1 小时内可能仍在下载）
+        try:
+            removed = cleanup_stale_parts(self._save_root)
+            if removed:
+                # i18n-allow: 内部日志/参数
+                logger.warning("启动清理残留 .part: %d 个", removed)
+        except Exception:
+            logger.exception("启动清理 .part 失败")
 
     # 公共接口
 
@@ -506,6 +515,7 @@ class DownloadEngine:
                 raise
 
             task.saved_path = final_path
+            # i18n-allow: 内部日志
             logger.info(f"保存成功: {final_path}")
             return True
         except OSError as e:

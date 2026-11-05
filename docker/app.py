@@ -293,6 +293,21 @@ async def lifespan(app: FastAPI):
 
     _cron_mgr = _get_mgr()
 
+    # 启动对账：修复“文件已移动、file_index 未更新”的悬空路径，清理过期目录孤儿
+    # （kill -9 演练实测存在 1 条悬空 + 1 个孤儿；失败不阻断启动）
+    try:
+        from pilotstd.core.archive_reconcile import reconcile_archive
+
+        _reconcile_stats = reconcile_archive(
+            _cron_mgr.db,
+            _cron_mgr.cfg.get("storage.root_dir"),
+            _cron_mgr.cfg.get("storage.expire_folder", "过期作废"),
+        )
+        # i18n-allow: 内部日志/参数
+        logger.info("归档对账完成: %s", _reconcile_stats)
+    except Exception:
+        logger.exception("归档对账失败（不阻断启动）")
+
     # v49: 将旧 user_settings JSON 数据自动迁移到 user_preferences KV 表
     _migrate_user_settings_to_preferences(_cron_mgr.db)
 
@@ -327,6 +342,7 @@ app = FastAPI(title="PilotStd API", version=_app_version, lifespan=lifespan)
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     """全局异常处理：捕获所有未处理异常，写日志 + 返回 500。"""
+    # i18n-allow: 内部日志/占位提示
     logger.exception("未处理异常: %s %s", request.method, request.url.path)
     return JSONResponse({"error": "服务器内部错误", "detail": str(exc)}, status_code=500)
 
@@ -421,4 +437,5 @@ async def spa_fallback(full_path: str):
         return FileResponse(file_path)
 
     index = os.path.join(DIST, "index.html")
+    # i18n-allow: 内部日志/占位提示
     return FileResponse(index) if os.path.exists(index) else {"message": "前端未构建"}

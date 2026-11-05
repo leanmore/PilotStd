@@ -203,7 +203,7 @@ class TestBackupAuthorizationGuards(unittest.TestCase):
                 any("require_role" in d for d in decs),
                 f"路由函数 {node.name} 缺 @require_role('admin')；装饰器={decs}",
             )
-        self.assertEqual(routed, 2, f"backup.py 应有 2 个路由端点，实际 {routed}")
+        self.assertEqual(routed, 3, f"backup.py 应有 3 个路由端点，实际 {routed}")
 
     def test_g043_scan_scope_includes_backup_and_gate_passes(self):
         """事实登记 + 门禁守约：`docker/api/backup.py` **在** G-043 扫描面内，且门禁通过。

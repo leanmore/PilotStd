@@ -35,3 +35,14 @@ def admin_request(method: str = "PUT", path: str = "/api/test") -> Request:
             "headers": [(b"cookie", f"{COOKIE_NAME}={token}".encode())],
         }
     )
+
+
+def user_cookies() -> dict[str, str]:
+    """普通用户（role=user）cookie，用于验证 admin-only 端点拒绝。"""
+    payload = {
+        "sub": "2",
+        "role": "user",
+        "username": "test_user",
+        "exp": datetime.now(timezone.utc) + timedelta(hours=1),
+    }
+    return {COOKIE_NAME: jwt.encode(payload, SECRET, algorithm="HS256")}

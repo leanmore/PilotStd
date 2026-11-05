@@ -89,7 +89,9 @@ class TestAuthModule(unittest.TestCase):
         """未登录访问受保护端点返回 401（统一错误消息）"""
         r = self.client.get("/api/protected")
         self.assertEqual(r.status_code, 401)
-        self.assertIn("认证失败", r.json()["error"])
+        body = r.json()
+        self.assertEqual(body["code"], "unauthorized")
+        self.assertIn("认证失败", body["detail"])
 
     def test_login_wrong_password_returns_401(self):
         r = self.client.post("/api/login", data={"username": "superadmin", "password": "wrong"})
@@ -114,7 +116,9 @@ class TestAuthModule(unittest.TestCase):
         """无效 token 返回 401（统一错误消息）"""
         r = self.client.get("/api/protected", cookies={COOKIE_NAME: "invalid.token.here"})
         self.assertEqual(r.status_code, 401)
-        self.assertIn("认证失败", r.json()["error"])
+        body = r.json()
+        self.assertEqual(body["code"], "unauthorized")
+        self.assertIn("认证失败", body["detail"])
 
     def test_logout_clears_cookie(self):
         """登出清除 Cookie（logout 在白名单中，无需 CSRF）。"""

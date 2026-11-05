@@ -738,6 +738,7 @@ B1（声明类 vs 实现类）已覆盖同一语义、且每次 CI 都在跑；�
 
 
 > **2026-11-02 契约门禁**：CI 新增 check_response_model_coverage.py（全部 /api 路由必须声明 response_model，5 个流式/文件端点豁免）。
+> **2026-11-05 增补**：`GET /api/backup/download/{name}` 为 FileResponse 流式端点，加入豁免清单（第 6 个）。
 
 
 > **2026-11-02 修正**：response_model 覆盖检查改为 AST 静态扫描，避免 repo-compliance 作业未装运行依赖导致误红。

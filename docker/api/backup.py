@@ -3,8 +3,8 @@ import logging
 import os
 from datetime import datetime
 
-from fastapi import Depends, Request
-from fastapi.responses import JSONResponse
+from fastapi import Depends, HTTPException, Request
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.routing import APIRouter
 from pydantic import BaseModel
 
@@ -137,3 +137,29 @@ def create_backup(request: Request, mgr=Depends(get_manager_dep)):
             user_id=actor_id,
         )
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+@router.get("/api/backup/download/{name}")
+@require_role("admin")
+def download_backup(request: Request, name: str, mgr=Depends(get_manager_dep)):
+    """下载备份文件（**仅管理员**）。
+
+    安全边界：`name` 必须是单层文件名（禁止 `..`、`/`、`\\`），且 realpath 必须落在
+    `backups/` 目录内，防止路径穿透读取任意文件（2026-11-05 C-4）。
+    """
+    backup_dir = os.path.realpath(_get_backup_dir(mgr))
+    if (
+        not name
+        or name in {".", ".."}
+        or "/" in name
+        or "\\" in name
+        or os.path.basename(name) != name
+        or not name.lower().endswith((".bak", ".db"))
+    ):
+        # i18n-allow: 内部日志/参数
+        raise HTTPException(400, "非法备份文件名")
+    target = os.path.realpath(os.path.join(backup_dir, name))
+    if not target.startswith(backup_dir + os.sep) or not os.path.isfile(target):
+        # i18n-allow: 内部日志/参数
+        raise HTTPException(404, "备份文件不存在")
+    return FileResponse(target, filename=name, media_type="application/octet-stream")
+
