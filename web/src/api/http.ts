@@ -104,6 +104,8 @@ function getSessionToken(): string {
 
 // 请求拦截器：每次写请求实时读取最新 CSRF Token + Cookie Token 注入 Authorization 头 + 注册 AbortController 到对应池
 http.interceptors.request.use(config => {
+  // 记录请求发出时间：登录/登出后用于识别“旧请求的 401”，避免覆盖重新登录
+  ;(config as unknown as { __issuedAt?: number }).__issuedAt = Date.now()
   const method = (config.method || '').toLowerCase()
   if (['post', 'put', 'patch', 'delete'].includes(method)) {
     const csrfToken = getCsrfToken()
@@ -133,6 +135,15 @@ http.interceptors.request.use(config => {
 
 // 401 处理器（由 bootstrap 注册，避免 http.ts 静态依赖 stores/app 与 router 形成循环依赖）
 type UnauthorizedHandler = () => void | Promise<void>
+
+// 登录/登出时间戳：早于它发出的请求，即使返回 401 也不得再触发全局登出（避免覆盖刚完成的重新登录）
+let lastAuthAt = 0
+
+/** 登录成功/登出时调用：让旧的在途请求失效，不再触发全局 401 跳转。 */
+export function notifyAuthChanged(): void {
+  lastAuthAt = Date.now()
+}
+
 let unauthorizedHandler: UnauthorizedHandler | null = null
 
 export function setUnauthorizedHandler(handler: UnauthorizedHandler): void {
@@ -218,8 +229,14 @@ http.interceptors.response.use(
     if (message) {
       ;(err as unknown as { userMessage?: string }).userMessage = message
     }
-    // 仅鉴权类 401 触发全局登出；业务级 401（skipGlobalAuthRedirect 或非鉴权消息）由调用方自行降级
-    if (_isAuthExpired401(err) && !err.config?.skipGlobalAuthRedirect && unauthorizedHandler) {
+    // 仅鉴权类 401 触发全局登出；登录/身份接口与“登录前发出的旧请求”必须豁免，
+    // 否则重新登录瞬间的并发 401 会再次把用户踢回 /login（2026-11-05 E2E 实测）。
+    const cfgUrl = String(err.config?.url || "")
+    const isAuthEndpoint = /\/auth\/me|\/login\//.test(cfgUrl) || cfgUrl.endsWith("/login")
+    const issuedAt = Number((err.config as unknown as { __issuedAt?: number })?.__issuedAt || 0)
+    const staleRequest = issuedAt > 0 && issuedAt < lastAuthAt
+    if (_isAuthExpired401(err) && !err.config?.skipGlobalAuthRedirect && unauthorizedHandler
+        && !isAuthEndpoint && !staleRequest) {
       await unauthorizedHandler()
     }
     // [FIX-401] 结束

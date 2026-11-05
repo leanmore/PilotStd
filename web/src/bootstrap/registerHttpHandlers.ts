@@ -8,6 +8,8 @@ type ToastLike = { add(message: { severity: string; summary: string; life: numbe
 
 export function registerHttpHandlers(app: App): void {
   setUnauthorizedHandler(() => {
+    // 已在登录页时不要重复 push（会打断正在进行的重新登录）
+    if (router.currentRoute.value.path === '/login') return
     const appStore = useAppStore()
     appStore.clearUser()
     router.push('/login')

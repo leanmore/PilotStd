@@ -241,7 +241,10 @@ class TestPendingService(unittest.TestCase):
                 standard_number TEXT NOT NULL, source_site TEXT NOT NULL,
                 result_json TEXT NOT NULL, cached_at TEXT,
                 source TEXT NOT NULL DEFAULT 'network',
-                status_history TEXT NOT NULL DEFAULT '')
+                status_history TEXT NOT NULL DEFAULT '',
+                source_version TEXT DEFAULT 'initial',
+                data_state TEXT DEFAULT 'fresh',
+                last_accessed_at TEXT)
         """)
         self.file_index = FileIndexRepository(shared_db)
         self.svc = PendingService(shared_db, self.file_index)

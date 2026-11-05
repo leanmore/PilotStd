@@ -552,3 +552,8 @@ pilotstd/core/
 > **2026-11-04 safe_move 权限修复**：`chmod(src, S_IWRITE)` 在 POSIX 上会清掉读位（0o200），
 > 随后 `copy2` 读源文件触发 PermissionError，Linux 容器搬“过期作废”因此必然失败；
 > 改为 `st_mode | S_IWRITE | S_IREAD` 保留读位。契约：`tests/test_validity_move_closure.py`。
+
+> **2026-11-05 迁移前引导（database.py）**：空白库在 v23 前预建 `standard_info_cache`（v10 形态，v23 再补三列），
+> v37 前按“无 user_id”重建 `notification_policy`（v35 已带该列且 UNIQUE 引用，SQLite 不能直接 DROP），v37 后补
+> 唯一索引 `uq_policy_user_channel`。目的：让 v23/v37 走正常路径，不再靠 `except` 吞 `OperationalError`；
+> 已执行迁移源码保持不可变（P-106）。契约：`tests/test_migrations_blank_db.py`。

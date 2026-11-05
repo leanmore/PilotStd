@@ -139,7 +139,12 @@ export async function prepareRoute(meta: Record<string, unknown>, store: {
   loadPreferences: () => Promise<void>
 }): Promise<boolean> {
   if (!store.username) {
-    try { await store.loadPreferences() } catch { /* 保持默认角色 */ }
+    try { await store.loadPreferences() } catch { /* 401 等由下方兜底 */ }
+  }
+  // 身份加载失败（401/网络）且目标页需要 admin：抛给 beforeEach 统一回登录页，
+  // 不要误报 403（403 只代表“已登录但无权限”）。
+  if (!store.username && meta.permission === 'admin') {
+    throw new Error('identity-unavailable')
   }
   return hasRouteAccess(meta.permission, store.role)
 }
@@ -165,8 +170,11 @@ router.beforeEach(async (to, from, next) => {
   }
   // 首屏异步加载角色：进入任何页面都先补齐身份，避免 / 页面按默认 user 渲染
   // （否则 admin 的 quick action 会在刷新后消失，也会误判 /task 等管理页为 403）
-  if (!(await prepareRoute(to.meta, store))) {
-    return next('/403')
+  try {
+    if (!(await prepareRoute(to.meta, store))) return next('/403')
+  } catch {
+    // 身份加载失败（401/网络）：回登录页，保留原始回跳信息由登录页处理
+    return next('/login')
   }
   return next()
 })

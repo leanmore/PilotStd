@@ -553,7 +553,10 @@ class TestFileIndexRepository(unittest.TestCase):
                 result_json TEXT NOT NULL,
                 cached_at TEXT NOT NULL,
                 source TEXT NOT NULL DEFAULT 'network',
-                status_history TEXT NOT NULL DEFAULT ''
+                status_history TEXT NOT NULL DEFAULT '',
+                source_version TEXT DEFAULT 'initial',
+                data_state TEXT DEFAULT 'fresh',
+                last_accessed_at TEXT
             )
         """)
         shared_db.execute("""

@@ -81,6 +81,7 @@ test.describe('快捷操作卡片修复回归', () => {
 
     const actions = page.locator('[data-testid="quick-action-item"]');
     await expect(actions.filter({ hasText: '扫描索引' })).toHaveCount(0);
-    await expect(actions).toHaveCount(4);
+    // 普通用户看不到 admin-only 的 /task 与 scan 动作：organize/pending/announce 共 3 个
+    await expect(actions).toHaveCount(3);
   });
 });

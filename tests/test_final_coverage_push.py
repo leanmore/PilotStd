@@ -149,8 +149,16 @@ class TestValidityCheckerRemaining(unittest.TestCase):
 class TestCacheManagerRemaining(unittest.TestCase):
     def setUp(self):
         schema = """CREATE TABLE IF NOT EXISTS standard_info_cache (
-            id INTEGER PRIMARY KEY, data_state TEXT DEFAULT 'valid',
-            source_version TEXT DEFAULT 'initial', last_accessed_at TEXT, result_json TEXT);
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+    standard_number TEXT,
+    source_site TEXT,
+    result_json TEXT,
+    cached_at TEXT,
+    source TEXT DEFAULT 'network',
+    status_history TEXT DEFAULT '',
+    source_version TEXT DEFAULT 'initial',
+    data_state TEXT DEFAULT 'fresh',
+    last_accessed_at TEXT);
         CREATE TABLE IF NOT EXISTS standard_validity (
     id INTEGER,
     standard_number TEXT NOT NULL,

@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { login, getLoginBackground } from '@/api'
+import { notifyAuthChanged } from '@/api/http'
 import Button from 'primevue/button'
 
 const { t } = useI18n()
@@ -39,6 +40,8 @@ void loadBackground()
 async function submit() {
   try {
     const r = await login(username.value, password.value)
+    // 登录成功后让“登录前发出”的在途请求失效，避免它们 401 时把页面踢回 /login
+    notifyAuthChanged()
     store.loggedIn = true
     store.username = username.value
     store.role = r.role || 'user'

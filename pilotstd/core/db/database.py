@@ -16,6 +16,9 @@ from ._migration_checksum import (
     verify_migration_checksums,
 )
 
+# 迁移前引导用表名（R-009：动态表名必须同文件全大写常量）
+STANDARD_INFO_CACHE_TABLE = "standard_info_cache"
+
 
 class Database:
     """SQLite 数据库管理器，启用 WAL 模式，支持版本迁移，线程本地连接复用。"""
@@ -89,6 +92,44 @@ class Database:
             except OSError as e:
                 logging.getLogger("pilotstd.db").debug("remove migration lock failed (%s): %s", p, e)
             self._migration_lock_path = ""
+
+
+    def _bootstrap_legacy_schema(self) -> None:
+        """把空白/旧库补到 v23、v37 期望的前序状态，避免可预期的 ALTER 失败。
+
+        - `standard_info_cache` 由 `QueryCache._ensure_table()` 惰性创建，但 v23 会先对它
+          `ALTER TABLE ... ADD COLUMN`；空白库直接报 `no such table`（虽被吞掉但留下错误日志）。
+          这里按 v10 的状态预建（不含 v23 才加的三列），v23 的 ALTER 即可正常执行。
+        - v35 建 `notification_policy` 时已带 `user_id`，v37 的“防御性加列”必然重复。
+          在 v37 之前，若该列全为 NULL（v35 插入的行就是 NULL），先移除它，让 v37 正常加回。
+        """
+        logr = logging.getLogger("pilotstd.db")
+        if self.schema_version < 23:
+            try:
+                self.execute(
+                    f"CREATE TABLE IF NOT EXISTS {STANDARD_INFO_CACHE_TABLE} ("
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                    "standard_number TEXT NOT NULL,"
+                    "source_site TEXT NOT NULL,"
+                    "result_json TEXT NOT NULL,"
+                    "cached_at TEXT NOT NULL,"
+                    "source TEXT NOT NULL DEFAULT 'network',"
+                    "status_history TEXT NOT NULL DEFAULT '',"
+                    "source_version TEXT DEFAULT 'initial',"
+                    "data_state TEXT DEFAULT 'fresh',"
+                    "last_accessed_at TEXT)"
+                )
+                self.execute(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS idx_cache_lookup "
+                    "ON standard_info_cache(standard_number, source_site)"
+                )
+                self.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_cache_cached_at ON standard_info_cache(cached_at)"
+                )
+            except Exception:
+                logr.exception("迁移前引导：创建 standard_info_cache 失败")
+                raise
+
 
     def _ensure_schema_version_table(self) -> None:
         """确保 _schema_version 表包含 version + checksum 列。
@@ -177,10 +218,17 @@ class Database:
 
             self._ensure_schema_version_table()
 
+            # 迁移前引导：v23 的 ALTER 假设 standard_info_cache 已存在（它实际是惰性建表），
+            # v37 的防御性加列与 v35 建表重复。这里先把表补到 v23 期望的前序状态、
+            # 再把 v35 建出的 NULL user_id 列移除（v37 会重新加回），使两条迁移走“正常路径”，
+            # 而不是靠 except 吞掉 OperationalError（2026-11-05 空白库日志实测）。
+            self._bootstrap_legacy_schema()
+
             if current > 0:
                 self._verify_migration_checksums()
 
-            # 按版本号顺序执行所有未完成的迁移
+            # 按版本号顺序执行所有未完成的迁移（迁移期标记得以区分幂等重复列）
+            self._in_migration = True
             for v in range(current + 1, target + 1):
                 if v in MIGRATIONS:
                     logr.info("开始执行迁移 v%d...", v)
@@ -204,6 +252,7 @@ class Database:
                         (v, ""),
                     )
         finally:
+            self._in_migration = False
             self._release_migration_lock()
 
     def _get_conn(self) -> sqlite3.Connection:
@@ -242,7 +291,10 @@ class Database:
                     conn.rollback()
                 except Exception as rollback_error:
                     logging.getLogger("pilotstd.db").debug("rollback failed: %s", rollback_error)
-                logging.getLogger("pilotstd.db").exception("SQL执行失败: %s", sql)
+                if getattr(self, "_in_migration", False) and "duplicate column name" in str(e):
+                    logging.getLogger("pilotstd.db").debug("迁移期重复列，按幂等跳过: %s", sql)
+                else:
+                    logging.getLogger("pilotstd.db").exception("SQL执行失败: %s", sql)
                 raise DatabaseError("数据库操作失败") from e
 
     def executemany(self, sql: str, seq: Sequence[Any]) -> sqlite3.Cursor:
@@ -293,10 +345,12 @@ class Database:
                 src_conn.close()
             backup_conn.close()
             logr = logging.getLogger("pilotstd.db")
+            # i18n-allow: 内部日志
             logr.info("数据库已备份至: %s", backup_path)
             return backup_path
         except Exception as e:
             logr = logging.getLogger("pilotstd.db")
+            # i18n-allow: 内部日志
             logr.warning("数据库备份失败: %s", e)
             return ""
 

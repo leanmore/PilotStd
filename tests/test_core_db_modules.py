@@ -29,9 +29,16 @@ _VALIDITY_SCHEMA = """CREATE TABLE IF NOT EXISTS standard_validity (
 
 _CACHE_SCHEMA = """
 CREATE TABLE IF NOT EXISTS standard_info_cache (
-    id INTEGER PRIMARY KEY,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     standard_number TEXT,
-    data_state TEXT DEFAULT 'valid'
+    source_site TEXT,
+    result_json TEXT,
+    cached_at TEXT,
+    source TEXT DEFAULT 'network',
+    status_history TEXT DEFAULT '',
+    source_version TEXT DEFAULT 'initial',
+    data_state TEXT DEFAULT 'fresh',
+    last_accessed_at TEXT
 );
 CREATE TABLE IF NOT EXISTS standard_validity (
     id INTEGER,

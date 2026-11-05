@@ -24,3 +24,8 @@ describe('prepareRoute', () => {
     expect(store.loadPreferences).not.toHaveBeenCalled()
   })
 })
+
+  it('身份加载失败且目标是 admin 路由时抛错（交给 beforeEach 回登录页）', async () => {
+    const store = { username: '', role: 'user', loadPreferences: vi.fn(async () => {}) }
+    await expect(prepareRoute({ permission: 'admin' }, store)).rejects.toThrow('identity-unavailable')
+  })

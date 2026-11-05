@@ -29,7 +29,7 @@ import { useAppStore } from '@/stores/app'
 import { usePreferencesStore } from '@/stores/preferences'
 import { useDashboard } from '@/composables/useDashboard'
 import { useFloatingDrag } from '@/composables/useFloatingDrag'
-import http from '@/api/http'
+import http, { notifyAuthChanged } from '@/api/http'
 
 // ── 导航项配置 ──
 // #49: navItems 改为 computed，从路由 meta 动态生成
@@ -124,6 +124,7 @@ export function useAppLayout() {
     } catch {
       /* 即使服务端登出失败也清除本地状态 */
     }
+    notifyAuthChanged()
     store.clearUser()
     router.push('/login')
   }
