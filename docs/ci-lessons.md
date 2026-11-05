@@ -289,3 +289,9 @@ CI 的 NODE_VERSION 从浮动 22 固定到 22.23.4，修复 2026-10-21 Node.js �
 - 不要裸测 URL；先看适配器代码的 params/headers，再用同样方式请求。
 - 裸测返回 1KB 空壳不代表接口坏了，可能只是缺参数（A-38 误报即此）。
 - 空结果与解析失败要能区分，避免“查无此标准”掩盖结构变化。
+
+> **2026-11-05 教训：CI 步骤插入误删相邻步骤的 `- name`**。给 `repo-compliance` 增 G-051 时，
+> 用字符串替换插在 `- name: Upload coverage data` 之前，却把该行一起替换掉，留下孤立的 `uses:`，
+> 工作流直接 0 job 失败（GitHub 只报 run failure，不展示 job）。
+> 规则：改 workflow 必须本地 `yaml.safe_load` + 检查相邻 `- name` 完整；优先在目标步骤后插入并用
+> `git diff` 复核上下文。

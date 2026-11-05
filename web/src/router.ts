@@ -132,6 +132,18 @@ export function hasRouteAccess(permission: unknown, role: string): boolean {
   return permission !== 'admin' || role === 'admin'
 }
 
+/** 首屏导航前补齐身份（硬刷新/登录后 store.username 为空），再判定是否能进目标路由。 */
+export async function prepareRoute(meta: Record<string, unknown>, store: {
+  username: string
+  role: string
+  loadPreferences: () => Promise<void>
+}): Promise<boolean> {
+  if (!store.username) {
+    try { await store.loadPreferences() } catch { /* 保持默认角色 */ }
+  }
+  return hasRouteAccess(meta.permission, store.role)
+}
+
 const router = createRouter({ history: createWebHistory(), routes })
 
 router.beforeEach(async (to, from, next) => {
@@ -151,11 +163,9 @@ router.beforeEach(async (to, from, next) => {
       return next('/login')
     }
   }
-  // 角色可能在首屏异步加载（硬刷新直达管理页）：先补齐身份再判定，避免误判 403
-  if (to.meta.permission === 'admin' && !store.username) {
-    try { await store.loadPreferences() } catch { /* 保持默认角色，交给下方判定 */ }
-  }
-  if (!hasRouteAccess(to.meta.permission, store.role)) {
+  // 首屏异步加载角色：进入任何页面都先补齐身份，避免 / 页面按默认 user 渲染
+  // （否则 admin 的 quick action 会在刷新后消失，也会误判 /task 等管理页为 403）
+  if (!(await prepareRoute(to.meta, store))) {
     return next('/403')
   }
   return next()
