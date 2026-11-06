@@ -14,6 +14,7 @@ from apscheduler.triggers.cron import CronTrigger
 from pilotstd.core.config import ConfigManager, get_db_path
 from pilotstd.core.db import Database
 from pilotstd.core.task_status import capture_task_error
+from pilotstd.core.time_utils import iso_now, now, parse_iso
 
 logger = logging.getLogger(__name__)
 scheduler = BackgroundScheduler()
@@ -294,7 +295,7 @@ def _acquire_scheduler_lock() -> bool:
         )
     """)
     pid = os.getpid()
-    now_str = time.strftime("%Y-%m-%d %H:%M:%S")
+    now_str = iso_now()
     try:
         db.execute(
             "INSERT INTO scheduler_lock (id, pid, started_at, heartbeat_at) VALUES (1, ?, ?, ?)",
@@ -306,8 +307,10 @@ def _acquire_scheduler_lock() -> bool:
         row = db.fetchone("SELECT pid, heartbeat_at FROM scheduler_lock WHERE id = 1")
         if row:
             try:
-                heartbeat = time.mktime(time.strptime(row["heartbeat_at"], "%Y-%m-%d %H:%M:%S"))
-                if time.time() - heartbeat > _STALE_TIMEOUT:
+                heartbeat = parse_iso(row["heartbeat_at"])
+                if heartbeat is None:
+                    raise ValueError(f"无法解析心跳: {row['heartbeat_at']}")  # i18n-allow: 内部异常
+                if (now() - heartbeat).total_seconds() > _STALE_TIMEOUT:
                     db.execute(
                         "UPDATE scheduler_lock SET pid=?, started_at=?, heartbeat_at=? WHERE id=1",
                         (pid, now_str, now_str),
@@ -329,17 +332,18 @@ def _heartbeat_loop() -> None:
         try:
             result = db.execute(
                 "UPDATE scheduler_lock SET heartbeat_at=? WHERE id=1",
-                (time.strftime("%Y-%m-%d %H:%M:%S"),),
+                (iso_now(),),
             )
             if result.rowcount == 0:
                 # 兜底：=1记录被_调度器清理后，重建并更新
                 db.execute(
                     "INSERT OR IGNORE INTO scheduler_lock (id, pid, started_at, heartbeat_at) "
-                    "VALUES (1, 0, datetime('now', 'localtime'), datetime('now', 'localtime'))"
+                    "VALUES (1, 0, ?, ?)",
+                    (iso_now(), iso_now()),
                 )
                 db.execute(
                     "UPDATE scheduler_lock SET heartbeat_at=? WHERE id=1",
-                    (time.strftime("%Y-%m-%d %H:%M:%S"),),
+                    (iso_now(),),
                 )
         except Exception as e:
             # 心跳写失败说明 DB 不可用；继续循环等恢复，但必须可观测
