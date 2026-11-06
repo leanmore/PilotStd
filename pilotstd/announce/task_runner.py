@@ -5,8 +5,9 @@ from __future__ import annotations
 
 import uuid
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
 from typing import Any
+
+from pilotstd.core.time_utils import iso_now
 
 
 class AnnounceTaskRunner:
@@ -30,7 +31,7 @@ class AnnounceTaskRunner:
         self._persistence.update_task(task_id, "running", 10)
 
         # 抓取窗口起点：通知明细据此只列本次新增公告（见公告通知器的抓取后处理）
-        started_at = datetime.now().isoformat()
+        started_at = iso_now()
         try:
             result = self._crawler.check_all(adapter_name)
         except Exception as exc:

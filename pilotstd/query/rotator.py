@@ -61,6 +61,9 @@ class SiteRotator:
         self._sites: Dict[str, SiteState] = {}
         self._last_cooldown_log: Dict[str, float] = {}  # 冷却日志节流
         self._was_cooling: Dict[str, bool] = {}  # 追踪冷却退出
+        # 连续 0 条结果计数（区分“今天没更新”与“解析失效”）
+        self._result_streak: Dict[str, int] = {}
+        self._suspect_notified: Dict[str, float] = {}
         self._db = db  # 可选：数据库实例，用于持久化冷却状态
         if sites:
             for s in sites:
@@ -202,6 +205,36 @@ class SiteRotator:
                         site.daily_limit,
                     )
                     self._was_cooling[name] = True
+
+    def record_result(self, name: str, found: bool) -> None:
+        """记录一次查询是否有结果；连续 10 次 0 条 → 标记疑似失效并冷却。
+
+        单次“没查到”是正常业务（标准不在该站），连续 10 次且没有任何命中才判失效。
+        """
+        if found:
+            self._result_streak[name] = 0
+            return
+        streak = self._result_streak.get(name, 0) + 1
+        self._result_streak[name] = streak
+        if streak < 10:
+            return
+        self._result_streak[name] = 0
+        now_ts = time.time()
+        if now_ts - self._suspect_notified.get(name, 0) < 21600:  # 6 小时内只告警一次
+            return
+        self._suspect_notified[name] = now_ts
+        # i18n-allow: 内部日志
+        logger.warning("[ADAPTER] 站点=%s 连续 10 次 0 条结果，标记疑似失效并冷却 300s", name)
+        self.force_cooldown(name, 300)
+        try:
+            from ..core.notification import notify_system
+
+            notify_system(
+                "adapter_suspected_failure",
+                {"adapter": name, "consecutive_empty": streak, "cooldown_seconds": 300},
+            )
+        except Exception:
+            logger.warning("适配器失效通知失败", exc_info=True)
 
     def record_error(self, name: str) -> Optional[str]:
         """记录一次错误。返回切换后的新 URL（如有），或 None。"""
@@ -379,7 +412,7 @@ class SiteRotator:
                 "cooldown_until, consecutive_errors, active_url FROM adapter_state"
             )
         except Exception:
-            logger.debug("冷却状态恢复跳过", exc_info=True)
+            logger.debug("冷却状态恢复跳过", exc_info=True)  # i18n-allow
             return  # 表不存在或查询失败，跳过恢复
         now = time.time()
         for row in rows:

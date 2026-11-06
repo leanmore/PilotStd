@@ -125,6 +125,8 @@ class SingleQueryHandler:
                     if metrics:
                         metrics.increment("request_interval_wait", count=int(_interval * 1000))  # 毫秒累加
             result = adp.query_with_strategy(logical_code, number, year, std_name, part, num_prefix=num_prefix)
+            if rotator is not None:
+                rotator.record_result(name, bool(result and result.is_found()))
             if result and result.is_found():
                 result.source_site = adp.site_name
                 if not result.standard_number:

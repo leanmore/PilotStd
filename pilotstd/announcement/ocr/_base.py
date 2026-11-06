@@ -85,7 +85,15 @@ class OcrCounters:
         tmp = self._path + ".tmp"
         with open(tmp, "w", encoding="utf-8") as f:
             json.dump(self._data, f, ensure_ascii=False)
-        os.replace(tmp, self._path)
+        # Windows 上目标文件可能被杀毒/索引短暂占用：短退避重试，避免统计直接丢失
+        for attempt in range(3):
+            try:
+                os.replace(tmp, self._path)
+                break
+            except PermissionError:
+                if attempt == 2:
+                    raise
+                time.sleep(0.15 * (2**attempt))
 
     def can_accept(self, provider: str, pages: int) -> bool:
         """检查指定服务商的剩余配额是否足够处理给定页数。"""

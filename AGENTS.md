@@ -159,6 +159,7 @@ W-001 分析 → W-002 设计/获批 → W-003 测试（适用时）→ W-004 �
 | 涉及下载链/下载适配器 | `docs/reference/download-pipeline.md` | 代码说明书 |
 | 开发或修改适配器 | `docs/reference/adapter-development.md` | 人的指引 |
 | 涉及前端 UI 组件 | `docs/reference/ui-components.md` | 人的指引 |
+| 涉及健康检查/部署排障 | `docs/reference/health-check.md` | 人的指引 |
 | 涉及 CI/CD 或门禁 | `docs/ci-lessons.md` | 人的指引 |
 | 涉及门禁配置变更 | `docs/governance/gates.md` | 索引（G-031 强制同步） |
 | 涉及架构决策 | `docs/adr/` | 索引 |

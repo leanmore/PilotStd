@@ -38,6 +38,7 @@ def _request(path: str, client: str = "127.0.0.1", admin: bool = True) -> Reques
 
 def test_health_ok(monkeypatch) -> None:
     from docker import manager as manager_module
+    from docker.api import health as health_module
     from docker.api.health import health_check
 
     mgr = MagicMock()
@@ -45,12 +46,21 @@ def test_health_ok(monkeypatch) -> None:
     mgr.monitor_service = object()
     mgr.parser = object()
     monkeypatch.setattr(manager_module, "get_manager", lambda: mgr)
+    monkeypatch.setattr(
+        health_module, "_check_disk", lambda _m: {"free_mb": 9000.0, "threshold_mb": 500.0, "ok": True}
+    )
+    monkeypatch.setattr(
+        health_module,
+        "_check_scheduler",
+        lambda _m: {"heartbeat_at": None, "age_seconds": 1.0, "ok": True},
+    )
     monkeypatch.delenv("ENV", raising=False)
     monkeypatch.setenv("APP_VERSION", "v-test")
 
     response = health_check(_request("/api/health"))
     data = json.loads(response.body)
 
+    assert response.status_code == 200
     assert data["status"] == "ok"
     assert data["version"] == "v-test"
     assert data["services"] == {"database": True, "monitor_service": True, "parser": True}
@@ -58,6 +68,7 @@ def test_health_ok(monkeypatch) -> None:
 
 def test_health_degraded_when_db_unavailable(monkeypatch) -> None:
     from docker import manager as manager_module
+    from docker.api import health as health_module
     from docker.api.health import health_check
 
     mgr = MagicMock()
@@ -65,10 +76,20 @@ def test_health_degraded_when_db_unavailable(monkeypatch) -> None:
     mgr.monitor_service = object()
     mgr.parser = None
     monkeypatch.setattr(manager_module, "get_manager", lambda: mgr)
+    monkeypatch.setattr(
+        health_module, "_check_disk", lambda _m: {"free_mb": 9000.0, "threshold_mb": 500.0, "ok": True}
+    )
+    monkeypatch.setattr(
+        health_module,
+        "_check_scheduler",
+        lambda _m: {"heartbeat_at": None, "age_seconds": 1.0, "ok": True},
+    )
     monkeypatch.delenv("ENV", raising=False)
 
-    data = json.loads(health_check(_request("/api/health")).body)
-    assert data["status"] == "degraded"
+    response = health_check(_request("/api/health"))
+    data = json.loads(response.body)
+    assert response.status_code == 500
+    assert data["status"] == "down"
     assert data["services"]["database"] is False
     assert data["services"]["parser"] is False
 

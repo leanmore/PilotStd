@@ -52,6 +52,9 @@ _USER_WRITE_ALLOWED_EXACT = frozenset(
 )
 _USER_WRITE_ALLOWED_PREFIX = ("/api/user/", "/api/favorites")
 _WRITE_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
+
+# 读语义的 POST：不写 API_WRITE 审计（查询/批量状态/已读回执）
+_AUDIT_SKIP = {"/api/query", "/api/favorites/batch-status", "/api/notification/read"}
 # API Key 强只读：仅放行这一个只读 POST（查询），其余写方法一律 403。
 _API_KEY_ALLOWED_POST = frozenset({"/api/query"})
 
@@ -218,6 +221,21 @@ class AuthMiddleware(BaseHTTPMiddleware):
             except Exception as exc:  # noqa: BLE001 — 审计失败不改变拒绝结果，但必须留痕
                 logger.warning("audit write failed on write-denied: %s", exc)
             return _error_response("forbidden", "auth.api.forbidden", 403)
+
+        # 统一写操作审计（E1）：所有已认证写请求至少留一条 API_WRITE，
+        # 敏感路由可再补带业务字段的细粒度审计；payload 不落库（防密码/token 泄露）。
+        if request.method in _WRITE_METHODS and path not in _AUDIT_SKIP:
+            try:
+                from pilotstd.core.audit import write_audit
+
+                write_audit(
+                    action="API_WRITE",
+                    resource=f"{request.method} {path}",
+                    detail={"from_ip": request.client.host if request.client else ""},
+                    user_id=user_id,
+                )
+            except Exception as exc:  # noqa: BLE001 — 审计失败不阻断业务，但必须留痕
+                logger.warning("audit write failed: %s", exc)
 
         if user_id is not None:
             token_ctx = set_current_user_id(user_id)

@@ -92,3 +92,15 @@ def test_api_key_is_read_only(client, monkeypatch):
     headers = {"X-API-KEY": "pst_whatever"}
     assert client.get("/api/standards/status", headers=headers).status_code == 200
     assert client.post("/api/validity/run", headers=headers).status_code == 403
+
+
+def test_admin_write_is_audited(client, monkeypatch):
+    from docker.auth import COOKIE_NAME
+    from tests.test_api_write_admin_only import _with_session
+
+    calls = []
+    monkeypatch.setattr("pilotstd.core.audit.write_audit", lambda **kw: calls.append(kw))
+    client.cookies.set(COOKIE_NAME, _with_session(client, "admin"))
+    r = client.post("/api/validity/run", headers={"X-CSRF-Token": "csrf-test"})
+    assert r.status_code == 200
+    assert any(c.get("action") == "API_WRITE" and c.get("resource") == "POST /api/validity/run" for c in calls)

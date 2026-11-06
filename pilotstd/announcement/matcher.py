@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Any, Optional, Set
 
 from pilotstd.core.status import Status
+from pilotstd.core.time_utils import iso_now
 
 from ..core.db import Database
 from ..core.file_index import FILE_INDEX_TABLE
@@ -61,7 +62,7 @@ class AnnouncementMatcher:
 
         log_rows: list[tuple[Any, ...]] = []
         cache_rows: list[tuple[Any, ...]] = []
-        now = datetime.now().isoformat()
+        now = iso_now()
 
         for item in items:
             self._process_item(item, source_site, standard_category, now, log_rows, cache_rows, result)

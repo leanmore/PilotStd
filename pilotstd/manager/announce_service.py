@@ -5,13 +5,13 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
 from typing import Any
 
 from pilotstd.announce.crawler_service import AnnounceCrawler
 from pilotstd.announce.notifier import AnnounceNotifier
 from pilotstd.announce.persistence import AnnouncePersistence
 from pilotstd.announce.task_runner import AnnounceTaskRunner
+from pilotstd.core.time_utils import iso_now
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +62,7 @@ class AnnounceService:
             self._file_index._db.execute(
                 "INSERT OR REPLACE INTO fetch_locks "
                 "(lock_key, locked_at, locked_by) VALUES ('manual', ?, 'manual')",
-                (datetime.now().isoformat(),),
+                (iso_now(),),
             )
             return True
         except Exception:
@@ -97,7 +97,7 @@ class AnnounceService:
         self._file_index._db.execute(
             "INSERT OR REPLACE INTO app_preferences (key, value, updated_at) "
             "VALUES (?, ?, ?)",
-            (key, value, datetime.now().isoformat()),
+            (key, value, iso_now()),
         )
 
     # -- 定时入口 -------------------------------------- 分隔
@@ -108,7 +108,7 @@ class AnnounceService:
             logger.info("manual fetch running, scheduled task skipped")
             return {"skipped": True, "reason": "manual_running"}
 
-        self._last_check_start = datetime.now().isoformat()
+        self._last_check_start = iso_now()
 
         # 运行期防御：应用偏好设置表缺失时降级为全量增量检查，
         # 避免自动公告定时任务每日崩溃（根因由第五十八版迁移补建解决）

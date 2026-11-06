@@ -150,6 +150,9 @@ class OpenstdDownloadAdapter(BaseDownloadAdapter):
     ):
         self._session = session or requests.Session()
         self._captcha_callback = captcha_callback
+        # 连续验证码失败退避，避免被源站按 IP 风控
+        self._captcha_fail_streak = 0
+        self._captcha_cooldown_until = 0.0
         self._session.headers.update(
             {
                 "User-Agent": (
@@ -286,7 +289,9 @@ class OpenstdDownloadAdapter(BaseDownloadAdapter):
             referer = self._open_download_page(hcno, detail_url)
             self._handle_captcha(hcno, task, referer)
             if task.error_message:
+                self._register_captcha_failure(task)
                 return None
+            self._captcha_fail_streak = 0
 
             content = self._fetch_view(hcno, referer, task)
             if content is not None:
@@ -364,12 +369,44 @@ class OpenstdDownloadAdapter(BaseDownloadAdapter):
     # 验证码处理
     # ════════════════════════════════════════════════════════════════ 分隔
 
+    def _register_captcha_failure(self, task: DownloadTask) -> None:
+        """连续失败 → 指数退避（30s/60s/…上限 600s），并通知管理员。"""
+        self._captcha_fail_streak += 1
+        delay = min(600, 30 * (2 ** (self._captcha_fail_streak - 1)))
+        self._captcha_cooldown_until = time.time() + delay
+        # i18n-allow: 内部日志
+        logger.warning(
+            "验证码连续失败 %d 次，暂停 %ds 再试（%s）",
+            self._captcha_fail_streak,
+            delay,
+            task.standard_number,
+        )
+        try:
+            from ...core.notification import notify_system
+
+            notify_system(
+                "captcha_backoff",
+                {
+                    "adapter": "openstd",
+                    "fail_streak": self._captcha_fail_streak,
+                    "cooldown_seconds": delay,
+                    "standard_number": task.standard_number,
+                },
+            )
+        except Exception:
+            logger.warning("验证码退避通知失败", exc_info=True)
+
     def _handle_captcha(self, hcno: str, task: DownloadTask, referer: str = "") -> Optional[bytes]:
         """验证码识别与提交：GET gc 图片 → ddddocr 识别 → POST verifyCode。
 
         每轮最多两次（第二次换一张图）；`referer` 传「全文下载页」URL（与浏览器同款）。
         验证成功后返回 None（由调用方继续 viewGb），失败则设置 `task.error_message`。
         """
+        remaining = self._captcha_cooldown_until - time.time()
+        if remaining > 0:
+            # i18n-allow: 用户可见错误在 UI 层统一格式化
+            task.error_message = f"验证码连续失败，暂停下载 {int(remaining)}s 以避免源站风控"
+            return None
         hdrs = {"Referer": referer} if referer else {}
         for attempt in range(2):
             # ═══ 步骤2：获取验证码图片 ═══
@@ -443,6 +480,7 @@ class OpenstdDownloadAdapter(BaseDownloadAdapter):
                 if attempt == 0:
                     continue
 
-        task.error_message = "验证码提交失败（已重试）"
+        task.error_message = "验证码提交失败（已重试）"  # i18n-allow
+        # i18n-allow: 内部日志
         logger.warning("下载失败(验证码): %s hcno=%s | 验证码提交失败", task.standard_number, hcno)
         return None

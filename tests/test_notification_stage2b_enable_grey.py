@@ -172,7 +172,7 @@ class GreySamplingReport(unittest.TestCase):
                 return frozen
 
         with patch.dict(os.environ, {"NOTIFY_REDESIGN_STAGE": stage}, clear=False):
-            with patch("pilotstd.core.notification._dispatcher.datetime", _FrozenDatetime):
+            with patch("pilotstd.core.notification._dispatcher.iso_now", lambda: frozen.isoformat()):
                 for ev, (_ne, _ct, payload) in SAMPLES.items():
                     mgr.send_event(ev, dict(payload))
         self.channel_calls = calls
@@ -546,7 +546,7 @@ class TaskKindPersistenceAcrossAllEvents(unittest.TestCase):
 
         triggered: list[str] = []
         with patch.dict(os.environ, {"NOTIFY_REDESIGN_STAGE": "2"}, clear=False):
-            with patch("pilotstd.core.notification._dispatcher.datetime", _FrozenDatetime):
+            with patch("pilotstd.core.notification._dispatcher.iso_now", lambda: frozen.isoformat()):
                 for ev in EVENT_MAPPINGS:
                     payload = ALL_EVENT_PAYLOADS.get(ev, {"total": 1, "success": 1, "failed": 0, "count": 1})
                     try:

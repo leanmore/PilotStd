@@ -4,8 +4,9 @@
 import logging
 import threading
 import uuid
-from datetime import datetime
 from typing import Any, Callable, Dict, List, Optional
+
+from pilotstd.core.time_utils import iso_now
 
 from ..core.db import Database
 from .models import TaskInfo, TaskStatus, TaskType
@@ -45,7 +46,7 @@ class TaskQueue:
         # 显式置 FAILED，_run 的收尾逻辑不会把它改回 COMPLETED（见 _run 的状态判断）
         task.status = TaskStatus.FAILED
         task.error_log = f"任务类型 {task.task_type.value} 尚未实现（无可执行 handler）"  # i18n-allow: 任务列表展示文案
-        task.updated_at = datetime.now().isoformat()
+        task.updated_at = iso_now()
         return task
 
     # 公共接口
@@ -61,8 +62,8 @@ class TaskQueue:
             task_type=task_type,
             status=TaskStatus.PENDING,
             total_items=total_items,
-            created_at=datetime.now().isoformat(),
-            updated_at=datetime.now().isoformat(),
+            created_at=iso_now(),
+            updated_at=iso_now(),
         )
         self._persist(task)
         logger.info(f"任务入队: {task.task_id} [{task.task_type.value}]")
@@ -77,7 +78,7 @@ class TaskQueue:
         handler = self._handlers.get(task.task_type)
         if handler is None:
             raise ValueError(f"未注册的处理类型: {task.task_type}")
-        now = datetime.now().isoformat()
+        now = iso_now()
         cur = self._db.execute(
             f"UPDATE {TASK_TABLE} SET status=?, updated_at=? WHERE task_id=? AND status=?",
             (TaskStatus.RUNNING.value, now, task.task_id, TaskStatus.PENDING.value),
@@ -164,7 +165,7 @@ class TaskQueue:
             task.failed_items = failed
             if completed + failed >= task.total_items > 0:
                 task.status = TaskStatus.COMPLETED
-            task.updated_at = datetime.now().isoformat()
+            task.updated_at = iso_now()
             self._persist(task)
 
     # ---- 内部 ----
@@ -190,7 +191,7 @@ class TaskQueue:
             with self._lock:
                 task.status = TaskStatus.FAILED
                 task.error_log = f"任务超时 ({self._task_timeout}s)"
-                task.updated_at = datetime.now().isoformat()
+                task.updated_at = iso_now()
                 self._persist(task)
             return
 
@@ -199,7 +200,7 @@ class TaskQueue:
             with self._lock:
                 task.status = TaskStatus.FAILED
                 task.error_log = str(exc_holder[0])
-                task.updated_at = datetime.now().isoformat()
+                task.updated_at = iso_now()
                 self._persist(task)
             return
 
@@ -208,7 +209,7 @@ class TaskQueue:
             r = result if isinstance(result, TaskInfo) else task
             if r.status not in (TaskStatus.CANCELLED, TaskStatus.FAILED):
                 r.status = TaskStatus.COMPLETED
-            r.updated_at = datetime.now().isoformat()
+            r.updated_at = iso_now()
             self._persist(r)
 
     def _set_status(self, task_id: str, status: TaskStatus) -> bool:
@@ -218,7 +219,7 @@ class TaskQueue:
             if task is None:
                 return False
             task.status = status
-            task.updated_at = datetime.now().isoformat()
+            task.updated_at = iso_now()
             self._persist(task)
             return True
 

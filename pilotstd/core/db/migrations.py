@@ -191,3 +191,8 @@ from ._migrate_v71_notification_user_id import (  # noqa: E402, F401
 from ._migrate_v72_announcement_dedupe import (  # noqa: E402, F401
     _migrate_v72_announcement_dedupe,
 )
+
+# 第七十三版：历史 `*_at` 列裸时间字符串规范为 ISO 8601 带时区偏移
+from ._migrate_v73_normalize_timestamps import (  # noqa: E402, F401
+    _migrate_v73_normalize_timestamps,
+)

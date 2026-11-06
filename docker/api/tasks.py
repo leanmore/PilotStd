@@ -8,6 +8,8 @@ from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
 from pydantic import BaseModel
 
+from pilotstd.core.time_utils import iso_now
+
 from ..auth import require_role
 from ..manager import get_manager_dep
 
@@ -206,7 +208,7 @@ def retry_task(request: Request, task_id: str, mgr=Depends(get_manager_dep)):
     from pilotstd.task.models import TaskStatus
 
     task.status = TaskStatus.PENDING
-    task.updated_at = __import__("datetime").datetime.now().isoformat()
+    task.updated_at = iso_now()
     mgr.task_queue.persist(task)
     return {"ok": True}
 

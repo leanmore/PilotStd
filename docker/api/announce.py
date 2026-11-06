@@ -2,7 +2,6 @@
 import json
 import logging
 import os
-from datetime import datetime
 from typing import Any, cast
 
 from fastapi import BackgroundTasks, Depends, Request
@@ -11,6 +10,7 @@ from fastapi.routing import APIRouter
 from pydantic import BaseModel
 
 from pilotstd.constants.announce_types import SOURCE_SITE_TO_TYPE
+from pilotstd.core.time_utils import iso_now
 
 from ..auth import require_role
 from ..manager import get_manager as _get_mgr
@@ -152,7 +152,7 @@ def check_announce(since_date: str = "", mgr=None, types: list[str] | None = Non
     types 参数：限定抓取的公告类型列表，如 ['gb', 'hb']，None 表示全部。"""
     if mgr is None:
         mgr = _get_mgr()
-    check_start = datetime.now().isoformat()
+    check_start = iso_now()
     result = mgr.check_announcements_filtered(since_date=since_date, types=types)
     # 汇总各类型公告明细
     total_matched = 0
@@ -450,9 +450,8 @@ def get_announce_stats(mgr=Depends(get_manager_dep)):
 
     # 首次调用时记录服务器时间，只执行一次
     if not hasattr(get_announce_stats, "_tz_checked"):
-        from datetime import datetime
 
-        logger.info("当前服务器时间: %s", datetime.now().isoformat())
+        logger.info("当前服务器时间: %s", iso_now())
         get_announce_stats._tz_checked = True  # type: ignore[attr-defined]
 
     today = "date('now', 'localtime')"

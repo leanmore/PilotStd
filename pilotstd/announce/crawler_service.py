@@ -16,6 +16,7 @@ from pilotstd.announcement.adapters import SamrDbCrawler, SamrGbCrawler, SamrHbC
 from pilotstd.announcement.engine import AnnounceEngine
 from pilotstd.announcement.matcher import AnnouncementMatcher
 from pilotstd.core.config import get_data_dir
+from pilotstd.core.time_utils import iso_now
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +29,7 @@ _STD_TYPE_DISPLAY: dict[str, str] = {
 
 def build_fetch_summary(adapter_results: list[dict[str, Any]]) -> dict[str, Any]:
     """构建各适配器抓取摘要数据（提取自旧 Mixin 类）。"""
-    from datetime import datetime, timezone
+    from datetime import timezone
 
     return {
         "fetch_time": datetime.now(timezone.utc).isoformat(),
@@ -152,7 +153,7 @@ class AnnounceCrawler:
         # 先**原地 upsert** 再清理旧行：直接 DELETE 会撞 `user_favorites.record_id` 等外键
         # （2026-11-03 线上 reparse 30 号实测 FOREIGN KEY constraint failed）。
         # upsert 命中唯一键时保留 row id，收藏引用不会断。
-        cutoff = datetime.now().isoformat()
+        cutoff = iso_now()
         self.engine.matcher.match_and_update(
             items,
             source_site=source_site,
@@ -198,16 +199,15 @@ class AnnounceCrawler:
 
         db.execute(
             "UPDATE announcements SET parse_status='completed', updated_at=? WHERE TRIM(announce_no)=?",
-            (datetime.now().isoformat(), announce_no),
+            (iso_now(), announce_no),
         )
         return {"status": "reparsed", "announce_no": announce_no, "records": len(items)}
 
     def check_all(self, adapter_name: str = "") -> dict[str, Any]:
         """对 gb/hb/db 适配器执行全量公告检查，返回摘要数据。"""
-        from datetime import datetime
 
         # 记录抓取开始时刻，用于查询本次窗口新增公告的分类统计
-        check_start = datetime.now().isoformat()
+        check_start = iso_now()
         # 确保各类型输出目录存在
         data_dir = get_data_dir()
         for std_type in ("gb", "hb", "db"):

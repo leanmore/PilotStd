@@ -10,7 +10,8 @@ from __future__ import annotations
 import logging
 import os
 import threading
-from datetime import datetime
+
+from pilotstd.core.time_utils import iso_now
 
 from ._file_index_query import (  # noqa: F401 — 由外部模块导入消费
     ANNOUNCEMENT_CACHE_TABLE,
@@ -164,7 +165,7 @@ class FileIndexRepository:
         """插入或更新文件索引记录。若文件存在则自动计算哈希。"""
         if not file_hash and os.path.exists(file_path):
             file_hash = hash_file_content(file_path)
-        now = datetime.now().isoformat()
+        now = iso_now()
         part_val = part if part is not None else -1
         raw = raw_number if raw_number else str(number)
         existing = self._db.fetchone(f"SELECT id FROM {FILE_INDEX_TABLE} WHERE file_path=?", (file_path,))

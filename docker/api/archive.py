@@ -5,6 +5,7 @@ from fastapi import Body, Depends, HTTPException, Request
 from fastapi.routing import APIRouter
 from pydantic import BaseModel
 
+from pilotstd.core.audit import get_current_user_id, write_audit
 from pilotstd.core.path_guard import get_allowed_roots, validate_path_in_root
 from pilotstd.models import ParsedStdInfo
 
@@ -115,4 +116,10 @@ def archive_files(
         )
         raise
 
+    write_audit(
+        action="ARCHIVE_MOVE",
+        resource="POST /api/archive",
+        detail={"count": len(parsed_list), "run_id": run_id},
+        user_id=get_current_user_id(),
+    )
     return result

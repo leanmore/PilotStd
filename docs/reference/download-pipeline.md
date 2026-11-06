@@ -414,3 +414,6 @@ GB/T 标准被误判成非国标（已由 `test_slash_codes_are_routable` 钉住
 
 > **2026-11-05 启动清理 .part**：`DownloadEngine.__init__` 调用 `cleanup_stale_parts()`，删除下载目录中
 > mtime 超过 1 小时的 `*.part`（1 小时内可能仍在下载，保留），避免中断残留在重启后长期堆积（C-3）。
+
+> **2026-11-06 验证码退避（阶段 6）**：openstd 下载验证码连续失败按 30s→600s 指数退避，
+> 并发送 `captcha_backoff` 系统通知，防止被源站按 IP 风控。

@@ -5,8 +5,9 @@ from __future__ import annotations
 import hashlib
 import json as _json
 import logging
-from datetime import datetime
 from typing import Any, cast
+
+from pilotstd.core.time_utils import iso_now
 
 # 掩码校验文案与 API 层（docker/api/notification_config.py）**共用同一 i18n 键**，
 # 保证"核心层校验、接口层展示"两处文案不漂移
@@ -133,7 +134,7 @@ class CredentialHelper:
         self._db.execute(
             "UPDATE user_credentials SET credentials = ?, updated_at = ? "
             "WHERE user_id = ? AND channel = ?",
-            (payload, datetime.now().isoformat(), user_id, channel),
+            (payload, iso_now(), user_id, channel),
         )
 
     # ── 写入 ─────────────────────────────────────────────────

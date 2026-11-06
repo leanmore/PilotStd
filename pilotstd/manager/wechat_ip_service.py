@@ -8,6 +8,7 @@ import os
 from typing import Any
 
 from pilotstd.core.status import Status
+from pilotstd.core.time_utils import iso_now
 
 logger = logging.getLogger(__name__)
 
@@ -140,7 +141,6 @@ class WechatIPService:
 
     def run_check(self) -> dict[str, Any]:
         """执行一次 IP 检测 + 更新。"""
-        from datetime import datetime
 
         from pilotstd.wechat_ip.scheduler import _get_cookie, run_check
 
@@ -150,7 +150,7 @@ class WechatIPService:
             _get_cookie(cfg)
 
         result = run_check(cfg, lambda t, b, s: self._notify(t, b, s))
-        cfg.set("wechat_ip.last_check_at", datetime.now().isoformat())
+        cfg.set("wechat_ip.last_check_at", iso_now())
         cfg.save()
         return result
 

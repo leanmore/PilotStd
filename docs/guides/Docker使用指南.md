@@ -70,6 +70,8 @@ docker compose pull
 docker compose up -d
 ```
 
+> **安全说明**：出于安全考虑，系统不自带自动更新；升级需手动执行 `docker compose pull && docker compose up -d`。
+
 > ⚠️ 首次拉取需要 GitHub 登录。在群晖上执行 `echo $CR_PAT | docker login ghcr.io -u <用户名> --password-stdin`，其中 `CR_PAT` 是 GitHub Personal Access Token（权限勾选 `read:packages`）。
 
 ---
@@ -285,6 +287,8 @@ cd /volume1/docker/pilotstd
 docker compose pull
 docker compose up -d
 ```
+
+> **安全说明**：出于安全考虑，系统不自带自动更新；升级需手动执行 `docker compose pull && docker compose up -d`。
 
 > `docker compose build` 仅适用于方式 B（本地构建）；方式 A 没有 `build:` 段，执行 build 会报错。
 

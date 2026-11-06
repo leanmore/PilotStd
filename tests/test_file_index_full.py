@@ -297,7 +297,7 @@ class TestFileIndexRepository(unittest.TestCase):
     # upsert
     # ================================================================
 
-    @patch("pilotstd.core.file_index.datetime")
+    @patch("pilotstd.core.file_index.iso_now")
     @patch("pilotstd.core.file_index.hash_file_content")
     @patch("os.path.exists")
     def test_upsert_new_file_with_hash_calculation(
@@ -307,7 +307,7 @@ class TestFileIndexRepository(unittest.TestCase):
         repo = self._make_repo()
         mock_exists.return_value = True
         mock_hash.return_value = SAMPLE_HASH
-        mock_dt.now.return_value.isoformat.return_value = MOCK_NOW
+        mock_dt.return_value = MOCK_NOW
         self.mock_db.fetchone.return_value = None  # 路径不存在
 
         repo.upsert(
@@ -335,13 +335,13 @@ class TestFileIndexRepository(unittest.TestCase):
         self.assertEqual(params[4], -1)  # part=None → -1
         self.assertEqual(params[6], SAMPLE_HASH)
 
-    @patch("pilotstd.core.file_index.datetime")
+    @patch("pilotstd.core.file_index.iso_now")
     @patch("os.path.exists")
     def test_upsert_new_file_not_on_disk_no_hash(self, mock_exists: MagicMock, mock_dt: MagicMock) -> None:
         """新文件但文件不存在 → hash 保持空字符串"""
         repo = self._make_repo()
         mock_exists.return_value = False
-        mock_dt.now.return_value.isoformat.return_value = MOCK_NOW
+        mock_dt.return_value = MOCK_NOW
         self.mock_db.fetchone.return_value = None
 
         repo.upsert(
@@ -355,13 +355,13 @@ class TestFileIndexRepository(unittest.TestCase):
         params = self.mock_db.execute.call_args[0][1]
         self.assertEqual(params[6], "")  # file_hash 为空
 
-    @patch("pilotstd.core.file_index.datetime")
+    @patch("pilotstd.core.file_index.iso_now")
     @patch("os.path.exists")
     def test_upsert_hash_provided_no_recalculation(self, mock_exists: MagicMock, mock_dt: MagicMock) -> None:
         """已提供 hash 时，即使文件存在也不重新计算"""
         repo = self._make_repo()
         mock_exists.return_value = True
-        mock_dt.now.return_value.isoformat.return_value = MOCK_NOW
+        mock_dt.return_value = MOCK_NOW
         self.mock_db.fetchone.return_value = None
         provided_hash = "precomputed_hash_123"
 
@@ -376,13 +376,13 @@ class TestFileIndexRepository(unittest.TestCase):
         params = self.mock_db.execute.call_args[0][1]
         self.assertEqual(params[6], provided_hash)
 
-    @patch("pilotstd.core.file_index.datetime")
+    @patch("pilotstd.core.file_index.iso_now")
     @patch("os.path.exists")
     def test_upsert_existing_file_updates(self, mock_exists: MagicMock, mock_dt: MagicMock) -> None:
         """路径已存在于索引 → UPDATE 而非 INSERT"""
         repo = self._make_repo()
         mock_exists.return_value = True
-        mock_dt.now.return_value.isoformat.return_value = MOCK_NOW
+        mock_dt.return_value = MOCK_NOW
         self.mock_db.fetchone.return_value = {"id": 42}  # 已存在
 
         repo.upsert(
@@ -401,13 +401,13 @@ class TestFileIndexRepository(unittest.TestCase):
         self.assertEqual(params[-1], 42)  # WHERE id=42
         self.assertEqual(params[3], 1)  # part 保持原值
 
-    @patch("pilotstd.core.file_index.datetime")
+    @patch("pilotstd.core.file_index.iso_now")
     @patch("os.path.exists")
     def test_upsert_part_zero_preserved(self, mock_exists: MagicMock, mock_dt: MagicMock) -> None:
         """part=0 应保持为 0（与 None 区分，None 才转为 -1）"""
         repo = self._make_repo()
         mock_exists.return_value = True
-        mock_dt.now.return_value.isoformat.return_value = MOCK_NOW
+        mock_dt.return_value = MOCK_NOW
         self.mock_db.fetchone.return_value = None
 
         repo.upsert(file_path=SAMPLE_PATH, logical_code="GB", number=1, year=2023, part=0)

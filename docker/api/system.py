@@ -3,13 +3,13 @@ import json
 import logging
 import os
 import subprocess
-from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
 from pilotstd import __version__
+from pilotstd.core.time_utils import iso_now
 
 from ..auth import require_role
 from ..manager import get_manager_dep
@@ -309,9 +309,8 @@ def system_health(request: Request, mgr=Depends(get_manager_dep)) -> dict:
     检查项：数据库连接、缓存状态、适配器总数/可用数。
     始终返回 200，通过 ok 字段指示整体健康状态。
     """
-    from datetime import datetime
 
-    result: dict = {"ok": True, "timestamp": datetime.now().isoformat()}
+    result: dict = {"ok": True, "timestamp": iso_now()}
 
     # 1. 数据库连接
     status = mgr.system_service.get_status()
@@ -371,7 +370,7 @@ def system_resources(request: Request):
                 "free": psutil.disk_usage("/").free,
                 "percent": psutil.disk_usage("/").percent,
             },
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": iso_now(),
         }
     except ImportError:
         return {"error": "psutil 未安装"}

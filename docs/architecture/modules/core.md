@@ -5,7 +5,7 @@
 | 模块路径 | `pilotstd/core/` |
 | G-031 映射 | `pilotstd/core/`（2026-09-25 落地：`DOC_SYNC_MAP` 已含该条，改任何 core 文件都会要求同步本文件） |
 | 核心类 | `Database` / `ConfigManager` / `CacheManager` / `NotificationManager` |
-| 子模块数 | 127 个 `.py`（新增 `archive_reconcile.py`（启动归档对账，C-2，2026-11-05）；上一轮新增 `db/_migrate_v72_announcement_dedupe.py`（公告记录按归一化标准号去重 + `standard_count` 重算，2026-11-03）；上一轮新增 `db/_migrate_v69_reheal_notification_credentials.py`（通知渠道凭据自愈迁移，体检 **D-5**，2026-10-17）；再上一轮新增 `notification/wechat_crypto.py`（企业微信回调加解密，**T-43**）；（**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-11-03**；顶层 = 3 个包 config / db / notification + 23 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
+| 子模块数 | 129 个 `.py`（新增 `archive_reconcile.py`（启动归档对账，C-2，2026-11-05）；上一轮新增 `db/_migrate_v72_announcement_dedupe.py`（公告记录按归一化标准号去重 + `standard_count` 重算，2026-11-03）；上一轮新增 `db/_migrate_v69_reheal_notification_credentials.py`（通知渠道凭据自愈迁移，体检 **D-5**，2026-10-17）；再上一轮新增 `notification/wechat_crypto.py`（企业微信回调加解密，**T-43**）；（**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-11-03**；顶层 = 3 个包 config / db / notification + 23 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
 | Schema 版本 | `CURRENT_SCHEMA_VERSION = 72`（`db/_constants.py`；v72＝公告记录按归一化标准号去重 + `standard_count` 重算，2026-11-03；v69＝通知渠道凭据自愈，2026-10-17 体检 D-5） |
 | 状态 | 活跃 |
 
@@ -566,3 +566,8 @@ pilotstd/core/
 > 源/目标被占用时 `PermissionError` 指数退避重试（3 次），临时文件改为 `pid+uuid` 防并发截断；
 > 源文件最终仍被占用时回滚目标副本并返回 False（源保留、无重复文件；2026-11-05 晚修正）。`Database.execute` 对
 > `database is locked` 增加 3 次指数退避重试，叠加 WAL + `busy_timeout=5000`。
+
+> **2026-11-06 时间与并发（阶段 6）**：新增 `pilotstd/core/time_utils.py`（`now()/iso_now()/parse_iso()/to_iso()`），
+> 所有业务时间统一输出带偏移量的 ISO 8601；v73 迁移把历史 `*_at`/`timestamp` 列的裸时间字符串补齐为
+> `YYYY-MM-DDTHH:MM:SS+08:00`（已带偏移的值不动）。retention 查询改用 `datetime(col)` 比较，避免
+> `T`/偏移量导致的字符串比较失效。

@@ -7,8 +7,9 @@ raw sqlite3 (cursor-based). Rows are accessed by column name in both.
 
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Any
+
+from pilotstd.core.time_utils import iso_now
 
 
 class AnnouncePersistence:
@@ -53,7 +54,7 @@ class AnnouncePersistence:
         )
         if not force and current and current["last_notice_date"] >= last_notice_date:
             return
-        now = datetime.now().isoformat()
+        now = iso_now()
         self._exec(
             "INSERT OR REPLACE INTO fetch_checkpoint "
             "(source_site, last_fetched_at, last_notice_date) VALUES (?, ?, ?)",
@@ -74,7 +75,7 @@ class AnnouncePersistence:
 
     def create_task(self, task_id: str) -> None:
         """插入一条新的 fetch_task 行，状态为 'pending'。"""
-        now = datetime.now().isoformat()
+        now = iso_now()
         self._exec(
             "INSERT INTO fetch_task (id, task_type, status, progress, created_at, updated_at) "
             "VALUES (?, 'announcement', 'pending', 0, ?, ?)",
@@ -84,7 +85,7 @@ class AnnouncePersistence:
     def update_task(self, task_id: str, status: str, progress: int,
                     error_msg: str = "") -> None:
         """更新 fetch_task 的状态和进度，可选设置错误信息。"""
-        now = datetime.now().isoformat()
+        now = iso_now()
         if error_msg:
             self._exec(
                 "UPDATE fetch_task SET status=?, progress=?, error_msg=?, updated_at=? "

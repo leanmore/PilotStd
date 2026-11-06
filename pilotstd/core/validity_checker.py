@@ -8,6 +8,8 @@ import random
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
+from pilotstd.core.time_utils import iso_now
+
 from .db import Database
 from .status import ABOLISHED_STATUSES_WITH_EXPIRED, Status, normalize_status
 
@@ -194,7 +196,7 @@ class ValidityChecker:
                 "old_status": old_status,
                 "new_status": new_status,
                 "is_expired": new_status == Status.WITHDRAWN_NORMALIZED.value,
-                "changed_at": datetime.now().isoformat(),
+                "changed_at": iso_now(),
             }
             if standard_name:
                 payload["standard_name"] = standard_name

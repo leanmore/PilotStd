@@ -7,8 +7,9 @@ import logging
 import math
 import threading
 import time as _time
-from datetime import datetime
 from typing import TYPE_CHECKING, Any
+
+from pilotstd.core.time_utils import iso_now
 
 from .status import Status
 
@@ -73,7 +74,7 @@ def _enqueue_gb_replacement(db: Any, new_standard: str, new_name: str) -> None:
         )
         if existing:
             return
-        now = datetime.now().isoformat()
+        now = iso_now()
         db.execute(
             "INSERT INTO download_queue (standard_number, standard_name, publish_date,"
             " expected_available, created_at, status) VALUES (?, ?, ?, ?, ?, 'waiting')",

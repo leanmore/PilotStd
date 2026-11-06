@@ -18,9 +18,9 @@ from __future__ import annotations
 
 import logging
 import os
-from datetime import datetime
 from typing import Any
 
+from pilotstd.core.time_utils import iso_now
 from pilotstd.i18n import t
 
 from ._links import attach_web_actions
@@ -62,7 +62,7 @@ def _log_skipped(
     msg.user_id = user_id
     msg.delivery_user_id = delivery
     reason = t("notification.manager.skipped_disabled")
-    sent_at = datetime.now().isoformat()
+    sent_at = iso_now()
     for ch_name in channels:
         host._log(event_type, ch_name, msg, "skipped", reason, sent_at)
 
@@ -256,7 +256,7 @@ def send_now(host: Any, msg: NotificationMessage, target_channels: list[str]) ->
         available = host._channels
     for ch_name in target_channels:
         channel = available.get(ch_name)
-        sent_at = datetime.now().isoformat()
+        sent_at = iso_now()
         if channel is None:
             # 渠道未配置/未启用：策略层可能仍返回该渠道名，但不应伪造失败记录
             logger.debug("未配置渠道，跳过发送: %s", ch_name)  # i18n-allow: 内部日志

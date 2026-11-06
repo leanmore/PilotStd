@@ -1,10 +1,11 @@
 # 容器//调度器脚本—调度器状态接口
-from datetime import datetime
 from typing import Any
 
 from fastapi import Depends, Query
 from fastapi.routing import APIRouter
 from pydantic import BaseModel
+
+from pilotstd.core.time_utils import iso_now
 
 from ..manager import get_manager_dep
 
@@ -76,7 +77,7 @@ def get_scheduler_status(mgr=Depends(get_manager_dep)):
         "running": scheduler.running,
         "job_count": len(jobs),
         "jobs": jobs,
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": iso_now(),
     }
 
 

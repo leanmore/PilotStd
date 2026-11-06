@@ -208,3 +208,6 @@ StandardManager (BaseFacade)
 
 > **2026-11-04 归档计数（D1-1）**：`OrganizeHandler.organize_files` 返回 `unparsed`
 > 字段并记录 WARNING；无法解析的文件不再静默消失。
+
+> **2026-11-06 时间规范（阶段 6）**：manager 侧任务/待办/公告时间统一用
+> `pilotstd.core.time_utils.iso_now()` 写入带偏移量的 ISO 8601；v73 迁移规范化历史裸时间。

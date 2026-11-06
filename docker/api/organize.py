@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
 from pydantic import BaseModel
 
+from pilotstd.core.audit import get_current_user_id, write_audit
 from pilotstd.core.path_guard import get_allowed_roots, validate_path_in_root
 
 from ..auth import require_role
@@ -98,4 +99,10 @@ def clean_empty_dirs(request: Request, path: str = "/standards", mgr=Depends(get
                     removed += 1
             except OSError as e:
                 logger.debug("rmdir empty dir failed (%s): %s", dpath, e)
+    write_audit(
+        action="CLEAN_EMPTY_DIRS",
+        resource="POST /api/clean-empty",
+        detail={"path": safe_path, "cleaned": removed},
+        user_id=get_current_user_id(),
+    )
     return {"cleaned": removed}

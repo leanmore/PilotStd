@@ -4,8 +4,9 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime
 from typing import Any, Optional
+
+from pilotstd.core.time_utils import iso_now
 
 from ..core.db import Database
 from ..core.file_index import ANNOUNCEMENT_CACHE_TABLE
@@ -77,7 +78,7 @@ class CacheRepository:
             # 已有记录时不覆盖（保留首次数据来源标记）
             self._db.execute(
                 f"UPDATE {CACHE_TABLE} SET result_json=?, cached_at=? WHERE id=?",
-                (result_json, datetime.now().isoformat(), existing["id"]),
+                (result_json, iso_now(), existing["id"]),
             )
         else:
             self._db.execute(
@@ -87,7 +88,7 @@ class CacheRepository:
                     result.standard_number,
                     result.source_site,
                     result_json,
-                    datetime.now().isoformat(),
+                    iso_now(),
                     source,
                 ),
             )
@@ -108,7 +109,7 @@ class CacheRepository:
             history = _json.loads(row["status_history"]) if row["status_history"] else []
         except _json.JSONDecodeError:
             history = []
-        entry["changed_at"] = datetime.now().isoformat()
+        entry["changed_at"] = iso_now()
         history.append(entry)
         self._db.execute(
             f"UPDATE {CACHE_TABLE} SET status_history=? WHERE id=?",

@@ -6,6 +6,8 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any
 
+from pilotstd.core.time_utils import iso_now
+
 from ..models import ParsedStdInfo
 from ..query.models import QueryResult
 from ..query.search_strategy import MATCH_SCORE
@@ -36,7 +38,7 @@ class PendingService:
 
     def record_pending(self, pending_items: list[Any]) -> None:
         """将待确认项写入 pending_lookup 表（已存在则跳过）。"""
-        now = datetime.now().isoformat()
+        now = iso_now()
         for parsed in pending_items:
             std_num = parsed.get_full_number()
             existing = self._db.fetchone(
@@ -71,7 +73,7 @@ class PendingService:
 
     def resolve_pending(self, pending_items: list[Any], resolution: str) -> None:
         """标记待确认项为已处理。resolution: 'discarded' | 'confirmed'"""
-        now = datetime.now().isoformat()
+        now = iso_now()
         for parsed in pending_items:
             std_num = parsed.get_full_number()
             self._db.execute(
@@ -81,7 +83,7 @@ class PendingService:
 
     def resolve_pending_by_numbers(self, numbers: list[str], resolution: str) -> None:
         """Q31: 按标准号字符串列表标记待确认项为已处理。供 Web API 等仅有字符串的调用方使用。"""
-        now = datetime.now().isoformat()
+        now = iso_now()
         for num in numbers:
             self._db.execute(
                 "UPDATE pending_lookup SET status=?, resolved_at=? WHERE standard_number=? AND status='pending'",
@@ -118,14 +120,14 @@ class PendingService:
             "INSERT INTO download_queue (standard_number, standard_name, "
             "publish_date, expected_available, created_at, status) "
             "VALUES (?, ?, ?, ?, ?, 'waiting')",
-            (num, name, pub_str, available_dt.isoformat(), datetime.now().isoformat()),
+            (num, name, pub_str, available_dt.isoformat(), iso_now()),
         )
 
     def get_due_downloads(self) -> list[dict[str, Any]]:
         """获取公开期已到的下载等待项。"""
         return self._db.fetchall(  # type: ignore[no-any-return]
             "SELECT * FROM download_queue WHERE status='waiting' AND expected_available <= ?",
-            (datetime.now().isoformat(),),
+            (iso_now(),),
         )
 
     def remove_download_queue(self, standard_number: str) -> None:
@@ -173,7 +175,7 @@ class PendingService:
         """标记为'建议手动查询'，从 pending 循环中移除。"""
         self._db.execute(
             "UPDATE pending_lookup SET status='manual_required', resolved_at=? WHERE standard_number=?",
-            (datetime.now().isoformat(), standard_number),
+            (iso_now(), standard_number),
         )
 
     # ── 本地缓存查询 ─────────────────────────────────────────

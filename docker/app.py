@@ -405,15 +405,6 @@ app.include_router(auto_router)
 
 
 # 健康检查端点（使用）
-@app.get("/api/health", response_model=HealthResponse)
-async def health_check():
-    """健康检查端点，返回服务状态和版本号。供 Docker HEALTHCHECK 指令探测容器存活。"""
-    return {
-        "status": "ok",
-        "version": _app_version,
-    }
-
-
 # 挂载静态文件+回退
 _DOCKER_DIR = os.path.dirname(os.path.abspath(__file__))  # docker/ 目录
 _PROJ_ROOT = os.path.dirname(_DOCKER_DIR)  # 项目根目录

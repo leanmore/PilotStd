@@ -4,7 +4,7 @@
 from typing import Any, Callable
 
 # 当前期望的表结构版本号（每次新增迁移+1）
-CURRENT_SCHEMA_VERSION = 72  # v72: 公告记录按归一化标准号去重 + standard_count 重算
+CURRENT_SCHEMA_VERSION = 73  # v73: 历史时间字符串统一为 ISO 8601 带时区偏移
 
 # 迁移注册表：版本号→迁移函数（接收实例）
 MIGRATIONS: dict[int, Callable[..., Any]] = {}
