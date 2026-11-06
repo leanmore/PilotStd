@@ -35,3 +35,10 @@ def test_fresh_iso_heartbeat_blocks_second_worker(monkeypatch):
     monkeypatch.setattr(scheduler, "_get_db", lambda: db)
     monkeypatch.setattr(scheduler, "_STALE_TIMEOUT", 600)
     assert scheduler._acquire_scheduler_lock() is False
+
+
+def test_unparsable_heartbeat_blocks_second_worker(monkeypatch):
+    """坏时间不能被误判为“过期”而抢锁，保守返回 False。"""
+    db = _DB("not-a-time")
+    monkeypatch.setattr(scheduler, "_get_db", lambda: db)
+    assert scheduler._acquire_scheduler_lock() is False
