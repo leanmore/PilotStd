@@ -197,7 +197,7 @@ _result_builder.py 98%、_exact_matcher.py 95%。
 
 ## 测试基线（2026-11-05）
 
-- 后端全量：`6033 passed, 10 skipped`（`pytest tests/ -q -n auto`）。
+- 后端全量：`6056 passed, 10 skipped`（`pytest tests/ -q -n auto`）。
 - 前端：`vitest 346 passed`；`type-check` / `lint` / `build` 全绿。
 - 阶段 2 新增：`test_archive_reconcile.py`（C-2 启动对账）、`test_part_cleanup.py`（C-3）、
   `test_backup_download.py`（C-4 下载与路径穿透）、`test_migrations_blank_db.py`（空白库 v1→v72）。
