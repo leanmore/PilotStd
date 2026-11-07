@@ -102,7 +102,7 @@ class TestOnFile:
             mock_cfg.return_value = {"auto_archive": True}
             with patch("pilotstd.monitor.scheduler.get_monitor_stats") as mock_stats:
                 s._mgr = MagicMock()
-                s._mgr.scan_directory.side_effect = Exception("scan fail")
+                s._mgr.auto_run.side_effect = Exception("scan fail")
                 s._on_file("/bad/path")
                 mock_stats.return_value.increment.assert_any_call("failed")
 
@@ -113,18 +113,22 @@ class TestOnFile:
             mock_cfg.return_value = {"auto_archive": True}
             with patch("pilotstd.monitor.scheduler.get_monitor_stats"):
                 with patch("pilotstd.manager.facade.StandardManager") as MockMgr:
-                    MockMgr.return_value.scan_directory.return_value = ["a", "b"]
+                    MockMgr.return_value.auto_run.return_value = {
+                        "scan": 2, "organize_moved": 2, "organize_failed": 0
+                    }
                     s._on_file("/p/f.pdf")
                     assert s._mgr is not None
 
-    def test_empty_scan_result_logs_unrecognized(self, caplog):
+    def test_empty_scan_result_logs_unrecognized(self, caplog, tmp_path):
         """解析不出标准号 → 明确告警（不再声称"扫描完成"，也不计 success）。
 
         技术债 #30：改前这里是 "扫描完成: 0 条" + 静默丢弃，面板看起来一切正常。
         """
+        src = tmp_path / "path.pdf"
+        src.write_bytes(b"%PDF-1.4")
         s = FileMonitorScheduler()
         s._mgr = MagicMock()
-        s._mgr.scan_directory.return_value = []
+        s._mgr.auto_run.return_value = {"scan": 0, "organize_moved": 0, "organize_failed": 0}
         mock_stats = MagicMock()
 
         with patch("pilotstd.monitor.scheduler.get_config") as mock_cfg:
@@ -134,7 +138,7 @@ class TestOnFile:
                 return_value=mock_stats,
             ):
                 with caplog.at_level(logging.WARNING):
-                    s._on_file("/fake/path.pdf")
+                    s._on_file(str(src))
 
         assert "未识别到标准号，未归档" in caplog.text
         keys = [c.args[0] for c in mock_stats.increment.call_args_list]
