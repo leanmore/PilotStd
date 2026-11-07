@@ -23,6 +23,7 @@ from .adapters.base import BaseDownloadAdapter
 from .models import ADOPTED_SKIP_MESSAGE, BatchDownloadStats, DownloadStatus, DownloadTask
 from .part_cleanup import cleanup_stale_parts
 from .session import SessionManager
+from .task_store import DownloadTaskStore
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +49,7 @@ class DownloadEngine:
         long_rest: float = 15.0,
         max_workers: int = 2,
         max_retries: int = 2,
+        db: Any = None,
     ):
         self._adapters = adapters
         self._session_mgr = session_manager
@@ -63,6 +65,7 @@ class DownloadEngine:
         self._long_rest = long_rest  # 批次间休息秒数，避免触发站点限流
         self._max_workers = max_workers  # 并发下载线程数，2 线程平衡速度与反爬
         self._max_retries = max_retries  # 网络失败最大重试次数
+        self._task_store = DownloadTaskStore(db) if db is not None else None
 
         ensure_dir(self._save_root)
         # 启动清理：删除超过 1 小时的 .part（下载中断残留；1 小时内可能仍在下载）
@@ -75,6 +78,21 @@ class DownloadEngine:
             logger.exception("启动清理 .part 失败")
 
     # 公共接口
+
+    def _persist_task(self, task: DownloadTask) -> None:
+        if self._task_store is not None:
+            self._task_store.persist(task)
+
+    def retry_pending(self, limit: int = 20) -> int:
+        """重启后自动重试未完成下载；有次数上限，超过则保持 failed。"""
+        if self._task_store is None:
+            return 0
+        recovered = self._task_store.load_retryable(limit, self._max_retries)
+        if not recovered:
+            return 0
+        logger.info("检测到 %d 个未完成下载任务，开始自动重试", len(recovered))
+        self.download_batch(recovered)
+        return len(recovered)
 
     def fetch_bytes(self, task: DownloadTask) -> tuple[Optional[bytes], str]:
         """按任务路由到适配器取回内容，不落盘。返回 (内容, 错误信息)。
@@ -313,6 +331,9 @@ class DownloadEngine:
         results: List[Optional[DownloadTask]] = [None] * len(tasks)
         # 预建任务到索引的映射，避免重试循环中(²)的.索引()调用
         task_index = {id(t): i for i, t in enumerate(tasks)}
+        # 先落 pending，再执行；重启后可按 task_queue 续跑
+        for task in tasks:
+            self._persist_task(task)
 
         for batch_start in range(0, len(tasks), self._batch_size):
             batch_end = min(batch_start + self._batch_size, len(tasks))
@@ -335,6 +356,8 @@ class DownloadEngine:
 
         completed = [r for r in results if r is not None]
         self._collect_batch_stats(completed, stats)
+        for task in completed:
+            self._persist_task(task)
         self._notify_download_complete(notification_mgr, stats, _batch_key, context)
 
         return completed, stats
@@ -511,7 +534,7 @@ class DownloadEngine:
                     try:
                         os.remove(tmp_path)
                     except OSError:
-                        logger.warning("清理临时文件失败: %s", tmp_path)
+                        logger.warning("清理临时文件失败: %s", tmp_path)  # i18n-allow: 内部运维日志
                 raise
 
             task.saved_path = final_path

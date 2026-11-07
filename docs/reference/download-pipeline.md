@@ -228,6 +228,13 @@ GET {BASE}/viewGb?hcno=<H>     Referer: 全文下载页     timeout=120s, stream
 
 并从 `Content-Disposition` 提取文件名写入 `task.extra["filename_from_header"]`（`:345-351`）。
 
+### 任务持久化与启动重试（2026-11-07）
+
+- `DownloadEngine.download_batch` 把每个任务写入 `task_queue`（`task_type=download`）；
+- 启动时 `_retry_download_tasks` 调 `retry_pending()`，重试未完成且 `retry_count < max_retries` 的任务；
+- 超过上限保持 `failed`，不会无限重试；
+- 这是“任务不丢 + 自动重试”，不是 HTTP 断点续传。
+
 ### 轮次与重试语义（务必区分）
 
 `_VIEW_ROUNDS = 2`（`:65`），整轮循环在 `_do_download`（`:281-314`）：

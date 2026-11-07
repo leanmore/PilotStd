@@ -214,6 +214,7 @@ class BaseFacade:
         )
         dl_adapter = download_adapters or [OpenstdDownloadAdapter(self._core.session_mgr.create_session())]
         save_root = get_library_root(cfg)
+        self._core.task_queue = TaskQueue(self._core.db)
         self._core.download_engine = DownloadEngine(
             dl_adapter,
             self._core.session_mgr,
@@ -222,8 +223,8 @@ class BaseFacade:
             long_rest=float(cfg.get("download.long_rest", 15.0)),
             max_workers=int(cfg.get("download.max_workers", 2)),
             max_retries=int(cfg.get("download.max_retries", 2)),
+            db=self._core.db,
         )
-        self._core.task_queue = TaskQueue(self._core.db)
 
         from ...pipeline.router import PipelineRouter
 

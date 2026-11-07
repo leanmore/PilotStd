@@ -456,7 +456,20 @@ def start_scheduler():
     threading.Thread(target=_heartbeat_loop, daemon=True, name="scheduler-heartbeat").start()
     # 启动补跑：处理重启前遗留的 pending，不阻塞调度器启动
     threading.Thread(target=_drain_validity_queue, daemon=True, name="validity-queue-startup").start()
+    threading.Thread(target=_retry_download_tasks, daemon=True, name="download-retry-startup").start()
     logger.info("APScheduler 已启动")
+
+
+def _retry_download_tasks() -> None:
+    """启动补跑：重试上次进程遗留的未完成下载任务（有次数上限）。"""
+    try:
+        from .manager import get_manager
+
+        count = get_manager().download_engine.retry_pending()
+        if count:
+            logger.info("[download-retry] 已触发 %d 个未完成任务", count)  # i18n-allow: 内部运维日志
+    except Exception as exc:
+        logger.warning("下载任务启动补跑失败: %s", exc)  # i18n-allow: 内部运维日志
 
 
 def _check_validity_schedule(notification_mgr=None, adapter_mgr=None, query_engine=None):

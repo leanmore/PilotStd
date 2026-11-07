@@ -15,9 +15,9 @@
 | 4 | `standard_validity` 不是归档第一权威 | 设计边界 | 与 `file_index`/Query 可能不一致 |
 | 5 | `standard_validity` 存在畸形键 | 历史数据缺陷 | 按表查询/搬移会漏 |
 | 6 | Word 重解析使用空 scan.code_mapping | 实现缺陷 | TSG 等进入 `T 未知行业(T)` |
-| 7 | 手动/一键下载任务不持久化 | 当前缺口 | 重启丢任务 |
+| 7 | 手动/一键下载任务不持久化 | 已修复（2026-11-07） | 任务落 `task_queue`；重启自动重试未完成，有次数上限 |
 | 8 | 规范化只预览，归档忽略 `new_filename` | 已修复（2026-11-07） | 归档以预览名（`final_name`）为准；重名冲突走待确认 |
-| 9 | 归档通知按“每次调用”发 | 正文已修；聚合仍待改 | 零搬移正文完整；批量聚合/批次键未闭环 |
+| 9 | 归档通知按“每次调用”发 | 已修复（2026-11-07） | 一次 auto_run 共用 batch_scope；零搬移仍发且正文完整 |
 | 10 | DB 写存在 SELECT+INSERT 竞争 | 已修复（2026-11-07） | file_index 原子 UPSERT；validity 首次登记 INSERT OR IGNORE |
 | 11 | monitor 懒加载 manager 无锁 | 实现缺陷 | 多实例/重复校验 |
 | 12 | `validity_check_queue` 表不存在 | 已修复（v75） | 队列建表 + 60s 消费；见 #12 详述 |
@@ -198,7 +198,12 @@
 - 不会自动重试（收藏链除外）；
 - `.part` 只会被清理，不续传。
 
-**已做（2026-11-07，仅 Web 管道）**
+**已做（2026-11-07，下载任务 + Web 管道）**
+
+- 下载任务落 `task_queue`（task_type=download），状态/重试次数/错误可查；
+- 服务启动后自动重试未完成下载，超过 `max_retries` 保持 failed；
+- Web 五段式另有阶段级续跑（见下）；
+- 下载引擎本身仍不做 HTTP 断点续传。
 
 - Web 五段式增加“服务重启 → interrupted → 阶段级继续”：
   - 后端启动把 running/stopping 标为 interrupted；
@@ -255,7 +260,9 @@
 - `moved=0` 仍发 `archive_complete`；正文包含 count/skip/fail/dirs，不再只有标题；
 - `archive_standards` payload 增加 total/skipped_exists/failed；
 - `notification_log.body` 对归档事件不再为空。
-- **刻意不抑制零计数**：用户要求零搬移也要可追踪；聚合/批次键仍待处理。
+- **刻意不抑制零计数**：用户要求零搬移也要可追踪；
+- 一次 `auto_run` 在 `batch_scope("imp")` 内完成 scan/query/download/archive，归档复用同一批次键；
+- 批量通知收敛为一条管道汇总 + 必要的归档正文，不再按文件逐条发。
 
 **如果要改**
 

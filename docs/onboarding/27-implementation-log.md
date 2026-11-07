@@ -190,6 +190,15 @@
 | 测试 | organizer 116 passed |
 | 回滚 | 恢复按标准号自动命名 + 目标存在直接跳过 |
 
+### 19. 下载任务持久化 + 启动重试（#7 B）
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `download/engine.py`、`manager/facade/_base.py`、`docker/scheduler.py`、测试 |
+| 行为 | 下载任务写 `task_queue`；启动补跑未完成任务；`retry_count >= max_retries` 不再重试 |
+| 测试 | 下载持久化/下载链 57 passed |
+| 回滚 | 去掉 `_persist_task`/`retry_pending` 与启动线程 |
+
 ---
 
 ## 验证汇总
