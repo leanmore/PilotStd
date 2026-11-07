@@ -3,6 +3,7 @@
 > **这是入口**：只列"动手前必读"的 13 份。
 > 新人入门：见仓库根的新人入门入口；本索引不重复列 29 份 onboarding 文档。
 > 开始任务前先跑 `python scripts/find_docs.py "<关键词>"`，再按命中结果读 1~3 篇。
+> 工作流闸门与红线见 AGENTS；详细步骤见 onboarding/00。
 > **找全部文档** → [`DOCUMENTATION_MAP.md`](DOCUMENTATION_MAP.md)（117 篇，按"治理/现状/指引/历史/期望"分层）；
 > **看接下来做什么、什么时候做** → [`ROADMAP.md`](ROADMAP.md)。
 

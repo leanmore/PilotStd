@@ -1,176 +1,118 @@
-# AGENTS.md — PilotStd 项目执行规则（最终版）
+# AGENTS.md — PilotStd 执行约束
 
-> 本文件为 DeepSeek Harness 在 PilotStd 仓库中的行为约束。所有条目均为可执行指令，非参考资料。Harness 启动时自动加载。
+> DeepSeek Harness 启动时自动加载。这里只放**不可协商的约束与入口**；详细步骤在 playbook，不在本文件堆规则。
 
 ---
 
-## 零、任务开始前：先查文档（强制）
+## 零、任务开始前（强制）
 
-**非 trivial 任务**（排查、设计、改代码、写迁移、部署验证）开始前，按顺序做：
+非 trivial 任务（排查、设计、改代码、迁移、部署）先做：
 
-1. 运行关键词检索，不靠记忆猜：
+1. 检索文档，不靠记忆：
    ```bash
    python scripts/find_docs.py "通知 未读 聚合"
-   python scripts/find_docs.py "monitor 空目录 归档"
-   python scripts/find_docs.py "validity 畸形键 过期"
    ```
-2. 从命中结果中打开 **1~3 篇**，优先看：
-   - `docs/onboarding/00-how-to-use.md`（按问题类型查文档）
-   - `docs/onboarding/08-known-boundaries.md`（这是设计边界还是缺口）
-   - `docs/onboarding/26-fix-dossiers.md`（这个问题修到哪一步）
-3. 在分析、修复或交付中写明“已查阅：路径 + 章节/编号”；没有文档依据，不得直接下根因结论。
-4. 修完后回写：边界状态写 `08`，dossier 写 `26`，实际改动/测试/回滚写 `27`。
-
-> 这套文档不是让模型一次背完；入口、路由表、检索脚本和引用习惯才是“记得”的机制。
+2. 打开命中的 1~3 篇；优先看 `docs/onboarding/00-how-to-use.md`、`08-known-boundaries.md`、`26-fix-dossiers.md`。
+3. 分析/修复/交付时写明“已查阅：路径 + 章节/编号”；无依据不得下根因结论。
+4. 修完回写：边界写 `08`，dossier 写 `26`，改动/测试/回滚写 `27`。
 
 ---
 
-## 一、环境架构（排查/验证任务优先读）
+## 一、环境与版本
 
-| 环境 | 代码 | 后端 | 触发词 | 行为 |
-|------|------|------|--------|------|
-| 开发 | 本地最新 | 本地/Mock | "写代码/改功能/调样式" | 默认工作环境，数据不可靠 |
-| 验证 | 本地新代码 + Vite | 局域网 Docker 真实 API | "验证/数据不对/字段不显示" | 修复后首选验证方式 |
-| 复现 | Git 旧 commit | 同一 Docker API | "以前正常/突然坏了" | 控制变量法排查回归 |
-| 生产 | 已发布 | Docker + 真实数据 | "生产/线上" | 红线：禁止直接操作 |
+| 环境 | 代码 | 后端 | 用途 |
+|---|---|---|---|
+| 开发 | 本地最新 | 本地/Mock | 写代码；数据不可靠 |
+| 验证 | 本地新代码 + Vite | 局域网 Docker | 修复后首选验证 |
+| 复现 | Git 旧 commit | 同一 Docker API | 回归/控制变量 |
+| 生产 | 已发布 | Docker + 真实数据 | 只读验证；写操作需窗口 |
 
-**凭证**：`config/docker_creds.json`（固定路径，勿搜索）。登录 `POST /api/login` → session cookie；静态 token 已失效。该文件含 GBK 中文注释，禁止直接 JSON 解析。
+- **凭证**：`config/docker_creds.json`，含 GBK 注释；按行读取，不直接 JSON 解析。
+- **版本**：只信 `/api/health` 的 `version` / `schema_version`；本地 tag、`VERSION` 不作部署证据。细节见 `docs/reference/health-check.md`。
+- **排查路径**：复现 → 证据 → 假设 → 修复 → 验证 → 收口。
 
-**版本号**：由 CI 自动生成，**不要手工改**，也**不得用本地 tag 判断部署版本**。`.github/workflows/ci.yml` 的 `version` 作业取最新 tag 作基准 → `scripts/version.py` 按 commit message 定级（`BREAKING CHANGE`→major、`feat:`→minor、`fix:`→patch）→ 写入 `pilotstd/__init__.py:10` 的 `__version__`（`VERSION` 文件同源）→ 提交 `chore: bump version to vX` 并推送 tag `vX.Y.Z`。镜像由 bump **之后**的提交构建，故镜像 sha 与 tag 不一致属**设计内行为**（`ci.yml:1009-1011` 已记录）。本地 tag 常滞后（需要时 `git fetch --tags`）；**部署版本一律以 `/api/health` 返回的 `version` 为准**，本地 tag/`VERSION` 不作证据。
+---
 
-**标准排查路径**：复现（确认边界）→ 验证（定位根因）→ 开发（修复）→ 验证（确认）→ 生产（部署）。
+## 二、工作流：6 个闸门
 
+| 闸门 | 动作 | 退出条件 |
+|---|---|---|
+| G0 分诊 | 判断类型（设计/缺陷/数据/部署）与影响端（Web/Win/CLI/Docker） | 能说清类型、影响面、风险 |
+| G1 取证 | 文档检索 + 代码搜索 + 日志/DB/健康检查 | 至少 1 条文档依据 + 1 条运行证据 |
+| G2 假设 | 一句话写根因/目标 | 假设可被测试或日志证实/证伪 |
+| G3 变更 | 最小 diff；逻辑/数据变更先写失败测试 | 改动可追溯到需求 |
+| G4 验证 | 单测/契约/四件套/门禁/CI；真实数据 ≥3 条 | 命令跑过、输出看过 |
+| G5 收口 | 回写 `08/26/27`；提交；记录部署状态 | 文档与代码同批 |
 
-## 二、核心规则（14 条）
+**停止条件**：
 
-### 搜索与定位
+- 没有证据 → 不下根因结论，先查；
+- 涉及生产写库/重启/改容器 → 停下，要维护窗口；
+- 需求有歧义 → 只问最关键的一个问题；
+- 跨 3 个以上模块或改 schema → 先出方案，不直接写；
+- 测试失败 → 不进下一闸门；
+- 文档未回写 → 不算完成。
 
-**R-001：先搜再动**
-- 新增函数/常量/模块前，`grep` 全库确认无重复；查 `git log` 无被否决方案。
-- **分配任何编号前必须先 `grep` 占用情况**——债务 `T-xx`、门禁 `G-0xx`、迁移 `vNN`、ADR `ADR-0xx` 一律适用；分配后须在记录/提交信息里写明"实测空闲"的依据。编号一旦占用**不得复用**；**也不得给"已闭环的修复"套用债务编号**（修复不是债，不留 ID）。
-  **反例（2026-10-03）**：把工具调用的 PATH 修复误标为 `T-36`，而 `T-36` 早已是「空库迁移链固定打印 3 条告警」的登记号——读者按号交叉引用会落到**完全不同的课题**上。该错误只在有人按号去查时才暴露，故必须前置 `grep`，而不是事后靠人发现。
+---
 
-**R-002：精准修改**
-- 改仅限目标范围。发现死代码→告知用户，不擅自删。不顺手改格式/注释/相邻代码。
-- `git diff` 每行须追溯到用户明确要求。
+## 三、不可协商的 8 条
 
-**R-003：删除必扫**
-- 删除公共 API 前，grep 全库（含测试配置、归档）。`ruff`/`vulture`/`ts-prune` 零残留。
+1. **生产红线**：不直接改容器代码、不 UPDATE 生产库、不为测试重启服务。
+2. **门禁不绕过**：禁止用 `noqa`/`skipif`/`continue-on-error` 掩盖失败；失败就修。
+3. **最小 diff**：只改目标范围；死代码先告知，不擅自删。
+4. **测试先行**：逻辑/算法/数据处理变更先写失败测试；GUI/配置/文档可跳过。
+5. **先搜再建**：新增函数/常量/迁移/编号前先 grep，确认无重复、无被否决方案。
+6. **临时文件出仓**：写 `%TEMP%`；提交消息用 `git commit -F <仓库外路径>`。
+7. **文档联动**：核心模块/API/DB 变更同批改对应文档；否则不算完成。
+8. **证据优先**：结论附路径+行号+实测输出；不凭记忆、不脑补。
 
-### 分析与交付
+---
 
-**R-004：实证优先**
-- "完成/通过"前必须跑过验证命令，看过输出，真实数据采样 ≥3 条。禁止凭记忆/推断下结论。
+## 四、验证入口
 
-**R-005：先析再答**
-- 收到问题→查代码/文档→附证据→结论。禁止客套话、绕弯子。
+- 后端：`python -m pytest <target> -q`；提交前跑相关门禁。
+- 前端（改 `web/` 必跑四件套）：
+  ```bash
+  pnpm.cmd run type-check
+  pnpm.cmd run lint
+  pnpm.cmd test
+  pnpm.cmd run build
+  ```
+- 门禁：`bash scripts/check_all.sh --fast --guards --local`；CI 以 GitHub Actions 为准。
+- 详细清单：`docs/reference/pre-commit-checklist.md`。
 
-**R-006：联动更新**
-- 代码变更涉及架构/API/DB 时，同步检查 `docs/` 关联文档是否需要更新。
+---
 
-**R-007：不明即问**
-- 指令有歧义/缺上下文时，列出"不确定的点"请用户确认。禁止脑补。
+## 五、交付与提交
 
-### 代码纪律
+交付四要素：
 
-**R-008：简洁至上**
-- 最小代码解决需求。不加未要求的功能，不创建一次性抽象，不加"可配置性"除非用户要求。
+1. 差异表（假设 vs 实测）；
+2. 改动文件清单；
+3. 验证结果；
+4. 自审清单（红线/测试/文档/无关改动）。
 
-**R-009：SQL 安全**
-- 动态表名须为同文件全大写常量。禁止外部数据拼入表名。
+提交：Conventional Commits，按逻辑分组；未经用户同意不推送。
 
-**R-010：完成前清理**
-- 改动区域内 `TODO`/`FIXME`/`stub` 一个不留。每条改动立即可用。
-- **临时文件一律写在仓库之外**（如 `$env:TEMP`）。禁止在仓库根目录创建 `_*tmp*`、
-  `_msg*.txt` 等临时文件——`git add -A` 会把它们一并提交（本项目已因此误提交两次）。
-  若确需临时消息文件，用 `git commit -F <仓库外路径>`。
+---
 
-**R-011：注释用中文**
-- 代码注释说明"为什么"而非"是什么"。标识符用英文。
+## 六、能力矩阵
 
-### 流程与提交
+修改 `pilotstd/core/`、`docker/api/`、ADR 或 `docs/` 治理文档前，跑：
 
-**R-012：先批后做**
-- 功能开发前出 1-2 方案→等用户批准。未获批不进实现。
-
-**R-013：测试驱动（适用时）**
-- 逻辑/算法/数据处理变更：先写失败测试，再写实现。可跳过：GUI/配置/文档。
-
-**R-014：提交规范**
-- Conventional Commits，按逻辑分组。测试修复标注 `[Test-Fix]`。未经用户同意不推送。
-
-
-## 三、环境特定约束
-
-### 验证环境（执行动作）
-- 入口：`web/` 目录 `npm run dev`，代理 `/api` → `http://192.168.1.18:9028`
-- 登录：`POST /api/login` 表单，取 `pilotstd_token` + `csrf_token` session cookie
-- 陷阱：`config/docker_creds.json` 含 GBK 中文注释，提取字段时按行读取，不走 JSON 解析
-
-### 生产环境（红线）
-- 禁止：修改容器内代码、UPDATE 生产数据库、重启服务做测试
-- 所有修复先在验证环境确认，再建议部署
-
-
-## 四、工作流（5 步）
-
-```
-W-001 分析 → W-002 设计/获批 → W-003 测试（适用时）→ W-004 验证（≥3条数据）→ W-005 提交
+```bash
+python scripts/generate_capabilities.py
 ```
 
-每步完成后报告结果，等确认再下一步。禁止一次性输出全部代码。
+生成物 `docs/governance/capabilities_registry.md` 与代码同批提交。
 
+---
 
-## 五、交付报告（固定模板）
+## 七、文档生命周期
 
-```markdown
-# 交付报告：[任务名]
+### 7.1 读取侧（G-037 依赖，勿删）
 
-## 一、差异表（提示词 vs 实测）
-| 项目 | 假设 | 实测 | 处理 |
-
-## 二、改动文件清单
-| 文件 | 行数 | 说明 |
-
-## 三、验证结果
-| 检查项 | 结果 |
-
-## 四、自审清单
-- [ ] R-001~R-014 适用项已核对
-- [ ] 无 TODO/FIXME
-- [ ] 未顺手改无关代码
-- [ ] 用户已确认提交
-```
-
-
-## 六、教训（一句话版）
-
-| # | 教训 |
-|---|------|
-| P-101 | 调查任务只读不改，`git status` 零差异 |
-| P-102 | 每条结论附文件路径+行号+实测输出，不空泛 |
-| P-103 | 用户列了"做/不做"清单时，严格跟，不越界 |
-| P-104 | 门禁不绕过：`noqa`/`any`/`skipif`/`continue-on-error` 一律禁止 |
-| P-105 | 提示词中的路径/行数/预期值都是假设，执行前先实测，交付出差异表 |
-| P-106 | 已执行迁移函数源码不可变（`inspect.getsource` 哈希）。唯一安全方式：逐字符原样移动到新文件 |
-| P-107 | 预存问题告知但不越界修，单独排工单 |
-| P-108 | 交付四要素：差异表 + 文件清单 + 验证结果 + 自审清单 |
-| P-109 | **改全局状态前先 GET 快照，结束时恢复快照值（不是默认值）**——Q6 的 `enabled` 做对了，B2 的 `quiet_hours` 漏了快照，只能按默认 false 恢复 |
-
-
-## 七、能力矩阵触发
-
-涉及以下变更时，`git commit` 前必须跑 `python scripts/generate_capabilities.py`，将生成的 `capabilities_registry.md` 纳入同一 commit：
-- 新增/修改/删除 ADR
-- 修改 `pilotstd/core/`、`docker/api/`
-- 修改 `docs/` 治理文档
-
-
-## 八、文档生命周期
-
-### 8.1 读取侧（G-037 依赖，勿删）
-
-本节为 G-037 门禁硬依赖：`check_g_037_trigger_alignment.py` 从本节**读文档触发条件表**提取文档路径与 `docs/index.md` 比对，任一方向缺失即 CI 阻断。修改本节须同步更新 `docs/index.md`。
+本节是 G-037 的硬依赖：从下面这张“读文档触发条件表”提取路径，并与 `docs/index.md` 双向对齐。
 
 | 触发条件 | 必须读取的文档 | 文档性质 |
 |----------|---------------|---------|
@@ -191,55 +133,25 @@ W-001 分析 → W-002 设计/获批 → W-003 测试（适用时）→ W-004 �
 | 不确定下一步做什么 / 查排期 | `docs/ROADMAP.md` | 索引 |
 | 不确定该读什么 | `docs/index.md` | 索引 |
 
-### 8.2 回写侧（R-006 补充）
-
-以下文档是代码的"文字映射"，代码变更后须同步更新。R-006 联动更新规则在此适用。
+### 7.2 回写侧
 
 | 文档 | 对应代码范围 |
 |------|-------------|
-| `docs/architecture.md` | 数据库/Schema/API/整体架构变更 |
-| `docs/reference/announcement-pipeline.md` | `pilotstd/announcement/` 状态机/流程变更 |
-| `docs/reference/announcement-sources.md` | `docker/api/announce_detail.py` 来源/字段变更 |
-| `docs/reference/download-pipeline.md` | `pilotstd/download/` 下载链路变更（hcno 来源 / 端点族 / 步骤链；同 `scripts/check_g_031_docs_sync.py` 的 G-031 映射） |
-
-**执行规则**：
-1. 改代码前 → 按 8.1 表读取对应文档
-2. 改代码后 → 检查 8.2 清单中文档是否需要更新
-3. 需要更新 → 在同一 commit 中同步修改
-4. 验证 → G-032 + G-037 通过
-
-## 九、工具迁移
-
-本项目早期使用 VS Code + Claude Code 开发；2026-08-21 删除 CLAUDE.md（提交 `10d3a1a6`）后完全转向
-DeepSeek Harness（DSH）。核心规则此前已迁入本文件（`48a9037b` 落地 AGENTS.md），**删除提交未再搬运内容**；
-若发现某条旧规则只存在于 CLAUDE.md，可从 git 历史取回：
-
-```bash
-git show 10d3a1a6^:CLAUDE.md
-```
-
-两段代码的局部风格不统一属历史原因，不是缺陷。
-
-## 十、前端改动验证（2026-10-25 起）
-
-改 `web/` 后必须跑**四件套**，缺一不可（顺序同 CI）：
-
-```bash
-cd web
-pnpm run type-check   # vue-tsc
-pnpm run lint         # eslint src（2026-10-25 接入 CI）
-pnpm test             # vitest run（**一直存在**，42+ 个 .test.ts；改组件/接口后必须跑）
-pnpm run build        # vite build
-```
-
-> **Windows 执行策略**：若 `pnpm` 报"禁止运行脚本"（`pnpm.ps1` 被 PowerShell ExecutionPolicy 拦截），改用 `pnpm.cmd`（例如 `pnpm.cmd run type-check`），并逐条检查退出码。
-
-教训来源：2026-10-25 曾误称"前端无自动化测试"，导致 A3/A4 两批前端改动只跑了 tsc/build/eslint，
-漏跑 vitest；其中 A3 把 `FavoritesView` 从 `fetch` 改为 `http` 后，`FavoritesView.test.ts` 7 条用例全红
-（mock 的仍是 `fetch`）。vitest 自 2026-06-17 初始提交即在仓库内——"没跑"不是"没有可跑"。
+| `docs/architecture.md` | DB/Schema/API/整体架构 |
+| `docs/reference/announcement-pipeline.md` | `pilotstd/announcement/` 状态机/流程 |
+| `docs/reference/announcement-sources.md` | 来源/字段 |
+| `docs/reference/download-pipeline.md` | `pilotstd/download/` 下载链路 |
 
 ---
 
-**版本**：v3.12  
-**行数**：约 245 行  
-**变更**：新增 §零「任务开始前：先查文档（强制）」——入口文档、`scripts/find_docs.py` 关键词检索、引用依据与回写要求；解决“文档存在但不用”的问题。§8.1 新增「查历史决策 / 准备改判 → docs/DECISIONS.md」一行（与 docs/index.md 同步，G-037 14 项对齐）。上一版（v3.8）：新增 §十「前端改动验证」——四件套（type-check/lint/test/build），并记录 2026-10-25 漏跑 vitest 的教训（vitest 自初始提交即在）。上一版（v3.7）：新增 §九「工具迁移」——记录 2026-08-21 删除 CLAUDE.md 后完全转向 DSH，并声明迁移发生在 48a9037b、删除提交未再搬运。上一版（v3.6）：第一节（环境架构）新增「**版本号**」事实条目——版本号由 CI 的 `version` 作业（`.github/workflows/ci.yml`）经 `scripts/version.py` 按 commit message 自动生成并打 tag，**不得用本地 tag 判断部署版本**（本地 tag 常滞后），镜像 sha 与 tag 不一致属设计内行为，**部署版本一律以 `/api/health` 的 `version` 为准**。触发实例：2026-10-16 下载适配器缺陷排查中，把本地最新 tag `v0.138.2` 当成"与部署版 `v0.138.3`/`7c521a7b` 对不上"的差异写进交付报告差异表——该机制此前**不存在于任何自动加载或必读文档**（本文件、docs/governance/development-flow.md 均无），故只能靠人事后纠正；登记于此使其随 Harness 启动自动加载。上一版（v3.5）：R-001 增补「**分配任何编号前必须先 `grep` 占用情况**」——债务 `T-xx`／门禁 `G-0xx`／迁移 `vNN`／ADR `ADR-0xx` 一律适用，且**不得给"已闭环的修复"套用债务编号**（修复不是债）。触发实例：2026-10-03 把工具调用的 PATH 修复误标为 `T-36`，而 `T-36` 早已是「空库迁移链固定打印 3 条告警」的登记号，按号交叉引用会落到完全不同的课题上——该错误只在有人按号去查时才暴露，故须前置 `grep`。上一版（v3.4）：R-010 增补「临时文件一律写在仓库之外」约束——临时文件误提交已发生两次（`_msg_tmp.txt` / `_msg7.txt`），根因是在仓库根目录创建临时文件后执行 `git add -A`；约束要求临时文件写入 `$env:TEMP` 等仓库外路径，提交消息用 `git commit -F <仓库外路径>`。上一版（v3.3）：登记 `docs/reference/download-pipeline.md` 为代码说明书——8.1 读取侧新增"涉及下载链/下载适配器"触发条件、8.2 回写侧新增 `pilotstd/download/` 对应行（技术债 #24；G-037 要求 8.1/8.2/index.md 三处一致，G-031 要求改 `pilotstd/download/` 同批改本文档）。上一版（v3.2）：第八节重组为"文档生命周期"两子节——8.1 读取侧（G-037 依赖，表格原样保留，说明文字保留"读文档触发条件表"入口字样以兼容门禁解析）；8.2 回写侧（R-006 补充：3 份代码说明书清单 + 执行规则）
+## 八、详细资料在哪
+
+- 工作流/按问题查文档：`docs/onboarding/00-how-to-use.md`
+- 当前边界：`docs/onboarding/08-known-boundaries.md`
+- 问题 dossier：`docs/onboarding/26-fix-dossiers.md`
+- 实施记录：`docs/onboarding/27-implementation-log.md`
+- 编码规范：`docs/reference/coding-standards.md`
+- 提交前清单：`docs/reference/pre-commit-checklist.md`
+- 历史教训：`docs/ci-lessons.md`
+
+> 本文件有长度预算：新增规则前先问“是否跨任务不可协商”。单任务流程写 playbook，不写这里。
