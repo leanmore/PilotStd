@@ -98,11 +98,12 @@ class ValidityHistoryResponse(BaseModel):
 
 
 class ValidityEnqueueResponse(BaseModel):
-    """时效性检查入队结果：是否成功、已入队数量与提交总数。"""
+    """时效性检查入队结果：是否成功、已入队数量、提交总数与失败原因。"""
 
     ok: bool
     enqueued: int
     total: int
+    error: str = ""
 
 
 @router.get("/api/validity/config", response_model=ValidityConfigResponse)

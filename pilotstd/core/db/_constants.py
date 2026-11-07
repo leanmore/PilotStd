@@ -4,7 +4,7 @@
 from typing import Any, Callable
 
 # 当前期望的表结构版本号（每次新增迁移+1）
-CURRENT_SCHEMA_VERSION = 74  # v74: 修复 standard_validity 前导空格/缺代号畸形键
+CURRENT_SCHEMA_VERSION = 75  # v75: 补建 validity_check_queue（选中文件检查队列）
 
 # 迁移注册表：版本号→迁移函数（接收实例）
 MIGRATIONS: dict[int, Callable[..., Any]] = {}

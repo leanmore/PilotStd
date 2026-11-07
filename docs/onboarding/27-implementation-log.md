@@ -85,6 +85,15 @@
 | 测试 | 无行为变更；`openstd_download` 49 passed（此前） |
 | 回滚 | 还原注释 |
 
+### 8. validity_check_queue 建表 + 消费者（#12 / v75）
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `_migrate_v75_validity_queue.py`、`validity_service.py`、`docker/scheduler.py`、前端 `OrganizeView` 文案 |
+| 行为 | 建队列表；`process_pending` 路径→标准号→`check_standard`；调度器 60s drain + 启动补跑 |
+| 测试 | `tests/test_validity_queue_v75.py` 4 passed；迁移链 31 passed |
+| 回滚 | 还原 v75 常量/迁移注册/服务与调度器；旧库不再自动建表 |
+
 ---
 
 ## 验证汇总

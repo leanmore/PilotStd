@@ -74,16 +74,17 @@ erDiagram
 
 ### 迁移链（2026-11-07 核实）
 
-- 当前 schema：**v74**（`pilotstd/core/db/_constants.py`）；
+- 当前 schema：**v75**（`pilotstd/core/db/_constants.py`）；
 - 迁移注册表：`MIGRATIONS: dict[int, Callable]`，启动时按版本执行；
-- 迁移模块：**30 个 `_migrate*.py`**，覆盖 v2→v74（v1 是初始 schema；另有 `migrations.py` / `_migration_checksum.py` 两个基础设施文件）；
+- 迁移模块：**31 个 `_migrate*.py`**，覆盖 v2→v75（v1 是初始 schema；另有 `migrations.py` / `_migration_checksum.py` 两个基础设施文件）；
 - 迁移源码受 P-106 约束：已执行迁移函数**不可改**，只能用新迁移修数据；
 - 最近五项：
   - v70：`announcement_record.language`；
   - v71：`notification_log.user_id`；
   - v72：公告标准号归一化 + `standard_count` 重算；
   - v73：历史时间字符串统一为 ISO 8601 带时区偏移；
-  - v74：修复 `standard_validity` 前导空格/缺代号畸形键。
+  - v74：修复 `standard_validity` 前导空格/缺代号畸形键；
+  - v75：补建 `validity_check_queue`（选中文件检查队列）。
 
 **排查提示**：先看 `/api/health` 的 schema 版本；不要拿“本地迁移文件”推断线上已执行。迁移只在启动时跑，执行记录在 `_schema_version`。
 

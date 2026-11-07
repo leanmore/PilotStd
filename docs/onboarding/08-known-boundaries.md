@@ -20,7 +20,7 @@
 | 9 | 归档通知按“每次调用”发 | 当前缺口 | 批量时通知过多/聚合失效 |
 | 10 | DB 写存在 SELECT+INSERT 竞争 | 实现缺陷 | 并发时 UNIQUE 错误 |
 | 11 | monitor 懒加载 manager 无锁 | 实现缺陷 | 多实例/重复校验 |
-| 12 | `validity_check_queue` 表不存在 | 实现缺陷 | 入队接口不可用 |
+| 12 | `validity_check_queue` 表不存在 | 已修复（v75） | 队列建表 + 60s 消费；见 #12 详述 |
 | 13 | `/api/auto` 未传 `root_path` | 实现缺陷 | 该端点按当前签名不可用 |
 | 14 | 下载只有 `openstd_download`；非 GB 无适配器，采标 GB 受版权限制 | 设计边界 + 能力缺口 | 非 GB/采标 GB 无法自动下载 |
 | 15 | Web TaskView 没有“停止”按钮 | 当前缺口 | 离开页面只停轮询，后端任务继续 |
@@ -297,23 +297,30 @@
 
 ---
 
-### 12. `validity_check_queue` 表不存在
+### 12. `validity_check_queue` 表不存在（已修，v75）
 
-**证据**
+**原证据**
 
-- `pilotstd/manager/validity_service.py:56` 是唯一引用：
+- `pilotstd/manager/validity_service.py` 是唯一引用：
   `INSERT OR IGNORE INTO validity_check_queue ...`；
-- 代码库中没有建表迁移/DDL。
+- 代码库中没有建表迁移/DDL；
+- 异常被逐条吞掉，接口返回 `ok=True, enqueued=0`（假成功）；
+- 即使补表，也没有消费者。
 
-**影响**
+**修复（v75）**
 
-- `/api/validity/enqueue` 必然失败；
-- 不要把它当“可用功能”。
+- 迁移 `_migrate_v75_validity_queue.py` 建表 + 索引；
+- `ValidityService.process_pending()` 消费 pending：
+  - `file_index` 路径 → 标准号；
+  - 调 `ValidityChecker.check_standard()`；
+  - 写回 success/failed/error；
+- 调度器每 60 秒 drain，启动时补跑；
+- 前端文案改为“已加入队列，后台检查中”。
 
-**如果要修**
+**仍需验证**
 
-- 补迁移建表 + 消费逻辑；
-- 或删除该端点（需产品决策）。
+- 部署 v0.172+ 后跑一次选中文件检查；
+- 观察 `validity_check_queue` 的 pending/success/failed 数量。
 
 ---
 

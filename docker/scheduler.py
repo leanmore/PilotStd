@@ -377,6 +377,26 @@ def _scheduler_error_listener(event):
 scheduler.add_listener(_scheduler_error_listener, EVENT_JOB_ERROR)
 
 
+def _drain_validity_queue():
+    """消费“选中文件检查”队列；单条失败写回 error，不阻断后续行。"""
+    from .manager import get_manager
+
+    try:
+        result = get_manager().validity_service.process_pending(limit=20)
+        if result.get("processed"):
+            logger.info(
+                "[validity-queue] processed=%d success=%d failed=%d",
+                result.get("processed", 0),
+                result.get("success", 0),
+                result.get("failed", 0),
+            )
+    except Exception:
+        logger.exception("[validity-queue] 队列消费失败")
+
+
+register_job_func("validity_queue_drain", _drain_validity_queue)
+
+
 def start_scheduler():
     """启动调度器：获取互斥锁 → 注册定时任务 → 启动心跳线程。"""
     if not _acquire_scheduler_lock():
@@ -413,6 +433,8 @@ def start_scheduler():
     _add_interval_job("release_suppressed", 300)
     # D-2：长任务周期进度汇报（每分钟扫描；实际按 5~10 分钟节流）
     _add_interval_job("task_progress_report", 60)
+    # 选中文件检查队列：每分钟消费一次；启动后立即补跑
+    _add_interval_job("validity_queue_drain", 60)
 
     # ✅#43:注册时效性检查调度任务
     v_kwargs = _get_validity_cron_kwargs()
@@ -432,6 +454,8 @@ def start_scheduler():
     scheduler.start()
     _heartbeat_stop.clear()
     threading.Thread(target=_heartbeat_loop, daemon=True, name="scheduler-heartbeat").start()
+    # 启动补跑：处理重启前遗留的 pending，不阻塞调度器启动
+    threading.Thread(target=_drain_validity_queue, daemon=True, name="validity-queue-startup").start()
     logger.info("APScheduler 已启动")
 
 
@@ -482,7 +506,7 @@ def _check_validity_schedule(notification_mgr=None, adapter_mgr=None, query_engi
         if next_fire:
             config.set("validity.next_run", next_fire.isoformat())
     config.save()
-    logger.info("validity 检查完成，下次执行时间: %s", config.get("validity.next_run"))
+    logger.info("validity 检查完成，下次执行时间: %s", config.get("validity.next_run"))  # i18n-allow: 内部调度日志
 
 
 # 注册时效性检查任务执行函数

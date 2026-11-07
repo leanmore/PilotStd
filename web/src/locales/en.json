@@ -345,7 +345,7 @@
     "selected": "{n} files selected",
     "select_all": "Select all files on this page",
     "enqueue_validity": "Add to Validity Check",
-    "enqueued": "Enqueued: {n}/{m}",
+    "enqueued": "Enqueued: {n}/{m}; checking in background",
     "enqueue_failed": "Enqueue failed: {msg}"
   },
   "quality": {

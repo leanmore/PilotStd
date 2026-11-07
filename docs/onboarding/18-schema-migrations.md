@@ -1,7 +1,7 @@
 # 18 · 全表 Schema 与迁移清单
 
 > 来源：`C:\Temp\pilotstd_live_logs\prebatch.bak` 的 `sqlite_master` / `PRAGMA table_info`，2026-11-07 只读实测。
-> 当前 schema **v74**；业务表 **41 张**；迁移模块 **30 个 `_migrate*.py`**（另有 `migrations.py` / `_migration_checksum.py` 两个基础设施文件）。
+> 当前 schema **v75**；业务表 **42 张**；迁移模块 **31 个 `_migrate*.py`**（另有 `migrations.py` / `_migration_checksum.py` 两个基础设施文件）。
 
 ## 一、表清单（41 张）
 
@@ -49,7 +49,7 @@
 | 40 | `user_settings` | id:INTEGER<br>user_id:INTEGER<br>settings:JSON<br>updated_at:DATETIME |
 | 41 | `users` | id:INTEGER<br>username:TEXT<br>password_hash:TEXT<br>salt:TEXT<br>role:TEXT<br>must_change_password:INTEGER<br>created_at:TEXT |
 
-## 二、迁移模块（30 个文件 / 74 个版本）
+## 二、迁移模块（31 个文件 / 75 个版本）
 
 | # | 文件 | 注册版本 | 说明 |
 |---|---|---|---|
@@ -83,12 +83,13 @@
 | 28 | `_migrate_v72_announcement_dedupe.py` | 72 | v72：把 `announcement_record.standard_number` 归一化到全项目唯一实现的口径，并重算 |
 | 29 | `_migrate_v73_normalize_timestamps.py` | 73 | v73：把历史表中的裸时间字符串规范为 ISO 8601 带时区偏移量。 |
 | 30 | `_migrate_v74_repair_validity_keys.py` | 74 | v74：修复 standard_validity 前导空格/缺代号畸形键；冲突合并、无匹配保留、幂等。 |
+| 31 | `_migrate_v75_validity_queue.py` | 75 | v75：补建 validity_check_queue（选中文件检查队列）。 |
 
 ## 三、迁移链要点
 
 - `_schema_version` 记录 `version` + `checksum`；迁移函数源码受 P-106 约束，不可改已执行迁移。
 - 迁移文件不是“一版一个文件”：`_migrate_v16_v49.py` 一个文件注册了多个版本；按版本号看，不按文件数看。
-- 最近五项：v70 language/foreign_name；v71 notification user_id；v72 公告标准号归一化；v73 时间字符串 ISO 化；v74 validity 畸形键修复。
+- 最近六项：v70 language/foreign_name；v71 notification user_id；v72 公告标准号归一化；v73 时间字符串 ISO 化；v74 validity 畸形键修复；v75 选中文件检查队列。
 - 新增迁移必须带幂等/断言/回滚说明；生产执行前先 dry-run + 备份。
 
 ## 四、与文档的关系

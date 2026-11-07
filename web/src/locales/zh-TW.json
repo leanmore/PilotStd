@@ -345,7 +345,7 @@
     "selected": "已選 {n} 個檔案",
     "select_all": "全選本頁檔案",
     "enqueue_validity": "加入時效性檢查",
-    "enqueued": "已加入佇列：{n}/{m}",
+    "enqueued": "已加入佇列：{n}/{m}，背景檢查中",
     "enqueue_failed": "入隊失敗: {msg}"
   },
   "quality": {

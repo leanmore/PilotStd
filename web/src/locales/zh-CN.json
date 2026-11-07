@@ -345,7 +345,7 @@
     "selected": "已选 {n} 个文件",
     "select_all": "全选本页文件",
     "enqueue_validity": "加入时效性检查",
-    "enqueued": "已加入队列：{n}/{m}",
+    "enqueued": "已加入队列：{n}/{m}，后台检查中",
     "enqueue_failed": "入队失败: {msg}"
   },
   "quality": {

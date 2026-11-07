@@ -1,6 +1,6 @@
 # PilotStd 项目架构总览
 
-> 最后更新：2026-11-07 | 基于 main 分支最新代码（schema v73 / 21 查询适配器）
+> 最后更新：2026-11-07 | 基于 main 分支最新代码（schema v75 / 21 查询适配器）
 
 ## 技术栈
 
@@ -66,7 +66,7 @@ graph TD
 
     subgraph "持久化"
         SQLiteDB[(pilotstd.db)]
-        Migrations[db/migrations.py v1~v73]
+        Migrations[db/migrations.py v1~v75]
     end
 
     Docker --> Scheduler

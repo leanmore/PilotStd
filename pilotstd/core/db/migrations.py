@@ -201,3 +201,8 @@ from ._migrate_v73_normalize_timestamps import (  # noqa: E402, F401
 from ._migrate_v74_repair_validity_keys import (  # noqa: E402, F401
     _migrate_v74_repair_validity_keys,
 )
+
+# 第七十五版：补建 validity_check_queue（前端选中文件检查队列）
+from ._migrate_v75_validity_queue import (  # noqa: E402, F401
+    _migrate_v75_validity_queue,
+)
