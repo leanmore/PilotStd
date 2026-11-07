@@ -383,3 +383,17 @@ ports:
 重启生效。访问 `http://<NAS-IP>:9999`。
 
 > 2026-10-22：Dockerfile 已补 libxcb1/libgl1 等 OpenCV 运行库；自建镜像需重新构建，否则本地 OCR 会报 libxcb.so.1。
+
+---
+
+## 七、可信 IP 自动更新（CloakBrowser）
+
+Docker 镜像已内置 CloakBrowser 依赖（定制 Chromium，不需要原版 Chromium）。
+
+1. 在 `.env` 增加：
+   ```text
+   CLOAKBROWSER_LICENSE_KEY=你的key
+   ```
+2. 首次启动会下载约 200MB 定制 Chromium，缓存到 `./cloakbrowser`（容器内 `/home/appuser/.cloakbrowser`）。
+3. 如果下载失败，检查 NAS 是否能访问外网；失败会写通知/状态，不会静默。
+4. 不要删除 `./cloakbrowser`，否则每次重建容器都会重新下载。
