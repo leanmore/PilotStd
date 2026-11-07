@@ -1,6 +1,7 @@
 # PilotStd 文档索引
 
 > **这是入口**：只列"动手前必读"的 13 份。
+> 新人入门：见仓库根的新人入门入口；本索引不重复列 29 份 onboarding 文档。
 > **找全部文档** → [`DOCUMENTATION_MAP.md`](DOCUMENTATION_MAP.md)（117 篇，按"治理/现状/指引/历史/期望"分层）；
 > **看接下来做什么、什么时候做** → [`ROADMAP.md`](ROADMAP.md)。
 
