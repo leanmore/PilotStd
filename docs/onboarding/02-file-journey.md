@@ -229,7 +229,7 @@ sequenceDiagram
 
 - **归档才写 `file_index`**；
 - **归档不读 `standard_validity`**，只写“未知”；
-- Word 重解析使用 `OrganizerCore._std_parser`，它的 `scan.code_mapping` 默认空，见 [`08-known-boundaries.md`](08-known-boundaries.md)。
+- Word 重解析使用 `OrganizerCore._std_parser`，它的 scan.code_mapping 默认空，见 [`08-known-boundaries.md`](08-known-boundaries.md)。
 
 ---
 

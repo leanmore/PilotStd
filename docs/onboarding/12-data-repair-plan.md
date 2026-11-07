@@ -182,7 +182,7 @@ HAVING COUNT(*) > 1;  -- 应为 0
 ## 六、防复发（比修数据更重要）
 
 1. **归档入口**：写 `standard_validity` 前必须用规范标准号；禁止直接用前端传入的 `logical_code` 拼键；
-2. **Word 重解析**：修空 `scan.code_mapping`，避免 `TSG → T/SG`；
+2. **Word 重解析**：修空 scan.code_mapping，避免 `TSG → T/SG`；
 3. **唯一键冲突**：`register_new_standard` 用 `INSERT OR IGNORE` / `ON CONFLICT`，不要 `SELECT + INSERT`；
 4. **迁移校验**：新增迁移必须带 dry-run 断言和 `_migration_checksum` 保护；
 5. **测试**：补“畸形键修复/冲突合并/无法还原保留”三类测试。

@@ -48,7 +48,7 @@
 | 重跑 | 重新从 scan 开始；无显式 `if (running) return` |
 | 停止 | **没有停止按钮** |
 | 下载 | 只取 `exact`、非采标，最多 10 条 |
-| 归档 | 入参来自 `scan.files`，不包含 `downloadResult` |
+| 归档 | 入参来自 scan.files，不包含 `downloadResult` |
 
 ---
 

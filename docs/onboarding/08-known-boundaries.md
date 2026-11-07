@@ -14,7 +14,7 @@
 | 3 | Win watcher 只更新索引 | 设计边界 | 不会自动归档 |
 | 4 | `standard_validity` 不是归档第一权威 | 设计边界 | 与 `file_index`/Query 可能不一致 |
 | 5 | `standard_validity` 存在畸形键 | 历史数据缺陷 | 按表查询/搬移会漏 |
-| 6 | Word 重解析使用空 `scan.code_mapping` | 实现缺陷 | TSG 等进入 `T 未知行业(T)` |
+| 6 | Word 重解析使用空 scan.code_mapping | 实现缺陷 | TSG 等进入 `T 未知行业(T)` |
 | 7 | 手动/一键下载任务不持久化 | 当前缺口 | 重启丢任务 |
 | 8 | 规范化只预览，归档忽略 `new_filename` | 设计边界 | 预览与最终命名可能漂移 |
 | 9 | 归档通知按“每次调用”发 | 当前缺口 | 批量时通知过多/聚合失效 |
@@ -35,7 +35,7 @@
 
 **证据**
 
-- 原实现：`web/src/views/TaskView.vue` 的 `archiveItems` 只来自 `scan.files` + `normalizeResult`，`downloadResult` 只用于汇总；
+- 原实现：`web/src/views/TaskView.vue` 的 `archiveItems` 只来自 scan.files + `normalizeResult`，`downloadResult` 只用于汇总；
 - `docker/api/archive.py` 只接收请求体 `items[].source_path`，不读下载结果；
 - 下载落 `get_library_root()`（Docker `/standards`）根目录，不写 `file_index`；
 - `TaskView` 只对 `match_status==='exact'` 且非采标的结果发起下载，并用 `.slice(0, 10)` **最多 10 条**。
@@ -160,7 +160,7 @@
 
 ---
 
-### 6. Word 重解析：空 `scan.code_mapping` → `T 未知行业(T)`
+### 6. Word 重解析：空 scan.code_mapping → `T 未知行业(T)`
 
 **证据**
 

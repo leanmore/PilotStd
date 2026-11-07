@@ -70,7 +70,7 @@ for n in names:
 
 ### 目标
 
-亲眼看到 Word 重解析的空 `scan.code_mapping` 如何把 `TSG` 变成 `T/SG`。
+亲眼看到 Word 重解析的空 scan.code_mapping 如何把 `TSG` 变成 `T/SG`。
 
 ### 步骤
 

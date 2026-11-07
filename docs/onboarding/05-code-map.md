@@ -125,7 +125,7 @@ batch_scope("imp")
 - `archive_standards()`：归档入口、注册有效性、发通知；
 - `OrganizerCore.organize()`：Word/非 Word 分流、去重、索引；
 - `FileMover.normalize_filename()`：目录 + 文件名 + 过期作废；
-- `_organize_word_item()`：Word 重解析（注意空 `scan.code_mapping`）。
+- `_organize_word_item()`：Word 重解析（注意空 scan.code_mapping）。
 
 **看什么**：真正的落盘/改名/写索引在这里。
 

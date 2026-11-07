@@ -17,7 +17,7 @@ Web 五段式执行后，下载成功的文件留在 `/standards` 根目录，�
 |---|---|---|
 | 下载 | `web/src/views/TaskView.vue` `postDownload(dlNums)` | `dlNums` 只取 `exact` 非采标，`.slice(0,10)` |
 | 下载结果 | `downloadResult.value = dl` | 只用于汇总展示 |
-| 规范化 | `TaskView` 用 `scan.files` 生成 `normItems` | 不包含下载件 |
+| 规范化 | `TaskView` 用 scan.files 生成 `normItems` | 不包含下载件 |
 | 归档 | `TaskView` `archiveItems = scan.files` + `normalizeResult` | **不包含 `downloadResult`** |
 | API | `docker/api/archive.py` | 只接收 body `items`，每项构造 `ParsedStdInfo`，调 `mgr.archive_standards` |
 | 归档核心 | `manager/facade/_organize.py::archive_standards` | 统一入口；写 `file_index`/`standards`/`standard_validity` |
@@ -153,7 +153,7 @@ Web 五段式执行后，下载成功的文件留在 `/standards` 根目录，�
 | 步骤 | 代码 | 事实 |
 |---|---|---|
 | 归档 | `_organize.py::archive_standards` | 每次调用 `ensure_batch_key("arch")`；每次发 `archive_complete` |
-| 批次键 | `notification.batch.ensure_batch_key` | 外层有 `batch_scope` 才共享；monitor 没有 |
+| 批次键 | notification.batch.ensure_batch_key | 外层有 `batch_scope` 才共享；monitor 没有 |
 | 聚合 | `NotificationAggregator` | 5s / 50 条；`correlation_id × notify_event` |
 | 零计数 | `archive_standards` | `moved=0` 仍发送 count=0 |
 | 未读 | `_manager_ops.get_unread_count()` | **无 user_id 过滤** |

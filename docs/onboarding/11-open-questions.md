@@ -64,7 +64,7 @@
 
 ### 公告抓取的真正开关
 
-- 公告抓取：`tasks.auto_announce_enabled` + `tasks.auto_announce_cron`；
+- 公告抓取：tasks.auto_announce_enabled + tasks.auto_announce_cron；
 - `announcement.enabled` 只在 `pending_query_dialog` 中使用，不是全局抓取开关；
 - 公告适配器是 3 个 SAMR 源（GB/HB/DB），与 21 个查询适配器、1 个下载适配器不是同一套。
 
@@ -72,7 +72,7 @@
 
 - **A. 保持现状**：`false` = 不走公告优先，但缓存仍可回退 `announcement_match`；在文档中写清。
 - **B. 改成完全隔离**：`false` = 连 `announcement_match` 也不读；需要改 `CacheRepository` 的调用参数/开关，并补测试。
-- **C. 改名**：把配置改名为 `query.prefer_announcement_cache`，减少歧义（涉及配置兼容/迁移）。
+- **C. 改名**：把配置改名为 query.prefer_announcement_cache，减少歧义（涉及配置兼容/迁移）。
 
 > 当前默认行为是 A；如果产品语义要求 B，需要单独立项。
 

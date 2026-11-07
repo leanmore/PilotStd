@@ -181,7 +181,7 @@ Web、Win、CLI 共享核心引擎，但**编排不同**：
 - Win watcher 只更新索引；
 - 手动/一键下载任务不持久化；
 - `standard_validity` 是跟踪表，不是归档第一权威；
-- Word 重解析使用空 `scan.code_mapping`，TSG 可能进 `T 未知行业(T)`。
+- Word 重解析使用空 scan.code_mapping，TSG 可能进 `T 未知行业(T)`。
 
 每一条的证据、影响和“为什么不能顺手修”，见 [`08-known-boundaries.md`](08-known-boundaries.md)。
 

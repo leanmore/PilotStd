@@ -109,7 +109,7 @@
 
 ### 11. 为什么 TSG Word 会进 `T 未知行业(T)`？
 
-**答**：`OrganizerCore._std_parser` 用空 `scan.code_mapping`；`_exact_match_group()` 把 `TSG` 匹配成 `T/SG`；`get_folder_name("T/SG")` 取 base `T` → `T 未知行业(T)`。PDF 走扫描器解析器，通常进 `TSG`。
+**答**：`OrganizerCore._std_parser` 用空 scan.code_mapping；`_exact_match_group()` 把 `TSG` 匹配成 `T/SG`；`get_folder_name("T/SG")` 取 base `T` → `T 未知行业(T)`。PDF 走扫描器解析器，通常进 `TSG`。
 
 ### 12. 为什么 `standard_validity` 会与 `file_index` 不一致？
 
