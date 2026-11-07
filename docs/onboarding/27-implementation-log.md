@@ -134,6 +134,15 @@
 | 测试 | 钉钉企业 9 passed；飞书应用 12 passed |
 | 回滚 | 恢复单次 `_send_card` / `_post_app_message` 实现 |
 
+### 13. 管理员默认可见系统通知（D-04）
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `_manager_ops.py`、`docker/api/notification_logs.py` |
+| 行为 | 列表/未读数/全部已读对 admin 默认包含 `user_id=0/NULL`；普通用户仍只看自己；all=true 才是全部用户 |
+| 测试 | 通知隔离/API/manager 60 passed |
+| 回滚 | 去掉 include_system 参数与 API 传参 |
+
 ---
 
 ## 验证汇总

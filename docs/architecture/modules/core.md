@@ -5,7 +5,7 @@
 | 模块路径 | `pilotstd/core/` |
 | G-031 映射 | `pilotstd/core/`（2026-09-25 落地：`DOC_SYNC_MAP` 已含该条，改任何 core 文件都会要求同步本文件） |
 | 核心类 | `Database` / `ConfigManager` / `CacheManager` / `NotificationManager` |
-| 子模块数 | 131 个 `.py`（新增 `db/_migrate_v75_validity_queue.py`（选中文件检查队列，2026-11-07）；上一轮 `db/_migrate_v74_repair_validity_keys.py`（validity 畸形键修复）；上一轮新增 `archive_reconcile.py`（启动归档对账，C-2，2026-11-05）；再上一轮 `db/_migrate_v72_announcement_dedupe.py`（公告记录去重 + `standard_count` 重算，2026-11-03）；**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-11-07**；顶层 = 3 个包 config / db / notification + 23 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
+| 子模块数 | 132 个 `.py`（新增 `notification/_log_scope.py`（日志用户/系统可见性，2026-11-07）；上一轮 `db/_migrate_v75_validity_queue.py`（选中文件检查队列）；再上一轮 `db/_migrate_v74_repair_validity_keys.py`（validity 畸形键修复）；上一轮新增 `archive_reconcile.py`（启动归档对账，C-2，2026-11-05）；再上一轮 `db/_migrate_v72_announcement_dedupe.py`（公告记录去重 + `standard_count` 重算，2026-11-03）；**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-11-07**；顶层 = 3 个包 config / db / notification + 23 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
 | Schema 版本 | `CURRENT_SCHEMA_VERSION = 75`（`db/_constants.py`；v75＝`validity_check_queue` 队列；v74＝`standard_validity` 畸形键修复；v73＝时间字符串 ISO 化；v72＝公告记录去重 + `standard_count` 重算） |
 | 状态 | 活跃 |
 
@@ -488,6 +488,7 @@ pilotstd/core/
 > **T-42（2026-10-31）**：渠道限流改为“码优先 + 关键词兜底”；已取证 企微 45009 / 飞书 99991400，钉钉/Telegram 保持兜底。
 > **rate_limited_by（2026-10-31）**：限流命中日志从 debug 提升到 info（code/keyword），便于事后排查误判。
 > **归档通知正文（2026-11-07）**：archive_complete 构建器始终写 `body`（count/skip/fail/dirs）；零搬移时 notification_log 也能看到“发生了什么”，不再只有标题。
+> **管理员系统通知可见性（2026-11-07）**：`NotificationOps.get_logs/get_unread_count/mark_logs_read` 增加 `include_system`；admin 默认看“自己 + 系统通知（user_id=0/NULL）”，普通用户仍只看自己，all=true 才是全部用户。
 > **企业形态重试（2026-11-07）**：钉钉企业卡片、飞书应用消息接入 `_with_retry`（429/5xx/网络退避）；企业卡片创建成功但投递失败时重试可能重复建卡，属不丢消息的取舍。
 
 > **A-21 v71（2026-10-31）**：notification_log/queue 加 user_id（DEFAULT 1）+ 回填 + 用户维度索引；读写路径未改，中间态仍单用户（全 1）。

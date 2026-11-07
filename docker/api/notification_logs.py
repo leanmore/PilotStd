@@ -152,6 +152,8 @@ def get_logs(
         end_date=end_date,
         is_read=is_read,
         user_id=filter_user,
+        # 管理员默认看“自己 + 系统通知”；all=true 才是所有用户
+        include_system=bool(role == "admin" and not all and user_id is None),
     )
     return {
         "total": result["total"],
@@ -236,23 +238,32 @@ def get_log_diagnostics(
 
 @router.post("/api/notification/read", response_model=MarkReadResponse)
 def mark_notification_read(
-    request: MarkReadRequest,
+    body: MarkReadRequest,
+    request: Request,
     nmgr=Depends(_get_notification_mgr),
     current_user: int = Depends(_get_user_id),
 ):
     """标记单条或全部通知为已读。id=None 表示当前用户的全部通知。"""
     try:
-        ids = [request.id] if request.id is not None else None
-        if request.id is not None:
-            # 验证存在，且必须属于当前用户；不能借 id 标记别人的日志
-            result = nmgr.ops.get_logs(page=1, size=1, start_date=None, end_date=None, user_id=current_user)
+        ids = [body.id] if body.id is not None else None
+        role = get_current_role(request)
+        if body.id is not None:
+            # 验证存在，且必须属于当前用户；管理员额外允许系统通知
+            result = nmgr.ops.get_logs(
+                page=1,
+                size=1,
+                start_date=None,
+                end_date=None,
+                user_id=current_user,
+                include_system=role == "admin",
+            )
             existing_ids = {r["id"] for r in result["items"]}
-            if request.id not in existing_ids:
+            if body.id not in existing_ids:
                 return JSONResponse(
-                    {"error": t("notification.api.mark_read_not_found").format(id=request.id)},
+                    {"error": t("notification.api.mark_read_not_found").format(id=body.id)},
                     status_code=404,
                 )
-        count = nmgr.ops.mark_logs_read(ids, user_id=current_user)
+        count = nmgr.ops.mark_logs_read(ids, user_id=current_user, include_system=role == "admin")
         return {"ok": True, "count": count, "message": t("notification.api.mark_read_success")}
     except Exception as e:
         logger.exception(t("notification.api.log_mark_read_failed"))
@@ -267,7 +278,9 @@ def get_unread_count(
 ):
     """获取当前用户的未读通知数量（与日志列表同口径）。"""
     try:
-        count = nmgr.ops.get_unread_count(current_user)
+        count = nmgr.ops.get_unread_count(
+            current_user, include_system=get_current_role(request) == "admin"
+        )
         return {"count": count}
     except Exception as e:
         logger.exception(t("notification.api.log_unread_count_failed"))

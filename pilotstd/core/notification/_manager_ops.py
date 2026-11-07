@@ -23,7 +23,7 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 from ..db import Database
-from . import _json_codec
+from . import _json_codec, _log_scope
 from .channel import NotificationMessage
 from .mapping import EVENT_MAPPINGS, NOTIFY_EVENTS, project
 from .specs import specs_to_jsonable
@@ -206,8 +206,13 @@ class NotificationOps:
         end_date: str | None = None,
         is_read: bool | None = None,
         user_id: int | None = None,
+        include_system: bool = False,
     ) -> dict[str, Any]:
-        """获取通知日志列表（分页 + 筛选）；user_id 非空时只查该用户。"""
+        """获取通知日志列表（分页 + 筛选）。
+
+        `include_system=True` 时，在 user_id 过滤中同时纳入系统通知（user_id=0/NULL）——
+        管理员默认可见系统通知；普通用户不传该参数。
+        """
         db = self._db
         conditions: list[str] = []
         params: list[Any] = []
@@ -227,8 +232,9 @@ class NotificationOps:
             conditions.append("sent_at <= ?")
             params.append(end_date if "T" in end_date else f"{end_date}T23:59:59")
         if user_id is not None:
-            conditions.append("user_id = ?")
-            params.append(user_id)
+            clause, scope_params = _log_scope.user_clause(user_id, include_system)
+            conditions.append(clause)
+            params.extend(scope_params)
         if is_read is not None:
             conditions.append("is_read = ?")
             params.append(1 if is_read else 0)
@@ -304,7 +310,9 @@ class NotificationOps:
         }
 
     # ids 为空表示“全部标记已读”，此时返回 0——调用方据此区分“按条计数”与“全量操作”。
-    def mark_logs_read(self, ids: list[int] | None = None, user_id: int | None = None) -> int:
+    def mark_logs_read(
+        self, ids: list[int] | None = None, user_id: int | None = None, include_system: bool = False
+    ) -> int:
         """标记通知日志为已读（单条或全部），供 API 层调用。
 
         `user_id` 非空时只更新该用户的日志：日志列表按用户过滤，未读数/全部已读
@@ -315,37 +323,19 @@ class NotificationOps:
             updated = 0
             for i in ids:
                 if user_id is not None:
-                    cur = db.execute(
-                        "UPDATE notification_log SET is_read = 1 WHERE id = ? AND user_id = ?",
-                        (i, user_id),
-                    )
-                    updated += cur.rowcount or 0
+                    updated += _log_scope.mark_one(db, i, user_id, include_system)
                 else:
                     db.execute("UPDATE notification_log SET is_read = 1 WHERE id = ?", (i,))
                     updated += 1
             # 旧行为（无 user_id）返回“请求条数”，保持既有调用方/测试契约；
             # 有 user_id 时返回真实受影响行数，避免把别人的 id 也计入。
             return updated if user_id is not None else len(ids)
-        else:
-            if user_id is not None:
-                db.execute(
-                    "UPDATE notification_log SET is_read = 1 WHERE is_read = 0 AND user_id = ?",
-                    (user_id,),
-                )
-            else:
-                db.execute("UPDATE notification_log SET is_read = 1")
-            return 0
+        _log_scope.mark_all(db, user_id, include_system)
+        return 0
 
-    def get_unread_count(self, user_id: int | None = None) -> int:
-        """获取未读通知数量；传 user_id 时只统计该用户。"""
-        if user_id is None:
-            row = self._db.fetchone("SELECT COUNT(*) AS cnt FROM notification_log WHERE is_read = 0")
-        else:
-            row = self._db.fetchone(
-                "SELECT COUNT(*) AS cnt FROM notification_log WHERE is_read = 0 AND user_id = ?",
-                (user_id,),
-            )
-        return row["cnt"] if row else 0
+    def get_unread_count(self, user_id: int | None = None, include_system: bool = False) -> int:
+        """获取未读通知数量；传 user_id 时只统计该用户，管理员可纳入系统通知。"""
+        return _log_scope.unread(self._db, user_id, include_system)
 
     # 保留期清理：sent_at 存的是 ISO 字符串，字典序即时间序，故可直接用字符串比较做截止点；
     # 仅在实际删除时记 INFO，避免每天一条“清理了 0 条”的噪声。
