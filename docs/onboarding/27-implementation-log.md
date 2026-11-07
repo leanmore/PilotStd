@@ -168,7 +168,7 @@
 | 项 | 内容 |
 |---|---|
 | 文件 | `file_index.py`、`validity_checker.py`、对应测试 |
-| 行为 | file_index 单条 `ON CONFLICT DO UPDATE`；validity 首次登记 `INSERT OR IGNORE` + `rowcount` |
+| 行为 | file_index 单条 `ON CONFLICT DO UPDATE`；validity 首次登记 `INSERT OR IGNORE ... WHERE NOT EXISTS` + `rowcount` |
 | 测试 | file_index 75 passed；validity 87 passed |
 | 回滚 | 恢复两处 SELECT+INSERT/UPDATE 分支 |
 

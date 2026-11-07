@@ -93,13 +93,14 @@ class TestRegisterNewStandard:
         assert len(insert_calls) == 1
 
     def test_skips_when_existing(self, checker, db):
-        db.fetchone.return_value = {"id": 1}
+        db.execute.return_value.rowcount = 0
         db.reset_mock()
+        db.execute.return_value.rowcount = 0
         checker.register_new_standard("GB/T 1-2020")
-        insert_calls = [
-            c for c in db.execute.call_args_list if "INSERT" in str(c.args[0])
-        ]
-        assert len(insert_calls) == 0
+        # INSERT OR IGNORE 仍会执行，但 rowcount=0 表示未插入
+        insert_calls = [c for c in db.execute.call_args_list if "INSERT" in str(c.args[0])]
+        assert len(insert_calls) == 1
+        assert db.execute.return_value.rowcount == 0
 
     def test_sends_event_when_notif_mgr_present(self, checker, db):
         db.fetchone.return_value = None

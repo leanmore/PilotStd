@@ -53,8 +53,9 @@ class ValidityChecker:
         cursor = self._db.execute(
             f"INSERT OR IGNORE INTO {_TABLE} "
             "(standard_number, status, next_check_at, created_at, updated_at) "
-            "VALUES (?, ?, ?, ?, ?)",
-            (standard_number, Status.UNKNOWN.value, now, now, now),
+            "SELECT ?, ?, ?, ?, ? WHERE NOT EXISTS "
+            f"(SELECT 1 FROM {_TABLE} WHERE standard_number = ?)",
+            (standard_number, Status.UNKNOWN.value, now, now, now, standard_number),
         )
         if not getattr(cursor, "rowcount", 0):
             return

@@ -270,7 +270,7 @@
 **修复（2026-11-07）**
 
 - `FileIndexRepository.upsert()` 改为单条 `INSERT ... ON CONFLICT(file_path) DO UPDATE`，不再 SELECT+INSERT；
-- `register_new_standard()` 改为 `INSERT OR IGNORE`，用 `rowcount` 判断是否首次登记；
+- `register_new_standard()` 改为单条 `INSERT OR IGNORE ... WHERE NOT EXISTS`，用 `rowcount` 判断是否首次登记；
 - 并发扫描/归档/首次登记不会再撞唯一键；
 - 回归：`tests/test_file_index_full.py` 75 passed；`test_validity_checker*.py` 87 passed。
 
