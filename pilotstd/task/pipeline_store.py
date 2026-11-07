@@ -81,6 +81,26 @@ class PipelineRunStore:
                 # 汇报失败不得影响管道主流程
                 logger.warning("pipeline step progress callback failed: %s", exc, exc_info=True)
 
+    def mark_interrupted(self) -> int:
+        """启动时把上次进程遗留的 running/stopping 标记为 interrupted。"""
+        now = self._now()
+        cur = self._db.execute(
+            "UPDATE pipeline_runs SET status='interrupted', error_message=?, updated_at=? "
+            "WHERE status IN ('running','stopping')",
+            ("服务重启，任务中断", now),  # i18n-allow: 内部运行状态
+        )
+        return int(cur.rowcount or 0)
+
+    def resume(self, run_id: str) -> bool:
+        """把 interrupted 管道恢复为 running；只允许阶段级续跑。"""
+        now = self._now()
+        cur = self._db.execute(
+            "UPDATE pipeline_runs SET status='running', error_message='', updated_at=? "
+            "WHERE run_id=? AND status='interrupted'",
+            (now, run_id),
+        )
+        return int(cur.rowcount or 0) > 0
+
     def request_stop(self, run_id: str) -> bool:
         """请求停止：只把 running 改成 stopping，等当前阶段边界收尾。"""
         now = self._now()

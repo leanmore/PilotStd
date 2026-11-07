@@ -79,6 +79,18 @@ class TestPipelineStoreStepResults:
         assert store.finish_stop(run_id) is True
         assert store.get(run_id)["status"] == "stopped"
 
+    def test_mark_interrupted_and_resume(self, store):
+        run_id = store.create()
+        assert store.mark_interrupted() == 1
+        assert store.get(run_id)["status"] == "interrupted"
+        assert store.resume(run_id) is True
+        assert store.get(run_id)["status"] == "running"
+
+    def test_resume_rejects_completed(self, store):
+        run_id = store.create()
+        store.update_step(run_id, "archive", "completed", 100)
+        assert store.resume(run_id) is False
+
     def test_request_stop_only_running(self, store):
         run_id = store.create()
         store.update_step(run_id, "archive", "completed", 100)

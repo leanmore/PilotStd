@@ -256,6 +256,10 @@
     "stopping": "Stopping…",
     "stopped": "Stopped: finishing the current stage",
     "stop_failed": "Failed to request stop",
+    "continue": "Continue Task",
+    "interrupted": "Task was interrupted by a service restart; continue from the next stage",
+    "resume_failed": "Failed to resume task",
+    "resumed_step": "Done (resumed)",
     "step": {
       "scan": "Scan",
       "query": "Query",

@@ -245,6 +245,16 @@ def get_pipeline_run(request: Request, run_id: str, mgr=Depends(get_manager_dep)
     }
 
 
+@router.post("/api/tasks/runs/{run_id}/resume", response_model=OkResponse)
+@require_role("admin")
+def resume_pipeline_run(request: Request, run_id: str, mgr=Depends(get_manager_dep)):
+    """Web B：把 interrupted 管道恢复为 running，前端从下一阶段继续。"""
+    run = mgr.pipeline_store.get(run_id)
+    if run is None:
+        return JSONResponse({"error": "管道运行记录不存在"}, 404)  # i18n-allow: 内部 API 错误
+    return {"ok": bool(mgr.pipeline_store.resume(run_id))}
+
+
 @router.post("/api/tasks/runs/{run_id}/stop", response_model=OkResponse)
 @require_role("admin")
 def stop_pipeline_run(

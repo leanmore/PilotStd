@@ -14,6 +14,11 @@ export async function stopPipelineRun(runId: string, final = false): Promise<{ o
   return (await http.post(`/tasks/runs/${runId}/stop`, undefined, { params: { final } })).data
 }
 
+/** 恢复被服务重启中断的管道（Web B：从下一阶段继续）。 */
+export async function resumePipelineRun(runId: string): Promise<{ ok: boolean }> {
+  return (await http.post(`/tasks/runs/${runId}/resume`)).data
+}
+
 export interface TaskItem {
   task_id: string
   task_type: string

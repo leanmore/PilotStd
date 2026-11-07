@@ -256,6 +256,10 @@
     "stopping": "正在停止…",
     "stopped": "已停止：目前階段結束後收尾",
     "stop_failed": "停止請求失敗",
+    "continue": "繼續任務",
+    "interrupted": "任務因服務重啟中斷，可從下一階段繼續",
+    "resume_failed": "恢復任務失敗",
+    "resumed_step": "已完成（續跑恢復）",
     "step": {
       "scan": "掃描",
       "query": "查詢",

@@ -143,6 +143,17 @@
 | 测试 | 通知隔离/API/manager 60 passed |
 | 回滚 | 去掉 include_system 参数与 API 传参 |
 
+### 14. Web 阶段级续跑（#7 的 Web 部分）
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `pipeline_store.py`、`docker/app.py`、`tasks.py`、`TaskView.vue`、`taskRestore.ts`、三语 locales |
+| 行为 | 启动 running/stopping → interrupted；`/task` 继续按钮；从最后一次完整阶段继续；不自动续跑半阶段 |
+| 测试 | pipeline store/API 16 passed；TaskView+taskRestore 13 passed；type-check 通过 |
+| 回滚 | 删除 interrupted/resume 路由与前端继续按钮 |
+
+> 注意：这不是下载任务持久化；`DownloadTask` 仍在内存，边界 #7 的下载部分仍开放。
+
 ---
 
 ## 验证汇总

@@ -198,7 +198,15 @@
 - 不会自动重试（收藏链除外）；
 - `.part` 只会被清理，不续传。
 
-**如果要修**
+**已做（2026-11-07，仅 Web 管道）**
+
+- Web 五段式增加“服务重启 → interrupted → 阶段级继续”：
+  - 后端启动把 running/stopping 标为 interrupted；
+  - `/task` 显示“继续任务”，从最后一次完整阶段继续；
+  - 不自动续跑半阶段。
+- 这不等于下载任务持久化：`DownloadTask` 仍是内存对象，见上面原证据。
+
+**如果要修下载任务**
 
 - 新增下载任务表或复用 `task_queue` + 注册 handler；
 - 定义 `pending/running/failed/retry/abandoned`；

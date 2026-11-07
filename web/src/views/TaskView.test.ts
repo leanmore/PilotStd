@@ -14,6 +14,7 @@ const mockPostNormalize = vi.fn()
 const mockPostArchive = vi.fn()
 const mockGetSettings = vi.fn()
 const mockStopPipelineRun = vi.fn()
+const mockResumePipelineRun = vi.fn()
 
 vi.mock('@/api', () => ({
   postScan: (...args: any[]) => mockPostScan(...args),
@@ -27,6 +28,7 @@ vi.mock('@/api', () => ({
 vi.mock('@/api/tasks', () => ({
   getPipelineRun: vi.fn(),
   stopPipelineRun: (...args: any[]) => mockStopPipelineRun(...args),
+  resumePipelineRun: (...args: any[]) => mockResumePipelineRun(...args),
 }))
 
 vi.mock('@/composables/useUserPreferences', () => ({

@@ -4,7 +4,7 @@
 export type PipelineStep = 'scan' | 'query' | 'download' | 'normalize' | 'archive'
 
 /** 管道运行状态 */
-export type PipelineStatus = 'pending' | 'running' | 'completed' | 'failed'
+export type PipelineStatus = 'pending' | 'running' | 'stopping' | 'stopped' | 'interrupted' | 'completed' | 'failed'
 
 /** 管道运行记录（对应 GET /api/tasks/runs/{run_id} 响应） */
 export interface PipelineRun {

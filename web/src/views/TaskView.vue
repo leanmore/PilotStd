@@ -3,10 +3,10 @@ defineOptions({ name: 'TaskView' })
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { postScan, postQuery, postDownload, postNormalize, postArchive, getSettings } from '@/api'
-import { getPipelineRun, stopPipelineRun } from '@/api/tasks'
+import { getPipelineRun, stopPipelineRun, resumePipelineRun } from '@/api/tasks'
 import type { PipelineRun } from '@/types/task'
 import { getItem, setItem, removeItem } from '@/lib/storage'
-import { restoreResultsFromStepResults, resolveActiveRun } from '@/utils/taskRestore'
+import { restoreResultsFromStepResults, resolveActiveRun, resumeStartFrom } from '@/utils/taskRestore'
 import { useUserPreferences } from '@/composables/useUserPreferences'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
@@ -15,6 +15,7 @@ import DataView from 'primevue/dataview'
 import Paginator from 'primevue/paginator'
 import { TASK_HISTORY_PAGE_SIZES, resolveRows } from '@/utils/pagination'
 import { parseStandardNumber } from '@/utils/standardParser'
+import { buildArchiveItems } from '@/utils/taskPipeline'
 import LogBar from '@/components/LogBar.vue'
 
 const { t } = useI18n()
@@ -45,6 +46,8 @@ const progress = ref(0)
 const runId = ref<string | null>(null)
 const stopping = ref(false)
 const stopRequested = ref(false)
+const interruptedRun = ref(false)
+const resumeStart = ref(0)
 let pollTimer: ReturnType<typeof setInterval> | null = null
 let pollFailCount = 0
 const STEP_ORDER = ['scan', 'query', 'download', 'normalize', 'archive'] as const
@@ -107,14 +110,23 @@ async function restoreActiveRun() {
   const resolved = await resolveActiveRun()
   if (!resolved) return
   runId.value = resolved.runId
-  running.value = true
-  updateStepsFromRun(resolved.run)
   const restored = restoreResultsFromStepResults(resolved.run.step_results)
   scanResult.value = restored.scan
   queryResult.value = restored.query
   downloadResult.value = restored.download
   normalizeResult.value = restored.normalize
   archiveResult.value = restored.archive
+  if (resolved.run.status === 'interrupted') {
+    // Web B：阶段级续跑。已完成阶段用 step_results 恢复，下一阶段继续。
+    interruptedRun.value = true
+    resumeStart.value = resumeStartFrom(restored)
+    running.value = false
+    updateStepsFromRun(resolved.run)
+    steps.value.forEach(s => { if (s.status === 'running') s.status = 'wait' })
+    return
+  }
+  running.value = true
+  updateStepsFromRun(resolved.run)
   startPolling()
 }
 
@@ -191,6 +203,18 @@ function setStep(i: number, status: 'wait'|'running'|'done'|'fail', summary = ''
   progress.value = status === 'done' ? ((i + 1) / 5 * 100) : progress.value
 }
 
+async function continueRun() {
+  if (!runId.value || !interruptedRun.value) return
+  try {
+    const r = await resumePipelineRun(runId.value)
+    if (!r.ok) throw new Error(t('task.resume_failed'))
+    interruptedRun.value = false
+    await runPipeline(true)
+  } catch (e: any) {
+    error.value = e.response?.data?.error || e.message || t('task.resume_failed')
+  }
+}
+
 async function requestStop() {
   if (!runId.value || !running.value || stopping.value) return
   stopping.value = true
@@ -210,54 +234,78 @@ function abortIfStopped(): boolean {
   return true
 }
 
-async function runPipeline() {
+async function runPipeline(resume = false) {
   running.value = true; error.value = ''
   stopping.value = false; stopRequested.value = false
-  scanResult.value = queryResult.value = downloadResult.value = normalizeResult.value = archiveResult.value = null
-  steps.value.forEach(s => { s.status = 'wait'; s.summary = '' })
-  progress.value = 0
-  runId.value = null
+  if (!resume) {
+    scanResult.value = queryResult.value = downloadResult.value = normalizeResult.value = archiveResult.value = null
+    steps.value.forEach(s => { s.status = 'wait'; s.summary = '' })
+    progress.value = 0
+    runId.value = null
+    resumeStart.value = 0
+  }
+  interruptedRun.value = false
   stopPolling()
   let finalStatus: 'success'|'partial'|'fail'|'stopped' = 'success'
 
   try {
-    // 步骤 0：扫描（发起方，run_id 由后端生成）
-    currentStep.value = 0; setStep(0, 'running')
-    const scan = await postScan(selectedPath.value)
-    scanResult.value = scan
-    runId.value = scan.run_id
-    // 持久化 runId，供退出重进后恢复进度
-    setItem('task_active_run', runId.value)
-    // 启动后端状态轮询
-    startPolling()
-    setStep(0, 'done', t('task.scan_summary', { n: scan.total || 0, pdf: scan.pdf_count || 0, word: scan.word_count || 0 }))
-    if (!scan.files?.length) { error.value = t('task.scan_no_files'); finalStatus = 'fail'; return }
+    // 步骤 0：扫描（发起方，run_id 由后端生成）；续跑时跳过已完成阶段
+    let scan: any = scanResult.value
+    if (resumeStart.value < 1) {
+      currentStep.value = 0; setStep(0, 'running')
+      scan = await postScan(selectedPath.value)
+      scanResult.value = scan
+      runId.value = scan.run_id
+      setItem('task_active_run', runId.value!)
+      startPolling()
+      setStep(0, 'done', t('task.scan_summary', { n: scan.total || 0, pdf: scan.pdf_count || 0, word: scan.word_count || 0 }))
+    } else {
+      currentStep.value = 0
+      setStep(0, 'done', t('task.resumed_step'))
+    }
+    if (!scan?.files?.length) { error.value = t('task.scan_no_files'); finalStatus = 'fail'; return }
     if (abortIfStopped()) { finalStatus = 'stopped'; return }
 
     // 步骤 1：查询
-    currentStep.value = 1; setStep(1, 'running')
-    const numbers = (scan.files || []).map((f: any) => f.standard_number).filter(Boolean)
-    if (numbers.length === 0) {
-      setStep(1, 'done', t('task.scan_no_numbers')); error.value = t('task.scan_parse_failed'); finalStatus = 'partial'; return
+    let query: any = queryResult.value
+    if (resumeStart.value < 2) {
+      currentStep.value = 1; setStep(1, 'running')
+      const numbers = (scan.files || []).map((f: any) => f.standard_number).filter(Boolean)
+      if (numbers.length === 0) {
+        setStep(1, 'done', t('task.scan_no_numbers')); error.value = t('task.scan_parse_failed'); finalStatus = 'partial'; return
+      }
+      query = await postQuery(numbers, false, runId.value!)
+      queryResult.value = query
+      setStep(1, 'done', t('task.query_summary', { n: query.stats?.found || 0, m: query.stats?.downloadable || 0 }))
+    } else {
+      currentStep.value = 1
+      setStep(1, 'done', t('task.resumed_step'))
     }
-    const query = await postQuery(numbers, false, runId.value!)
-    queryResult.value = query
-    setStep(1, 'done', t('task.query_summary', { n: query.stats?.found || 0, m: query.stats?.downloadable || 0 }))
     if (abortIfStopped()) { finalStatus = 'stopped'; return }
 
     // 步骤 2：下载
-    currentStep.value = 2; setStep(2, 'running')
-    const dlNums = (query.results || []).filter((r: any) => !r.is_adopted && r.match_status === 'exact').map((r: any) => r.standard_number).slice(0, 10)
-    if (dlNums.length > 0) {
-      const dl = await postDownload(dlNums, runId.value!)
-      downloadResult.value = dl
-      setStep(2, 'done', t('task.download_summary', { s: dl.stats?.success || 0, k: dl.stats?.skipped || 0 }))
-    } else { setStep(2, 'done', t('task.download_empty')) }
+    if (resumeStart.value < 3) {
+      currentStep.value = 2; setStep(2, 'running')
+      const dlNums = (query?.results || []).filter((r: any) => !r.is_adopted && r.match_status === 'exact').map((r: any) => r.standard_number).slice(0, 10)
+      if (dlNums.length > 0) {
+        const dl = await postDownload(dlNums, runId.value!)
+        downloadResult.value = dl
+        setStep(2, 'done', t('task.download_summary', { s: dl.stats?.success || 0, k: dl.stats?.skipped || 0 }))
+      } else { setStep(2, 'done', t('task.download_empty')) }
+    } else {
+      currentStep.value = 2
+      setStep(2, 'done', t('task.resumed_step'))
+    }
     if (abortIfStopped()) { finalStatus = 'stopped'; return }
 
     // 步骤 3：规范化
-    currentStep.value = 3; setStep(3, 'running')
-    const normItems = (scan.files || [])
+    let norm: any = normalizeResult.value
+    if (resumeStart.value >= 4) {
+      currentStep.value = 3
+      setStep(3, 'done', t('task.resumed_step'))
+    } else {
+      currentStep.value = 3; setStep(3, 'running')
+      const normItems = (scan.files || [])
       .filter((f: any) => f.standard_number)
       .map((f: any) => {
         // 优先透传 scan 返回的结构化字段，仅在缺失时回退到正则解析
@@ -278,44 +326,20 @@ async function runPipeline() {
           year: parsed.year,
         }
       })
-      .filter((item): item is NonNullable<typeof item> => item != null)
-    const norm = await postNormalize(normItems, runId.value!)
-    normalizeResult.value = norm
-    setStep(3, 'done', t('task.count_files', { n: norm.results?.length || 0 }))
+      .filter((item: any): item is NonNullable<typeof item> => item != null)
+      norm = await postNormalize(normItems, runId.value!)
+      normalizeResult.value = norm
+      setStep(3, 'done', t('task.count_files', { n: norm.results?.length || 0 }))
+    }
     if (abortIfStopped()) { finalStatus = 'stopped'; return }
 
     // 步骤 4：归档
     currentStep.value = 4; setStep(4, 'running')
-    const archiveMap = new Map((norm.results || []).map((r: any) => [r.source_path, r.new_filename]))
-    const archiveItems = (scan.files || []).filter((f: any) => archiveMap.has(f.full_path)).map((f: any) => ({
-      source_path: f.full_path, new_filename: archiveMap.get(f.full_path) || f.name || '',
-      logical_code: f.logical_code || '', number: f.number || 0, year: f.year || 0, std_name: f.std_name || f.name || '',
-      num_prefix: f.num_prefix || '', ext: (f.name || '').toLowerCase().endsWith('.pdf') ? 'pdf' : 'doc',
-    }))
-    // 下载成功的文件也要进入归档；否则 Web 五段式的下载件会留在 /standards 根目录。
-    // 仅接受 saved_path + 可解析标准号的 success 结果；按 source_path 去重，避免与扫描件重复。
-    const archivedPaths = new Set(archiveItems.map((i: any) => i.source_path))
-    for (const dl of (downloadResult.value?.results || [])) {
-      if (dl.status !== 'success' || !dl.saved_path || !dl.standard_number) continue
-      if (archivedPaths.has(dl.saved_path)) continue
-      const parsed = parseStandardNumber(dl.standard_number)
-      if (!parsed) {
-        console.warn('[Archive] 跳过无法解析的下载件:', dl.standard_number, dl.saved_path) // i18n-allow: 开发者日志
-        continue
-      }
-      const filename = String(dl.saved_path).split(/[\\/]/).pop() || dl.standard_name || dl.standard_number
-      archiveItems.push({
-        source_path: dl.saved_path,
-        new_filename: filename,
-        logical_code: parsed.logical_code,
-        number: parsed.number,
-        year: parsed.year,
-        std_name: dl.standard_name || filename,
-        num_prefix: '',
-        ext: filename.toLowerCase().endsWith('.pdf') ? 'pdf' : 'doc',
-      })
-      archivedPaths.add(dl.saved_path)
-    }
+    const archiveItems = buildArchiveItems(
+      scan.files || [],
+      norm?.results || [],
+      downloadResult.value?.results || [],
+    )
     if (archiveItems.length > 0) {
       await postArchive(archiveItems, undefined, runId.value!)
       setStep(4, 'done', t('task.archive_done'))
@@ -367,7 +391,14 @@ function statusLabel(s: string) {
       <select v-model="selectedPath" class="fi">
         <option v-for="p in paths" :key="p" :value="p">{{ p }}</option>
       </select>
-      <Button :label="t('task.start')" icon="pi pi-play" :loading="running" :disabled="running" @click="runPipeline" />
+      <Button :label="t('task.start')" icon="pi pi-play" :loading="running" :disabled="running" @click="runPipeline()" />
+      <Button
+        v-if="interruptedRun"
+        :label="t('task.continue')"
+        icon="pi pi-refresh"
+        severity="warn"
+        @click="continueRun"
+      />
       <Button
         :label="stopping ? t('task.stopping') : t('task.stop')"
         icon="pi pi-stop"

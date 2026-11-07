@@ -76,6 +76,11 @@ def _clean_zombie_tasks() -> None:
             "UPDATE fetch_task SET status='failed', error_msg='任务被中断（服务重启）' "
             "WHERE status IN ('running', 'pending')"
         )
+        # Web 五段式由前端驱动；服务重启后不可能继续，标记为可阶段级续跑
+        db.execute(
+            "UPDATE pipeline_runs SET status='interrupted', error_message='服务重启，任务中断', "
+            "updated_at=datetime('now', 'localtime') WHERE status IN ('running','stopping')"
+        )
         db.close()
     except Exception as e:
         # 清理失败不阻断启动，但必须可观测：否则 fetch_task 会永远停在 running/pending
@@ -344,7 +349,7 @@ async def global_exception_handler(request: Request, exc: Exception):
     """全局异常处理：捕获所有未处理异常，写日志 + 返回 500。"""
     # i18n-allow: 内部日志/占位提示
     logger.exception("未处理异常: %s %s", request.method, request.url.path)
-    return JSONResponse({"error": "服务器内部错误", "detail": str(exc)}, status_code=500)
+    return JSONResponse({"error": "服务器内部错误", "detail": str(exc)}, status_code=500)  # i18n-allow: 内部 API 错误
 
 
 # 中间件注册顺序：安全头 → 请求体限制 → 鉴权

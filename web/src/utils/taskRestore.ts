@@ -77,13 +77,22 @@ export function restoreResultsFromStepResults(raw: unknown): RestoredResults {
   }
 }
 
+/** 根据已恢复的步骤结果，决定从第几段继续（0 scan / 1 query / 2 download / 3 normalize / 4 archive）。 */
+export function resumeStartFrom(r: RestoredResults): number {
+  if (r.normalize) return 4
+  if (r.download) return 3
+  if (r.query) return 2
+  if (r.scan) return 1
+  return 0
+}
+
 /** 读取持久化 runId，返回可恢复的运行记录；无记录/终态/失败返回 null 并清理 */
 export async function resolveActiveRun(): Promise<{ runId: string; run: PipelineRun } | null> {
   const savedRunId = getItem('task_active_run')
   if (!savedRunId) return null
   try {
     const run = await getPipelineRun(savedRunId)
-    if (run.status === 'running' || run.status === 'pending') {
+    if (run.status === 'running' || run.status === 'pending' || run.status === 'interrupted') {
       return { runId: savedRunId, run }
     }
     removeItem('task_active_run')
