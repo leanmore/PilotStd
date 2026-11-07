@@ -22,8 +22,9 @@ class QueryResult:
     source: str = ""  # 数据来源标注：web端公告缓存 / live_fallback / 空=本地适配器
     publish_date: str = ""  # 发布日期
     abolition_date: str = "网站无此分类"  # 废止日期
-    hcno: str = ""  # 标准唯一ID（新平台 hcno = std_gov 查询结果的 pid，
-    # 直接用于下载，无需额外搜索步骤）
+    # 站点详情 ID（hbba/njbz365 等按站点解释）；不是 openstd 下载 hcno。
+    # std_gov 的 pid 与 openstd hcno 是两种标识，下载侧禁止读取本字段。
+    hcno: str = ""
     split_into: str = ""  # 多部分拆分时，逗号分隔的部分编号列表
 
     is_downloadable: bool = True  # 是否可下载（采标标准不可下载）

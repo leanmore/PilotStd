@@ -110,6 +110,30 @@ describe('TaskView 归档 items 构造', () => {
     expect(items[0].num_prefix).toBe('')
   })
 
+  it('下载成功的文件也进入归档 items', async () => {
+    mockPostQuery.mockResolvedValue({
+      stats: { found: 1, downloadable: 1 },
+      results: [{ standard_number: 'GB 150-2011', match_status: 'exact', is_adopted: false }],
+    })
+    mockPostDownload.mockResolvedValue({
+      stats: { success: 1, skipped: 0 },
+      results: [{
+        standard_number: 'GB 150-2011',
+        standard_name: '压力容器',
+        status: 'success',
+        saved_path: '/standards/GB 150-2011 压力容器.pdf',
+      }],
+    })
+    const wrapper = mountTaskView()
+    await flushPromises()
+    wrapper.findComponent({ name: 'Button' }).vm.$emit('click')
+    for (let i = 0; i < 10; i++) await flushPromises()
+
+    const items = mockPostArchive.mock.calls[0][0]
+    expect(items).toHaveLength(2)
+    expect(items.map((i: any) => i.source_path)).toContain('/standards/GB 150-2011 压力容器.pdf')
+  })
+
   it('切换语言到 en 后文案随之变化（i18n 生效）', async () => {
     const zh = mountTaskView('zh-CN')
     await flushPromises()

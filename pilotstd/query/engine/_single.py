@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Any, Optional, cast
 
 from ..models import QueryResult
 from ..routing.router_v2 import AllRoutesExhaustedException, get_routing_service, is_v2_enabled
-from ..routing.router_v2_metrics import build_decision, record_decision, record_v1_brief
+from ..routing.router_v2_metrics import build_decision, record_decision, record_v1_brief, record_v2_skip
 
 if TYPE_CHECKING:
     from ..adapters.base import BaseAdapter
@@ -195,9 +195,13 @@ class SingleQueryHandler:
             preferred_site=preferred_site,
         )
         if cached is not None:
+            if is_v2_enabled():
+                record_v2_skip(target, "cache_hit", getattr(cached, "source_site", None))
             return cached
 
         # v2 灰度分支：RouteChain 链式降级（未指定站点时启用）
+        if is_v2_enabled() and preferred_site:
+            record_v2_skip(target, "preferred_site", preferred_site)
         if is_v2_enabled() and not preferred_site:
             try:
                 return self._query_one_v2(target, logical_code, number, year, std_name, part, num_prefix)

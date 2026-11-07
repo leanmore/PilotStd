@@ -101,7 +101,8 @@ class TestCoreDeepComplete(unittest.TestCase):
     updated_at TEXT DEFAULT 'CURRENT_TIMESTAMP',
     source_version TEXT DEFAULT 'initial',
     data_state TEXT DEFAULT 'fresh',
-    last_accessed_at TEXT
+    last_accessed_at TEXT,
+    last_changed_at TEXT
 );""").__enter__()
         try:
             past = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
@@ -144,7 +145,8 @@ class TestCoreDeepComplete(unittest.TestCase):
     updated_at TEXT DEFAULT 'CURRENT_TIMESTAMP',
     source_version TEXT DEFAULT 'initial',
     data_state TEXT DEFAULT 'fresh',
-    last_accessed_at TEXT
+    last_accessed_at TEXT,
+    last_changed_at TEXT
 );
         CREATE TABLE IF NOT EXISTS announcement_record (
     id INTEGER,

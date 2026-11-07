@@ -62,6 +62,22 @@ def hash_query(query: str) -> str:
     return hashlib.sha256(query.encode("utf-8")).hexdigest()[:8]
 
 
+def record_v2_skip(query: str, reason: str, hit_site: Optional[str] = None) -> None:
+    """记录“v2 已开启但未进入路由”的原因（cache_hit / preferred_site）。
+
+    这不是一条 v2 路由决策，而是采样缺口证据：v2 窗口内有多少查询被缓存/
+    指定站点提前截走。`routing_version=v2_skipped` 与真实 v2 决策分开统计。
+    """
+    record_decision(
+        {
+            "query_hash": hash_query(query),
+            "reason": reason,
+            "hit_site": hit_site or "",
+            "routing_version": "v2_skipped",
+        }
+    )
+
+
 def record_v1_brief(query: str, hit_site: Optional[str], total_latency_ms: float) -> None:
     """记录 v1 精简对比日志（仅 query_hash/hit_site/latency，供 4.4 回归对比）。"""
     record_decision(

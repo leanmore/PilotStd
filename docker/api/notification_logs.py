@@ -235,20 +235,24 @@ def get_log_diagnostics(
 
 
 @router.post("/api/notification/read", response_model=MarkReadResponse)
-def mark_notification_read(request: MarkReadRequest, nmgr=Depends(_get_notification_mgr)):
-    """标记单条或全部通知为已读。id=None 表示全部标记已读。"""
+def mark_notification_read(
+    request: MarkReadRequest,
+    nmgr=Depends(_get_notification_mgr),
+    current_user: int = Depends(_get_user_id),
+):
+    """标记单条或全部通知为已读。id=None 表示当前用户的全部通知。"""
     try:
         ids = [request.id] if request.id is not None else None
         if request.id is not None:
-            # 验证存在
-            result = nmgr.ops.get_logs(page=1, size=1, start_date=None, end_date=None)
+            # 验证存在，且必须属于当前用户；不能借 id 标记别人的日志
+            result = nmgr.ops.get_logs(page=1, size=1, start_date=None, end_date=None, user_id=current_user)
             existing_ids = {r["id"] for r in result["items"]}
             if request.id not in existing_ids:
                 return JSONResponse(
                     {"error": t("notification.api.mark_read_not_found").format(id=request.id)},
                     status_code=404,
                 )
-        count = nmgr.ops.mark_logs_read(ids)
+        count = nmgr.ops.mark_logs_read(ids, user_id=current_user)
         return {"ok": True, "count": count, "message": t("notification.api.mark_read_success")}
     except Exception as e:
         logger.exception(t("notification.api.log_mark_read_failed"))
@@ -256,10 +260,14 @@ def mark_notification_read(request: MarkReadRequest, nmgr=Depends(_get_notificat
 
 
 @router.get("/api/notification/unread-count", response_model=UnreadCountResponse)
-def get_unread_count(request: Request, nmgr=Depends(_get_notification_mgr)):
-    """获取未读通知数量。"""
+def get_unread_count(
+    request: Request,
+    nmgr=Depends(_get_notification_mgr),
+    current_user: int = Depends(_get_user_id),
+):
+    """获取当前用户的未读通知数量（与日志列表同口径）。"""
     try:
-        count = nmgr.ops.get_unread_count()
+        count = nmgr.ops.get_unread_count(current_user)
         return {"count": count}
     except Exception as e:
         logger.exception(t("notification.api.log_unread_count_failed"))

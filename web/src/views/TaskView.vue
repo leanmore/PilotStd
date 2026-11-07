@@ -266,6 +266,30 @@ async function runPipeline() {
       logical_code: f.logical_code || '', number: f.number || 0, year: f.year || 0, std_name: f.std_name || f.name || '',
       num_prefix: f.num_prefix || '', ext: (f.name || '').toLowerCase().endsWith('.pdf') ? 'pdf' : 'doc',
     }))
+    // 下载成功的文件也要进入归档；否则 Web 五段式的下载件会留在 /standards 根目录。
+    // 仅接受 saved_path + 可解析标准号的 success 结果；按 source_path 去重，避免与扫描件重复。
+    const archivedPaths = new Set(archiveItems.map((i: any) => i.source_path))
+    for (const dl of (downloadResult.value?.results || [])) {
+      if (dl.status !== 'success' || !dl.saved_path || !dl.standard_number) continue
+      if (archivedPaths.has(dl.saved_path)) continue
+      const parsed = parseStandardNumber(dl.standard_number)
+      if (!parsed) {
+        console.warn('[Archive] 跳过无法解析的下载件:', dl.standard_number, dl.saved_path) // i18n-allow: 开发者日志
+        continue
+      }
+      const filename = String(dl.saved_path).split(/[\\/]/).pop() || dl.standard_name || dl.standard_number
+      archiveItems.push({
+        source_path: dl.saved_path,
+        new_filename: filename,
+        logical_code: parsed.logical_code,
+        number: parsed.number,
+        year: parsed.year,
+        std_name: dl.standard_name || filename,
+        num_prefix: '',
+        ext: filename.toLowerCase().endsWith('.pdf') ? 'pdf' : 'doc',
+      })
+      archivedPaths.add(dl.saved_path)
+    }
     if (archiveItems.length > 0) {
       await postArchive(archiveItems, undefined, runId.value!)
       setStep(4, 'done', t('task.archive_done'))

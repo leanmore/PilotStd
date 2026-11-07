@@ -106,6 +106,30 @@ class TestCacheRepository(unittest.TestCase):
         self.assertIsNotNone(cached)
         self.assertEqual(cached.standard_name, "基础规范")
 
+    def test_stale_cache_is_miss(self):
+        r = QueryResult(standard_number="GB/T STALE-2020", status=Status.ACTIVE.value, source_site="mock")
+        self.cache.put(r)
+        self.db.execute(
+            "UPDATE standard_info_cache SET data_state='stale' "
+            "WHERE standard_number=? AND source_site=?",
+            ("GB/T STALE-2020", "mock"),
+        )
+
+        self.assertIsNone(self.cache.get("GB/T STALE-2020", "mock"))
+
+    def test_put_resets_stale_to_fresh(self):
+        r = QueryResult(standard_number="GB/T FRESH-2020", status=Status.ACTIVE.value, source_site="mock")
+        self.cache.put(r)
+        self.db.execute(
+            "UPDATE standard_info_cache SET data_state='stale' "
+            "WHERE standard_number=? AND source_site=?",
+            ("GB/T FRESH-2020", "mock"),
+        )
+        self.cache.put(r)
+
+        cached = self.cache.get("GB/T FRESH-2020", "mock")
+        self.assertIsNotNone(cached)
+
     def test_cache_miss(self):
         self.assertIsNone(self.cache.get("不存在的标准", "mock"))
 

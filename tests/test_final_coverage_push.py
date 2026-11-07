@@ -110,7 +110,8 @@ class TestValidityCheckerRemaining(unittest.TestCase):
     updated_at TEXT DEFAULT 'CURRENT_TIMESTAMP',
     source_version TEXT DEFAULT 'initial',
     data_state TEXT DEFAULT 'fresh',
-    last_accessed_at TEXT
+    last_accessed_at TEXT,
+    last_changed_at TEXT
 );"""
         self.db = MockDatabase(schema).__enter__()
 
@@ -172,7 +173,8 @@ class TestCacheManagerRemaining(unittest.TestCase):
     updated_at TEXT DEFAULT 'CURRENT_TIMESTAMP',
     source_version TEXT DEFAULT 'initial',
     data_state TEXT DEFAULT 'fresh',
-    last_accessed_at TEXT
+    last_accessed_at TEXT,
+    last_changed_at TEXT
 );
         CREATE TABLE IF NOT EXISTS announcement_record (
     id INTEGER,

@@ -43,7 +43,8 @@ class TestValidityChecker(unittest.TestCase):
     updated_at TEXT DEFAULT 'CURRENT_TIMESTAMP',
     source_version TEXT DEFAULT 'initial',
     data_state TEXT DEFAULT 'fresh',
-    last_accessed_at TEXT
+    last_accessed_at TEXT,
+    last_changed_at TEXT
 );""")
         self.db.execute("CREATE INDEX IF NOT EXISTS idx_validity_next_check ON standard_validity(next_check_at)")
         self.db.execute("CREATE INDEX IF NOT EXISTS idx_validity_standard ON standard_validity(standard_number)")

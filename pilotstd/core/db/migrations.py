@@ -196,3 +196,8 @@ from ._migrate_v72_announcement_dedupe import (  # noqa: E402, F401
 from ._migrate_v73_normalize_timestamps import (  # noqa: E402, F401
     _migrate_v73_normalize_timestamps,
 )
+
+# 第七十四版：修复 standard_validity 的前导空格/缺代号畸形键
+from ._migrate_v74_repair_validity_keys import (  # noqa: E402, F401
+    _migrate_v74_repair_validity_keys,
+)

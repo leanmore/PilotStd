@@ -24,7 +24,8 @@ _VALIDITY_SCHEMA = """CREATE TABLE IF NOT EXISTS standard_validity (
     updated_at TEXT DEFAULT 'CURRENT_TIMESTAMP',
     source_version TEXT DEFAULT 'initial',
     data_state TEXT DEFAULT 'fresh',
-    last_accessed_at TEXT
+    last_accessed_at TEXT,
+    last_changed_at TEXT
 );"""
 
 _CACHE_SCHEMA = """
@@ -53,7 +54,8 @@ CREATE TABLE IF NOT EXISTS standard_validity (
     updated_at TEXT DEFAULT 'CURRENT_TIMESTAMP',
     source_version TEXT DEFAULT 'initial',
     data_state TEXT DEFAULT 'fresh',
-    last_accessed_at TEXT
+    last_accessed_at TEXT,
+    last_changed_at TEXT
 );
 CREATE TABLE IF NOT EXISTS announcement_record (
     id INTEGER,

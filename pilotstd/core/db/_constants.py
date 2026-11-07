@@ -4,7 +4,7 @@
 from typing import Any, Callable
 
 # 当前期望的表结构版本号（每次新增迁移+1）
-CURRENT_SCHEMA_VERSION = 73  # v73: 历史时间字符串统一为 ISO 8601 带时区偏移
+CURRENT_SCHEMA_VERSION = 74  # v74: 修复 standard_validity 前导空格/缺代号畸形键
 
 # 迁移注册表：版本号→迁移函数（接收实例）
 MIGRATIONS: dict[int, Callable[..., Any]] = {}

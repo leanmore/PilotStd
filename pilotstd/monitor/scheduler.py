@@ -21,6 +21,34 @@ def _log_trace_id() -> str:
 
     return secrets.token_hex(4)
 
+
+def _cleanup_empty_dirs(watch_root: str, start_dir: str) -> int:
+    """删除 start_dir 下（含自身）的空目录，但绝不删除 watch_root 本身。
+
+    只做 `os.rmdir`：目录非空会失败，因此不会误删还有文件的目录。
+    返回删除数量；路径不在 watch_root 内时直接返回 0（测试/注入场景安全）。
+    """
+    try:
+        root = os.path.realpath(watch_root)
+        start = os.path.realpath(start_dir)
+        if os.path.commonpath([root, start]) != root or start == root:
+            return 0
+    except (OSError, ValueError) as exc:
+        logger.warning("清理空目录路径校验失败，跳过: %s (%s)", start_dir, exc)  # i18n-allow: 内部运维日志
+        return 0
+
+    removed = 0
+    for dirpath, _dirnames, _filenames in os.walk(start, topdown=False):
+        try:
+            os.rmdir(dirpath)
+            removed += 1
+        except OSError:
+            # 非空 / 无权限：保留，不阻断归档；非空是正常情况，不刷日志
+            continue
+    if removed:
+        logger.info("[MONITOR] 清理空目录: %d 个", removed)  # i18n-allow: 内部运维日志
+    return removed
+
 _instance = None
 
 
@@ -61,6 +89,7 @@ class FileMonitorScheduler:
         self._thread: threading.Thread | None = None
         self._stop = threading.Event()
         self._mgr = manager  # 依赖注入，避免 monitor→manager 反向导入
+        self._mgr_lock = threading.Lock()  # 懒加载 manager 的并发保护
 
     def start(self):
         """启动文件监控后台线程。"""
@@ -144,13 +173,16 @@ class FileMonitorScheduler:
 
         stats = get_monitor_stats()
         stats.increment("processed")
+        watch_path = resolve_monitor_config(cfg)["watch_path"]
 
         try:
             if self._mgr is None:
                 # 兼容未注入管理器的场景（自动降级）
-                from pilotstd.manager.facade import StandardManager  # noqa: PLC0415
+                with self._mgr_lock:
+                    if self._mgr is None:
+                        from pilotstd.manager.facade import StandardManager  # noqa: PLC0415
 
-                self._mgr = StandardManager()
+                        self._mgr = StandardManager()
             mgr = self._mgr
             source_root = os.path.dirname(path)
             scanned = mgr.scan_directory(source_root)
@@ -171,9 +203,11 @@ class FileMonitorScheduler:
                 stats.increment("failed")
             else:
                 # 源文件已被移走/目标已存在/条目待确认 → 无搬移，不计成败
-                logger.info("[MONITOR] 未搬移文件（跳过）: %s", path)
+                logger.info("[MONITOR] 未搬移文件（跳过）: %s", path)  # i18n-allow: 内部运维日志
+            # 归档后清理空的子目录；非空目录 rmdir 会失败，不会误删
+            _cleanup_empty_dirs(watch_path, source_root)
         except Exception as e:
-            logger.error("[MONITOR] 处理失败: %s — %s", path, e)
+            logger.error("[MONITOR] 处理失败: %s — %s", path, e)  # i18n-allow: 内部运维日志
             stats.increment("failed")
 
     def get_status(self) -> dict:

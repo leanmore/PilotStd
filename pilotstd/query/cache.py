@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from typing import Any, Optional
 
 from pilotstd.core.time_utils import iso_now
@@ -11,6 +12,8 @@ from pilotstd.core.time_utils import iso_now
 from ..core.db import Database
 from ..core.file_index import ANNOUNCEMENT_CACHE_TABLE
 from .models import QueryResult
+
+logger = logging.getLogger(__name__)
 
 CACHE_TABLE = "standard_info_cache"
 DEFAULT_ACTIVE_TTL_DAYS = 30
@@ -44,6 +47,11 @@ class CacheRepository:
             (standard_number, source_site),
         )
         if row:
+            # CacheManager 已将数据源版本变化标记为 stale；stale 不能再当命中，
+            # 否则事件驱动失效对查询链路完全无效（2026-11-07 审计）。
+            if row.get("data_state") == "stale":
+                logger.debug("查询缓存 stale，跳过: %s @%s", standard_number, source_site)  # i18n-allow: 内部缓存日志
+                return None
             # 过滤不接受的字段（适配器可能挂临时属性，如的___）
             _valid = {f.name for f in QueryResult.__dataclass_fields__.values()}
             data = {k: v for k, v in json.loads(row["result_json"]).items() if k in _valid}
@@ -77,7 +85,7 @@ class CacheRepository:
         if existing:
             # 已有记录时不覆盖（保留首次数据来源标记）
             self._db.execute(
-                f"UPDATE {CACHE_TABLE} SET result_json=?, cached_at=? WHERE id=?",
+                f"UPDATE {CACHE_TABLE} SET result_json=?, cached_at=?, data_state='fresh' WHERE id=?",
                 (result_json, iso_now(), existing["id"]),
             )
         else:

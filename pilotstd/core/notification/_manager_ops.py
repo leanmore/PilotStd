@@ -304,20 +304,47 @@ class NotificationOps:
         }
 
     # ids 为空表示“全部标记已读”，此时返回 0——调用方据此区分“按条计数”与“全量操作”。
-    def mark_logs_read(self, ids: list[int] | None = None) -> int:
-        """标记通知日志为已读（单条或全部），供 API 层调用。"""
+    def mark_logs_read(self, ids: list[int] | None = None, user_id: int | None = None) -> int:
+        """标记通知日志为已读（单条或全部），供 API 层调用。
+
+        `user_id` 非空时只更新该用户的日志：日志列表按用户过滤，未读数/全部已读
+        也必须同口径，否则“全部已读”会清掉其他用户的未读（2026-11-07 审计）。
+        """
         db = self._db
         if ids:
+            updated = 0
             for i in ids:
-                db.execute("UPDATE notification_log SET is_read = 1 WHERE id = ?", (i,))
-            return len(ids)
+                if user_id is not None:
+                    cur = db.execute(
+                        "UPDATE notification_log SET is_read = 1 WHERE id = ? AND user_id = ?",
+                        (i, user_id),
+                    )
+                    updated += cur.rowcount or 0
+                else:
+                    db.execute("UPDATE notification_log SET is_read = 1 WHERE id = ?", (i,))
+                    updated += 1
+            # 旧行为（无 user_id）返回“请求条数”，保持既有调用方/测试契约；
+            # 有 user_id 时返回真实受影响行数，避免把别人的 id 也计入。
+            return updated if user_id is not None else len(ids)
         else:
-            db.execute("UPDATE notification_log SET is_read = 1")
+            if user_id is not None:
+                db.execute(
+                    "UPDATE notification_log SET is_read = 1 WHERE is_read = 0 AND user_id = ?",
+                    (user_id,),
+                )
+            else:
+                db.execute("UPDATE notification_log SET is_read = 1")
             return 0
 
-    def get_unread_count(self) -> int:
-        """获取未读通知数量。"""
-        row = self._db.fetchone("SELECT COUNT(*) AS cnt FROM notification_log WHERE is_read = 0")
+    def get_unread_count(self, user_id: int | None = None) -> int:
+        """获取未读通知数量；传 user_id 时只统计该用户。"""
+        if user_id is None:
+            row = self._db.fetchone("SELECT COUNT(*) AS cnt FROM notification_log WHERE is_read = 0")
+        else:
+            row = self._db.fetchone(
+                "SELECT COUNT(*) AS cnt FROM notification_log WHERE is_read = 0 AND user_id = ?",
+                (user_id,),
+            )
         return row["cnt"] if row else 0
 
     # 保留期清理：sent_at 存的是 ISO 字符串，字典序即时间序，故可直接用字符串比较做截止点；
