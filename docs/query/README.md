@@ -40,9 +40,9 @@ _resolve_base_route(logical_code)      [_routing.py:35-77]
 
 优先级链最终通过 `_get_priority()` [src: `_routing.py:105`] 叠加用户 `site_order` + `_filter_available_adapters()`（冷却过滤）生成。
 
-### v2 路由（灰度中，ROUTING_ENGINE_VERSION=v2 启用）[src: `pilotstd/query/routing/router_v2.py`]
+### v2 路由（2026-11-07 起默认启用）[src: `pilotstd/query/routing/router_v2.py`]
 
-> 2026-08-17 起以灰度开关 `ROUTING_ENGINE_VERSION` 控制（默认 v1；设 `v2` 启用）。以下仅记录**代码中已实现**的内容：
+> 默认 v2；部署时设 `ROUTING_ENGINE_VERSION=v1` 可回滚。以下仅记录**代码中已实现**的内容：
 
 **三级漏斗机制**（router_v2.py L7 设计注释）：
 

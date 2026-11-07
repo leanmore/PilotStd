@@ -7,20 +7,20 @@
 
 ## Q1. 路由 v2 的观察数据为什么一直是 0
 
-**状态**：已决定 C；已加 `v2_skipped` 采样（cache_hit/preferred_site），真实 ≥1000 样本待验证环境
+**状态**：已关闭（2026-11-07 用户拍板：代码默认启用 v2；部署时设 `ROUTING_ENGINE_VERSION=v1` 回滚）
 
 ### 已查清的事实
 
-1. v2 只由环境变量开启：
-   - `router_v2.is_v2_enabled()` 仅当 `ROUTING_ENGINE_VERSION == "v2"` 返回 True；
-   - 默认 v1。
-2. 部署配置没有开启：
-   - `docker-compose.yml` / `.env` 中没有 `ROUTING_ENGINE_VERSION`；
-   - 线上 `app.log` 没有 `[v2 Router]` 行。
-3. 本地埋点日志 `logs/router_v2_decisions.jsonl`：
+1. v2 开关：
+   - `router_v2.is_v2_enabled()` 默认返回 True；
+   - 显式设置 `ROUTING_ENGINE_VERSION=v1` 才回到 v1。
+2. 部署配置可以完全不写该变量：
+   - 不设置 → 走默认 v2；
+   - 需要回滚时再显式设 v1。
+3. 历史埋点日志 `logs/router_v2_decisions.jsonl`：
    - 2133 条，全部 `routing_version=v1`；
    - v2 为 0；
-   - 时间范围 2026-08-18 ~ 2026-11-06。
+   - 时间范围 2026-08-18 ~ 2026-11-06（默认启用前）。
 4. ADR-015 / 归档评估报告：
    - v2 灰度样本数 0；
    - 清理 v1 的安全阈值是 ≥1000 条 v2 样本；
@@ -41,7 +41,7 @@
 - **B. 受控采样**：在验证环境设置 `ROUTING_ENGINE_VERSION=v2`，关闭缓存/指定站点，跑 ≥1000 条，确认写入与回填，再评估 v1 清理。
 - **C. 先修采样缺陷**：让缓存命中/指定站点也能记录“未进入 v2”的原因，再决定是否采样。
 
-> 不建议在未采样的情况下直接切 v2 默认。
+> 2026-11-07 用户已决定先默认启用 v2，再随真实查询积累样本；需要时用 `ROUTING_ENGINE_VERSION=v1` 回滚。
 
 ---
 

@@ -190,7 +190,7 @@ Web 五段式执行后，下载成功的文件留在 `/standards` 根目录，�
 
 | 路径 | 代码 | 事实 |
 |---|---|---|
-| 开关 | `is_v2_enabled()` | 只认 `ROUTING_ENGINE_VERSION=v2` |
+| 开关 | `is_v2_enabled()` | 2026-11-07 起默认 True；`ROUTING_ENGINE_VERSION=v1` 回滚 |
 | 单条 | `_single._query_one()` | 先 cache lookup；命中直接 return；`preferred_site` 跳过 v2 |
 | v2 记录 | `_query_one_v2()` | 命中/全失败才 `record_decision` |
 | 批量 | `_mini_bucket._record_v2_hit()` | 只在 v2 开启时记录 |
@@ -255,7 +255,7 @@ Web 五段式执行后，下载成功的文件留在 `/standards` 根目录，�
 | D-02 monitor/空目录 | 已修复（触发 auto_run 主链） | 去抖/锁 + 空目录清理；待部署 |
 | D-03 有效性/过期 | v74 已部署（schema 74） | `auto_move_expired` 未开启 |
 | D-04 通知聚合/页面 | 未读数已部署验证；聚合待查 | 11/7 日志缺失 L4 |
-| D-05 v2 采样 | `v2_skipped` 已部署 | 真实 1000 条待验证环境 |
+| D-05 v2 采样 | 代码默认 v2（2026-11-07） | 部署后随真实查询积累 1000 条；可 env 回滚 v1 |
 | D-06 查询缓存 | 已部署 | 观察回源压力 |
 
 > 这些 dossier 已到“可以评审方案”的层级；真正改代码前，还需对每个 D 补齐“边界决策 + 失败测试 + 回滚”。

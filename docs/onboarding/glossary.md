@@ -79,7 +79,7 @@
 | **`DirBuilder`** | 目录结构 | `pilotstd/organizer/dir_builder.py` |
 | **`StandardParser`** | 文件名解析 | `pilotstd/scan/parser/` |
 | **`QueryEngine`** | 查询引擎 | `pilotstd/query/engine/` |
-| **v2 路由** | ADR-015 的三级漏斗路由实验，环境变量 `ROUTING_ENGINE_VERSION=v2` 才启用，默认 v1 | `pilotstd/query/routing/router_v2.py` |
+| **v2 路由** | ADR-015 的三级漏斗路由实验；2026-11-07 起默认启用，`ROUTING_ENGINE_VERSION=v1` 回滚 | `pilotstd/query/routing/router_v2.py` |
 | **`QueryClassifier`** | 结果写回/分堆 | `pilotstd/manager/classifier.py` |
 | **`PipelineRouter`** | 状态路由 | `pilotstd/pipeline/router.py` |
 | **`DownloadEngine`** | 下载引擎 | `pilotstd/download/engine.py` |

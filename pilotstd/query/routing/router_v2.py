@@ -381,10 +381,14 @@ def default_capabilities_path() -> str:
 
 
 def is_v2_enabled() -> bool:
-    """判断是否启用 v2 路由引擎（灰度开关，默认关闭，保持 v1 行为）。"""
+    """判断是否启用 v2 路由引擎。
+
+    2026-11-07 起默认启用 v2；部署时设置 ``ROUTING_ENGINE_VERSION=v1``
+    可一键回滚，不需要改代码。
+    """
     import os
 
-    return os.getenv("ROUTING_ENGINE_VERSION") == "v2"
+    return os.getenv("ROUTING_ENGINE_VERSION", "v2").strip().lower() == "v2"
 
 
 class AllRoutesExhaustedException(Exception):

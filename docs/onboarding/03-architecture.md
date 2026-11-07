@@ -206,7 +206,7 @@ batch_scope("imp")
 |---|---|---|
 | 查询适配器 | **21 个**，站点配置/画像在 `site_config`；逐站矩阵见 [`15-query-adapter-matrix.md`](15-query-adapter-matrix.md) | `pilotstd/query/adapters/registry.py`、`pilotstd/query/site_config/` |
 | 路由 v1 | 默认启用：评分器动态链 + `CODE_ROUTES` 兜底 | `query/engine/_routing.py`、`query/routing/scorer.py` |
-| 路由 v2 | ADR-015 的三级漏斗实验：`ROUTING_ENGINE_VERSION=v2` 才启用，默认 v1 | `query/routing/router_v2.py`、`docs/adr/ADR-015-route-engine-v2-funnel.md` |
+| 路由 v2 | ADR-015 的三级漏斗实验：**2026-11-07 起默认启用 v2**；部署时设 `ROUTING_ENGINE_VERSION=v1` 可回滚 | `query/routing/router_v2.py`、`docs/adr/ADR-015-route-engine-v2-funnel.md` |
 | 下载适配器 | **1 个**：`openstd_download`，只覆盖 GB 类 | `pilotstd/download/adapters/openstd_download.py` |
 | 下载标识 | hcno 只能从 openstd 搜索页按行匹配，不能用 `std_gov` 的 pid | `openstd_download.py` 模块 docstring |
 | 公告抓取适配器 | **3 个**：SAMR GB/HB/DB，可并发；**不是查询/下载适配器** | `pilotstd/announcement/adapters/` |
@@ -214,12 +214,12 @@ batch_scope("imp")
 
 **一句话**：查询是“21 个站点找答案”，下载是“GB 类走 openstd 一条路”，公告是“3 个 SAMR 源做状态缓存”。三者不是同一套适配器。
 
-**v2 灰度现状（2026-11-07 核实）**：
+**v2 灰度现状（2026-11-07 决定默认启用）**：
 
-- 默认 v1；仓库 compose/.env 未设置 `ROUTING_ENGINE_VERSION`；
-- 本地 `logs/router_v2_decisions.jsonl` 现有 2133 条，**全部 v1、0 条 v2**；
-- ADR-015 要求 v2 灰度 ≥1000 查询样本才评估 v1 清理，当前未达到；
-- 所以“v2 观察数据一直没记录”的主因不是日志模块坏了，而是 **v2 没有真正运行过**；即使启用，缓存命中/指定站点也会绕过 v2 分支。
+- 代码默认 v2；部署时设 `ROUTING_ENGINE_VERSION=v1` 可一键回滚；
+- 历史 `logs/router_v2_decisions.jsonl` 的 2133 条是 v1 时期数据，不代表默认行为；
+- 先默认启用、随真实查询积累 ≥1000 条 v2 样本，再评估 v1 清理；
+- 即使启用，缓存命中/指定站点仍会绕过 v2 分支，采样时需强制刷新或关闭缓存。
 
 **`query.use_announcement_match` 的准确语义**：
 

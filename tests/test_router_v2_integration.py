@@ -12,15 +12,20 @@ from pilotstd.query.routing.router_v2 import (
 class TestFeatureFlag:
     """灰度开关测试。"""
 
-    def test_v2_disabled_by_default(self, monkeypatch):
-        """(a) 验证灰度开关默认关闭 (b) 向后兼容，生产默认走 v1"""
+    def test_v2_enabled_by_default(self, monkeypatch):
+        """(a) 验证 2026-11-07 起默认启用 v2 (b) 无需环境变量"""
         monkeypatch.delenv("ROUTING_ENGINE_VERSION", raising=False)
-        assert is_v2_enabled() is False
+        assert is_v2_enabled() is True
 
     def test_v2_enabled_via_env(self, monkeypatch):
-        """(a) 验证环境变量可切至 v2 (b) 一键回滚能力"""
-        monkeypatch.setenv("ROUTING_ENGINE_VERSION", "v2")
+        """(a) 显式 v2 仍启用 (b) 大小写/空格容错"""
+        monkeypatch.setenv("ROUTING_ENGINE_VERSION", " V2 ")
         assert is_v2_enabled() is True
+
+    def test_v2_can_rollback_via_env(self, monkeypatch):
+        """(a) 部署时设置 v1 可回滚 (b) 不需要改代码"""
+        monkeypatch.setenv("ROUTING_ENGINE_VERSION", "v1")
+        assert is_v2_enabled() is False
 
 
 class TestRoutingServiceSingleton:

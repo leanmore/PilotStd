@@ -20,6 +20,12 @@ from pilotstd.query.engine import QueryEngine
 from pilotstd.query.models import BatchQueryStats, QueryResult
 from pilotstd.scan.parser import StandardParser
 
+
+@pytest.fixture(autouse=True)
+def _legacy_v1_routing(monkeypatch):
+    """本文件覆盖 v1 引擎机制；v2 默认由 test_router_v2_integration 覆盖。"""
+    monkeypatch.setenv("ROUTING_ENGINE_VERSION", "v1")
+
 # ── 模拟适配器（用于测试引擎和缓存）─────────────────────────
 
 

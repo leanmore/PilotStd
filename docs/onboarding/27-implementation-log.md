@@ -154,6 +154,15 @@
 
 > 注意：这不是下载任务持久化；`DownloadTask` 仍在内存，边界 #7 的下载部分仍开放。
 
+### 15. v2 路由默认启用（D-05）
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `pilotstd/query/routing/router_v2.py`、`tests/test_router_v2_integration.py`、相关文档 |
+| 行为 | `is_v2_enabled()` 默认 True；`ROUTING_ENGINE_VERSION=v1` 可回滚；无需在 compose/.env 写变量 |
+| 测试 | router v2 集成 8 passed |
+| 回滚 | 部署时设置 `ROUTING_ENGINE_VERSION=v1`，重启即可，不改代码 |
+
 ---
 
 ## 验证汇总

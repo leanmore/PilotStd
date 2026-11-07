@@ -56,7 +56,7 @@
 ## 路由结论
 
 - v1 默认：评分器动态链 + `CODE_ROUTES` 兜底；`GB` 的兜底链可能包含 `mee`（因其画像含 GB）。
-- v2 灰度：`ROUTING_ENGINE_VERSION=v2`，能力模型读 `config/site_capabilities.yaml`；默认 v1。
+- v2 路由：默认启用；`ROUTING_ENGINE_VERSION=v1` 可回滚。能力模型读 `config/site_capabilities.yaml`；默认 v1。
 - 21 站中：`std_gov`/`hbba`/`dbba`/`njbz365` 等是主力；`csres` 是 background；`gongbiaoku` 低可靠。
 - 下载侧仍只有 `openstd_download`（GB 类），与查询站数量无关。
 
