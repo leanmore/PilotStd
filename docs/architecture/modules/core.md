@@ -488,6 +488,7 @@ pilotstd/core/
 > **T-42（2026-10-31）**：渠道限流改为“码优先 + 关键词兜底”；已取证 企微 45009 / 飞书 99991400，钉钉/Telegram 保持兜底。
 > **rate_limited_by（2026-10-31）**：限流命中日志从 debug 提升到 info（code/keyword），便于事后排查误判。
 > **归档通知正文（2026-11-07）**：archive_complete 构建器始终写 `body`（count/skip/fail/dirs）；零搬移时 notification_log 也能看到“发生了什么”，不再只有标题。
+> **时效性 L2 失败可见（2026-11-07）**：在线查询异常从 debug 提升为 warning，避免静默回落到 L3；查询结果仍只经 `standard_info_cache` 精确命中落盘，validity 本身不保存完整查询明细。
 > **过期搬移并行期（2026-11-07）**：`validity.auto_move_expired` 默认开启；被代替标准在新标准 `implement_date` 前只标记/通知，实施日后补搬并发 `expire_standard_moved`。
 > **并发写入原子化（2026-11-07）**：`FileIndexRepository.upsert()` 改为单条 `ON CONFLICT(file_path) DO UPDATE`；`ValidityChecker.register_new_standard()` 改为 `INSERT OR IGNORE ... WHERE NOT EXISTS` + `rowcount` 判断首次登记，消除两处 SELECT+INSERT 竞争。
 > **管理员系统通知可见性（2026-11-07）**：`NotificationOps.get_logs/get_unread_count/mark_logs_read` 增加 `include_system`；admin 默认看“自己 + 系统通知（user_id=0/NULL）”，普通用户仍只看自己，all=true 才是全部用户。

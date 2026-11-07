@@ -26,6 +26,8 @@
 | 15 | Web TaskView 没有“停止”按钮 | 已修复（Web B；Win A 不变） | `/task` 停止按钮；阶段间协作式停止 |
 | 16 | 通知重试覆盖不均：钉钉企业卡片/飞书应用消息单次请求 | 已修复（2026-11-07） | 两条路径接入 `_with_retry`；429/5xx 退避重试 |
 | 17 | 通知未读数与列表口径不一致 | 已修复（v0.171.0 + 管理员系统通知） | 普通用户按自身；管理员默认含系统通知；all=true 才是全部用户 |
+| 18 | 通知日志按渠道各写一行，Web 铃铛直接展示导致同一事件重复 | 已修复（Web 展示层） | 铃铛按事件去重、角标按事件计数；日志页仍保留渠道明细 |
+| 19 | 可信 IP 自动更新依赖浏览器，Docker 镜像未装 Playwright/Chromium | 部分修复（错误可见） | 启动失败会返回明确错误并通知；要真正自动更新需装浏览器或改运行方式 |
 
 ---
 
@@ -239,6 +241,41 @@
 - 或让归档显式使用预览结果（需要处理冲突/一致性）。
 
 ---
+
+### 18. 通知铃铛按渠道重复展示（已修）
+
+**原因**
+
+- `notification_log` 是**每渠道一行**（Web/企微/钉钉/飞书/Telegram），便于排查投递；
+- 铃铛 `GET /api/notification/logs` 不做去重，直接按行展示；
+- 同一事件启用两个渠道时，铃铛出现两条，角标也按渠道计数。
+
+**修复（2026-11-07，Web 展示层）**
+
+- 铃铛按 `event_type + standard_number + sent_at + title + body` 去重；
+- 角标按去重后事件计数；
+- 点击一条时，把同事件的其他渠道副本一起标记已读；
+- 日志页仍保留每渠道明细，不影响诊断。
+
+### 19. 可信 IP 自动更新缺浏览器（部分修复）
+
+**原因**
+
+- `pilotstd/wechat_ip/browser.py` 优先 CloakBrowser，回退 Playwright；
+- `docker/requirements-docker.txt` 没有 `playwright`，Dockerfile 也没安装 Chromium；
+- 因此 Docker 内 `WechatIPUpdater` 启动必失败；
+- 原 `run_check` 只捕获 `BrowserError`，ImportError 等异常只进后台线程日志，用户看不到。
+
+**已修（2026-11-07）**
+
+- `run_check` 捕获所有异常，写回 `error` 并发失败通知；
+- 状态页不再用空 URL 校验 Cookie，避免误报“Cookie 失效”；
+- 定时读取 Cookie 不再回退到公开默认密钥。
+
+**仍需部署侧决定**
+
+- 要在 Docker 内真正自动更新：装 Playwright + Chromium（镜像增大）；
+- 或把该功能放到有浏览器的 Windows/独立 runner，Docker 只保留手动触发。
 
 ### 9. 通知聚合的现状
 

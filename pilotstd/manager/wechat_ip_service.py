@@ -165,10 +165,14 @@ class WechatIPService:
 
         cookie_valid = False
         encrypted = cfg.get("wechat_ip.encrypted_cookie", "")
-        if encrypted:
+        # 校验必须用真实应用管理页；空 URL 会打开 about:blank 并误报 Cookie 失效。
+        from pilotstd.wechat_ip.logic import parse_app_urls
+
+        app_urls = parse_app_urls(cfg.get("wechat_ip.app_urls", ""))
+        if encrypted and app_urls:
             try:
                 decrypted = decrypt_cookie(encrypted, self._get_secret())
-                cookie_valid = validate_cookie(decrypted, "")
+                cookie_valid = validate_cookie(decrypted, app_urls[0])
             except Exception as e:
                 # 解密/校验失败 → cookie_valid 保持 False，但必须留痕
                 logger.warning("wechat_ip cookie decrypt/validate failed: %s", e)

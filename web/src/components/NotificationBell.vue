@@ -11,10 +11,36 @@ import { useNotification } from '@/composables/useNotification'
 
 const router = useRouter()
 const { t } = useI18n()
-const { messages, unreadCount, markAsRead } = useNotification()
+const { messages, markAsRead } = useNotification()
 const popoverRef = ref<InstanceType<typeof Popover> | null>(null)
 
-const recentMessages = computed(() => messages.value.slice(0, 10))
+// 同一事件会按启用渠道各写一条 notification_log；铃铛按“事件”展示，不展示渠道副本。
+const eventKey = (m: { event_type: string; standard_number?: string | null; sent_at: string; title: string; body: string }) =>
+  [m.event_type, m.standard_number || '', m.sent_at, m.title, m.body].join('|')
+
+const recentMessages = computed(() => {
+  const seen = new Set<string>()
+  return messages.value
+    .filter((m) => {
+      const key = eventKey(m)
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+    .slice(0, 10)
+})
+
+// 角标也按事件去重，避免“两个渠道 = 两条未读”的虚高
+const bellUnreadCount = computed(() => {
+  const seen = new Set<string>()
+  return messages.value.filter((m) => {
+    if (m.is_read) return false
+    const key = eventKey(m)
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  }).length
+})
 
 const formatTime = (isoString: string) => {
   const date = new Date(isoString)
@@ -30,9 +56,12 @@ const togglePopover = (event: Event) => {
   popoverRef.value?.toggle(event)
 }
 
-const handleItemClick = async (msg: { id?: number; is_read?: boolean; link_url?: string }) => {
+const handleItemClick = async (msg: { id?: number; is_read?: boolean; link_url?: string; event_type: string; standard_number?: string | null; sent_at: string; title: string; body: string }) => {
   if (!msg.is_read) {
-    await markAsRead(msg.id)
+    // 同一事件的其他渠道副本一并标记，否则刷新后仍会以未读副本出现
+    const key = eventKey(msg)
+    const siblings = messages.value.filter((m) => !m.is_read && eventKey(m) === key)
+    await Promise.all(siblings.map((m) => markAsRead(m.id)))
   }
   router.push({
     path: '/notification-logs',
@@ -54,11 +83,11 @@ const goToLogs = () => {
 <template>
   <div class="notification-bell">
     <Button
-      :icon="unreadCount > 0 ? 'pi pi-bell' : 'pi pi-bell'"
-      :severity="unreadCount > 0 ? 'primary' : 'secondary'"
+      :icon="bellUnreadCount > 0 ? 'pi pi-bell' : 'pi pi-bell'"
+      :severity="bellUnreadCount > 0 ? 'primary' : 'secondary'"
       text
       rounded
-      :badge="unreadCount > 0 ? String(unreadCount) : undefined"
+      :badge="bellUnreadCount > 0 ? String(bellUnreadCount) : undefined"
       badge-severity="danger"
       @click="togglePopover"
       :aria-label="t('notification.bell.title')"
@@ -69,9 +98,10 @@ const goToLogs = () => {
         <div class="dropdown-header">
           <span class="header-title">{{ t('notification.bell.title') }}</span>
           <Button
-            v-if="unreadCount > 0"
+            v-show="bellUnreadCount > 0"
             text
             size="small"
+            class="mark-all-button"
             :label="t('notification.bell.mark_all_read')"
             @click="markAllAsRead"
           />
@@ -88,7 +118,7 @@ const goToLogs = () => {
             <div v-if="!msg.is_read" class="item-dot"></div>
             <div class="item-content">
               <div class="item-title">{{ msg.title }}</div>
-              <div class="item-body">{{ msg.body }}</div>
+              <div class="item-body" :title="msg.body">{{ msg.body }}</div>
               <div class="item-time">{{ formatTime(msg.sent_at) }}</div>
             </div>
           </div>
@@ -116,8 +146,9 @@ const goToLogs = () => {
   flex-direction: column;
   background: var(--surface-card, #fff);
   border-radius: 8px;
-  min-width: 320px;
-  max-width: 400px;
+  /* 固定宽度：标记全部已读时按钮显隐不能改变弹层宽度，否则 PrimeVue 会重算位置并“跳”到左边 */
+  width: 360px;
+  max-width: min(400px, calc(100vw - 32px));
 }
 
 .dropdown-header {
@@ -189,9 +220,12 @@ const goToLogs = () => {
   font-size: 13px;
   color: var(--text-color-secondary, #666);
   margin-top: 2px;
-  white-space: nowrap;
+  /* 标准号+名称较长：最多两行，悬停看完整正文 */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
 }
 
 .item-time {

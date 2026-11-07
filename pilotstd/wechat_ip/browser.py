@@ -234,6 +234,9 @@ class WechatIPUpdater:
 
 def validate_cookie(cookie_str: str, app_url: str, cache_dir: str = DEFAULT_CACHE_DIR) -> bool:
     """快速验证 Cookie 有效性——打开页面检查是否跳转登录页。"""
+    if not app_url:
+        logger.warning("wechat_ip validate_cookie skipped: app_url is empty")
+        return False
     updater = WechatIPUpdater(headless=True, cache_dir=cache_dir)
     try:
         updater._launch()

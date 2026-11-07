@@ -4,6 +4,7 @@
 """可信 IP 定时更新调度器。使用 daemon 线程定期检测 IP 变化。"""
 
 import logging
+import os
 import threading
 from typing import Any, Callable, Optional
 
@@ -81,6 +82,12 @@ def run_check(config: Any, notify_cb: Optional[Callable] = None) -> dict:
     except BrowserError as e:
         result["error"] = str(e)
         _notify(notify_cb, "IP 更新失败", str(e), status="failed")
+    except Exception as e:
+        # Playwright/CloakBrowser 缺失或其它未预期异常也要变成可见结果与通知，
+        # 不能只让后台线程 logger.exception 后静默结束。
+        result["error"] = f"浏览器不可用或启动失败: {e}"
+        logger.warning("wechat_ip run_check failed: %s", e, exc_info=True)
+        _notify(notify_cb, "IP 更新失败", str(result["error"]), status="failed")
 
     return result
 
@@ -95,15 +102,25 @@ def _get_cookie(config: Any) -> Optional[str]:
             cookie = fetch_cookiecloud(url, key, pwd)
             if cookie:
                 logger.info("CookieCloud: %s", mask_cookie(cookie))
-                # 加密缓存到本地
-                secret = config.get("wechat_ip.encrypt_secret", "pilotstd_wework_ip_2026")
+                # 加密缓存到本地；密钥缺失时拒绝使用公开默认值
+                secret = os.environ.get("WECHAT_IP_ENCRYPT_SECRET", "") or str(
+                    config.get("wechat_ip.encrypt_secret", "") or ""
+                )
+                if not secret:
+                    logger.warning("wechat_ip: encrypt secret missing, cookie not cached")
+                    return cookie
                 config.set("wechat_ip.encrypted_cookie", encrypt_cookie(cookie, secret))
                 config.save()
                 return cookie
 
     encrypted = config.get("wechat_ip.encrypted_cookie", "")
     if encrypted:
-        secret = config.get("wechat_ip.encrypt_secret", "pilotstd_wework_ip_2026")
+        secret = os.environ.get("WECHAT_IP_ENCRYPT_SECRET", "") or str(
+            config.get("wechat_ip.encrypt_secret", "") or ""
+        )
+        if not secret:
+            logger.warning("wechat_ip: encrypt secret missing, cannot decrypt cookie")
+            return None
         try:
             return decrypt_cookie(encrypted, secret)
         except Exception as e:
@@ -138,12 +155,12 @@ def start(config: Any, interval: int = DEFAULT_INTERVAL, notify_cb: Optional[Cal
         try:
             run_check(config, notify_cb)
         except Exception:
-            logger.exception("初始检测失败")
+            logger.exception("初始检测失败")  # i18n-allow: 内部运维日志
         while not _stop.wait(interval):
             try:
                 run_check(config, notify_cb)
             except Exception:
-                logger.exception("定时检测异常")
+                logger.exception("定时检测异常")  # i18n-allow: 内部运维日志
 
     _check_thread = threading.Thread(target=loop, daemon=True, name="wechat-ip")
     _check_thread.start()

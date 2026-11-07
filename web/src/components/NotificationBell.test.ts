@@ -1,6 +1,6 @@
 // components/NotificationBell.test.ts — 通知铃铛组件测试
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { computed, ref } from 'vue'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import { createI18n } from 'vue-i18n'
@@ -15,11 +15,12 @@ const messages = ref([
   { id: 2, event_type: 'auto_scan_failed', title: '扫描异常', body: '连接超时', is_read: true, sent_at: new Date(Date.now() - 7200000).toISOString() },
 ])
 
+const markAsReadMock = vi.fn().mockResolvedValue({ ok: true })
 vi.mock('@/composables/useNotification', () => ({
   useNotification: () => ({
     messages,
     unreadCount: computed(() => messages.value.filter(m => !m.is_read).length),
-    markAsRead: vi.fn().mockResolvedValue({ ok: true }),
+    markAsRead: markAsReadMock,
   }),
 }))
 
@@ -57,6 +58,7 @@ function mountBell(locale: 'zh-CN' | 'en' = 'zh-CN') {
 describe('NotificationBell', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    markAsReadMock.mockResolvedValue({ ok: true })
     messages.value = [
       { id: 1, event_type: 'archive_complete', title: '归档完成', body: '文件已归档', is_read: false, sent_at: new Date().toISOString() },
       { id: 2, event_type: 'auto_scan_failed', title: '扫描异常', body: '连接超时', is_read: true, sent_at: new Date(Date.now() - 7200000).toISOString() },
@@ -93,6 +95,23 @@ describe('NotificationBell', () => {
     const wrapper = mountBell()
     expect(wrapper.html()).toContain('归档完成')
     expect(wrapper.html()).toContain('查看全部通知')
+  })
+
+  it('同一事件的多渠道副本只显示一条、角标只算一条，点击时全部标记已读', async () => {
+    const sentAt = new Date().toISOString()
+    messages.value = [
+      { id: 11, event_type: 'archive_complete', channel: 'wechat', title: '归档完成', body: '同一事件', is_read: false, sent_at: sentAt },
+      { id: 12, event_type: 'archive_complete', channel: 'telegram', title: '归档完成', body: '同一事件', is_read: false, sent_at: sentAt },
+    ]
+    const wrapper = mountBell()
+    expect(wrapper.findAll('.notification-item')).toHaveLength(1)
+    expect(wrapper.find('.p-badge').text()).toBe('1')
+
+    await wrapper.find('.notification-item').trigger('click')
+    await flushPromises()
+    expect(markAsReadMock).toHaveBeenCalledTimes(2)
+    expect(markAsReadMock).toHaveBeenCalledWith(11)
+    expect(markAsReadMock).toHaveBeenCalledWith(12)
   })
 
   it('切换语言到 en 后文案随之变化（i18n 生效）', () => {

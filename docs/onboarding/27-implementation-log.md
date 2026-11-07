@@ -199,6 +199,15 @@
 | 测试 | 下载持久化/下载链 57 passed |
 | 回滚 | 去掉 `_persist_task`/`retry_pending` 与启动线程 |
 
+### 20. 通知铃铛去重 + 可信 IP 错误可见（2026-11-07）
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `NotificationBell.vue`、`wechat_ip_service.py`、`browser.py`、`scheduler.py` |
+| 行为 | 铃铛按事件去重；同事件多渠道一起已读；可信 IP 启动失败可见；空 URL 不误判 Cookie；不再用公开默认密钥 |
+| 测试 | 前端铃铛 19 passed；可信 IP/状态 56 passed |
+| 回滚 | 前端恢复按行展示；可信 IP 恢复原异常分支 |
+
 ---
 
 ## 验证汇总
