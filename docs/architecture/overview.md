@@ -1,6 +1,6 @@
 # PilotStd 项目架构总览
 
-> 最后更新：2026-07-27 | 基于 main 分支最新代码
+> 最后更新：2026-11-07 | 基于 main 分支最新代码（schema v73 / 21 查询适配器）
 
 ## 技术栈
 
@@ -39,7 +39,7 @@ graph TD
 
     subgraph "查询子系统"
         QueryEngine[query/engine/]
-        Adapters[query/adapters/ 22个]
+        Adapters[query/adapters/ 21个]
         Routing[engine/_routing.py]
         Bucket[engine/_batch_dispatch.py]
         Quota[query/daily_quota.py]
@@ -66,7 +66,7 @@ graph TD
 
     subgraph "持久化"
         SQLiteDB[(pilotstd.db)]
-        Migrations[db/migrations.py v1~v44]
+        Migrations[db/migrations.py v1~v73]
     end
 
     Docker --> Scheduler
@@ -102,7 +102,7 @@ graph TD
 ### 核心引擎 [src: `pilotstd/core/`]
 - 配置管理：[pilotstd/core/config/manager.py](pilotstd/core/config/manager.py) — 点分隔 JSON 持久化 + 原子替换
 - 数据库：[pilotstd/core/db/database.py](pilotstd/core/db/database.py) — sqlite3 封装，WAL 模式
-- 迁移：[pilotstd/core/db/migrations.py](pilotstd/core/db/migrations.py) — v1~v44 装饰器注册模式
+- 迁移：[pilotstd/core/db/migrations.py](pilotstd/core/db/migrations.py) — v1~v73 装饰器注册模式
 - 缓存：[pilotstd/core/cache_manager.py](pilotstd/core/cache_manager.py) — 版本驱动失效策略
 
 ### 查询引擎 [src: `pilotstd/query/engine/`]
@@ -114,7 +114,7 @@ graph TD
 - 单条：[pilotstd/query/engine/_single.py](pilotstd/query/engine/_single.py) — 5 步搜索链路（v2 分支 `_query_one_v2` 链式降级）
 
 ### 适配器层 [src: `pilotstd/query/adapters/`]
-- 22 个查询适配器，基类 [pilotstd/query/adapters/base.py](pilotstd/query/adapters/base.py)
+- 21 个查询适配器，基类 [pilotstd/query/adapters/base.py](pilotstd/query/adapters/base.py)
 - 注册表：[pilotstd/query/adapters/registry.py](pilotstd/query/adapters/registry.py) — `ALL_ADAPTERS` 静态字典
 - 配额：[pilotstd/query/daily_quota.py](pilotstd/query/daily_quota.py) — SQLite 持久化日计数器
 - 冷却：[pilotstd/query/rotator.py](pilotstd/query/rotator.py) — `SiteRotator` 全局进程级

@@ -29,9 +29,9 @@
 - **组件内 `t()` 调用**：`AppLayout.vue`、`QuickActionsCard.vue` 等
 
 本次案例中：
-- [router.ts:97](web/src/router.ts#L97) → `titleKey: 'nav.download_import'`
-- [router.ts:106](web/src/router.ts#L106) → `titleKey: 'action.scan_index'`
-- [AppLayout.vue:44](web/src/components/AppLayout.vue#L44) → fallback 中硬编码了 `'导入下载'`（未走 i18n）
+- [router.ts:97](../../web/src/router.ts#L97) → `titleKey: 'nav.download_import'`
+- [router.ts:106](../../web/src/router.ts#L106) → `titleKey: 'action.scan_index'`
+- [AppLayout.vue:44](../../web/src/components/AppLayout.vue#L44) → fallback 中硬编码了 `'导入下载'`（未走 i18n）
 
 ### Step 3：交叉比对
 
@@ -53,7 +53,7 @@
 
 ### 层 2：消除硬编码
 
-搜索组件中未被 `t()` 包裹的中文字符串，替换为 `t('xxx')` 调用。本次案例中 [AppLayout.vue:44](web/src/components/AppLayout.vue#L44) 的 `'导入下载'` 硬编码即属此类，它绕过了语言切换。
+搜索组件中未被 `t()` 包裹的中文字符串，替换为 `t('xxx')` 调用。本次案例中 [AppLayout.vue:44](../../web/src/components/AppLayout.vue#L44) 的 `'导入下载'` 硬编码即属此类，它绕过了语言切换。
 
 ### 层 3：修正错误翻译值
 

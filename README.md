@@ -3,7 +3,7 @@
 自动识别标准号 · 多站点有效性查询 · 批量下载 · 分类归档
 
 [![Docker CI](https://github.com/leanmore/pilotstd/actions/workflows/ci.yml/badge.svg)](https://github.com/leanmore/pilotstd/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/Tests-942%20passed-brightgreen)](https://github.com/leanmore/pilotstd/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/badge/Tests-CI%20passing-brightgreen)](https://github.com/leanmore/pilotstd/actions/workflows/ci.yml)
 [![Engine Coverage](https://img.shields.io/badge/Engine%20Coverage-100%25-brightgreen)](https://github.com/leanmore/pilotstd/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/leanmore/pilotstd?include_prereleases)](https://github.com/leanmore/pilotstd/releases)
 [![Python](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/)
@@ -12,11 +12,15 @@
 ## 功能特性
 
 - **标准号解析** — 支持 GB/JB/HG/SH/ISO/ASME/BS/DIN/JIS 等 94 类标准代号，自动识别年份、部分号、语种
-- **多站点查询** — 6 个适配器覆盖国家标准、行业标准、国际标准，含缓存和冷却机制
+- **多站点查询** — 21 个查询适配器覆盖国家标准、行业标准、国际标准，含缓存和冷却机制
 - **批量下载** — 采标自动检测跳过，验证码自动识别（ddddocr），去重避免重复下载
 - **智能归档** — 按行业自动分目录，Word 源目录镜像，废止文件移入过期作废目录
 - **公告监控** — 定期拉取国家标准公告，交叉比对本地标准库，发现更新自动提醒
 - **双端可用** — PyQt6 桌面端 + Docker Web 端，共享同一引擎
+
+## 新人入门
+
+第一次接触本项目，从 [`docs/onboarding/README.md`](docs/onboarding/README.md) 开始：按“一条文件的旅程”理解业务，再进入架构、数据模型、代码地图和上手实验。
 
 ## 界面展示
 

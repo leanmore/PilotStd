@@ -1,0 +1,483 @@
+# 08 · 当前边界与已知坑
+
+> 这一份不是“待办清单”，而是**避免新人把现状当设计**。  
+> 读完后你应该能判断：哪些现象是“设计如此”，哪些是“当前缺口”，哪些是“不能顺手修的历史包袱”。
+
+---
+
+## 一、快速表
+
+| # | 现象 | 类型 | 影响 |
+|---|---|---|---|
+| 1 | Web 五段式下载件不进入归档 | 已修本地代码（待部署） | 前端已把下载成功项加入归档 items |
+| 2 | Docker monitor 只 scan + archive | 部分修复（本地） | 已加 manager 锁 + 空目录清理；仍不查询/不下载/不兜底 |
+| 3 | Win watcher 只更新索引 | 设计边界 | 不会自动归档 |
+| 4 | `standard_validity` 不是归档第一权威 | 设计边界 | 与 `file_index`/Query 可能不一致 |
+| 5 | `standard_validity` 存在畸形键 | 历史数据缺陷 | 按表查询/搬移会漏 |
+| 6 | Word 重解析使用空 `scan.code_mapping` | 实现缺陷 | TSG 等进入 `T 未知行业(T)` |
+| 7 | 手动/一键下载任务不持久化 | 当前缺口 | 重启丢任务 |
+| 8 | 规范化只预览，归档忽略 `new_filename` | 设计边界 | 预览与最终命名可能漂移 |
+| 9 | 归档通知按“每次调用”发 | 当前缺口 | 批量时通知过多/聚合失效 |
+| 10 | DB 写存在 SELECT+INSERT 竞争 | 实现缺陷 | 并发时 UNIQUE 错误 |
+| 11 | monitor 懒加载 manager 无锁 | 实现缺陷 | 多实例/重复校验 |
+| 12 | `validity_check_queue` 表不存在 | 实现缺陷 | 入队接口不可用 |
+| 13 | `/api/auto` 未传 `root_path` | 实现缺陷 | 该端点按当前签名不可用 |
+| 14 | 下载只有 `openstd_download`；非 GB 无适配器，采标 GB 受版权限制 | 设计边界 + 能力缺口 | 非 GB/采标 GB 无法自动下载 |
+| 15 | Web TaskView 没有“停止”按钮 | 当前缺口 | 离开页面只停轮询，后端任务继续 |
+| 16 | 通知重试覆盖不均：钉钉企业卡片/飞书应用消息单次请求 | 实现缺陷 | 这两条路径遇到 429/5xx 不重试 |
+| 17 | 通知未读数与列表口径不一致 | 已修本地代码（待部署） | 未读数/全部已读改为按当前用户 |
+
+---
+
+## 二、逐条说明
+
+### 1. Web 五段式：下载件不进入归档（已修本地，待部署）
+
+**证据**
+
+- 原实现：`web/src/views/TaskView.vue` 的 `archiveItems` 只来自 `scan.files` + `normalizeResult`，`downloadResult` 只用于汇总；
+- `docker/api/archive.py` 只接收请求体 `items[].source_path`，不读下载结果；
+- 下载落 `get_library_root()`（Docker `/standards`）根目录，不写 `file_index`；
+- `TaskView` 只对 `match_status==='exact'` 且非采标的结果发起下载，并用 `.slice(0, 10)` **最多 10 条**。
+
+**已修（本地代码，未部署）**
+
+- 下载结果中 `status=success` 且有 `saved_path` 的项，解析标准号后并入 `archiveItems`；
+- 按 `source_path` 去重，避免与扫描件重复；
+- 回归：`web/src/views/TaskView.test.ts` 新增用例，3 passed；全量 `pnpm test` 352 passed。
+
+**影响**
+
+- 本次“一键处理”下载的文件留在 `/standards` 根目录；
+- 不在分类目录、不在 `file_index`、不在 `standard_validity`；
+- 只有用户之后再次手动扫描 `/standards` 并归档，才会被处理。
+
+**不要误判**
+
+- 这不是“Win 一键的问题”；Win 一键走 `auto_run_stream`，是闭环的（见 [`01-positioning.md`](01-positioning.md)）。
+
+**如果要修**
+
+- 把 `saved_path` 转成 `ParsedStdInfo` 并加入归档入参；
+- 处理同一标准的扫描件/下载件重复、覆盖、路径校验；
+- 需要前端 + API + 测试一起改。
+
+---
+
+### 2. Docker monitor：只 scan + archive（部分修复，本地）
+
+**已修（本地代码，未部署）**
+
+- `_on_file` 的 manager 懒加载加 `self._mgr_lock` 双检，避免多个 Timer 线程各建一个 `StandardManager`；
+- 归档后调用 `_cleanup_empty_dirs(watch_path, source_root)`：只删 `watch_path` 内的空目录，`rmdir` 非空会失败，不会误删；
+- 回归：`tests/test_monitor_cleanup.py` + `test_monitor_archive_e2e.py` → 7 passed。
+
+**仍未修**
+
+- 不查询/不下载/不兜底；
+- 每个文件事件仍扫整个父目录；
+- 空目录清理只覆盖 monitor 路径，不覆盖 `auto_run`。
+
+**证据**
+
+- `pilotstd/monitor/scheduler.py::_on_file`：`scan_directory(dirname(path))` → `archive_standards`；
+- 没有 query/download/fallback/clean；
+- 每个文件事件都扫描整个目录，重复处理明显。
+
+**影响**
+
+- 监控投放的文件可能：
+  - 没有 `effect_status`（不查有效性）；
+  - 不补下载；
+  - 无标准号文件/跳过目录留在 Inbox；
+  - 空目录不清理；
+  - 每文件一条归档通知。
+
+**不要误判**
+
+- 不是“设计成轻量监控”；历史 commit 明确“归档从未实现”，后来才补归档（见 [`03-architecture.md`](03-architecture.md)）。
+- Win 桌面不走这个 `_on_file`。
+
+---
+
+### 3. Win watcher：只更新索引
+
+**证据**
+
+- `pilotstd/ui/main_window/parts/_actions_ops.py`：`watchdog.enabled` 才 `mgr.start_watching()`；
+- `pilotstd/scan/watcher.py::FileWatchHandler._handle_new_or_modified()`：哈希 → 解析 → `file_index.upsert()`；
+- 不归档、不查询、不下载；
+- `watchdog.enabled` 默认 false。
+
+**影响**
+
+- 开启后只是“索引更新”，不是“自动整理”；
+- 不要把 Win watcher 与 Docker monitor 混为一谈。
+
+---
+
+### 4. `standard_validity` 不是归档第一权威
+
+**证据**
+
+- `effect_status` 来自 `QueryClassifier._write_back_results()`（`QueryResult.status`）；
+- `archive_standards()` 只 `register_new_standard()` 写“未知”，不读 `standard_validity`；
+- 归档目录由 `FileMover` 根据 `p.effect_status` 决定。
+
+**影响**
+
+- Query 说废止 → 归档进“过期作废”；
+- `standard_validity` 可能仍是“未知”；
+- `/api/stats` 看 `file_index`，`/api/export/standards` 看 `standard_validity`，两边可能不一致。
+
+**如果要改**
+
+- 先决定优先级（L2 实时 > 表历史 > L1 猜测）；
+- 必须先修畸形键；
+- 归档要同步写表或先查表，处理并发/唯一键。
+
+---
+
+### 5. `standard_validity` 的历史畸形键
+
+**证据**
+
+- 批次前备份：803 条中 709 条 `standard_number` 形如 `' 1234-2020'`（前导空格、缺代号）；
+- 706 条可由 `file_index` 的 `(number, year)` 唯一还原；
+- 历史来源与 `c4b7d861`（前端归档漏传 `logical_code` 导致 `未知行业()`）相关；迁移脚本只修 `file_index`，未修 `standard_validity`。
+
+**影响**
+
+- 按 `standard_number` 精确匹配会漏；
+- 不要默认“表里都是规范键”。
+
+**如果要修**
+
+- 先 dry-run 统计：唯一可还原/歧义/无匹配；
+- 备份后再更新；
+- 处理与正确键的重复合并；
+- 详细方案见 [`12-data-repair-plan.md`](12-data-repair-plan.md)（仅方案，未执行）。
+
+---
+
+### 6. Word 重解析：空 `scan.code_mapping` → `T 未知行业(T)`
+
+**证据**
+
+- `pilotstd/manager/organize/organizer.py:41`：
+  `StandardParser(self._cfg.get("scan.code_mapping", {}))`；
+- `_organize_word_item()` 用这个解析器重解析 `.doc/.docx`；
+- `_exact_match_group()` 对 `TSG 3001-2009` 匹配成 `T/SG`；
+- `get_folder_name("T/SG")` → base `T` → `T 未知行业(T)`；
+- 只有 Word 分支重解析，PDF 走扫描器解析器，通常进 `TSG` 目录。
+
+**影响**
+
+- TSG 等 Word 文件目录错误；
+- `file_index.logical_code` 写 `T/SG`；
+- `standard_validity` 写 `T/SG ...`，与 `TSG ...` 形成第三套身份。
+
+**如果要修**
+
+- 用 `build_code_mapping()` 构造 `_std_parser`，或直接用主流程 `p` 的 `logical_code/number/year`；
+- 保留“无标准号 Word → 镜像”行为；
+- 现有 `TestOrganizeWordItem` 用例需要同步调整。
+
+---
+
+### 7. 手动/一键下载任务不持久化
+
+**证据**
+
+- `DownloadTask` 是内存 dataclass（`pilotstd/download/models.py`）；
+- `DownloadEngine.download_batch()` 返回后任务结束；
+- `task_queue` 有 `DOWNLOAD` 类型但没有真实 handler；
+- 只有 `favorite_downloads` 是持久化状态机。
+
+**影响**
+
+- 重启/崩溃丢失未完成下载；
+- 不会自动重试（收藏链除外）；
+- `.part` 只会被清理，不续传。
+
+**如果要修**
+
+- 新增下载任务表或复用 `task_queue` + 注册 handler；
+- 定义 `pending/running/failed/retry/abandoned`；
+- 幂等，避免重启后重复下载/归档。
+
+---
+
+### 8. 规范化：预览，不是文件操作
+
+**证据**
+
+- `normalize_files_stream()` 只计算 `normalized/folder`，不 `safe_move`、不写 `file_index`；
+- Web `postArchive()` 不使用 `new_filename`；`docker/api/archive.py` 也没有该字段；
+- Win `NormalizeWorker` 只更新表格，`on_save_to_folder()` 才归档；
+- CLI `normalize` 明确“不移动”。
+
+**影响**
+
+- 用户可能以为“规范化”已经改名；
+- 预览与最终归档可能漂移（入口字段不同）。
+
+**如果要改**
+
+- 把规范化降级为可选预览，而不是主链强制步骤；
+- 或让归档显式使用预览结果（需要处理冲突/一致性）。
+
+---
+
+### 9. 通知聚合的现状
+
+**证据**
+
+- `archive_standards()` 每次调用都 `ensure_batch_key("arch")`，不同调用不同批次键；
+- 归档即使 `moved=0` 也发 `archive_complete`；
+- 企微卡片无 `card_action` 时可能 42045，降级文本；
+- Telegram 429 常见。
+
+**影响**
+
+- 大批量时可能每文件一条通知；
+- 聚合器对 `scan_complete`/`standard_first_registered` 有效，对归档不一定；
+- 通知日志里大量 `failed`/`429`。
+
+**如果要改**
+
+- 监控/批处理共用一个批次键；
+- 抑制零计数通知；
+- 渠道层做全局限流/重试；
+- 企微无卡片动作时直接文本。
+
+---
+
+### 10. DB 写竞争
+
+**证据**
+
+- `register_new_standard()`：SELECT → INSERT；
+- `FileIndexRepository.upsert()`：SELECT → INSERT/UPDATE；
+- 并发归档会 `UNIQUE constraint failed`。
+
+**影响**
+
+- 日志大量 `SQL执行失败`；
+- 个别文件已搬走但统计 `failed`。
+
+**如果要修**
+
+- `INSERT OR IGNORE` / `ON CONFLICT DO UPDATE`；
+- 用 `rowcount` 判断是否首次；
+- 保留错误日志。
+
+---
+
+### 11. monitor 懒加载 manager 无锁
+
+**证据**
+
+- `pilotstd/monitor/scheduler.py::_on_file`：
+  `if self._mgr is None: self._mgr = StandardManager()`；
+- 多个 Timer 线程同时进入；
+- 可能出现多个 `StandardManager` 实例、多次 `file_index` 启动校验。
+
+**影响**
+
+- 资源浪费；
+- 配置/DB 连接/校验线程重复；
+- 日志里多次 `已加载 Fernet Key` / `file_index 启动校验`。
+
+**如果要修**
+
+- `start()` 时注入/构造唯一 manager；
+- 加锁 + double-check；
+- 或由 `docker/manager.py` 单例注入。
+
+---
+
+### 12. `validity_check_queue` 表不存在
+
+**证据**
+
+- `pilotstd/manager/validity_service.py:56` 是唯一引用：
+  `INSERT OR IGNORE INTO validity_check_queue ...`；
+- 代码库中没有建表迁移/DDL。
+
+**影响**
+
+- `/api/validity/enqueue` 必然失败；
+- 不要把它当“可用功能”。
+
+**如果要修**
+
+- 补迁移建表 + 消费逻辑；
+- 或删除该端点（需产品决策）。
+
+---
+
+### 13. `/api/auto` 未传 `root_path`
+
+**证据**
+
+- `docker/api/auto.py` 调 `mgr.auto_run()`；
+- `auto_run(root_path, ...)` 要求 `root_path`；
+- Web 实际走 `TaskView` 五段式，不走该端点。
+
+**影响**
+
+- 该端点按当前签名不可用；
+- 不要把它当成 Web 一键的真实入口。
+
+---
+
+### 14. 下载只有 `openstd_download`：非 GB 无适配器，采标 GB 受版权限制
+
+**证据**
+
+- `pilotstd/download/adapters/` 只有 `openstd_download.py` 一个实现；
+- `DownloadEngine._find_adapter()` 对 GB 类强制兜到 `openstd_download`，非 GB 走 `can_handle` 后通常返回“无下载适配器”；
+- `openstd_download.can_handle()` 只认 `source_site == "openstd_download"`；
+- 全库有 21 个**查询**适配器，但下载侧仍只有 1 个。
+
+**影响**
+
+- 21 个查询站点都可以“答出”某条标准，但只有 GB 类能真正下载；
+- 非 GB（HG/SH/NB/ISO/ASME 等）即使查询到全文入口，也不会自动下载；
+- **GB 类里的“采标”标准**（采用 ISO/IEC 等）会被 openstd 的“采”标记拦截，按版权限制跳过；
+- “查询有结果”不等于“能下载”，排查时要分开看。
+
+**预期 vs 缺口**
+
+- **预期**：非 GB 没有下载适配器；采标 GB 受版权限制不提供全文，这是已知设计边界；
+- **缺口**：如果业务希望这些标准也能自动获取，需要新增合法来源/授权适配器，不能靠重试或改 openstd 适配器解决。
+
+**不要误判**
+
+- 这不是“下载失败”，是“没有对应下载适配器”；
+- 不要因为 `source_site` 是 `cssn`/`hbba` 就认为下载会失败——GB 类会按标准性质兜到 openstd。
+
+**如果要扩展**
+
+- 新增下载适配器，并在 `_find_adapter()` 里按标准性质/站点映射；
+- 需要单站点实测 hcno/端点/验证码/版权闸，不能只按查询站点名猜。
+
+---
+
+### 15. Web TaskView 没有“停止”按钮
+
+**证据**
+
+- `web/src/views/TaskView.vue` 只有“开始”按钮（`:loading="running"`）；
+- `onBeforeUnmount(() => { stopPolling() })` 只清前端轮询；
+- 没有调用后端取消接口；
+- 后端 `pipeline_runs` 仍继续跑；
+- `resolveActiveRun()` 只在 `running/pending` 时恢复；`completed/failed` 会清掉 `task_active_run`，重进页面看不到结果；
+- 轮询连续失败 3 次就 `stopPolling()`，不会自动重连。
+
+**影响**
+
+- 用户离开页面/刷新后，后端任务可能继续；
+- `runPipeline()` 没有 `if (running) return` 的显式重入保护，重复触发是否被 Button loading 拦住取决于组件行为；
+- 只能等任务结束，不能主动停；
+- 任务在离开期间完成/失败，回来时结果可能已不可见；
+- 网络抖动一次持续 6 秒，前端就停止同步。
+
+**不要误判**
+
+- 这不是“前端卡住”；前端只是不再轮询；
+- Win 端有协作式中断（`check_stop` → `WorkerAborted`），Web 目前没有对应能力。
+
+**如果要修**
+
+- 需要后端提供取消端点 + `pipeline_runs` 状态机加 `cancelled`；
+- 前端加停止按钮、取消后恢复状态；
+- 要处理“已发出的归档/下载请求无法回滚”的边界。
+
+---
+
+### 16. 通知重试覆盖不均：钉钉企业卡片/飞书应用消息单次请求
+
+**证据**
+
+- `channels/base.py::_with_retry` 是统一重试基座（3 次、2/4s、retry-after 优先）；
+- 企微应用/文本、钉钉 Webhook、飞书 Webhook、Telegram 都接入了；
+- 但：
+  - `DingTalkChannel.send()` 企业形态直接 `_send_card()`，内部是 `requests.post`，没有 `_with_retry`；
+  - `FeishuChannel.send()` 应用形态直接 `_send_app()` → `_post_app_message()`，也是单次请求。
+- 这两条路径遇到 429/5xx/网络抖动不会重试。
+
+**影响**
+
+- “四家统一重试”只对 Webhook/文本路径成立；
+- 企业应用/卡片形态的失败率会高于预期；
+- 排查时不能只看“渠道基座有重试”就认为所有形态都覆盖。
+
+**如果要修**
+
+- 把 `_send_card` / `_post_app_message` 改成返回 `(ok, retryable)` 的 attempt 函数，再套 `_with_retry`；
+- 补企业形态的 429/5xx 测试；
+- 注意卡片创建是“创建 + 投递”两步，重试要避免重复建卡。
+
+---
+
+### 17. 通知未读数与列表口径不一致
+
+**证据（2026-11-07 实测）**
+
+| 接口 | 结果 |
+|---|---|
+| `/api/notification/logs`（当前用户） | total **578** |
+| `/api/notification/logs?is_read=false`（当前用户） | total **7** |
+| `/api/notification/unread-count` | **1441** |
+
+代码原因：
+
+- `get_logs()` 带 `user_id` 过滤；
+- `get_unread_count()` 不带 `user_id`，直接 `COUNT(*) WHERE is_read=0`；
+- `mark_logs_read(ids=[])` 更新 `notification_log` 全表，不按用户。
+
+**已修（本地代码，未部署）**
+
+- `get_unread_count(user_id)` / `mark_logs_read(..., user_id)` 已按用户过滤；
+- API 的 `/api/notification/unread-count` 与 `/api/notification/read` 都传当前用户；
+- 单条已读先校验归属，不能借 id 标记别人的日志；
+- 回归：`tests/test_notification_unread_isolation.py` + `test_notification_manager.py` + `test_notification_logs_user_isolation.py` + `test_notification_api.py` → **57 passed**。
+
+**影响**
+
+- 未读 badge 可能大于列表总数；
+- “全部已读”会清掉其他用户的未读；
+- Web 页面显示与通知消息统计容易互相矛盾。
+
+**如果要修**
+
+- `get_unread_count(user_id)` 按用户过滤；
+- `mark_logs_read` 按用户/按权限更新；
+- 统一列表、未读数、全部已读的 WHERE 口径；
+- 补多用户测试。
+
+---
+
+## 三、新人处理原则
+
+1. **先判断类型**：设计边界 / 当前缺口 / 历史数据缺陷；
+2. **不要顺手修**：这些问题大多跨前端/API/DB/测试，需方案批准；
+3. **先看证据**：日志、代码、测试、备份数据；
+4. **修复前先写失败测试**；
+5. **修完更新本文件**：把已修复项移除/标注。
+
+---
+
+## 四、自检
+
+1. Web 下载件为什么留在 `/standards` 根？
+2. Docker monitor 和 Win watcher 分别做什么？
+3. `standard_validity` 为什么不是归档第一权威？
+4. TSG Word 为什么进 `T 未知行业(T)`？
+5. 手动下载任务重启后会怎样？
+6. 规范化会不会移动文件？
+7. 哪些问题不能“顺手修”，为什么？
+
+参考答案见 [`10-assessment.md`](10-assessment.md)。

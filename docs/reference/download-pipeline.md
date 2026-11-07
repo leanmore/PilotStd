@@ -30,7 +30,8 @@
 > （计 `skipped_adopted`）——详见**第 2.3 节**。起因：实测 4 个在案采标标准因由 `cssn` 作答
 > 而 `is_adopted=False`，版权闸形同虚设。
 >
-> 代码基准：`pilotstd/download/adapters/openstd_download.py`（446 行；上一版 395 行 @ `ba9af616`）。
+> 代码基准：`pilotstd/download/adapters/openstd_download.py`（**486 行 @ 2026-11-07**；上一版 395 行 @ `ba9af616`）。<br>
+> **行号会随代码漂移**：本文行号已按 2026-11-07 版本校准；定位时优先看函数名，不把行号当契约。
 
 ---
 
@@ -61,11 +62,11 @@ task ──► [0] 标识解析 + 版权闸（openstd 搜索页）  _resolve_tar
 
 | 环节 | 代码位置 | 说明 |
 |------|---------|------|
-| 搜索页 URL | `openstd_download.py:92-98`（`search_url`，装饰器在 `:91`） | 由 `BASE_URL` 派生 → `{BASE_URL}/std_list_type`，即 `https://openstd.samr.gov.cn/bzgk/std/std_list_type` |
-| 查询参数 | `openstd_download.py:133-142` | `p.p1=0&p.p2=<标准号>&p.p90=circulation_date&p.p91=desc` |
-| 逐行解析 | `openstd_download.py:48-52`（`_HCNO_ROW_RE` / `_ROW_RE` / `_ADOPTED_RE`）、`76-116`（`parse_search_row` / `parse_hcno_from_search_page` / `_iter_search_rows`） | 匹配 `onclick="showInfo('<hcno>')"` 并**同时取出该行显示的标准号**；有 `<tr>` 时按行切分以取"采"标记，无 `<tr>` 的片段退化为逐锚点扫描 |
-| 标准号归一 | `openstd_download.py:59-66`（`_norm_std_no`） | 去空白（含全角空格）、`—`/`－`→`-`、`／`→`/`、大写 |
-| 解析入口 | `openstd_download.py:169-206`（`_lookup_hcno` / `_resolve_target`） | 顺序：`task.extra["hcno"]`（显式传入，供手工/GUI）→ openstd 搜索页；返回 `(hcno, is_adopted)` |
+| 搜索页 URL | `openstd_download.py:138-144`（`search_url`） | 由 `BASE_URL` 派生 → `{BASE_URL}/std_list_type`，即 `https://openstd.samr.gov.cn/bzgk/std/std_list_type` |
+| 查询参数 | `openstd_download.py:179-190` | `p.p1=0&p.p2=<标准号>&p.p90=circulation_date&p.p91=desc` |
+| 逐行解析 | `openstd_download.py:54-62`（`_HCNO_ROW_RE` / `_ROW_RE` / `_ADOPTED_RE`）、`88-124`（`parse_search_row` / `parse_hcno_from_search_page` / `_iter_search_rows`） | 匹配 `onclick="showInfo('<hcno>')"` 并**同时取出该行显示的标准号**；有 `<tr>` 时按行切分以取"采"标记，无 `<tr>` 的片段退化为逐锚点扫描 |
+| 标准号归一 | `openstd_download.py:68-75`（`_norm_std_no`） | 去空白（含全角空格）、`—`/`－`→`-`、`／`→`/`、大写 |
+| 解析入口 | `openstd_download.py:179-219`（`_lookup_hcno` / `_resolve_target`） | 顺序：`task.extra["hcno"]`（显式传入，供手工/GUI）→ openstd 搜索页；返回 `(hcno, is_adopted)` |
 
 **必须逐行按标准号匹配，不能取页面第一个 `showInfo(...)`**（`:68-71` 的注释与 `parse_hcno_from_search_page` 的比较逻辑）：搜索页会同时返回多条结果，2026-09-26 实测搜 `GB/T 5310-2008` 时首条是 `GB 2024-2016`——取首条会把**别的标准**的全文当成该收藏的下载内容。
 
@@ -123,20 +124,28 @@ sha1 = b93e289a82d884a4    响应长度 = 18610 字节（三者一致）
 无法获取下载标识(hcno): <标准号>（openstd 搜索页未匹配到该标准号；std_gov 的 pid 不能当 hcno 用）
 ```
 
+### 2.2.1 字段陷阱：`QueryResult.hcno` 不是“openstd hcno”的同义词
+
+- `pilotstd/query/models.py:25-26` 的历史注释仍写“新平台 hcno = std_gov 查询结果的 pid，直接用于下载”——**这是历史错误假设**，与当前下载实现和测试相反。
+- `QueryResult.hcno` 在 `hbba` / `njbz365` 中另有用途（站点详情 ID），是**按站点解释的通用字段**，不是 openstd 下载标识。
+- 下载侧**禁止**读取 `task.query_result.hcno`；唯一合法来源是 `task.extra["hcno"]`（手工/GUI 显式传入）或 openstd 搜索页按行匹配。
+- 行为契约由 `tests/download/adapters/test_openstd_download.py::TestHcnoResolution::test_query_result_pid_is_not_used_as_hcno` 锁定（49 passed 中包含）。
+- 该历史注释本身仍需清理；在未批准代码变更前，先以本文为准。
+
 ---
 
 ## 三、端点族：`/bzgk/std/*`，不是 `/bzgk/gb/*`
 
-`BASE_URL = "https://openstd.samr.gov.cn/bzgk/std"`（`openstd_download.py:89`），全流程 6 个请求全部落在该命名空间：
+`BASE_URL = "https://openstd.samr.gov.cn/bzgk/std"`（`openstd_download.py:135`），全流程 6 个请求全部落在该命名空间：
 
 | 请求 | 路径 | 代码位置 |
 |------|------|---------|
-| 搜索页 | `/bzgk/std/std_list_type` | `:98` |
-| 详情页 | `/bzgk/std/newGbInfo?hcno=<H>` | `:194` |
-| 全文下载页 | `/bzgk/std/showGb?type=download&hcno=<H>&request_locale=zh` | `:216` |
-| 验证码图 | `/bzgk/std/gc?_<毫秒>` | `:323` |
-| 提交验证码 | `POST /bzgk/std/verifyCode` | `:372` |
-| 取文件 | `/bzgk/std/viewGb?hcno=<H>` | `:260` |
+| 搜索页 | `/bzgk/std/std_list_type` | `:144` |
+| 详情页 | `/bzgk/std/newGbInfo?hcno=<H>` | `:250` |
+| 全文下载页 | `/bzgk/std/showGb?type=download&hcno=<H>&request_locale=zh` | `:272` |
+| 验证码图 | `/bzgk/std/gc?_<毫秒>` | `:413` |
+| 提交验证码 | `POST /bzgk/std/verifyCode` | `:462` |
+| 取文件 | `/bzgk/std/viewGb?hcno=<H>` | `:318` |
 
 **为什么不能退回 `/bzgk/gb/*`**（`openstd_download.py:21-25`，2026-09 起站点迁移）：
 
@@ -150,20 +159,20 @@ sha1 = b93e289a82d884a4    响应长度 = 18610 字节（三者一致）
 
 ## 四、完整步骤链（按代码实际顺序）
 
-### [0] hcno 解析 —— `_resolve_hcno`（`:160-169`）
+### [0] hcno 解析 —— `_resolve_target` / `_lookup_hcno`（`:209-219` / `:179-207`）
 
-见第二节。失败即返回 `None`，不进入验证码阶段。
+见第二节。`_resolve_target` 先取 `task.extra["hcno"]`，否则 `_lookup_hcno` 查 openstd 搜索页。失败即返回 `None`，不进入验证码阶段。
 
-### [0′] 详情页预访问 —— `_visit_detail`（`:189-207`）
+### [0′] 详情页预访问 —— `_visit_detail`（`:245-263`）
 
 `GET {BASE}/newGbInfo?hcno=<H>`，作用有二：
 
 1. **建立会话**（后续请求沿用同一 `requests.Session` 的 cookie）；
 2. **提前暴露失效 hcno**：若响应 200 但页面里查不到该标准号，打 warning（`:200-206`）——`pid`/空/篡改 hcno 都会命中这条（服务端返回同一张"标准不存在"的壳页面）。
 
-返回详情页 URL，供后续请求当 `Referer`（浏览器点击链路同款）。该步失败**不致命**（`:196-199` 捕获异常后继续）。
+返回详情页 URL，供后续请求当 `Referer`（浏览器点击链路同款）。该步失败**不致命**（`:251-255` 捕获异常后继续）。
 
-### [1] 全文下载页 —— `_open_download_page`（`:209-223`）
+### [1] 全文下载页 —— `_open_download_page`（`:265-279`）
 
 ```
 GET {BASE}/showGb?type=download&hcno=<H>&request_locale=zh     Referer: 详情页
@@ -178,22 +187,22 @@ GET {BASE}/showGb?type=download&hcno=<H>&request_locale=zh     Referer: 详情�
 | 跳过全文下载页（直接 gc → verifyCode → viewGb） | 200 + **0 字节** |
 | 走完整序列（下载页 → gc → verifyCode → viewGb） | **251074 字节** PDF |
 
-不打开该页偶尔也能成功，但**新会话首下必空**（`:212-214` 的注释）。
+不打开该页偶尔也能成功，但**新会话首下必空**（`:268-270` 的注释）。
 
-### [2] 验证码图片 —— `_handle_captcha`（`:314-329`）
+### [2] 验证码图片 —— `_handle_captcha`（`:399-486`）
 
 ```
 GET {BASE}/gc?_<毫秒>     Referer: 全文下载页
 ```
 
-期望 `Content-Type` 含 `image`；否则打 **error** 级日志"端点是否已迁移？"（`:331-339`）——端点迁移会在这一步第一时间暴露，而不是等到 `verifyCode` 报 error。
+期望 `Content-Type` 含 `image`；否则打 **error** 级日志"端点是否已迁移？"（`:421-429`）——端点迁移会在这一步第一时间暴露，而不是等到 `verifyCode` 报 error。
 
-### [3] OCR 识别 —— `_handle_captcha`（`:341-356`）
+### [3] OCR 识别 —— `_handle_captcha`（`:399-486` 内）
 
-`ddddocr.DdddOcr().classification(img_resp.content)`；`ImportError` 或任何异常都降级（`:349-352` 只打 warning，不抛）。
-识别结果长度 ≠ 4 时走 `captcha_callback` 手工兜底（`:355-356`）。
+`ddddocr.DdddOcr().classification(img_resp.content)`；`ImportError` 或任何异常都降级（`:433-442` 只打 warning，不抛）。
+识别结果长度 ≠ 4 时走 `captcha_callback` 手工兜底（`:444-446`）。
 
-### [4] 提交验证码 —— `_handle_captcha`（`:369-394`）
+### [4] 提交验证码 —— `_handle_captcha`（`:399-486` 内）
 
 ```
 POST {BASE}/verifyCode     body: verifyCode=<4位>     Referer: 全文下载页
@@ -201,9 +210,9 @@ POST {BASE}/verifyCode     body: verifyCode=<4位>     Referer: 全文下载页
 
 期望响应体恰为 `success`（`:379-380`）；返回非 `success` 且响应体像 HTML 或超长时打 error"端点可能已迁移"（`:381-387`）。
 
-**每轮最多 2 次尝试**（`:321` 的 `for attempt in range(2)`）：第 1 次识别失败或提交失败时**换一张新图**重试，第 2 次仍失败才置 `验证码提交失败（已重试）`（`:393`）。
+**每轮最多 2 次尝试**（`:411` 的 `for attempt in range(2)`）：第 1 次识别失败或提交失败时**换一张新图**重试，第 2 次仍失败才置 `验证码提交失败（已重试）`（`:483`）。
 
-### [5] 取文件 —— `_fetch_view`（`:258-308`）
+### [5] 取文件 —— `_fetch_view`（`:316-361`）
 
 ```
 GET {BASE}/viewGb?hcno=<H>     Referer: 全文下载页     timeout=120s, stream=True
@@ -213,21 +222,22 @@ GET {BASE}/viewGb?hcno=<H>     Referer: 全文下载页     timeout=120s, stream
 
 | 校验 | 代码位置 | 失败文案 |
 |------|---------|---------|
-| HTTP 200 | `:268-276` | `viewGb HTTP <code>` |
-| 非空（200 + 0 字节 = 会话未通过验证码，或该标准暂无全文） | `:279-283` | `viewGb 返回空内容（会话未通过验证码，或该标准暂无全文）` |
-| `%PDF` 文件头 | `:296-297` | 兜底：`>1000` 字节且前 50 字节不含 `html` 也接受（`:298-299`）；否则 `viewGb 返回非 PDF 内容`（`:301`） |
+| HTTP 200 | `:326-333` | `viewGb HTTP <code>` |
+| 非空（200 + 0 字节 = 会话未通过验证码，或该标准暂无全文） | `:337-341` | `viewGb 返回空内容（会话未通过验证码，或该标准暂无全文）` |
+| `%PDF` 文件头 | `:354` | 兜底：`>1000` 字节且前 50 字节不含 `html` 也接受（`:356`）；否则 `viewGb 返回非 PDF 内容`（`:359`） |
 
-并从 `Content-Disposition` 提取文件名写入 `task.extra["filename_from_header"]`（`:285-293`）。
+并从 `Content-Disposition` 提取文件名写入 `task.extra["filename_from_header"]`（`:345-351`）。
 
 ### 轮次与重试语义（务必区分）
 
-`_VIEW_ROUNDS = 2`（`:51-52`），整轮循环在 `_do_download`（`:225-256`）：
+`_VIEW_ROUNDS = 2`（`:65`），整轮循环在 `_do_download`（`:281-314`）：
 
-- **整轮重试只在"验证码通过、但 `viewGb` 取到 0 字节/无效内容"时发生**（`:238-255`），第二轮 = `_open_download_page` → `_handle_captcha` → `_fetch_view` **全部重做**（重开下载页 → 重新要验证码）。第 2 轮多为"会话授权未落地"。
-- **OCR 识别失败不消耗轮次**：`_handle_captcha` 内识别失败会 `continue` 换图重试（`:359-360`），两次都失败才置 `error_message`，`_do_download` 随即 `return None`（`:235-236`）——**不会**进入第二轮。
+- **整轮重试只在"验证码通过、但 `viewGb` 取到 0 字节/无效内容"时发生**（`:296-314`），第二轮 = `_open_download_page` → `_handle_captcha` → `_fetch_view` **全部重做**（重开下载页 → 重新要验证码）。第 2 轮多为"会话授权未落地"。
+- **OCR 识别失败不消耗轮次**：`_handle_captcha` 内识别失败会 `continue` 换图重试（`:399-486` 内），两次都失败才置 `error_message`，`_do_download` 随即 `return None`（`:291-293`）——**不会**进入第二轮。
 - 因此单条标准最多 **2 轮 × 2 次验证码尝试 = 4 次** `gc` + `verifyCode`。
-- 每轮取到文件会打 info `viewGb 第N轮取到全文`（`:241-247`），用于现场统计"两轮是否够用"。
-- 进入下一轮前会清空 `task.error_message`（`:255`），避免上一轮的失败文案假冒本轮结果。
+- 每轮取到文件会打 info `viewGb 第N轮取到全文`（`:299-305`），用于现场统计"两轮是否够用"。
+- 进入下一轮前会清空 `task.error_message`（`:311`），避免上一轮的失败文案假冒本轮结果。
+- 验证码连续失败会走 `_register_captcha_failure()`（`:372-397`）：按 30s→60s→…→600s 指数退避，并发送 `captcha_backoff` 系统通知；退避期内 `_handle_captcha` 直接返回错误，不再请求源站。
 
 ---
 
@@ -269,9 +279,12 @@ A + B + C 叠加 = **下载链长时间全量失败**：现场 2026-09-24~26 连
 
 ---
 
-## 六、防回归测试（`tests/download/adapters/test_openstd_download.py`，43 个用例）
+## 六、防回归测试（`tests/download/adapters/test_openstd_download.py`，49 个用例）
 
-> 实测：`python -m pytest tests/download/adapters/test_openstd_download.py -q --no-header` → **43 passed**。
+> 实测（2026-11-07）：`python -m pytest tests/download/adapters/test_openstd_download.py -q --no-header` → **49 passed**（49 tests collected）。<br>
+> 下表保留 43 例基线；新增 6 例为采标标记/下载跳过，见 6.3。
+
+> 下表测试行号为 2026-10 基线，新增/重排后可能漂移；**以测试类/方法名为准**。
 
 ### 6.1 三个契约测试（本节重点）
 
@@ -319,7 +332,16 @@ A + B + C 叠加 = **下载链长时间全量失败**：现场 2026-09-24~26 连
 | `TestEndpointPathGuard`（3 例，已列于 6.1） | `:619-649` | 见 6.1 |
 | `TestHcnoParser`（6 例，已列于上） | `:661-721` | 见上 |
 
-> 计数口径：6.1 的 3 个契约测试 + 上表 33 行 = 去重后 **43** 个测试（上表中"（5 例）""（4 例）"各占一行但含多个用例；`TestEndpointPathGuard` 的 3 例与 6.1 重复列示）。与 `pytest` 实测的 **43 passed** 一致。
+> 计数口径：6.1 的 3 个契约测试 + 上表 33 行 = 去重后 **43** 个测试（上表中"（5 例）""（4 例）"各占一行但含多个用例；`TestEndpointPathGuard` 的 3 例与 6.1 重复列示）。
+
+### 6.3 新增采标用例（2026-11-07 实测 49 例）
+
+| 测试类 | 用例数 | 测什么 |
+|---|---:|---|
+| `TestAdoptedMarker` | 4 | `parse_search_row()` 能识别行内「采」标记；无标记不误判；多行中命中正确行；无 `<tr>` 的旧夹具也能解析 |
+| `TestAdoptedSkipInDownload` | 2 | 采标标准在 `download()` 第 [0] 步直接跳过，**不进入验证码**；显式 `extra["hcno"]` 时不再查搜索页 |
+
+> 合计：43 基线 + 4 + 2 = **49**，与 2026-11-07 实测 **49 passed** 一致。
 
 ---
 
