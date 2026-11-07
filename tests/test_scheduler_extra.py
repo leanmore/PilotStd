@@ -46,7 +46,8 @@ def test_retention_cleanup_runs(monkeypatch):
     monkeypatch.setattr(s, "_get_db", lambda: db)
     monkeypatch.setattr(s, "ConfigManager", lambda: SimpleNamespace(get=lambda k, d=0: d))
     s._cleanup_retention()
-    assert db.execute.call_count == 2
+    assert db.execute.call_count == 3
+    assert any("validity_check_log" in str(c.args[0]) for c in db.execute.call_args_list)
 
 
 def test_release_suppressed_notifications(monkeypatch):
