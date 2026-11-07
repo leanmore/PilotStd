@@ -226,6 +226,15 @@
 | 测试 | 有效性 136 passed |
 | 回滚 | 删除表/恢复 v75；不影响既有状态 |
 
+### 23. 公告抓取回看窗口
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `announce/crawler_service.py`、`manager/announce_service.py`、`config/defaults.py` |
+| 行为 | 定时/手动 `check_announcements` 从 checkpoint 多回看 `announcement.lookback_days=7` 天 |
+| 测试 | 公告/调度测试通过 |
+| 回滚 | 设 `announcement.lookback_days=0` |
+
 ---
 
 ## 验证汇总

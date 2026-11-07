@@ -78,6 +78,7 @@ StandardManager (BaseFacade)
 
 - **归档/扫描路径的失败可见性（2026-10-17，体检 D-8 第 6 批）**：`expire`/`mirror`/`organizer` 的文件清理 `OSError`、`_backfill_std_name` 的缓存查询与 `result_json` 解析失败、`scan_directory(_stream)` 的缓存失效失败，均由 `pass` 改为 debug（行为不变）；契约由 `tests/test_silent_error_observability_batch6.py` 锁定。
 
+- **公告抓取回看（2026-11-07）**：`AnnounceService.check_announcements` 读取 `announcement.lookback_days`（默认 7），从 checkpoint 向前多回看，覆盖晚发布/停机漏抓。
 - **可信 IP 自动更新（2026-11-07）**：A1 接入 CloakBrowser（自带定制 Chromium，依赖 Playwright 控制层）；需要 `CLOAKBROWSER_LICENSE_KEY`，首次启动下载二进制；状态页不再用空 URL 校验 Cookie。
 - **下载任务持久化（2026-11-07）**：`DownloadEngine` 把任务状态写入 `task_queue`（task_type=download）；启动补跑未完成任务，`retry_count >= max_retries` 停止。
 - **归档预览名与冲突（2026-11-07）**：`FileMover.normalize_filename` 优先使用 `ParsedStdInfo.final_name`；`OrganizerCore` 对同名不同内容写入 `pending_lookup`（reason=archive_conflict），不覆盖、不自动改名。

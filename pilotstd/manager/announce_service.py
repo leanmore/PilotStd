@@ -130,7 +130,14 @@ class AnnounceService:
     # 胶水方法：委托至爬取/_运行器------------分隔
 
     def check_announcements(self) -> dict[str, Any]:
-        return self.crawler.check_all()
+        # 定时/手动共用：checkpoint 之外多回看几天，覆盖晚发布和停机漏抓。
+        lookback = 0
+        if self._mgr is not None:
+            try:
+                lookback = int(self._mgr.cfg.get("announcement.lookback_days", 7) or 0)
+            except (TypeError, ValueError):
+                lookback = 0
+        return self.crawler.check_all(lookback_days=lookback)
 
     def check_announcements_filtered(
         self,

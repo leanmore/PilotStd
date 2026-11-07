@@ -488,6 +488,7 @@ pilotstd/core/
 > **T-42（2026-10-31）**：渠道限流改为“码优先 + 关键词兜底”；已取证 企微 45009 / 飞书 99991400，钉钉/Telegram 保持兜底。
 > **rate_limited_by（2026-10-31）**：限流命中日志从 debug 提升到 info（code/keyword），便于事后排查误判。
 > **归档通知正文（2026-11-07）**：archive_complete 构建器始终写 `body`（count/skip/fail/dirs）；零搬移时 notification_log 也能看到“发生了什么”，不再只有标题。
+> **公告回看默认值（2026-11-07）**：`announcement.lookback_days=7` 写入配置默认值；抓取服务据此回看，不影响 checkpoint 推进。
 > **时效性检查病历（2026-11-07，v76）**：新增 `validity_check_log`，每次检查保存标准号/时间/证据/状态/来源/失败原因/结果 JSON；失败仍发 `validity_standard_failed`，保留期默认 90 天。
 > **时效性 L2 失败可见（2026-11-07）**：在线查询异常从 debug 提升为 warning，避免静默回落到 L3；查询结果仍只经 `standard_info_cache` 精确命中落盘，validity 本身不保存完整查询明细。
 > **过期搬移并行期（2026-11-07）**：`validity.auto_move_expired` 默认开启；被代替标准在新标准 `implement_date` 前只标记/通知，实施日后补搬并发 `expire_standard_moved`。

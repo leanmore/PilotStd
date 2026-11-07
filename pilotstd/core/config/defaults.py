@@ -44,6 +44,8 @@ FACTORY_DEFAULTS = {
     ],
     "scan.extensions": [".pdf", ".doc", ".docx", ".txt"],
     "announcement.enabled": False,
+    # 定时抓取回看天数：覆盖晚发布/停机期间漏掉的公告。
+    "announcement.lookback_days": 7,
     "ocr.provider": "",
     "ocr.baidu_api_key": "",
     "ocr.baidu_secret_key": "",

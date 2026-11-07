@@ -95,3 +95,15 @@ def test_detail_failure_records_notice_date_for_checkpoint() -> None:
 
     assert result == []
     assert crawler.failed_notice_dates == ["2026-08-12"]
+
+def test_announce_service_passes_lookback_days() -> None:
+    """定时/手动公告检查必须把配置的回看天数传下去。"""
+    from types import SimpleNamespace
+
+    from pilotstd.manager.announce_service import AnnounceService
+
+    svc = object.__new__(AnnounceService)
+    svc._mgr = SimpleNamespace(cfg=SimpleNamespace(get=lambda key, default=0: 7))
+    svc.crawler = MagicMock()
+    svc.check_announcements()
+    assert svc.crawler.check_all.call_args.kwargs["lookback_days"] == 7

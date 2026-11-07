@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 from pilotstd.announcement.adapters import SamrDbCrawler, SamrGbCrawler, SamrHbCrawler
@@ -203,7 +203,7 @@ class AnnounceCrawler:
         )
         return {"status": "reparsed", "announce_no": announce_no, "records": len(items)}
 
-    def check_all(self, adapter_name: str = "") -> dict[str, Any]:
+    def check_all(self, adapter_name: str = "", lookback_days: int = 0) -> dict[str, Any]:
         """对 gb/hb/db 适配器执行全量公告检查，返回摘要数据。"""
 
         # 记录抓取开始时刻，用于查询本次窗口新增公告的分类统计
@@ -225,6 +225,14 @@ class AnnounceCrawler:
                 continue
             # 读取实现增量抓取
             since = self._persistence.get_checkpoint(adapter.source_site) or ""
+            # 定时抓取多回看几天：覆盖晚发布/停机期间漏掉的公告；重复记录由入库去重。
+            if since and lookback_days > 0:
+                try:
+                    since = (
+                        datetime.fromisoformat(since[:10]) - timedelta(days=lookback_days)
+                    ).date().isoformat()
+                except (ValueError, TypeError) as exc:
+                    logger.warning("公告 checkpoint 回看日期解析失败: %s", exc)  # i18n-allow: 内部运维日志
 
             result = engine.check_one(adapter.standard_type, since_date=since, ocr_provider=ocr)
             if "error" in result:
