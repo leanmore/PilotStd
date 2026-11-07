@@ -216,13 +216,25 @@ class DingTalkChannel(NotificationChannel):
         return token
 
     def _send_card(self, message: NotificationMessage) -> bool:
-        """发送互动卡片：取令牌 → 创建卡片实例 → 投递到群会话。
+        """发送互动卡片：企业卡片与 webhook 共用同一套退避重试。"""
+        self.last_error = ""
 
-        模板参数契约见 `DingTalkCardRenderer.render_card`（`title` / `content` / `level`）。
+        def _attempt(_attempt_no: int) -> tuple[bool, bool]:
+            return self._post_card_once(message)
+
+        return self._with_retry(_attempt)
+
+    def _post_card_once(self, message: NotificationMessage) -> tuple[bool, bool]:
+        """单次创建/投递卡片；返回 (ok, retryable)。
+
+        注意：创建成功但投递失败时，重试会再建一张卡片；这是“可重试”与
+        “不丢消息”之间的取舍，错误信息会保留最后一次失败原因。
         """
         self.last_error = ""
         try:
             token = self._get_access_token()
+            if not token:
+                return False, False
             out_track_id = f"pilotstd-{int(time.time() * 1000)}"
             headers = {"Content-Type": "application/json", "x-acs-dingtalk-access-token": token}
             create_body = json.dumps(
@@ -244,7 +256,7 @@ class DingTalkChannel(NotificationChannel):
                             status=resp.status_code
                         ),
                     )
-                    return False
+                    return False, is_retryable_http_status(resp.status_code)
 
             deliver_body = json.dumps(
                 {
@@ -265,8 +277,16 @@ class DingTalkChannel(NotificationChannel):
                 )
                 self.last_error = deliver_error
                 logger.warning("%s", deliver_error)
-                return False
-            return True
+                return False, is_retryable_http_status(resp2.status_code)
+            return True, False
+        except (requests.RequestException, OSError) as e:
+            self.last_error = t("notification.channel.dingtalk.enterprise_send_failed").format(error=e)
+            logger.warning(
+                "%s",
+                t("notification.channel.dingtalk.enterprise_send_failed").format(error=e),
+                exc_info=True,
+            )
+            return False, True
         except Exception as e:
             self.last_error = t("notification.channel.dingtalk.enterprise_send_failed").format(error=e)
             logger.warning(
@@ -274,7 +294,7 @@ class DingTalkChannel(NotificationChannel):
                 t("notification.channel.dingtalk.enterprise_send_failed").format(error=e),
                 exc_info=True,
             )
-            return False
+            return False, False
 
     @staticmethod
     def validate_config(config: dict) -> bool:

@@ -125,6 +125,15 @@
 | 测试 | monitor e2e + cleanup 7 passed；同一目录 10 秒去抖 |
 | 回滚 | 还原 `_on_file` 的 scan/archive 实现 |
 
+### 12. 钉钉企业卡片/飞书应用消息重试（#16）
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `channels/dingtalk.py`、`channels/feishu.py`、`test_dingtalk_enterprise.py` |
+| 行为 | 两条企业形态路径接入 `_with_retry`；429/5xx/网络错误退避；非重试错误不放大 |
+| 测试 | 钉钉企业 9 passed；飞书应用 12 passed |
+| 回滚 | 恢复单次 `_send_card` / `_post_app_message` 实现 |
+
 ---
 
 ## 验证汇总

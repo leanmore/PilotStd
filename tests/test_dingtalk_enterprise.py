@@ -135,7 +135,10 @@ class TestCardSend:
 
     def test_send_card_records_http_error(self):
         ch = _channel(**ENTERPRISE)
-        responses = self._responses({"accessToken": "tok", "expireIn": 7200}, status=500)
-        with patch("pilotstd.core.notification.channels.dingtalk.requests.post", side_effect=responses):
+        responses = self._responses({"accessToken": "tok", "expireIn": 7200}, sends=3, status=500)
+        with (
+            patch("pilotstd.core.notification.channels.dingtalk.requests.post", side_effect=responses),
+            patch("pilotstd.core.notification.channels.dingtalk.time.sleep"),
+        ):
             assert ch.send(_msg()) is False
         assert "HTTP 500" in ch.last_error

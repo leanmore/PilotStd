@@ -111,10 +111,25 @@ class FeishuChannel(NotificationChannel):
         return self._token
 
     def _post_app_message(self, card: dict) -> str:
-        """经应用端点发送一张卡片，返回 `message_id`（失败返回空串）。"""
+        """经应用端点发送一张卡片，失败按 429/5xx/限流码退避重试。"""
+        result = {"message_id": ""}
+
+        def _attempt(_attempt_no: int) -> tuple[bool, bool]:
+            ok, message_id = self._post_app_message_once(card)
+            if ok:
+                result["message_id"] = message_id
+            # 失败时第二返回值用 "retryable" 标记；成功时 message_id 不是重试标记
+            return ok, message_id == "retryable"
+
+        if not self._with_retry(_attempt):
+            return ""
+        return result["message_id"]
+
+    def _post_app_message_once(self, card: dict) -> tuple[bool, str]:
+        """单次应用消息请求；返回 (ok, message_id 或失败原因标记)。"""
         token = self._tenant_token()
         if not token:
-            return ""
+            return False, ""
         payload = json.dumps(
             {
                 "receive_id": self._receive_id,
@@ -132,16 +147,25 @@ class FeishuChannel(NotificationChannel):
                 timeout=15,
             )
             data = json.loads(resp.content.decode("utf-8"))
+        except (requests.RequestException, OSError) as e:
+            self.last_error = str(e)
+            logger.warning("feishu app message failed: %s", e)
+            return False, "retryable"
         except Exception as e:
             self.last_error = str(e)
             logger.warning("feishu app message failed: %s", e)
-            return ""
-        if int(data.get("code", -1)) != 0:
+            return False, ""
+        if resp.status_code != 200:
             self.last_error = t("notification.channel.feishu.api_failed").format(
-                detail=data.get("msg", "")
+                detail=f"HTTP {resp.status_code}"
             )
-            return ""
-        return str((data.get("data") or {}).get("message_id") or "")
+            return False, "retryable" if is_retryable_http_status(resp.status_code) else ""
+        code = int(data.get("code", -1))
+        if code != 0:
+            msg = data.get("msg", "")
+            self.last_error = t("notification.channel.feishu.api_failed").format(detail=msg)
+            return False, "retryable" if is_rate_limited("feishu", code, msg) else ""
+        return True, str((data.get("data") or {}).get("message_id") or "")
 
     def edit_message(self, handle: "MessageHandle", message: NotificationMessage) -> bool:
         """按 `message_id` 更新已发出的消息（飞书 `PATCH /im/v1/messages/{message_id}`）。
