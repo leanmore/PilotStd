@@ -163,14 +163,14 @@
 | 测试 | router v2 集成 8 passed |
 | 回滚 | 部署时设置 `ROUTING_ENGINE_VERSION=v1`，重启即可，不改代码 |
 
-### 16. file_index 原子 UPSERT（#10 部分）
+### 16. 并发写入原子化（#10）
 
 | 项 | 内容 |
 |---|---|
-| 文件 | `pilotstd/core/file_index.py`、`tests/test_file_index_full.py` |
-| 行为 | 单条 `INSERT ... ON CONFLICT(file_path) DO UPDATE`；不再 SELECT+INSERT |
-| 测试 | file_index 75 passed |
-| 回滚 | 恢复 SELECT+INSERT/UPDATE 分支 |
+| 文件 | `file_index.py`、`validity_checker.py`、对应测试 |
+| 行为 | file_index 单条 `ON CONFLICT DO UPDATE`；validity 首次登记 `INSERT OR IGNORE` + `rowcount` |
+| 测试 | file_index 75 passed；validity 87 passed |
+| 回滚 | 恢复两处 SELECT+INSERT/UPDATE 分支 |
 
 ---
 

@@ -18,7 +18,7 @@
 | 7 | 手动/一键下载任务不持久化 | 当前缺口 | 重启丢任务 |
 | 8 | 规范化只预览，归档忽略 `new_filename` | 设计边界 | 预览与最终命名可能漂移 |
 | 9 | 归档通知按“每次调用”发 | 正文已修；聚合仍待改 | 零搬移正文完整；批量聚合/批次键未闭环 |
-| 10 | DB 写存在 SELECT+INSERT 竞争 | 部分修复 | file_index 已原子 UPSERT；validity 首次登记仍待修 |
+| 10 | DB 写存在 SELECT+INSERT 竞争 | 已修复（2026-11-07） | file_index 原子 UPSERT；validity 首次登记 INSERT OR IGNORE |
 | 11 | monitor 懒加载 manager 无锁 | 实现缺陷 | 多实例/重复校验 |
 | 12 | `validity_check_queue` 表不存在 | 已修复（v75） | 队列建表 + 60s 消费；见 #12 详述 |
 | 13 | `/api/auto` 未传 `root_path` | 实现缺陷 | 该端点按当前签名不可用 |
@@ -265,18 +265,14 @@
 
 ---
 
-### 10. DB 写竞争（部分修复）
+### 10. DB 写竞争（已修复）
 
-**已修（2026-11-07）**
+**修复（2026-11-07）**
 
 - `FileIndexRepository.upsert()` 改为单条 `INSERT ... ON CONFLICT(file_path) DO UPDATE`，不再 SELECT+INSERT；
-- 并发扫描/归档不会再撞 `file_index.file_path` 唯一键；
-- 回归：`tests/test_file_index_full.py` 75 passed。
-
-**仍未修**
-
-- `register_new_standard()` 仍是 SELECT → INSERT；极端并发下仍可能重复；
-- 本轮只改低风险、调用量最大的 file_index 写入。
+- `register_new_standard()` 改为 `INSERT OR IGNORE`，用 `rowcount` 判断是否首次登记；
+- 并发扫描/归档/首次登记不会再撞唯一键；
+- 回归：`tests/test_file_index_full.py` 75 passed；`test_validity_checker*.py` 87 passed。
 
 **原证据**
 

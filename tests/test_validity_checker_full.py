@@ -114,29 +114,31 @@ class TestRegisterNewStandard(unittest.TestCase):
         )
 
     def test_new_standard_insert(self):
-        """标准号不存在 → INSERT 新记录。"""
-        self.mock_db.fetchone.return_value = None
+        """标准号不存在 → INSERT OR IGNORE 新记录。"""
+        self.mock_db.execute.return_value.rowcount = 1
         checker = ValidityChecker(self.mock_db)
         # 重置 mock 历史，清除 __init__ 调用的记录
         self.mock_db.reset_mock()
         checker.register_new_standard("GB/T 12345")
-        self.mock_db.fetchone.assert_called_once()
+        self.mock_db.fetchone.assert_not_called()
         self.mock_db.execute.assert_called_once()
         sql_text = self.mock_db.execute.call_args[0][0]
-        self.assertIn("INSERT INTO standard_validity", sql_text)
+        self.assertIn("INSERT OR IGNORE INTO standard_validity", sql_text)
 
     def test_existing_standard_skip(self):
-        """标准号已存在 → 直接返回，不 INSERT。"""
-        self.mock_db.fetchone.return_value = _row(id=1)
+        """标准号已存在（rowcount=0）→ 不发通知、不重复插入。"""
+        self.mock_db.execute.return_value.rowcount = 0
+        notif_mgr = MagicMock()
         checker = ValidityChecker(self.mock_db)
         self.mock_db.reset_mock()
-        checker.register_new_standard("GB/T 12345")
-        self.mock_db.fetchone.assert_called_once()
-        self.mock_db.execute.assert_not_called()
+        checker.register_new_standard("GB/T 12345", notification_mgr=notif_mgr)
+        self.mock_db.fetchone.assert_not_called()
+        self.mock_db.execute.assert_called_once()
+        notif_mgr.send_event.assert_not_called()
 
     def test_with_notification_mgr(self):
         """带 notification_mgr → send_event('standard_first_registered') 被调用。"""
-        self.mock_db.fetchone.return_value = None
+        self.mock_db.execute.return_value.rowcount = 1
         notif_mgr = MagicMock()
         checker = ValidityChecker(self.mock_db)
         self.mock_db.reset_mock()
@@ -148,7 +150,7 @@ class TestRegisterNewStandard(unittest.TestCase):
 
     def test_notification_mgr_raises(self):
         """notification_mgr.send_event 抛异常 → 被捕获，不影响 INSERT。"""
-        self.mock_db.fetchone.return_value = None
+        self.mock_db.execute.return_value.rowcount = 1
         notif_mgr = MagicMock()
         notif_mgr.send_event.side_effect = RuntimeError("send failed")
         checker = ValidityChecker(self.mock_db)

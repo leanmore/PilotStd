@@ -48,17 +48,16 @@ class ValidityChecker:
     def register_new_standard(self, standard_number: str, notification_mgr: Any = None) -> None:
         """归档后注册新标准，初始状态='未知'，next_check_at=now（立即可查）。"""
         now = datetime.now(timezone.utc).isoformat()
-        existing = self._db.fetchone(
-            f"SELECT id FROM {_TABLE} WHERE standard_number=?",
-            (standard_number,),
-        )
-        if existing:
-            return
-        self._db.execute(
-            f"INSERT INTO {_TABLE} (standard_number, status, next_check_at, created_at, updated_at) "
+        # 单条 INSERT OR IGNORE：并发首次登记不会撞 standard_number 唯一键，
+        # 也不会在 SELECT 与 INSERT 之间被另一个线程抢先插入。
+        cursor = self._db.execute(
+            f"INSERT OR IGNORE INTO {_TABLE} "
+            "(standard_number, status, next_check_at, created_at, updated_at) "
             "VALUES (?, ?, ?, ?, ?)",
             (standard_number, Status.UNKNOWN.value, now, now, now),
         )
+        if not getattr(cursor, "rowcount", 0):
+            return
         if notification_mgr:
             try:
                 notification_mgr.send_event(
