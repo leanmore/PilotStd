@@ -49,6 +49,7 @@
 | `bash scripts/extract_capabilities.sh <file>` | 提取单个文件的能力清单（AST 静态分析） | 重构前 / 归档前 |
 | `python tests/test_observability.py --check-all` | 验证所有必需能力是否存活 | PR 提交前 / CI 自动运行 |
 | `bash scripts/check_no_migrating.sh` | 检查登记簿是否有未解决的迁移项 | CI 自动运行（阻断合并） |
+| `python scripts/find_docs.py "<关键词>"` | 按关键词检索文档，返回相关文档与命中标题 | 任务开始/排查前 |
 
 ## 核心工作流
 

@@ -127,6 +127,7 @@ flowchart LR
 
 | 文档 | 内容 |
 |---|---|
+| [`00-how-to-use.md`](00-how-to-use.md) | 文档使用方法、按问题类型查文档、检索脚本 |
 | [`01-positioning.md`](01-positioning.md) | 项目定位、问题域、用户、能力地图、不是什么 |
 | [`02-file-journey.md`](02-file-journey.md) | 一条文件的七站旅程、数据流、异常分支 |
 | [`03-architecture.md`](03-architecture.md) | 三端一引擎、分层、模块职责、运行时拓扑 |

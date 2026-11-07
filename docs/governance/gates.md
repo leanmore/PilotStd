@@ -113,6 +113,7 @@
 - **机器生成产物豁免**：`docs/governance/capabilities_registry.md`（由 `scripts/generate_capabilities.py` 生成，且已登记在 `docs/governance/README.md` 索引中）**单独**变更时不要求同步 README —— 重生成只改时间戳/行号，不改变索引语义；AGENTS.md §七 又强制其随 `pilotstd/core/`、`docker/api/` 变更一并提交，若不豁免，则每次重生成都会撞上本条规则，只能做装饰性改动或绕过门禁。同批若还含 `docs/governance/` 下的人工文档变更，仍按上表阻断；豁免命中时输出 `[G-031] SKIP: ...`，不静默跳过
 - **阻断条件**：目标文档存在但未同步更新 → 阻断；目标文档不存在 → 按模式处理，`block` 同样阻断、`warn` 仅告警（当前 12 条均为 `block`，且 12 个目标文档均已存在）
 - **执行方式**：`python scripts/check_g_031_docs_sync.py`
+- **文档检索工具**（2026-11-07）：`scripts/find_docs.py` 是只读检索工具，不是门禁；它用于任务开始前按关键词找文档。按本表 `scripts/` → 本文件的映射，新增该脚本时同步登记本条；检索结果仍需人工打开原文确认，不能替代 G-031/G-037/G-052。
 
 ### G-032：文档健康度守护
 
