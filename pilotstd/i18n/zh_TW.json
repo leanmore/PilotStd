@@ -534,6 +534,7 @@
     "notification.announce.announcement_check_complete.title": "公告檢查完成",
     "notification.announce.announcement_check_complete.body.source": "來源：{s}",
     "notification.announce.announcement_check_complete.body.summary": "公告總數：{t}，國標：{g}，行標：{h}，地標：{d}，涉及標準：{s}",
+    "notification.announce.announcement_check_complete.body.missed": "距上次成功抓取已約 {h} 小時，本次已開啟回看補抓。",
 
     "notification.announce.announcement_fetch_complete.title": "公告拉取完成",
     "notification.announce.announcement_fetch_complete.body.source": "來源：{s}",

@@ -231,7 +231,7 @@
 | 项 | 内容 |
 |---|---|
 | 文件 | `announce/crawler_service.py`、`manager/announce_service.py`、`config/defaults.py` |
-| 行为 | 定时/手动 `check_announcements` 从 checkpoint 多回看 `announcement.lookback_days=7` 天 |
+| 行为 | 定时/手动 `check_announcements` 从 checkpoint 多回看 `announcement.lookback_days=7` 天；定时入口超过 36 小时未成功抓取会在完成通知中标注漏跑 |
 | 测试 | 公告/调度测试通过 |
 | 回滚 | 设 `announcement.lookback_days=0` |
 

@@ -617,6 +617,7 @@
     "notification.announce.announcement_check_complete.title": "公告检查完成",
     "notification.announce.announcement_check_complete.body.source": "来源：{s}",
     "notification.announce.announcement_check_complete.body.summary": "公告总数：{t}，国标：{g}，行标：{h}，地标：{d}，涉及标准：{s}",
+    "notification.announce.announcement_check_complete.body.missed": "距上次成功抓取已约 {h} 小时，本次已开启回看补抓。",
 
     "notification.announce.announcement_fetch_complete.title": "公告拉取完成",
     "notification.announce.announcement_fetch_complete.body.source": "来源：{s}",

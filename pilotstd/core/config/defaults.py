@@ -46,6 +46,8 @@ FACTORY_DEFAULTS = {
     "announcement.enabled": False,
     # 定时抓取回看天数：覆盖晚发布/停机期间漏掉的公告。
     "announcement.lookback_days": 7,
+    # 超过该小时数未成功抓取 → 判定为漏跑并在完成通知中告警。
+    "announcement.missed_after_hours": 36,
     "ocr.provider": "",
     "ocr.baidu_api_key": "",
     "ocr.baidu_secret_key": "",

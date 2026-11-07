@@ -72,6 +72,7 @@ class AnnounceNotifier:
                     "matched": matched,
                     "updated": updated,
                     "failures": failure_count,
+                    "missed_gap_hours": result.get("missed_gap_hours", 0),
                 },
             )
         except Exception as exc:

@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timezone
 from typing import Any
 
 from pilotstd.announce.crawler_service import AnnounceCrawler
@@ -109,6 +110,9 @@ class AnnounceService:
             return {"skipped": True, "reason": "manual_running"}
 
         self._last_check_start = iso_now()
+        missed_gap = self._missed_gap_hours()
+        if missed_gap:
+            logger.warning("公告定时任务疑似漏跑: 距上次成功抓取约 %s 小时", missed_gap)
 
         # 运行期防御：应用偏好设置表缺失时降级为全量增量检查，
         # 避免自动公告定时任务每日崩溃（根因由第五十八版迁移补建解决）
@@ -124,8 +128,36 @@ class AnnounceService:
         else:
             result = self.check_announcements()
 
-        self._after_fetch(result, source="定时")
+        if isinstance(result, dict) and missed_gap:
+            result["missed_gap_hours"] = missed_gap
+        self._after_fetch(result, source="定时")  # i18n-allow: 通知来源文案
         return result
+
+    def _missed_gap_hours(self) -> int:
+        """返回最久未成功抓取的 checkpoint 间隔（小时）；无记录/未超阈值返回 0。"""
+        try:
+            threshold = int(self._mgr.cfg.get("announcement.missed_after_hours", 36) or 36) if self._mgr else 36
+            rows = self._get_db().fetchall(
+                "SELECT last_fetched_at FROM fetch_checkpoint WHERE last_fetched_at IS NOT NULL"
+            )
+        except Exception as exc:
+            logger.warning("公告漏跑检测失败: %s", exc)  # i18n-allow: 内部运维日志
+            return 0
+        now = datetime.now(timezone.utc)
+        max_gap = 0
+        for row in rows or []:
+            raw = row["last_fetched_at"] if isinstance(row, dict) or hasattr(row, "keys") else row[0]
+            if not raw:
+                continue
+            try:
+                dt = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                gap = int((now - dt).total_seconds() // 3600)
+                max_gap = max(max_gap, gap)
+            except (TypeError, ValueError):
+                continue
+        return max_gap if max_gap >= threshold else 0
 
     # 胶水方法：委托至爬取/_运行器------------分隔
 

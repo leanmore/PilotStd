@@ -107,3 +107,18 @@ def test_announce_service_passes_lookback_days() -> None:
     svc.crawler = MagicMock()
     svc.check_announcements()
     assert svc.crawler.check_all.call_args.kwargs["lookback_days"] == 7
+
+def test_missed_gap_detects_stale_checkpoint() -> None:
+    """超过阈值未成功抓取 → 返回最久间隔，供完成通知告警。"""
+    from datetime import datetime, timedelta, timezone
+    from types import SimpleNamespace
+
+    from pilotstd.manager.announce_service import AnnounceService
+
+    stale = (datetime.now(timezone.utc) - timedelta(hours=48)).isoformat()
+    svc = object.__new__(AnnounceService)
+    svc._mgr = SimpleNamespace(
+        cfg=SimpleNamespace(get=lambda key, default=0: 36 if key == "announcement.missed_after_hours" else default),
+        db=SimpleNamespace(fetchall=lambda *a, **k: [{"last_fetched_at": stale}]),
+    )
+    assert svc._missed_gap_hours() >= 47

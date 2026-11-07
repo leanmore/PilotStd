@@ -613,6 +613,7 @@
     "notification.announce.announcement_check_complete.title": "Announcement Check Complete",
     "notification.announce.announcement_check_complete.body.source": "Source: {s}",
     "notification.announce.announcement_check_complete.body.summary": "Total announcements: {t}, national: {g}, industry: {h}, local: {d}, related standards: {s}",
+    "notification.announce.announcement_check_complete.body.missed": "About {h} hours since the last successful fetch; this run includes a lookback catch-up.",
 
     "notification.announce.announcement_fetch_complete.title": "Announcement Fetch Complete",
     "notification.announce.announcement_fetch_complete.body.source": "Source: {s}",

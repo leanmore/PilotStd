@@ -173,11 +173,18 @@ def _build_announcement_check_complete_message(data: dict) -> NotificationMessag
         s=data.get("total_standards", 0),
     )
     blocks.append(TextBlock(text=summary))
+    missed = int(data.get("missed_gap_hours", 0) or 0)
+    if missed > 0:
+        blocks.append(
+            TextBlock(
+                text=t("notification.announce.announcement_check_complete.body.missed").format(h=missed)
+            )
+        )
     failures = data.get("failures", 0)
     total = data.get("total_announcements", 0)
     if failures > 0 and total == 0:
         level = "error"
-    elif failures > 0:
+    elif failures > 0 or missed > 0:
         level = "warning"
     else:
         level = "info"
