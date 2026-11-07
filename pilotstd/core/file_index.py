@@ -168,20 +168,18 @@ class FileIndexRepository:
         now = iso_now()
         part_val = part if part is not None else -1
         raw = raw_number if raw_number else str(number)
-        existing = self._db.fetchone(f"SELECT id FROM {FILE_INDEX_TABLE} WHERE file_path=?", (file_path,))
-        if existing:
-            self._db.execute(
-                f"UPDATE {FILE_INDEX_TABLE} SET logical_code=?, number=?, year=?, "
-                "part=?, std_name=?, file_hash=?, status=?, scanned_at=?, raw_number=? WHERE id=?",
-                (logical_code, number, year, part_val, std_name, file_hash, status, now, raw, existing["id"]),
-            )
-        else:
-            self._db.execute(
-                f"INSERT INTO {FILE_INDEX_TABLE} "
-                "(file_path, logical_code, number, year, part, std_name, file_hash, status, scanned_at, raw_number) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (file_path, logical_code, number, year, part_val, std_name, file_hash, status, now, raw),
-            )
+        # 单条 UPSERT，避免 SELECT+INSERT 在并发扫描/归档时撞唯一键
+        # （file_index.file_path 自 v2 起 UNIQUE）。
+        self._db.execute(
+            f"INSERT INTO {FILE_INDEX_TABLE} "
+            "(file_path, logical_code, number, year, part, std_name, file_hash, status, scanned_at, raw_number) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+            "ON CONFLICT(file_path) DO UPDATE SET "
+            "logical_code=excluded.logical_code, number=excluded.number, year=excluded.year, "
+            "part=excluded.part, std_name=excluded.std_name, file_hash=excluded.file_hash, "
+            "status=excluded.status, scanned_at=excluded.scanned_at, raw_number=excluded.raw_number",
+            (file_path, logical_code, number, year, part_val, std_name, file_hash, status, now, raw),
+        )
 
     def remove(self, file_path: str) -> None:
         self._db.execute(f"DELETE FROM {FILE_INDEX_TABLE} WHERE file_path=?", (file_path,))

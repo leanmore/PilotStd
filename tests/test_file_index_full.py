@@ -308,7 +308,6 @@ class TestFileIndexRepository(unittest.TestCase):
         mock_exists.return_value = True
         mock_hash.return_value = SAMPLE_HASH
         mock_dt.return_value = MOCK_NOW
-        self.mock_db.fetchone.return_value = None  # 路径不存在
 
         repo.upsert(
             file_path=SAMPLE_PATH,
@@ -319,15 +318,13 @@ class TestFileIndexRepository(unittest.TestCase):
             std_name="测试标准",
         )
 
-        # 校验：先查路径是否存在
-        self.mock_db.fetchone.assert_called_once_with(
-            f"SELECT id FROM {FILE_INDEX_TABLE} WHERE file_path=?", (SAMPLE_PATH,)
-        )
-        # 应执行 INSERT
+        # 单条 UPSERT，不再先 SELECT（并发安全）
+        self.mock_db.fetchone.assert_not_called()
         self.mock_db.execute.assert_called_once()
         sql: str = self.mock_db.execute.call_args[0][0]
         params: tuple = self.mock_db.execute.call_args[0][1]
         self.assertIn("INSERT", sql)
+        self.assertIn("ON CONFLICT(file_path) DO UPDATE", sql)
         self.assertEqual(params[0], SAMPLE_PATH)
         self.assertEqual(params[1], "GB")
         self.assertEqual(params[2], 12345)
@@ -379,11 +376,10 @@ class TestFileIndexRepository(unittest.TestCase):
     @patch("pilotstd.core.file_index.iso_now")
     @patch("os.path.exists")
     def test_upsert_existing_file_updates(self, mock_exists: MagicMock, mock_dt: MagicMock) -> None:
-        """路径已存在于索引 → UPDATE 而非 INSERT"""
+        """路径已存在 → 同一 UPSERT 走 DO UPDATE，不再先查 id"""
         repo = self._make_repo()
         mock_exists.return_value = True
         mock_dt.return_value = MOCK_NOW
-        self.mock_db.fetchone.return_value = {"id": 42}  # 已存在
 
         repo.upsert(
             file_path=SAMPLE_PATH,
@@ -397,9 +393,10 @@ class TestFileIndexRepository(unittest.TestCase):
 
         sql: str = self.mock_db.execute.call_args[0][0]
         params: tuple = self.mock_db.execute.call_args[0][1]
-        self.assertIn("UPDATE", sql)
-        self.assertEqual(params[-1], 42)  # WHERE id=42
-        self.assertEqual(params[3], 1)  # part 保持原值
+        self.assertIn("ON CONFLICT(file_path) DO UPDATE", sql)
+        self.assertNotIn("WHERE id=", sql)
+        self.assertEqual(params[4], 1)
+        self.assertEqual(params[7], Status.WITHDRAWN.value)
 
     @patch("pilotstd.core.file_index.iso_now")
     @patch("os.path.exists")

@@ -488,6 +488,7 @@ pilotstd/core/
 > **T-42（2026-10-31）**：渠道限流改为“码优先 + 关键词兜底”；已取证 企微 45009 / 飞书 99991400，钉钉/Telegram 保持兜底。
 > **rate_limited_by（2026-10-31）**：限流命中日志从 debug 提升到 info（code/keyword），便于事后排查误判。
 > **归档通知正文（2026-11-07）**：archive_complete 构建器始终写 `body`（count/skip/fail/dirs）；零搬移时 notification_log 也能看到“发生了什么”，不再只有标题。
+> **file_index 原子写入（2026-11-07）**：`FileIndexRepository.upsert()` 改为单条 `ON CONFLICT(file_path) DO UPDATE`，消除并发扫描/归档的 SELECT+INSERT 竞争。
 > **管理员系统通知可见性（2026-11-07）**：`NotificationOps.get_logs/get_unread_count/mark_logs_read` 增加 `include_system`；admin 默认看“自己 + 系统通知（user_id=0/NULL）”，普通用户仍只看自己，all=true 才是全部用户。
 > **企业形态重试（2026-11-07）**：钉钉企业卡片、飞书应用消息接入 `_with_retry`（429/5xx/网络退避）；企业卡片创建成功但投递失败时重试可能重复建卡，属不丢消息的取舍。
 
