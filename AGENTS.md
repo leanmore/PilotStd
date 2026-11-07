@@ -28,6 +28,7 @@
 | 生产 | 已发布 | Docker + 真实数据 | 只读验证；写操作需窗口 |
 
 - **凭证**：`config/docker_creds.json`，含 GBK 注释；按行读取，不直接 JSON 解析。
+- **GitHub API**：token 在 Windows 凭据管理器 `LegacyGeneric:target=git:https://github.com`，用 `git credential fill` 读取；禁止打印 token、写文件或提交。
 - **版本**：只信 `/api/health` 的 `version` / `schema_version`；本地 tag、`VERSION` 不作部署证据。细节见 `docs/reference/health-check.md`。
 - **排查路径**：复现 → 证据 → 假设 → 修复 → 验证 → 收口。
 
