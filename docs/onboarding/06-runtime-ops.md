@@ -77,7 +77,7 @@ curl -s http://<host>:9028/api/health
 关键字段：
 
 - `status`：`ok` / 异常；
-- `services.database` / `monitor_service` / `parser`；
+- `version` / `schema_version` / `services.database` / `monitor_service` / `parser`；
 - `checks.disk`：剩余空间；
 - `checks.scheduler`：心跳时间/年龄；
 - `checks.database_rw`：读写。

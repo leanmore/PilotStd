@@ -18,6 +18,7 @@
   "status": "ok",
   "timestamp": "2026-11-06T19:30:00+08:00",
   "version": "0.170.5",
+  "schema_version": 74,
   "services": {"database": true, "monitor_service": true, "parser": true},
   "checks": {
     "disk": {"free_mb": 12345.6, "threshold_mb": 500.0, "ok": true},
@@ -36,6 +37,7 @@
 | `checks.database_rw.read` | `SELECT 1` | 失败 → `down`/500 |
 | `checks.database_rw.write` | `CREATE TEMP TABLE` + INSERT + DELETE | 失败 → `down`/500（不触碰业务表） |
 | `services.monitor_service/parser` | 管理器初始化状态 | 仅展示，不改变状态码 |
+| `schema_version` | `Database.schema_version`（`_schema_version` 表） | 仅展示，用于确认迁移是否执行；读取失败时返回 0 |
 
 `timestamp` 为带时区偏移的 ISO 8601（由 `pilotstd.core.time_utils.iso_now()` 生成）。
 

@@ -80,7 +80,7 @@ schema 73 -> 74
 ```text
 GET /api/health
 - version = 新版本
-- schema = 74
+- schema_version = 74
 - database_rw = true
 - scheduler heartbeat 正常
 ```

@@ -26,6 +26,7 @@ def _patches(db=True, disk=_DISK_OK, sched=_SCHED_OK, monitor=True, parser=True)
     stack.enter_context(patch.object(health_module, "_check_scheduler", return_value=sched))
     stack.enter_context(patch.object(health_module, "_check_monitor_service", return_value=monitor))
     stack.enter_context(patch.object(health_module, "_check_parser", return_value=parser))
+    stack.enter_context(patch.object(health_module, "_get_schema_version", return_value=74))
     return stack
 
 
@@ -35,6 +36,7 @@ def test_all_services_ok_200():
     assert resp.status_code == 200
     data = resp.json()
     assert data["status"] == "ok"
+    assert data["schema_version"] == 74
     assert data["checks"]["disk"]["ok"] is True
     assert data["checks"]["database_rw"] == {"read": True, "write": True}
 
@@ -70,6 +72,15 @@ def test_production_external_ip_403():
         resp = _client.get("/api/health")
     assert resp.status_code == 403
     assert resp.json()["detail"] == "Forbidden"
+
+
+def test_schema_version_read_failure_returns_zero():
+    class _BadDb:
+        @property
+        def schema_version(self):
+            raise RuntimeError("db unavailable")
+
+    assert health_module._get_schema_version(type("M", (), {"db": _BadDb()})()) == 0
 
 
 def test_production_internal_ip_allowed():

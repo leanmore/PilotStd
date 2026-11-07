@@ -66,6 +66,16 @@ def _check_parser(mgr) -> bool:
     return hasattr(mgr, "parser") and mgr.parser is not None
 
 
+def _get_schema_version(mgr) -> int:
+    """读取当前库 schema 版本；用于部署后确认迁移是否真的执行。"""
+    try:
+        return int(mgr.db.schema_version)
+    except Exception:
+        # i18n-allow: 内部日志；读失败不应让健康检查整体 500
+        logger.warning("健康检查: schema 版本读取失败", exc_info=True)
+        return 0
+
+
 def _check_disk(mgr) -> dict:
     """数据目录磁盘余量；低于 500MB 视为 degraded。"""
     data_dir = os.path.dirname(os.path.abspath(mgr.db.path))
@@ -145,6 +155,7 @@ class HealthCheckResponse(BaseModel):
     status: str
     timestamp: str
     version: str
+    schema_version: int
     services: HealthServices
     checks: HealthChecks
 
@@ -166,6 +177,7 @@ def health_check(request: Request):
     mgr = get_manager()
     db_read = _check_database_read(mgr)
     db_write = _check_database_write(mgr)
+    schema_version = _get_schema_version(mgr)
     disk = _check_disk(mgr)
     scheduler = _check_scheduler(mgr)
 
@@ -189,6 +201,7 @@ def health_check(request: Request):
             "status": status,
             "timestamp": iso_now(),
             "version": os.getenv("APP_VERSION", "unknown"),
+            "schema_version": schema_version,
             "services": services,
             "checks": {"disk": disk, "scheduler": scheduler, "database_rw": {"read": db_read, "write": db_write}},
         },
