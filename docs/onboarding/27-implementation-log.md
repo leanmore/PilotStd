@@ -116,6 +116,15 @@
 
 > Win 端仍为 A（只停 UI 等待，不杀 worker）。
 
+### 11. monitor 改为触发主链（D-02）
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `pilotstd/monitor/scheduler.py`、`tests/integration/test_monitor_archive_e2e.py` |
+| 行为 | `_on_file` 按父目录去抖/加锁 → `mgr.auto_run(source_root)`；不再自建 scan+archive |
+| 测试 | monitor e2e + cleanup 7 passed；同一目录 10 秒去抖 |
+| 回滚 | 还原 `_on_file` 的 scan/archive 实现 |
+
 ---
 
 ## 验证汇总

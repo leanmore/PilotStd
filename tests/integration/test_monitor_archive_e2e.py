@@ -43,6 +43,7 @@ class _RealArchiveMgr:
         self._dst_dir = dst_dir
         self.moved: list[str] = []
         self.source_roots: list[str] = []
+        self.auto_run_calls = 0
 
     def scan_directory(self, root_path: str):
         parsed = []
@@ -53,6 +54,18 @@ class _RealArchiveMgr:
                 info.raw_filename = f.name
                 parsed.append(info)
         return parsed
+
+    def auto_run(self, root_path: str):
+        """monitor 现在只触发主链：fake 用同一 scan+archive 模拟主链结果。"""
+        self.auto_run_calls += 1
+        parsed = self.scan_directory(root_path)
+        result = self.archive_standards(parsed, word_source_root=root_path)
+        return {
+            "scan": len(parsed),
+            "query_found": 0,
+            "download_success": 0,
+            "organize_moved": result.get("moved", 0),
+        }
 
     def archive_standards(self, parsed_list, word_source_root=None):
         self.source_roots.append(str(word_source_root))
@@ -136,6 +149,7 @@ class TestMonitorArchiveEndToEnd:
             ), patch("pilotstd.monitor.scheduler.get_monitor_stats", return_value=MagicMock()):
                 scheduler._on_file(str(src))
             assert mgr.source_roots == [str(inbox)], mgr.source_roots
+            assert mgr.auto_run_calls == 1
         finally:
             db.close()
 

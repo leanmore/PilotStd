@@ -10,7 +10,7 @@
 | # | 现象 | 类型 | 影响 |
 |---|---|---|---|
 | 1 | Web 五段式下载件不进入归档 | 已修复（v0.171.0 部署） | 前端把下载成功项加入归档 items；后端重复策略待确认 |
-| 2 | Docker monitor 只 scan + archive | 部分修复（本地） | 已加 manager 锁 + 空目录清理；仍不查询/不下载/不兜底 |
+| 2 | Docker monitor 只 scan + archive | 已修复（触发主链） | 去抖/锁 + auto_run；空目录清理保留 |
 | 3 | Win watcher 只更新索引 | 设计边界 | 不会自动归档 |
 | 4 | `standard_validity` 不是归档第一权威 | 设计边界 | 与 `file_index`/Query 可能不一致 |
 | 5 | `standard_validity` 存在畸形键 | 历史数据缺陷 | 按表查询/搬移会漏 |
@@ -64,21 +64,19 @@
 
 ---
 
-### 2. Docker monitor：只 scan + archive（部分修复，本地）
+### 2. Docker monitor：只 scan + archive（已修，改为触发主链）
 
-**已修（本地代码，未部署）**
+**修复（2026-11-07）**
 
-- `_on_file` 的 manager 懒加载加 `self._mgr_lock` 双检，避免多个 Timer 线程各建一个 `StandardManager`；
-- 归档后调用 `_cleanup_empty_dirs(watch_path, source_root)`：只删 `watch_path` 内的空目录，`rmdir` 非空会失败，不会误删；
-- 回归：`tests/test_monitor_cleanup.py` + `test_monitor_archive_e2e.py` → 7 passed。
+- `_on_file` 不再自己 `scan_directory + archive_standards`；
+- 改为按父目录去抖/加锁，调用现有主链 `mgr.auto_run(source_root)`；
+- 主链负责 scan/query/download/archive/兜底；
+- manager 懒加载仍有 `_mgr_lock` 双检；
+- 归档后调用 `_cleanup_empty_dirs(watch_path, source_root)`；
+- 同一目录 10 秒内只触发一次，避免多文件事件重复跑主链；
+- 回归：`test_monitor_archive_e2e.py` + `test_monitor_cleanup.py` → 7 passed。
 
-**仍未修**
-
-- 不查询/不下载/不兜底；
-- 每个文件事件仍扫整个父目录；
-- 空目录清理只覆盖 monitor 路径，不覆盖 `auto_run`。
-
-**证据**
+**历史证据（修复前）**
 
 - `pilotstd/monitor/scheduler.py::_on_file`：`scan_directory(dirname(path))` → `archive_standards`；
 - 没有 query/download/fallback/clean；

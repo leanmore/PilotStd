@@ -90,6 +90,10 @@ class FileMonitorScheduler:
         self._stop = threading.Event()
         self._mgr = manager  # 依赖注入，避免 monitor→manager 反向导入
         self._mgr_lock = threading.Lock()  # 懒加载 manager 的并发保护
+        # 同一目录可能有多个文件事件；只允许一个主链运行，并做短时间去抖
+        self._active_dirs: set[str] = set()
+        self._recent_dirs: dict[str, float] = {}
+        self._dir_lock = threading.Lock()
 
     def start(self):
         """启动文件监控后台线程。"""
@@ -174,6 +178,20 @@ class FileMonitorScheduler:
         stats = get_monitor_stats()
         stats.increment("processed")
         watch_path = resolve_monitor_config(cfg)["watch_path"]
+        source_root = os.path.dirname(path)
+        now = time.monotonic()
+
+        # 同一目录只跑一条主链：并发回调直接跳过，10 秒内也不重复触发
+        with self._dir_lock:
+            last = self._recent_dirs.get(source_root, 0.0)
+            if source_root in self._active_dirs or now - last < 10:
+                logger.info("[MONITOR] 同目录处理中/去抖，跳过: %s", path)  # i18n-allow: 内部运维日志
+                return
+            self._active_dirs.add(source_root)
+            self._recent_dirs[source_root] = now
+            if len(self._recent_dirs) > 200:
+                cutoff = now - 60
+                self._recent_dirs = {k: v for k, v in self._recent_dirs.items() if v >= cutoff}
 
         try:
             if self._mgr is None:
@@ -183,32 +201,28 @@ class FileMonitorScheduler:
                         from pilotstd.manager.facade import StandardManager  # noqa: PLC0415
 
                         self._mgr = StandardManager()
-            mgr = self._mgr
-            source_root = os.path.dirname(path)
-            scanned = mgr.scan_directory(source_root)
-            if not scanned:
-                logger.warning("[MONITOR] 未识别到标准号，未归档: %s", path)
-                stats.increment("failed")
-                return
-            # 归档走**统一入口**（CLI/Web/UI 同一实现），不是第二套归档逻辑；
-            # 与收藏链（#29）不重复：链路归档发生在下载返回后，本回调要等 5 秒稳定期且
-            # handler 会先判 `os.path.exists`——文件已被链路搬走时回调根本不会触发。
-            result = mgr.archive_standards(scanned, word_source_root=source_root)
-            moved = int(result.get("moved", 0)) if isinstance(result, dict) else 0
+            # monitor 只负责“发现文件稳定 → 触发主链”，不自己实现 scan+archive。
+            report = self._mgr.auto_run(source_root)
+            moved = int(report.get("organize_moved", 0) or 0) if isinstance(report, dict) else 0
+            scanned = int(report.get("scan", 0) or 0) if isinstance(report, dict) else 0
             if moved:
-                logger.info("[MONITOR] 归档完成: %d 条", moved)
+                logger.info("[MONITOR] 主链归档完成: %d 条", moved)  # i18n-allow: 内部运维日志
                 stats.increment("success")
-            elif isinstance(result, dict) and result.get("failed", 0):
-                logger.error("[MONITOR] 归档失败: %s — %s", path, result.get("details", []))
-                stats.increment("failed")
+            elif scanned == 0:
+                if os.path.exists(path):
+                    logger.warning("[MONITOR] 未识别到标准号，未归档: %s", path)  # i18n-allow: 内部运维日志
+                    stats.increment("failed")
+                else:
+                    logger.info("[MONITOR] 父目录已无可处理文件: %s", path)  # i18n-allow: 内部运维日志
             else:
-                # 源文件已被移走/目标已存在/条目待确认 → 无搬移，不计成败
-                logger.info("[MONITOR] 未搬移文件（跳过）: %s", path)  # i18n-allow: 内部运维日志
-            # 归档后清理空的子目录；非空目录 rmdir 会失败，不会误删
+                logger.info("[MONITOR] 主链完成但无搬移: %s", path)  # i18n-allow: 内部运维日志
             _cleanup_empty_dirs(watch_path, source_root)
         except Exception as e:
-            logger.error("[MONITOR] 处理失败: %s — %s", path, e)  # i18n-allow: 内部运维日志
+            logger.error("[MONITOR] 主链处理失败: %s — %s", path, e)  # i18n-allow: 内部运维日志
             stats.increment("failed")
+        finally:
+            with self._dir_lock:
+                self._active_dirs.discard(source_root)
 
     def get_status(self) -> dict:
         """返回监控运行状态，包含运行标志、路径、今日统计等。"""
