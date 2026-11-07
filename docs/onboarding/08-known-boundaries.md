@@ -27,7 +27,8 @@
 | 16 | 通知重试覆盖不均：钉钉企业卡片/飞书应用消息单次请求 | 已修复（2026-11-07） | 两条路径接入 `_with_retry`；429/5xx 退避重试 |
 | 17 | 通知未读数与列表口径不一致 | 已修复（v0.171.0 + 管理员系统通知） | 普通用户按自身；管理员默认含系统通知；all=true 才是全部用户 |
 | 18 | 通知日志按渠道各写一行，Web 铃铛直接展示导致同一事件重复 | 已修复（Web 展示层） | 铃铛按事件去重、角标按事件计数；日志页仍保留渠道明细 |
-| 19 | 可信 IP 自动更新依赖浏览器，Docker 镜像未装 Playwright/Chromium | 部分修复（错误可见） | 启动失败会返回明确错误并通知；要真正自动更新需装浏览器或改运行方式 |
+| 19 | 可信 IP 自动更新依赖浏览器，Docker 镜像未装 Playwright/Chromium | 已接入 CloakBrowser（待部署） | CloakBrowser 自带定制 Chromium；需要 license key 和首次二进制下载 |
+| 20 | 时效性检查只落状态，不落查询明细 | 已修复（v76，待部署） | `validity_check_log` 保存证据/来源/失败原因/结果 JSON |
 
 ---
 
@@ -272,10 +273,14 @@
 - 状态页不再用空 URL 校验 Cookie，避免误报“Cookie 失效”；
 - 定时读取 Cookie 不再回退到公开默认密钥。
 
-**仍需部署侧决定**
+**A1 方案（2026-11-07 已接入）**
 
-- 要在 Docker 内真正自动更新：装 Playwright + Chromium（镜像增大）；
-- 或把该功能放到有浏览器的 Windows/独立 runner，Docker 只保留手动触发。
+- Docker 依赖加入 `cloakbrowser==0.7.0`；它自带定制 Chromium，不再需要原版 Chromium；
+- Dockerfile 安装 `playwright install-deps chromium` 与中文字体；
+- `CLOAKBROWSER_LICENSE_KEY` 通过 compose/.env 注入；
+- 定制 Chromium 缓存放 `./cloakbrowser:/home/appuser/.cloakbrowser`；
+- `WechatIPUpdater` 改用 `launch_persistent_context` 保持企业微信登录态；
+- 首次启动下载约 200MB 定制 Chromium，离线/无 key 时会失败并通知。
 
 ### 9. 通知聚合的现状
 

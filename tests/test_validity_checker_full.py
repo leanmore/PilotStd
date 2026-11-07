@@ -579,13 +579,14 @@ class TestCheckStandard(unittest.TestCase):
         self.assertEqual(result["status"], Status.UNKNOWN.value)
 
     @patch("pilotstd.core.std_utils.parse_std_number")
-    def test_l2_query_engine_raises_falls_to_l3(self, mock_parse):
+    def test_l2_query_engine_raises_marks_failed(self, mock_parse):
         self.mock_db.rows["standard_validity"] = _row(status=Status.ACTIVE.value, last_status=None)
         mock_parse.return_value = {"code": "GB", "number": 12345, "year": 2020}
         qe = MagicMock()
         qe.query_standards.side_effect = RuntimeError("network error")
         result = self.checker.check_standard("GB/T 12345", query_engine=qe)
-        self.assertEqual(result["status"], Status.ACTIVE.value)
+        self.assertEqual(result["query_failed"], "network error")
+        self.assertEqual(result["status"], "")
 
     def test_l3_hit_standard_validity(self):
         self.mock_db.rows["standard_validity"] = _row(

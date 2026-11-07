@@ -78,6 +78,15 @@ class TestRandomSlice:
         assert candidates == original
 
 
+def test_l2_query_exception_marks_failed(checker):
+    """L2 实时查询异常 → 明确 query_failed，不静默回落 L3。"""
+    qe = MagicMock()
+    qe.query_standards.side_effect = RuntimeError("network down")
+    result = checker.check_standard("GB/T 1-2020", query_engine=qe)
+    assert result is not None
+    assert result["query_failed"] == "network down"
+
+
 # ════════════════════════════════════════════════════════════
 # register_new_standard — mock DB
 # ════════════════════════════════════════════════════════════

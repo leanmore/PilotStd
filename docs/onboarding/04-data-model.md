@@ -76,7 +76,7 @@ erDiagram
 
 - 当前 schema：**v75**（`pilotstd/core/db/_constants.py`）；
 - 迁移注册表：`MIGRATIONS: dict[int, Callable]`，启动时按版本执行；
-- 迁移模块：**31 个 `_migrate*.py`**，覆盖 v2→v75（v1 是初始 schema；另有 `migrations.py` / `_migration_checksum.py` 两个基础设施文件）；
+- 迁移模块：**32 个 `_migrate*.py`**，覆盖 v2→v76（v1 是初始 schema；另有 `migrations.py` / `_migration_checksum.py` 两个基础设施文件）；
 - 迁移源码受 P-106 约束：已执行迁移函数**不可改**，只能用新迁移修数据；
 - 最近五项：
   - v70：`announcement_record.language`；

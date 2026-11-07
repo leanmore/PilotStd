@@ -25,12 +25,16 @@ ENV PYTHONPATH=/install
 
 # 创建非 root 用户
 RUN useradd -m appuser
+RUN mkdir -p /home/appuser/.cloakbrowser && chown -R appuser:appuser /home/appuser/.cloakbrowser
 
 # 安装 gosu + git（自更新 git pull 方案，参照 MoviePilot）
 # libxcb1/libgl1 等为 RapidOCR 依赖的 OpenCV 在 slim 镜像中的运行库
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gosu git curl libxcb1 libgl1 libglib2.0-0 libsm6 libxext6 && \
+    gosu git curl libxcb1 libgl1 libglib2.0-0 libsm6 libxext6 fonts-noto-cjk && \
     rm -rf /var/lib/apt/lists/*
+
+# CloakBrowser 使用自带 Chromium；这里只安装 Playwright 的系统依赖，不下载 Playwright 浏览器。
+RUN python -m playwright install-deps chromium && rm -rf /var/lib/apt/lists/*
 
 COPY docker/entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh

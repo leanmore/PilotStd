@@ -27,6 +27,7 @@
 
 from __future__ import annotations
 
+import textwrap
 from typing import Any
 
 from .blocks import KeyValueBlock, ListBlock, NotificationBlock, StatusChangeBlock, TextBlock
@@ -46,7 +47,10 @@ class WeChatCardRenderer(BlockRenderer):
                 # 块渲染结果按行拆进 `vertical_content_list`（企微卡片的"多行说明"结构）
                 for line in rendered.splitlines():
                     if line.strip():
-                        items.append({"title": "", "desc": line.strip()[:140]})
+                        # 长名称拆成多行，避免 140 字截断后语义不完整
+                        chunks = textwrap.wrap(line.strip(), width=140, break_long_words=True)
+                        for chunk in chunks or [line.strip()[:140]]:
+                            items.append({"title": "", "desc": chunk})
         if not items and (message.body or ""):
             items.append({"title": "", "desc": str(message.body)[:140]})
 

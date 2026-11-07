@@ -152,6 +152,7 @@ if [ "$PUID" = "0" ]; then
     # root 模式：直接启动，不降权（宿主机目录权限由 root 兜底）
     exec uvicorn docker.app:app --host 0.0.0.0 --port 9028
 else
-    chown -R appuser:appuser /app/data /app/logs /app/downloads /standards /inbox
+    mkdir -p /home/appuser/.cloakbrowser
+    chown -R appuser:appuser /app/data /app/logs /app/downloads /standards /inbox /home/appuser/.cloakbrowser
     exec gosu appuser uvicorn docker.app:app --host 0.0.0.0 --port 9028
 fi

@@ -18,6 +18,14 @@ from .channel import NotificationMessage
 
 
 # 批量下载收尾汇总：成功/失败/跳过三计数 + 前 5 条非成功明细（信息不丢，又不至于长消息）。
+def favorite_title(std_no: str, std_name: str) -> str:
+    """收藏成功标题：必须带标准号/名称，回答“哪个标准收藏成功”。"""
+    label = " ".join(part for part in (std_no, std_name) if part).strip()
+    if not label:
+        return t("notification.download.favorite_created.title")
+    return t("notification.download.favorite_created.title_with_std").format(s=label)
+
+
 def _build_batch_download_complete_message(data: dict) -> NotificationMessage:
     """批量下载完成（标题 + 统计行 + 可选明细预览）。
 

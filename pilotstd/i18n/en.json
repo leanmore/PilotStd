@@ -552,6 +552,7 @@
     "notification.abandon_reason.other": "Other reasons",
     "notification.download.favorite_abandoned_summary.body.advice_permanent": "Most of these are permanent failures (copyright-restricted or not available at the source). Retrying usually will not help; please handle them manually.",
     "notification.download.favorite_created.title": "Favorite Added",
+    "notification.download.favorite_created.title_with_std": "Favorite Added: {s}",
     "notification.download.favorite_created.body.queue_with_date": "Added to download queue; will auto-download and archive on {date}",
     "notification.download.favorite_created.body.queue_generic": "Added to download queue; will auto-download and archive after the cooldown period",
 

@@ -204,9 +204,27 @@
 | 项 | 内容 |
 |---|---|
 | 文件 | `NotificationBell.vue`、`wechat_ip_service.py`、`browser.py`、`scheduler.py` |
-| 行为 | 铃铛按事件去重；同事件多渠道一起已读；可信 IP 启动失败可见；空 URL 不误判 Cookie；不再用公开默认密钥 |
-| 测试 | 前端铃铛 19 passed；可信 IP/状态 56 passed |
+| 行为 | 铃铛按事件去重；同事件多渠道一起已读；失败投递不进铃铛；收藏标题带标准号/名称；企微卡片长名称拆行；可信 IP 启动失败可见；空 URL 不误判 Cookie；不再用公开默认密钥 |
+| 测试 | 前端铃铛 19 passed；可信 IP/状态 56 passed；通知/有效性 183 passed |
 | 回滚 | 前端恢复按行展示；可信 IP 恢复原异常分支 |
+
+### 21. Docker 接入 CloakBrowser（可信 IP A1）
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `docker/requirements-docker.txt`、`docker/Dockerfile`、`docker-compose*.yml`、`.env.example`、`wechat_ip/browser.py` |
+| 行为 | CloakBrowser 自带 Chromium；license/env/缓存卷；`launch_persistent_context` 保持登录态 |
+| 验证 | 需 Docker 构建；首次启动下载约 200MB 二进制 |
+| 回滚 | 移除 cloakbrowser 依赖与缓存卷，回到 Playwright/人工更新 |
+
+### 22. 时效性检查病历（v76）
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `db/_migrate_v76_validity_check_log.py`、`validity_log.py`、`_validity_pipeline.py` |
+| 行为 | 每次 L1/L2/L3 结果/失败原因写 `validity_check_log`；状态仍写 `standard_validity`；失败继续发通知 |
+| 测试 | 有效性 136 passed |
+| 回滚 | 删除表/恢复 v75；不影响既有状态 |
 
 ---
 

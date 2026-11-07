@@ -39,6 +39,7 @@ interface NotificationLogItem {
   event_type: string
   title: string | null
   body: string | null
+  status?: string
   sent_at: string
   is_read: number | boolean
 }
@@ -97,7 +98,9 @@ async function refresh(): Promise<void> {
   try {
     const res = await getNotificationLogs({ page: 1, page_size: 20 }, '/notification-logs')
     const items = (res?.items ?? []) as NotificationLogItem[]
-    messages.value = items.map(normalize)
+    // 铃铛是消息中心，不是投递诊断台：失败渠道副本不展示（日志页仍可查）。
+    // 兼容测试/旧接口没有 status 字段的情况。
+    messages.value = items.filter((i) => !i.status || i.status === 'success').map(normalize)
     error.value = ''
     consecutiveFailures = 0
   } catch (e) {

@@ -22,10 +22,12 @@ services:
       - ./.env:/app/.env
       - ./output:/app/output
       - ./browser_cache:/app/browser_cache
+      - ./cloakbrowser:/home/appuser/.cloakbrowser
       - ./config:/app/config
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - TZ=Asia/Shanghai
+      - CLOAKBROWSER_LICENSE_KEY=${CLOAKBROWSER_LICENSE_KEY:-}
       - STANDARD_ROOT=/standards
       # 本地 OCR 模型持久化目录（已在 ./data 卷内）
       - PILOTSTD_MODEL_DIR=/app/data/models/ocr

@@ -36,12 +36,15 @@ services:
       #    静默生成新 Key → DB 旧加密凭证（user_credentials）永久损坏。
       # ═══════════════════════════════════════════════════════════════
       - ./config:/app/config
+      # CloakBrowser 定制 Chromium 缓存；首次启动需 CLOAKBROWSER_LICENSE_KEY
+      - ./cloakbrowser:/home/appuser/.cloakbrowser
       # 挂载 docker.sock 允许容器调用 Docker API（镜像级更新 / 容器自重启）。
       # 安全注意：挂载后容器可控制宿主机 Docker，仅在信任容器内代码时启用。
       # 方案 C 的代码级重启（/api/system/restart）不依赖此挂载，可注释掉。
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - TZ=Asia/Shanghai
+      - CLOAKBROWSER_LICENSE_KEY=${CLOAKBROWSER_LICENSE_KEY:-}
       # 标准库根目录（必填，Docker 卷挂载位置，默认 /standards）
       - STANDARD_ROOT=/standards
       # 超级用户（必填——取消注释并设为你的值，不可为 admin 或与普通用户重名）

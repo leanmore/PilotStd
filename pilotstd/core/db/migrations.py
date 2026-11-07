@@ -206,3 +206,8 @@ from ._migrate_v74_repair_validity_keys import (  # noqa: E402, F401
 from ._migrate_v75_validity_queue import (  # noqa: E402, F401
     _migrate_v75_validity_queue,
 )
+
+# 第七十六版：时效性检查病历（查询结果/失败原因落盘）
+from ._migrate_v76_validity_check_log import (  # noqa: E402, F401
+    _migrate_v76_validity_check_log,
+)

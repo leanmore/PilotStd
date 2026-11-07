@@ -466,8 +466,15 @@ class ValidityChecker:
                         info.update(self._replacement_info(standard_number))
                         return info
             except Exception as e:
-                # 在线查询失败 → 回落到历史状态对比，但要留痕
+                # 在线查询失败：明确标本轮失败，保留旧状态并等下轮重试；
+                # 不再静默回落到 L3 冒充“本轮检查正常”。
                 logger.warning("online validity query failed for %s: %s", standard_number, e)
+                return {
+                    "status": "",
+                    "previous": None,
+                    "evidence": "L2",
+                    "query_failed": str(e),
+                }
 
         # ──3:历史状态对比──
         row = self._db.fetchone(

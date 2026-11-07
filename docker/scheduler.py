@@ -252,12 +252,18 @@ def _cleanup_retention():
             "DELETE FROM pipeline_runs WHERE datetime(created_at) < datetime('now', ?)",
             (f"-{pipeline_days} days",),
         ).rowcount
+        validity_days = int(cfg.get("validity.log_retention_days", 90) or 90)
+        from pilotstd.core.validity_log import cleanup as cleanup_validity_log
+
+        validity_deleted = cleanup_validity_log(db, validity_days)
         logger.info(
-            "[cleanup] 保留期清理完成: audit=%d（%d天） pipeline=%d（%d天）",
+            "[cleanup] 保留期清理完成: audit=%d（%d天） pipeline=%d（%d天） validity_log=%d（%d天）",
             audit_deleted,
             audit_days,
             pipeline_deleted,
             pipeline_days,
+            validity_deleted,
+            validity_days,
         )
     except Exception:
         logger.exception("[cleanup] 保留期清理失败")

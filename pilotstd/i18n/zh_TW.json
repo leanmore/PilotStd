@@ -473,6 +473,7 @@
     "notification.abandon_reason.other": "其他原因",
     "notification.download.favorite_abandoned_summary.body.advice_permanent": "這些多為永久性失敗（如版權受限或來源未收錄），重試通常無效，建議人工處理。",
     "notification.download.favorite_created.title": "收藏成功",
+    "notification.download.favorite_created.title_with_std": "收藏成功：{s}",
     "notification.download.favorite_created.body.queue_with_date": "已加入下載佇列，預計 {date} 自動下載歸檔",
     "notification.download.favorite_created.body.queue_generic": "已加入下載佇列，冷卻期過後自動下載歸檔",
 

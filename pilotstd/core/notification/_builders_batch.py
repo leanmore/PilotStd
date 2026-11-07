@@ -12,6 +12,7 @@ from pilotstd.i18n import t
 
 # ── 共享助手与下载族构建器（实现在 `_builders_common.py` / `_builders_batch_download.py`；
 #    T-41/5 拆分，此处**再导出**保持既有导入方与 `builder_ref` 解析兼容）──
+from ._builders_batch_download import favorite_title  # noqa: E402
 from ._builders_common import (  # noqa: E402
     _STD_TYPE_LABEL_KEYS,  # noqa: E402  (T-41/5 再导出)
     _expected_download_date,
@@ -316,8 +317,9 @@ def _build_favorite_created_message(data: dict) -> NotificationMessage:
         )
     else:
         blocks.append(TextBlock(text=t("notification.download.favorite_created.body.queue_generic")))
+    # 用户要求：标题必须能回答“哪个标准收藏成功”，标准号/名称都带上
     return NotificationMessage(
-        title=t("notification.download.favorite_created.title"),
+        title=favorite_title(std_no, std_name),
         blocks=blocks,
         level="info",
         standard_number=std_no or None,

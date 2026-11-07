@@ -5,8 +5,8 @@
 | 模块路径 | `pilotstd/core/` |
 | G-031 映射 | `pilotstd/core/`（2026-09-25 落地：`DOC_SYNC_MAP` 已含该条，改任何 core 文件都会要求同步本文件） |
 | 核心类 | `Database` / `ConfigManager` / `CacheManager` / `NotificationManager` |
-| 子模块数 | 132 个 `.py`（新增 `notification/_log_scope.py`（日志用户/系统可见性，2026-11-07）；上一轮 `db/_migrate_v75_validity_queue.py`（选中文件检查队列）；再上一轮 `db/_migrate_v74_repair_validity_keys.py`（validity 畸形键修复）；上一轮新增 `archive_reconcile.py`（启动归档对账，C-2，2026-11-05）；再上一轮 `db/_migrate_v72_announcement_dedupe.py`（公告记录去重 + `standard_count` 重算，2026-11-03）；**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-11-07**；顶层 = 3 个包 config / db / notification + 23 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
-| Schema 版本 | `CURRENT_SCHEMA_VERSION = 75`（`db/_constants.py`；v75＝`validity_check_queue` 队列；v74＝`standard_validity` 畸形键修复；v73＝时间字符串 ISO 化；v72＝公告记录去重 + `standard_count` 重算） |
+| 子模块数 | 134 个 `.py`（新增 `validity_log.py` + `db/_migrate_v76_validity_check_log.py`（检查病历，2026-11-07）；上一轮 `notification/_log_scope.py`（日志用户/系统可见性）；上一轮 `db/_migrate_v75_validity_queue.py`（选中文件检查队列）；再上一轮 `db/_migrate_v74_repair_validity_keys.py`（validity 畸形键修复）；上一轮新增 `archive_reconcile.py`（启动归档对账，C-2，2026-11-05）；再上一轮 `db/_migrate_v72_announcement_dedupe.py`（公告记录去重 + `standard_count` 重算，2026-11-03）；**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-11-07**；顶层 = 3 个包 config / db / notification + 23 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
+| Schema 版本 | `CURRENT_SCHEMA_VERSION = 76`（`db/_constants.py`；v75＝`validity_check_queue` 队列；v74＝`standard_validity` 畸形键修复；v73＝时间字符串 ISO 化；v72＝公告记录去重 + `standard_count` 重算） |
 | 状态 | 活跃 |
 
 ## 模块职责
@@ -488,6 +488,7 @@ pilotstd/core/
 > **T-42（2026-10-31）**：渠道限流改为“码优先 + 关键词兜底”；已取证 企微 45009 / 飞书 99991400，钉钉/Telegram 保持兜底。
 > **rate_limited_by（2026-10-31）**：限流命中日志从 debug 提升到 info（code/keyword），便于事后排查误判。
 > **归档通知正文（2026-11-07）**：archive_complete 构建器始终写 `body`（count/skip/fail/dirs）；零搬移时 notification_log 也能看到“发生了什么”，不再只有标题。
+> **时效性检查病历（2026-11-07，v76）**：新增 `validity_check_log`，每次检查保存标准号/时间/证据/状态/来源/失败原因/结果 JSON；失败仍发 `validity_standard_failed`，保留期默认 90 天。
 > **时效性 L2 失败可见（2026-11-07）**：在线查询异常从 debug 提升为 warning，避免静默回落到 L3；查询结果仍只经 `standard_info_cache` 精确命中落盘，validity 本身不保存完整查询明细。
 > **过期搬移并行期（2026-11-07）**：`validity.auto_move_expired` 默认开启；被代替标准在新标准 `implement_date` 前只标记/通知，实施日后补搬并发 `expire_standard_moved`。
 > **并发写入原子化（2026-11-07）**：`FileIndexRepository.upsert()` 改为单条 `ON CONFLICT(file_path) DO UPDATE`；`ValidityChecker.register_new_standard()` 改为 `INSERT OR IGNORE ... WHERE NOT EXISTS` + `rowcount` 判断首次登记，消除两处 SELECT+INSERT 竞争。

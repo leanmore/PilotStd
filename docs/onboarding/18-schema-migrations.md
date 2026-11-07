@@ -1,7 +1,7 @@
 # 18 · 全表 Schema 与迁移清单
 
 > 来源：`C:\Temp\pilotstd_live_logs\prebatch.bak` 的 `sqlite_master` / `PRAGMA table_info`，2026-11-07 只读实测。
-> 当前 schema **v75**；业务表 **42 张**；迁移模块 **31 个 `_migrate*.py`**（另有 `migrations.py` / `_migration_checksum.py` 两个基础设施文件）。
+> 当前 schema **v76**；业务表 **43 张**；迁移模块 **32 个 `_migrate*.py`**（另有 `migrations.py` / `_migration_checksum.py` 两个基础设施文件）。
 
 ## 一、表清单（41 张）
 
@@ -49,7 +49,7 @@
 | 40 | `user_settings` | id:INTEGER<br>user_id:INTEGER<br>settings:JSON<br>updated_at:DATETIME |
 | 41 | `users` | id:INTEGER<br>username:TEXT<br>password_hash:TEXT<br>salt:TEXT<br>role:TEXT<br>must_change_password:INTEGER<br>created_at:TEXT |
 
-## 二、迁移模块（31 个文件 / 75 个版本）
+## 二、迁移模块（32 个文件 / 76 个版本）
 
 | # | 文件 | 注册版本 | 说明 |
 |---|---|---|---|

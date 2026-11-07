@@ -70,20 +70,24 @@ class WechatIPUpdater:
         raise BrowserError(f"无法启动浏览器引擎 (engine={self.engine})")
 
     def _launch_cloakbrowser(self):
-        """启动 CloakBrowser（反指纹 Chromium）。"""
-        from cloakbrowser import launch  # type: ignore[import-not-found]
+        """启动 CloakBrowser（反指纹 Chromium）。
 
-        self._browser = launch(
+        使用 `launch_persistent_context`：企微登录态需要持久化 profile；
+        `launch()` 是普通 Browser，不接受 `user_data_dir`。
+        """
+        from cloakbrowser import launch_persistent_context  # type: ignore[import-not-found]
+
+        self._browser = launch_persistent_context(
+            self.cache_dir,
             headless=self.headless,
             humanize=True,
-            user_data_dir=self.cache_dir,
             args=[
                 "--no-sandbox",
                 "--disable-dev-shm-usage",
                 "--disable-gpu",
             ],
         )
-        self._context = self._browser.new_context()
+        self._context = self._browser
         self._page = self._context.new_page()
         logger.info("CloakBrowser 已启动 (headless=%s, cache=%s)", self.headless, self.cache_dir)
 

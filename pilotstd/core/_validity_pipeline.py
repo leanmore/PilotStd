@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any
 
 from pilotstd.core.time_utils import iso_now
 
+from . import validity_log
 from .status import Status
 
 if TYPE_CHECKING:
@@ -140,12 +141,20 @@ def _process_validity_batch(
     for i, (std_no, result, error) in enumerate(checked):
         if error is not None:
             failed_list.append({"standard": std_no, "name": _std_name(db, std_no), "error": str(error)})
+            validity_log.record(db, std_no, error=error)
             _notify_failed(notification_mgr, db, std_no, error)
-        elif result and _apply_validity_result(
-            std_no, result, checker, db, notification_mgr, change_detail
-        ):
-            changed_list.append(std_no)
-            changed += 1
+        elif result and result.get("query_failed"):
+            err = str(result["query_failed"])
+            failed_list.append({"standard": std_no, "name": _std_name(db, std_no), "error": err})
+            validity_log.record(db, std_no, result=result, error=err)
+            _notify_failed(notification_mgr, db, std_no, RuntimeError(err))
+        elif result:
+            validity_log.record(db, std_no, result=result)
+            if _apply_validity_result(std_no, result, checker, db, notification_mgr, change_detail):
+                changed_list.append(std_no)
+                changed += 1
+        else:
+            validity_log.record(db, std_no, error="no result")
         if i > 0 and i % batch_size == 0 and batch_interval > 0:
             _time.sleep(batch_interval)
     return changed, changed_list, failed_list, change_detail
