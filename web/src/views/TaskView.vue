@@ -3,7 +3,7 @@ defineOptions({ name: 'TaskView' })
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { postScan, postQuery, postDownload, postNormalize, postArchive, getSettings } from '@/api'
-import { getPipelineRun } from '@/api/tasks'
+import { getPipelineRun, stopPipelineRun } from '@/api/tasks'
 import type { PipelineRun } from '@/types/task'
 import { getItem, setItem, removeItem } from '@/lib/storage'
 import { restoreResultsFromStepResults, resolveActiveRun } from '@/utils/taskRestore'
@@ -43,6 +43,8 @@ const progress = ref(0)
 
 // 管道运行追踪
 const runId = ref<string | null>(null)
+const stopping = ref(false)
+const stopRequested = ref(false)
 let pollTimer: ReturnType<typeof setInterval> | null = null
 let pollFailCount = 0
 const STEP_ORDER = ['scan', 'query', 'download', 'normalize', 'archive'] as const
@@ -120,7 +122,7 @@ async function restoreActiveRun() {
 interface TaskRecord {
   id: string; time: string; path: string
   scanCount: number; queryFound: number; dlSuccess: number; normCount: number
-  status: 'success' | 'partial' | 'fail'
+  status: 'success' | 'partial' | 'fail' | 'stopped'
   steps: StepState[]
 }
 const history = ref<TaskRecord[]>([])
@@ -152,7 +154,7 @@ function onHistoryPage(e: any) {
   }
 }
 
-function saveHistory(status: 'success'|'partial'|'fail') {
+function saveHistory(status: 'success'|'partial'|'fail'|'stopped') {
   const record: TaskRecord = {
     id: Date.now().toString(36),
     time: new Date().toLocaleString('zh-CN'),
@@ -189,14 +191,34 @@ function setStep(i: number, status: 'wait'|'running'|'done'|'fail', summary = ''
   progress.value = status === 'done' ? ((i + 1) / 5 * 100) : progress.value
 }
 
+async function requestStop() {
+  if (!runId.value || !running.value || stopping.value) return
+  stopping.value = true
+  try {
+    await stopPipelineRun(runId.value)
+    stopRequested.value = true
+  } catch (e: any) {
+    error.value = e.response?.data?.error || e.message || t('task.stop_failed')
+    stopping.value = false
+  }
+}
+
+function abortIfStopped(): boolean {
+  if (!stopRequested.value) return false
+  setStep(currentStep.value, 'done', t('task.stopped'))
+  error.value = t('task.stopped')
+  return true
+}
+
 async function runPipeline() {
   running.value = true; error.value = ''
+  stopping.value = false; stopRequested.value = false
   scanResult.value = queryResult.value = downloadResult.value = normalizeResult.value = archiveResult.value = null
   steps.value.forEach(s => { s.status = 'wait'; s.summary = '' })
   progress.value = 0
   runId.value = null
   stopPolling()
-  let finalStatus: 'success'|'partial'|'fail' = 'success'
+  let finalStatus: 'success'|'partial'|'fail'|'stopped' = 'success'
 
   try {
     // 步骤 0：扫描（发起方，run_id 由后端生成）
@@ -210,6 +232,7 @@ async function runPipeline() {
     startPolling()
     setStep(0, 'done', t('task.scan_summary', { n: scan.total || 0, pdf: scan.pdf_count || 0, word: scan.word_count || 0 }))
     if (!scan.files?.length) { error.value = t('task.scan_no_files'); finalStatus = 'fail'; return }
+    if (abortIfStopped()) { finalStatus = 'stopped'; return }
 
     // 步骤 1：查询
     currentStep.value = 1; setStep(1, 'running')
@@ -220,6 +243,7 @@ async function runPipeline() {
     const query = await postQuery(numbers, false, runId.value!)
     queryResult.value = query
     setStep(1, 'done', t('task.query_summary', { n: query.stats?.found || 0, m: query.stats?.downloadable || 0 }))
+    if (abortIfStopped()) { finalStatus = 'stopped'; return }
 
     // 步骤 2：下载
     currentStep.value = 2; setStep(2, 'running')
@@ -229,6 +253,7 @@ async function runPipeline() {
       downloadResult.value = dl
       setStep(2, 'done', t('task.download_summary', { s: dl.stats?.success || 0, k: dl.stats?.skipped || 0 }))
     } else { setStep(2, 'done', t('task.download_empty')) }
+    if (abortIfStopped()) { finalStatus = 'stopped'; return }
 
     // 步骤 3：规范化
     currentStep.value = 3; setStep(3, 'running')
@@ -257,6 +282,7 @@ async function runPipeline() {
     const norm = await postNormalize(normItems, runId.value!)
     normalizeResult.value = norm
     setStep(3, 'done', t('task.count_files', { n: norm.results?.length || 0 }))
+    if (abortIfStopped()) { finalStatus = 'stopped'; return }
 
     // 步骤 4：归档
     currentStep.value = 4; setStep(4, 'running')
@@ -294,6 +320,7 @@ async function runPipeline() {
       await postArchive(archiveItems, undefined, runId.value!)
       setStep(4, 'done', t('task.archive_done'))
     } else { setStep(4, 'done', t('task.archive_empty')) }
+    if (abortIfStopped()) { finalStatus = 'stopped'; return }
 
     progress.value = 100
   } catch (e: any) {
@@ -301,7 +328,12 @@ async function runPipeline() {
     error.value = e.response?.data?.error || e.message || t('task.unknown_error')
     finalStatus = 'fail'
   } finally {
+    if (stopRequested.value && runId.value) {
+      try { await stopPipelineRun(runId.value, true) } catch { /* 停止确认失败不覆盖主状态 */ }
+    }
     running.value = false
+    stopping.value = false
+    stopRequested.value = false
     saveHistory(finalStatus)
     // 延迟停止轮询：给后端最后一次状态更新留时间
     setTimeout(() => { if (pollTimer) stopPolling() }, 5000)
@@ -313,10 +345,11 @@ function stepSeverity(s: string) {
   if (s === 'fail') return 'danger'; return 'secondary'
 }
 function statusSeverity(s: string) {
-  if (s === 'success') return 'success'; if (s === 'partial') return 'warn'; return 'danger'
+  if (s === 'success') return 'success'; if (s === 'partial' || s === 'stopped') return 'warn'; return 'danger'
 }
 function statusLabel(s: string) {
-  if (s === 'success') return t('task.status.done'); if (s === 'partial') return t('task.status.partial'); return t('task.status.failed')
+  if (s === 'success') return t('task.status.done'); if (s === 'partial') return t('task.status.partial')
+  if (s === 'stopped') return t('task.status.stopped'); return t('task.status.failed')
 }
 </script>
 
@@ -334,7 +367,16 @@ function statusLabel(s: string) {
       <select v-model="selectedPath" class="fi">
         <option v-for="p in paths" :key="p" :value="p">{{ p }}</option>
       </select>
-      <Button :label="t('task.start')" icon="pi pi-play" :loading="running" @click="runPipeline" />
+      <Button :label="t('task.start')" icon="pi pi-play" :loading="running" :disabled="running" @click="runPipeline" />
+      <Button
+        :label="stopping ? t('task.stopping') : t('task.stop')"
+        icon="pi pi-stop"
+        severity="danger"
+        outlined
+        :loading="stopping"
+        :disabled="!running || stopping"
+        @click="requestStop"
+      />
     </div>
   </div>
 

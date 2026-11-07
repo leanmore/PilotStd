@@ -13,6 +13,7 @@ const mockPostDownload = vi.fn()
 const mockPostNormalize = vi.fn()
 const mockPostArchive = vi.fn()
 const mockGetSettings = vi.fn()
+const mockStopPipelineRun = vi.fn()
 
 vi.mock('@/api', () => ({
   postScan: (...args: any[]) => mockPostScan(...args),
@@ -23,7 +24,10 @@ vi.mock('@/api', () => ({
   getSettings: (...args: any[]) => mockGetSettings(...args),
 }))
 
-vi.mock('@/api/tasks', () => ({ getPipelineRun: vi.fn() }))
+vi.mock('@/api/tasks', () => ({
+  getPipelineRun: vi.fn(),
+  stopPipelineRun: (...args: any[]) => mockStopPipelineRun(...args),
+}))
 
 vi.mock('@/composables/useUserPreferences', () => ({
   useUserPreferences: () => ({ taskPath: ref('/inbox') }),
@@ -132,6 +136,14 @@ describe('TaskView 归档 items 构造', () => {
     const items = mockPostArchive.mock.calls[0][0]
     expect(items).toHaveLength(2)
     expect(items.map((i: any) => i.source_path)).toContain('/standards/GB 150-2011 压力容器.pdf')
+  })
+
+  it('任务页提供停止按钮', async () => {
+    const wrapper = mountTaskView()
+    await flushPromises()
+    const buttons = wrapper.findAllComponents({ name: 'Button' })
+    expect(buttons.length).toBe(2)
+    expect(buttons[1].props('label')).toContain('停止')
   })
 
   it('切换语言到 en 后文案随之变化（i18n 生效）', async () => {

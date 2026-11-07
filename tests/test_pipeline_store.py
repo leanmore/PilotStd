@@ -69,3 +69,17 @@ class TestPipelineStoreStepResults:
         parsed = json.loads(run["step_results"])
         assert parsed["scan"] == {"total": 3, "files": []}
         assert "count" not in parsed["scan"]
+
+    def test_request_stop_and_finish_stop(self, store):
+        run_id = store.create()
+        assert store.is_stop_requested(run_id) is False
+        assert store.request_stop(run_id) is True
+        assert store.is_stop_requested(run_id) is True
+        assert store.get(run_id)["status"] == "stopping"
+        assert store.finish_stop(run_id) is True
+        assert store.get(run_id)["status"] == "stopped"
+
+    def test_request_stop_only_running(self, store):
+        run_id = store.create()
+        store.update_step(run_id, "archive", "completed", 100)
+        assert store.request_stop(run_id) is False

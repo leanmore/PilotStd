@@ -227,7 +227,7 @@ def get_pipeline_run(request: Request, run_id: str, mgr=Depends(get_manager_dep)
     """查询管道执行状态（扫描→查询→下载→规范化→归档）。"""
     run = mgr.pipeline_store.get(run_id)
     if run is None:
-        return JSONResponse({"error": "管道运行记录不存在"}, 404)
+        return JSONResponse({"error": "管道运行记录不存在"}, 404)  # i18n-allow: 内部 API 错误
     # step_results 存的是 JSON 字符串，解析为对象返回，对齐前端类型
     try:
         step_results = json.loads(run.get("step_results") or "{}")
@@ -243,3 +243,19 @@ def get_pipeline_run(request: Request, run_id: str, mgr=Depends(get_manager_dep)
         "created_at": run["created_at"],
         "updated_at": run["updated_at"],
     }
+
+
+@router.post("/api/tasks/runs/{run_id}/stop", response_model=OkResponse)
+@require_role("admin")
+def stop_pipeline_run(
+    request: Request,
+    run_id: str,
+    final: bool = Query(False),
+    mgr=Depends(get_manager_dep),
+):
+    """Web 管道协作式停止：final=false 请求停止，final=true 确认 stopped。"""
+    run = mgr.pipeline_store.get(run_id)
+    if run is None:
+        return JSONResponse({"error": "管道运行记录不存在"}, 404)  # i18n-allow: 内部 API 错误
+    ok = mgr.pipeline_store.finish_stop(run_id) if final else mgr.pipeline_store.request_stop(run_id)
+    return {"ok": bool(ok)}

@@ -252,6 +252,10 @@
     "title": "任務",
     "hint": "標準處理流水線：掃描 → 查詢 → 下載 → 規範化 → 歸檔",
     "start": "開始任務",
+    "stop": "停止任務",
+    "stopping": "正在停止…",
+    "stopped": "已停止：目前階段結束後收尾",
+    "stop_failed": "停止請求失敗",
     "step": {
       "scan": "掃描",
       "query": "查詢",
@@ -262,6 +266,7 @@
     "status": {
       "done": "完成",
       "partial": "部分完成",
+      "stopped": "已停止",
       "failed": "失敗",
       "running": "進行中",
       "pending": "待定"

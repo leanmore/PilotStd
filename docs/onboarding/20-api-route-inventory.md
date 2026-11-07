@@ -1,6 +1,6 @@
 # 20 · API 路由全量清单
 
-> 来源：`docker/api/` 扫描，2026-11-07；共 **132 个路由**，按模块排序。
+> 来源：`docker/api/` 扫描，2026-11-07；共 **133 个路由**，按模块排序。
 
 | # | 模块 | 方法 | 路径 |
 |---|---|---|---|
@@ -136,6 +136,7 @@
 | 130 | `wechat_ip.py` | PUT | `/api/wechat-ip/config` |
 | 131 | `wechat_ip.py` | POST | `/api/wechat-ip/check` |
 | 132 | `wechat_ip.py` | GET | `/api/wechat-ip/status` |
+| 133 | `tasks.py` | POST | `/api/tasks/runs/{run_id}/stop` |
 
 ## 说明
 

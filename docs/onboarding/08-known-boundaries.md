@@ -23,7 +23,7 @@
 | 12 | `validity_check_queue` 表不存在 | 已修复（v75） | 队列建表 + 60s 消费；见 #12 详述 |
 | 13 | `/api/auto` 未传 `root_path` | 实现缺陷 | 该端点按当前签名不可用 |
 | 14 | 下载只有 `openstd_download`；非 GB 无适配器，采标 GB 受版权限制 | 设计边界 + 能力缺口 | 非 GB/采标 GB 无法自动下载 |
-| 15 | Web TaskView 没有“停止”按钮 | 当前缺口 | 离开页面只停轮询，后端任务继续 |
+| 15 | Web TaskView 没有“停止”按钮 | 已修复（Web B；Win A 不变） | `/task` 停止按钮；阶段间协作式停止 |
 | 16 | 通知重试覆盖不均：钉钉企业卡片/飞书应用消息单次请求 | 实现缺陷 | 这两条路径遇到 429/5xx 不重试 |
 | 17 | 通知未读数与列表口径不一致 | 已修复（v0.171.0 验证） | 未读数/全部已读按当前用户；线上 7/7 一致 |
 
@@ -378,9 +378,17 @@
 
 ---
 
-### 15. Web TaskView 没有“停止”按钮
+### 15. Web TaskView 没有“停止”按钮（已修，Web B）
 
-**证据**
+**修复（2026-11-07）**
+
+- `/task` 增加停止按钮；
+- 后端 `pipeline_runs` 状态：`running → stopping → stopped`；
+- 前端在 scan/query/download/normalize/archive 每个阶段边界检查停止标记；
+- 当前阶段跑完后停止，不硬杀线程；
+- Win 端仍为 A：只停 UI 等待，不杀 worker。
+
+**原证据**
 
 - `web/src/views/TaskView.vue` 只有“开始”按钮（`:loading="running"`）；
 - `onBeforeUnmount(() => { stopPolling() })` 只清前端轮询；

@@ -81,6 +81,31 @@ class PipelineRunStore:
                 # 汇报失败不得影响管道主流程
                 logger.warning("pipeline step progress callback failed: %s", exc, exc_info=True)
 
+    def request_stop(self, run_id: str) -> bool:
+        """请求停止：只把 running 改成 stopping，等当前阶段边界收尾。"""
+        now = self._now()
+        cur = self._db.execute(
+            "UPDATE pipeline_runs SET status='stopping', error_message=?, updated_at=? "
+            "WHERE run_id=? AND status='running'",
+            ("用户请求停止", now, run_id),  # i18n-allow: 内部运行状态
+        )
+        return int(cur.rowcount or 0) > 0
+
+    def finish_stop(self, run_id: str) -> bool:
+        """确认已停止：stopping/running → stopped；保留 step_results 供排查。"""
+        now = self._now()
+        cur = self._db.execute(
+            "UPDATE pipeline_runs SET status='stopped', error_message=?, updated_at=? "
+            "WHERE run_id=? AND status IN ('running','stopping')",
+            ("用户已停止", now, run_id),  # i18n-allow: 内部运行状态
+        )
+        return int(cur.rowcount or 0) > 0
+
+    def is_stop_requested(self, run_id: str) -> bool:
+        """阶段边界检查：stopping/stopped 都视为停止。"""
+        row = self._db.fetchone("SELECT status FROM pipeline_runs WHERE run_id=?", (run_id,))
+        return bool(row and row.get("status") in {"stopping", "stopped"})
+
     def get(self, run_id: str) -> dict[str, Any] | None:  # type: ignore[return-value]
         """按 run_id 查询记录。"""
         return self._db.fetchone("SELECT * FROM pipeline_runs WHERE run_id=?", (run_id,))

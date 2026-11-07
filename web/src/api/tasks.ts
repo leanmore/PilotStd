@@ -9,6 +9,11 @@ export async function getPipelineRun(runId: string): Promise<PipelineRun> {
   return (await http.get(`/tasks/runs/${runId}`)).data
 }
 
+/** 请求停止 Web 管道；final=true 时确认进入 stopped。 */
+export async function stopPipelineRun(runId: string, final = false): Promise<{ ok: boolean }> {
+  return (await http.post(`/tasks/runs/${runId}/stop`, undefined, { params: { final } })).data
+}
+
 export interface TaskItem {
   task_id: string
   task_type: string

@@ -105,6 +105,17 @@
 
 > 零搬移仍发送（按用户要求），不改成抑制。
 
+### 10. Web 协作式停止（#15 / Web B）
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `pipeline_store.py`、`docker/api/tasks.py`、`web/src/api/tasks.ts`、`TaskView.vue`、三语 locales |
+| 行为 | `running → stopping → stopped`；前端每阶段边界检查；当前阶段收尾后停 |
+| 测试 | `test_pipeline_store.py` / `test_api_tasks_endpoints.py` 13 passed；`TaskView.test.ts` 4 passed |
+| 回滚 | 删除 stop 路由/方法/按钮与状态文案 |
+
+> Win 端仍为 A（只停 UI 等待，不杀 worker）。
+
 ---
 
 ## 验证汇总

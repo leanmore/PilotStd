@@ -145,3 +145,19 @@ def test_get_pipeline_run_parses_step_results() -> None:
 
     mgr.pipeline_store.get.return_value["step_results"] = json.dumps({"scan": {"ok": 1}})
     assert get_pipeline_run(_req(), "r1", mgr=mgr)["step_results"] == {"scan": {"ok": 1}}
+
+def test_stop_pipeline_run_requests_then_finishes() -> None:
+    from docker.api.tasks import stop_pipeline_run
+
+    mgr = MagicMock()
+    mgr.pipeline_store.get.return_value = {"run_id": "r1", "status": "running"}
+    mgr.pipeline_store.request_stop.return_value = True
+    assert stop_pipeline_run(_req(), "r1", final=False, mgr=mgr) == {"ok": True}
+    mgr.pipeline_store.request_stop.assert_called_once_with("r1")
+
+    mgr.pipeline_store.finish_stop.return_value = True
+    assert stop_pipeline_run(_req(), "r1", final=True, mgr=mgr) == {"ok": True}
+    mgr.pipeline_store.finish_stop.assert_called_once_with("r1")
+
+    mgr.pipeline_store.get.return_value = None
+    assert stop_pipeline_run(_req(), "r1", final=False, mgr=mgr).status_code == 404

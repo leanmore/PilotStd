@@ -252,6 +252,10 @@
     "title": "Task",
     "hint": "Standard processing pipeline: Scan → Query → Download → Normalize → Archive",
     "start": "Start Task",
+    "stop": "Stop Task",
+    "stopping": "Stopping…",
+    "stopped": "Stopped: finishing the current stage",
+    "stop_failed": "Failed to request stop",
     "step": {
       "scan": "Scan",
       "query": "Query",
@@ -262,6 +266,7 @@
     "status": {
       "done": "Done",
       "partial": "Partially Done",
+      "stopped": "Stopped",
       "failed": "Failed",
       "running": "Running",
       "pending": "Pending"
