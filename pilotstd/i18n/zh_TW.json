@@ -567,6 +567,8 @@
 
     "notification.archive.archive_complete.title": "歸檔完成",
     "notification.archive.archive_complete.body.count": "已歸檔 {n} 個檔案",
+    "notification.archive.archive_complete.body.skipped": "略過（已存在）：{n} 個檔案",
+    "notification.archive.archive_complete.body.failed": "失敗：{n} 個檔案",
     "notification.archive.archive_complete.body.category_item": "{label}：{n} 條",
     "notification.archive.archive_complete.body.dir_header": "歸檔目錄：",
     "notification.archive.archive_complete.body.dir_item": "• {d}",

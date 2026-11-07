@@ -261,6 +261,9 @@ class OrganizeHandler:
                     EVENT_ARCHIVE_COMPLETE,
                     {
                         "count": moved,
+                        "total": len(items),
+                        "skipped_exists": int(result.get("skipped_exists", 0) or 0),
+                        "failed": int(result.get("failed", 0) or 0),
                         "directories": directories,
                         "category_stats": _archive_category_stats(items),
                         # 通知聚合 B1 · E2：批次键随 payload 透传（分发层搬到消息字段）

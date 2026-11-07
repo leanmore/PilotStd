@@ -52,6 +52,15 @@ class TestMessageBuilders(unittest.TestCase):
         msg = self.mixin._build_archive_complete_message({"count": 0, "directories": []})
         # 第 5 批术语治理：归档计数句式由「已归档：N 个」改为「已归档 N 个」（不用冒号引导）
         self.assertIn("已归档 0", msg.blocks[0].text)
+        # 日志正文不能只有标题：零搬移也要有正文
+        self.assertIn("已归档 0", msg.body)
+
+    def test_archive_complete_body_contains_skip_and_fail(self):
+        msg = self.mixin._build_archive_complete_message(
+            {"count": 0, "skipped_exists": 2, "failed": 1, "directories": []}
+        )
+        self.assertIn("跳过（已存在）：2", msg.body)
+        self.assertIn("失败：1", msg.body)
 
     def test_status_changed_expired(self):
         msg = self.mixin._build_standard_status_changed_message(

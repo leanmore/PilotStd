@@ -487,6 +487,7 @@ pilotstd/core/
 > **A-28 阶段二（2026-10-31）**：enabled_for(user_id) 组合系统 AND 用户；静音判定偏好优先、解析失败回退 config；_is_quiet_hours 兼容无参替身。
 > **T-42（2026-10-31）**：渠道限流改为“码优先 + 关键词兜底”；已取证 企微 45009 / 飞书 99991400，钉钉/Telegram 保持兜底。
 > **rate_limited_by（2026-10-31）**：限流命中日志从 debug 提升到 info（code/keyword），便于事后排查误判。
+> **归档通知正文（2026-11-07）**：archive_complete 构建器始终写 `body`（count/skip/fail/dirs）；零搬移时 notification_log 也能看到“发生了什么”，不再只有标题。
 
 > **A-21 v71（2026-10-31）**：notification_log/queue 加 user_id（DEFAULT 1）+ 回填 + 用户维度索引；读写路径未改，中间态仍单用户（全 1）。
 > **A-21 第二步（2026-10-31）**：日志读写带 `user_id`；`GET /logs` 普通用户强制自身、`?all=true` 仅 admin、与 `user_id` 互斥 400；failed-items 已按 user 过滤；release 仍内部定时任务。

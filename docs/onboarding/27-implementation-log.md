@@ -94,6 +94,17 @@
 | 测试 | `tests/test_validity_queue_v75.py` 4 passed；迁移链 31 passed |
 | 回滚 | 还原 v75 常量/迁移注册/服务与调度器；旧库不再自动建表 |
 
+### 9. 归档通知正文（#9）
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `_builders_system.py`、`_organize.py`、`pilotstd/i18n/{zh_CN,zh_TW,en}.json` |
+| 行为 | `archive_complete` 始终写 body（count/skip/fail/dirs）；payload 增加 total/skipped/failed |
+| 测试 | `tests/test_notification_core.py` 新增零搬移正文、skip/fail 正文用例；78 passed |
+| 回滚 | 还原 builder body 与 payload 字段 |
+
+> 零搬移仍发送（按用户要求），不改成抑制。
+
 ---
 
 ## 验证汇总

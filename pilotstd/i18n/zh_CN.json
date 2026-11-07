@@ -650,6 +650,8 @@
 
     "notification.archive.archive_complete.title": "归档完成",
     "notification.archive.archive_complete.body.count": "已归档 {n} 个文件",
+    "notification.archive.archive_complete.body.skipped": "跳过（已存在）：{n} 个文件",
+    "notification.archive.archive_complete.body.failed": "失败：{n} 个文件",
     "notification.archive.archive_complete.body.category_item": "{label}：{n} 条",
     "notification.archive.archive_complete.body.dir_header": "归档目录：",
     "notification.archive.archive_complete.body.dir_item": "• {d}",

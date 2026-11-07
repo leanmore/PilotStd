@@ -99,14 +99,17 @@ def _build_archive_complete_message(data: dict) -> NotificationMessage:
         )
     # 2026-10-05 通知聚合 B1：失败明细渲染为列表块（与 normalize_complete 共用同一实现，
     # 保证两处口径一致：4 列、空值填 '-'、枚举取值先翻译、**不做行数截断**）。
-    from ._builders_batch import build_failed_items_block
+    from ._builders_batch import build_archive_complete_body, build_failed_items_block
 
     failed_block = build_failed_items_block(data)
     if failed_block is not None:
         blocks.append(failed_block)
+    # 日志正文移到 _builders_batch，避免 _builders_system 超过 G-049 行数上限
+    body = build_archive_complete_body(data, count, category_stats, directories)
     return NotificationMessage(
         title=t("notification.archive.archive_complete.title"),
         blocks=blocks,
+        body=body,
         level="info",
         standard_number=data.get("standard_number"),
         event_type="archive_complete",

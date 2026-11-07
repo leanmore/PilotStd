@@ -415,6 +415,34 @@ def build_failed_items_block(data: dict) -> "ListBlock | None":
     return ListBlock(title=t("notification.failed_items.title"), items=rows, total=len(items))
 
 
+def build_archive_complete_body(
+    data: dict,
+    count: int,
+    category_stats: dict,
+    directories: list[str],
+) -> str:
+    """归档完成通知的日志正文（零搬移也必须有内容，不能只剩标题）。"""
+    lines = [t("notification.archive.archive_complete.body.count").format(n=count)]
+    skipped = int(data.get("skipped_exists") or 0)
+    failed = int(data.get("failed") or 0)
+    if skipped > 0:
+        lines.append(t("notification.archive.archive_complete.body.skipped").format(n=skipped))
+    if failed > 0:
+        lines.append(t("notification.archive.archive_complete.body.failed").format(n=failed))
+    if category_stats:
+        lines.append(
+            "，".join(
+                t("notification.archive.archive_complete.body.category_item").format(label=k, n=v)
+                for k, v in category_stats.items()
+            )
+        )
+    if directories:
+        lines.append(
+            t("notification.archive.archive_complete.body.dir_header") + " " + "，".join(directories)
+        )
+    return "\n".join(lines)
+
+
 def _build_normalize_complete_message(data: dict) -> NotificationMessage:
     """原 Mixin 方法，现为模块级纯函数。"""
     total = data.get("total", 0)

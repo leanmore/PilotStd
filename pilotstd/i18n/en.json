@@ -646,6 +646,8 @@
 
     "notification.archive.archive_complete.title": "Archive Complete",
     "notification.archive.archive_complete.body.count": "Archived {n} file(s)",
+    "notification.archive.archive_complete.body.skipped": "Skipped (already exists): {n} file(s)",
+    "notification.archive.archive_complete.body.failed": "Failed: {n} file(s)",
     "notification.archive.archive_complete.body.category_item": "{label}: {n} item(s)",
     "notification.archive.archive_complete.body.dir_header": "Archive directory:",
     "notification.archive.archive_complete.body.dir_item": "• {d}",

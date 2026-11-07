@@ -17,7 +17,7 @@
 | 6 | Word 重解析使用空 scan.code_mapping | 实现缺陷 | TSG 等进入 `T 未知行业(T)` |
 | 7 | 手动/一键下载任务不持久化 | 当前缺口 | 重启丢任务 |
 | 8 | 规范化只预览，归档忽略 `new_filename` | 设计边界 | 预览与最终命名可能漂移 |
-| 9 | 归档通知按“每次调用”发 | 当前缺口 | 批量时通知过多/聚合失效 |
+| 9 | 归档通知按“每次调用”发 | 正文已修；聚合仍待改 | 零搬移正文完整；批量聚合/批次键未闭环 |
 | 10 | DB 写存在 SELECT+INSERT 竞争 | 实现缺陷 | 并发时 UNIQUE 错误 |
 | 11 | monitor 懒加载 manager 无锁 | 实现缺陷 | 多实例/重复校验 |
 | 12 | `validity_check_queue` 表不存在 | 已修复（v75） | 队列建表 + 60s 消费；见 #12 详述 |
@@ -244,10 +244,16 @@
 - 聚合器对 `scan_complete`/`standard_first_registered` 有效，对归档不一定；
 - 通知日志里大量 `failed`/`429`。
 
+**已改（2026-11-07）**
+
+- `moved=0` 仍发 `archive_complete`；正文包含 count/skip/fail/dirs，不再只有标题；
+- `archive_standards` payload 增加 total/skipped_exists/failed；
+- `notification_log.body` 对归档事件不再为空。
+- **刻意不抑制零计数**：用户要求零搬移也要可追踪；聚合/批次键仍待处理。
+
 **如果要改**
 
 - 监控/批处理共用一个批次键；
-- 抑制零计数通知；
 - 渠道层做全局限流/重试；
 - 企微无卡片动作时直接文本。
 
