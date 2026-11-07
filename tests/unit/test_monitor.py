@@ -32,7 +32,7 @@ from pilotstd.monitor.scheduler import (
 def scheduler():
     s = FileMonitorScheduler()
     s._mgr = MagicMock()
-    s._mgr.scan_directory.return_value = [MagicMock()]
+    s._mgr.auto_run.return_value = {"scan": 1, "organize_moved": 1, "organize_failed": 0}
     return s
 
 
@@ -263,7 +263,7 @@ class TestOnFile:
         ):
             scheduler._on_file("/inbox/test.pdf")
 
-        scheduler._mgr.scan_directory.assert_called_once()
+        scheduler._mgr.auto_run.assert_called_once_with("/inbox")
 
     def test_auto_archive_disabled_skips(self, scheduler):
         with patch(
@@ -275,10 +275,10 @@ class TestOnFile:
         ):
             scheduler._on_file("/inbox/test.pdf")
 
-        scheduler._mgr.scan_directory.assert_not_called()
+        scheduler._mgr.auto_run.assert_not_called()
 
     def test_manager_exception_increments_failed(self, scheduler):
-        scheduler._mgr.scan_directory.side_effect = RuntimeError("scan boom")
+        scheduler._mgr.auto_run.side_effect = RuntimeError("scan boom")
         mock_stats = MagicMock()
 
         with patch(
@@ -296,7 +296,7 @@ class TestOnFile:
     def test_manager_none_lazy_loads(self, scheduler):
         scheduler._mgr = None
         mock_mgr = MagicMock()
-        mock_mgr.scan_directory.return_value = [MagicMock()]
+        mock_mgr.auto_run.return_value = {"scan": 1, "organize_moved": 1, "organize_failed": 0}
 
         with patch(
             "pilotstd.monitor.scheduler.get_config",
@@ -312,7 +312,7 @@ class TestOnFile:
         assert scheduler._mgr is mock_mgr
 
     def test_scan_empty_no_success_increment(self, scheduler):
-        scheduler._mgr.scan_directory.return_value = []
+        scheduler._mgr.auto_run.return_value = {"scan": 0, "organize_moved": 0, "organize_failed": 0}
         mock_stats = MagicMock()
 
         with patch(
@@ -333,9 +333,12 @@ class TestOnFile:
     # ── 技术债 #30：计数口径必须反映**真实归档结果** ──
 
     def _run_on_file(self, scheduler, archive_result, path="/inbox/GB_T 1-2020.pdf"):
-        """跑一次 _on_file，返回 stats mock 与 archive_standards mock。"""
-        scheduler._mgr.scan_directory.return_value = [MagicMock()]
-        scheduler._mgr.archive_standards.return_value = archive_result
+        """跑一次 _on_file，返回 stats mock 与 auto_run mock。"""
+        scheduler._mgr.auto_run.return_value = {
+            "scan": 1,
+            "organize_moved": archive_result.get("moved", 0),
+            "organize_failed": archive_result.get("failed", 0),
+        }
         mock_stats = MagicMock()
         with patch(
             "pilotstd.monitor.scheduler.get_config",
@@ -345,7 +348,7 @@ class TestOnFile:
             return_value=mock_stats,
         ):
             scheduler._on_file(path)
-        return mock_stats, scheduler._mgr.archive_standards
+        return mock_stats, scheduler._mgr.auto_run
 
     @staticmethod
     def _counts(mock_stats) -> dict:
@@ -368,9 +371,11 @@ class TestOnFile:
 
         assert self._counts(mock_stats) == {"processed": 1}
 
-    def test_unparsable_file_increments_failed(self, scheduler):
+    def test_unparsable_file_increments_failed(self, scheduler, tmp_path):
         """场景 3：文件不合规（解析不出标准号）→ failed 增加，且不调归档。"""
-        scheduler._mgr.scan_directory.return_value = []
+        scheduler._mgr.auto_run.return_value = {"scan": 0, "organize_moved": 0, "organize_failed": 0}
+        src = tmp_path / "scan_0001.pdf"
+        src.write_bytes(b"%PDF-1.4")
         mock_stats = MagicMock()
         with patch(
             "pilotstd.monitor.scheduler.get_config",
@@ -379,10 +384,10 @@ class TestOnFile:
             "pilotstd.monitor.scheduler.get_monitor_stats",
             return_value=mock_stats,
         ):
-            scheduler._on_file("/inbox/scan_0001.pdf")
+            scheduler._on_file(str(src))
 
         assert self._counts(mock_stats) == {"processed": 1, "failed": 1}
-        scheduler._mgr.archive_standards.assert_not_called()
+        scheduler._mgr.auto_run.assert_called_once_with(str(tmp_path))
 
     def test_organizer_reported_failure_increments_failed(self, scheduler):
         """归档器返回 failed>0（真搬不动）→ failed 增加，不记 success。"""
@@ -392,14 +397,14 @@ class TestOnFile:
 
         assert self._counts(mock_stats) == {"processed": 1, "failed": 1}
 
-    def test_archive_receives_inbox_dir_as_word_source_root(self, scheduler):
-        """契约：word_source_root 必须是 inbox 目录（organizer 据此镜像 Word 相对路径）。"""
-        _, archive = self._run_on_file(
+    def test_auto_run_receives_source_dir(self, scheduler):
+        """契约：monitor 把父目录交给主链，由主链负责 scan/query/download/archive。"""
+        _, auto_run = self._run_on_file(
             scheduler, {"moved": 1}, path="/inbox/sub/GB_T 1-2020.pdf"
         )
 
-        assert archive.call_args.kwargs["word_source_root"] == "/inbox/sub"
-        assert archive.call_args.args[0] is scheduler._mgr.scan_directory.return_value
+        assert auto_run.call_args.args[0] == "/inbox/sub"
+        scheduler._mgr.archive_standards.assert_not_called()
 
 
 # ════════════════════════════════════════════════════════════

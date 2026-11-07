@@ -83,6 +83,7 @@ class AutoPipeline:
 
         org_result = self._organize.archive_standards(parsed)
         report["organize_moved"] = org_result["moved"]
+        report["organize_failed"] = int(org_result.get("failed", 0) or 0)
         report["mirror_skipped"] = 0
         report["fallback_mirrored"] = 0
         logger.info("阶段耗时 archive: %.1fs (%d 已移动)", _time.monotonic() - t_stage, report["organize_moved"])

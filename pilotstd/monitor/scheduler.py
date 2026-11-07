@@ -205,9 +205,13 @@ class FileMonitorScheduler:
             report = self._mgr.auto_run(source_root)
             moved = int(report.get("organize_moved", 0) or 0) if isinstance(report, dict) else 0
             scanned = int(report.get("scan", 0) or 0) if isinstance(report, dict) else 0
+            failed = int(report.get("organize_failed", 0) or 0) if isinstance(report, dict) else 0
             if moved:
                 logger.info("[MONITOR] 主链归档完成: %d 条", moved)  # i18n-allow: 内部运维日志
                 stats.increment("success")
+            elif failed:
+                logger.error("[MONITOR] 主链归档失败: %d 条", failed)  # i18n-allow: 内部运维日志
+                stats.increment("failed")
             elif scanned == 0:
                 if os.path.exists(path):
                     logger.warning("[MONITOR] 未识别到标准号，未归档: %s", path)  # i18n-allow: 内部运维日志
