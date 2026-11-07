@@ -204,6 +204,99 @@ class TestUpdateStatus(unittest.TestCase):
         self.assertTrue(first_call_args[1]["is_expired"])
 
     @patch("pilotstd.core.config.ConfigManager")
+    def test_parallel_period_defers_file_move(self, mock_cm_cls):
+        """新标准实施日前是并行期：只标记/通知，不搬文件。"""
+        mock_cm = MagicMock()
+        mock_cm.get.return_value = True  # auto_move_expired=True（total_weeks 也被强转 False，不影响本用例）
+        mock_cm_cls.return_value = mock_cm
+
+        self.mock_db.fetchone.return_value = _row(status=Status.ACTIVE.value, check_count=1)
+        checker = self.checker
+        checker._move_files_before_abandon = MagicMock(return_value=True)
+        notif_mgr = MagicMock()
+
+        checker.update_status(
+            "GB/T 12345",
+            Status.SUPERSEDED.value,
+            notification_mgr=notif_mgr,
+            new_standard="GB/T 12345-2026",
+            new_standard_name="新版",
+            new_standard_implementation_date="2999-01-01",
+            evidence="L2",
+        )
+
+        checker._move_files_before_abandon.assert_not_called()
+        notif_mgr.send_event.assert_called_once()
+        # 状态仍写入，避免下一轮重复“状态变更”
+        sql_text = self.mock_db.execute.call_args[0][0]
+        self.assertIn("UPDATE", sql_text)
+
+    @patch("pilotstd.core.config.ConfigManager")
+    def test_parallel_period_ended_moves_even_if_status_unchanged(self, mock_cm_cls):
+        """并行期结束后，即使状态没再变化，也要补搬文件。"""
+        mock_cm = MagicMock()
+        mock_cm.get.return_value = True
+        mock_cm_cls.return_value = mock_cm
+
+        self.mock_db.fetchone.return_value = _row(status=Status.SUPERSEDED.value, check_count=2)
+        checker = self.checker
+        checker._move_files_before_abandon = MagicMock(return_value=True)
+
+        checker.update_status(
+            "GB/T 12345",
+            Status.SUPERSEDED.value,
+            new_standard="GB/T 12345-2026",
+            new_standard_implementation_date="2000-01-01",
+            evidence="L2",
+        )
+
+        checker._move_files_before_abandon.assert_called_once_with("GB/T 12345", Status.SUPERSEDED.value)
+
+    @patch("pilotstd.core.config.ConfigManager")
+    def test_parallel_period_end_sends_move_notification(self, mock_cm_cls):
+        """并行期结束补搬时，即使状态没变，也发一条移出通知。"""
+        mock_cm = MagicMock()
+        mock_cm.get.return_value = True
+        mock_cm_cls.return_value = mock_cm
+
+        self.mock_db.fetchone.return_value = _row(status=Status.SUPERSEDED.value, check_count=2)
+        checker = self.checker
+        checker._move_files_before_abandon = MagicMock(return_value=True)
+        notif = MagicMock()
+
+        checker.update_status(
+            "GB/T 12345",
+            Status.SUPERSEDED.value,
+            notification_mgr=notif,
+            new_standard="GB/T 12345-2026",
+            new_standard_implementation_date="2000-01-01",
+            evidence="L2",
+        )
+
+        notif.send_event.assert_called_once()
+        self.assertEqual(notif.send_event.call_args[0][0], "expire_standard_moved")
+
+    @patch("pilotstd.core.config.ConfigManager")
+    def test_missing_implementation_date_moves(self, mock_cm_cls):
+        """没有新标准实施日期时不阻塞搬移。"""
+        mock_cm = MagicMock()
+        mock_cm.get.return_value = True
+        mock_cm_cls.return_value = mock_cm
+
+        self.mock_db.fetchone.return_value = _row(status=Status.ACTIVE.value, check_count=1)
+        checker = self.checker
+        checker._move_files_before_abandon = MagicMock(return_value=True)
+
+        checker.update_status(
+            "GB/T 12345",
+            Status.SUPERSEDED.value,
+            new_standard="GB/T 12345-2026",
+            evidence="L2",
+        )
+
+        checker._move_files_before_abandon.assert_called_once()
+
+    @patch("pilotstd.core.config.ConfigManager")
     def test_status_unchanged(self, mock_cm_cls):
         """现有记录，状态不变 → UPDATE 不含 last_changed_at，无通知发送。"""
         mock_cm = MagicMock()

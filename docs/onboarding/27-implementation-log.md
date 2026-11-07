@@ -172,6 +172,15 @@
 | 测试 | file_index 75 passed；validity 87 passed |
 | 回滚 | 恢复两处 SELECT+INSERT/UPDATE 分支 |
 
+### 17. 过期标准自动搬移 + 并行期（D-03）
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `validity_checker.py`、`_validity_pipeline.py`、`config/defaults.py`、有效性测试 |
+| 行为 | 默认开启 `auto_move_expired`；被代替标准在新标准实施日前只标记/通知；实施日后补搬并补发 `expire_standard_moved` |
+| 测试 | 有效性 129 passed |
+| 回滚 | `validity.auto_move_expired=false` 或还原默认 |
+
 ---
 
 ## 验证汇总

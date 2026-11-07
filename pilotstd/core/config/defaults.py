@@ -134,9 +134,10 @@ FACTORY_DEFAULTS = {
     # 审计日志 / 管道运行记录保留天数（定时任务 retention_cleanup 使用）
     "audit.retention_days": 180,
     "pipeline.retention_days": 90,
-    # 有副作用的动作（搬「过期作废」/替代标准入下载队列）默认关闭：
-    # 只有 L2（适配器实时查询）结论 + 本开关为 true 才执行，L1/L3 一律只记录。
-    "validity.auto_move_expired": False,
+    # 有副作用的动作（搬「过期作废」/替代标准入下载队列）默认开启：
+    # 只有 L2（适配器实时查询）结论 + 本开关为 true 才执行，L1/L3 一律只记录；
+    # 被代替标准在新标准实施日前处于并行期，先标记/通知，不搬文件。
+    "validity.auto_move_expired": True,
     # ── 已废弃字段（兼容旧前端）──
     "validity.frequency": "weekly",  # @deprecated 已废弃，用 frequency_weeks 替代
     "validity.update_interval": 28,  # @deprecated 已废弃，用 total_weeks 替代

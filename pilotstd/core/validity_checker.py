@@ -92,6 +92,7 @@ class ValidityChecker:
         notification_mgr: Any = None,
         new_standard: str = "",
         new_standard_name: str = "",
+        new_standard_implementation_date: str = "",
         evidence: str = "L3",
     ) -> None:
         """更新标准时效性状态，设置下次检查时间=now + total_weeks*7 天。
@@ -109,15 +110,28 @@ class ValidityChecker:
             (standard_number,),
         )
         status_changed = bool(row and row["status"] != new_status)
+        # 并行期：被代替标准在新标准实施日前仍可用，先只标记/通知，不搬文件。
+        # 并行期结束后即使 status 没再变化，也要允许补搬（所以不要求 status_changed）。
+        parallel = self._parallel_period_active(new_standard, new_standard_implementation_date)
         should_move = (
-            status_changed
+            bool(row)
             and new_status in ABOLISHED_STATUSES_WITH_EXPIRED
             and self.should_apply_side_effects(evidence)
+            and not parallel
         )
         # 先搬文件、成功后再写库：移动失败时保持原状态（下一轮重试），
         # 绝不出现“库说废止、文件还在原位”的不一致（D3-1）。
         if should_move and not self._move_files_before_abandon(standard_number, new_status):
             return
+        # 并行期结束后的“补搬”不会再有状态变化；单独发一条移出通知。
+        if should_move and not status_changed and notification_mgr:
+            try:
+                notification_mgr.send_event(
+                    "expire_standard_moved",
+                    {"standard_number": standard_number, "target_path": ""},
+                )
+            except Exception as e:
+                logger.warning("过期移出通知发送失败: %s, error=%s", standard_number, e)  # i18n-allow: 内部日志
         if not row:
             self._db.execute(
                 f"INSERT INTO {_TABLE} (standard_number, status, last_checked_at, "
@@ -143,12 +157,26 @@ class ValidityChecker:
             notification_mgr, standard_number, new_status, row["status"], new_standard, new_standard_name
         )
         if new_status in ABOLISHED_STATUSES_WITH_EXPIRED and not should_move:
+            reason = "parallel period" if parallel else "evidence/auto_move_expired disabled"
             logger.info(
                 # i18n-allow: 内部日志
-                "validity: 不自动搬文件（证据=%s，需 L2 + auto_move_expired）: %s",
+                "validity: 不自动搬文件（%s，evidence=%s）: %s",
+                reason,
                 evidence,
                 standard_number,
             )
+
+    @staticmethod
+    def _parallel_period_active(new_standard: str, implementation_date: str) -> bool:
+        """新标准实施日前视为并行期；缺日期/解析失败时不阻塞搬移。"""
+        if not new_standard or not implementation_date:
+            return False
+        try:
+            impl = datetime.fromisoformat(str(implementation_date)[:10]).date()
+        except (ValueError, TypeError) as exc:
+            logger.warning("parallel period date invalid: %s (%s)", implementation_date, exc)
+            return False
+        return impl > datetime.now(timezone.utc).date()
 
     def _move_files_before_abandon(self, standard_number: str, new_status: str) -> bool:
         """搬文件成功返回 True；失败返回 False（调用方放弃写废止状态）。"""
@@ -468,12 +496,17 @@ class ValidityChecker:
             if row:
                 new_standard = str(row["superseded_by"] or "")
                 name_row = self._db.fetchone(
-                    "SELECT std_name FROM announcement_record WHERE standard_number=? LIMIT 1",
+                    "SELECT std_name, implement_date FROM announcement_record WHERE standard_number=? LIMIT 1",
                     (new_standard,),
                 )
                 return {
                     "new_standard": new_standard,
                     "new_standard_name": str(name_row["std_name"] or "") if name_row else "",
+                    "new_standard_implementation_date": (
+                        str(name_row["implement_date"] or "")
+                        if name_row and "implement_date" in name_row.keys()
+                        else ""
+                    ),
                 }
         except Exception:
             logger.warning("replacement lookup failed for %s", standard_number, exc_info=True)

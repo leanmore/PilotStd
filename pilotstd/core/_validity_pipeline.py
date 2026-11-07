@@ -170,6 +170,7 @@ def _apply_validity_result(
         notification_mgr,
         str(result.get("new_standard", "") or ""),
         str(result.get("new_standard_name", "") or ""),
+        str(result.get("new_standard_implementation_date", "") or ""),
         evidence=evidence,
     )
     if not old_status or old_status == new_status:
