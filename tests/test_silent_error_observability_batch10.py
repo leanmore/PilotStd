@@ -20,5 +20,8 @@ def test_enqueue_files_failure_logs(caplog) -> None:
     with caplog.at_level(logging.WARNING, logger="pilotstd.manager.validity_service"):
         result = service.enqueue_files(["/tmp/a.pdf", "/tmp/b.pdf"])
 
-    assert result == {"ok": True, "enqueued": 0, "total": 2}
+    assert result["ok"] is False
+    assert result["enqueued"] == 0
+    assert result["total"] == 2
+    assert result["error"] == "queue insert failed"
     assert "enqueue validity file failed" in caplog.text
