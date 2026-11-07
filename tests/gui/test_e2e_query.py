@@ -19,8 +19,16 @@ if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
 
+import pytest
+
 from pilotstd.core.status import Status
 from pilotstd.query.models import QueryResult
+
+
+@pytest.fixture(autouse=True)
+def _legacy_v1_routing(monkeypatch):
+    """本文件用 mock 适配器覆盖 v1 查询 UI 链路；v2 由 routing 集成测试覆盖。"""
+    monkeypatch.setenv("ROUTING_ENGINE_VERSION", "v1")
 
 # ── 工具函数 ─────────────────────────────────────────────────
 
