@@ -26,6 +26,7 @@ class ArchiveResponse(BaseModel):
     skipped_exists: int = 0
     word_mirrored: int = 0
     skipped_source: int = 0
+    conflict_pending: int = 0
     dedup_skipped: int = 0
     details: list[str] = []
 
@@ -91,6 +92,8 @@ def archive_files(
                 year=item.get("year", 0),
                 part=item.get("part"),
                 std_name=item.get("std_name", ""),
+                # 规范化预览名即用户看到的最终名；重名冲突由 organizer 进待确认列表
+                final_name=item.get("new_filename", ""),
                 num_prefix=item.get("num_prefix", ""),
                 num_suffix=item.get("num_suffix", ""),
                 language=item.get("language", ""),

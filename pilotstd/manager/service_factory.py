@@ -43,6 +43,7 @@ def create_services(mgr: Any) -> tuple[Any, Any, Any, Any, Any]:
         file_index=mgr.file_index,
         dir_builder=dir_builder,
         file_mover=file_mover,
+        db=mgr.db,
     )
 
     # ── 公告服务 ──

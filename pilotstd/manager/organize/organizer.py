@@ -32,10 +32,12 @@ class OrganizerCore:
         file_index: Any,
         dir_builder: Any,
         file_mover: Any,
+        db: Any = None,
     ) -> None:
         """初始化归类核心，注入配置、文件索引、目录构建器、文件移动器。"""
         self._cfg = cfg
         self._file_index = file_index
+        self._db = db
         self._dir_builder = dir_builder
         self._file_mover = file_mover
         self._std_parser = StandardParser(self._cfg.get("scan.code_mapping", {}))
@@ -68,6 +70,7 @@ class OrganizerCore:
             "skipped_exists": 0,
             "word_mirrored": 0,
             "skipped_source": 0,
+            "conflict_pending": 0,
             "dedup_skipped": 0,
             "details": [],
         }
@@ -143,9 +146,16 @@ class OrganizerCore:
         try:
             os.makedirs(os.path.dirname(dst), exist_ok=True)
             if os.path.exists(dst) and on_exists != "overwrite":
-                logger.debug("Word 目标已存在，跳过: %s", os.path.basename(src))
-                result["skipped_exists"] += 1
-                result["word_mirrored"] += 1
+                src_hash = hash_file_content(src)
+                dst_hash = hash_file_content(dst)
+                if src_hash and src_hash == dst_hash:
+                    result["dedup_skipped"] = result.get("dedup_skipped", 0) + 1
+                    result["skipped_exists"] = result.get("skipped_exists", 0) + 1
+                    return
+                self._record_archive_conflict(p, src, dst)
+                result["conflict_pending"] = result.get("conflict_pending", 0) + 1
+                result["skipped_exists"] = result.get("skipped_exists", 0) + 1
+                result["skipped_source"] = result.get("skipped_source", 0) + 1
                 self._skipped_source_files.add(clean_src)
                 return
             safe_move(src, dst, on_exists=on_exists)
@@ -180,7 +190,26 @@ class OrganizerCore:
             fhash = None
         if fhash and fhash in content_hashes:
             logger.info("内容重复，跳过: %s (已归档为 %s)", os.path.basename(src), content_hashes[fhash])
-            result["dedup_skipped"] += 1
+            result["dedup_skipped"] = result.get("dedup_skipped", 0) + 1
+            return
+        # 先算目标路径，区分“同名同内容”和“同名不同内容”：
+        # 同内容跳过；不同内容绝不覆盖，源文件留在待确认列表（D-01/C）。
+        dst = mover.normalize_filename(p)
+        if on_exists != "overwrite" and os.path.exists(dst):
+            target_hash = hash_file_content(dst)
+            if fhash and target_hash and fhash == target_hash:
+                result["dedup_skipped"] = result.get("dedup_skipped", 0) + 1
+                result["skipped_exists"] = result.get("skipped_exists", 0) + 1
+                if self._cfg.get("organize.auto_clean_source", False):
+                    try:
+                        os.remove(src)
+                    except OSError as e:
+                        logger.debug("remove source after duplicate archive failed (%s): %s", src, e)
+                return
+            self._record_archive_conflict(p, src, dst)
+            result["conflict_pending"] = result.get("conflict_pending", 0) + 1
+            result["skipped_source"] = result.get("skipped_source", 0) + 1
+            self._skipped_source_files.add(src)
             return
         dst = mover.move_to_code_dir(src, p, on_exists=on_exists)
         if dst:
@@ -207,17 +236,45 @@ class OrganizerCore:
                 except OSError:
                     file_size = 0
                 self._register_standard(p, fhash, file_size)
-        elif os.path.exists(mover.normalize_filename(p)):
-            result["skipped_exists"] += 1
-            result["skipped_source"] += 1
-            self._skipped_source_files.add(src)
-            if self._cfg.get("organize.auto_clean_source", False):
-                try:
-                    os.remove(src)
-                except OSError as e:
-                    logger.debug("remove source after skipped archive failed (%s): %s", src, e)
         else:
             result["failed"] += 1
+
+    def _record_archive_conflict(self, p: Any, src: str, dst: str) -> None:
+        """同名不同内容 → pending_lookup，供待确认页/SQL 统一查看；不移动源文件。"""
+        if self._db is None:
+            return
+        try:
+            number = p.get_full_number()
+            existing = self._db.fetchone(
+                "SELECT id FROM pending_lookup WHERE standard_number=? AND status='pending' "
+                "AND reason='archive_conflict' LIMIT 1",
+                (number,),
+            )
+            if existing:
+                return
+            from ...core.time_utils import iso_now
+
+            self._db.execute(
+                "INSERT INTO pending_lookup (standard_number, std_name, found_name, found_number, "
+                "match_status, effect_status, score, source_site, file_path, source_name, final_name, "
+                "reason, status, created_at) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, "
+                "'archive_conflict', 'pending', ?)",
+                (
+                    number,
+                    getattr(p, "std_name", "") or "",
+                    getattr(p, "found_name", "") or "",
+                    dst,
+                    "conflict",
+                    getattr(p, "effect_status", "") or "",
+                    getattr(p, "found_source_site", "") or "",
+                    src,
+                    getattr(p, "source_name", "") or os.path.basename(src),
+                    dst,
+                    iso_now(),
+                ),
+            )
+        except Exception as exc:
+            logger.warning("记录归档冲突失败: %s (%s)", src, exc)
 
     def _register_standard(self, parsed: Any, file_hash: str, file_size: int) -> None:
         """Q6-0: 将成功归档的标准注册到 standards 表。

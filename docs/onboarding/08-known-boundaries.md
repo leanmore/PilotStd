@@ -16,7 +16,7 @@
 | 5 | `standard_validity` 存在畸形键 | 历史数据缺陷 | 按表查询/搬移会漏 |
 | 6 | Word 重解析使用空 scan.code_mapping | 实现缺陷 | TSG 等进入 `T 未知行业(T)` |
 | 7 | 手动/一键下载任务不持久化 | 当前缺口 | 重启丢任务 |
-| 8 | 规范化只预览，归档忽略 `new_filename` | 设计边界 | 预览与最终命名可能漂移 |
+| 8 | 规范化只预览，归档忽略 `new_filename` | 已修复（2026-11-07） | 归档以预览名（`final_name`）为准；重名冲突走待确认 |
 | 9 | 归档通知按“每次调用”发 | 正文已修；聚合仍待改 | 零搬移正文完整；批量聚合/批次键未闭环 |
 | 10 | DB 写存在 SELECT+INSERT 竞争 | 已修复（2026-11-07） | file_index 原子 UPSERT；validity 首次登记 INSERT OR IGNORE |
 | 11 | monitor 懒加载 manager 无锁 | 实现缺陷 | 多实例/重复校验 |

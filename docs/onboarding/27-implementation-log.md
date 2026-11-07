@@ -181,6 +181,15 @@
 | 测试 | 有效性 129 passed |
 | 回滚 | `validity.auto_move_expired=false` 或还原默认 |
 
+### 18. 归档预览名 + 冲突待确认（D-01/#8）
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `organizer.py`、`mover.py`、`archive.py`、`service_factory.py`、organizer 测试 |
+| 行为 | 归档以 `final_name`（Web 的 new_filename）为准；同 hash 跳过；不同内容不覆盖，写入 `pending_lookup`（reason=archive_conflict） |
+| 测试 | organizer 116 passed |
+| 回滚 | 恢复按标准号自动命名 + 目标存在直接跳过 |
+
 ---
 
 ## 验证汇总

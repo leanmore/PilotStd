@@ -143,6 +143,19 @@ class TestFileMover(unittest.TestCase):
         path = self.mover.normalize_filename(parsed)
         self.assertIn("过期作废", path)
 
+    def test_normalize_filename_uses_final_preview_name(self):
+        """#8：归档以规范化预览名（final_name）为准，所见即所得。"""
+        parsed = ParsedStdInfo(
+            raw_filename="old.pdf",
+            logical_code="GB",
+            number=1,
+            year=2020,
+            std_name="旧名",
+            final_name="GB_T 1-2020 新预览名.pdf",
+        )
+        path = self.mover.normalize_filename(parsed)
+        self.assertEqual(os.path.basename(path), "GB_T 1-2020 新预览名.pdf")
+
     def test_archive_returns_none_when_move_fails(self):
         """safe_move 返回 False → archive 返回 None（L64）。"""
         src = os.path.join(self.tmp, "src.pdf")

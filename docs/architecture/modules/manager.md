@@ -78,6 +78,7 @@ StandardManager (BaseFacade)
 
 - **归档/扫描路径的失败可见性（2026-10-17，体检 D-8 第 6 批）**：`expire`/`mirror`/`organizer` 的文件清理 `OSError`、`_backfill_std_name` 的缓存查询与 `result_json` 解析失败、`scan_directory(_stream)` 的缓存失效失败，均由 `pass` 改为 debug（行为不变）；契约由 `tests/test_silent_error_observability_batch6.py` 锁定。
 
+- **归档预览名与冲突（2026-11-07）**：`FileMover.normalize_filename` 优先使用 `ParsedStdInfo.final_name`；`OrganizerCore` 对同名不同内容写入 `pending_lookup`（reason=archive_conflict），不覆盖、不自动改名。
 - **auto_run 报告（2026-11-07）**：`_auto_run_impl` 增加 `organize_failed`，monitor 据此把主链归档失败计入 `failed`，不再把“解析到但搬不动”记成成功。
 - **归档通知正文（2026-11-07）**：`archive_standards` 的 payload 增加 `total` / `skipped_exists` / `failed`；`archive_complete` 构建器据此写正文，零搬移也保留可读说明。
 - **选中文件检查队列（2026-11-07）**：`ValidityService.enqueue_files` 写 `validity_check_queue`（v75）；`process_pending()` 将 `file_index.file_path` 映射为标准号，调用 `ValidityChecker.check_standard`，并把 success/failed/error 写回队列；调度器每 60 秒 drain 一次并在启动时补跑。前端按钮只负责入队，不再显示“已检查”。

@@ -42,7 +42,9 @@ class FileMover:
         # 废止/过期标准 → 目标路径追加"过期作废"子目录
         if getattr(parsed, "effect_status", "") in self._EXPIRE_STATUSES:
             folder = os.path.join(folder, getattr(self._dirs, "expire_name", "过期作废"))
-        filename = make_standard_filename(
+        # #8：规范化预览名优先；只取 basename，禁止用用户输入跳出目标目录。
+        final_name = os.path.basename(str(getattr(parsed, "final_name", "") or "").strip())
+        filename = final_name or make_standard_filename(
             logical_code=parsed.logical_code,
             number=parsed.number,
             year=parsed.year,
