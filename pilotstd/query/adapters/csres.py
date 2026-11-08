@@ -225,8 +225,15 @@ class CsresAdapter(BaseAdapter):
             )
             if m:
                 return m.group(1).strip()
-        except Exception:
-            logger.debug("csres 替代标准解析失败", exc_info=True)
+        except Exception as e:
+            # 替代标准字段不影响主查询结果，只影响路由判断，故保持 debug（避免刷 warning）；
+            # 但必须能区分「网络失败」与「解析失败」，否则排障会被误导。
+            if isinstance(e, requests.RequestException):
+                # i18n-allow: 内部运维日志
+                logger.debug("csres 替代标准网络请求失败: %s", e)
+            else:
+                # i18n-allow: 内部运维日志
+                logger.debug("csres 替代标准解析失败: %s", e, exc_info=True)
         return ""
 
     def fetch_replaces_detail(self, result: Any) -> str:

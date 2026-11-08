@@ -106,6 +106,8 @@ class TTBZAdapter(BaseAdapter):
                 headers=dict(self._session.headers),
             )
         except Exception:
+            # 保持 debug：safe_post 在重试耗尽 / HTTP>=400 时已经打过 warning，
+            # 此处只兜 ttbz 特有的意外异常，升级会与 safe_post 的告警重复。
             logger.debug("ttbz 网络请求异常", exc_info=True)
             return []
         if resp is None or resp.status_code != 200:

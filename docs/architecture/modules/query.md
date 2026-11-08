@@ -82,6 +82,8 @@ PY
 > **编码回退的预期失败（2026-10-17，体检 D-8 第 5 批）**：`nrsis._decode_content` 的两次 `UnicodeDecodeError` 分支属**预期回退链**（UTF-8 → GBK → `errors="replace"`），不是吞错——已加注释明确，不纳入静默吞错治理。
 > **第 11 批（同日）**：`dbba`/`hbba` 的 `act_date` 解析失败、`_batch_dispatcher` 的 `bucket_crash` 指标递增失败、`rotator.reset_all_cooldowns` 的 `adapter_state` 清理失败，均由 `pass` 改 debug；契约见 `tests/test_silent_error_observability_batch11.py`。
 
+> **2026-11-08 替代标准字段日志（U34-B）**：`csres` / `hbba` / `njbz365` 的 `replaces` 解析保持 `debug`（字段缺失不阻断主查询，只影响路由判断），但按异常类型区分「网络请求失败 / 解析失败」并统一 `%s` 占位；`ttbz` 的 `safe_post` 已在重试耗尽/HTTP>=400 时 `warning`、`energy` 翻页且已有数据时上层已 `warning`，这两处保持 `debug` 并加注释，避免同一失败两条告警。契约见 `tests/query/adapters/test_adapter_log_levels.py` 的组 3/4 用例。
+
 ## 架构
 
 ```

@@ -121,7 +121,10 @@ class EnergyAdapter(BaseAdapter):
                     if all_rows:
                         logger.warning("energy 第%d页请求失败，返回已获取的%d条", page + 1, len(all_rows))
                     else:
-                        logger.debug("energy 第%d页请求失败: keyword=%r", page + 1, keyword)
+                        # 保持 debug：翻页失败但已有数据时走上分支 warning；
+                        # 此处仅「一条都没拿到」，属同一次失败的下游，升级会重复告警。
+                        # i18n-allow: 内部运维日志
+                        logger.debug("energy 第%d页请求失败: keyword=%r", page + 1, keyword[:50])
                 break
 
             try:
