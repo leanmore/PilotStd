@@ -13,7 +13,7 @@ JSON 往返、空值不可区分、非法输入回退这三类**泛化**判据�
 - 补发：4 字段往返不丢（`loads_list` / `loads_dict` 各自还原）；
 - `channel_message_ids` 的**语义约定**（键白名单 / 值恒 str / 未投递则键缺席）。
 
-设计文档：docs/plans/notification-redesign/02-目标架构.md §2.2 / §2.4 / §2.5
+设计文档：docs/reference/notification-field-contract.md（从 02-目标架构.md §2.2 提炼；原文已归档）
 """
 
 from __future__ import annotations
@@ -83,7 +83,7 @@ class TestSpecsDatatypes(unittest.TestCase):
         self.assertIn(spec, {spec})  # 可哈希
 
     def test_action_whitelist_matches_design(self):
-        """动作白名单与 02-目标架构.md §2.2 逐项一致（闭集）。"""
+        """动作白名单与 docs/reference/notification-field-contract.md §一 逐项一致（闭集）。"""
         self.assertEqual(
             set(ACTIONS),
             {"view_detail", "open_logs", "retry", "ignore", "snooze", "mark_done"},
@@ -459,13 +459,13 @@ class TestChannelMessageIdsContract(unittest.TestCase):
             self.assertIsInstance(value, str)
 
     def test_contract_documented_in_source_and_doc(self):
-        """契约必须有可查的落点：`channel.py` 常量注释 + 02 文档 §2.2。"""
+        """契约必须有可查的落点：`channel.py` 常量注释 + docs/reference/notification-field-contract.md。"""
         from pathlib import Path
 
         src = Path("pilotstd/core/notification/channel.py").read_text(encoding="utf-8")
         self.assertIn("CHANNEL_KEY_WHITELIST", src)
         self.assertIn("未投递的渠道不出现在 dict 中", src)
-        doc = Path("docs/plans/notification-redesign/02-目标架构.md").read_text(encoding="utf-8")
+        doc = Path("docs/reference/notification-field-contract.md").read_text(encoding="utf-8")
         self.assertIn("channel_message_ids", doc)
 
 

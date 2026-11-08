@@ -391,7 +391,7 @@ class TestTaskKindPersisted(unittest.TestCase):
         self.assertEqual(cols["task_kind"], "TEXT")
 
     def test_consume_point_documented_in_sources(self):
-        """文档侧防护：`mapping.py` 与 `03-实施路径.md` 均写明**双 SSOT** 与单向翻译约定。"""
+        """文档侧防护：`mapping.py` 与新契约文档均写明**双 SSOT** 与单向翻译约定。"""
         from pathlib import Path
 
         mapping_src = Path("pilotstd/core/notification/mapping.py").read_text(encoding="utf-8")
@@ -400,7 +400,7 @@ class TestTaskKindPersisted(unittest.TestCase):
         self.assertIn("不提供反向函数", mapping_src)
         self.assertIn("TASK_KIND_TO_TASK_TYPE", mapping_src)
 
-        plan_src = Path("docs/plans/notification-redesign/03-实施路径.md").read_text(encoding="utf-8")
+        plan_src = Path("docs/reference/notification-stages-contract.md").read_text(encoding="utf-8")
         self.assertIn("阶段 2.5 必做项", plan_src)
         self.assertIn("双 SSOT", plan_src)
 
