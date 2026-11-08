@@ -170,6 +170,7 @@
 - **基线**：`scripts/silent_errors_baseline.json`（按文件 × 类别计数；2026-10-17 基线 pass **43** / return **44** / debug **112**）
 - **阻断条件**：任一文件任一类别当前计数 > 基线 → 阻断；< 基线仅 WARN（提示收紧基线）
 - **执行方式**：`python scripts/check_g_050_silent_errors.py`（`check_all.sh --fast` 与 CI `repo-compliance`）
+- **识别口径（2026-11-09 修正，U34-E1）**：`debug` 类识别 `logger`/`log`/`logging`/`*_log` 以及 `self.log`/`self.logger`/`_core.log` 等接收者（原只认 `Name("logger")`）；遍历 handler 时**剪掉内层 `except` 与函数/lambda 体**（原 `ast.walk` 会把内层 handler、内层函数的 debug 重复算到外层）；`return` 类同时识别 `set()`/`list()`/`dict()`/`tuple()` 无参构造（原先只认字面量）。
 - **背景**：体检 D-8/D-9/D-10。存量 91 处已分批修复并带测试；剩余 43 处为迁移文件（P-106 不可改）/编码回退/日志防御，已评审登记
 
 ### repo-compliance：入仓合规检查

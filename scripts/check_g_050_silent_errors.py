@@ -32,7 +32,8 @@ BASELINE = ROOT / "scripts" / "silent_errors_baseline.json"
 SCAN_DIRS = ("pilotstd", "docker")
 # templates 是 Jinja2 脚手架（含 {{ }}），不是运行时代码，整体排除
 EXCLUDE_PARTS = {"templates", "__pycache__"}
-EMPTY_RETURN = (None, True, False, "", 0)
+# 日志器接收者识别（U34-E1 #3）：不再只认 Name("logger")
+_LOGGER_NAMES = {"logger", "log", "logging"}
 
 
 def _is_empty_return(value: ast.expr | None) -> bool:
@@ -40,6 +41,7 @@ def _is_empty_return(value: ast.expr | None) -> bool:
 
     必须按类型判定 `0`：Python 里 `1 == True`，若用 `in (None, True, False, 0)`
     会把 `return 1` 误判成"假成功"（本门禁初版实测踩过）。
+    空容器字面量 + 无参构造（`set()`/`list()`/`dict()`/`tuple()`）都算空（U34-E1 #E2）。
     """
     if value is None:
         return True
@@ -50,7 +52,51 @@ def _is_empty_return(value: ast.expr | None) -> bool:
         return type(const) is int and const == 0
     if isinstance(value, (ast.Dict, ast.List, ast.Tuple, ast.Set)):
         return not (getattr(value, "keys", None) or getattr(value, "elts", None))
+    if (
+        isinstance(value, ast.Call)
+        and isinstance(value.func, ast.Name)
+        and value.func.id in {"set", "list", "dict", "tuple", "frozenset"}
+        and not value.args
+    ):
+        return True
     return False
+
+
+def _is_logger_debug_call(node: ast.AST) -> bool:
+    """是否「日志器.debug(...)」调用。
+
+    接收者识别（U34-E1 #3）：
+    - `Name`：`logger` / `log` / `logging`，或以 `_log` 结尾（`_log`、`db_log`…）；
+    - `Attribute`：属性名为 `log` / `logger`（`self.log`、`self.logger`、`_core.log`…）。
+    仍要求方法名恰为 `debug`，避免把任意 `.debug()` 误当日志。
+    """
+    if not isinstance(node, ast.Call):
+        return False
+    func = node.func
+    if not isinstance(func, ast.Attribute) or func.attr != "debug":
+        return False
+    base = func.value
+    if isinstance(base, ast.Name):
+        return base.id in _LOGGER_NAMES or base.id.endswith("_log")
+    if isinstance(base, ast.Attribute):
+        return base.attr in ("log", "logger")
+    return False
+
+
+def _iter_handler_scope(handler: ast.ExceptHandler):
+    """遍历 handler「自己」的语句树，剪掉两种不该算给它的节点（U34-E1 #1/#E8）。
+
+    - **内层 `ExceptHandler`**：内层会被单独遍历一次，外层再算就是重复（伞形 handler）；
+    - **`FunctionDef`/`AsyncFunctionDef`/`Lambda`**：函数体在被调用时才执行，不属于该
+      handler 的执行路径；不剪会把内层函数的 debug 记到外层 handler 头上。
+    """
+    stack = list(handler.body)
+    while stack:
+        cur = stack.pop()
+        if isinstance(cur, (ast.ExceptHandler, ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+            continue
+        yield cur
+        stack.extend(ast.iter_child_nodes(cur))
 
 
 def _handler_kinds(node: ast.ExceptHandler) -> set[str]:
@@ -63,15 +109,8 @@ def _handler_kinds(node: ast.ExceptHandler) -> set[str]:
             kinds.add("pass")
         elif isinstance(stmt, ast.Return) and _is_empty_return(stmt.value):
             kinds.add("return")
-    for child in ast.walk(node):
-        if (
-            isinstance(child, ast.Call)
-            and isinstance(child.func, ast.Attribute)
-            and child.func.attr == "debug"
-            and isinstance(child.func.value, ast.Name)
-            and child.func.value.id == "logger"
-        ):
-            kinds.add("debug")
+    if any(_is_logger_debug_call(child) for child in _iter_handler_scope(node)):
+        kinds.add("debug")
     return kinds
 
 
