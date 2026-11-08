@@ -107,7 +107,10 @@ class PendingService:
             return
         try:
             pub_dt = datetime.strptime(pub_str, "%Y-%m-%d")
-        except ValueError:
+        except ValueError as e:
+            # 解析失败会让该标准静默不进等待队列（用户以为已排队），必须留痕。
+            # i18n-allow: 内部运维日志
+            logger.warning("标准 %s 发布日期解析失败（%r），跳过等待队列: %s", num, pub_str, e)
             return
         available_dt = pub_dt + timedelta(days=28)
         existing = self._db.fetchone(

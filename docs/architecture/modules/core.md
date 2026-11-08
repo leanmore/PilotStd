@@ -591,3 +591,9 @@ pilotstd/core/
 > 所有业务时间统一输出带偏移量的 ISO 8601；v73 迁移把历史 `*_at`/`timestamp` 列的裸时间字符串补齐为
 > `YYYY-MM-DDTHH:MM:SS+08:00`（已带偏移的值不动）。retention 查询改用 `datetime(col)` 比较，避免
 > `T`/偏移量导致的字符串比较失效。
+
+> **2026-11-08 静默吞错收口（U34-C2）**：`_validity_pipeline._std_name` 的 DB 查询失败**保持 `debug`**
+> ——它只影响有效性详情列表的「名称」列（查不到就显示标准号），判定结果不变；已在 `except` 内补注释
+> 说明「为什么只 debug、为什么不升级」，避免被后续普查误判为吞错。
+> 同类「可选增强降级」还有 `query/routing/scorer.get_profile`（站点配置覆盖 → 默认权重）与
+> `query/engine/_routing._resolve_base_route`（评分器失败 → 回退硬编码路由），均保留 debug + 注释。

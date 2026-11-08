@@ -44,8 +44,9 @@ def _collect_real_runtime_state() -> dict[str, dict]:
             rotator = mgr.adapter_manager._rotator
             quota = mgr.adapter_manager._quota
             return _collect_runtime_state(rotator, quota)
-    except Exception:
-        logger.debug("收集运行时状态失败，使用空状态", exc_info=True)
+    except Exception as e:
+        # 该端点本身就是排障工具：采集失败却返回空状态，会被误读成「没有运行时状态」。
+        logger.warning("debug 端点收集运行时状态失败，返回空状态: %s", e, exc_info=True)
     return {}
 
 

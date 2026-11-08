@@ -86,6 +86,8 @@ PY
 
 > **2026-11-08 适配器失败日志升 warning（U34-B）**：**24 处**「请求失败 / 非 200 / 业务码异常 / JSON 解析失败 / `dataList` 提取失败」由 `debug` 或**完全无日志**升为 `warning`（口径：站点 + 阶段 + 异常/状态码；查询词一律 `%r` 且截断 50 字符，URL 可直出）。涉及 `ccsn`（GET + 分页 POST + 2 处非 200）、`gongbiaoku`、`jjg`、`jtst`、`mee`、`nrsis`（重试耗尽 + 非 200）、`sppt`（请求 + 非 200 + JSON）、`sppt_local`（请求 + 非 200 + `dataList`）、`ttbz`（JSON）、`miit`/`ncha`（业务码，与同文件 HTTP/JSON 的 `error` 对齐）、`iso_gov`（JSON，原为静默）、`energy`（第 1 页全 fallback 失败）。契约见同一测试文件的组 1/2 用例。
 
+> **2026-11-08 死分支清理与级别统一（U34-C2）**：① `energy._fetch_candidates` **删除**不可达的 `debug` 分支——第 0 页无数据时下方 `if not rows: break` 已退出，能进到 page≥1 必然 `all_rows` 非空 ⇒ 「翻页失败且一条都没拿到」永远不会发生；原位置改为注释说明，不再留"看起来有日志、实际跑不到"的代码。② `_njbz365_session_manager._do_request` 的三个 `except` **统一为 `warning`**（原先「超时最终失败 error / 其他请求异常 error / JSON 解析失败**无日志**」三档不一致）；文案统一为「njbz365 会话 …失败: %s」。契约见 `tests/test_c2_log_levels.py` 与 `tests/query/adapters/test_adapter_log_levels.py`。
+
 ## 架构
 
 ```

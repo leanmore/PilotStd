@@ -140,6 +140,12 @@ StandardManager (BaseFacade)
 
 ## 近期变更
 
+- **2026-11-08（失败日志升级 · U34-C2）**：`announce_service.get_task_results` 的 `result_data` 脏 JSON
+  由 `debug` 升 `warning`（**行为不变**：仍返回 `success` + 空数据，只是不再伪装成"本来就没数据"）；
+  `announce_service._acquire_manual_lock` 的锁写入异常补 `warning`（原为裸 `return False`，被上层
+  当成"锁被占用"⇒ 手动抓取静默不执行）；`pending_service.enqueue_download_wait` 的发布日期解析失败补
+  `warning`（原静默跳过等待队列，该标准不进队列也无痕）。
+
 - **2026-10-16（查询统计口径单源化 + `force_refresh` 透传）**：`scheduled_service.py::query_by_numbers`
   此前只填 `BatchQueryStats` 的 `total/found`，而 `/api/query` 会**原样透出** `downloadable`/`not_found`
   ⇒ 这两项恒为 0，与逐条 `is_downloadable=true` 自相矛盾（现场实测 `2026-10-16T21:22:27+08:00`：

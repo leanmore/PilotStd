@@ -55,6 +55,8 @@ def _std_name(db: Any, std_no: str) -> str:
         if row and isinstance(row["std_name"], str) and row["std_name"]:
             return row["std_name"]
     except Exception as e:
+        # 只用于详情列表的「名称」补充：查不到就显示标准号，有效性判定本身不受影响。
+        # 故保持 debug；若 DB 真故障，有效性流程自身会有更明显的失败。
         logger.debug("std_name lookup failed for %s: %s", std_no, e)
     return ""
 

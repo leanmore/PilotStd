@@ -300,8 +300,10 @@ class PendingQueryDialog(QDialog):
 
             cfg = ConfigManager()
             return bool(cfg.get("announcement.enabled", False))
-        except Exception:
-            logger.debug("待确认查询公告设置失败", exc_info=True)
+        except Exception as e:
+            # 读取失败被当成「未开启」会把用户引向设置页，必须能区分配置故障：
+            # i18n-allow: 内部运维日志
+            logger.warning("待确认查询公告配置读取失败，按未开启处理: %s", e)
             return False
 
     def _do_local_query(self) -> None:

@@ -66,7 +66,10 @@ class AnnounceService:
                 (iso_now(),),
             )
             return True
-        except Exception:
+        except Exception as e:
+            # 锁写入失败会被上层当成「锁被占用」⇒ 手动抓取静默不执行，必须留痕。
+            # i18n-allow: 内部运维日志
+            logger.warning("公告抓取锁写入失败，手动抓取跳过: %s", e)
             return False
 
     def _release_manual_lock(self) -> None:
@@ -265,7 +268,12 @@ class AnnounceService:
                 try:
                     data = _json.loads(row["result_data"])
                 except (_json.JSONDecodeError, TypeError) as e:
-                    logger.debug("announce task result_data invalid JSON (task=%s): %s", task_id, e)
+                    # 解析失败仍按原行为返回 success + 空数据，但不能再静默
+                    logger.warning(
+                        "公告任务结果 JSON 解析失败（task=%s），本次返回空数据: %s",  # i18n-allow: 内部运维日志
+                        task_id,
+                        e,
+                    )
             return {"task_id": task_id, "status": "success", "data": data}
         elif status in ("pending", "running"):
             return {"task_id": task_id, "status": status,

@@ -236,15 +236,20 @@ class Njz365SessionManager:
             except (requests.Timeout, requests.ConnectionError) as e:
                 if attempt < 2:
                     wait = 2**attempt
-                    logger.warning("njbz365 请求超时/连接失败（%d/3），%ds后重试: %s", attempt + 1, wait, e)
+                    logger.warning("njbz365 会话请求超时/连接失败（%d/3），%ds后重试: %s", attempt + 1, wait, e)
                     time.sleep(wait)
                     continue
-                logger.error("njbz365 请求最终失败: %s", e)
+                # i18n-allow: 内部运维日志
+                logger.warning("njbz365 会话请求最终失败: %s", e)
                 return None
             except requests.RequestException as e:
-                logger.error("njbz365 请求失败: %s", e)
+                # i18n-allow: 内部运维日志
+                logger.warning("njbz365 会话请求失败: %s", e)
                 return None
-            except ValueError:
+            except ValueError as e:
+                # 原为「无日志 return None」：与上面两个分支口径不一致，站点改版会完全不可见。
+                # i18n-allow: 内部运维日志
+                logger.warning("njbz365 会话响应 JSON 解析失败: %s", e)
                 return None
 
             if data.get("code") == "0":

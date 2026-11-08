@@ -124,11 +124,8 @@ class EnergyAdapter(BaseAdapter):
                     # ✅ 任务6：翻页失败返回已有数据，不静默丢弃
                     if all_rows:
                         logger.warning("energy 第%d页请求失败，返回已获取的%d条", page + 1, len(all_rows))
-                    else:
-                        # 保持 debug：翻页失败但已有数据时走上分支 warning；
-                        # 此处仅「一条都没拿到」，属同一次失败的下游，升级会重复告警。
-                        # i18n-allow: 内部运维日志
-                        logger.debug("energy 第%d页请求失败: keyword=%r", page + 1, keyword[:50])
+                    # 无「all_rows 为空」的分支：第 0 页无数据时下方 `if not rows: break` 已退出，
+                    # 能进到 page>=1 必然 all_rows 非空 ⇒ 原 debug 分支不可达，已删除（见 U34-C E4）。
                 break
 
             try:
