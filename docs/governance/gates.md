@@ -167,11 +167,19 @@
 ### G-050：静默吞错棘轮
 
 - **检查内容**：生产代码（`pilotstd/` + `docker/`，排除 `templates/`）中三类"失败不可见"——`except` 体只有 `pass`、`except` 体只有 `return` 空/False/None、`except` 体内 `logger.debug`
-- **基线**：`scripts/silent_errors_baseline.json`（按文件 × 类别计数；2026-10-17 基线 pass **43** / return **44** / debug **112**）
+- **基线**：`scripts/silent_errors_baseline.json`（按文件 × 类别计数；**2026-11-09 重算**：pass **43** / return **38** / debug **90**）
 - **阻断条件**：任一文件任一类别当前计数 > 基线 → 阻断；< 基线仅 WARN（提示收紧基线）
 - **执行方式**：`python scripts/check_g_050_silent_errors.py`（`check_all.sh --fast` 与 CI `repo-compliance`）
 - **识别口径（2026-11-09 修正，U34-E1）**：`debug` 类识别 `logger`/`log`/`logging`/`*_log` 以及 `self.log`/`self.logger`/`_core.log` 等接收者（原只认 `Name("logger")`）；遍历 handler 时**剪掉内层 `except` 与函数/lambda 体**（原 `ast.walk` 会把内层 handler、内层函数的 debug 重复算到外层）；`return` 类同时识别 `set()`/`list()`/`dict()`/`tuple()` 无参构造（原先只认字面量）。
 - **背景**：体检 D-8/D-9/D-10。存量 91 处已分批修复并带测试；剩余 43 处为迁移文件（P-106 不可改）/编码回退/日志防御，已评审登记
+
+**G-050 已知局限（2026-11-09）**
+
+- **多语句 handler 不识别 `return` 类**：`except: logger.info(...); return None` 这类多语句 handler 不计入 `return` 类，当前 3 处（`pilotstd/manager/facade/_query_subsystem.py`）。理由：单语句口径有意过滤「补救动作」，放宽会制造噪声；且 `info` 级在生产日志中**可见**，不属"失败不可见"。
+- **同一 handler 多条 `debug` 只算 1**：基线口径偏松（修掉 3 条中的 1 条计数不变），但不影响「新增即阻断」的漏报检测。
+- **基线按文件路径键控**：文件改名/拆分后新路径从 0 起算 → 必然超基线，**纯重构会假红**。触发时需人工确认是「真新增」还是「路径变化」。
+- **`SyntaxError` 文件静默跳过**：语法坏文件不计数，依赖 ruff / G-038 等其他门禁兜底。
+- **后续（待 E-2/E-3）**：`scripts/` 不在扫描范围（纳入将 +36 条，需先 triage）；`except: continue` 不计入三类（≥17 处）。
 
 ### repo-compliance：入仓合规检查
 
