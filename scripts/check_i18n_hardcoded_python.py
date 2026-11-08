@@ -156,11 +156,15 @@ def find_hardcoded(path: Path) -> list[tuple[int, str]]:
     """返回该文件中的硬编码中文（`(行号, 片段)`，按行号升序；同一行多处只记一次）。"""
     try:
         source = path.read_text(encoding="utf-8")
-    except (UnicodeDecodeError, OSError):
+    except (UnicodeDecodeError, OSError) as e:
+        # 读不到 ≠ 没有硬编码中文，留痕后再返回空
+        print(f"[WARN] 读取失败，跳过 i18n 检查: {path}: {e}", file=sys.stderr)
         return []
     try:
         tree = ast.parse(source)
-    except SyntaxError:
+    except SyntaxError as e:
+        # 语法错误本身由 ruff/G-038 兜底，但「本门禁没查这个文件」必须可见
+        print(f"[WARN] 语法解析失败，跳过 i18n 检查: {path}: {e}", file=sys.stderr)
         return []
 
     raw_lines = source.splitlines()

@@ -139,7 +139,9 @@ def find_hardcoded(path: Path) -> list[tuple[int, str]]:
     """返回该文件里「写了中文」的行 [(行号, 片段)]；注释与豁免行不计。"""
     try:
         raw = path.read_text(encoding="utf-8")
-    except (UnicodeDecodeError, OSError):
+    except (UnicodeDecodeError, OSError) as e:
+        # 读不到 ≠ 没有硬编码中文，留痕后再返回空
+        print(f"[WARN] 读取失败，跳过 i18n 检查: {path}: {e}", file=sys.stderr)
         return []
     raw_lines = raw.splitlines()
     stripped = strip_comments(raw).splitlines()

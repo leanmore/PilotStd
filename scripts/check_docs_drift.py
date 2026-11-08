@@ -60,7 +60,8 @@ def _i18n_keys() -> set[str]:
     for path in (ROOT / "pilotstd" / "i18n").glob("*.json"):
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
+        except (OSError, ValueError) as e:
+            print(f"[WARN] i18n 文件读取失败，跳过该文件: {path}: {e}", file=sys.stderr)
             continue
         stack = [(None, data)]
         while stack:
@@ -92,8 +93,9 @@ def load_facts() -> dict:
 
         config_keys |= set(SYSTEM_KEYS) | set(USER_KEYS)
         config_keys |= {f"{p}x" for p in SYSTEM_PREFIXES + USER_PREFIXES}
-    except (ImportError, AttributeError):
-        pass
+    except (ImportError, AttributeError) as e:
+        # 可选依赖不可用时少收一批配置键 → 留痕，否则 drift 会静默少报
+        print(f"[WARN] 配置键来源不可用，跳过该检查项: {e}", file=sys.stderr)
     config_namespaces = {k.split(".", 1)[0] for k in config_keys if "." in k}
 
     from pilotstd.core.notification.events import ALL_EVENTS

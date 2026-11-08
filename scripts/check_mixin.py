@@ -32,7 +32,9 @@ def check_mixin_in_file(file_path: str) -> list[str]:
             if matches:
                 for mixin in matches:
                     violations.append(f"{file_path}: 定义了 Mixin 类 '{mixin}'")
-    except OSError:
+    except OSError as e:
+        # 读不到就不知道有没有 Mixin → 留痕，不能静默跳过
+        print(f"[WARN] 读取失败，跳过 Mixin 检查: {file_path}: {e}", file=sys.stderr)
         pass
     return violations
 

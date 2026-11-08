@@ -237,7 +237,9 @@ def _collect_imports(py_file: Path, imports: set[str]) -> None:
     """从单个 Python 文件中提取非标准库的 import 语句，追加到 imports 集合。"""
     try:
         content = py_file.read_text(encoding="utf-8")
-    except Exception:
+    except Exception as e:
+        # 跳过该文件会让它的 import 全部漏检 → 必须留痕
+        print(f"[WARN] 读取失败，跳过依赖收集: {py_file}: {e}", file=sys.stderr)
         return
     # 说明：/.
     for m in re.finditer(r"^import\s+([a-zA-Z_][a-zA-Z0-9_]*)", content, re.MULTILINE):

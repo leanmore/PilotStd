@@ -7,6 +7,7 @@
 """
 
 import re
+import sys
 from pathlib import Path
 
 # ── 结构化查询关键字（排除非列名的标识符） ──
@@ -175,7 +176,9 @@ def _find_sql_strings(file_path: Path) -> list[tuple[str, int]]:
     """从 .py 文件中提取所有 SQL 字符串片段，返回 (SQL文本, 行号) 列表。"""
     try:
         lines = file_path.read_text(encoding="utf-8").splitlines()
-    except Exception:
+    except Exception as e:
+        # 读不到就不是「没有 SQL」——必须留痕，否则 schema 门禁会静默漏掉整个文件
+        print(f"[WARN] 读取失败，跳过 SQL 解析: {file_path}: {e}", file=sys.stderr)
         return []
 
     sql_fragments: list[tuple[str, int]] = []
