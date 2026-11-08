@@ -40,6 +40,7 @@ from .api.monitor import router as monitor_router
 from .api.normalize import router as normalize_router
 from .api.notification import router as notification_router
 from .api.notification_callback import router as notification_callback_router
+from .api.notification_menu import router as notification_menu_router
 from .api.organize import router as organize_router
 from .api.pending import router as pending_router
 from .api.quality import router as quality_router
@@ -383,6 +384,7 @@ app.include_router(announcements_router)
 app.include_router(settings_router)
 app.include_router(notification_router)
 app.include_router(notification_callback_router)
+app.include_router(notification_menu_router)
 app.include_router(adapter_router)
 app.include_router(query_debug_router)
 app.include_router(scheduler_router)

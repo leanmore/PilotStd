@@ -79,6 +79,16 @@ FACTORY_DEFAULTS = {
     "notification.channels.telegram.receive_mode": "long_poll",
     "notification.channels.telegram.bot_token": "",
     "notification.channels.telegram.chat_id": "",
+    # A-27：渠道菜单（默认关闭；items 为空，启用前必须显式配置）
+    "notification.menus.wechat.enabled": False,
+    "notification.menus.wechat.items": [],
+    "notification.menus.feishu.enabled": False,
+    "notification.menus.feishu.chat_id": "",
+    "notification.menus.feishu.items": [],
+    "notification.menus.telegram.enabled": False,
+    "notification.menus.telegram.items": [],
+    "notification.menus.dingtalk.enabled": False,
+    "notification.menus.dingtalk.items": [],
     "notification.channels.feishu.enabled": False,
     "notification.channels.feishu.webhook_url": "",
     # 通知订阅规则由**事件规格派生**（2026-10-03 步 B 第三步）：键集等于带默认渠道的事件；
