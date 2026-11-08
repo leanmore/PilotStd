@@ -192,7 +192,8 @@ def _find_dataclass_files(py_files: list[Path]) -> set[str]:
     for f in py_files:
         try:
             text = f.read_text(encoding="utf-8")
-        except Exception:
+        except Exception as e:
+            print(f"[WARN] 读取失败，跳过 dataclass 发现: {f}: {e}", file=sys.stderr)
             continue
         if re.search(r"@dataclass", text):
             dc_files.add(str(f.resolve()))

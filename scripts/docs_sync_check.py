@@ -215,9 +215,21 @@ def update_document(doc_relpath, strategy, in_repo, diff_text, commit_msg, trigg
 # ─── 主流程 ──────────────────────────────────────────────────
 
 
+def _diff_or_exit(args):
+    """diff 类 git 查询：取不到就是「变更范围不可知」→ exit 2。
+
+    U34 E-fix-scripts：原先 git 失败返回空串，调用方把它当成「本次无变更」→ PASS（假绿）。
+    """
+    out = _run_git(args)
+    if out is None:
+        print("[WARN] 无法获取变更范围（git diff 失败）→ exit 2", file=sys.stderr)
+        raise SystemExit(2)
+    return out
+
+
 def _get_staged_files():
     """获取暂存区文件列表 [(status, path), ...]（本地默认来源）"""
-    out = _run_git(["diff", "--cached", "--name-status"])
+    out = _diff_or_exit(["diff", "--cached", "--name-status"])
     result = []
     for line in out.split("\n"):
         line = line.strip()
@@ -294,7 +306,8 @@ def _range_is_valid(rng: str) -> bool:
     right = right.strip(".") or "HEAD"
     if set(left) == {"0"} or set(right) == {"0"}:  # 全 0 SHA（新分支/首次推送）
         return False
-    return all(_run_git(["rev-parse", "--verify", f"{rev}^{{commit}}"]) for rev in (left, right))
+    # 取不到（None）按「范围不可知」→ 该候选来源无效，由上层继续尝试其他来源
+    return all((_run_git(["rev-parse", "--verify", f"{rev}^{{commit}}"]) or "").strip() for rev in (left, right))
 
 
 def _resolve_change_source(opts):
@@ -361,9 +374,9 @@ def _range_has_changes(rng):
 def _get_changed_files(rng):
     """按范围取变更文件列表；rng 为 None 时退回暂存区。"""
     if rng:
-        out = _run_git(["diff", "--name-status", rng])
+        out = _diff_or_exit(["diff", "--name-status", rng])
     else:
-        out = _run_git(["diff", "--cached", "--name-status"])
+        out = _diff_or_exit(["diff", "--cached", "--name-status"])
     result = []
     for line in out.split("\n"):
         line = line.strip()
@@ -376,14 +389,14 @@ def _get_changed_files(rng):
 
 def _get_diff_text(rng):
     """按范围取 diff 文本（Handler/Mixin 规则需要扫描文本）。"""
-    return _run_git(["diff", rng]) if rng else _run_git(["diff", "--cached"])
+    return _diff_or_exit(["diff", rng]) if rng else _diff_or_exit(["diff", "--cached"])
 
 
 def _get_commit_message_for(rng):
     """范围内末位提交的 message（CI 无 COMMIT_EDITMSG，故从 git log 取）。"""
     if rng:
         _left, tip = _split_range(rng)
-        msg = _run_git(["log", "-1", "--format=%B", tip or "HEAD"])
+        msg = _run_git(["log", "-1", "--format=%B", tip or "HEAD"]) or ""
         if msg:
             return msg
     return _get_commit_message()

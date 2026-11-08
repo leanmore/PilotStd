@@ -403,7 +403,8 @@ def _check_undefined_names(py_files: list[Path]) -> None:
             module = node.module or ""
             try:
                 abs_module = _resolve_name(module, pkg, node.level)
-            except ValueError:
+            except ValueError as e:
+                print(f"[WARN] 模块名解析失败，跳过该 import: {file_path}: {e}", file=sys.stderr)
                 continue
 
             candidates = module_to_path(abs_module, SCAN_DIR)

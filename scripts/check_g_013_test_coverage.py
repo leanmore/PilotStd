@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 # U34：变更范围获取失败必须 FAIL（旧行为是把「拿不到」当成「没有变更」→ 假绿）
-from _gate_git import ChangeScope, ChangeSetUnavailable  # noqa: E402
+from _gate_git import ChangeScope, ChangeSetUnavailable, content_or_exit  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -170,8 +170,8 @@ def _extract_api_signatures(tree: ast.Module) -> Dict[str, dict]:
                 elif isinstance(child.func, ast.Attribute):
                     try:
                         func_name = ast.unparse(child.func)
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        print(f"[WARN] AST 解析失败，跳过该调用的 IO 判定: {e}", file=sys.stderr)
                 # 使用正则精确匹配输入输出调用
                 if IO_PATTERN.search(func_name):
                     has_io = True
@@ -193,11 +193,12 @@ def _extract_api_signatures(tree: ast.Module) -> Dict[str, dict]:
 # 版本控制安全交互
 # ============================================================================ 分隔
 
-def get_content_at(filepath: str, ref: str) -> str:
-    """安全获取文件在指定 git ref 中的内容。新文件或 git 不可用时返回空字符串。
+def get_content_at(filepath: str, ref: str) -> Optional[str]:
+    """取文件在 git ref 中的内容。
 
-    `ref` 由调用方决定：本地模式固定 `HEAD`（暂存/工作区对照），
-    `--range` 模式传 merge-base（基线对照），否则「HEAD vs 工作区」在 CI 里恒等 ⇒ 永远无变更。
+    返回：存在 → 内容（可为空串文件）；该 ref 中不存在 → `''`（合法）；
+    **git 不可用 → `None`**（调用方须按「范围不可知」→ exit 2，不得当成「文件不存在」）。
+    `ref` 由调用方决定（本地 `HEAD`；`--range` 用 merge-base）。
     """
     try:
         result = subprocess.run(
@@ -207,8 +208,9 @@ def get_content_at(filepath: str, ref: str) -> str:
         if result.returncode == 0:
             return result.stdout or ''
         return ''
-    except Exception:
-        return ''
+    except Exception as e:
+        print(f"[WARN] git show 失败: {ref}:{filepath}: {e}", file=sys.stderr)
+        return None
 
 
 def get_commit_message(msg_file: Optional[str] = None) -> str:
@@ -449,7 +451,7 @@ def _check_bugfix_rule(changed_files: List[str], commit_msg: str) -> tuple[bool,
 
 def _load_pair(biz_file: str, old_ref: str, new_ref: Optional[str], warnings: list) -> Optional[tuple]:
     """读取比对所需的「基线 / head」内容；读不到时记 warning 并返回 None。"""
-    old_content = get_content_at(biz_file, old_ref)
+    old_content = content_or_exit(get_content_at(biz_file, old_ref), biz_file, old_ref)
     if new_ref is None:
         try:
             with open(biz_file, 'r', encoding='utf-8') as fh:
@@ -457,7 +459,7 @@ def _load_pair(biz_file: str, old_ref: str, new_ref: Optional[str], warnings: li
         except (OSError, UnicodeDecodeError) as e:
             warnings.append(f"[TEST-WARN] 无法读取文件 {biz_file}: {e}")
             return None
-    new_content = get_content_at(biz_file, new_ref)
+    new_content = content_or_exit(get_content_at(biz_file, new_ref), biz_file, new_ref)
     if not new_content:
         # head 侧为空 = 文件被删除；ast.parse("") 返回 None，无法参与比对，至少留痕。
         warnings.append(f"[TEST-WARN] {biz_file} 在 {new_ref} 中不存在（疑删除），未做 AST 比对")

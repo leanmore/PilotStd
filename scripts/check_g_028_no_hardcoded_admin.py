@@ -93,7 +93,8 @@ def main() -> int:
                 continue
             try:
                 lines = file_path.read_text(encoding="utf-8").splitlines()
-            except Exception:
+            except Exception as e:
+                print(f"[WARN] 读取失败，跳过硬编码检查: {file_path}: {e}", file=sys.stderr)
                 continue
 
             rel_path = str(file_path.relative_to(ROOT)).replace("\\", "/")

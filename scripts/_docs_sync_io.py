@@ -11,6 +11,7 @@ from __future__ import annotations
 import os
 import re
 import subprocess
+import sys
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -73,9 +74,13 @@ def _is_feat_or_fix_commit(commit_msg):
     return bool(re.match(r"^(feat|fix)(\(.+\))?:", fl))
 
 
-# 执行 git 命令并返回标准输出；失败返回空串（调用方按「无输出」处理，不抛异常）。
+# 执行 git 命令并返回标准输出；失败返回 None（调用方必须区分「正常空输出」与「取不到」）。
 def _run_git(args):
-    """运行 git 命令，返回 stdout（去除末尾换行）。失败返回空字符串。
+    """运行 git 命令，返回 stdout（去除末尾换行）；**执行失败 / 非零退出 → 返回 None**。
+
+    区分语义（U34 E-fix-scripts）：git 正常返回 0 且输出为空 = 合法的「本次无变更」；
+    超时 / 找不到 git / 非零退出 = **不可知**，调用方必须按「范围不可知」处理（exit 2），
+    不得再退化成「无变更 → PASS」。
 
     固定 `core.quotepath=false`：默认 git 会把非 ASCII 路径输出成
     `"docs/guides/Docker\\344\\275\\277..."` 的引号转义形式，而触发规则用的是字面路径
@@ -90,9 +95,13 @@ def _run_git(args):
             timeout=30,
             cwd=PROJECT_ROOT,
         )
-        return result.stdout.rstrip("\n")
-    except (subprocess.TimeoutExpired, FileNotFoundError):
-        return ""
+    except (subprocess.TimeoutExpired, FileNotFoundError) as e:
+        print(f"[WARN] git 执行失败: {' '.join(args)}: {e}", file=sys.stderr)
+        return None
+    if result.returncode != 0:
+        print(f"[WARN] git 命令非零退出: {' '.join(args)} (exit={result.returncode})", file=sys.stderr)
+        return None
+    return (result.stdout or "").rstrip("\n")
 
 
 # 读取当前提交信息（优先 HEAD，回退到最近一次提交）。

@@ -142,7 +142,8 @@ def scan(root: Path) -> tuple[list[str], list[str]]:
             try:
                 with open(fpath, "r", encoding="utf-8") as f:
                     lines = f.readlines()
-            except (UnicodeDecodeError, PermissionError):
+            except (UnicodeDecodeError, PermissionError) as e:
+                print(f"[WARN] 读取失败，跳过规模检查: {fpath}: {e}", file=sys.stderr)
                 continue
 
             logical = _count_logical_lines(lines, fpath.suffix)
@@ -172,7 +173,8 @@ def scan(root: Path) -> tuple[list[str], list[str]]:
             if fpath.suffix == ".py" and logical > 10:
                 try:
                     tree = ast.parse("".join(lines))
-                except SyntaxError:
+                except SyntaxError as e:
+                    print(f"[WARN] 语法解析失败，跳过函数规模检查: {fpath}: {e}", file=sys.stderr)
                     continue
                 for node in ast.walk(tree):
                     if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):

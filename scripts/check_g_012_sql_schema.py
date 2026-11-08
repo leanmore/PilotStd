@@ -164,7 +164,9 @@ def main() -> int:
             for lineno, table, col, context in errors:
                 key = (str(rel), table, col)
                 all_errors[key].append((lineno, context))
-        except Exception:
+        except Exception as e:
+            # 整个文件处理失败 → 该文件的 SQL 完全没校验，必须留痕
+            print(f"[WARN] 处理失败，跳过 SQL 校验: {f}: {e}", file=sys.stderr)
             continue
 
     print(f"  SQL 字符串: {total_sql}")

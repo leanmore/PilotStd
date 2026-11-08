@@ -163,7 +163,8 @@ def main() -> int:
     for fpath in py_files:
         try:
             content = fpath.read_text(encoding="utf-8")
-        except (UnicodeDecodeError, PermissionError):
+        except (UnicodeDecodeError, PermissionError) as e:
+            print(f"[WARN] 读取失败，跳过 schema 同步: {fpath}: {e}", file=sys.stderr)
             continue
 
         new_content, changes, log = _fix_file(content, ref_schema)

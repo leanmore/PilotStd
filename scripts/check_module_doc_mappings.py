@@ -43,8 +43,11 @@ DOC_COVERAGE_MAP: dict[str, str] = {
 }
 
 
-def _run_git(args: list[str]) -> str:
-    """运行 git 命令返回 stdout；失败返回空串（不抛异常，交调用方判定）。"""
+def _run_git(args: list[str]) -> str | None:
+    """运行 git 命令返回 stdout；**失败返回 None**（调用方必须区分「空输出」与「取不到」）。
+
+    U34 E-fix-scripts：原先失败返回空串，调用方当成「无变更」→ PASS（假绿）。
+    """
     try:
         result = subprocess.run(
             ["git", *args],
@@ -55,9 +58,13 @@ def _run_git(args: list[str]) -> str:
             cwd=str(ROOT),
             timeout=30,
         )
-    except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
-        return ""
-    return result.stdout if result.returncode == 0 else ""
+    except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as e:
+        print(f"[WARN] git 执行失败: {' '.join(args)}: {e}", file=sys.stderr)
+        return None
+    if result.returncode != 0:
+        print(f"[WARN] git 命令非零退出: {' '.join(args)} (exit={result.returncode})", file=sys.stderr)
+        return None
+    return result.stdout or ""
 
 
 def _split_range(rng: str) -> tuple[str, str]:
@@ -79,7 +86,7 @@ def _range_is_valid(rng: str) -> bool:
     right = right.strip(".") or "HEAD"
     if set(left) == {"0"} or set(right) == {"0"}:
         return False
-    return all(_run_git(["rev-parse", "--verify", f"{rev}^{{commit}}"]).strip() for rev in (left, right))
+    return all((_run_git(["rev-parse", "--verify", f"{rev}^{{commit}}"]) or "").strip() for rev in (left, right))
 
 
 def parse_args(argv: list[str]) -> dict:
@@ -163,6 +170,10 @@ def get_changed_files(rng: str | None) -> list[str]:
     if not rng:
         return []
     out = _run_git(["diff", "--name-only", rng])
+    if out is None:
+        # 取不到 ≠ 无变更：范围不可知必须阻断（U34 E-fix-scripts，T-25/T-27 同款）
+        print(f"[WARN] 无法获取变更文件（范围 {rng} 不可知）→ exit 2", file=sys.stderr)
+        raise SystemExit(2)
     return [f.strip() for f in out.strip().split("\n") if f.strip()]
 
 

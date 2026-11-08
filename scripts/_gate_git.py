@@ -23,11 +23,24 @@ G-013 / G-030 / G-031 / G-033 原先在「git 不可用 / 超时 / 命令非零�
 from __future__ import annotations
 
 import subprocess
+import sys
 from pathlib import Path
 
 
 class ChangeSetUnavailable(RuntimeError):
     """无法确定本次变更范围（git 不可用 / 超时 / 所有来源均失败）。"""
+
+
+def content_or_exit(content: str | None, filepath: str, ref: str) -> str:
+    """git 取内容失败（None）→ 打印 WARN + exit 2；空串表示「该 ref 无此文件」，原样返回。
+
+    U34 E-fix-scripts：`git show` 失败与「文件不存在」都会得到空内容，必须由调用方区分，
+    否则「范围不可知」会退化成「文件被删除 → 无需检查 → PASS」。
+    """
+    if content is None:
+        print(f"[WARN] 无法读取 {filepath} 在 {ref} 的内容（git 不可用）→ exit 2", file=sys.stderr)
+        raise SystemExit(2)
+    return content
 
 
 # 统一记账：一次门禁里的每条 git 查询都登记成功/失败，
