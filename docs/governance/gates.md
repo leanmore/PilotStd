@@ -18,7 +18,7 @@
 | G-010 | 代码规模控制 | 文件有效代码行≤500行（>400警告）、函数≤80行；>500行阻断时须提供拆分证据 | 文件>500行/函数>80行（拆分证据不足亦阻断） | `scripts/check_g_010_code_size.py` | ✅ 已部署 |
 | G-011 | 动态属性完整性 | `self.xxx` 的引用必须有对应的定义或声明（`_done`/`_msg` 后缀识别） | 断裂引用 | `scripts/check_g_011_attr_integrity.py` | ✅ 已部署（`--fast` + CI `test-backend`） |
 | G-012 | SQL 列引用 + 注释规范 | ① SQL 字符串里的列必须存在于库（schema/迁移构建后比对）；② 注释密度与注释语言（`[LANG]` 仅警告不阻断） | ① SQL 引用不存在的列；② 注释密度阻断项 | `scripts/check_g_012_sql_schema.py`、`scripts/check_g_012_comment_density.py` | ✅ 已部署（`--fast` + 2026-10-17 补入 CI `repo-compliance`；⚠️ CI 原有的 `check_schema_consistency.py` 是**另一个脚本**，不可混同） |
-| G-013 | 测试联动（变更伴随测试） | 业务目录（`pilotstd/` 下 manager/organizer/download/query/tasks/monitor/wechat_ip/announcement/core/i18n）的公开/高风险私有 API 变更必须带测试变更；**测试变更**含 `tests/**` 与 `web/src/**/*.test.ts`（2026-10-29 B5/A-19） | `[TEST-BLOCK]` 高风险变更无测试 | `scripts/check_g_013_test_coverage.py` | ✅ 已部署（2026-10-17 接入 `.husky/pre-commit`；只挂本地——判据依赖暂存区）。**v2.05**：规则 0（`fix` 必须带测试）改由 `.husky/commit-msg` 用 `--commit-msg-file "$1"` 执行，pre-commit 传 `--no-commit-msg`；**v2.06**：`is_business_file()` 修正——原按 git 路径第一段匹配，而路径是 `pilotstd/manager/...` ⇒ **`pilotstd/` 下所有业务代码从未被检查过**；同时补 `docker`/`scan` 两个目录，测试判据统一为"tests/ 下任一测试变更"（精确映射实测 0/16、文件名启发式 3/16，都会常红） |
+| G-013 | 测试联动（变更伴随测试） | 业务目录（`pilotstd/` 下 manager/organizer/download/query/tasks/monitor/wechat_ip/announcement/core/i18n）的公开/高风险私有 API 变更必须带测试变更；**测试变更**含 `tests/**` 与 `web/src/**/*.test.ts`（2026-10-29 B5/A-19） | `[TEST-BLOCK]` 高风险变更无测试 | `scripts/check_g_013_test_coverage.py` | ✅ 已部署（2026-10-17 接入 `.husky/pre-commit`；只挂本地——判据依赖暂存区）。**v2.05**：规则 0（`fix` 必须带测试）改由 `.husky/commit-msg` 用 `--commit-msg-file "$1"` 执行，pre-commit 传 `--no-commit-msg`；**v2.06**：`is_business_file()` 修正——原按 git 路径第一段匹配，而路径是 `pilotstd/manager/...` ⇒ **`pilotstd/` 下所有业务代码从未被检查过**；同时补 `docker`/`scan` 两个目录，测试判据统一为"tests/ 下任一测试变更"（精确映射实测 0/16、文件名启发式 3/16，都会常红）；**v2.27**：变更文件范围不可知时 exit 2（而非静默 PASS）；干净仓库（git 正常返回空）仍 PASS |
 | G-015 | 相对导入检查 | 所有 import 正确 | 违规 | `scripts/check_g_015_relative_imports.py` | ✅ 已部署 |
 | G-018 | UI 敏感字段保护 | 密钥/令牌类字段在 UI 层必须掩码（Password 组件 / `type=password`） | 命中未掩码字段 | `scripts/check_ui_sensitive_fields.py` | ✅ 已部署（CI `test-frontend` 步骤 `G-018 — Check UI sensitive fields protection`） |
 | G-025 | 适配器列表一致性 | 查询适配器与公告适配器必须可导入且定义 `DISPLAY_NAME`，与列表登记一致 | 缺失/不可导入 | `scripts/check_g_025_adapters.py` | ✅ 已部署（CI `test-backend`；需 `pilotstd` 可导入，本地裸跑须置 `PYTHONPATH`） |
@@ -92,6 +92,8 @@
 - **阻断条件**：检测到新增标记但登记簿未同步变更 → 阻断
 - **执行方式**：`python scripts/check_g_030_tech_debt.py`（ci.yml repo-compliance job 部署）
 
+> **v2.27**：变更文件范围不可知时 exit 2（而非静默 PASS）；干净仓库（git 正常返回空）仍 PASS。
+
 ### G-031：文档同步检查
 
 - **检查内容**：核心模块变更时，对应文档同步更新
@@ -114,6 +116,8 @@
 - **阻断条件**：目标文档存在但未同步更新 → 阻断；目标文档不存在 → 按模式处理，`block` 同样阻断、`warn` 仅告警（当前 12 条均为 `block`，且 12 个目标文档均已存在）
 - **执行方式**：`python scripts/check_g_031_docs_sync.py`
 - **文档检索工具**（2026-11-07）：`scripts/find_docs.py` 是只读检索工具，不是门禁；它用于任务开始前按关键词找文档。按本表 `scripts/` → 本文件的映射，新增该脚本时同步登记本条；检索结果仍需人工打开原文确认，不能替代 G-031/G-037/G-052。
+
+> **v2.27**：变更文件范围不可知时 exit 2（而非静默 PASS）；干净仓库（git 正常返回空）仍 PASS。
 
 ### G-032：文档健康度守护
 
@@ -143,6 +147,8 @@
   - 历史 ADR 文件被修改 → 阻断
   - 同一 ADR 编号被 >1 个文件占用 → 阻断（2026-10-17 新增；该断言不依赖 git diff，任何场景先执行）
 - **执行方式**：`python scripts/check_g_033_adr_integrity.py`
+
+> **v2.27**：变更文件范围不可知时 exit 2（而非静默 PASS）；干净仓库（git 正常返回空）仍 PASS。
 
 ### G-034：覆盖率阈值检查
 
@@ -610,6 +616,7 @@ B1（声明类 vs 实现类）已覆盖同一语义、且每次 CI 都在跑；�
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
+| v2.27 | 2026-11-08 | **U34 门禁假绿修复：变更文件范围不可知时 exit 2**。G-013/G-030/G-031/G-033 原先在 git 不可用、超时或命令非零退出时返回空列表，调用方把「空」当成「本次无变更」→ PASS，属静默假绿。四条 git 查询统一收口到新增的 `scripts/_gate_git.py`（`ChangeScope` / `ChangeSetUnavailable`）：基础设施失败立即抛错、单条来源失败记账、**所有来源都失败 → exit 2** 并打印「无法获取变更文件范围」；部分来源不可用时 PASS + WARN 列出不可用来源。**刻意不把「结果为空」判失败**——干净仓库每次提交都会挂，门禁会被迫绕过（另一种假绿）。新增 `tests/test_gate_changed_files_failfast.py`（12 例：不可知→FAIL、为空→不误导、CLI 冒烟）。验证：`check_all.sh --fast --guards --local` EXIT=0、12 例全过 |
 | v2.26 | 2026-11-08 | **security-scan 依赖升级**：Pillow 12.2.0 → 13.0.0、urllib3 2.7.0 → 2.8.0；pip-audit 对 `PYSEC-2026-1325`（ecdsa，无 sign 路径）/`PYSEC-2026-4298`（python-jose，仅 HS256 对称密钥）加带理由 ignore；OCR 冒烟（RapidOCR + Pillow 13）通过；本地 `pytest tests/ -k "not gui"` 6100 passed | 
 | v2.25 | 2026-11-08 | **bandit 切 HIGH 阻断**：CI `security-scan` 的 bandit 步骤去掉 `\|\| echo` 与 `continue-on-error`，改为 `--severity-level high`（只拦 HIGH，MEDIUM 111 条仍不阻断）；8 条 HIGH 逐条 `# nosec`/`usedforsecurity=False` 清理，复跑 HIGH=0；`python -m bandit -r pilotstd/ ... --severity-level high` exit 0 |
 | v2.24 | 2026-11-08 | **W1-U1 检查器/信号修正**：`check_property_proxy.py` 识别 `_CORE_PROXY_WHITELIST` + `__getattr__/__setattr__` 代理（11 条误报归零）；`check_signal_connect.py` 识别 `self.X.emit` callback 形式并补 Qt 内置信号（`canceled`/`finished`/`started`/`itemSelectionChanged`/`destroyed`/`objectNameChanged`，12 → 0）；`error_occurred` 接 `CleanupHandler._status` 状态栏通道并补 `tests/gui/test_cleanup_error_channel.py`；删除从未 emit 的 `MainWindow.query_result_ready` 死信号（旧 `_on_query_result_ready` 仅测试调用，03-open 已记清理候选）。验证：两脚本 exit 0、`tests/gui/` 1040 passed、`--fast --guards --local` exit 0 |

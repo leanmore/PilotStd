@@ -14,9 +14,11 @@ MVP 阶段: 输出关联性手动确认提示
             该断言不依赖 git diff，任何场景都先执行）
 """
 import re
-import subprocess
 import sys
 from pathlib import Path
+
+# U34：变更范围获取失败必须 FAIL（旧行为是把「拿不到」当成「没有变更」→ 假绿）
+from _gate_git import ChangeScope, ChangeSetUnavailable  # noqa: E402
 
 # 控制台-8编码兼容
 if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
@@ -56,40 +58,26 @@ def is_archived(filepath: str) -> bool:
 
 
 def get_changed_files() -> list[str]:
-    """获取本次变更的文件列表（三级回退）。"""
-    try:
-        # 1.优先检查暂存区（-场景）
-        result = subprocess.run(
-            ["git", "diff", "--cached", "--name-only", "--diff-filter=ACMR"],
-            capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(PROJECT_ROOT), timeout=10
-        )
-        if result.stdout.strip():
-            files = [f.strip() for f in result.stdout.strip().split("\n") if f.strip()]
-            print(f"   📋 检测暂存区变更: {len(files)} 个文件")
+    """获取本次变更的文件列表（三级回退：暂存区 → PR → 最近提交）。
+
+    Raises:
+        ChangeSetUnavailable: git 不可用，或所有来源都拿不到结果（U34 假绿修复）。
+    """
+    scope = ChangeScope(PROJECT_ROOT, timeout=10)
+    for args, label in (
+        (["git", "diff", "--cached", "--name-only", "--diff-filter=ACMR"], "暂存区"),
+        (["git", "diff", "--name-only", "--diff-filter=ACMR", "origin/main..."], "PR (origin/main...)"),
+        (["git", "diff", "--name-only", "--diff-filter=ACMR", "HEAD~1"], "最近提交 (HEAD~1)"),
+    ):
+        stdout = scope.query(args)
+        if stdout and stdout.strip():
+            files = [f.strip() for f in stdout.strip().split("\n") if f.strip()]
+            print(f"   📋 检测{label}变更: {len(files)} 个文件")
             return files
 
-        # 2.持续集成合并请求场景：对比/入口
-        result = subprocess.run(
-            ["git", "diff", "--name-only", "--diff-filter=ACMR", "origin/main..."],
-            capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(PROJECT_ROOT), timeout=10
-        )
-        if result.stdout.strip():
-            files = [f.strip() for f in result.stdout.strip().split("\n") if f.strip()]
-            print(f"   📋 检测 PR 变更 (origin/main...): {len(files)} 个文件")
-            return files
-
-        # 3.回退：最近一次
-        result = subprocess.run(
-            ["git", "diff", "--name-only", "--diff-filter=ACMR", "HEAD~1"],
-            capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(PROJECT_ROOT), timeout=10
-        )
-        files = [f.strip() for f in result.stdout.strip().split("\n") if f.strip()]
-        if files:
-            print(f"   📋 检测最近提交变更 (HEAD~1): {len(files)} 个文件")
-        return files
-    except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as e:
-        print(f"   ⚠️  git diff 失败: {e}")
-        return []
+    scope.require("本次变更文件范围")
+    scope.report_partial()
+    return []
 
 
 def is_architecture_change(filepath: str) -> bool:
@@ -150,7 +138,13 @@ def validate_adr(adr_dir: Path | None = None) -> bool:
             print(f"   ADR-{number} 被 {len(names)} 个文件占用: {', '.join(names)}")
         return False
 
-    changed = get_changed_files()
+    try:
+        changed = get_changed_files()
+    except ChangeSetUnavailable as exc:
+        print(f"❌ G-033: 无法获取变更文件范围 — {exc}")
+        print("   门禁不允许在「变更范围不可知」时跳过（否则假绿）。请检查 git 可用性与仓库完整性。")
+        return False
+
     arch_changes = [f for f in changed if is_architecture_change(f) and not is_archived(f)]
 
     if not arch_changes:

@@ -21,6 +21,11 @@ import time
 from pathlib import Path
 from typing import Dict, List, Optional
 
+# U34：变更范围获取失败必须 FAIL（旧行为是把「拿不到」当成「没有变更」→ 假绿）
+from _gate_git import ChangeScope, ChangeSetUnavailable  # noqa: E402
+
+ROOT = Path(__file__).resolve().parent.parent
+
 # ============================================================================ 分隔
 # 配置常量
 # ============================================================================ 分隔
@@ -228,29 +233,26 @@ def get_changed_files() -> List[str]:
     """
     获取本次变更的文件列表。
     仅包含已暂存（staged）和已跟踪的工作区变更，不包含未跟踪文件。
+
+    Raises:
+        ChangeSetUnavailable: git 不可用，或所有来源都拿不到结果。
+            此时门禁必须 FAIL——「拿不到变更范围」不等于「没有变更」，
+            静默 PASS 会让本次及之后所有提交都失去该维度保护（U34 假绿修复）。
     """
+    scope = ChangeScope(ROOT, timeout=10)
     files = set()
-    try:
-        # 暂存区变更
-        r1 = subprocess.run(
-            ['git', 'diff', '--cached', '--name-only', '--diff-filter=ACMR'],
-            capture_output=True, text=True, encoding='utf-8', errors='replace', check=False, timeout=10
-        )
-        if r1.returncode == 0:
-            files.update((r1.stdout or '').strip().splitlines())
+    for args in (
+        ['git', 'diff', '--cached', '--name-only', '--diff-filter=ACMR'],
+        ['git', 'diff', '--name-only', '--diff-filter=ACMR'],
+    ):
+        stdout = scope.query(args)
+        if stdout:
+            files.update(stdout.strip().splitlines())
 
-        # 已跟踪的工作区变更
-        r2 = subprocess.run(
-            ['git', 'diff', '--name-only', '--diff-filter=ACMR'],
-            capture_output=True, text=True, encoding='utf-8', errors='replace', check=False, timeout=10
-        )
-        if r2.returncode == 0:
-            files.update((r2.stdout or '').strip().splitlines())
-
-        # 注意：不包含未跟踪文件（---）
-        # 未跟踪文件不应触发门禁，只有被后才进入暂存区检查
-    except Exception:
-        pass
+    # 注意：不包含未跟踪文件（---）
+    # 未跟踪文件不应触发门禁，只有被后才进入暂存区检查
+    scope.require("本次变更文件范围")
+    scope.report_partial()
     return [f for f in files if f]
 
 
@@ -520,11 +522,20 @@ def main():
     check_bugfix = '--no-commit-msg' not in sys.argv
     bugfix_only = '--bugfix-only' in sys.argv
 
-    result = run_check(
-        commit_msg=get_commit_message(msg_file),
-        check_bugfix=check_bugfix,
-        bugfix_only=bugfix_only,
-    )
+    try:
+        result = run_check(
+            commit_msg=get_commit_message(msg_file),
+            check_bugfix=check_bugfix,
+            bugfix_only=bugfix_only,
+        )
+    except ChangeSetUnavailable as exc:
+        print(f"[FAIL] G-013: 无法获取变更文件范围 — {exc}", file=sys.stderr)
+        print(
+            "       门禁不允许在「变更范围不可知」时静默跳过（会造成假绿）。"
+            "请检查 git 是否可用、仓库是否完整。",
+            file=sys.stderr,
+        )
+        sys.exit(2)
 
     if output_format == 'json':
         print(json.dumps(result, ensure_ascii=False, indent=2))

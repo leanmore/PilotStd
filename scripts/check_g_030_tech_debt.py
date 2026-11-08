@@ -15,9 +15,11 @@ G-030: 技术债联动检查。
   同日旧簿 `docs/architecture/technical-debt-registry.md` 已废止归档，故候选只剩 SSOT 一份。
 """
 import re
-import subprocess
 import sys
 from pathlib import Path
+
+# U34：变更范围获取失败必须 FAIL（旧行为是把「拿不到」当成「没有变更」→ 假绿）
+from _gate_git import ChangeScope, ChangeSetUnavailable  # noqa: E402
 
 # 控制台-8编码兼容
 if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
@@ -44,62 +46,46 @@ EXCLUDE_PREFIXES = ["docs/", "tests/", "scripts/", "web/node_modules/"]
 
 
 def get_staged_diff() -> str:
-    """获取暂存区新增行的 diff。"""
-    try:
-        # 1. 优先暂存区
-        result = subprocess.run(
-            ["git", "diff", "--cached", "-U0"],
-            capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(PROJECT_ROOT), timeout=10
-        )
-        if result.stdout.strip():
-            return result.stdout
+    """获取本次变更的新增行 diff（三级回退：暂存区 → PR → 最近提交）。
 
-        # 2.持续集成合并请求场景
-        result = subprocess.run(
-            ["git", "diff", "-U0", "origin/main..."],
-            capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(PROJECT_ROOT), timeout=10
-        )
-        if result.stdout.strip():
-            return result.stdout
+    Raises:
+        ChangeSetUnavailable: git 不可用，或所有来源都拿不到结果。
+            「拿不到变更范围」不等于「没有变更」，静默返回空会让门禁假绿（U34）。
+    """
+    scope = ChangeScope(PROJECT_ROOT, timeout=10)
+    for args in (
+        ["git", "diff", "--cached", "-U0"],
+        ["git", "diff", "-U0", "origin/main..."],
+        ["git", "diff", "-U0", "HEAD~1"],
+    ):
+        stdout = scope.query(args)
+        if stdout and stdout.strip():
+            return stdout
 
-        # 3. 最近一次提交
-        result = subprocess.run(
-            ["git", "diff", "-U0", "HEAD~1"],
-            capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(PROJECT_ROOT), timeout=10
-        )
-        return result.stdout
-    except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as e:
-        print(f"   ⚠️  git diff 失败: {e}")
-        return ""
+    scope.require("本次变更 diff")
+    scope.report_partial("变更 diff 来源")
+    return ""
 
 
 def get_staged_files() -> list[str]:
-    """获取暂存区变更的文件列表。"""
-    try:
-        # 1. 暂存区
-        result = subprocess.run(
-            ["git", "diff", "--cached", "--name-only", "--diff-filter=ACMR"],
-            capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(PROJECT_ROOT), timeout=10
-        )
-        if result.stdout.strip():
-            return [f.strip() for f in result.stdout.strip().split("\n") if f.strip()]
+    """获取本次变更的文件列表（三级回退：暂存区 → PR → 最近提交）。
 
-        # 说明：2.持续集成合并请求
-        result = subprocess.run(
-            ["git", "diff", "--name-only", "--diff-filter=ACMR", "origin/main..."],
-            capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(PROJECT_ROOT), timeout=10
-        )
-        if result.stdout.strip():
-            return [f.strip() for f in result.stdout.strip().split("\n") if f.strip()]
+    Raises:
+        ChangeSetUnavailable: git 不可用，或所有来源都拿不到结果（U34 假绿修复）。
+    """
+    scope = ChangeScope(PROJECT_ROOT, timeout=10)
+    for args in (
+        ["git", "diff", "--cached", "--name-only", "--diff-filter=ACMR"],
+        ["git", "diff", "--name-only", "--diff-filter=ACMR", "origin/main..."],
+        ["git", "diff", "--name-only", "--diff-filter=ACMR", "HEAD~1"],
+    ):
+        stdout = scope.query(args)
+        if stdout and stdout.strip():
+            return [f.strip() for f in stdout.strip().split("\n") if f.strip()]
 
-        # 3. 最近提交
-        result = subprocess.run(
-            ["git", "diff", "--name-only", "--diff-filter=ACMR", "HEAD~1"],
-            capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(PROJECT_ROOT), timeout=10
-        )
-        return [f.strip() for f in result.stdout.strip().split("\n") if f.strip()]
-    except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
-        return []
+    scope.require("暂存区变更文件列表")
+    scope.report_partial("变更文件来源")
+    return []
 
 
 def is_excluded(filepath: str) -> bool:
@@ -172,8 +158,13 @@ def has_debt_register_change(staged_files: list[str]) -> bool:
 def main():
     print("🔍 G-030: 技术债联动检查（增量检测）...")
 
-    staged_files = get_staged_files()
-    diff_text = get_staged_diff()
+    try:
+        staged_files = get_staged_files()
+        diff_text = get_staged_diff()
+    except ChangeSetUnavailable as exc:
+        print(f"❌ G-030: 无法获取变更文件范围 — {exc}")
+        print("   门禁不允许在「变更范围不可知」时跳过（否则假绿）。请检查 git 可用性与仓库完整性。")
+        sys.exit(2)
 
     if not diff_text:
         print("🟢 G-030: 无变更，跳过检查")

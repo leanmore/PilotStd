@@ -7,9 +7,11 @@
 """
 
 import os
-import subprocess
 import sys
 from pathlib import Path
+
+# U34：变更范围获取失败必须 FAIL（旧行为是把「拿不到」当成「没有变更」→ 假绿）
+from _gate_git import ChangeScope, ChangeSetUnavailable  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 BASE_BRANCH = os.environ.get("BASE_BRANCH", "main")
@@ -50,15 +52,17 @@ GENERATED_DOCS: set[str] = {"docs/governance/capabilities_registry.md"}
 ADD_DELETE_ONLY_PREFIXES: set[str] = {"docs/adr/"}
 
 
-def _run_diff(args: list[str]) -> list[tuple[str, str]]:
-    """执行 git diff --name-status，返回 (状态, 路径) 列表；重命名取新旧两条路径。"""
-    try:
-        result = subprocess.run(args, capture_output=True, text=True, check=True, cwd=str(ROOT))
-    except subprocess.CalledProcessError:
-        print(f"[G-031] WARN: 无法获取 diff ({' '.join(args)})，跳过该来源")
+def _run_diff(args: list[str], scope: ChangeScope) -> list[tuple[str, str]]:
+    """执行 git diff --name-status，返回 (状态, 路径) 列表；重命名取新旧两条路径。
+
+    来源不可用时返回空并记账（不打印），由 `get_changed_entries` 统一判定
+    「部分不可用」还是「全部不可知」。
+    """
+    stdout = scope.query(args)
+    if stdout is None:
         return []
     entries: list[tuple[str, str]] = []
-    for line in result.stdout.splitlines():
+    for line in stdout.splitlines():
         parts = [p.strip() for p in line.split("\t") if p.strip()]
         if len(parts) >= 2:
             entries.extend((parts[0], path) for path in parts[1:])
@@ -74,13 +78,19 @@ def get_changed_entries() -> list[tuple[str, str]]:
     "改了代码却忘了同步文档"。
 
     状态取 git 首字母：`A` 新增 / `D` 删除 / `M` 修改 / `R` 重命名。
+
+    Raises:
+        ChangeSetUnavailable: git 不可用，或两个来源都拿不到结果（U34 假绿修复）。
     """
+    scope = ChangeScope(ROOT)
     entries: list[tuple[str, str]] = []
     for args in (
         ["git", "diff", "--name-status", f"origin/{BASE_BRANCH}..HEAD"],
         ["git", "diff", "--name-status", "--cached"],
     ):
-        entries.extend(_run_diff(args))
+        entries.extend(_run_diff(args, scope))
+    scope.require("本次变更文件范围")
+    scope.report_partial()
     return entries
 
 
@@ -94,7 +104,13 @@ def _exemption_reason(src_prefix: str, matched: list[str], structural_changes: s
 
 
 def main() -> int:
-    entries = get_changed_entries()
+    try:
+        entries = get_changed_entries()
+    except ChangeSetUnavailable as exc:
+        print(f"[G-031] FAIL: 无法获取变更文件范围 — {exc}")
+        print("[G-031]       门禁不允许在「变更范围不可知」时跳过（否则假绿）。")
+        return 2
+
     changed = sorted({p.replace("\\", "/") for _, p in entries})
     if not changed:
         print("[G-031] PASS: 无变更文件")
