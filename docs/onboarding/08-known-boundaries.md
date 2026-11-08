@@ -30,6 +30,7 @@
 | 19 | 可信 IP 自动更新依赖浏览器，Docker 镜像未装 Playwright/Chromium | 已接入 CloakBrowser（待部署） | CloakBrowser 自带定制 Chromium；需要 license key 和首次二进制下载 |
 | 20 | 时效性检查只落状态，不落查询明细 | 已修复（v76，待部署） | `validity_check_log` 保存证据/来源/失败原因/结果 JSON |
 | 21 | 公告定时任务漏跑/晚发布公告可能漏抓 | 已修复（2026-11-07） | checkpoint 保留；定时多回看 7 天；超过 36 小时未成功抓取会在完成通知中告警 |
+| 22 | v49 迁移会清空 `user_preferences` 真实偏好数据 | 历史数据缺陷（不修） | 仅影响 v48 及更早的库升级；受 P-106 约束不可修，见 #22 |
 
 ---
 
@@ -549,6 +550,46 @@
 - `mark_logs_read` 按用户/按权限更新；
 - 统一列表、未读数、全部已读的 WHERE 口径；
 - 补多用户测试。
+
+### 22. v49 迁移会清空 `user_preferences` 的真实偏好数据（历史缺陷，不修）
+
+**证据（U34-D 查证，2026-11-08）**
+
+- `docs/DECISIONS.md` 中 `v49` / `user_preferences` **零命中**——没有「有意重置」的决策记录；
+- `git log -S "DROP TABLE IF EXISTS user_preferences"` 指向 `24d26075`（`refactor: 用户偏好系统全链路重构 (v49)`），commit message 只写「修正列名」；
+- **v22 最早建表语句**（`a11a23c7:pilotstd/core/db.py:663`）就是
+  `user_id / preference_key / preference_value / updated_at + UNIQUE`，与 v49「新结构」**完全相同**
+  ——docstring 说的「旧列名 key/value」在仓库历史中**从未存在**。
+
+**影响**
+
+- `_migrate_v49_rebuild_user_preferences` 的 `DROP TABLE IF EXISTS user_preferences; CREATE TABLE user_preferences(...)`
+  会清空真实用户偏好；
+- 启动补偿 `docker/app.py::_migrate_user_settings_to_preferences` 只搬 `user_settings` 的 JSON，**救不回 KV 表**；
+- 受影响的写入方：`docker/api/user.py`、`pilotstd/manager/user_service.py`、
+  `pilotstd/core/config/service.py`、`docker/api/auth_register.py`。
+
+**为什么不修**
+
+- 受 **P-106** 约束：改 `_migrate_v49` 源码 = 改 checksum
+  （`pilotstd/core/db/_migration_checksum.py::verify_migration_checksums` 用 `inspect.getsource` 计算）
+  = **所有已跑过 v49 的库启动即抛 `DatabaseError`**；
+- 实际影响面是「停在 v48 且手里有真实 KV 偏好的库」；v49 发布已近 3 个月，这种库基本不存在
+  → 修复收益远小于「让所有现存库起不来」的代价。
+
+**替代方案（均未采用）**
+
+- **新增 v77 迁移**：救不回已被 v49 丢掉的数据，且需单独评估（新建迁移文件 + 发布窗口）；
+- **受控重录 checksum**：给 P-106 开后门，不采用。
+
+**触发条件**
+
+若有人报告「升级后偏好丢失」：人工从升级前备份恢复；届时再评估是否新增 v77。
+
+**关联**
+
+- `docs/technical-debt.md` P-106（迁移源码不可变）
+- 测试锚点：`tests/test_migrate_v49_user_preferences.py`（只锁结构契约，不锁数据保留）
 
 ---
 
