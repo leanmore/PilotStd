@@ -166,8 +166,8 @@
 
 ### G-050：静默吞错棘轮
 
-- **检查内容**：生产代码（`pilotstd/` + `docker/`，排除 `templates/`）中三类"失败不可见"——`except` 体只有 `pass`、`except` 体只有 `return` 空/False/None、`except` 体内 `logger.debug`
-- **基线**：`scripts/silent_errors_baseline.json`（按文件 × 类别计数；**2026-11-09 重算**：pass **43** / return **38** / debug **90**）
+- **检查内容**：生产代码（`pilotstd/` + `docker/` + `scripts/`，排除 `templates/` 与 `scripts/archive/`）中三类"失败不可见"——`except` 体只有 `pass`、`except` 体只有 `return` 空/False/None、`except` 体内 `logger.debug`
+- **基线**：`scripts/silent_errors_baseline.json`（按文件 × 类别计数；**2026-11-09 重算（E2-batch2，纳入 scripts/）**：pass **46** / return **57** / debug **90**）
 - **阻断条件**：任一文件任一类别当前计数 > 基线 → 阻断；< 基线仅 WARN（提示收紧基线）
 - **执行方式**：`python scripts/check_g_050_silent_errors.py`（`check_all.sh --fast` 与 CI `repo-compliance`）
 - **识别口径（2026-11-09 修正，U34-E1）**：`debug` 类识别 `logger`/`log`/`logging`/`*_log` 以及 `self.log`/`self.logger`/`_core.log` 等接收者（原只认 `Name("logger")`）；遍历 handler 时**剪掉内层 `except` 与函数/lambda 体**（原 `ast.walk` 会把内层 handler、内层函数的 debug 重复算到外层）；`return` 类同时识别 `set()`/`list()`/`dict()`/`tuple()` 无参构造（原先只认字面量）。
@@ -179,12 +179,12 @@
 - **同一 handler 多条 `debug` 只算 1**：基线口径偏松（修掉 3 条中的 1 条计数不变），但不影响「新增即阻断」的漏报检测。
 - **基线按文件路径键控**：文件改名/拆分后新路径从 0 起算 → 必然超基线，**纯重构会假红**。触发时需人工确认是「真新增」还是「路径变化」。
 - **`SyntaxError` 文件静默跳过**：语法坏文件不计数，依赖 ruff / G-038 等其他门禁兜底。
-- **后续（待 E-2）**：`scripts/` 不在扫描范围（纳入将 +36 条，需先 triage）。
+- **`scripts/` 已纳入（2026-11-09，E2-batch2）**：门禁/检查器自身也受棘轮保护（它们吞错会直接制造假绿）。`scripts/archive/` 是历史探针/一次性脚本，按前缀排除。纳入前先修了 9 处「读文件失败静默跳过」（加 `[WARN]` 后 handler 变多语句，不再被三类计入），故基线只增加真正未修的 A 类条数。
 
 **G-050 裁定：except: continue 不纳入第 4 类（2026-11-09）**
 
-- **except: continue 不纳入 G-050 第 4 类**（2026-11-09 裁定）：全库 52 处 `except → continue` 中 **73% 是批量循环的合理跳过**（试下一个日期格式/候选 URL、跳过坏 JSON 行），AST 无法区分"合理跳过"与"吞错"；
-  **B 类 8 条**（`scripts/` 门禁"读文件失败静默跳过"）**单独改为 WARN**（E-fix-scripts，不依赖本门禁）；
+- **except: continue 不纳入 G-050 第 4 类**（2026-11-09 裁定）：全库 52 处 `except → continue` 中 **73%（38/52）是批量循环的合理跳过**（试下一个日期格式/候选 URL、跳过坏 JSON 行），AST 无法区分"合理跳过"与"吞错"；这 38 条**不进门禁、不进基线**，维持现状；
+  **B 类 8 条**（`scripts/` 门禁"读文件失败静默跳过"）**已单独加 `[WARN]`**（E-fix-scripts 已落地），不依赖本门禁；
   **若未来新增 `continue` 需要判定，人工 review。**
 - **判定依据**：`docs/.local/U34-E3-triage.md`（52 条逐条分类：A 合理跳过 38 / B 吞错 8 / C 一次性脚本 6 / D 待确认 0）。
 

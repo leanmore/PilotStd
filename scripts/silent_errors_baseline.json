@@ -66,7 +66,9 @@
     "pilotstd/core/db/_migrate_v64_notification_log_interactive.py": 1,
     "pilotstd/core/db/_migrate_v65_notification_log_task_kind.py": 1,
     "pilotstd/core/file_index.py": 1,
-    "pilotstd/query/adapters/nrsis.py": 2
+    "pilotstd/query/adapters/nrsis.py": 2,
+    "scripts/docs_sync_check.py": 1,
+    "scripts/update_status.py": 2
   },
   "return": {
     "docker/api/health.py": 1,
@@ -96,6 +98,19 @@
     "pilotstd/ui/pages/rules_page.py": 1,
     "pilotstd/ui/qt_lifecycle.py": 3,
     "pilotstd/wechat_ip/browser.py": 2,
-    "pilotstd/wechat_ip/detector.py": 1
+    "pilotstd/wechat_ip/detector.py": 1,
+    "scripts/_chain_scan_guards.py": 1,
+    "scripts/_docs_sync_io.py": 1,
+    "scripts/_gate_paths.py": 1,
+    "scripts/audit_api_matrix.py": 2,
+    "scripts/check_g_013_test_coverage.py": 2,
+    "scripts/check_g_015_relative_imports.py": 1,
+    "scripts/check_g_029_test_coverage.py": 1,
+    "scripts/check_i18n_hardcoded_python.py": 1,
+    "scripts/check_no_conflict_markers.py": 1,
+    "scripts/check_property_proxy.py": 2,
+    "scripts/check_relative_imports.py": 2,
+    "scripts/find_docs.py": 1,
+    "scripts/fix_relative_imports.py": 3
   }
 }

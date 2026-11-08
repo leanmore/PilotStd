@@ -28,10 +28,13 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 BASELINE = ROOT / "scripts" / "silent_errors_baseline.json"
-# 扫描范围：与 G-010 / G-038 同口径的生产代码目录
-SCAN_DIRS = ("pilotstd", "docker")
+# 扫描范围：与 G-010 / G-038 同口径的生产代码目录 + scripts/（U34 E2-batch2）
+# scripts/ 里是门禁/检查器本身——它们吞错会直接制造「假绿」，比业务代码更需要棘轮
+SCAN_DIRS = ("pilotstd", "docker", "scripts")
 # templates 是 Jinja2 脚手架（含 {{ }}），不是运行时代码，整体排除
 EXCLUDE_PARTS = {"templates", "__pycache__"}
+# scripts/archive/：历史探针/一次性脚本，不参与生产（E2 triage 的 C 类 7 条）
+EXCLUDE_PREFIXES = ("scripts/archive/",)
 # 日志器接收者识别（U34-E1 #3）：不再只认 Name("logger")
 _LOGGER_NAMES = {"logger", "log", "logging"}
 
@@ -118,7 +121,11 @@ def scan(root: Path) -> dict[str, dict[str, int]]:
     """统计 root 下三类静默吞错的 (类别 → 文件 → 次数)。
 
     迁移文件也计入：它们受 P-106 约束不能改源码，但同样不允许新增吞错。
-    `templates/` 是 Jinja 脚手架（非运行时代码），整体排除。
+    `templates/` 是 Jinja 脚手架（非运行时代码），整体排除；`scripts/archive/` 按前缀排除。
+
+    **不引入白名单机制**（U34 E2）：E-fix-scripts 修过的 9 处「读文件失败」已在 `except`
+    里加了 `[WARN]` 输出，块内变成多语句 ⇒ pass/return 只认单语句，自然不再计入；
+    其余 A 类靠基线冻结即可（基线本身就是白名单），无需 `# g050-allow` 逐条标注。
     """
     counts: dict[str, dict[str, int]] = {"pass": {}, "return": {}, "debug": {}}
     for dirname in SCAN_DIRS:
@@ -128,11 +135,13 @@ def scan(root: Path) -> dict[str, dict[str, int]]:
         for path in base.rglob("*.py"):
             if EXCLUDE_PARTS & set(path.parts):
                 continue
+            rel = path.relative_to(root).as_posix()
+            if any(rel.startswith(prefix) for prefix in EXCLUDE_PREFIXES):
+                continue
             try:
                 tree = ast.parse(path.read_text(encoding="utf-8"))
             except SyntaxError:
                 continue
-            rel = path.relative_to(root).as_posix()
             for node in ast.walk(tree):
                 if isinstance(node, ast.ExceptHandler):
                     for kind in _handler_kinds(node):

@@ -191,3 +191,27 @@ def test_empty_constructor_returns_counted(tmp_path) -> None:
     """`return set()` / `list()` / `dict()` 与空字面量等价 → 计入 return 类。"""
     counts = gate.scan(_tree_with(tmp_path, EMPTY_CONSTRUCTORS))
     assert counts["return"]["pilotstd/pkg/case.py"] == 3
+
+
+# ── E2-batch2：scripts/ 纳入 + archive 排除 ─────────────────────────────
+
+_SIMPLE_PASS = "try:\n    pass\nexcept Exception:\n    pass\n"
+
+
+def _tree_at(tmp_path: Path, rel: str, code: str) -> Path:
+    target = tmp_path / rel
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(code, encoding="utf-8")
+    return tmp_path
+
+
+def test_scripts_dir_is_scanned(tmp_path) -> None:
+    """scripts/ 下的 `except: pass` 必须计入（门禁自身也要受棘轮保护）。"""
+    counts = gate.scan(_tree_at(tmp_path, "scripts/tool.py", _SIMPLE_PASS))
+    assert counts["pass"]["scripts/tool.py"] == 1
+
+
+def test_scripts_archive_is_excluded(tmp_path) -> None:
+    """scripts/archive/ 是历史探针，按前缀排除，不计入。"""
+    counts = gate.scan(_tree_at(tmp_path, "scripts/archive/old_probe.py", _SIMPLE_PASS))
+    assert "scripts/archive/old_probe.py" not in counts["pass"]
