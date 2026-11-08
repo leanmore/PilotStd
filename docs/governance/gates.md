@@ -179,7 +179,14 @@
 - **同一 handler 多条 `debug` 只算 1**：基线口径偏松（修掉 3 条中的 1 条计数不变），但不影响「新增即阻断」的漏报检测。
 - **基线按文件路径键控**：文件改名/拆分后新路径从 0 起算 → 必然超基线，**纯重构会假红**。触发时需人工确认是「真新增」还是「路径变化」。
 - **`SyntaxError` 文件静默跳过**：语法坏文件不计数，依赖 ruff / G-038 等其他门禁兜底。
-- **后续（待 E-2/E-3）**：`scripts/` 不在扫描范围（纳入将 +36 条，需先 triage）；`except: continue` 不计入三类（≥17 处）。
+- **后续（待 E-2）**：`scripts/` 不在扫描范围（纳入将 +36 条，需先 triage）。
+
+**G-050 裁定：except: continue 不纳入第 4 类（2026-11-09）**
+
+- **except: continue 不纳入 G-050 第 4 类**（2026-11-09 裁定）：全库 52 处 `except → continue` 中 **73% 是批量循环的合理跳过**（试下一个日期格式/候选 URL、跳过坏 JSON 行），AST 无法区分"合理跳过"与"吞错"；
+  **B 类 8 条**（`scripts/` 门禁"读文件失败静默跳过"）**单独改为 WARN**（E-fix-scripts，不依赖本门禁）；
+  **若未来新增 `continue` 需要判定，人工 review。**
+- **判定依据**：`docs/.local/U34-E3-triage.md`（52 条逐条分类：A 合理跳过 38 / B 吞错 8 / C 一次性脚本 6 / D 待确认 0）。
 
 ### repo-compliance：入仓合规检查
 
@@ -625,6 +632,7 @@ B1（声明类 vs 实现类）已覆盖同一语义、且每次 CI 都在跑；�
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
+| v2.29 | 2026-11-09 | **G-050 裁定：except: continue 不纳入第 4 类（U34-E3）**。全库 52 处 `except → continue` 中 **73%（38/52）为批量循环合理跳过**（试下一个日期格式/候选 URL、跳过坏 JSON 行），AST 无法区分"合理跳过"与"吞错"；**B 类 8 条**（`scripts/` 门禁"读文件失败静默跳过"）单独改为 WARN（E-fix-scripts），不依赖本门禁；此后新增 `continue` 需**人工 review**。依据 `docs/.local/U34-E3-triage.md`（A38 / B8 / C6 / D0）。本条只写裁定与依据，未改任何门禁脚本或基线 |
 | v2.28 | 2026-11-08 | **G-013 补 CI 形态（U34-C1）**。此前 G-013 只挂 `.husky/pre-commit`（读暂存区）+ `.husky/commit-msg`（规则 0），`--no-verify` 或直推 main 时「测试联动」维度完全失守。新增 `--range BASE...HEAD`：先取 merge-base 作基线（与 `git diff A...B` 同口径），再以 `base..head` 取变更文件、以 `base`/`head` 取新旧内容（**不能沿用 HEAD vs 工作区**——CI 里二者恒等，会永远无变更）。范围不可知仍 exit 2；范围为空（origin/main == HEAD）PASS。`ci.yml` 的 `repo-compliance` 新增一步：push 用 `before..sha`（T-27：直推 main 时 origin/main 已推进到 tip，`origin/main..HEAD` 恒空 = 假绿），PR 回退 `origin/<base>...HEAD`（T-25 同手法）；不加 `--bugfix-only`（本地已减负，CI 跑全量）。本地 husky 行为一字未改。验证：`check_all --fast --guards --local` EXIT 0、`tests/test_check_g_013_range.py` 9 例通过 |
 | v2.27 | 2026-11-08 | **U34 门禁假绿修复：变更文件范围不可知时 exit 2**。G-013/G-030/G-031/G-033 原先在 git 不可用、超时或命令非零退出时返回空列表，调用方把「空」当成「本次无变更」→ PASS，属静默假绿。四条 git 查询统一收口到新增的 `scripts/_gate_git.py`（`ChangeScope` / `ChangeSetUnavailable`）：基础设施失败立即抛错、单条来源失败记账、**所有来源都失败 → exit 2** 并打印「无法获取变更文件范围」；部分来源不可用时 PASS + WARN 列出不可用来源。**刻意不把「结果为空」判失败**——干净仓库每次提交都会挂，门禁会被迫绕过（另一种假绿）。新增 `tests/test_gate_changed_files_failfast.py`（12 例：不可知→FAIL、为空→不误导、CLI 冒烟）。验证：`check_all.sh --fast --guards --local` EXIT=0、12 例全过 |
 | v2.26 | 2026-11-08 | **security-scan 依赖升级**：Pillow 12.2.0 → 13.0.0、urllib3 2.7.0 → 2.8.0；pip-audit 对 `PYSEC-2026-1325`（ecdsa，无 sign 路径）/`PYSEC-2026-4298`（python-jose，仅 HS256 对称密钥）加带理由 ignore；OCR 冒烟（RapidOCR + Pillow 13）通过；本地 `pytest tests/ -k "not gui"` 6100 passed | 
