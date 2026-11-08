@@ -19,7 +19,7 @@ openpyxl==3.1.0
 
 # --- 验证码识别与图像处理 ---
 ddddocr==1.6.1
-pillow==12.2.0
+pillow==13.0.0
 watchdog==6.0.0
 
 # --- 文档解析（公告附件 PDF/DOCX） ---

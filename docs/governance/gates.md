@@ -610,6 +610,7 @@ B1（声明类 vs 实现类）已覆盖同一语义、且每次 CI 都在跑；�
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
+| v2.26 | 2026-11-08 | **security-scan 依赖升级**：Pillow 12.2.0 → 13.0.0、urllib3 2.7.0 → 2.8.0；pip-audit 对 `PYSEC-2026-1325`（ecdsa，无 sign 路径）/`PYSEC-2026-4298`（python-jose，仅 HS256 对称密钥）加带理由 ignore；OCR 冒烟（RapidOCR + Pillow 13）通过；本地 `pytest tests/ -k "not gui"` 6100 passed | 
 | v2.25 | 2026-11-08 | **bandit 切 HIGH 阻断**：CI `security-scan` 的 bandit 步骤去掉 `\|\| echo` 与 `continue-on-error`，改为 `--severity-level high`（只拦 HIGH，MEDIUM 111 条仍不阻断）；8 条 HIGH 逐条 `# nosec`/`usedforsecurity=False` 清理，复跑 HIGH=0；`python -m bandit -r pilotstd/ ... --severity-level high` exit 0 |
 | v2.24 | 2026-11-08 | **W1-U1 检查器/信号修正**：`check_property_proxy.py` 识别 `_CORE_PROXY_WHITELIST` + `__getattr__/__setattr__` 代理（11 条误报归零）；`check_signal_connect.py` 识别 `self.X.emit` callback 形式并补 Qt 内置信号（`canceled`/`finished`/`started`/`itemSelectionChanged`/`destroyed`/`objectNameChanged`，12 → 0）；`error_occurred` 接 `CleanupHandler._status` 状态栏通道并补 `tests/gui/test_cleanup_error_channel.py`；删除从未 emit 的 `MainWindow.query_result_ready` 死信号（旧 `_on_query_result_ready` 仅测试调用，03-open 已记清理候选）。验证：两脚本 exit 0、`tests/gui/` 1040 passed、`--fast --guards --local` exit 0 |
 | v2.16 | 2026-10-24 | **Q9 裁决换算（通知二期）**：原要求"新增独立声明 vs 实现门禁"，核对确认 G-045 的 B1 已覆盖同语义且每次 CI 都跑 → 改为**并入 G-045 并在此留痕**，不新增编号（拆分会把两条规则都做薄）。同批记录 Q1/Q2/Q6 的核对结论（均符合裁决） |
