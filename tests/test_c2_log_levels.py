@@ -58,6 +58,7 @@ def test_announce_task_bad_json_is_warning_and_behaviour_unchanged(caplog) -> No
     # 控制流不变：仍返回 success + 空 data
     assert out["status"] == "success"
     assert out["data"] == {}
+    assert "结果数据损坏" in out["message"]
     assert _has(caplog, logging.WARNING, "公告任务结果 JSON 解析失败")
 
 

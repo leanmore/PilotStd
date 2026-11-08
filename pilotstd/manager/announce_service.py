@@ -264,10 +264,12 @@ class AnnounceService:
         status = row["status"]
         if status == "success":
             data = {}
+            corrupt = False
             if row["result_data"]:
                 try:
                     data = _json.loads(row["result_data"])
                 except (_json.JSONDecodeError, TypeError) as e:
+                    corrupt = True
                     # 解析失败仍按原行为返回 success + 空数据，但不能再静默
                     logger.warning(
                         # i18n-allow: 内部运维日志
@@ -275,7 +277,12 @@ class AnnounceService:
                         task_id,
                         e,
                     )
-            return {"task_id": task_id, "status": "success", "data": data}
+            result: dict[str, Any] = {"task_id": task_id, "status": "success", "data": data}
+            if corrupt:
+                # 用 schema 里已有的可选 message 字段标记，避免消费方把「空 data」误读成「本来就没数据」。
+                # i18n-allow: 内部运维日志
+                result["message"] = "结果数据损坏（invalid JSON），已返回空结果"
+            return result
         elif status in ("pending", "running"):
             return {"task_id": task_id, "status": status,
                     "message": "task not yet complete"}
