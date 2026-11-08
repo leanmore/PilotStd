@@ -152,7 +152,8 @@ def _manager(session):
     return mgr
 
 
-def test_njbz365_three_branches_all_warning(caplog, monkeypatch) -> None:
+def test_njbz365_three_branches_all_error(caplog, monkeypatch) -> None:
+    """R7/E1 修订：三个 except 统一 ERROR（超时最终失败/其他请求异常/JSON 解析失败）。"""
     from pilotstd.query.adapters import _njbz365_session_manager as mod
 
     monkeypatch.setattr(mod.time, "sleep", lambda *_a, **_k: None)
@@ -165,12 +166,16 @@ def test_njbz365_three_branches_all_warning(caplog, monkeypatch) -> None:
         # ③ JSON 解析失败（原先完全无日志）
         assert _manager(_BadPost(bad_json=True))._do_request("GB") is None
 
-    joined = "\n".join(_msgs(caplog, logging.WARNING))
-    assert "njbz365 会话请求最终失败" in joined
-    assert "njbz365 会话请求失败" in joined
-    assert "njbz365 会话响应 JSON 解析失败" in joined
-    # 三处不得再落回 error（口径统一为 WARNING）
-    assert not _has(caplog, logging.ERROR, "njbz365 会话")
+    err = "\n".join(_msgs(caplog, logging.ERROR))
+    assert "njbz365 会话请求最终失败" in err
+    assert "njbz365 会话请求失败" in err
+    assert "njbz365 会话响应 JSON 解析失败" in err
+
+    # 三条失败不得再落回 warning（重试提示仍是 warning，故按消息精确断言）
+    warn = "\n".join(_msgs(caplog, logging.WARNING))
+    assert "会话请求最终失败" not in warn
+    assert "会话请求失败" not in warn
+    assert "会话响应 JSON 解析失败" not in warn
 
 
 # ── D2 / D5 / D6：保留 DEBUG，且不得冒出 WARNING ────────────────────────

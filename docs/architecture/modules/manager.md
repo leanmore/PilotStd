@@ -141,7 +141,8 @@ StandardManager (BaseFacade)
 ## 近期变更
 
 - **2026-11-08（失败日志升级 · U34-C2）**：`announce_service.get_task_results` 的 `result_data` 脏 JSON
-  由 `debug` 升 `warning`（**行为不变**：仍返回 `success` + 空数据，只是不再伪装成"本来就没数据"）；
+  由 `debug` 升 `warning`（**行为不变**：仍按 `success` 返回，只是 `data` 为空——文案已明确写出这一点，
+  不再让人误以为"本来就没数据"）；
   `announce_service._acquire_manual_lock` 的锁写入异常补 `warning`（原为裸 `return False`，被上层
   当成"锁被占用"⇒ 手动抓取静默不执行）；`pending_service.enqueue_download_wait` 的发布日期解析失败补
   `warning`（原静默跳过等待队列，该标准不进队列也无痕）。

@@ -178,3 +178,29 @@ def test_legacy_local_mode_unchanged(repo, monkeypatch, capsys) -> None:
 
     assert code == 0
     assert "0 个业务文件" in capsys.readouterr().out
+
+
+# ── 两种 CI 形态的范围写法（ci.yml 的两个分支）────────────────────────────
+
+
+def test_range_three_dot_form_works(repo, monkeypatch, capsys) -> None:
+    """PR 形态 `origin/<base>...HEAD`（三点）：按 merge-base 取基线，检测能力不减。
+
+    ② 只改生产代码；`HEAD~2...HEAD~1` 的 merge-base 即 HEAD~2 ⇒ 应判 FAIL。
+    """
+    gate = _load()
+    code = _run(monkeypatch, gate, repo, ["--range", "HEAD~2...HEAD~1", "--no-commit-msg"])
+
+    assert code == 1
+    assert "pilotstd/manager/foo.py" in capsys.readouterr().err
+
+
+def test_range_explicit_shas_work(repo, monkeypatch, capsys) -> None:
+    """push 形态 `github.event.before..github.sha`（显式 SHA）：与 ref 写法等价。"""
+    gate = _load()
+    before = _git(repo, "rev-parse", "HEAD~2").strip()
+    after = _git(repo, "rev-parse", "HEAD~1").strip()
+    code = _run(monkeypatch, gate, repo, ["--range", f"{before}..{after}", "--no-commit-msg"])
+
+    assert code == 1
+    assert "pilotstd/manager/foo.py" in capsys.readouterr().err

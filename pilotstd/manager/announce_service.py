@@ -270,7 +270,8 @@ class AnnounceService:
                 except (_json.JSONDecodeError, TypeError) as e:
                     # 解析失败仍按原行为返回 success + 空数据，但不能再静默
                     logger.warning(
-                        "公告任务结果 JSON 解析失败（task=%s），本次返回空数据: %s",  # i18n-allow: 内部运维日志
+                        # i18n-allow: 内部运维日志
+                        "公告任务结果 JSON 解析失败（task=%s），按 success 返回但 data 为空: %s",
                         task_id,
                         e,
                     )
