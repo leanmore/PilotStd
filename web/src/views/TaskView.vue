@@ -1,6 +1,6 @@
 <script setup lang="ts">
 defineOptions({ name: 'TaskView' })
-import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { postScan, postQuery, postDownload, postNormalize, postArchive, getSettings } from '@/api'
 import { getPipelineRun, stopPipelineRun, resumePipelineRun } from '@/api/tasks'
@@ -11,12 +11,12 @@ import { useUserPreferences } from '@/composables/useUserPreferences'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import ProgressBar from 'primevue/progressbar'
-import DataView from 'primevue/dataview'
-import Paginator from 'primevue/paginator'
 import { TASK_HISTORY_PAGE_SIZES, resolveRows } from '@/utils/pagination'
 import { parseStandardNumber } from '@/utils/standardParser'
 import { buildArchiveItems } from '@/utils/taskPipeline'
 import LogBar from '@/components/LogBar.vue'
+import TaskHistoryList from './TaskView/TaskHistoryList.vue'
+import type { StepState, TaskRecord } from './TaskView/types'
 
 const { t } = useI18n()
 const paths = ref<string[]>(['/inbox', '/standards'])
@@ -25,7 +25,6 @@ const running = ref(false)
 const currentStep = ref(-1)
 
 // 步骤名存 key、渲染期翻译；旧版 localStorage 记录只有 label（中文），模板做回退
-interface StepState { labelKey: string; label?: string; icon: string; status: 'wait'|'running'|'done'|'fail'; summary: string }
 const steps = ref<StepState[]>([
   { labelKey: 'task.step.scan', icon: 'pi pi-search', status: 'wait', summary: '' },
   { labelKey: 'task.step.query', icon: 'pi pi-globe', status: 'wait', summary: '' },
@@ -131,12 +130,6 @@ async function restoreActiveRun() {
 }
 
 // 任务历史 —— localStorage 持久化
-interface TaskRecord {
-  id: string; time: string; path: string
-  scanCount: number; queryFound: number; dlSuccess: number; normCount: number
-  status: 'success' | 'partial' | 'fail' | 'stopped'
-  steps: StepState[]
-}
 const history = ref<TaskRecord[]>([])
 const selectedRecord = ref<TaskRecord | null>(null)
 
@@ -150,11 +143,6 @@ onMounted(() => {
 
 const historyPage = ref(Number(getItem('task_history_page')) || 0)
 const historyRows = ref(10)
-
-const paginatedHistory = computed(() => {
-  const start = historyPage.value * historyRows.value
-  return history.value.slice(start, start + historyRows.value)
-})
 
 function onHistoryPage(e: any) {
   historyPage.value = e.page
@@ -368,13 +356,6 @@ function stepSeverity(s: string) {
   if (s === 'done') return 'success'; if (s === 'running') return 'info'
   if (s === 'fail') return 'danger'; return 'secondary'
 }
-function statusSeverity(s: string) {
-  if (s === 'success') return 'success'; if (s === 'partial' || s === 'stopped') return 'warn'; return 'danger'
-}
-function statusLabel(s: string) {
-  if (s === 'success') return t('task.status.done'); if (s === 'partial') return t('task.status.partial')
-  if (s === 'stopped') return t('task.status.stopped'); return t('task.status.failed')
-}
 </script>
 
 <template>
@@ -456,35 +437,15 @@ function statusLabel(s: string) {
   </div>
 
   <!-- 任务历史 -->
-  <div v-if="history.length" class="card mt-3">
-    <div class="card-header">{{ t('task.history_title') }}</div>
-    <DataView :value="paginatedHistory" size="small">
-      <template #list="slotProps">
-        <div v-for="item in slotProps.items" :key="item.id" class="p-2 border-bottom">
-          <div class="flex" style="display:flex;gap:12px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border-light)">
-            <div style="flex:1;min-width:0">
-              <div class="flex" style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
-                <span class="text-mono" style="font-size:13px;font-family:var(--mono)">{{ item.time }}</span>
-                <span class="text-dim" style="font-size:12px;color:var(--text-dim)">{{ item.path }}</span>
-              </div>
-              <div class="flex" style="display:flex;gap:12px;font-size:12px;color:var(--text-dim);margin-top:4px">
-                <span>{{ t('task.history_scan', { n: item.scanCount }) }}</span>
-                <span>{{ t('task.history_query', { n: item.queryFound }) }}</span>
-                <span>{{ t('task.history_download', { n: item.dlSuccess }) }}</span>
-              </div>
-            </div>
-            <div class="flex" style="display:flex;gap:6px;align-items:center">
-              <Tag :value="statusLabel(item.status)" :severity="statusSeverity(item.status)" />
-              <Button :label="t('task.detail')" size="small" text @click="viewRecord(item)" />
-              <Button :label="t('task.rerun')" size="small" text severity="info" @click="rerun(item)" />
-              <Button :label="t('task.delete')" size="small" text severity="danger" @click="deleteRecord(item)" />
-            </div>
-          </div>
-        </div>
-      </template>
-    </DataView>
-    <Paginator :rows="historyRows" :rowsPerPageOptions="TASK_HISTORY_PAGE_SIZES" :totalRecords="history.length" @page="onHistoryPage" class="mt-2" />
-  </div>
+  <TaskHistoryList
+    :history="history"
+    :page="historyPage"
+    :rows="historyRows"
+    @page="onHistoryPage"
+    @view="viewRecord"
+    @rerun="rerun"
+    @delete="deleteRecord"
+  />
 
   <!-- 历史详情弹窗 -->
   <div v-if="selectedRecord" class="card mt-3">
