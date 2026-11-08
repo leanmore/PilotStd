@@ -140,6 +140,12 @@ BaseAdapter (ABC)
 
 测试模式下（`PYTEST_RUNNING=1`，由 `tests/conftest.py` 的 `pytest_configure` 注入）跳过所有节流 sleep，保证测试不因等待而超时；CI 同时通过 iptables 硬阻断 + conftest socket guard 保证测试绝不真实出网（见 `docs/ci-lessons.md` §六）。
 
+## 安全扫描备注（2026-11-08）
+
+`_njbz365_session_manager` 的请求签名按站点协议要求使用 MD5；`energy` / `sppt` / `sppt_local`
+对政府自签名站点保留 `verify=False`。三处均加 `# nosec` 并注明“协议要求 / 已评估”，
+**无行为变更**，仅让 bandit HIGH 清零（U2）。
+
 ## 相关文档
 
 - [管理模块](manager.md) — 适配器调用方（`StandardManager` 门面）

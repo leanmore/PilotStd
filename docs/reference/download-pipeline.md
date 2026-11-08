@@ -413,6 +413,9 @@ GB/T 标准被误判成非国标（已由 `test_slash_codes_are_routable` 钉住
 
 ## 八、维护须知
 
+> **2026-11-08（U2）**：`task_store` 的 `task_id` 是“站点 + 标准号”的去重指纹，非安全用途；
+> `hashlib.sha1(..., usedforsecurity=False)` 仅消除 bandit B324 告警，行为不变。
+
 1. **改 `pilotstd/download/` 必须同批改本文**——G-031 已挂映射（`docs/governance/gates.md` G-031），否则 pre-commit 直接 FAIL。
 2. **不要"清理死代码"式删 `_lookup_hcno` / `parse_hcno_from_search_page`**——它们是 `f4f812e7` 删过一次的可用实现（5.2 A）。
 3. **不要把 `BASE_URL` 改回 `/bzgk/gb`**（3 与 5.2 C）。

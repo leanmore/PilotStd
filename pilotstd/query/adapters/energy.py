@@ -32,7 +32,7 @@ class EnergyAdapter(BaseAdapter):
     def __init__(self, client: httpx.Client | None = None):
         self._client = client or httpx.Client(
             timeout=15.0,
-            verify=False,
+            verify=False,  # nosec B501 站点自签名，已评估
             headers={
                 "Host": "114.251.111.103:18080",
                 "User-Agent": (

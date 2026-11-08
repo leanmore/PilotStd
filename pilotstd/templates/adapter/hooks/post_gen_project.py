@@ -64,7 +64,7 @@ def _render_adapter_if_needed() -> None:
     from jinja2 import Environment
 
     adapter.write_text(
-        Environment().from_string(raw).render(cookiecutter=_CONTEXT), encoding="utf-8"
+        Environment().from_string(raw).render(cookiecutter=_CONTEXT), encoding="utf-8"  # nosec B701 脚手架生成代码，非 Web 模板
     )
     print("[OK] adapter rendered by hook fallback")
 

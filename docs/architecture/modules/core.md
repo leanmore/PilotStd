@@ -5,7 +5,7 @@
 | 模块路径 | `pilotstd/core/` |
 | G-031 映射 | `pilotstd/core/`（2026-09-25 落地：`DOC_SYNC_MAP` 已含该条，改任何 core 文件都会要求同步本文件） |
 | 核心类 | `Database` / `ConfigManager` / `CacheManager` / `NotificationManager` |
-| 子模块数 | 134 个 `.py`（新增 `validity_log.py` + `db/_migrate_v76_validity_check_log.py`（检查病历，2026-11-07）；上一轮 `notification/_log_scope.py`（日志用户/系统可见性）；上一轮 `db/_migrate_v75_validity_queue.py`（选中文件检查队列）；再上一轮 `db/_migrate_v74_repair_validity_keys.py`（validity 畸形键修复）；上一轮新增 `archive_reconcile.py`（启动归档对账，C-2，2026-11-05）；再上一轮 `db/_migrate_v72_announcement_dedupe.py`（公告记录去重 + `standard_count` 重算，2026-11-03）；**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-11-07**；顶层 = 3 个包 config / db / notification + 23 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
+| 子模块数 | 139 个 `.py`（新增 `validity_log.py` + `db/_migrate_v76_validity_check_log.py`（检查病历，2026-11-07）；上一轮 `notification/_log_scope.py`（日志用户/系统可见性）；上一轮 `db/_migrate_v75_validity_queue.py`（选中文件检查队列）；再上一轮 `db/_migrate_v74_repair_validity_keys.py`（validity 畸形键修复）；上一轮新增 `archive_reconcile.py`（启动归档对账，C-2，2026-11-05）；再上一轮 `db/_migrate_v72_announcement_dedupe.py`（公告记录去重 + `standard_count` 重算，2026-11-03）；**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-11-07**；顶层 = 3 个包 config / db / notification + 23 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
 | Schema 版本 | `CURRENT_SCHEMA_VERSION = 76`（`db/_constants.py`；v75＝`validity_check_queue` 队列；v74＝`standard_validity` 畸形键修复；v73＝时间字符串 ISO 化；v72＝公告记录去重 + `standard_count` 重算） |
 | 状态 | 活跃 |
 
@@ -414,6 +414,18 @@ pilotstd/core/
 │   ├── context.py / logger.py / project.py / settings_utils.py
 │   └── notification_aggregator.py
 ```
+
+## 通知渠道菜单（A-27，2026-11-08）
+
+`pilotstd/core/notification/menu/` 是渠道无关的菜单层，不改变通知发送主链：
+
+- `model.py`：`MenuItem`/`Menu` + 校验（3+5 上限、id 唯一、order 连续、url 拒绝 `javascript:/data:`、`group` 仅用于二级分组）。
+- `config.py`：`notification.menus.<channel>` → `Menu`，缺省为空；不改 DB。
+- `clients.py`：`WecomMenuClient`（`menu/get|create|delete`，agentid 必填）、`FeishuMenuClient`（群菜单 `menu_tree`，需 `chat_id`）、`TelegramCommandClient`（命令列表，不是持久菜单）、`DingtalkMenuClient`（显式 unsupported）。
+- `service.py`：客户端工厂 + 幂等同步（`last_synced` 快照） + 状态汇总。
+- `docker/api/notification_menu.py`：`GET /api/notification/menu/status`、`POST /api/notification/menu/sync?channel=...`（admin + 审计）。
+
+官方字段/错误码与“钉钉无持久菜单、Telegram 只有命令列表”的结论见 `docs/reference/notification-menu-apis.md`；真实渠道 API 验证待部署凭据。
 
 ## 关键机制
 

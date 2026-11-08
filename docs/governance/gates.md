@@ -610,6 +610,7 @@ B1（声明类 vs 实现类）已覆盖同一语义、且每次 CI 都在跑；�
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
+| v2.25 | 2026-11-08 | **bandit 切 HIGH 阻断**：CI `security-scan` 的 bandit 步骤去掉 `\|\| echo` 与 `continue-on-error`，改为 `--severity-level high`（只拦 HIGH，MEDIUM 111 条仍不阻断）；8 条 HIGH 逐条 `# nosec`/`usedforsecurity=False` 清理，复跑 HIGH=0；`python -m bandit -r pilotstd/ ... --severity-level high` exit 0 |
 | v2.24 | 2026-11-08 | **W1-U1 检查器/信号修正**：`check_property_proxy.py` 识别 `_CORE_PROXY_WHITELIST` + `__getattr__/__setattr__` 代理（11 条误报归零）；`check_signal_connect.py` 识别 `self.X.emit` callback 形式并补 Qt 内置信号（`canceled`/`finished`/`started`/`itemSelectionChanged`/`destroyed`/`objectNameChanged`，12 → 0）；`error_occurred` 接 `CleanupHandler._status` 状态栏通道并补 `tests/gui/test_cleanup_error_channel.py`；删除从未 emit 的 `MainWindow.query_result_ready` 死信号（旧 `_on_query_result_ready` 仅测试调用，03-open 已记清理候选）。验证：两脚本 exit 0、`tests/gui/` 1040 passed、`--fast --guards --local` exit 0 |
 | v2.16 | 2026-10-24 | **Q9 裁决换算（通知二期）**：原要求"新增独立声明 vs 实现门禁"，核对确认 G-045 的 B1 已覆盖同语义且每次 CI 都跑 → 改为**并入 G-045 并在此留痕**，不新增编号（拆分会把两条规则都做薄）。同批记录 Q1/Q2/Q6 的核对结论（均符合裁决） |
 | v2.15 | 2026-10-24 | **文档可维护性收口（G-032 由 22 warning → 0）**：① 清除本文 16 处死链引用——删除/改名路径一律去反引号（check_docs_sync.py→check_module_doc_mappings.py、trinity-gate.yml→deep-gate.yml 等），唯一仍有效的 pilotstd/core/i18n.py 更正为 `pilotstd/i18n/__init__.py`（加载器已迁）；② `scripts/generate_status_metrics.py` 改为**全量生成** `STATUS.md`（不再保留人工区，数字单一来源；无 coverage.xml 时记 n/a 而非 0）；③ 同步 AGENTS.md 中同一处死链。验证：G-032 0 warning、G-037 13 项对齐 |

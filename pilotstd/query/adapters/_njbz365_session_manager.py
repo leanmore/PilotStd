@@ -146,7 +146,7 @@ class Njz365SessionManager:
         sorted_keys = sorted(non_empty.keys())
         raw = "&".join(f"{k}={non_empty[k]}" for k in sorted_keys)
         raw += "&key=" + _PRIVATE_KEY
-        return hashlib.md5(raw.encode()).hexdigest().upper()
+        return hashlib.md5(raw.encode()).hexdigest().upper()  # nosec B324 站点签名协议要求 MD5
 
     def _build_base_params(self, keyword: str) -> Dict[str, str]:
         """构造基础请求参数（含所有必需的空值字段）。"""

@@ -413,13 +413,11 @@ jobs:
       - name: Run detect-secrets (凭证泄漏扫描)
         run: detect-secrets-hook --baseline .secrets.baseline
 
-      - name: Run Bandit (static security analysis — 建议性)
-        run: bandit -r pilotstd/ -f json -o bandit-report.json || echo "bandit found issues (non-blocking)"
-        continue-on-error: true
+      - name: Run Bandit (HIGH 阻断)
+        run: bandit -r pilotstd/ -f json -o bandit-report.json --severity-level high
 
-      - name: Run pip-audit (dependency vulnerability scan — 建议性)
-        run: pip-audit || echo "pip-audit found issues (non-blocking)"
-        continue-on-error: true
+      - name: Run pip-audit (dependency vulnerability)
+        run: pip-audit --strict --desc on
 
   # ════════════════════════════════════════════════════════════════
   # Job 3: 前端测试

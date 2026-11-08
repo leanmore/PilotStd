@@ -30,7 +30,8 @@ class DownloadTaskStore:
             now = iso_now()
             # task_id 按站点 + 标准号稳定生成，同一任务多次更新不膨胀
             task_id = "download:" + hashlib.sha1(
-                f"{getattr(task, 'source_site', '')}|{task.standard_number}".encode()
+                f"{getattr(task, 'source_site', '')}|{task.standard_number}".encode(),
+                usedforsecurity=False,
             ).hexdigest()[:16]
             status = task.status.value
             completed = 1 if status in ("success", "skipped") else 0

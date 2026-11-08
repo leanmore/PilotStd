@@ -45,7 +45,7 @@ class SPPTLocalAdapter(BaseAdapter):
     def __init__(self, client: httpx.Client | None = None):
         self._client = client or httpx.Client(
             timeout=15.0,
-            verify=False,  # 自签名 SSL
+            verify=False,  # 自签名 SSL；# nosec B501 站点自签名，已评估
             headers={
                 "User-Agent": (
                     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "

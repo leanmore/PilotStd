@@ -96,7 +96,7 @@ def fetch_cookiecloud(server_url: str, user_key: str, password: str = "") -> Opt
     key_str = user_key
     if password:
         key_str = user_key + "-" + password
-    key_md5 = hashlib.md5(key_str.encode()).hexdigest()
+    key_md5 = hashlib.md5(key_str.encode()).hexdigest()  # nosec B324 CookieCloud 协议要求 MD5 派生密钥
 
     decrypted = _decrypt_cookiecloud_aes(data["encrypted"], key_md5)
     if not decrypted:

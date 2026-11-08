@@ -245,7 +245,7 @@ class WeChatCrypto:
 def compute_signature(token: str, timestamp: str, nonce: str, encrypt: str) -> str:
     """企微签名：`sha1("".join(sorted([token, timestamp, nonce, encrypt])))`（小写十六进制）。"""
     joined = "".join(sorted([token, timestamp, nonce, encrypt]))
-    return hashlib.sha1(joined.encode("utf-8")).hexdigest()
+    return hashlib.sha1(joined.encode("utf-8")).hexdigest()  # nosec B324 企微签名协议要求 SHA1
 
 
 def extract_encrypt(body: bytes) -> str:
