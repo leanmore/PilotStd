@@ -356,7 +356,7 @@
 保持"默认路径与显式路径判定一致"；对应受控用例 `test_explicit_target_also_filtered`。
 
 **起因**（技术债阶段批次⑤）：G-040 只扫 `web/src/**/*.{vue,ts}`（其 `SCAN_SUFFIXES`），**Python 侧完全无门禁**
-—— 今天往 `pilotstd/` 里写死中文，**13 道 CI 全绿**。设计文档 `notification-refactor-design.md` §6 排名 13 与
+—— 今天往 `pilotstd/` 里写死中文，**13 道 CI 全绿**。设计文档 `notification-refactor-design.md`（已归档至 docs/.local/archive/2026-11-08/docs/plans/） §6 排名 13 与
 §7.3 已把它登记为"预存问题（本轮不修）"，并明确"若要治理，先加只拦新增的基线门禁，而非全量重写"。
 
 **存量（首次接入，实测）**：**249 文件 / 2055 处**。首次运行即 PASS（扫描 399 个 `.py`，违规 0），

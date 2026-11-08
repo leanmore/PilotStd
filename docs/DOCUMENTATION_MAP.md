@@ -33,6 +33,7 @@
 | `docs/index.md` | 治理 | PilotStd 文档索引 | 2026-10-18 |
 | `docs/adapters/README.md` | 现状 | 适配器维护清单 | 2026-10-17 |
 | `docs/architecture.md` | 现状 | 架构决策与跨模块契约（Handler/公告模型/回调/状态契约） | 2026-11-08 |
+| `docs/architecture/notification-system.md` | 现状 | 通知系统设计索引（9 份原文已归档） | 2026-11-08 |
 | `docs/architecture/governance-summary.md` | 现状 | G-010 代码规模治理 — 完整汇总 | 2026-09-27 |
 | `docs/architecture/modules/core.md` | 现状 | 模块文档：核心引擎（Core） | 2026-10-24 |
 | `docs/architecture/modules/manager.md` | 现状 | 模块文档：管理模块（Manager） | 2026-10-24 |
@@ -120,15 +121,15 @@
 | `docs/reference/implementation-digest.md` | 历史 | 实现摘要（Implementation Digest） | 2026-10-24 |
 | `docs/technical-debt.md` | 历史 | — | 2026-10-18 |
 | `docs/ROADMAP.md` | 期望 | PilotStd 路线图（ROADMAP） | 2026-10-24 |
-| `docs/plans/notification-redesign/00-README.md` | 期望 | 通知架构重设计（索引 + 结论速览 + 裁决） | 2026-10-16 |
-| `docs/plans/notification-redesign/02-目标架构.md` | 期望 | 02 目标架构设计 | 2026-10-05 |
-| `docs/plans/notification-redesign/03-实施路径.md` | 期望 | 03 实施路径（六阶段） | 2026-10-06 |
-| `docs/plans/notification-refactor-design.md` | 期望 | 事件通知模块重构设计（i18n / 模板 / 文案 / 覆盖度 / 聚合） | 2026-10-02 |
-| `docs/plans/notification-system-design/00-framework.md` | 期望 | 通知系统方案框架 | 2026-10-03 |
-| `docs/plans/notification-system-design/02-framework-update.md` | 期望 | 框架更新：裁决录入 + 分档通知策略初版 | 2026-10-03 |
-| `docs/plans/notification-system-design/06-spec-and-phasing.md` | 期望 | SSOT 重建方案：五处澄清 + 两处补充澄清 + 重做方案 | 2026-10-05 |
-| `docs/plans/notification-system-design/07-impl-design-A.md` | 期望 | 步 A 实施设计：渠道端到端收敛 | 2026-10-03 |
-| `docs/plans/notification-system-design/08-统筹日程.md` | 期望 | 08 通知系统 · 统筹日程与待办清单（统筹法分析） | 2026-10-16 |
+| 已归档（2026-11-08） | 期望 | 通知架构重设计（索引 + 结论速览 + 裁决） | 2026-10-16 |
+| 已归档（2026-11-08） | 期望 | 02 目标架构设计 | 2026-10-05 |
+| 已归档（2026-11-08） | 期望 | 03 实施路径（六阶段） | 2026-10-06 |
+| 已归档（2026-11-08） | 期望 | 事件通知模块重构设计（i18n / 模板 / 文案 / 覆盖度 / 聚合） | 2026-10-02 |
+| 已归档（2026-11-08） | 期望 | 通知系统方案框架 | 2026-10-03 |
+| 已归档（2026-11-08） | 期望 | 框架更新：裁决录入 + 分档通知策略初版 | 2026-10-03 |
+| 已归档（2026-11-08） | 期望 | SSOT 重建方案：五处澄清 + 两处补充澄清 + 重做方案 | 2026-10-05 |
+| 已归档（2026-11-08） | 期望 | 步 A 实施设计：渠道端到端收敛 | 2026-10-03 |
+| 已归档（2026-11-08） | 期望 | 08 通知系统 · 统筹日程与待办清单（统筹法分析） | 2026-10-16 |
 
 ## 三、历史归档区（`docs/archive/`，67 篇）
 

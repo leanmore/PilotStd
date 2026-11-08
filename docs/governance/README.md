@@ -194,4 +194,5 @@ A: `--required-only` 参数仅检查 `required` 级别能力。CI 也仅对 `req
 
 > 来源：`docs/governance/PROJECT_GOVERNANCE.md` v1.0（2026-06-29），2026-11-08 并入；原文已归档至 `docs/.local/archive/2026-11-08/docs/governance/`。
 > **2026-11-08**：`PROJECT_GOVERNANCE.md` 已归档至 `docs/.local/archive/2026-11-08/docs/governance/`，其原则与流程已并入本文件。
+> **2026-11-08**：通知系统设计 9 份原文已归档至 `docs/.local/archive/2026-11-08/docs/plans/`，导航见 `docs/architecture/notification-system.md`；`gates.md` 中的引用已改指归档区。
 
