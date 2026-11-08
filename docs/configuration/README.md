@@ -97,6 +97,15 @@ interval_days = (total_weeks * 7) / execution_count
 | `notification.quiet_hours_enabled` | bool | false | 静音时段开关 |
 | `notification.quiet_hours_start` | string | `"22:00"` | 静音开始 |
 | `notification.quiet_hours_end` | string | `"07:00"` | 静音结束 |
+| `notification.menus.{channel}` | object | `{}` | 渠道菜单配置；`channel` 取 `wechat`/`feishu`/`telegram`/`dingtalk`。字段与上限见下 |
+
+### 通知渠道菜单配置（A-27）
+
+- `items`：菜单项数组；每项 `id`/`label_key`/`type`（`view`/`click`/`command`/`group`）/`order`/`url`/`command`/`key`/`children`。
+- 上限：企微、飞书 3 个一级 + 每级 5 个二级；Telegram 3 个命令；钉钉机器人不支持（`enabled` 保持 false）。
+- 飞书额外需要 `notification.menus.feishu.chat_id`（群菜单挂在群上）。
+- 同步后写入 `last_synced` 快照用于幂等；管理入口 `POST /api/notification/menu/sync?channel=...`（admin）。
+- 详细 API 字段/错误码：`docs/reference/notification-menu-apis.md`。
 
 ## 环境变量
 
