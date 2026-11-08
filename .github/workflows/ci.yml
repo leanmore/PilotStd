@@ -972,6 +972,27 @@ jobs:
       - name: E-1 — capabilities 矩阵与代码同步
         run: python scripts/generate_capabilities.py --check
 
+      # G-013 测试联动（CI 形态，2026-11-08 / U34-C1）：
+      #   本地 `.husky/pre-commit` 已跑 G-013（读暂存区），但 `--no-verify` 或换机器提交时该维度失守；
+      #   本步骤补 CI 侧。**范围必须显式**：直推 main 时 `origin/main` 已被推进到本次 tip，
+      #   `origin/main..HEAD` 恒空 ⇒ 恒 PASS（T-27 实证假绿）；push 载荷无 `event.sha`，右端用 `github.sha`。
+      #   故 push 用 `before..sha`；PR（无 before）回退 `origin/<base>...HEAD`，与 T-25 同手法。
+      #   不加 `--bugfix-only`：本地钩子已做"只查 fix:"的减负，CI 是最后一道闸，应跑全量规则。
+      - name: G-013 — 测试联动（CI 形态）
+        env:
+          BASE_BRANCH: ${{ github.event.pull_request.base.ref || 'main' }}
+          EVENT_BEFORE: ${{ github.event.before }}
+          EVENT_SHA: ${{ github.sha }}
+        run: |
+          set -e
+          if git rev-parse --verify --quiet "${EVENT_BEFORE}" > /dev/null; then
+            RANGE="${EVENT_BEFORE}..${EVENT_SHA}"
+          else
+            RANGE="origin/${BASE_BRANCH}...HEAD"
+          fi
+          echo "G-013 range: ${RANGE}"
+          python scripts/check_g_013_test_coverage.py --range "${RANGE}"
+
   # ════════════════════════════════════════════════════════════════
   # Job 5: 版本管理（测试全部通过后执行）
   # ════════════════════════════════════════════════════════════════

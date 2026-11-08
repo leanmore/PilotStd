@@ -193,11 +193,15 @@ def _extract_api_signatures(tree: ast.Module) -> Dict[str, dict]:
 # 版本控制安全交互
 # ============================================================================ 分隔
 
-def get_old_content(filepath: str) -> str:
-    """安全获取文件在 HEAD 中的内容。新文件或 git 不可用时返回空字符串。"""
+def get_content_at(filepath: str, ref: str) -> str:
+    """安全获取文件在指定 git ref 中的内容。新文件或 git 不可用时返回空字符串。
+
+    `ref` 由调用方决定：本地模式固定 `HEAD`（暂存/工作区对照），
+    `--range` 模式传 merge-base（基线对照），否则「HEAD vs 工作区」在 CI 里恒等 ⇒ 永远无变更。
+    """
     try:
         result = subprocess.run(
-            ['git', 'show', f'HEAD:{filepath}'],
+            ['git', 'show', f'{ref}:{filepath}'],
             capture_output=True, text=True, encoding='utf-8', errors='replace', check=False, timeout=10
         )
         if result.returncode == 0:
@@ -254,6 +258,40 @@ def get_changed_files() -> List[str]:
     scope.require("本次变更文件范围")
     scope.report_partial()
     return [f for f in files if f]
+
+
+def resolve_range_base(base: str, head: str) -> str:
+    """把 `<base>...<head>` 解析成「merge-base」，作为基线内容来源。
+
+    直接用 `base` 会比 `git diff base...head`（三点）多算「base 自己前进的部分」；
+    取 merge-base 与三点 diff 的口径严格一致。
+
+    Raises:
+        ChangeSetUnavailable: merge-base 求不出（无共同祖先 / ref 不存在 / git 不可用）。
+    """
+    scope = ChangeScope(ROOT, timeout=10)
+    stdout = scope.query(['git', 'merge-base', base, head])
+    if stdout is None:
+        scope.require(f"变更范围基线 {base}...{head}")  # 抛错（exit 2）
+    merged = (stdout or '').strip()
+    if not merged:
+        raise ChangeSetUnavailable(f"无法求出 {base}...{head} 的 merge-base")
+    return merged
+
+
+def get_changed_files_for_range(base: str, head: str) -> List[str]:
+    """获取 `base..head` 范围内的变更文件（CI 形态；点号范围由调用方先解成 merge-base）。
+
+    Raises:
+        ChangeSetUnavailable: 范围不可知（git 不可用 / ref 不存在）。
+    """
+    scope = ChangeScope(ROOT, timeout=10)
+    stdout = scope.query(
+        ['git', 'diff', '--name-only', '--diff-filter=ACMR', f'{base}..{head}']
+    )
+    scope.require(f"变更范围 {base}..{head}")
+    scope.report_partial()
+    return [f for f in (stdout or '').strip().splitlines() if f]
 
 
 def is_business_file(filepath: str) -> bool:
@@ -409,11 +447,74 @@ def _check_bugfix_rule(changed_files: List[str], commit_msg: str) -> tuple[bool,
     return is_bugfix, []
 
 
+def _load_pair(biz_file: str, old_ref: str, new_ref: Optional[str], warnings: list) -> Optional[tuple]:
+    """读取比对所需的「基线 / head」内容；读不到时记 warning 并返回 None。"""
+    old_content = get_content_at(biz_file, old_ref)
+    if new_ref is None:
+        try:
+            with open(biz_file, 'r', encoding='utf-8') as fh:
+                return old_content, fh.read()
+        except (OSError, UnicodeDecodeError) as e:
+            warnings.append(f"[TEST-WARN] 无法读取文件 {biz_file}: {e}")
+            return None
+    new_content = get_content_at(biz_file, new_ref)
+    if not new_content:
+        # head 侧为空 = 文件被删除；ast.parse("") 返回 None，无法参与比对，至少留痕。
+        warnings.append(f"[TEST-WARN] {biz_file} 在 {new_ref} 中不存在（疑删除），未做 AST 比对")
+        return None
+    return old_content, new_content
+
+
+def _check_biz_file(
+    biz_file: str, old_ref: str, new_ref: Optional[str], test_changed: bool
+) -> tuple:
+    """检查单个业务文件，返回 (errors, warnings)。"""
+    local_warnings: list = []
+    pair = _load_pair(biz_file, old_ref, new_ref, local_warnings)
+    if pair is None:
+        return [], local_warnings
+    changed_apis = has_functional_change(*pair)
+    if not changed_apis:
+        return [], local_warnings
+
+    errors: list = []
+    for api_name, info in changed_apis.items():
+        api_type = info['type']
+        reason = info['change_reason']
+        # 删除接口已降级为，此处会进入警告流程
+        if api_type == 'public':
+            if not test_changed:
+                errors.append(
+                    f"[TEST-BLOCK] {biz_file} :: {api_name}() "
+                    f"发生了功能变更 ({reason})，"
+                    f"但未检测到对应测试文件变更。期望修改: tests/ 下任一测试文件"
+                )
+        else:  # private
+            if _should_upgrade_private_to_block(info):
+                if not test_changed:
+                    errors.append(
+                        f"[TEST-BLOCK] {biz_file} :: {api_name}() "
+                        f"(私有) 发生了高风险变更 ({reason}, "
+                        f"lines={info.get('line_count')}, "
+                        f"exception={info.get('has_exception')}, "
+                        f"io={info.get('has_io')})，需补充测试。"
+                        f"期望修改: tests/ 下任一测试文件"
+                    )
+            elif not test_changed:
+                local_warnings.append(
+                    f"[TEST-WARN] {biz_file} :: {api_name}() "
+                    f"(私有) 发生了变更 ({reason})，建议补充测试。"
+                )
+    return errors, local_warnings
+
+
 def run_check(
     changed_files: Optional[List[str]] = None,
     commit_msg: Optional[str] = None,
     check_bugfix: bool = True,
     bugfix_only: bool = False,
+    old_ref: str = 'HEAD',
+    new_ref: Optional[str] = None,
 ) -> dict:
     """
     执行 G-013 门禁检查。
@@ -421,6 +522,8 @@ def run_check(
 
     `check_bugfix=False`：跳过规则 0（pre-commit 阶段拿不到待提交消息时使用）。
     `bugfix_only=True`：只跑规则 0（commit-msg 钩子使用，测试联动由 pre-commit 负责）。
+    `old_ref`/`new_ref`：内容来源。默认 `HEAD` + 工作区（本地暂存/工作区口径）；
+    `--range` 模式传 merge-base + 范围右端 ref（CI 中工作区等于 HEAD，用默认值会恒无变更）。
     """
     if changed_files is None:
         changed_files = get_changed_files()
@@ -448,50 +551,11 @@ def run_check(
     # --- 规则 1: 业务代码变更检查 ---
     biz_files = [f for f in changed_files if is_business_file(f)]
 
+    test_changed = has_test_sync(changed_files)
     for biz_file in biz_files:
-        old_content = get_old_content(biz_file)
-        try:
-            with open(biz_file, 'r', encoding='utf-8') as fh:
-                new_content = fh.read()
-        except (OSError, UnicodeDecodeError) as e:
-            warnings.append(f"[TEST-WARN] 无法读取文件 {biz_file}: {e}")
-            continue
-
-        changed_apis = has_functional_change(old_content, new_content)
-        if not changed_apis:
-            continue
-
-        test_changed = has_test_sync(changed_files)
-
-        for api_name, info in changed_apis.items():
-            api_type = info['type']
-            reason = info['change_reason']
-
-            # 删除接口已降级为，此处会进入警告流程
-            if api_type == 'public':
-                if not test_changed:
-                    errors.append(
-                        f"[TEST-BLOCK] {biz_file} :: {api_name}() "
-                        f"发生了功能变更 ({reason})，"
-                        f"但未检测到对应测试文件变更。期望修改: tests/ 下任一测试文件"
-                    )
-            else:  # private
-                if _should_upgrade_private_to_block(info):
-                    if not test_changed:
-                        errors.append(
-                            f"[TEST-BLOCK] {biz_file} :: {api_name}() "
-                            f"(私有) 发生了高风险变更 ({reason}, "
-                            f"lines={info.get('line_count')}, "
-                            f"exception={info.get('has_exception')}, "
-                            f"io={info.get('has_io')})，需补充测试。"
-                            f"期望修改: tests/ 下任一测试文件"
-                        )
-                else:
-                    if not test_changed:
-                        warnings.append(
-                            f"[TEST-WARN] {biz_file} :: {api_name}() "
-                            f"(私有) 发生了变更 ({reason})，建议补充测试。"
-                        )
+        file_errors, file_warnings = _check_biz_file(biz_file, old_ref, new_ref, test_changed)
+        errors.extend(file_errors)
+        warnings.extend(file_warnings)
 
     passed = len(errors) == 0
     return {
@@ -507,8 +571,28 @@ def run_check(
 # 命令行入口
 # ============================================================================ 分隔
 
+def _parse_range_arg(argv: List[str]) -> Optional[tuple]:
+    """解析 `--range BASE...HEAD`（兼容两点写法）。返回 (base, head) 或 None。
+
+    Raises:
+        ValueError: 缺参数 / 格式非法。CLI 侧据此 exit 2。
+    """
+    if '--range' not in argv:
+        return None
+    idx = argv.index('--range')
+    if idx + 1 >= len(argv) or argv[idx + 1].startswith('--'):
+        raise ValueError("--range 缺少参数（需形如 origin/main...HEAD）")
+    spec = argv[idx + 1]
+    for sep in ('...', '..'):
+        if sep in spec:
+            base, head = spec.split(sep, 1)
+            if base and head:
+                return base, head
+    raise ValueError(f"--range 格式非法: {spec}（需形如 BASE...HEAD）")
+
+
 def main():
-    """CLI 入口：支持 --json / --commit-msg-file / --no-commit-msg / --bugfix-only。"""
+    """CLI 入口：支持 --json / --commit-msg-file / --no-commit-msg / --bugfix-only / --range。"""
     output_format = 'json' if '--json' in sys.argv else 'text'
 
     msg_file = None
@@ -523,11 +607,31 @@ def main():
     bugfix_only = '--bugfix-only' in sys.argv
 
     try:
-        result = run_check(
-            commit_msg=get_commit_message(msg_file),
-            check_bugfix=check_bugfix,
-            bugfix_only=bugfix_only,
-        )
+        range_spec = _parse_range_arg(sys.argv)
+    except ValueError as exc:
+        print(f"[FAIL] G-013: {exc}", file=sys.stderr)
+        sys.exit(2)
+
+    try:
+        if range_spec is not None:
+            base, head = range_spec
+            # 三点范围取 merge-base 作基线，与 `git diff A...B` 口径一致
+            merged = resolve_range_base(base, head)
+            changed = get_changed_files_for_range(merged, head)
+            result = run_check(
+                changed_files=changed,
+                commit_msg=get_commit_message(msg_file),
+                check_bugfix=check_bugfix,
+                bugfix_only=bugfix_only,
+                old_ref=merged,
+                new_ref=head,
+            )
+        else:
+            result = run_check(
+                commit_msg=get_commit_message(msg_file),
+                check_bugfix=check_bugfix,
+                bugfix_only=bugfix_only,
+            )
     except ChangeSetUnavailable as exc:
         print(f"[FAIL] G-013: 无法获取变更文件范围 — {exc}", file=sys.stderr)
         print(
