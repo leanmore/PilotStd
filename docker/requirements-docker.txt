@@ -37,4 +37,4 @@ bcrypt==4.0.1
 
 # --- 浏览器自动化（可信 IP）---
 # CloakBrowser 自带定制 Chromium；它依赖 playwright 控制层，不需要 playwright install chromium。
-cloakbrowser==0.7.0
+cloakbrowser==0.7.1

@@ -13,7 +13,11 @@ from .logic import merge_ip_list, parse_cookie_string
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_CACHE_DIR = os.environ.get("CLOAKBROWSER_CACHE", "/app/browser_cache")
+DEFAULT_CACHE_DIR = os.environ.get(
+    "CLOAKBROWSER_PROFILE_DIR",
+    os.environ.get("CLOAKBROWSER_CACHE", "/app/browser_cache"),
+)
+
 
 # 定位器（来自版本二5参考）
 XPATH_SET_IP = '//div[contains(@class, "app_card_operate") and contains(@class, "js_show_ipConfig_dialog")]'
@@ -26,6 +30,25 @@ class BrowserError(Exception):
     """浏览器操作异常。"""
 
     pass
+
+
+def browser_kernel_status() -> tuple[bool, str]:
+    """检查 CloakBrowser 内核是否已安装且可执行（不启动浏览器）。"""
+    try:
+        from cloakbrowser import binary_info  # type: ignore[import-not-found]
+    except ImportError as exc:
+        return False, f"cloakbrowser package unavailable: {exc}"
+    try:
+        info = binary_info()
+        path = str(info.get("binary_path") or "")
+        installed = bool(info.get("installed"))
+        if not installed or not path:
+            return False, "cloakbrowser kernel is not installed"
+        if not os.access(path, os.X_OK):
+            return False, f"cloakbrowser kernel is not executable: {path}"
+        return True, ""
+    except Exception as exc:  # noqa: BLE001 - 状态探测失败要转成可读原因
+        return False, f"cloakbrowser kernel check failed: {exc}"
 
 
 class WechatIPUpdater:
@@ -60,6 +83,10 @@ class WechatIPUpdater:
                 return
             except ImportError:
                 logger.info("CloakBrowser 不可用，尝试 Playwright 备选")
+            except BrowserError:
+                # 内核未安装/不可执行时不再回退到没有浏览器的 Playwright，
+                # 让 run_check 把明确原因写回状态并通知用户。
+                raise
             except Exception as e:
                 logger.warning("CloakBrowser 启动失败: %s，回退 Playwright", e)
 
@@ -75,6 +102,9 @@ class WechatIPUpdater:
         使用 `launch_persistent_context`：企微登录态需要持久化 profile；
         `launch()` 是普通 Browser，不接受 `user_data_dir`。
         """
+        available, reason = browser_kernel_status()
+        if not available:
+            raise BrowserError(reason)
         from cloakbrowser import launch_persistent_context  # type: ignore[import-not-found]
 
         self._browser = launch_persistent_context(

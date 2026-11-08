@@ -25,7 +25,7 @@ ENV PYTHONPATH=/install
 
 # 创建非 root 用户
 RUN useradd -m appuser
-RUN mkdir -p /home/appuser/.cloakbrowser && chown -R appuser:appuser /home/appuser/.cloakbrowser
+ENV CLOAKBROWSER_CACHE_DIR=/app/data/cloakbrowser
 
 # 安装 gosu + git（自更新 git pull 方案，参照 MoviePilot）
 # libxcb1/libgl1 等为 RapidOCR 依赖的 OpenCV 在 slim 镜像中的运行库
@@ -37,7 +37,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN python -m playwright install-deps chromium && rm -rf /var/lib/apt/lists/*
 
 COPY docker/entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
+COPY docker/cloakbrowser.sh /app/cloakbrowser.sh
+RUN chmod +x /app/entrypoint.sh /app/cloakbrowser.sh
 
 # 4. 最后复制业务代码（变更频繁，放最后以利用上层缓存）
 COPY pilotstd/ ./pilotstd/

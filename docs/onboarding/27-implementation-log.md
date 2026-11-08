@@ -212,8 +212,8 @@
 
 | 项 | 内容 |
 |---|---|
-| 文件 | `docker/requirements-docker.txt`、`docker/Dockerfile`、`docker-compose*.yml`、`.env.example`、`wechat_ip/browser.py` |
-| 行为 | CloakBrowser 自带 Chromium；license/env/缓存卷；`launch_persistent_context` 保持登录态 |
+| 文件 | `docker/requirements-docker.txt`、`docker/Dockerfile`、`docker-compose*.yml`、`docker/cloakbrowser.sh`、`.env.example`、`wechat_ip/browser.py` |
+| 行为 | CloakBrowser 0.7.1 自带 Chromium；启动预装 + `binary_info()` 检查；缓存 `/app/data/cloakbrowser`；license/env；`launch_persistent_context` 保持登录态 |
 | 验证 | 需 Docker 构建；首次启动下载约 200MB 二进制 |
 | 回滚 | 移除 cloakbrowser 依赖与缓存卷，回到 Playwright/人工更新 |
 

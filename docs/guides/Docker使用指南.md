@@ -394,6 +394,7 @@ Docker 镜像已内置 CloakBrowser 依赖（定制 Chromium，不需要原版 C
    ```text
    CLOAKBROWSER_LICENSE_KEY=你的key
    ```
-2. 首次启动会下载约 200MB 定制 Chromium，缓存到 `./cloakbrowser`（容器内 `/home/appuser/.cloakbrowser`）。
-3. 如果下载失败，检查 NAS 是否能访问外网；失败会写通知/状态，不会静默。
-4. 不要删除 `./cloakbrowser`，否则每次重建容器都会重新下载。
+2. 容器启动时会预装约 200MB 定制 Chromium，缓存到 `./data/cloakbrowser`（容器内 `/app/data/cloakbrowser`）。
+3. 预装失败只告警，不阻止主服务启动；首次使用时会再次报错并通知。
+4. 不要删除 `./data/cloakbrowser`，否则下次启动会重新下载。
+5. Key 申请步骤见 [`CloakBrowser-Key申请教程.md`](CloakBrowser-Key申请教程.md)。

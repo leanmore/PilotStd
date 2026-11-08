@@ -147,12 +147,19 @@ else
     echo "[INIT] 超级用户已初始化，跳过"
 fi
 
+# CloakBrowser 内核预装：缓存放在 /app/data 下，随 data 卷持久化。
+source /app/cloakbrowser.sh
+
 # 权限处理：PUID=0 表示以 root 运行，跳过 chown 和 gosu；否则降权到 appuser
 if [ "$PUID" = "0" ]; then
     # root 模式：直接启动，不降权（宿主机目录权限由 root 兜底）
+    prepare_cloakbrowser_cache
+    install_cloakbrowser_kernel
     exec uvicorn docker.app:app --host 0.0.0.0 --port 9028
 else
-    mkdir -p /home/appuser/.cloakbrowser
-    chown -R appuser:appuser /app/data /app/logs /app/downloads /standards /inbox /home/appuser/.cloakbrowser
+    mkdir -p /app/data/cloakbrowser
+    chown -R appuser:appuser /app/data /app/logs /app/downloads /standards /inbox
+    prepare_cloakbrowser_cache
+    install_cloakbrowser_kernel
     exec gosu appuser uvicorn docker.app:app --host 0.0.0.0 --port 9028
 fi

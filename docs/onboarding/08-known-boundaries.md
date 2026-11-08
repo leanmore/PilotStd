@@ -276,11 +276,12 @@
 
 **A1 方案（2026-11-07 已接入）**
 
-- Docker 依赖加入 `cloakbrowser==0.7.0`；它自带定制 Chromium，不再需要原版 Chromium；
+- Docker 依赖加入 `cloakbrowser==0.7.1`；它自带定制 Chromium，不再需要原版 Chromium；
 - Dockerfile 安装 `playwright install-deps chromium` 与中文字体；
 - `CLOAKBROWSER_LICENSE_KEY` 通过 compose/.env 注入；
-- 定制 Chromium 缓存放 `./cloakbrowser:/home/appuser/.cloakbrowser`；
-- `WechatIPUpdater` 改用 `launch_persistent_context` 保持企业微信登录态；
+- 定制 Chromium 缓存放 `/app/data/cloakbrowser`（随 `./data` 卷持久化）；
+- 容器启动时用 `python -m cloakbrowser install` 预装内核，`binary_info()` 判断是否可执行；
+- `WechatIPUpdater` 使用 `launch_persistent_context` 保持企业微信登录态；
 - 首次启动下载约 200MB 定制 Chromium，离线/无 key 时会失败并通知。
 
 ### 9. 通知聚合的现状
