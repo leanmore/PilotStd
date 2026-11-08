@@ -101,7 +101,14 @@ class DownloadUIHandler:
         self._download_worker.batch_ready.connect(self.on_download_batch_ready)
 
         def _on_finished() -> None:
-            self.on_download_finished(to_download, too_new_set, total, download_list)
+            """下载 worker 结束回调：把「未排队」集合一并交给汇总统计（单列，不并入失败数）。"""
+            self.on_download_finished(
+                to_download,
+                too_new_set,
+                total,
+                download_list,
+                getattr(self, "_skipped_set", set()),
+            )
 
         self._download_worker.finished_signal.connect(_on_finished)
         self._download_worker.finished_signal.connect(
@@ -214,24 +221,47 @@ class DownloadUIHandler:
         """筛选发布不满阈值的标准，加入等待队列。
 
         Engine 负责判断哪些标准过新；Handler 负责入队 + 弹窗。
+
+        Returns:
+            `too_new_set`：**已成功入队**的下标（从下载统计中排除）。
+            入队失败的下标（无发布日期/格式非法）另存 `self._skipped_set`，由
+            `on_download_finished` 单列统计——不并入返回值，保持既有 `set` 契约
+            （GUI e2e 用例依赖「空列表 → 空 set」）。
         """
         too_new_set: set = set()
+        skipped_set: set = set()
         too_new = self._engine.filter_too_new_standards(download_list)
 
         too_new_list: list = []
+        skipped_list: list = []
         for orig_idx, p in enumerate(download_list):
             if p in too_new:
-                too_new_list.append((orig_idx, p))
-                too_new_set.add(orig_idx)
-                self._mgr.enqueue_download_wait(p)
+                # 先入队、成功后才标记「已处理」：入队失败的标准不能被当成已安排。
+                if self._mgr.enqueue_download_wait(p):
+                    too_new_list.append((orig_idx, p))
+                    too_new_set.add(orig_idx)
+                else:
+                    skipped_list.append((orig_idx, p))
+                    skipped_set.add(orig_idx)
+        self._skipped_set = skipped_set
 
-        if too_new_list and not self._suppress_dialogs():
-            lines = [_("msg_new_std_too_new"), ""]
-            for _idx, p in too_new_list[:10]:
-                num = getattr(p, "found_number", None) or p.get_full_number()
-                lines.append(f"  {num}")
-            if len(too_new_list) > 10:
-                lines.append(f"  ... {len(too_new_list)} total")
+        if (too_new_list or skipped_list) and not self._suppress_dialogs():
+            lines: list[str] = []
+            if too_new_list:
+                lines.append(_("msg_new_std_too_new"))
+                lines.append("")
+                for _idx, p in too_new_list[:10]:
+                    num = getattr(p, "found_number", None) or p.get_full_number()
+                    lines.append(f"  {num}")
+                if len(too_new_list) > 10:
+                    lines.append(f"  ... {len(too_new_list)} total")
+            if skipped_list:
+                if lines:
+                    lines.append("")
+                # 这些标准没有进队列：若不说，用户会把「暂不可下载」误读成「已排队、到期自动下」。
+                # i18n-allow: 与同函数 failed_details 同风格的运行期拼接，待统一迁入 i18n 键
+                skipped_hint = f"另有 {len(skipped_list)} 条因发布日期格式异常，未加入等待队列，请手动检查"
+                lines.append(skipped_hint)
             QMessageBox.information(self._parent, _("title_new_std_unavailable"), "\n".join(lines))
         return too_new_set
 
@@ -255,14 +285,23 @@ class DownloadUIHandler:
         for idx, status in batch:
             self.update_download_row(idx, status)
 
-    def on_download_finished(self, to_download: list, too_new_set: set, total: int, download_list: Any = None) -> None:
-        """下载完成：统计成功/失败/过新数量 → 通知 → 汇总弹窗。"""
+    def on_download_finished(
+        self,
+        to_download: list,
+        too_new_set: set,
+        total: int,
+        download_list: Any = None,
+        skipped_set: set | None = None,
+    ) -> None:
+        """下载完成：统计成功/失败/过新/未排队数量 → 通知 → 汇总弹窗。"""
         # 统计各项计数
         too_new_count = len(too_new_set)
+        skipped_set = skipped_set or set()
+        skipped_count = len(skipped_set)
         success_count = 0
         failed_details: list[str] = []
         for orig_idx, p in to_download:
-            if orig_idx in too_new_set:
+            if orig_idx in too_new_set or orig_idx in skipped_set:
                 continue
             row = self._find_row_by_seq(orig_idx + 1)
             if row < 0:
@@ -276,11 +315,11 @@ class DownloadUIHandler:
                     getattr(p, "source_path", "") or getattr(p, "raw_filename", "") or p.get_full_number()
                 )
                 failed_details.append(f"  • {fname} — {status or '下载失败'}")
-        failed_count = total - success_count - too_new_count
+        failed_count = total - success_count - too_new_count - skipped_count
 
         self._status_cb(f"下载完成: {success_count}/{total} 成功")
         self._project_mark_dirty()
-        self._register_task("下载", total, success_count, failed_count + too_new_count)
+        self._register_task("下载", total, success_count, failed_count + too_new_count + skipped_count)
 
         # 发送本地通知（按成功/失败比例选择不同通知类型）
         from ....platform.notify import NotifyService

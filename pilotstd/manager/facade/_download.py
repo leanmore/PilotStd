@@ -196,9 +196,9 @@ class DownloadHandler:
 
     # ── 下载等待队列 ──
 
-    def enqueue_download_wait(self, parsed: Any) -> None:
-        """将解析结果加入下载等待队列。"""
-        self._core.pending_svc.enqueue_download_wait(parsed)
+    def enqueue_download_wait(self, parsed: Any) -> bool:
+        """将解析结果加入下载等待队列；返回是否已入队（幂等命中也算成功）。"""
+        return bool(self._core.pending_svc.enqueue_download_wait(parsed))
 
     def get_due_downloads(self) -> list[dict[str, Any]]:
         """获取到期的下载等待队列项。"""

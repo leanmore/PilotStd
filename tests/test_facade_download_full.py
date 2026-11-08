@@ -320,7 +320,8 @@ class TestDownloadHandler(unittest.TestCase):
 
     def test_enqueue_download_wait(self):
         parsed = _make_parsed_item()
-        self.handler.enqueue_download_wait(parsed)
+        self.core.pending_svc.enqueue_download_wait.return_value = True
+        self.assertTrue(self.handler.enqueue_download_wait(parsed))
         self.core.pending_svc.enqueue_download_wait.assert_called_once_with(parsed)
 
     # ── get_due_downloads ──

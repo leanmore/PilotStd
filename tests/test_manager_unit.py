@@ -290,7 +290,7 @@ class TestPendingService(unittest.TestCase):
     def test_enqueue_download_wait(self):
         p = _make_parsed("GB/T", 3836, 2024)
         p.found_publish_date = "2024-06-01"
-        self.svc.enqueue_download_wait(p)
+        self.assertTrue(self.svc.enqueue_download_wait(p))
         due = self.svc.get_due_downloads()
         self.assertEqual(len(due), 1)
         self.assertEqual(due[0]["standard_number"], "GB/T 3836-2024")
@@ -298,29 +298,30 @@ class TestPendingService(unittest.TestCase):
     def test_enqueue_download_wait_skips_no_publish_date(self):
         p = _make_parsed("GB/T", 3836, 2024)
         p.found_publish_date = ""  # 无发布日期
-        self.svc.enqueue_download_wait(p)
+        self.assertFalse(self.svc.enqueue_download_wait(p))
         due = self.svc.get_due_downloads()
         self.assertEqual(len(due), 0)  # 未写入
 
     def test_enqueue_download_wait_skips_duplicate(self):
         p = _make_parsed("GB/T", 3836, 2024)
         p.found_publish_date = "2024-06-01"
-        self.svc.enqueue_download_wait(p)
-        self.svc.enqueue_download_wait(p)
+        self.assertTrue(self.svc.enqueue_download_wait(p))
+        # 幂等命中：已在队列里对调用方而言等价于「已安排」，仍返回 True
+        self.assertTrue(self.svc.enqueue_download_wait(p))
         due = self.svc.get_due_downloads()
         self.assertEqual(len(due), 1)
 
     def test_get_due_downloads_filters_by_date(self):
         p = _make_parsed("GB/T", 99999, 2099)
         p.found_publish_date = "2099-01-01"  # 未来
-        self.svc.enqueue_download_wait(p)
+        self.assertTrue(self.svc.enqueue_download_wait(p))
         due = self.svc.get_due_downloads()
         self.assertEqual(len(due), 0)  # 未到公开期
 
     def test_remove_download_queue(self):
         p = _make_parsed("GB/T", 3836, 2024)
         p.found_publish_date = "2024-06-01"
-        self.svc.enqueue_download_wait(p)
+        self.assertTrue(self.svc.enqueue_download_wait(p))
         self.svc.remove_download_queue("GB/T 3836-2024")
         due = self.svc.get_due_downloads()
         self.assertEqual(len(due), 0)

@@ -114,9 +114,98 @@ def test_pending_enqueue_bad_date_is_warning(caplog) -> None:
     svc = object.__new__(PendingService)
 
     with caplog.at_level(logging.DEBUG):
-        PendingService.enqueue_download_wait(svc, parsed)
+        queued = PendingService.enqueue_download_wait(svc, parsed)
 
+    assert queued is False, "日期解析失败 = 没有入队，必须如实返回 False"
     assert _has(caplog, logging.WARNING, "发布日期解析失败")
+
+
+# ── C6 Commit1：入队 bool + skipped 单列 ─────────────────────────────────
+
+
+def _mk_handler(enqueue_results, too_new_items):
+    """构造一个只带 filter_too_new_standards 所需依赖的 Handler（不初始化 Qt）。"""
+    from pilotstd.ui.core.handlers._download import DownloadUIHandler
+
+    handler = object.__new__(DownloadUIHandler)
+    handler._engine = types.SimpleNamespace(
+        filter_too_new_standards=lambda _download_list: list(too_new_items)
+    )
+    seq = iter(enqueue_results)
+    handler._mgr = types.SimpleNamespace(enqueue_download_wait=lambda _parsed: next(seq))
+    handler._suppress_dialogs = lambda: True
+    return handler
+
+
+def test_filter_too_new_enqueue_success_marked() -> None:
+    """入队成功 → 进 too_new_set，不进 skipped_set。"""
+    p0, p1 = object(), object()
+    handler = _mk_handler([True], [p0])
+
+    too_new_set = handler.filter_too_new_standards([p0, p1])
+
+    assert too_new_set == {0}
+    assert handler._skipped_set == set()
+
+
+def test_filter_too_new_enqueue_failure_goes_to_skipped() -> None:
+    """入队失败（日期异常/无日期）→ 进 skipped_set，**不进** too_new_set。"""
+    p0, p1 = object(), object()
+    handler = _mk_handler([False], [p0])
+
+    too_new_set = handler.filter_too_new_standards([p0, p1])
+
+    assert too_new_set == set()
+    assert handler._skipped_set == {0}
+
+
+def test_filter_too_new_mixed_two_ok_one_failed() -> None:
+    """混合：2 条入队成功 + 1 条失败 → 两个集合各归各。"""
+    a, b, c = object(), object(), object()
+    handler = _mk_handler([True, True, False], [a, b, c])
+
+    too_new_set = handler.filter_too_new_standards([a, b, c])
+
+    assert too_new_set == {0, 1}
+    assert handler._skipped_set == {2}
+
+
+def test_on_download_finished_excludes_skipped_from_failed(monkeypatch) -> None:
+    """汇总：skipped 单列，不混进 failed_count。
+
+    4 条 = 1 成功 + 2 过新 + 1 未排队 ⇒ failed_count 必须是 0。
+    若 skipped 被算进失败，`_register_task` 的第 4 个参数会变成 4 而不是 3。
+    """
+    import pilotstd.platform.notify as notify_mod
+    from pilotstd.ui.core.handlers._download import DownloadUIHandler
+
+    class _Notify:
+        @staticmethod
+        def get():
+            return types.SimpleNamespace(
+                show=lambda *_a, **_k: None, show_warning=lambda *_a, **_k: None
+            )
+
+    monkeypatch.setattr(notify_mod, "NotifyService", _Notify)
+
+    downloaded = types.SimpleNamespace(text=lambda: "已下载")
+    handler = object.__new__(DownloadUIHandler)
+    handler._find_row_by_seq = lambda seq: 0 if seq == 1 else -1
+    handler._work_table = types.SimpleNamespace(item=lambda _row, _col: downloaded)
+    handler._status_cb = lambda *_a: None
+    handler._project_mark_dirty = lambda: None
+    handler._suppress_dialogs = lambda: True
+    recorded: dict = {}
+    handler._register_task = (
+        lambda name, total, ok, bad: recorded.update(total=total, ok=ok, bad=bad, name=name)
+    )
+
+    items = [(i, object()) for i in range(4)]
+    handler.on_download_finished(items, {1, 2}, 4, None, {3})
+
+    assert recorded["ok"] == 1
+    # bad = failed(0) + too_new(2) + skipped(1)；若 skipped 混进 failed 则为 4
+    assert recorded["bad"] == 3
 
 
 # ── R7 / E1：_njbz365 三个 except 统一 WARNING ───────────────────────────

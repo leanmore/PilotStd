@@ -290,8 +290,14 @@ class TestDownloadStream:
 class TestDownloadQueue:
     def test_enqueue_download_wait(self, handler, mock_core):
         parsed = MagicMock()
-        handler.enqueue_download_wait(parsed)
+        mock_core.pending_svc.enqueue_download_wait.return_value = True
+        assert handler.enqueue_download_wait(parsed) is True
         mock_core.pending_svc.enqueue_download_wait.assert_called_once_with(parsed)
+
+    def test_enqueue_download_wait_propagates_false(self, handler, mock_core):
+        """入队失败（False）必须透传，UI 据此把该条计入 skipped。"""
+        mock_core.pending_svc.enqueue_download_wait.return_value = False
+        assert handler.enqueue_download_wait(MagicMock()) is False
 
     def test_get_due_downloads(self, handler, mock_core):
         mock_core.pending_svc.get_due_downloads.return_value = [{"id": 1}]

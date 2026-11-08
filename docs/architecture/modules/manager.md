@@ -145,6 +145,12 @@ StandardManager (BaseFacade)
   不再让人误以为"本来就没数据"）；**C6 补充**：脏 JSON 时返回体额外带 `message`（"结果数据损坏（invalid
   JSON），已返回空结果"），`status`/`data` 不变——**只增字段、不换语义**，消费方据此可区分"本来没数据"
   与"数据损坏"；端点契约由 `tests/test_announce_results_endpoint.py` 三例锁定；
+  **C6 续**：`pending_service.enqueue_download_wait` 由 `-> None` 改为 **`-> bool`**
+  （无发布日期 / 日期格式非法 → `False`，幂等命中或插入成功 → `True`）；`facade/_download.py` 两行透传；
+  UI 侧改为「入队成功才计入 `too_new_set`」，失败的进 `skipped_set` 并在汇总里**单列**——
+  `failed_count = total - success - too_new - skipped`，不再把"没排队"混进失败数；弹窗在 M>0 时追加
+  「另有 M 条因发布日期格式异常，未加入等待队列，请手动检查」，M=0 不出这句。
+  契约由 `tests/test_c2_log_levels.py` 与 `tests/test_manager_unit.py` 锁定；
   `announce_service._acquire_manual_lock` 的锁写入异常补 `warning`（原为裸 `return False`，被上层
   当成"锁被占用"⇒ 手动抓取静默不执行）；`pending_service.enqueue_download_wait` 的发布日期解析失败补
   `warning`（原静默跳过等待队列，该标准不进队列也无痕）。

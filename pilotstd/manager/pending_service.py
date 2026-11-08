@@ -98,33 +98,40 @@ class PendingService:
 
     # ── 下载等待队列 ───────────────────────────────────────────
 
-    def enqueue_download_wait(self, parsed: ParsedStdInfo) -> None:
-        """写入下载等待队列（未到公开期的标准）。"""
+    def enqueue_download_wait(self, parsed: ParsedStdInfo) -> bool:
+        """写入下载等待队列（未到公开期的标准）。
+
+        Returns:
+            True: 已在队列中（幂等命中）或本次插入成功；
+            False: 没有发布日期、发布日期格式非法 —— **没有入队**，调用方不应把它当成已安排。
+        """
         num = getattr(parsed, "found_number", "") or parsed.get_full_number()
         name = parsed.found_name or parsed.std_name or ""
         pub_str = getattr(parsed, "found_publish_date", "")
         if not pub_str:
-            return
+            return False
         try:
             pub_dt = datetime.strptime(pub_str, "%Y-%m-%d")
         except ValueError as e:
             # 解析失败会让该标准静默不进等待队列（用户以为已排队），必须留痕。
             # i18n-allow: 内部运维日志
             logger.warning("标准 %s 发布日期解析失败（%r），跳过等待队列: %s", num, pub_str, e)
-            return
+            return False
         available_dt = pub_dt + timedelta(days=28)
         existing = self._db.fetchone(
             "SELECT id FROM download_queue WHERE standard_number=? AND status='waiting'",
             (num,),
         )
         if existing:
-            return
+            # 幂等：已经在队列里，对调用方而言等价于「已安排」，返回 True。
+            return True
         self._db.execute(
             "INSERT INTO download_queue (standard_number, standard_name, "
             "publish_date, expected_available, created_at, status) "
             "VALUES (?, ?, ?, ?, ?, 'waiting')",
             (num, name, pub_str, available_dt.isoformat(), iso_now()),
         )
+        return True
 
     def get_due_downloads(self) -> list[dict[str, Any]]:
         """获取公开期已到的下载等待项。"""
