@@ -488,10 +488,10 @@ def main() -> int:
         print("| 优先级 | 行动 | 数据支撑 |")
         print("|-------|------|---------|")
         print(
-            f"| P1 | 批量重清洗含脏数据公告 | {has_junk}/{len(valid)} 条 ({has_junk / len(valid) * 100:.1f}%) 含废弃标签 |"
+            f"| P1 | 批量重清洗含脏数据公告 | {has_junk}/{len(valid)} 条 ({has_junk / len(valid) * 100:.1f}%) 含废弃标签 |"  # noqa: E501
         )
         print(
-            f"| P1 | 排查无语义 class 公告来源 | {no_semantic}/{len(valid)} 条 ({no_semantic / len(valid) * 100:.1f}%) 无语义标记 |"
+            f"| P1 | 排查无语义 class 公告来源 | {no_semantic}/{len(valid)} 条 ({no_semantic / len(valid) * 100:.1f}%) 无语义标记 |"  # noqa: E501
         )
         print("| P2 | 扩展 _content_cleaner.py 覆盖新发现模式 | 从 Top 异常样本中提取 |")
     else:

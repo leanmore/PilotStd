@@ -128,7 +128,7 @@ def main():
                 try:
                     if inp.is_visible():
                         print(
-                            f"    type={inp.get_attribute('type')} placeholder={inp.get_attribute('placeholder')} class={inp.get_attribute('class')}"
+                            f"    type={inp.get_attribute('type')} placeholder={inp.get_attribute('placeholder')} class={inp.get_attribute('class')}"  # noqa: E501
                         )
                 except Exception:
                     pass

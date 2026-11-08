@@ -114,7 +114,7 @@ def main():
                 try:
                     if inp.is_visible():
                         print(
-                            f"    type={inp.get_attribute('type')} placeholder={inp.get_attribute('placeholder')} id={inp.get_attribute('id')} class={inp.get_attribute('class')}"
+                            f"    type={inp.get_attribute('type')} placeholder={inp.get_attribute('placeholder')} id={inp.get_attribute('id')} class={inp.get_attribute('class')}"  # noqa: E501
                         )
                 except Exception:
                     pass
@@ -204,7 +204,7 @@ def main():
         print(f"URL: {req['url']}")
         print(f"Method: {req['method']}")
         print(
-            f"Headers: {json.dumps({k: v for k, v in req['headers'].items() if k.lower() not in ('host', 'content-length', 'accept-encoding', 'user-agent')}, indent=2)}"
+            f"Headers: {json.dumps({k: v for k, v in req['headers'].items() if k.lower() not in ('host', 'content-length', 'accept-encoding', 'user-agent')}, indent=2)}"  # noqa: E501
         )
         if req["body"]:
             print(f"Body: {req['body'][:500]}")
