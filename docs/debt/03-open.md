@@ -33,6 +33,7 @@
 | **A-40** | **旧数据 `user_id=1` 的归属未校验**：v71 回填把所有存量日志/队列归 user 1；真正多用户时需判断归属（单用户升级可接受） | 未修 | 触发：启用多用户；修法：迁移时按用户映射或标记来源 | 触发条件＝A-21 多用户上线 |
 | **A-41** | **failed-items 无 admin 全量视图**：当前只按 user_id 过滤 | 未修 | 需要时加 `all=true`（仅 admin）或 `user_id` 查询参数 | 触发条件＝admin 需要跨用户排障 |
 | **A-42** | **API auto/archive 无 auth 依赖，事件归 system**：`/api/auto`、`/api/archive` 未接 `get_current_user_id`，多用户时用户看不到自己触发的通知 | 未修 | 需要前端 token + 端点加 auth 后再传 context=user；单用户不影响 | 触发条件＝多用户 API 场景 |
+| **C-6 遗留** | **pending 弹窗 skipped 提示的 i18n**：`pilotstd/ui/core/handlers/_download.py` 的「另有 M 条因发布日期格式异常，未加入等待队列，请手动检查」目前用行内 `# i18n-allow` 豁免（G-047 通过，但仅中文） | 未修 · **P2** | 三语化：在 `pilotstd/i18n/{zh_CN,en,zh_TW}.json` 加键（建议 `download_skipped_bad_date`），代码改 `_("download_skipped_bad_date").format(count=...)` 并删掉 `i18n-allow` | 触发条件＝多语言用户反馈，或下次 i18n 统一迁移；**不影响功能，只影响多语言用户** |
 
 > **A-27 子项（2026-11-08，实现完成后的部署/后续待办）**
 > - **A-27.1 真实渠道 API 验证（部署时）**：企微需 `corpid`/`corpsecret`/`agentid`；飞书需 `app_id`/`secret` + 测试群 `chat_id`；Telegram 需 bot token。代码已实现，单测覆盖 fake transport，**真实 API 未调用**。**阻塞部署验证**。
