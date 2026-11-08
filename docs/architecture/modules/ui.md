@@ -89,6 +89,11 @@ MainWindow (QMainWindow)
 - Handler 之间不直接通信，通过 `MainWindowCore` 共享状态
 - `parts/` 目录下的方法片段通过 `from .parts._xxx import method` 注入为 MainWindow 实例方法
 
+## 信号与错误通道（W1-U1，2026-11-08）
+
+- `MainWindow.query_result_ready` 已删除：查询结果由 `QueryUIHandler.on_result_ready` 直接回调表格更新（`core/handlers/_query.py`）；旧 `_query_ops._on_query_result_ready` 仅保留给测试直接调用，生产链路不再经过 MainWindow 信号。
+- `FileMoveWorker.error_occurred` 已接到 `CleanupHandler._status`（构造注入的 `status_callback` → 主窗口 `status_changed` → 状态栏），搬迁失败不再只发进空处；回归测试 `tests/gui/test_cleanup_error_channel.py` 钉住该链路。
+
 ## 状态值引用（R14-4b / #32-B，2026-10-01）
 
 UI 层的状态判定与展示不再硬编码中文：`main_window/parts/_query_ops.py`（结果状态着色）、

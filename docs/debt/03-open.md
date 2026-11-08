@@ -34,6 +34,8 @@
 | **A-41** | **failed-items 无 admin 全量视图**：当前只按 user_id 过滤 | 未修 | 需要时加 `all=true`（仅 admin）或 `user_id` 查询参数 | 触发条件＝admin 需要跨用户排障 |
 | **A-42** | **API auto/archive 无 auth 依赖，事件归 system**：`/api/auto`、`/api/archive` 未接 `get_current_user_id`，多用户时用户看不到自己触发的通知 | 未修 | 需要前端 token + 端点加 auth 后再传 context=user；单用户不影响 | 触发条件＝多用户 API 场景 |
 
+> **2026-11-08（W1-U1）遗留候选**：`pilotstd/ui/main_window/parts/_query_ops.py::_on_query_result_ready` 在 `MainWindow.query_result_ready` 信号删除后**仅剩测试直接调用**（`tests/gui/test_coverage_queries.py:44`、`tests/gui/test_main_window_core.py:328`），生产链路已由 `QueryUIHandler.on_query_result_ready`（`pilotstd/ui/core/handlers/_query.py:183/:199`）承担。**下次清理 UI 遗留代码时**：删方法并同步迁移/删除这两处测试。
+
 **真实验证执行**：凭证到位后每渠道发 1 条（谁提供凭证谁发），确认收到即把本行状态改为"已验证"；失败则区分代码/环境问题再修 | 无；**真实验证为独立验收项，不阻塞实现** |
 
 ### A-18 历史 hash 映射表（2026-10-28）

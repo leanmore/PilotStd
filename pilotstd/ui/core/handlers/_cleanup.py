@@ -272,6 +272,8 @@ class CleanupHandler:
         result = {"moved": 0}
 
         worker = FileMoveWorker(selected, root_dir, parent)
+        # 错误不能只发进空处：self._status 即构造注入的 status_callback（主窗口接 status_changed）
+        worker.error_occurred.connect(self._status)
         worker.progress_changed.connect(progress.setValue)
         progress.canceled.connect(worker.requestInterruption)
         worker.move_done.connect(lambda n: result.update({"moved": n}))

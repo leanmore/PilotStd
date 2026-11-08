@@ -41,7 +41,7 @@ class MainWindow(_WindowLifecycleMixin, QMainWindow):
     # 信号：供外部模块更新进度
     progress_changed = pyqtSignal(int)
     status_changed = pyqtSignal(str)
-    query_result_ready = pyqtSignal(int, object)
+    # query_result_ready 已删除：查询结果由 QueryUIHandler.on_result_ready 直接更新表格
 
     # 由 parts/_ui_setup_ops 等导入方法在运行时创建：显式声明（D-17）
     progress_bar: Any
@@ -227,7 +227,6 @@ class MainWindow(_WindowLifecycleMixin, QMainWindow):
 
         self.progress_changed.connect(self._on_progress)
         self.status_changed.connect(self._on_status)
-        self.query_result_ready.connect(self._on_query_result_ready)
 
         # 统一进度管道（替代旧定时器，所有共用）
         self._progress_pipeline = UnifiedProgressPipeline(self)

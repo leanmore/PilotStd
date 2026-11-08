@@ -16,9 +16,15 @@
 
 from __future__ import annotations
 
+import ast
 import re
 import sys
 from pathlib import Path
+
+# 2026-11-08（W1-U1）：修正「只认 @property」造成的误报。
+# BaseFacade 已用 `_CORE_PROXY_WHITELIST` + `__getattr__/__setattr__` 做属性代理，
+# 只看装饰器会把 11 个白名单属性全部误报为缺失；下面用 AST 解析白名单，
+# 且仅在类确实实现代理方法时才把命中项计为“已代理”。
 
 ROOT = Path(__file__).resolve().parent.parent
 TARGET = ROOT / "pilotstd" / "manager" / "facade" / "_base.py"
@@ -38,6 +44,56 @@ SKIP_ATTRS: set[str] = {
     "adapter_manager",
     "session_mgr",
 }
+
+
+def _literal_str_set(node: ast.AST) -> set[str]:
+    """从 `frozenset({...})` / `{...}` / `[...]` 节点提取字符串常量集合。"""
+    if isinstance(node, ast.Call):
+        if isinstance(node.func, ast.Name) and node.func.id in {"frozenset", "set", "tuple", "list"} and node.args:
+            return _literal_str_set(node.args[0])
+        return set()
+    try:
+        value = ast.literal_eval(node)
+    except (ValueError, SyntaxError):
+        return set()
+    if isinstance(value, (set, frozenset, list, tuple)):
+        return {item for item in value if isinstance(item, str)}
+    return set()
+
+
+def extract_proxy_whitelist(text: str) -> set[str]:
+    """解析 `_CORE_PROXY_WHITELIST`；仅当类实现 `__getattr__`/`__setattr__` 时生效。
+
+    2026-11 重构后 `BaseFacade` 用「白名单 + `__getattr__`/`__setattr__`」替代逐属性
+    `@property`（见 `pilotstd/manager/facade/_base.py:46-84`）。只认 `@property` 会把
+    这 11 个属性全部误报为缺失。
+    """
+    try:
+        tree = ast.parse(text)
+    except SyntaxError:
+        return set()
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.ClassDef):
+            continue
+        has_proxy = any(
+            isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and child.name in {"__getattr__", "__setattr__"}
+            for child in node.body
+        )
+        if not has_proxy:
+            continue
+        for stmt in node.body:
+            target = ""
+            value: ast.AST | None = None
+            if isinstance(stmt, ast.AnnAssign) and isinstance(stmt.target, ast.Name):
+                target, value = stmt.target.id, stmt.value
+            elif isinstance(stmt, ast.Assign):
+                names = [t.id for t in stmt.targets if isinstance(t, ast.Name)]
+                if "_CORE_PROXY_WHITELIST" in names:
+                    target, value = "_CORE_PROXY_WHITELIST", stmt.value
+            if target == "_CORE_PROXY_WHITELIST" and value is not None:
+                return _literal_str_set(value)
+    return set()
 
 
 def extract_core_assigns(text: str) -> dict[str, int]:
@@ -117,6 +173,7 @@ def _print_proxy_report(
     all_core_attrs: set[str],
     check_attrs: set[str],
     has_proxy: list[tuple[str, int]],
+    proxied: list[str],
     missing_proxy: list[tuple[str, str, list[int]]],
     bindings: list[tuple[str, str, int]],
     verbose: bool,
@@ -130,6 +187,7 @@ def _print_proxy_report(
     print(f"  _core.xxx 属性总数: {len(all_core_attrs)}")
     print(f"  需检查(排除内部): {len(check_attrs)}")
     print(f"  已有 @property: {len(has_proxy)}")
+    print(f"  白名单代理(__getattr__/__setattr__): {len(proxied)}")
     print(f"  缺失 @property: {len(missing_proxy)}")
     print()
 
@@ -138,6 +196,11 @@ def _print_proxy_report(
         for attr, lineno in has_proxy:
             print(f"    {attr:30s} @property 行 {lineno}")
         print()
+        if proxied:
+            print("  --- 白名单代理（_CORE_PROXY_WHITELIST）---")
+            for attr in proxied:
+                print(f"    {attr:30s} 由 __getattr__/__setattr__ 委托")
+            print()
 
     if missing_proxy:
         print("  --- 缺失代理（需添加 @property）---")
@@ -181,18 +244,22 @@ def main() -> int:
     core_reads = extract_core_reads(text)
     properties = extract_properties(text)
     bindings = extract_bind_methods(text)
+    proxy_whitelist = extract_proxy_whitelist(text)
 
     all_core_attrs: set[str] = set(core_assigns) | set(core_reads)
     check_attrs = all_core_attrs - SKIP_ATTRS
 
     missing_proxy: list[tuple[str, str, list[int]]] = []
     has_proxy: list[tuple[str, int]] = []
+    proxied: list[str] = []
 
     for attr in sorted(check_attrs):
         # 检查属性名或_形式的@是否存在
         prop_name = properties.get(attr) or properties.get(f"_{attr}")
         if prop_name is not None:
             has_proxy.append((attr, properties.get(attr, 0) or properties.get(f"_{attr}", 0)))
+        elif attr in proxy_whitelist:
+            proxied.append(attr)
         else:
             lines = core_reads.get(attr, []) + [core_assigns.get(attr, 0)]
             lines = [ln for ln in lines if ln > 0]
@@ -204,7 +271,9 @@ def main() -> int:
                 )
             )
 
-    return _print_proxy_report(TARGET, all_core_attrs, check_attrs, has_proxy, missing_proxy, bindings, verbose)
+    return _print_proxy_report(
+        TARGET, all_core_attrs, check_attrs, has_proxy, proxied, missing_proxy, bindings, verbose
+    )
 
 
 if __name__ == "__main__":
