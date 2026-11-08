@@ -1,12 +1,12 @@
 # 查询引擎完整文档
 
-> 最后更新：2026-07-27
+> 最后更新：2026-11-07
 
 ## 路由策略
 
-### ADAPTER_TYPE_MAP 完整定义 [src: `pilotstd/query/search_strategy.py:252-294`]
+### ADAPTER_TYPE_MAP 完整定义 [src: `pilotstd/query/search_strategy.py:275`]
 
-标准代号 → 适配器路由链的映射表。`_resolve_base_route()` [src: `pilotstd/query/engine/_routing.py:35`] 的 7 层决策树以此为核心。
+标准代号 → 适配器路由链的映射表。`_resolve_base_route()` [src: `pilotstd/query/engine/_routing.py:35`] 的 6 步兜底决策树以此为核心。
 
 | 类型 | 路由链 | 权重 |
 |------|--------|------|
@@ -18,7 +18,9 @@
 | `group` | `[ttbz, ahbz, ...]` | 无权重 |
 | `env` ~ `cultural` | 各专业适配器 + `[ahbz, std_gov]` 兜底 | 无权重 |
 
-### 路由决策树
+### 路由决策树（6 步兜底；动态评分优先）
+
+> v1 路径先走 scorer 动态评分，未命中再走本树。
 
 ```
 _resolve_base_route(logical_code)      [_routing.py:35-77]

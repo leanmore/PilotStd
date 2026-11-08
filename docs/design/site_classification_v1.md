@@ -69,3 +69,11 @@
 
 ### 5.2 Notes 标注规范
 - 对于仅覆盖 GB/GB/T/GB/Z 的站点，必须在 notes 中标注：**"国标专用平台（覆盖全领域国标）"**，以区别于计量(JJG)等窄类型特色站。
+
+---
+
+## 6. 结果与数据源
+
+- 现行结果（运行时 SSOT）：`config/site_capabilities.yaml`（schema 2.0，21 站）
+- 分类结果来源：`docs/analysis/site_classification_partial.md`（v1.1，2026-08-17，已归档至 `docs/.local/archive/2026-11-08/`）
+- 判定证据（试查询、v1.0→v1.1 变化）见归档原文

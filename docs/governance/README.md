@@ -1,4 +1,4 @@
-# PilotStd 治理文档中心
+﻿# PilotStd 治理文档中心
 
 ## 文档索引
 
@@ -193,4 +193,5 @@ A: `--required-only` 参数仅检查 `required` 级别能力。CI 也仅对 `req
 ```
 
 > 来源：`docs/governance/PROJECT_GOVERNANCE.md` v1.0（2026-06-29），2026-11-08 并入；原文已归档至 `docs/.local/archive/2026-11-08/docs/governance/`。
+> **2026-11-08**：`PROJECT_GOVERNANCE.md` 已归档至 `docs/.local/archive/2026-11-08/docs/governance/`，其原则与流程已并入本文件。
 

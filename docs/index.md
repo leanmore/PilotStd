@@ -30,7 +30,7 @@
 
 | 文件 | 内容 | 触发条件 |
 |------|------|----------|
-| `architecture.md` | 系统架构、数据模型、技术栈 | 涉及数据库/Schema |
+| `architecture.md` | 架构决策与跨模块契约（Handler/公告模型/回调/状态契约） | 涉及数据库/Schema |
 | `ci-lessons.md` | CI/CD 踩坑记录与最佳实践 | 涉及 CI/CD 或门禁 |
 
 ## 决策与债务

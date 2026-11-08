@@ -1,7 +1,8 @@
 # 站点能力模型 v2.0（阶段一产出）
 # 用途：路由系统可消费的结构化能力模型
-# 数据来源：docs/analysis/site_classification_partial.md（v1.1 分类表）
-#          docs/analysis/site_classification_status.json（v1.1 状态元数据）
+# 数据来源：docs/analysis/site_classification_partial.md（v1.1 分类表，已归档）
+#          docs/analysis/site_classification_status.json（v1.1 状态元数据，已归档）
+#          归档路径：docs/.local/archive/2026-11-08/docs/analysis/；现行结果以本文件为准
 #          pilotstd/query/site_config.py（ADAPTER_DEFAULT_PROFILES.rate_limit.batch_limit）
 # 生成日期：2026-08-17
 #

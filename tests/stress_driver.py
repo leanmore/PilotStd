@@ -3,9 +3,9 @@
 # 本文件保留供 stress_cli.py 导入 _step1_cli_cold / _step1_precheck 等函数
 # 新代码请使用: python tests/stress_runner.py --source ... --output ... --config ... --yes
 #
-# 全量压力测试驱动器 — 按 docs/压力测试方案.md v8.0 执行
+# 全量压力测试驱动器 — 判据见 docs/guides/人工测试方案.md §六
 #
-# 用法（Docker 连接信息见 docs/testing/本机源码全量压力测试方案.md）:
+# 用法（Docker 连接信息见 docs/guides/人工测试方案.md §六）:
 #   python tests/stress_driver.py --source D:\标准 --output E:\标准 --skip-docker
 #   python tests/stress_driver.py --source D:\标准 --output E:\标准 --docker-url <地址> --docker-user <用户名> --docker-pass <密码>  # noqa: E501
 #
@@ -2155,7 +2155,7 @@ def main():
     else:
         step1 = _step1_cli_cold(args.source, args.output, args.timeout_query, ocr_cfg)
 
-        # ── 决策表：按子步骤失败类型决定是否终止后续步骤（与 docs/压力测试方案.md §2 一致）──
+        # ── 决策表：按子步骤失败类型决定是否终止后续步骤（与 docs/guides/人工测试方案.md §六一致）──
         _CRITICAL = {"scan", "query", "normalize", "organize"}
         _NON_CRITICAL = {"download", "expire", "announce", "task", "recheck"}
         _terminated_early = False

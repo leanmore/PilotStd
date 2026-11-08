@@ -41,7 +41,6 @@ AUTO_DOCS = [
 HUMAN_DOC_RULES = [
     ("STATUS.md", 7, "核心状态"),
     ("docs/governance/gates.md", 30, "架构规范"),
-    ("docs/governance/PROJECT_GOVERNANCE.md", 60, "治理文档"),
     ("docs/governance/capabilities_registry.md", 60, "治理文档"),
     ("docs/governance/governance-principles.md", 60, "治理文档"),
     ("docs/architecture.md", 30, "架构规范"),

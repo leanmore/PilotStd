@@ -33,6 +33,8 @@ Handler 通过构造函数显式注入依赖，所有方法通过 `self._handler
 
 ### 范围
 
+> **历史快照（2026-07-11），勿当现值**：当前数量见 ADR-010 与模块文档；本表仅记录当时口径。
+
 | 模块 | 原 Mixin 数 | 新 Handler 数 | 文件 |
 |------|------------|--------------|------|
 | `manager/facade/` | 7 | 7 | `manager/facade/_*.py` |
@@ -43,10 +45,7 @@ Handler 通过构造函数显式注入依赖，所有方法通过 `self._handler
 
 ### 无 Mixin 例外
 
-保留一处 MRO 用法（不涉及多重继承），视为无 Mixin：
-
-- `StandardParser` — 匹配通道委托给 `ExactMatcher`（组合注入），辅助方法为 staticmethod 绑定
-- `ParserCore` — 5 个 Handler 的组合容器，纯委托代理
+唯一保留 `_WindowLifecycleMixin`（Qt 硬约束，见 [ADR-010](adr/ADR-010-mixin-refactor.md)）；其余模块均为组合模式。
 
 ### 验收标准
 
