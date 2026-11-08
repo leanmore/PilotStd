@@ -73,6 +73,8 @@ class RoutingHandler:
                 logger.info("[ROUTE] 代号=%s 评分器路由=%s", logical_code, "→".join(dynamic_chain))
                 return dynamic_chain
         except Exception:
+            # 评分器是「路由增强」：失败即回退下方硬编码路由，查询结果仍可用。
+            # 属有意降级而非吞错，故保持 debug（升级会让每次查询都刷一条 warning）。
             logger.debug("评分器路由失败，回退到硬编码路由", exc_info=True)
 
         # 兜底：旧硬编码路由
