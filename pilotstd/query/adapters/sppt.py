@@ -77,15 +77,23 @@ class SPPTAdapter(BaseAdapter):
         try:
             resp = self._client.get(self.get_search_url(), params=params, timeout=15)
         except Exception as e:
-            logger.debug(f"sppt.cfsa.net.cn API 请求失败: {e}")
+            # i18n-allow: 内部运维日志
+            logger.warning("sppt 查询失败: %s url=%s", e, self.get_search_url())
             return []
 
         if resp.status_code != 200:
+            logger.warning(
+                # i18n-allow: 内部运维日志
+                "sppt 查询失败: status=%d url=%s", resp.status_code, self.get_search_url()
+            )
             return []
 
         try:
             data = resp.json()
         except Exception:
+            # 原先完全无日志：站点改版导致 JSON 失效时，只能看到「查无结果」。
+            # i18n-allow: 内部运维日志
+            logger.warning("sppt 响应 JSON 解析失败（站点可能改版），本次返回空结果", exc_info=True)
             return []
 
         if not isinstance(data, list):

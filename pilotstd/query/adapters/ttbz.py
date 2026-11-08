@@ -116,7 +116,8 @@ class TTBZAdapter(BaseAdapter):
         try:
             payload = resp.json()
         except ValueError:
-            logger.debug("ttbz JSON 解析失败", exc_info=True)
+            # i18n-allow: 内部运维日志
+            logger.warning("ttbz 响应 JSON 解析失败（站点可能改版），本次返回空结果", exc_info=True)
             return []
 
         rows = payload.get("data", {}).get("rows", [])

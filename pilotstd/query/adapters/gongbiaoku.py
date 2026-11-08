@@ -74,7 +74,8 @@ class GongBiaoKuAdapter(BaseAdapter):
         try:
             resp = self._client.get(self.get_search_url(), params=params, timeout=15)
         except Exception as e:
-            logger.debug(f"gongbiaoku.com 请求失败: {e}")
+            # i18n-allow: 内部运维日志
+            logger.warning("gongbiaoku 查询失败: %s url=%s", e, self.get_search_url())
             return []
 
         if resp.status_code != 200:

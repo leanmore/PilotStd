@@ -115,7 +115,11 @@ class EnergyAdapter(BaseAdapter):
 
             if resp is None or resp.status_code != 200:
                 if page == 0:
-                    logger.debug("能源标准平台请求失败（含 fallback）: keyword=%r", keyword)
+                    logger.warning(
+                        # i18n-allow: 内部运维日志
+                        "energy 查询失败: 第 1 页请求失败（含 fallback，status=%s）",
+                        getattr(resp, "status_code", None),
+                    )
                 else:
                     # ✅ 任务6：翻页失败返回已有数据，不静默丢弃
                     if all_rows:

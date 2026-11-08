@@ -130,12 +130,19 @@ class NRSISAdapter(BaseAdapter):
             except Exception as e:
                 last_error = e
                 if attempt == self.MAX_RETRIES - 1:
-                    logger.debug(f"nrsis.org.cn 请求失败: {last_error}")
+                    logger.warning(
+                        # i18n-allow: 内部运维日志
+                        "nrsis 查询失败（已重试 %d 次）: %s", self.MAX_RETRIES, last_error
+                    )
                     return []
                 delay = self.RETRY_BASE_DELAY * (2**attempt)
                 time.sleep(delay)
 
         if resp.status_code != 200:
+            logger.warning(
+                # i18n-allow: 内部运维日志
+                "nrsis 查询失败: status=%d url=%s", resp.status_code, self.get_search_url()
+            )
             return []
 
         html = self._decode_content(resp.content)

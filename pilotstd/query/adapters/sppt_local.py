@@ -79,7 +79,8 @@ class SPPTLocalAdapter(BaseAdapter):
                         return data
                 except json.JSONDecodeError:
                     continue
-        logger.debug("SPPT Local: dataList extraction failed with all patterns")
+        # i18n-allow: 内部运维日志
+        logger.warning("sppt_local dataList 所有模式均未命中（站点可能改版），本次返回空结果")
         return []
 
     # ── 指令层 ──
@@ -102,10 +103,15 @@ class SPPTLocalAdapter(BaseAdapter):
         try:
             resp = self._client.post(self.get_search_url(), data=data, timeout=15)
         except Exception as e:
-            logger.debug(f"sppt.cfsa.net.cn:8087 POST 失败: {e}")
+            # i18n-allow: 内部运维日志
+            logger.warning("sppt_local 查询失败: %s url=%s", e, self.get_search_url())
             return []
 
         if resp.status_code != 200:
+            logger.warning(
+                # i18n-allow: 内部运维日志
+                "sppt_local 查询失败: status=%d url=%s", resp.status_code, self.get_search_url()
+            )
             return []
 
         # 会话过期检测

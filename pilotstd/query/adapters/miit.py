@@ -98,7 +98,10 @@ class MIITAdapter(BaseAdapter):
             return []
 
         if payload.get("code") != 0:
-            logger.debug("MIIT API code=%s", payload.get("code"))
+            # 同一函数里网络失败与 JSON 失败都用 error，业务码失败却只有 debug 属级别倒挂；
+            # 业务码异常已足够说明站点侧拒绝，升 warning 以便与 HTTP/JSON 失败同级可见。
+            # i18n-allow: 内部运维日志
+            logger.warning("miit 业务码异常: code=%s", payload.get("code"))
             return []
 
         rows = payload.get("data", [])

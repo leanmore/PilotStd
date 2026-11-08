@@ -116,10 +116,15 @@ class CCSNAdapter(BaseAdapter):
         try:
             resp = self._client.get(self.get_search_url(), params={"KeyWord": keyword}, timeout=15)
         except Exception as e:
-            logger.debug(f"ccsn.org.cn GET 搜索失败: {e}")
+            # i18n-allow: 内部运维日志
+            logger.warning("ccsn.org.cn GET 搜索失败: %s url=%s", e, self.get_search_url())
             return []
 
         if resp.status_code != 200:
+            logger.warning(
+                # i18n-allow: 内部运维日志
+                "ccsn.org.cn GET 搜索失败: status=%d url=%s", resp.status_code, self.get_search_url()
+            )
             return []
 
         html = resp.text
@@ -156,10 +161,17 @@ class CCSNAdapter(BaseAdapter):
             try:
                 resp = self._client.post(self.get_search_url(), data=data, timeout=15)
             except Exception as e:
-                logger.debug(f"ccsn.org.cn 分页 POST 失败: {e}")
+                logger.warning(
+                    # i18n-allow: 内部运维日志
+                    "ccsn.org.cn 分页 POST 失败，已获取 %d 条后截断: %s", len(all_results), e
+                )
                 break
 
             if resp.status_code != 200:
+                logger.warning(
+                    # i18n-allow: 内部运维日志
+                    "ccsn.org.cn 分页响应异常: status=%d url=%s", resp.status_code, self.get_search_url()
+                )
                 break
 
             html = resp.text

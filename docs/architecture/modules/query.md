@@ -84,6 +84,8 @@ PY
 
 > **2026-11-08 替代标准字段日志（U34-B）**：`csres` / `hbba` / `njbz365` 的 `replaces` 解析保持 `debug`（字段缺失不阻断主查询，只影响路由判断），但按异常类型区分「网络请求失败 / 解析失败」并统一 `%s` 占位；`ttbz` 的 `safe_post` 已在重试耗尽/HTTP>=400 时 `warning`、`energy` 翻页且已有数据时上层已 `warning`，这两处保持 `debug` 并加注释，避免同一失败两条告警。契约见 `tests/query/adapters/test_adapter_log_levels.py` 的组 3/4 用例。
 
+> **2026-11-08 适配器失败日志升 warning（U34-B）**：**24 处**「请求失败 / 非 200 / 业务码异常 / JSON 解析失败 / `dataList` 提取失败」由 `debug` 或**完全无日志**升为 `warning`（口径：站点 + 阶段 + 异常/状态码；查询词一律 `%r` 且截断 50 字符，URL 可直出）。涉及 `ccsn`（GET + 分页 POST + 2 处非 200）、`gongbiaoku`、`jjg`、`jtst`、`mee`、`nrsis`（重试耗尽 + 非 200）、`sppt`（请求 + 非 200 + JSON）、`sppt_local`（请求 + 非 200 + `dataList`）、`ttbz`（JSON）、`miit`/`ncha`（业务码，与同文件 HTTP/JSON 的 `error` 对齐）、`iso_gov`（JSON，原为静默）、`energy`（第 1 页全 fallback 失败）。契约见同一测试文件的组 1/2 用例。
+
 ## 架构
 
 ```

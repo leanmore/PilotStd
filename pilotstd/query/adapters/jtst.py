@@ -82,10 +82,15 @@ class JTSTAdapter(BaseAdapter):
         try:
             resp = self._client.get(self.get_search_url(), params=params, timeout=15)
         except Exception as e:
-            logger.debug(f"jtst.mot.gov.cn 请求失败: {e}")
+            # i18n-allow: 内部运维日志
+            logger.warning("jtst 查询失败: %s url=%s", e, self.get_search_url())
             return []
 
         if resp.status_code != 200:
+            logger.warning(
+                # i18n-allow: 内部运维日志
+                "jtst 查询失败: status=%d url=%s", resp.status_code, self.get_search_url()
+            )
             return []
 
         soup = BeautifulSoup(resp.text, "lxml")

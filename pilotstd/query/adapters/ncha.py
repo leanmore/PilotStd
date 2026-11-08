@@ -138,7 +138,12 @@ class NCHAAdapter(BaseAdapter):
             return []
 
         if payload.get("code") != 200:
-            logger.debug("NCHA API code=%s msg=%s", payload.get("code"), payload.get("msg", ""))
+            # 同一函数里网络失败与 JSON 失败都用 error，业务码失败却只有 debug 属级别倒挂；
+            # 升 warning 与同文件其余失败路径同级。
+            logger.warning(
+                # i18n-allow: 内部运维日志
+                "ncha 业务码异常: code=%s msg=%s", payload.get("code"), payload.get("msg", "")
+            )
             return []
 
         data = payload.get("data", {})

@@ -84,6 +84,9 @@ class IsoGovAdapter(BaseAdapter):
         try:
             payload = resp.json()
         except ValueError:
+            # 原先完全无日志：站点改版导致 JSON 失效时，只能看到「查无结果」。
+            # i18n-allow: 内部运维日志
+            logger.warning("iso_gov 响应 JSON 解析失败（站点可能改版），本次返回空结果", exc_info=True)
             return []
 
         rows = payload.get("rows", [])
