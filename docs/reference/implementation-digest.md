@@ -72,7 +72,7 @@
 
 ## 二、站点分类与路由
 
-- **21 个生产站点**按"可靠性 × 覆盖度"分类，分类结果来自 `ADAPTER_DEFAULT_PROFILES`，落到 `config/site_capabilities.yaml`；分类数据源是 `docs/analysis/site_classification_partial.md`（活文档，未归档）。
+- **21 个生产站点**按"可靠性 × 覆盖度"分类，分类结果来自 `ADAPTER_DEFAULT_PROFILES`，落到 `config/site_capabilities.yaml`；分类数据源是 `docs/analysis/site_classification_partial.md`（已归档至 `docs/.local/archive/2026-11-08/`）。
 - **v1 → v2 路由**：三级漏斗（精确匹配 → 分类优先 → 兜底），灰度期用"双跑对比"评估，未达 1000 次查询前不清理 v1。
 - **一个被证伪的判断**：gongbiaoku 搜不到 ISO 等国际标准，不是搜索逻辑 bug，而是**源站不支持**（类型 B）。代码层把关键词原样传递，无截断、无编码问题。
 - **另一个纠错**：GB 是"全行业国标"，不能按行业过滤，否则会漏。

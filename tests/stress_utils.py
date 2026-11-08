@@ -126,7 +126,9 @@ def load_docker_credentials(config_path: Optional[str] = None) -> dict:
         cm = ConfigManager(filepath=config_path)
         base_url = cm.get("docker.url") or base_url
         username = cm.get("docker.username") or username
-        password = cm.get("docker.password") or password
+        _cfg_password = cm.get("docker.password") or ""
+        if _cfg_password and not _cfg_password.startswith("<从环境变量"):
+            password = _cfg_password
 
     missing = []
     if not base_url:

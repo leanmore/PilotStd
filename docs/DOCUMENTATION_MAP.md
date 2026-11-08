@@ -21,7 +21,6 @@
 | 文档 | 层 | 内容 | 更新 |
 |---|---|---|---|
 | `docs/DOCUMENTATION_MAP.md` | 治理 | — | 2026-10-18 |
-| `docs/governance/PROJECT_GOVERNANCE.md` | 治理 | PilotStd 项目治理总纲 | 2026-10-18 |
 | `docs/governance/README.md` | 治理 | PilotStd 治理文档中心 | 2026-10-23 |
 | `docs/governance/archive_migration_protocol.md` | 治理 | 归档迁移协议 | 2026-09-26 |
 | `docs/governance/capabilities_registry.md` | 治理 | 能力登记簿（自动生成） | 2026-10-22 |
@@ -33,10 +32,7 @@
 | `docs/governance/verification-antipatterns.md` | 治理 | 验证反模式集（本项目实测确认） | 2026-10-02 |
 | `docs/index.md` | 治理 | PilotStd 文档索引 | 2026-10-18 |
 | `docs/adapters/README.md` | 现状 | 适配器维护清单 | 2026-10-17 |
-| `docs/analysis/http-requests-inventory.archived.md` | 现状 | HTTP 请求迁移清单 | 2026-08-21 |
-| `docs/analysis/site_classification_partial.md` | 现状 | 标准查询站点分类分析结果 v1.1（2026-08-17） | 2026-08-17 |
-| `docs/analysis/v1_vs_v2_routing_comparison.md` | 现状 | v1 vs v2 路由选择对比报告 | 2026-08-17 |
-| `docs/architecture.md` | 现状 | — | 2026-10-22 |
+| `docs/architecture.md` | 现状 | 架构决策与跨模块契约（Handler/公告模型/回调/状态契约） | 2026-11-08 |
 | `docs/architecture/governance-summary.md` | 现状 | G-010 代码规模治理 — 完整汇总 | 2026-09-27 |
 | `docs/architecture/modules/core.md` | 现状 | 模块文档：核心引擎（Core） | 2026-10-24 |
 | `docs/architecture/modules/manager.md` | 现状 | 模块文档：管理模块（Manager） | 2026-10-24 |
@@ -51,7 +47,7 @@
 | `docs/configuration/README.md` | 现状 | 系统配置说明 | 2026-09-13 |
 | `docs/deployment/README.md` | 现状 | 部署运维指南 | 2026-10-01 |
 | `docs/design/site_classification_v1.md` | 现状 | 标准查询站点分类方案 v1.1 | 2026-08-17 |
-| `docs/development.md` | 现状 | 创建虚拟环境 | 2026-10-21 |
+| `docs/development.md` | 现状 | 已迁移，见 `docs/onboarding/07-dev-workflow.md` | 2026-11-08 |
 | `docs/development/documentation-policy.md` | 现状 | 文档同步策略 | 2026-09-27 |
 | `docs/development/g-010-enforcement.md` | 现状 | G-010 代码规模控制规则 | 2026-08-23 |
 | `docs/flaky_e2e.md` | 现状 | 不稳定 E2E 用例追踪 | 2026-07-24 |
@@ -120,14 +116,10 @@
 | `docs/records/2026-10-18-d2-task-progress-completion.md` | 历史 | D-2 完成记录：长任务周期进度汇报 | 2026-10-18 |
 | `docs/records/2026-10-21-announcement-count-audit.md` | 历史 | 公告计数审计（2026-10-21，v0.147.0） | 2026-10-22 |
 | `docs/records/2026-10-22-open-issues-project.md` | 历史 | 2026-10-22 遗留问题专项（reconcile / 通知 / 技术债） | 2026-10-23 |
-| `docs/records/2026-10-24-doc-audit.md` | 历史 | PilotStd 文档与仓库整理审计（2026-10-24） | 2026-10-24 |
 | `docs/records/d13-baseline-2026-10-18.md` | 历史 | D-13 覆盖率基线（2026-10-18） | 2026-10-18 |
 | `docs/reference/implementation-digest.md` | 历史 | 实现摘要（Implementation Digest） | 2026-10-24 |
 | `docs/technical-debt.md` | 历史 | — | 2026-10-18 |
 | `docs/ROADMAP.md` | 期望 | PilotStd 路线图（ROADMAP） | 2026-10-24 |
-| `docs/plans/README.md` | 期望 | 计划文档 | 2026-10-03 |
-| `docs/plans/batch5-terminology-design.md` | 期望 | 第 5 批方案设计：术语表 + 禁用词门禁 | 2026-10-01 |
-| `docs/plans/moviepilot-investigation/02-pilotstd-gap-analysis.md` | 期望 | PilotStd vs MoviePilot 差距分析报告 | 2026-10-03 |
 | `docs/plans/notification-redesign/00-README.md` | 期望 | 通知架构重设计（索引 + 结论速览 + 裁决） | 2026-10-16 |
 | `docs/plans/notification-redesign/02-目标架构.md` | 期望 | 02 目标架构设计 | 2026-10-05 |
 | `docs/plans/notification-redesign/03-实施路径.md` | 期望 | 03 实施路径（六阶段） | 2026-10-06 |
