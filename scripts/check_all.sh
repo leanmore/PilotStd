@@ -1,7 +1,7 @@
-﻿#!/usr/bin/env bash
+#!/usr/bin/env bash
 # ============================================================
 # 统一门禁入口 (Single Source of Truth for Gates)
-# 用法: bash scripts/check_all.sh [--fast|--deep|--docs|--all]
+# 用法: bash scripts/check_all.sh [--fast|--deep|--docs|--all] [--ci]
 # ============================================================
 set -euo pipefail
 
@@ -15,10 +15,10 @@ MODES=()
 WITH_LINT=0
 for arg in "$@"; do
     case "$arg" in
-        --fast|--docs|--deep|--guards|--local|--all) MODES+=("$arg") ;;
+        --fast|--docs|--deep|--guards|--local|--all|--ci) MODES+=("$arg") ;;
         --with-lint) WITH_LINT=1 ;;
         *)
-            echo "Usage: $0 [--fast|--docs|--deep|--guards|--local|--all] [--with-lint]" >&2
+            echo "Usage: $0 [--fast|--docs|--deep|--guards|--local|--all|--ci] [--with-lint]" >&2
             exit 1
             ;;
     esac
@@ -495,6 +495,43 @@ run_gate_selftests() {
 }
 
 # ============================================================
+# --ci: CI 口径复刻（本地提前发现「本地绿、CI 红」）
+#   这两个脚本在 CI 用 `DOCS_SYNC_RANGE + 阻断模式` 运行，本地默认
+#   不跑它们 → 2026-11-09 实测：本地 check_all 全绿，CI repo-compliance
+#   连红（「测试文件数大幅变化」要求同批改文档）。本模式把口径搬到本地。
+#   范围默认 origin/<base>..HEAD（可用 BASE_BRANCH / CI_RANGE 覆盖）。
+#   默认不属于任何模式，故不影响既有行为。
+# ============================================================
+run_ci() {
+    echo "🤖 Running CI-PARITY checks..."
+    local base="${BASE_BRANCH:-main}"
+    local range="${CI_RANGE:-}"
+    if [ -z "$range" ]; then
+        if git rev-parse --verify --quiet "origin/${base}" >/dev/null 2>&1; then
+            range="origin/${base}..HEAD"
+        else
+            # 无远端基点（浅克隆/未 fetch）→ 退化为最近一次提交，仍能拦住本批
+            range="HEAD~1..HEAD"
+        fi
+    fi
+    echo "   CI 变更范围: ${range}"
+
+    if DOCS_SYNC_RANGE="$range" BASE_BRANCH="$base" AUTO_FIX_DOCS=false \
+        python scripts/docs_sync_check.py --strict-block; then
+        log_pass "docs_sync_check（CI 严格模式）"
+    else
+        log_fail "docs_sync_check（CI 严格模式）"
+    fi
+
+    if DOCS_SYNC_RANGE="$range" BASE_BRANCH="$base" \
+        python scripts/check_module_doc_mappings.py --strict; then
+        log_pass "check_module_doc_mappings（CI 严格模式）"
+    else
+        log_fail "check_module_doc_mappings（CI 严格模式）"
+    fi
+}
+
+# ============================================================
 # 主调度
 # ============================================================
 for _mode in "${MODES[@]}"; do
@@ -516,6 +553,9 @@ for _mode in "${MODES[@]}"; do
             ;;
         --local)
             run_local
+            ;;
+        --ci)
+            run_ci
             ;;
         --all)
             run_fast
