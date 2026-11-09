@@ -4,7 +4,7 @@ import logging
 import os
 from typing import Any, cast
 
-from fastapi import BackgroundTasks, Depends, Request
+from fastapi import BackgroundTasks, Depends, Query, Request
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
 from pydantic import BaseModel
@@ -110,6 +110,27 @@ class AnnounceFetchLogResponse(BaseModel):
 
     total: int
     items: list[AnnounceFetchLogItem]
+
+
+class AnnounceFetchFailureItem(BaseModel):
+    """单条抓取失败：站点、错误、重试/解决状态与时间。"""
+
+    id: int
+    task_type: str = ""
+    source_site: str = ""
+    error_message: str = ""
+    retry_count: int = 0
+    resolved: bool = False
+    created_at: str = ""
+    last_retry_at: str | None = None
+
+
+class AnnounceFetchFailuresResponse(BaseModel):
+    """抓取失败历史响应：总条数、未解决数与最近条目。"""
+
+    total: int
+    unresolved: int
+    items: list[AnnounceFetchFailureItem]
 
 
 class AnnounceReconcileItem(BaseModel):
@@ -412,6 +433,16 @@ def get_announcement_records(limit: int = 100, mgr=Depends(get_manager_dep)):
     """查询公告抓取记录（全量，含未匹配），供压测样本生成。"""
     items = mgr._announce_svc.get_announcement_sources(limit=limit)
     return {"total": len(items), "items": items}
+
+
+@router.get("/api/announce/fetch-failures", response_model=AnnounceFetchFailuresResponse)
+def get_announce_fetch_failures(
+    limit: int = Query(20, ge=1, le=100),
+    unresolved_only: bool = Query(True),
+    mgr=Depends(get_manager_dep),
+):
+    """读取公告抓取失败历史（P1-03）；unresolved_only=true 只看未解决。"""
+    return mgr._announce_svc.get_fetch_failures(limit=limit, unresolved_only=unresolved_only)
 
 
 # 统计缓存（避免频繁扫全表）

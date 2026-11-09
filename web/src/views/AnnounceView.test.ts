@@ -7,14 +7,16 @@ import AnnounceView from './AnnounceView.vue'
 import zhCN from '@/locales/zh-CN.json'
 import en from '@/locales/en.json'
 
-const { getAnnounceResultsMock, postAnnounceCheckMock } = vi.hoisted(() => ({
+const { getAnnounceResultsMock, postAnnounceCheckMock, getAnnounceFetchFailuresMock } = vi.hoisted(() => ({
   getAnnounceResultsMock: vi.fn(),
   postAnnounceCheckMock: vi.fn(),
+  getAnnounceFetchFailuresMock: vi.fn(),
 }))
 
 vi.mock('@/api', () => ({
   getAnnounceResults: getAnnounceResultsMock,
   postAnnounceCheck: postAnnounceCheckMock,
+  getAnnounceFetchFailures: getAnnounceFetchFailuresMock,
 }))
 
 // Mock /api/announce/stats（新版统计数据接口）
@@ -56,6 +58,7 @@ describe('AnnounceView', () => {
       ],
     })
     postAnnounceCheckMock.mockResolvedValue({ ok: true })
+    getAnnounceFetchFailuresMock.mockResolvedValue({ total: 0, unresolved: 0, items: [] })
   })
 
   it('渲染三个胶囊标签（国家标准/行业标准/地方标准）', async () => {
@@ -85,6 +88,29 @@ describe('AnnounceView', () => {
     await wrapper.vm.$nextTick()
 
     expect(wrapper.html()).toContain('立即抓取')
+  })
+
+  it('有抓取失败时显示失败面板与未解决数（P1-03 读侧）', async () => {
+    getAnnounceFetchFailuresMock.mockResolvedValue({
+      total: 2,
+      unresolved: 1,
+      items: [{
+        id: 1,
+        task_type: 'scheduled',
+        source_site: 'samr_gb',
+        error_message: '网络超时',
+        retry_count: 0,
+        resolved: false,
+        created_at: '2026-11-09 21:00:00',
+        last_retry_at: null,
+      }],
+    })
+    const wrapper = mountView()
+    await new Promise(r => setTimeout(r, 20))
+    await wrapper.vm.$nextTick()
+    expect(wrapper.text()).toContain('抓取失败')
+    expect(wrapper.text()).toContain('1 条未解决')
+    expect(wrapper.text()).toContain('网络超时')
   })
 
   it('列表刷新不按抓取日期过滤', async () => {

@@ -263,6 +263,9 @@ class AnnounceCrawler:
                 result.get("last_notice_date", ""),
                 force=bool(result.get("checkpoint_force")),
             )
+            # P1-03：该站点本轮成功 → 把历史未解决失败标记为已解决，
+            # 让“是否恢复”在读取侧可见，而不是永远 unresolved。
+            self._persistence.resolve_site_failures(adapter.source_site)
 
         # 本次抓取窗口内新增公告的分类统计（供通知载荷使用）
         stats = query_announcement_stats(self._persistence._db, check_start)

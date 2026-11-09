@@ -104,6 +104,39 @@ class TestFailureLog:
         assert row is not None
         assert row["error_message"] == "网络超时"
 
+    def test_list_failures_newest_first_and_filter_unresolved(self, persistence, db):
+        persistence.record_failure("samr_gb", "第一次失败")
+        persistence.record_failure("samr_hb", "第二次失败")
+        db.execute("UPDATE fetch_failures SET resolved=1 WHERE source_site='samr_gb'")
+        db.commit()
+
+        all_items = persistence.list_failures(limit=10, unresolved_only=False)
+        assert [r["source_site"] for r in all_items][0] == "samr_hb"
+        assert len(all_items) == 2
+
+        unresolved = persistence.list_failures(limit=10, unresolved_only=True)
+        assert len(unresolved) == 1
+        assert unresolved[0]["source_site"] == "samr_hb"
+
+        counts = persistence.failure_counts()
+        assert counts == {"total": 2, "unresolved": 1}
+
+    def test_resolve_failure_marks_resolved(self, persistence, db):
+        persistence.record_failure("samr_db", "超时")
+        row = db.execute("SELECT id FROM fetch_failures").fetchone()
+        assert persistence.resolve_failure(row["id"]) == 1
+        assert persistence.failure_counts()["unresolved"] == 0
+        assert persistence.list_failures(limit=10, unresolved_only=True) == []
+
+    def test_successful_site_resolves_only_its_failures(self, persistence, db):
+        persistence.record_failure("samr_gb", "旧失败")
+        persistence.record_failure("samr_hb", "另一个站")
+        assert persistence.resolve_site_failures("samr_gb") == 1
+        counts = persistence.failure_counts()
+        assert counts == {"total": 2, "unresolved": 1}
+        unresolved = persistence.list_failures(limit=10, unresolved_only=True)
+        assert [r["source_site"] for r in unresolved] == ["samr_hb"]
+
 
 class TestTask:
     def test_create_and_update_task(self, persistence, db):

@@ -25,6 +25,20 @@ class AnnouncePersistence:
         cur = self._db.execute(sql, params)
         return cur.fetchone()
 
+    def _query_all(self, sql: str, params: tuple = ()) -> list[Any]:
+        """执行 SELECT 查询并返回全部行（dict 或 sqlite3.Row）。"""
+        if hasattr(self._db, "fetchall"):
+            return list(self._db.fetchall(sql, params))
+        cur = self._db.execute(sql, params)
+        return list(cur.fetchall())
+
+    @staticmethod
+    def _row_to_dict(row: Any) -> dict[str, Any]:
+        """把 dict / sqlite3.Row 统一成 dict。"""
+        if isinstance(row, dict):
+            return row
+        return dict(row)
+
     def _exec(self, sql: str, params: tuple = ()) -> None:
         """执行 DML（INSERT/UPDATE/DELETE），双后端兼容。"""
         if hasattr(self._db, "fetchone"):
@@ -70,6 +84,57 @@ class AnnouncePersistence:
             "VALUES (?, ?, ?, ?)",
             ("scheduled", source_site, "", error_msg),
         )
+
+    def list_failures(self, limit: int = 20, unresolved_only: bool = False) -> list[dict[str, Any]]:
+        """读取抓取失败历史（最新在前）；unresolved_only 只看未解决。
+
+        P1-03：本表此前只写不读。读侧供公告页/诊断使用，而不是只留在 DB。
+        """
+        # 只取展示需要的列，避免把未来新增的大字段带进列表
+        sql = (
+            "SELECT id, task_type, source_site, error_message, retry_count, "
+            "resolved, created_at, last_retry_at FROM fetch_failures"
+        )
+        params: list[Any] = []
+        if unresolved_only:
+            # resolved 历史值可能为 NULL，统一按“未解决”处理
+            sql += " WHERE COALESCE(resolved, 0) = 0"
+        sql += " ORDER BY created_at DESC, id DESC LIMIT ?"
+        params.append(max(1, min(int(limit), 100)))
+        return [self._row_to_dict(r) for r in self._query_all(sql, tuple(params))]
+
+    def failure_counts(self) -> dict[str, int]:
+        """返回失败总数与未解决数（供页面角标/诊断）。"""
+        # 一次查询同时取总数与未解决数，避免页面两次往返
+        row = self._query_one(
+            "SELECT COUNT(*) AS total, "
+            "SUM(CASE WHEN COALESCE(resolved, 0) = 0 THEN 1 ELSE 0 END) AS unresolved "
+            "FROM fetch_failures"
+        )
+        if row is None:
+            return {"total": 0, "unresolved": 0}
+        data = self._row_to_dict(row)
+        return {
+            "total": int(data.get("total") or 0),
+            "unresolved": int(data.get("unresolved") or 0),
+        }
+
+    def resolve_failure(self, failure_id: int) -> int:
+        """把一条失败标记为已解决；返回受影响行数（供后续重试/人工确认）。"""
+        cur = self._db.execute(
+            "UPDATE fetch_failures SET resolved = 1 WHERE id = ?",
+            (failure_id,),
+        )
+        return int(getattr(cur, "rowcount", 0) or 0)
+
+    def resolve_site_failures(self, source_site: str) -> int:
+        """某站点本轮抓取成功 → 把该站点所有未解决失败标记为已解决。"""
+        cur = self._db.execute(
+            "UPDATE fetch_failures SET resolved = 1 "
+            "WHERE source_site = ? AND COALESCE(resolved, 0) = 0",
+            (source_site,),
+        )
+        return int(getattr(cur, "rowcount", 0) or 0)
 
     # -- 异步任务 ------------------------------------------------
 

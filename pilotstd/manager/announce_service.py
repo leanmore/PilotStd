@@ -290,6 +290,24 @@ class AnnounceService:
             return {"task_id": task_id, "status": status,
                     "error": row["error_msg"] or "task failed"}
 
+    def get_fetch_failures(self, limit: int = 20, unresolved_only: bool = False) -> dict[str, Any]:
+        """读取公告抓取失败历史（P1-03）。
+
+        读侧：公告页/管理员诊断。`total` 是全量行数，`unresolved` 是未解决数，
+        `items` 按 unresolved_only 过滤后的最近 N 条。
+        """
+        counts = self.persistence.failure_counts()
+        items = self.persistence.list_failures(limit=limit, unresolved_only=unresolved_only)
+        return {
+            "total": counts["total"],
+            "unresolved": counts["unresolved"],
+            "items": items,
+        }
+
+    def resolve_fetch_failure(self, failure_id: int) -> int:
+        """把一条失败标记为已解决（人工确认/后续重试成功时调用）。"""
+        return self.persistence.resolve_failure(failure_id)
+
     def get_announcement_sources(self, limit: int = 200) -> list[dict[str, Any]]:
         """返回去重公告记录（standard_number + source + title）。"""
         db = self._get_db()

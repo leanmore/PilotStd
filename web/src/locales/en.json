@@ -56,7 +56,8 @@
         "today_new": "New Today",
         "breakdown": "GB {gb} · HB {hb} · DB {db}"
       },
-      "refresh_list": "Refresh List"
+      "refresh_list": "Refresh List",
+      "fetch_failures": "Fetch failures: {n} unresolved / {total} total"
     },
     "detail": {
       "route_title": "Announcement Detail",

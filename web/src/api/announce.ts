@@ -15,6 +15,33 @@ export const getAnnounceResults = async (sourceSite?: string, fromDate?: string,
 export const postAnnounceCheck = async (sinceDate?: string, types?: string): Promise<SuccessResponse> =>
   (await http.post('/announce/check', null, { params: { ...(sinceDate ? { since_date: sinceDate } : {}), ...(types ? { types } : {}) } })).data
 
+export interface AnnounceFetchFailure {
+  id: number
+  task_type: string
+  source_site: string
+  error_message: string
+  retry_count: number
+  resolved: boolean
+  created_at: string
+  last_retry_at: string | null
+}
+
+export interface AnnounceFetchFailures {
+  total: number
+  unresolved: number
+  items: AnnounceFetchFailure[]
+}
+
+/** 公告抓取失败历史（P1-03）；unresolvedOnly=true 只看未解决。 */
+export const getAnnounceFetchFailures = async (
+  limit = 20,
+  unresolvedOnly = true,
+): Promise<AnnounceFetchFailures> =>
+  (await http.get('/announce/fetch-failures', {
+    params: { limit, unresolved_only: unresolvedOnly },
+    routeTag: '/announce',
+  })).data
+
 // ── Phase 3: 公告详情 ──────────────────────────────────
 
 /** 旧格式兼容：通过 announce_no 查询所有来源的公告 */

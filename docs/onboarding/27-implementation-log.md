@@ -27,6 +27,16 @@
 | 回滚 | 还原 `cache.py` 回退块与新增测试 |
 | 关联 | ISSUE_LEDGER P0-02；AC-4 |
 
+### P1-03 公告抓取失败历史补读侧
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `pilotstd/announce/persistence.py`、`pilotstd/announce/crawler_service.py`、`pilotstd/manager/announce_service.py`、`docker/api/announce.py`、`web/src/api/announce.ts`、`web/src/api.ts`、`web/src/views/AnnounceView.vue`、三语 locale、`tests/announce/test_persistence.py`、`tests/test_api_announce_fetch_failures.py`、`AnnounceView.test.ts` |
+| 行为 | `fetch_failures` 增加 `list_failures/failure_counts/resolve_failure/resolve_site_failures`；`AnnounceService.get_fetch_failures()` 聚合；新增 `GET /api/announce/fetch-failures`；公告页显示“抓取失败 N 条未解决 / 共 M 条”及最近 5 条；某站抓取成功后把该站历史未解决失败标记 resolved |
+| 测试 | 后端 **12 passed**（持久化 10 + API 2）；AnnounceView **7 passed**；三语 **947 键一致**；`check_i18n_key_count.py` PASS |
+| 回滚 | 还原读方法/端点/页面板与新增测试；写入逻辑不变 |
+| 关联 | ISSUE_LEDGER P1-03；AC-7 |
+
 ---
 
 ## 2026-11-07

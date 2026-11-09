@@ -93,9 +93,10 @@
 | **证据** | 代码行；表普查 B11；`docker/api/announce.py` 的 `fetch-log` 实现；`08 #21` 只承诺“超过 36 小时未成功抓取会告警”，未覆盖单次失败。 |
 | **来源** | 表维度 B11、AC-7、公告链路文档 |
 | **影响验收** | **AC-7 部分 FAIL**：判据要求“任一阶段故障用户能看到”。抓取失败是主链阶段，当前只有日志。 |
-| **修复方案** | 1）新增一个 admin 只读的 fetch-failures 端点（建议路径在实现时定，**当前未实现**）返回最近失败；2）在 `/api/announce/stats` 或监控状态里加 `unresolved_failures` 计数；3）适配器成功后把对应行 `resolved=1`；4）若确定不需要该表，则删除表与写入，改为 `logger.warning` + 完成通知。二选一，不留半套。 |
-| **验证** | 新增 API 测试（插入 2 条失败 → 查询返回 2；成功后 resolved）；`pytest tests/test_api_announcement_write_endpoints.py tests/announce/test_persistence.py -q`。 |
-| **修后通过** | **AC-7**；同时增强 AC-2 的失败可见性。 |
+| **修复方案** | 1）新增 `GET /api/announce/fetch-failures`（登录用户只读）返回最近失败与未解决数；2）`AnnounceService.get_fetch_failures()` 聚合；3）适配器本轮成功时 `resolve_site_failures(source_site)` 把该站历史未解决失败标记 resolved；4）`AnnounceView` 显示失败面板（未解决数 + 最近 5 条）。**已按此实现**。 |
+| **验证** | `pytest tests/announce/test_persistence.py tests/test_api_announce_fetch_failures.py -q`（12 passed）；`AnnounceView.test.ts` 7 passed；`check_i18n_key_count.py` 三语 947 键一致。 |
+| **修后通过** | **AC-7**；同时增强 AC-2/AC-4 的“抓取失败/未恢复”可见性。 |
+| **状态** | **已修（2026-11-09）**：`list_failures/failure_counts/resolve_site_failures` + `get_fetch_failures` + 端点 + 公告页面板；失败历史/是否恢复现在有读侧。 |
 
 ---
 

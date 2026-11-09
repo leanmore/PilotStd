@@ -56,7 +56,8 @@
         "today_new": "今日新增",
         "breakdown": "國標 {gb} · 行標 {hb} · 地標 {db}"
       },
-      "refresh_list": "刷新列表"
+      "refresh_list": "刷新列表",
+      "fetch_failures": "擷取失敗：{n} 筆未解決 / 共 {total} 筆"
     },
     "detail": {
       "route_title": "公告詳情",

@@ -3,7 +3,7 @@ defineOptions({ name: 'AnnounceView' })
 import { ref, onMounted, computed, watch, reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { getAnnounceResults, postAnnounceCheck } from '@/api'
+import { getAnnounceResults, getAnnounceFetchFailures, postAnnounceCheck } from '@/api'
 import http from '@/api/http'
 import { usePreferencesStore } from '@/stores/preferences'
 import { getItem, setItem } from '@/lib/storage'
@@ -49,6 +49,17 @@ interface AnnounceStats {
 }
 const statsData = ref<AnnounceStats | null>(null)
 
+// P1-03：抓取失败历史（读侧）。失败通知已有，但历史/是否恢复此前没有出口。
+const fetchFailures = ref<{ total: number; unresolved: number; items: any[] } | null>(null)
+
+async function loadFailures() {
+  try {
+    fetchFailures.value = await getAnnounceFetchFailures(5, false)
+  } catch {
+    fetchFailures.value = null
+  }
+}
+
 async function loadStats() {
   try { statsData.value = (await http.get('/announce/stats', { routeTag: '/announce' })).data } catch { /* ignore */ }
 }
@@ -69,6 +80,7 @@ async function load() {
     const data = await getAnnounceResults(sourceSite, '', '/announce')
     results.value = data.results || []
     loadStats()
+    loadFailures()
   } catch {
     error.value = t('announce.view.load_failed')
   }
@@ -133,6 +145,16 @@ function onPage(e: any) {
     <div class="stat-card"><div class="stat-num">{{ statsData.matched }}</div><div class="stat-label">{{ t('announce.view.stat.matched') }}</div></div>
     <div class="stat-card"><div class="stat-num">{{ statsData.new.all }}</div><div class="stat-label">{{ t('announce.view.stat.today_new') }}</div><div class="stat-sub">{{ t('announce.view.stat.breakdown', { gb: statsData.new.gb, hb: statsData.new.hb, db: statsData.new.db }) }}</div></div>
   </div>
+  <div v-if="fetchFailures && fetchFailures.total > 0" class="fail-panel mt-2">
+    <div class="fail-head">{{ t('announce.view.fetch_failures', { n: fetchFailures.unresolved, total: fetchFailures.total }) }}</div>
+    <ul class="fail-list">
+      <li v-for="f in fetchFailures.items.slice(0, 5)" :key="f.id">
+        <span class="fail-site">{{ f.source_site }}</span>
+        <span class="fail-msg">{{ f.error_message }}</span>
+        <span class="fail-time">{{ f.created_at }}</span>
+      </li>
+    </ul>
+  </div>
   <template v-if="results.length">
     <DataView :value="paginatedResults" size="small" class="mt-3">
       <template #list="slotProps">
@@ -163,6 +185,13 @@ function onPage(e: any) {
 
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
 .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; text-align: center; }
+.fail-panel { border: 1px solid var(--danger, #e74c3c); border-radius: var(--radius); padding: 10px 14px; background: var(--surface); }
+.fail-head { color: var(--danger, #e74c3c); font-size: 13px; font-weight: 600; }
+.fail-list { list-style: none; margin: 8px 0 0; padding: 0; }
+.fail-list li { display: flex; gap: 10px; font-size: 12px; color: var(--text); padding: 4px 0; border-top: 1px solid var(--border-light, #e5e7eb); }
+.fail-site { min-width: 90px; color: var(--text-dim); }
+.fail-msg { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fail-time { min-width: 130px; color: var(--text-dim); text-align: right; }
 /* fix(a11y): 统计数字改用 --text-heading——项目无 --primary-dark 深色变体，--primary-hover 绿色主题实测 3.14:1、--text-bright 4.46:1 均不达标或余量不足；--text-heading 四主题 ≥8:1 */
 .stat-num { font-size: 28px; font-weight: 700; color: var(--text-heading); font-family: var(--mono); }
 .stat-label { font-size: 12px; color: var(--text-dim); margin-top: 4px; }

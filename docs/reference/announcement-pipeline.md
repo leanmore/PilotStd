@@ -55,6 +55,19 @@
 
 > 兼容性：失败列表只接受字符串日期（测试替身/MagicMock 的未知属性按无失败处理），避免门禁/单测替身被误判为失败。
 
+## 抓取失败历史读侧（2026-11-09，P1-03）
+
+`fetch_failures` 此前只有写入（`crawler_service` 单站抓取异常 → `persistence.record_failure`），没有读取方。即时失败已由通知覆盖（`announcement_fetch_failed` / `announce_fetch_summary`），但“失败历史、是否恢复、哪个站点反复失败”没有出口。
+
+现读侧：
+
+- `AnnouncePersistence.list_failures(limit, unresolved_only)` / `failure_counts()` / `resolve_failure(id)`；
+- `AnnounceService.get_fetch_failures()` 聚合 `total/unresolved/items`；
+- `GET /api/announce/fetch-failures?limit=&unresolved_only=`（登录用户可读，只读诊断）；
+- `AnnounceView` 在统计卡下方显示“抓取失败：N 条未解决 / 共 M 条”与最近 5 条（站点/错误/时间）。
+
+回归：`tests/announce/test_persistence.py::TestFailureLog`（列表/过滤/计数/解决）、`tests/test_api_announce_fetch_failures.py`（端点/参数透传）、`web/src/views/AnnounceView.test.ts`（失败面板）。
+
 ## 标准号解析：全角连接符与多段分册号（2026-10-18 实测）
 
 HB 公告 `2026年第7号（总第315号）` 源站 `STD_COUNT=674`，部署库仅 668 条；差集为：
