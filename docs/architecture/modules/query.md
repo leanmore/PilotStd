@@ -162,6 +162,17 @@ BaseAdapter (ABC)
 「清空 `adapter_state` 冷却记录失败」由 `debug` 升 `warning`——原实现失败后仍打印
 「所有站点冷却已重置」，日志与实际状态相反。
 
+## 查询缓存新鲜度（2026-11-09，P0-02）
+
+`CacheRepository.get()` 的主表 `standard_info_cache` 仍按 `data_state='stale'` 拒绝命中；公告回退 `announcement_match` 补 TTL 守卫：
+
+- `data_state='stale'` → 不命中；
+- `expires_at` 可解析时优先；
+- 缺失时按 `cached_at + active_ttl`（默认 30 天；`active_ttl<=0` 不按时间过期）兜底；
+- 两个时间都缺失时保守命中（无法判断，不因脏行一刀切）。
+
+`announcement/matcher.py` 写入的 `expires_at` 当前为 `NULL`，所以 TTL 实际靠 `cached_at`。回退过期后查询会回源；网络压力需在验证环境观察。回归：`tests/test_query.py`（5 条缓存三态 + 1 条 QueryEngine 全链）。
+
 ## 相关文档
 
 - [管理模块](manager.md) — 适配器调用方（`StandardManager` 门面）
