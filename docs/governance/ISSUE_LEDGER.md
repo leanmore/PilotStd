@@ -95,7 +95,7 @@
 | **影响验收** | **AC-7 部分 FAIL**：判据要求“任一阶段故障用户能看到”。抓取失败是主链阶段，当前只有日志。 |
 | **修复方案** | 1）新增 `GET /api/announce/fetch-failures`（登录用户只读）返回最近失败与未解决数；2）`AnnounceService.get_fetch_failures()` 聚合；3）适配器本轮成功时 `resolve_site_failures(source_site)` 把该站历史未解决失败标记 resolved；4）`AnnounceView` 显示失败面板（未解决数 + 最近 5 条）。**已按此实现**。 |
 | **验证** | `pytest tests/announce/test_persistence.py tests/test_api_announce_fetch_failures.py -q`（12 passed）；`AnnounceView.test.ts` 7 passed；`check_i18n_key_count.py` 三语 947 键一致。 |
-| **修后通过** | **AC-7**；同时增强 AC-2/AC-4 的“抓取失败/未恢复”可见性。 |
+| **修后通过** | **AC-7 子场景（公告抓取失败历史可见）**；AC-7 整体仍待 P1-04/P1-05/P2-10；同时增强 AC-2/AC-4 的“抓取失败/未恢复”可见性。 |
 | **状态** | **已修（2026-11-09，commit `35283be6`）**：`list_failures/failure_counts/resolve_site_failures` + `get_fetch_failures` + 端点 + 公告页面板；失败历史/是否恢复现在有读侧。 |
 
 ---
@@ -237,7 +237,7 @@
 | P0-02 | AC-4 |
 | P1-01 | AC-5 |
 | P1-02 | AC-3、AC-5 |
-| P1-03 | AC-7（并增强 AC-2） |
+| P1-03 | AC-7 子场景（抓取失败历史可见）；AC-7 整体仍 partial |
 | P1-04 | AC-7 |
 | P1-05 | AC-2 |
 | P1-06 | AC-3 |
