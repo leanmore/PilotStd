@@ -603,3 +603,10 @@ pilotstd/core/
 > （下载列表解析失败，不再与「本来没有任务」同形）、`file_index.validate_paths`（删除无效索引记录失败，
 > 脏记录会长期残留）、`file_utils.hash_file_content` 的 `getsize` 与读取两处（返回空哈希的契约不变，
 > 但「文件被静默跳过索引/去重」可见）。manager 侧 6 处见 manager.md 同日条目。
+
+> **2026-11-09 通知开关默认开 + health unknown（U-3/U-4 批 2a）**：
+> `NotificationManager._read_user_enabled` 的**两条异常分支**（DB 查询失败 / 行缺列）由
+> 「返回 `None` 让调用方回退」改为 **`warning` + 直接返回 `True`（通知开关默认开）**——
+> 读不到配置不等于用户关掉了通知；`enabled_for` 的 `None → True` 回退逻辑对显式 `None` 仍保留。
+> 同批（不属于本模块）`docker/api/health._is_private_ip` 非法 IP 由「静默 `False`（当公网 → 403）」
+> 改为 **`None`（unknown）+ warning**，调用方改为 `is False` 才拒绝，unknown 不再被当作公网。

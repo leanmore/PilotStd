@@ -190,14 +190,19 @@ class NotificationManager:
                 "WHERE user_id=? AND preference_key='notification.enabled'",
                 (user_id if user_id is not None else self._user_id,),
             )
-        except Exception:
-            return None
+        except Exception as e:
+            # 读不到配置 ≠ 用户关掉通知：默认开（U-3/U-4 批 2a），但必须留痕
+            # i18n-allow: 内部运维日志
+            logger.warning("通知开关配置读取失败，按默认开处理: user_id=%s (%s)", user_id, e)
+            return True
         if row is None:
             return None
         try:
             value = row["preference_value"]
-        except (KeyError, IndexError, TypeError):
-            return None
+        except (KeyError, IndexError, TypeError) as e:
+            # i18n-allow: 内部运维日志
+            logger.warning("通知开关配置读取失败（列缺失），按默认开处理: user_id=%s (%s)", user_id, e)
+            return True
         if isinstance(value, str):
             try:
                 value = json.loads(value)

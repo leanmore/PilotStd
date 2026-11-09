@@ -24,13 +24,20 @@ DISK_THRESHOLD_MB = 500.0
 SCHEDULER_TIMEOUT_SECONDS = 180.0
 
 
-def _is_private_ip(ip_str: str) -> bool:
-    """检查 IP 是否在 RFC1918 或 loopback 段内。"""
+def _is_private_ip(ip_str: str) -> bool | None:
+    """检查 IP 是否在 RFC1918 或 loopback 段内。
+
+    Returns:
+        True / False；IP 无法解析时返回 **None（第三态 unknown）**——调用方不得把它
+        当作「公网」处理（U-3/U-4 批 2a：非法 IP 原被静默当成公网）。
+    """
     try:
         ip = ipaddress.ip_address(ip_str)
         return any(ip in net for net in _PRIVATE_NETWORKS)
     except ValueError:
-        return False
+        # i18n-allow: 内部运维日志
+        logger.warning("IP 格式非法，健康检查来源判定为 unknown: %s", ip_str)
+        return None
 
 
 def _check_database_read(mgr) -> bool:
@@ -171,7 +178,8 @@ def health_check(request: Request):
     env = os.getenv("ENV", "development")
     if env == "production":
         client_host = request.client.host if request.client else "unknown"
-        if not _is_private_ip(client_host):
+        # unknown（None）不当作公网：只有明确判定为 False 才拒绝（U-3/U-4 批 2a）
+        if _is_private_ip(client_host) is False:
             raise HTTPException(status_code=403, detail="Forbidden")
 
     mgr = get_manager()
