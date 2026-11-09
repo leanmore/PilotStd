@@ -240,7 +240,12 @@ class BaseAdapter(ABC):
 
         try:
             payload = resp.json()
-        except ValueError:
+        except ValueError as e:
+            logger.warning(
+                "适配器 %s 搜索响应解析失败（本次返回空结果）: %s",  # i18n-allow: 内部运维日志
+                getattr(self, "site_name", "?"),
+                e,
+            )
             return []
 
         records = payload.get("records", [])

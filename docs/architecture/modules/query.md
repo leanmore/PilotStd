@@ -152,6 +152,16 @@ BaseAdapter (ABC)
 对政府自签名站点保留 `verify=False`。三处均加 `# nosec` 并注明“协议要求 / 已评估”，
 **无行为变更**，仅让 bandit HIGH 清零（U2）。
 
+## 静默吞错收口（2026-11-09，U-3/U-4 批 3）
+
+`pilotstd/query/adapters/base.py::_post_search_candidates` 的「搜索响应 JSON 解析失败」由
+**无日志直接 `return []`** 改为 `warning`（文案带适配器名）——解析失败与「站点确实没有结果」
+不再同形；返回值契约不变。
+
+同批（不在本目录映射内）：`pilotstd/query/rotator.reset_all_cooldowns` 的
+「清空 `adapter_state` 冷却记录失败」由 `debug` 升 `warning`——原实现失败后仍打印
+「所有站点冷却已重置」，日志与实际状态相反。
+
 ## 相关文档
 
 - [管理模块](manager.md) — 适配器调用方（`StandardManager` 门面）

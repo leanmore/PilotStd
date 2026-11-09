@@ -47,7 +47,10 @@ class AnnounceNotifier:
             return [
                 {"announce_no": r["announce_no"], "title": r["announcement_title"]} for r in rows
             ]
-        except Exception:
+        except Exception as e:
+            # 标题拉不到会让通知只显示公告号；必须留痕（U-3/U-4 批 3 升 warning）
+            # i18n-allow: 内部运维日志
+            logger.warning("公告标题拉取失败（通知将缺少标题）: %s", e)
             return []
 
     def _send_notifications(self, result: dict[str, Any], source: str, since: str = "") -> None:

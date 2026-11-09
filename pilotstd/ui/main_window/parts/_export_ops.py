@@ -79,7 +79,10 @@ def _collect_folder_tree(self, root: str, lines: list[Any], prefix: str, depth: 
     lines.append(f"{prefix}{os.path.basename(root) or root}")
     try:
         entries = sorted(os.scandir(root), key=lambda e: (not e.is_dir(), e.name.lower()))
-    except (PermissionError, OSError):
+    except (PermissionError, OSError) as e:
+        # 导出内容会被静默截断（缺这一层子树），必须留痕（U-3/U-4 批 3 升 warning）
+        # i18n-allow: 内部运维日志
+        logger.warning("导出失败（目录树被截断，无法读取目录）: %s: %s", root, e)
         return
     count = 0
     for entry in entries:

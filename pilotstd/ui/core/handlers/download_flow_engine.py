@@ -115,7 +115,9 @@ class DownloadFlowEngine:
         try:
             reader = csv.DictReader(io.StringIO(csv_content))
             return [row for row in reader if any(v.strip() for v in row.values())]
-        except Exception:
+        except Exception as e:
+            # i18n-allow: 内部运维日志
+            logger.warning("下载 CSV 解析失败（本次返回空列表，UI 显示为无任务）: %s", e)
             return []
 
     # ═══════════════════════════════════════════════════════════════ 分隔
