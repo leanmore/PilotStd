@@ -1,6 +1,6 @@
 """tests/test_docs_sync_check.py — docs_sync_check.py 的受控测试（T-16，2026-09-27）。
 
-背景：该脚本的 8 条触发规则曾因 `_match_trigger_rules` 用**字典字面量**做 arity 分派而**全部失效**——
+背景：该脚本的 7 条触发规则曾因 `_match_trigger_rules` 用**字典字面量**做 arity 分派而**全部失效**——
 `{3: fn(a,b,c), 2: fn(a,b), 1: fn(a)}.get(n)` 会先求值三个调用，参数个数不符者抛 TypeError 被 except 吞掉，
 于是规则从未触发过；同时脚本只读暂存区（CI 全新检出恒为空）且恒 `return 0`。
 本文件锁定修复后的行为：arity 分派、范围切分、严格模式开关。
@@ -36,28 +36,31 @@ def mod():
 
 
 def test_all_trigger_rules_are_callable_without_typeerror(mod, capsys) -> None:
-    """8 条规则都要能被正确 arity 调用；不得出现"规则异常"提示。"""
+    """7 条规则都要能被正确 arity 调用；不得出现"规则异常"提示。"""
     changed = [("M", "web/src/App.vue"), ("M", "pilotstd/core/x.py"), ("A", "tests/test_new.py")]
     mod._match_trigger_rules(changed, "diff-body", "feat: something")
     out = capsys.readouterr().out
     assert "规则「" not in out, f"有规则抛异常（arity 分派回归）: {out}"
 
 
-def test_source_and_commit_message_rules_fire(mod, capsys) -> None:
-    """源码变更 + feat: 提交 → 应触发 STATUS.md 与 CHANGELOG.md 两条规则。"""
+def test_feat_commit_triggers_changelog_rule(mod, capsys) -> None:
+    """feat: 提交 → 触发 CHANGELOG.md 规则。
+
+    U34-CI-fix-2：原「源代码变更 → STATUS.md」规则已删除（STATUS.md 被 .gitignore 忽略、
+    由 scripts/generate_status_metrics.py 生成，永远不可能出现在提交里）。
+    """
     changed = [("M", "web/src/App.vue")]
     deduped = mod._match_trigger_rules(changed, "", "feat: add thing")
     docs = {doc for _tn, doc, _s, _r in deduped}
     assert "CHANGELOG.md" in docs
-    assert "STATUS.md" in docs
+    assert "STATUS.md" not in docs
 
 
 def test_in_repo_flag_distinguishes_blocking_targets(mod) -> None:
-    """CHANGELOG 由 CI 自动生成 → in_repo=False（不阻断）；STATUS.md 同为提示项。"""
+    """CHANGELOG 由 CI 自动生成 → in_repo=False（不阻断）。"""
     deduped = mod._match_trigger_rules([("M", "web/src/App.vue")], "", "fix: bug")
     flags = {doc: in_repo for _tn, doc, _s, in_repo in deduped}
     assert flags.get("CHANGELOG.md") is False
-    assert flags.get("STATUS.md") is False
 
 
 def test_doc_already_changed_is_skipped(mod) -> None:

@@ -11,7 +11,6 @@ from __future__ import annotations
 from pathlib import Path
 
 from _docs_sync_io import (
-    _has_any_source_change,
     _has_docker_changes,
     _has_handler_or_mixin_change,
     _has_index_or_readme_changes,
@@ -24,14 +23,18 @@ from _docs_sync_io import (
 TRIGGER_RULES = [
     {
         "name": "模块结构变化",
+        # 原 target `docs/archive/specs/模块与功能清单.md` 已于 2026-08-19 归档并明确「不再维护」，
+        # 指向它等于要求更新一份死文档；模块结构的活文档是 docs/architecture.md（U34-CI-fix-2 审计）。
         "match_fn": _has_new_or_deleted_pyfiles,
-        "targets": [("docs/archive/specs/模块与功能清单.md", "claude", False)],
+        "targets": [("docs/architecture.md", "claude", False)],
     },
     {
         "name": "架构模式变化（Handler/Mixin）",
         "match_fn": lambda t, d: _has_handler_or_mixin_change(t, d),
         "targets": [
-            ("docs/architecture/architecture.md", "claude", True),
+            # 原 `docs/architecture/architecture.md` 在仓库中不存在（断链，且 blocking=True 会在触发时直接红）；
+            # 架构活文档为 docs/architecture.md（U34-CI-fix-2 审计）。
+            ("docs/architecture.md", "claude", True),
             # 2026-09-27：旧簿 architecture/technical-debt-registry.md 已废止归档，
             # 技术债唯一数据源改为 docs/technical-debt.md（Handler/Mixin 变化须同步登记其"已接受决策/已清理"）
             ("docs/technical-debt.md", "claude", True),
@@ -39,8 +42,10 @@ TRIGGER_RULES = [
     },
     {
         "name": "测试文件数大幅变化",
+        # 原 target `docs/development.md` 已迁移成 12 行占位文件（内容并入 07-dev-workflow / testing-baseline /
+        # ci-lessons），指向它只会要求改一份空壳；测试基线的活文档是 docs/testing/testing-baseline.md。
         "match_fn": _test_files_changed_significantly,
-        "targets": [("docs/development.md", "claude", True)],
+        "targets": [("docs/testing/testing-baseline.md", "claude", True)],
     },
     {
         "name": "Docker 基础设施变更",
@@ -54,8 +59,9 @@ TRIGGER_RULES = [
     },
     {
         "name": "CI/CD 工作流变更",
+        # 原 target `docs/development.md` 为占位文件；CI 经验的活文档是 docs/ci-lessons.md。
         "match_fn": _has_workflow_changes,
-        "targets": [("docs/development.md", "claude", True)],
+        "targets": [("docs/ci-lessons.md", "claude", True)],
     },
     {
         "name": "feat:/fix: 提交",
@@ -64,11 +70,9 @@ TRIGGER_RULES = [
         # 不可能与 feat/fix 同批提交；故 in_repo=False：只提示，不参与 strict-block 阻断。
         "targets": [("CHANGELOG.md", "claude", False)],
     },
-    {
-        "name": "源代码变更（通用 STATUS 更新）",
-        "match_fn": _has_any_source_change,
-        "targets": [("STATUS.md", "claude", False)],
-    },
+    # 已删除（U34-CI-fix-2 审计）：「源代码变更（通用 STATUS 更新）」→ STATUS.md。
+    # STATUS.md 在 .gitignore:63 内，由 scripts/generate_status_metrics.py 生成，
+    # 永远不可能出现在提交里 ⇒ 该规则只会给每次源码变更制造一条永久 WARN，无实际约束力。
 ]
 
 
