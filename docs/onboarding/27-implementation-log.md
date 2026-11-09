@@ -5,6 +5,30 @@
 
 ---
 
+## 2026-11-09
+
+### P0-01 移除 Web 一键下载 10 条硬上限（AC-1）
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `web/src/views/TaskView.vue`、`web/src/views/TaskView.test.ts` |
+| 行为 | 删除 `dlNums` 的 `.slice(0, 10)`；全部 `exact` 非采标项交给 `postDownload`，由 `download.batch_size=10` 分批执行；新增 20 条 exact 用例，断言 `postDownload` 收到 20 个号、归档 payload 21 条（1 扫描件 + 20 下载件） |
+| 测试 | `pnpm --dir web exec vitest run src/views/TaskView.test.ts` → **5 passed**；前端全量 **355 passed**；`type-check`/`lint`（0 error）/`build` 通过 |
+| 回滚 | 还原下载选择块与新增测试；后端无需回滚 |
+| 关联 | ISSUE_LEDGER P0-01；AC-1 |
+
+### P0-02 公告缓存回退补 TTL/stale 守卫（AC-4）
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `pilotstd/query/cache.py`、`tests/test_query.py` |
+| 行为 | 公告回退 `SELECT *` 后先过 `_announcement_cache_fresh`：`data_state='stale'` 拒绝；`expires_at` 可解析时优先；否则 `cached_at + active_ttl`（默认 30 天，`<=0` 不按时间过期）；两个时间都缺失时保守命中 |
+| 测试 | `pytest tests/test_query.py` → **83 passed**；新增：31 天前 cached_at miss、stale miss、显式 expires_at 过期 miss、fresh hit、QueryEngine 全链旧公告→最新状态 |
+| 回滚 | 还原 `cache.py` 回退块与新增测试 |
+| 关联 | ISSUE_LEDGER P0-02；AC-4 |
+
+---
+
 ## 2026-11-07
 
 ### 1. Web 下载件进入归档（D-01，前端）

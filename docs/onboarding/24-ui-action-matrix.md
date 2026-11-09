@@ -37,12 +37,12 @@
 |---|---|
 | 开始 | 清空结果 → scan → 拿 `run_id` → 启动轮询 |
 | 查询 | `scan.files[].standard_number` |
-| 下载 | 只 `exact`、非采标，最多 10 条 |
+| 下载 | 只 `exact`、非采标；2026-11-09 起不再截断为 10 条 |
 | 规范化 | scan.files 预览 |
-| 归档 | scan.files + normalize 结果；不含 `downloadResult` |
+| 归档 | scan.files + normalize 结果 + 下载成功项 |
 | 失败 | 当前 step fail；保存 partial/fail |
 | 恢复 | 只恢复 `running/pending` |
-| 停止 | 无停止按钮 |
+| 停止 | 已实现（停止按钮 + 阶段边界检查） |
 
 ---
 

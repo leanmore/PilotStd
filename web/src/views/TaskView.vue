@@ -274,7 +274,11 @@ async function runPipeline(resume = false) {
     // 步骤 2：下载
     if (resumeStart.value < 3) {
       currentStep.value = 2; setStep(2, 'running')
-      const dlNums = (query?.results || []).filter((r: any) => !r.is_adopted && r.match_status === 'exact').map((r: any) => r.standard_number).slice(0, 10)
+      // 2026-11-09 P0-01：不再截断为 10 条；下载引擎自己按 download.batch_size 分批限流，
+      // 选择阶段截断会让第 11 条起静默不下载（AC-1）。
+      const dlNums = (query?.results || [])
+        .filter((r: any) => !r.is_adopted && r.match_status === 'exact')
+        .map((r: any) => r.standard_number)
       if (dlNums.length > 0) {
         const dl = await postDownload(dlNums, runId.value!)
         downloadResult.value = dl

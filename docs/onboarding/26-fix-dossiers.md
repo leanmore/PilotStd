@@ -15,7 +15,7 @@ Web 五段式执行后，下载成功的文件留在 `/standards` 根目录，�
 
 | 步骤 | 代码 | 事实 |
 |---|---|---|
-| 下载 | `web/src/views/TaskView.vue` `postDownload(dlNums)` | `dlNums` 只取 `exact` 非采标，`.slice(0,10)` |
+| 下载 | `web/src/views/TaskView.vue` `postDownload(dlNums)` | `dlNums` 只取 `exact` 非采标；**2026-11-09 起不再 `.slice(0,10)`**，全部交给下载引擎分批 |
 | 下载结果 | `downloadResult.value = dl` | 只用于汇总展示 |
 | 规范化 | `TaskView` 用 scan.files 生成 `normItems` | 不包含下载件 |
 | 归档 | `TaskView` `archiveItems = scan.files` + `normalizeResult` | **不包含 `downloadResult`** |
@@ -46,7 +46,7 @@ Web 五段式执行后，下载成功的文件留在 `/standards` 根目录，�
 - 后端：重复/覆盖/路径校验；
 - E2E：下载成功后分类目录 + `file_index` 出现。
 
-**就绪度**：前端已实现并随 v0.171.0 部署（下载成功项进入 `archiveItems`，`TaskView.test.ts` 3 passed）；仍待后端重复/覆盖策略确认与 Web 五段式小样本验证。
+**就绪度**：前端已实现并随 v0.171.0 部署（下载成功项进入 `archiveItems`，`TaskView.test.ts` 覆盖）；**2026-11-09（P0-01）移除 `.slice(0,10)`**，20 条 exact 全部进入下载/归档（新增用例 20 条断言）；仍待后端重复/覆盖策略确认与 Web 五段式小样本验证。
 
 ---
 
@@ -243,7 +243,7 @@ Web 五段式执行后，下载成功的文件留在 `/standards` 根目录，�
 - `announcement_match` 回退；
 - 性能不退化。
 
-**就绪度**：已实现“stale 不当命中 + put 置 fresh”并随 v0.171.0 部署；待观察网络回源压力。
+**就绪度**：已实现“stale 不当命中 + put 置 fresh”并随 v0.171.0 部署；**2026-11-09（P0-02）**补公告回退 TTL：`expires_at` 优先、缺失时 `cached_at + active_ttl` 兜底，`data_state='stale'` 不命中；三态测试在 `tests/test_query.py`。待观察网络回源压力。
 
 ---
 

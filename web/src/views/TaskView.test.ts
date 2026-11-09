@@ -140,6 +140,39 @@ describe('TaskView 归档 items 构造', () => {
     expect(items.map((i: any) => i.source_path)).toContain('/standards/GB 150-2011 压力容器.pdf')
   })
 
+  it('20 个 exact 项全部进入下载，不再截断为 10', async () => {
+    const results = Array.from({ length: 20 }, (_, i) => ({
+      standard_number: `GB/T ${i + 1}-2020`,
+      match_status: 'exact',
+      is_adopted: false,
+    }))
+    mockPostQuery.mockResolvedValue({ stats: { found: 20, downloadable: 20 }, results })
+    mockPostDownload.mockResolvedValue({
+      stats: { success: 20, skipped: 0 },
+      results: results.map((r, i) => ({
+        standard_number: r.standard_number,
+        standard_name: `标准 ${i + 1}`,
+        status: 'success',
+        saved_path: `/standards/${i + 1}.pdf`,
+      })),
+    })
+    const wrapper = mountTaskView()
+    await flushPromises()
+    wrapper.findComponent({ name: 'Button' }).vm.$emit('click')
+    for (let i = 0; i < 12; i++) await flushPromises()
+
+    expect(mockPostDownload).toHaveBeenCalledTimes(1)
+    const dlNums = mockPostDownload.mock.calls[0][0]
+    expect(dlNums).toHaveLength(20)
+    expect(dlNums[0]).toBe('GB/T 1-2020')
+    expect(dlNums[19]).toBe('GB/T 20-2020')
+
+    const items = mockPostArchive.mock.calls[0][0]
+    expect(items).toHaveLength(21) // 1 个扫描件 + 20 个下载件
+    const paths = items.map((i: any) => i.source_path)
+    for (let i = 1; i <= 20; i++) expect(paths).toContain(`/standards/${i}.pdf`)
+  })
+
   it('任务页提供停止按钮', async () => {
     const wrapper = mountTaskView()
     await flushPromises()

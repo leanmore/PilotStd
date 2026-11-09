@@ -233,7 +233,7 @@ batch_scope("imp")
 | 端 | 事实 |
 |---|---|
 | **Web API** | `docker/api/` 共 **41 个 router 模块、132 个路由**；按域拆分（scan/query/download/normalize/archive/...） |
-| **Web 五段式** | `POST /api/scan` → `/api/query` → `/api/download` → `/api/normalize` → `/api/archive`；`pipeline_runs` 记录每步状态；下载只取 `exact` 非采标且**最多 10 条**；下载成功项已在前端加入归档 items（本地代码，待部署） |
+| **Web 五段式** | `POST /api/scan` → `/api/query` → `/api/download` → `/api/normalize` → `/api/archive`；`pipeline_runs` 记录每步状态；下载只取 `exact` 非采标，**2026-11-09 起不再截断为 10 条**（引擎按 `download.batch_size` 分批）；下载成功项已在前端加入归档 items |
 | **Web 鉴权** | `POST /api/login` + session cookie + CSRF；`/api/health` 公开；静态 token 不是当前主路径 |
 | **Win Worker** | 8 个 QThread：`ScanWorker`、`QueryWorker`、`DownloadWorker`、`NormalizeWorker`、`ArchiveWorker`、`AutoWorker`、`AnnounceWorker`、`UpdateDownloadWorker` |
 | **Win 一键** | `AutoWorker.run()` 包装 `StandardManager.auto_run_stream()`，通过 Qt 信号逐阶段回传 |

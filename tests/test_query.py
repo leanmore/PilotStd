@@ -13,6 +13,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from pilotstd.core.status import Status
+from pilotstd.core.time_utils import days_ago_iso, iso_now
 from pilotstd.organizer.industry_lookup import build_code_mapping
 from pilotstd.query.adapters.base import BaseAdapter
 from pilotstd.query.cache import CacheRepository
@@ -170,12 +171,67 @@ class TestCacheRepository(unittest.TestCase):
             ("GB/T ANNOUNCE", json.dumps({
                 "standard_name": "来自公告",
                 "status": Status.WITHDRAWN.value,
-            }), "2026-01-01"),
+            }), iso_now()),
         )
         cached = self.cache.get("GB/T ANNOUNCE", "mock")
         self.assertIsNotNone(cached)
         self.assertEqual(cached.standard_name, "来自公告")
         self.assertEqual(cached.source_site, "announcement")
+
+    def test_announcement_fallback_expired_by_cached_at_is_miss(self):
+        """公告缓存超过 active_ttl（默认 30 天）→ 回退不命中，必须回源。"""
+        import json
+
+        from pilotstd.core.file_index import ANNOUNCEMENT_CACHE_TABLE
+        self.db.execute(
+            f"INSERT INTO {ANNOUNCEMENT_CACHE_TABLE} "
+            "(standard_number, result_json, cached_at, data_state) VALUES (?, ?, ?, 'fresh')",
+            ("GB/T ANN-OLD", json.dumps({"standard_name": "旧公告", "status": Status.ACTIVE.value}), days_ago_iso(31)),
+        )
+        self.assertIsNone(self.cache.get("GB/T ANN-OLD", "mock"))
+
+    def test_announcement_fallback_stale_is_miss(self):
+        """公告缓存 data_state='stale' → 回退不命中。"""
+        import json
+
+        from pilotstd.core.file_index import ANNOUNCEMENT_CACHE_TABLE
+        self.db.execute(
+            f"INSERT INTO {ANNOUNCEMENT_CACHE_TABLE} "
+            "(standard_number, result_json, cached_at, data_state) VALUES (?, ?, ?, 'stale')",
+            ("GB/T ANN-STALE", json.dumps({"standard_name": "失效公告", "status": Status.ACTIVE.value}), iso_now()),
+        )
+        self.assertIsNone(self.cache.get("GB/T ANN-STALE", "mock"))
+
+    def test_announcement_fallback_respects_explicit_expires_at(self):
+        """显式 expires_at 已过 → 即使 cached_at 很新也不能命中。"""
+        import json
+
+        from pilotstd.core.file_index import ANNOUNCEMENT_CACHE_TABLE
+        self.db.execute(
+            f"INSERT INTO {ANNOUNCEMENT_CACHE_TABLE} "
+            "(standard_number, result_json, cached_at, expires_at, data_state) VALUES (?, ?, ?, ?, 'fresh')",
+            (
+                "GB/T ANN-EXP",
+                json.dumps({"standard_name": "过期公告", "status": Status.ACTIVE.value}),
+                iso_now(),
+                days_ago_iso(1),
+            ),
+        )
+        self.assertIsNone(self.cache.get("GB/T ANN-EXP", "mock"))
+
+    def test_announcement_fallback_fresh_hits(self):
+        """未过期的公告缓存仍可命中（不能把回退一刀切掉）。"""
+        import json
+
+        from pilotstd.core.file_index import ANNOUNCEMENT_CACHE_TABLE
+        self.db.execute(
+            f"INSERT INTO {ANNOUNCEMENT_CACHE_TABLE} "
+            "(standard_number, result_json, cached_at, data_state) VALUES (?, ?, ?, 'fresh')",
+            ("GB/T ANN-FRESH", json.dumps({"standard_name": "新公告", "status": Status.ACTIVE.value}), iso_now()),
+        )
+        cached = self.cache.get("GB/T ANN-FRESH", "mock")
+        self.assertIsNotNone(cached)
+        self.assertEqual(cached.standard_name, "新公告")
 
     def test_append_status_history(self):
         """append_status_history 追加状态变更记录到 JSON 数组。"""
@@ -272,6 +328,30 @@ class TestQueryEngine(unittest.TestCase):
         self.engine.query_standards([("GB/T", 19001, 2020, "", None, "")])
         cached = self.cache.get("GB/T 19001-2020", "mock_active")
         self.assertIsNotNone(cached)
+
+    def test_expired_announcement_cache_falls_through_to_latest(self):
+        """AC-4：30 天前公告缓存（已废止）不得命中，查询链应回源拿到最新状态。"""
+        import json
+
+        from pilotstd.core.file_index import ANNOUNCEMENT_CACHE_TABLE
+        from pilotstd.core.time_utils import days_ago_iso
+
+        self.db.execute(
+            f"INSERT INTO {ANNOUNCEMENT_CACHE_TABLE} "
+            "(standard_number, result_json, cached_at, data_state) VALUES (?, ?, ?, 'fresh')",
+            (
+                "GB/T 19001-2020",
+                json.dumps({"standard_name": "旧公告状态", "status": Status.WITHDRAWN.value}),
+                days_ago_iso(31),
+            ),
+        )
+        # 回退层必须先拒绝过期公告
+        self.assertIsNone(self.cache.get("GB/T 19001-2020", "mock_active"))
+        # 完整查询链：缓存 miss → mock 适配器返回现行（最新）而非旧公告的废止
+        r = self.engine.query_standards([("GB/T", 19001, 2020, "", None, "")])[0]
+        self.assertTrue(r.is_found())
+        self.assertEqual(r.status, Status.ACTIVE.value)
+        self.assertEqual(r.source_site, "mock_active")
 
     def test_force_refresh(self):
         self.engine.query_standards([("GB/T", 19001, 2020, "", None, "")])

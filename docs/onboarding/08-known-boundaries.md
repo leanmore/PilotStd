@@ -36,36 +36,36 @@
 
 ## 二、逐条说明
 
-### 1. Web 五段式：下载件不进入归档（已修本地，待部署）
+### 1. Web 五段式：下载件不进入归档（已修；2026-11-09 移除 10 条上限）
 
-**证据**
+**原证据（修复前）**
 
 - 原实现：`web/src/views/TaskView.vue` 的 `archiveItems` 只来自 scan.files + `normalizeResult`，`downloadResult` 只用于汇总；
 - `docker/api/archive.py` 只接收请求体 `items[].source_path`，不读下载结果；
 - 下载落 `get_library_root()`（Docker `/standards`）根目录，不写 `file_index`；
 - `TaskView` 只对 `match_status==='exact'` 且非采标的结果发起下载，并用 `.slice(0, 10)` **最多 10 条**。
 
-**已修（本地代码，未部署）**
+**已修**
 
-- 下载结果中 `status=success` 且有 `saved_path` 的项，解析标准号后并入 `archiveItems`；
-- 按 `source_path` 去重，避免与扫描件重复；
-- 回归：`web/src/views/TaskView.test.ts` 新增用例，3 passed；全量 `pnpm test` 352 passed。
+- 下载结果中 `status=success` 且有 `saved_path` 的项，解析标准号后并入 `archiveItems`；按 `source_path` 去重，避免与扫描件重复；
+- **2026-11-09（P0-01）**：移除 `.slice(0, 10)`。下载引擎自己按 `download.batch_size=10` 分批限流，**选择阶段截断**会让第 11 条起静默不下载；现在全部 exact 非采标项都交给 `postDownload`。
+- 回归：`TaskView.test.ts` 新增“20 个 exact 项全部进入下载、归档 payload 21 条”用例；全量 `pnpm test` **355 passed**。
 
-**影响**
+**影响（修复前）**
 
 - 本次“一键处理”下载的文件留在 `/standards` 根目录；
 - 不在分类目录、不在 `file_index`、不在 `standard_validity`；
-- 只有用户之后再次手动扫描 `/standards` 并归档，才会被处理。
+- 只有用户之后再次手动扫描 `/standards` 并归档，才会被处理；
+- 且一次只下载前 10 条，其余标准没有下载件可归档。
 
 **不要误判**
 
 - 这不是“Win 一键的问题”；Win 一键走 `auto_run_stream`，是闭环的（见 [`01-positioning.md`](01-positioning.md)）。
+- 10 条上限不是“下载引擎的限流”；引擎的 `download.batch_size` 是分批节奏，不会丢弃余下任务。
 
-**如果要修**
+**回滚**
 
-- 把 `saved_path` 转成 `ParsedStdInfo` 并加入归档入参；
-- 处理同一标准的扫描件/下载件重复、覆盖、路径校验；
-- 需要前端 + API + 测试一起改。
+- 还原 `TaskView.vue` 的下载选择块与新增测试；不影响后端归档接口。
 
 ---
 

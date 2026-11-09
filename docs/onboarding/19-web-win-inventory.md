@@ -46,9 +46,9 @@
 | 离开页面 | `onBeforeUnmount` 只停轮询；后端任务继续 |
 | 恢复 | `resolveActiveRun()` 只恢复 `running/pending`；终态清掉 |
 | 重跑 | 重新从 scan 开始；无显式 `if (running) return` |
-| 停止 | **没有停止按钮** |
-| 下载 | 只取 `exact`、非采标，最多 10 条 |
-| 归档 | 入参来自 scan.files，不包含 `downloadResult` |
+| 停止 | **已实现**（Web B：`/task` 停止按钮 + 阶段边界协作式停止） |
+| 下载 | 只取 `exact`、非采标；2026-11-09 起不再截断为 10 条 |
+| 归档 | 入参来自 scan.files + normalize 结果 + 下载成功项（2026-11-07 起） |
 
 ---
 

@@ -5,9 +5,10 @@ from __future__ import annotations
 
 import json
 import logging
+from datetime import timedelta
 from typing import Any, Optional
 
-from pilotstd.core.time_utils import iso_now
+from pilotstd.core.time_utils import iso_now, now, parse_iso
 
 from ..core.db import Database
 from ..core.file_index import ANNOUNCEMENT_CACHE_TABLE
@@ -23,7 +24,9 @@ DEFAULT_INACTIVE_TTL_DAYS = 7
 class CacheRepository:
     """标准信息缓存仓库。先查网络查询缓存，不命中回退公告缓存。
 
-    缓存失效由事件驱动（网络查询返回"被代替"或公告比对命中），不由时间驱动。
+    主表失效由事件驱动（网络查询返回"被代替"或公告比对命中）；公告回退额外
+    受 TTL 约束：`expires_at` 优先，缺失时按 `cached_at + active_ttl` 兜底，
+    `data_state='stale'` 一律不命中（P0-02，2026-11-09）。
     """
 
     def __init__(
@@ -59,10 +62,15 @@ class CacheRepository:
 
         # 不命中则回退查公告缓存
         ann_row = self._db.fetchone(
-            f"SELECT standard_number, result_json FROM {ANNOUNCEMENT_CACHE_TABLE} WHERE standard_number=?",
+            f"SELECT * FROM {ANNOUNCEMENT_CACHE_TABLE} WHERE standard_number=?",
             (standard_number,),
         )
         if ann_row:
+            # P0-02：公告回退也必须校验新鲜度。matcher 写入的 expires_at 目前为
+            # NULL，因此以 cached_at + active_ttl 为兜底，避免旧公告被永久当命中。
+            if not self._announcement_cache_fresh(ann_row):
+                logger.debug("公告缓存过期/失效，跳过: %s", standard_number)  # i18n-allow: 内部缓存日志
+                return None
             data = json.loads(ann_row["result_json"])
             # 公告缓存数据不含_，需注入
             data["standard_number"] = ann_row["standard_number"]
@@ -73,6 +81,23 @@ class CacheRepository:
             return QueryResult(**data)
 
         return None
+
+    def _announcement_cache_fresh(self, row: dict[str, Any]) -> bool:
+        """公告回退的 TTL 守卫：stale 或已过期 → 不命中。
+
+        - `data_state='stale'` 直接拒绝；
+        - `expires_at` 可解析时优先使用；
+        - 否则 `cached_at + active_ttl`（active_ttl<=0 表示不按时间过期）；
+        - 两个时间都缺失时保守命中（无法判断，不因脏行一刀切）。
+        """
+        if row.get("data_state") == "stale":
+            return False
+        expires_at = parse_iso(row.get("expires_at"))
+        if expires_at is None and self._active_ttl > 0:
+            cached_at = parse_iso(row.get("cached_at"))
+            if cached_at is not None:
+                expires_at = cached_at + timedelta(days=self._active_ttl)
+        return not (expires_at is not None and expires_at <= now())
 
     def put(self, result: QueryResult, source: str = "network") -> None:
         """写入缓存。source: network / announcement / manual。"""

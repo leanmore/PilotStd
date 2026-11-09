@@ -25,8 +25,8 @@
 ## D-02 查询缓存
 
 - 用户重点：**缓存必须最新**；
-- 已发现 `CacheRepository.get()` 不校验 `cached_at` / `data_state` / `source_version`，TTL 参数未使用；
-- 先查清现状，再选 TTL / 版本校验 / 显式刷新方案。
+- 2026-11-07：主表 `standard_info_cache` 已按 `data_state='stale'` 拒绝命中；2026-11-09（P0-02）公告回退补 `expires_at`/`cached_at+active_ttl` TTL 与 stale 拒绝；
+- 仍待观察：过期缓存集中回源对网络压力的影响；`source_version` 仍由 `CacheManager` 事件驱动，不做时间校验。
 
 ## D-03 下载边界
 
