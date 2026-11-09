@@ -34,7 +34,7 @@
 | **修复方案** | 1）`TaskView.vue:277` 去掉 `.slice(0,10)`，把全部 `dlNums` 交给 `postDownload`；2）若确需限流，改为新增一个 `web_max_items` 配置项（0=不限，默认 0，**当前未实现**），并在 UI 显示“本次仅处理前 N 条，剩余 M 条未处理”；3）`TaskView.test.ts` 增加 20 条 exact 的用例，断言 `postDownload` 收到 20 个号、`buildArchiveItems` 收到 20 条下载结果；4）`docker/api/download.py` 的分批逻辑已有 `download.batch_size=10`，不需要在**选择阶段**再截断。 |
 | **验证** | `pnpm.cmd test -- --run src/views/TaskView.test.ts`（应 20/20 通过）；`pnpm.cmd run type-check`；`pnpm.cmd run build`；后端 `pytest tests/test_api_tasks_endpoints.py`。 |
 | **修后通过** | **AC-1**（批量一键闭环）。 |
-| **状态** | **已修（2026-11-09）**：`TaskView.vue` 移除截断；新增 20 条用例；AC-1 mock 全链通过。commit 在本轮 docs 回填时补。 |
+| **状态** | **已修（2026-11-09，commit `72856e99`）**：`TaskView.vue` 移除截断；新增 20 条用例；AC-1 mock 全链通过。 |
 | **若“10 条”是产品有意限制** | 则本项降为 P1，但必须补：配置项、UI 明示、`08` 写明“为什么 10”、验收 AC-1 改为“处理前 10 条 + 明示剩余”。当前没有任何一条满足，故按 P0 处理。 |
 
 ---
@@ -50,7 +50,7 @@
 | **修复方案** | 1）`cache.py:61` 的 SELECT 增加 `expires_at, data_state, cached_at`；2）返回前判断：`data_state == 'stale'` → 跳过；`expires_at` 非空且 `< now` → 跳过（返回 None，让调用方回源）；3）若 `expires_at` 为空，按 `cached_at + DEFAULT_ACTIVE_TTL_DAYS` 兜底（与 `DEFAULT_ACTIVE_TTL_DAYS=30` 一致）；4）补 `tests/test_query.py` 三例：expired/stale/fresh；5）在 `08`/`26` 写明“公告回退也受 TTL 约束”。 |
 | **验证** | `pytest tests/test_query.py -q`；`pytest tests/test_validity_l1_l2.py tests/test_validity_checker.py -q`；手工用一条过期 `announcement_match` 行查一次，确认回源而非返回旧值。 |
 | **修后通过** | **AC-4**（查询正确性与缓存新鲜度）。 |
-| **状态** | **已修（2026-11-09）**：`cache.py` 增加 `_announcement_cache_fresh`（stale 拒绝、`expires_at` 优先、`cached_at+active_ttl` 兜底）；5 条缓存用例 + 1 条 QueryEngine 全链通过。commit 在本轮 docs 回填时补。 |
+| **状态** | **已修（2026-11-09，commit `72856e99`）**：`cache.py` 增加 `_announcement_cache_fresh`（stale 拒绝、`expires_at` 优先、`cached_at+active_ttl` 兜底）；5 条缓存用例 + 1 条 QueryEngine 全链通过。 |
 | **风险** | 过期行被跳过后，首次查询会回源，短期网络压力上升（与主表 stale 修复同类）；需在验证环境观察 QPS/失败率。 |
 
 ---
