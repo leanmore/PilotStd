@@ -178,8 +178,13 @@ def health_check(request: Request):
     env = os.getenv("ENV", "development")
     if env == "production":
         client_host = request.client.host if request.client else "unknown"
-        # unknown（None）不当作公网：只有明确判定为 False 才拒绝（U-3/U-4 批 2a）
-        if _is_private_ip(client_host) is False:
+        is_private = _is_private_ip(client_host)
+        if is_private is None:
+            # fail-safe：IP 解析失败（unknown）按「非内部 IP」拒绝，绝不因解析不了而放行
+            # i18n-allow: 内部运维日志
+            logger.warning("客户端 IP 格式非法，按非内部 IP 处理（拒绝）: %s", client_host)
+            raise HTTPException(status_code=403, detail="Forbidden")
+        if is_private is False:
             raise HTTPException(status_code=403, detail="Forbidden")
 
     mgr = get_manager()

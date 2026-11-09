@@ -609,4 +609,5 @@ pilotstd/core/
 > 「返回 `None` 让调用方回退」改为 **`warning` + 直接返回 `True`（通知开关默认开）**——
 > 读不到配置不等于用户关掉了通知；`enabled_for` 的 `None → True` 回退逻辑对显式 `None` 仍保留。
 > 同批（不属于本模块）`docker/api/health._is_private_ip` 非法 IP 由「静默 `False`（当公网 → 403）」
-> 改为 **`None`（unknown）+ warning**，调用方改为 `is False` 才拒绝，unknown 不再被当作公网。
+> 改为 **`None`（unknown）+ warning**；`health_check` 对 unknown 采取 **fail-safe 拒绝**——
+> 额外记一条 warning 后返回 403（与公网同处理），**不因解析失败而放行**。

@@ -6,6 +6,8 @@
 """
 
 import logging
+import os
+from unittest.mock import patch
 
 import docker.api.health as health_mod
 from pilotstd.core.notification.manager import NotificationManager
@@ -17,6 +19,24 @@ def test_invalid_ip_returns_unknown_and_warns(caplog) -> None:
         assert health_mod._is_private_ip("not-an-ip") is None
 
     assert any("unknown" in r.message for r in caplog.records)
+
+
+def test_unknown_ip_is_denied_403(monkeypatch, caplog) -> None:
+    """health_check 对 unknown 必须 fail-safe 拒绝（403），不得放行。"""
+    from fastapi.testclient import TestClient
+
+    from docker.app import app
+
+    client = TestClient(app)
+    with (
+        patch.dict(os.environ, {"ENV": "production"}),
+        patch.object(health_mod, "_is_private_ip", return_value=None),
+        caplog.at_level(logging.WARNING, logger="docker.api.health"),
+    ):
+        resp = client.get("/api/health")
+
+    assert resp.status_code == 403
+    assert any("按非内部 IP 处理" in r.message for r in caplog.records)
 
 
 def test_private_ip_still_bool() -> None:
