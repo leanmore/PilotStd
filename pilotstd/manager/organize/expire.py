@@ -49,7 +49,8 @@ def merge_expire_from_source(cfg: Any, root_dir: str | None, parsed_list: list[A
                         _safe_move(src_item, tgt_item, on_exists="skip")
                         merged += 1
                     except OSError as e:
-                        logger.debug("merge expire file failed (%s -> %s): %s", src_item, tgt_item, e)
+                        _msg = "过期目录处理失败（合并未完成，有效性信息可能未入库）"  # i18n-allow: 内部运维日志
+                        logger.warning("%s: %s -> %s: %s", _msg, src_item, tgt_item, e)
             try:
                 if not os.listdir(src_expire):
                     os.rmdir(src_expire)

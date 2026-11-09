@@ -101,8 +101,9 @@ class ConfigManager:
                         try:
                             shutil.copyfile(str(target), str(target) + ".bak")
                         except OSError as e:
-                            # 备份失败不阻断写盘，但要留痕（丢一次写将无法回滚）
-                            logger.debug("pre-write backup failed (%s): %s", target, e)
+                            # 备份失败不阻断写盘，但要留痕：丢一次写将无法回滚（U34 批 1 升 warning）
+                            # i18n-allow: 内部运维日志
+                            logger.warning("配置备份失败，原配置仍在使用: %s (%s)", target, e)
                     os.replace(tmp_path, str(target))
                     os.chmod(str(target), 0o600)
                     wrote = True

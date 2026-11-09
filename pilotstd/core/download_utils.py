@@ -96,6 +96,7 @@ def _parse_csv_content(text: str) -> list[str]:
             if val:
                 rows.append(val)
         return rows
-    except Exception:
-        logger.debug("CSV 解析失败", exc_info=True)
+    except Exception as e:
+        # 解析失败与「本来就没有任务」不可区分，必须留痕（U34 批 1 升 warning）
+        logger.warning("下载列表解析失败，本次返回空列表: %s", e, exc_info=True)
         return []

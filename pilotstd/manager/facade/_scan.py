@@ -94,7 +94,8 @@ class ScanHandler:
 
             CacheManager(self._core.db).invalidate_by_source(DataSource.FILE_INDEX)
         except Exception as e:
-            logger.debug("invalidate FILE_INDEX cache failed: %s", e)
+            # i18n-allow: 内部运维日志
+            logger.warning("扫描后 FILE_INDEX 缓存失效失败（调用方可能读到旧索引）: %s", e)
 
         return parsed
 
@@ -181,7 +182,8 @@ class ScanHandler:
 
             CacheManager(self._core.db).invalidate_by_source(DataSource.FILE_INDEX)
         except Exception as e:
-            logger.debug("invalidate FILE_INDEX cache failed: %s", e)
+            # i18n-allow: 内部运维日志
+            logger.warning("扫描后 FILE_INDEX 缓存失效失败（调用方可能读到旧索引）: %s", e)
 
         return parsed
 

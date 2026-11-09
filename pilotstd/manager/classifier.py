@@ -187,9 +187,8 @@ class QueryClassifier:
             finally:
                 db.close()
         except Exception as e:  # noqa: BLE001 — 落库失败不得影响分类与归档主流程
-            # 诊断文本刻意用 ASCII：本文件受 G-047（Python 侧中文硬编码）基线上限约束，
-            # 新增中文字面量会超基线；注释与 docstring 不计入该基线，故说明仍用中文。
-            logger.debug("persist final_name failed (classification/archive unaffected): %s", e)
+            # i18n-allow: 内部运维日志（失败必须可见；主流程仍继续）
+            logger.warning("分类失败（final_name 落库失败，分类/归档不受影响）: %s", e)
 
     def resolve_replaces(
         self, standard_number: str, notification_mgr: Any = None, standard_name: str = ""

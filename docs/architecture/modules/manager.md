@@ -233,3 +233,10 @@ StandardManager (BaseFacade)
 
 > **2026-11-06 时间规范（阶段 6）**：manager 侧任务/待办/公告时间统一用
 > `pilotstd.core.time_utils.iso_now()` 写入带偏移量的 ISO 8601；v73 迁移规范化历史裸时间。
+
+> **2026-11-09 归档/索引日志升级（U-3/U-4 批 1）**：6 处 `except` 内 `debug` 升 `warning`——
+> `classifier._persist_final_names`（final_name 落库失败，分类/归档主流程不受影响）、
+> `facade/_scan` 的 `scan_directory` / `scan_directory_stream`（扫描后 FILE_INDEX 缓存失效失败，
+> 调用方可能读到旧索引）、`organize/expire.merge_expire_from_source`（过期目录合并失败，
+> 有效性信息可能未入库）、`organize/organizer` 的去重删源（源目录残留重复件）与删旧重复件失败。
+> 文案均带失败后果，**控制流与返回值不变**；配合 core.md 的 5 处，G-050 debug 基线 90 → 79。

@@ -15,9 +15,10 @@ from unittest.mock import MagicMock
 def test_hash_file_content_missing_path_logs(caplog) -> None:
     from pilotstd.core.file_utils import hash_file_content
 
-    with caplog.at_level(logging.DEBUG, logger="pilotstd.core.file_utils"):
+    with caplog.at_level(logging.WARNING, logger="pilotstd.core.file_utils"):
         assert hash_file_content("/definitely/not/here.pdf") == ""
-    assert "getsize failed" in caplog.text
+    # U-3/U-4 批 1：debug → warning（文案同时改中文）
+    assert "文件哈希计算失败（getsize）" in caplog.text
 
 
 def test_hash_file_content_unreadable_path_logs(tmp_path, caplog) -> None:
@@ -25,9 +26,9 @@ def test_hash_file_content_unreadable_path_logs(tmp_path, caplog) -> None:
 
     directory = tmp_path / "a_directory"
     directory.mkdir()
-    with caplog.at_level(logging.DEBUG, logger="pilotstd.core.file_utils"):
+    with caplog.at_level(logging.WARNING, logger="pilotstd.core.file_utils"):
         assert hash_file_content(str(directory)) == ""
-    assert "read failed" in caplog.text
+    assert "文件哈希计算失败（读取）" in caplog.text
 
 
 def test_database_close_failure_logs(caplog) -> None:

@@ -39,9 +39,10 @@ def test_config_pre_write_backup_failure_logs(tmp_path, monkeypatch, caplog) -> 
 
     monkeypatch.setattr(cfg_module.shutil, "copyfile", broken_copyfile)
 
-    with caplog.at_level(logging.DEBUG, logger="pilotstd.core.config.manager"):
+    with caplog.at_level(logging.WARNING, logger="pilotstd.core.config.manager"):
         cfg.save()
-    assert "pre-write backup failed" in caplog.text
+    # U-3/U-4 批 1：debug → warning（文案同时改中文）
+    assert "配置备份失败，原配置仍在使用" in caplog.text
     assert path.exists()  # 备份失败不阻断写盘
 
 

@@ -597,3 +597,9 @@ pilotstd/core/
 > 说明「为什么只 debug、为什么不升级」，避免被后续普查误判为吞错。
 > 同类「可选增强降级」还有 `query/routing/scorer.get_profile`（站点配置覆盖 → 默认权重）与
 > `query/engine/_routing._resolve_base_route`（评分器失败 → 回退硬编码路由），均保留 debug + 注释。
+
+> **2026-11-09 归档/索引日志升级（U-3/U-4 批 1）**：5 处 `debug` 升 `warning`——
+> `config/manager.save`（写前备份失败，原配置仍在使用）、`download_utils._parse_csv_content`
+> （下载列表解析失败，不再与「本来没有任务」同形）、`file_index.validate_paths`（删除无效索引记录失败，
+> 脏记录会长期残留）、`file_utils.hash_file_content` 的 `getsize` 与读取两处（返回空哈希的契约不变，
+> 但「文件被静默跳过索引/去重」可见）。manager 侧 6 处见 manager.md 同日条目。

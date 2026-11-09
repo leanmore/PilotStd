@@ -204,7 +204,8 @@ class OrganizerCore:
                     try:
                         os.remove(src)
                     except OSError as e:
-                        logger.debug("remove source after duplicate archive failed (%s): %s", src, e)
+                        # i18n-allow: 内部运维日志
+                        logger.warning("归档源文件删除失败（源目录将残留重复件）: %s: %s", src, e)
                 return
             self._record_archive_conflict(p, src, dst)
             result["conflict_pending"] = result.get("conflict_pending", 0) + 1
@@ -332,5 +333,6 @@ class OrganizerCore:
                     os.remove(old_path)
                     logger.info("去重清理旧路径: %s", old_path)
                 except OSError as e:
-                    logger.debug("remove duplicate old file failed (%s): %s", old_path, e)
+                    # i18n-allow: 内部运维日志
+                    logger.warning("归档重复件删除失败（旧路径残留）: %s: %s", old_path, e)
             self._file_index.remove(old_path)
