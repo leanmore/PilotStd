@@ -37,6 +37,17 @@
 | 回滚 | 还原读方法/端点/页面板与新增测试；写入逻辑不变 |
 | 关联 | ISSUE_LEDGER P1-03；AC-7 |
 
+### P2-08 补 TaskView GUI 覆盖（不拆分）
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `web/src/views/TaskView.test.ts` |
+| 决策 | 补覆盖，不拆 TaskView：已拆出 `TaskHistoryList`/`types`/`taskPipeline`，继续搬编排层会同时移动选择/状态机/模板，P0-01 刚改完，回归风险 > G-010 warning 收益（理由 + 触发条件见 ISSUE_LEDGER §5.4） |
+| 新增用例 | 3 个：查询失败 → 错误可见 + 历史 `fail`；历史详情查看/删除；interrupted 恢复显示“继续任务”。用例数 5 → **8** |
+| 覆盖率 | TaskView：行 **60.34% → 74.56%**、分支 **45.88% → 59.74%**、函数 **57.14% → 71.42%**（`vitest --coverage --coverage.include=src/views/TaskView.vue`） |
+| 回滚 | 删除 3 个新增用例；无生产代码改动 |
+| 关联 | ISSUE_LEDGER P2-08；AC-1 |
+
 ---
 
 ## 2026-11-07

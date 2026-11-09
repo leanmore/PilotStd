@@ -6,6 +6,7 @@ import { createI18n } from 'vue-i18n'
 import zhCN from '@/locales/zh-CN.json'
 import en from '@/locales/en.json'
 import TaskView from './TaskView.vue'
+import { resolveActiveRun, restoreResultsFromStepResults } from '@/utils/taskRestore'
 
 const mockPostScan = vi.fn()
 const mockPostQuery = vi.fn()
@@ -44,6 +45,7 @@ vi.mock('@/lib/storage', () => ({
 vi.mock('@/utils/taskRestore', () => ({
   restoreResultsFromStepResults: vi.fn(() => ({})),
   resolveActiveRun: vi.fn(() => null),
+  resumeStartFrom: vi.fn(() => 2),
 }))
 
 function makeI18n(locale: 'zh-CN' | 'en' = 'zh-CN') {
@@ -191,5 +193,74 @@ describe('TaskView 归档 items 构造', () => {
     await flushPromises()
     expect(english.text()).toContain('Standard processing pipeline')
     expect(english.text()).toContain('Normalize')
+  })
+
+  it('查询失败时显示错误并保存 fail 历史（P2-08 覆盖）', async () => {
+    localStorage.clear()
+    mockPostQuery.mockRejectedValue(new Error('query boom'))
+    const wrapper = mountTaskView()
+    await flushPromises()
+    wrapper.findComponent({ name: 'Button' }).vm.$emit('click')
+    for (let i = 0; i < 8; i++) await flushPromises()
+
+    expect(wrapper.text()).toContain('query boom')
+    const saved = JSON.parse(localStorage.getItem('pilotstd_tasks') || '[]')
+    expect(saved[0]?.status).toBe('fail')
+  })
+
+  it('历史详情查看与删除（P2-08 覆盖）', async () => {
+    localStorage.clear()
+    const record = {
+      id: 'r1',
+      time: '2026-11-09 21:00:00',
+      path: '/inbox',
+      scanCount: 1,
+      queryFound: 1,
+      dlSuccess: 0,
+      normCount: 0,
+      status: 'success',
+      steps: [],
+    }
+    localStorage.setItem('pilotstd_tasks', JSON.stringify([record]))
+    const wrapper = mountTaskView()
+    await flushPromises()
+    const list = wrapper.findComponent({ name: 'TaskHistoryList' })
+    expect(list.exists()).toBe(true)
+
+    list.vm.$emit('view', record)
+    await flushPromises()
+    expect(wrapper.text()).toContain('2026-11-09 21:00:00')
+
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    list.vm.$emit('delete', record)
+    await flushPromises()
+    expect(list.props('history')).toHaveLength(0)
+  })
+
+  it('中断任务恢复时显示继续按钮（P2-08 覆盖）', async () => {
+    vi.mocked(resolveActiveRun).mockResolvedValue({
+      runId: 'run-restored',
+      run: {
+        run_id: 'run-restored',
+        status: 'interrupted',
+        current_step: 'download',
+        progress: 50,
+        step_results: {},
+      },
+    } as any)
+    vi.mocked(restoreResultsFromStepResults).mockReturnValue({
+      scan: { total: 1 },
+      query: { stats: { found: 1 } },
+      download: null,
+      normalize: null,
+      archive: null,
+    } as any)
+    const wrapper = mountTaskView()
+    await flushPromises()
+    await new Promise(r => setTimeout(r, 20))
+    await flushPromises()
+    const labels = wrapper.findAllComponents({ name: 'Button' }).map(b => b.props('label'))
+    expect(labels).toContain('继续任务')
+    expect(wrapper.findComponent({ name: 'TaskHistoryList' }).exists()).toBe(true)
   })
 })

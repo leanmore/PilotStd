@@ -96,7 +96,7 @@
 | **修复方案** | 1）新增 `GET /api/announce/fetch-failures`（登录用户只读）返回最近失败与未解决数；2）`AnnounceService.get_fetch_failures()` 聚合；3）适配器本轮成功时 `resolve_site_failures(source_site)` 把该站历史未解决失败标记 resolved；4）`AnnounceView` 显示失败面板（未解决数 + 最近 5 条）。**已按此实现**。 |
 | **验证** | `pytest tests/announce/test_persistence.py tests/test_api_announce_fetch_failures.py -q`（12 passed）；`AnnounceView.test.ts` 7 passed；`check_i18n_key_count.py` 三语 947 键一致。 |
 | **修后通过** | **AC-7**；同时增强 AC-2/AC-4 的“抓取失败/未恢复”可见性。 |
-| **状态** | **已修（2026-11-09）**：`list_failures/failure_counts/resolve_site_failures` + `get_fetch_failures` + 端点 + 公告页面板；失败历史/是否恢复现在有读侧。 |
+| **状态** | **已修（2026-11-09，commit `35283be6`）**：`list_failures/failure_counts/resolve_site_failures` + `get_fetch_failures` + 端点 + 公告页面板；失败历史/是否恢复现在有读侧。 |
 
 ---
 
@@ -183,7 +183,7 @@
 | **P2-05** | **8 条** markdown 死链 + 4 篇孤儿文档：`docs/architecture/modules/core.md:452`、`manager.md:199/200`、`parser.md:60`、`ui.md:61/62/85`、`debt/02-accepted.md:113` 指向已归档/已删的 plans 或 `STATUS.md`；孤儿 `notification-custom-menu.md`、`notification-field-contract.md`、`notification-stages-contract.md`、`openapi-frontend-contract.md`（扫描器另报的 `PITFALLS.md` “self” 是代码块 `](self)` 假阳性，已剔除） | 自写链接扫描（相对/根路径都试）；G-032 只查代码 span | 新人点开 404；契约文档没人找到，重复定义 | 修 8 条链接（改 `../../debt/...`/归档路径/删 `STATUS` 链接）；4 篇入 `DOCUMENTATION_MAP` 或 `index`；G-032 增加 markdown 链接维度并跳过 fenced code block | 链接扫描、G-032 |
 | **P2-06** | `scripts/check_g_032_doc_health.py` 首字节 EF BB BF（BOM）；G-010 报 `invalid non-printable character U+FEFF` 并跳过函数规模检查；G-050 对 SyntaxError 文件静默跳过 | 字节检查；`check_all` 输出 `[WARN] 语法解析失败`；G-050 已知局限 | 文档健康门禁自身不在 AST 门禁覆盖内；BOM 类问题可能扩散 | 去 BOM（UTF-8 无 BOM 保存）；在 G-038/G-050 增加 BOM 检查；把“SyntaxError 跳过清单”打印出来 | 入口 A/门禁输出 |
 | **P2-07** | 门禁覆盖缺口：`ci.yml:898` `check_module_doc_mappings.py --strict` 仍是告警期（exit 0）；G-031 只校验“文档存在+映射齐全”，不校验内容数字；G-048 只校验 `core.md` 的模块数 | `ci.yml`、gates G-031/G-048、A-4/E-6 | docs-sync 永远不阻断；`index/MAP/18/20` 的数字漂移无人拦 | 给 `--strict` 定截止日并切 `--strict-block`；把“路由数/表数/文档数”纳入 G-048 同类检查；或明确写“只告警”并从发布门槛移除 | A-4/E-6、G-031/G-048 |
-| **P2-08** | UI 覆盖率 23%（U56），`TaskView.vue` 有效行 462 > 400（G-010 警告）；GUI 只在 CI/Windows 跑 | U56 §2；G-010 输出 | GUI 回归只能等 CI；TaskView 继续膨胀，后续改一键流程风险高 | 拆 TaskView（下载选择/归档入参/状态机）；给 GUI 覆盖率设作业级门槛；把 G-010 警告列入拆分计划 | U56、G-010 |
+| **P2-08** | UI 覆盖率 23%（U56），`TaskView.vue` 有效行 462 > 400（G-010 警告）；GUI 只在 CI/Windows 跑。**状态：部分完成（2026-11-09）**——补 3 个 GUI 用例，TaskView 行覆盖 **60.34→74.56%**、分支 **45.88→59.74%**、函数 **57.14→71.42%**；**不拆分**（理由见 §5.4） | U56 §2；G-010 输出；本次 vitest coverage | GUI 回归只能等 CI；TaskView 继续膨胀，后续改一键流程风险高 | 保持现有拆分（`TaskHistoryList`/`types`/`taskPipeline`）；本次补失败/历史/恢复分支；拆分触发条件见 §5.4 | U56、G-010、本次覆盖 |
 | **P2-09** | `/api/auto` 调 `mgr.auto_run()` 无 `root_path`；`auto_run(root_path, ...)` 必 TypeError，admin 调用 500 | `docker/api/auto.py:25`、`facade/_auto.py` 签名、`08 #13` | 暴露的 admin 端点不可用；若有人按 API 文档调用会以为系统坏了 | 传 `get_settings().storage.root_dir` 或 `get_library_root()`；若确实废弃则返回 410 并从 `20` 删除；补 API 测试 | 08 #13、入口 A7 |
 | **P2-10** | 验证底座问题：G-050 仍余 168 条（46 pass/50 return/72 debug）；`pytest` 6254 passed 但进程 exit 1（stderr 的 `UnicodeDecodeError` 被 PowerShell 包成 NativeCommandError）；`pnpm test` 354 passed 但 exit 1（同类） | `silent_errors_baseline.json`；本次全量；`04-watch` V-2 | “全绿但 exit 1”会训练人忽略退出码，真失败被漏；静默错余量让新错误混入 | 非迁移文件的 pass/return 逐条 triage（cache/file_utils/config 优先）；测试命令用 `cmd /c` 或 `--junitxml` + 解析，不靠 stderr；CI 以 JUnit 为准 | G-050、V-2、本次实测 |
 | **P2-11** | v74 后仍有 4 条畸形 `standard_validity` 键无法唯一还原（如 `47013-2015` part=-1/.2 歧义） | 26 D-03、27 §5、`_migrate_v74` | 这 4 条标准永远不被 L1/L2 正确处理，统计分母也排除它们 | 出 4 条逐条 mapping/人工裁定；能合并的合并，不能的标 `manual_required` 并在 UI 可见；生产执行需窗口 | 26 D-03、27 §5 |
@@ -221,13 +221,13 @@
 
 | AC | 阻断/缺口条目 | 当前能否通过 |
 |---|---|---|
-| AC-1 批量一键 | **P0-01**（10 上限）、P2-08（TaskView 膨胀）、P1-08（人工未验） | **FAIL**（代码级） |
+| AC-1 批量一键 | P0-01（已修）、P2-08（已补覆盖/不拆）、P1-08（人工未验） | **PASS（mock 全链）**；严格端到端待人工 |
 | AC-2 监控投放 | P1-05（统计重启归零）、P1-08 | PASS（代码/集成），待部署 |
 | AC-3 通知对账 | P1-02（中间数字）、P1-06（渠道真发）、P2-13（前端权限） | PARTIAL |
-| AC-4 查询/缓存 | **P0-02**（公告回退无 TTL）、P3-06（v2 样本） | **FAIL（局部）** |
+| AC-4 查询/缓存 | P0-02（已修）、P3-06（v2 样本） | **PASS（缓存/查询链）**；v2 合并链/真实样本待验 |
 | AC-5 时效性 | P1-01（手动计数）、P1-02、P1-07（默认开关）、P2-11（4 行） | PARTIAL |
 | AC-6 多用户 | P2-13、P3-10（旧 user_id） | PARTIAL |
-| AC-7 失败可见/恢复 | P1-03、P1-04、P1-05、P2-10 | PARTIAL |
+| AC-7 失败可见/恢复 | P1-03（已修）、P1-04、P1-05、P2-10 | PARTIAL（抓取失败已可见；其余仍 partial） |
 
 ### 5.2 P0/P1 的“修后通过”一览
 
@@ -249,6 +249,19 @@
 - 六问题里 W2（monitor 归档）、W3（validity 搬移/回滚）、W4（未读隔离/归档 body）、W6（主表 stale）都已有代码 + 测试证据，失败面收窄为“统计/计数/中间消息”等局部场景 → P1。
 - 真正“验收链断掉”的只有两条：批量选择被截断（AC-1）、旧公告结论被当新结论（AC-4）。
 - 如果 P0 有 20 条，说明把“P2 质量债/待实测”都算成了阻断；如果 P0 只有 1 条，说明漏掉了“批量少下”或“旧结论”其中一条。
+
+### 5.4 P2-08 决策：补 GUI 覆盖，暂不拆 TaskView
+
+**选择**：补覆盖，不拆分。
+
+**理由**
+
+1. `TaskView` 已经做过低风险拆分：`TaskHistoryList.vue`、`TaskView/types.ts`、`utils/taskPipeline.ts` 都在；剩余 464 有效行主要是五段编排 + 模板/样式，继续拆需要搬 60+ 行并重接 props/emits，属于结构改动。
+2. 刚完成 P0-01（下载选择），此时拆编排层会把“选择逻辑 + 状态机 + 模板”同时移动，回归面大于收益；G-010 目前只是 warning，不是阻断。
+3. 真正的风险是**未测分支**（失败、历史、恢复），不是行数本身。本次补 3 个用例后，TaskView 行覆盖 **60.34→74.56%**、分支 **45.88→59.74%**、函数 **57.14→71.42%**（5→8 tests），已覆盖此前未测的 catch/finally、历史详情/删除、interrupted 恢复。
+4. 拆分触发条件（满足任一即重开）：`TaskView` 再增 >50 有效行；G-010 从 warning 升为 block；或下一次 P0/P1 又落在 `runPipeline` 编排块。
+
+**待做（不阻塞）**：给 GUI 作业设单文件覆盖率下限，避免“补了用例但没人看趋势”。
 
 ---
 
