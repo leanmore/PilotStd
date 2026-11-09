@@ -38,4 +38,5 @@ def _store_raw_content(
         )
         db.close()
     except Exception:
-        logger.debug("写入公告正文失败: %s", announce_no, exc_info=True)
+        # 正文没落盘 ⇒ 事后无法复核原文，排障证据链断裂（U-3/U-4 批 2b 升 warning）
+        logger.warning("公告正文落盘失败: announce_no=%s", announce_no, exc_info=True)

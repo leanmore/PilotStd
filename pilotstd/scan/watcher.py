@@ -72,7 +72,8 @@ class FileWatchHandler(PatternMatchingEventHandler):
             # 注意：不能引用 file_hash（计算哈希本身就可能抛 OSError，此时它未绑定）
             logger.debug("watcher index file failed (locked/deleted, %s): %s", path, e)
         except Exception:
-            logger.debug("watcher 处理文件失败: %s", path, exc_info=True)
+            # i18n-allow: 内部运维日志
+            logger.warning("watcher 文件事件处理失败: %s", path, exc_info=True)
 
     def on_created(self, event: FileSystemEvent) -> None:
         self._handle_new_or_modified(str(event.src_path))

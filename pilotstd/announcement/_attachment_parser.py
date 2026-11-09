@@ -50,8 +50,9 @@ def parse_wps_text(raw_bytes: bytes) -> str:
 
     try:
         text = raw_bytes.decode("utf-16-le", errors="ignore")
-    except Exception:
-        logger.debug("WPS 解码失败", exc_info=True)
+    except Exception as e:
+        # i18n-allow: 内部运维日志
+        logger.warning("附件解析失败（WPS 解码）: %s", e)
         return ""
 
     text = _clean_wps_fulltext(text)
@@ -82,7 +83,8 @@ def _parse_pdf_text(raw_bytes: bytes) -> str:
                 pages.append(text)
         return "\n".join(pages)
     except Exception as e:
-        logger.debug("PDF 解析失败: %s", e, exc_info=True)
+        # i18n-allow: 内部运维日志
+        logger.warning("附件解析失败（PDF）: %s", e)
         return ""
 
 

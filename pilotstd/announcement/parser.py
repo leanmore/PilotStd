@@ -473,8 +473,9 @@ def _ocr_pdf(pdf_bytes: bytes, ocr_provider: Any) -> str:
 
         reader = PdfReader(BytesIO(pdf_bytes))
         total_pages = len(reader.pages)
-    except Exception:
-        logger.debug("PDF 页数检测失败，假定 1 页", exc_info=True)  # i18n-allow: 内部日志
+    except Exception as e:
+        # i18n-allow: 内部运维日志
+        logger.warning("公告解析失败（PDF 页数检测失败，按 1 页继续）: %s", e)
 
     texts = []
     failed = 0

@@ -611,3 +611,7 @@ pilotstd/core/
 > 同批（不属于本模块）`docker/api/health._is_private_ip` 非法 IP 由「静默 `False`（当公网 → 403）」
 > 改为 **`None`（unknown）+ warning**；`health_check` 对 unknown 采取 **fail-safe 拒绝**——
 > 额外记一条 warning 后返回 403（与公网同处理），**不因解析失败而放行**。
+
+> **2026-11-09 通知渠道凭证读取失败可见化（U-3/U-4 批 2b）**：`NotificationManager._channel_credentials`
+> 的 `except` 由 `debug` 升 `warning`（保留 i18n 键 `notification.manager.credential_read_failed`）——
+> 单渠道读不到凭证时轮询继续、该渠道本轮不发送，属「单渠道失败继续」而非全局失败，故**不升 error**。

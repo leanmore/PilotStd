@@ -206,3 +206,9 @@ GB/DB/HB 公告头完整；详情记录缺口为 DB 9月第8号 18 条、HB 9月
 
 > **2026-11-06 时间与 OCR 退避（阶段 6）**：公告记录 `fetched_at` 统一写 ISO 8601 带偏移量；
 > OCR 统计文件写入遇到 Windows 占用时做 3 次短退避重试，避免统计丢失。
+
+> **2026-11-09 公告解析失败可见化（U-3/U-4 批 2b）**：4 处 `debug` 升 `warning`——
+> `_attachment_parser.parse_wps_text` / `_parse_pdf_text`（附件解析失败，文案带「WPS 解码 / PDF」区分）、
+> `_raw_store._store_raw_content`（正文落盘失败，带 announce_no；事后仍可复核原文的前提是这条可见）、
+> `parser._ocr_pdf`（PDF 页数检测失败后按 1 页继续，多页公告只 OCR 首页的风险不再静默）。
+> 返回值契约不变（失败仍返回空串/不抛错）。

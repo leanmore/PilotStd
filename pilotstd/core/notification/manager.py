@@ -397,7 +397,8 @@ class NotificationManager:
             helper_obj = CredentialHelper(self._db, str(Path(filepath).parent))
             return helper_obj.get_channel(self._user_id, channel) or {}
         except Exception:
-            logger.debug(
+            # 单渠道凭证读失败 → 该渠道本轮无凭证但轮询继续（U-3/U-4 批 2b 升 warning）
+            logger.warning(
                 t("notification.manager.credential_read_failed").format(channel=channel),
                 exc_info=True,
             )

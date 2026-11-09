@@ -73,3 +73,7 @@ pilotstd/scan/
 > **2026-11-04 归档 unparsed 计数（D1-1）**：`organize_files` 对无法解析的文件累计
 > `unparsed` 并 `WARNING` 打印文件名（最多 10 个），不再静默丢弃；结果字典新增
 > `unparsed` 字段，便于前端/日志定位命名不支持的输入。
+
+> **2026-11-09 watcher 事件失败可见化（U-3/U-4 批 2b）**：`FileWatchHandler._handle_new_or_modified`
+> 的兜底 `except` 由 `debug` 升 `warning`（文案带路径）——watcher 静默失败会让新文件不进索引、
+> 归档链少文件且无人知晓；`OSError`（文件被锁/删除）分支仍保持 `debug`（属预期瞬态）。
