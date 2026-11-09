@@ -11,7 +11,17 @@
 import logging
 import types
 
+import pytest
 import requests
+
+
+def _require_qt() -> None:
+    """后端测试作业（ubuntu）不装 PyQt6，`pilotstd.ui.__init__` 会立即导入 main_window。
+
+    仓库惯例：UI 相关用例用 importorskip 跳过（见 tests/test_task.py:155、
+    tests/unit/core/test_status.py:171、tests/test_windows_tray_routing.py:12）。
+    """
+    pytest.importorskip("PyQt6", reason="后端测试作业不含 GUI 依赖（PyQt6）")
 
 
 def _msgs(caplog, level: int) -> list[str]:
@@ -66,6 +76,7 @@ def test_announce_task_bad_json_is_warning_and_behaviour_unchanged(caplog) -> No
 
 
 def test_pending_dialog_config_failure_is_warning(caplog, monkeypatch) -> None:
+    _require_qt()
     import pilotstd.core.config as config_mod
     from pilotstd.ui import pending_query_dialog as mod
 
@@ -125,6 +136,7 @@ def test_pending_enqueue_bad_date_is_warning(caplog) -> None:
 
 def _mk_handler(enqueue_results, too_new_items):
     """构造一个只带 filter_too_new_standards 所需依赖的 Handler（不初始化 Qt）。"""
+    _require_qt()
     from pilotstd.ui.core.handlers._download import DownloadUIHandler
 
     handler = object.__new__(DownloadUIHandler)
@@ -176,6 +188,7 @@ def test_on_download_finished_excludes_skipped_from_failed(monkeypatch) -> None:
     4 条 = 1 成功 + 2 过新 + 1 未排队 ⇒ failed_count 必须是 0。
     若 skipped 被算进失败，`_register_task` 的第 4 个参数会变成 4 而不是 3。
     """
+    _require_qt()
     import pilotstd.platform.notify as notify_mod
     from pilotstd.ui.core.handlers._download import DownloadUIHandler
 
