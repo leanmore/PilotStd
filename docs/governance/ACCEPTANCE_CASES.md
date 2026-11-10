@@ -312,7 +312,7 @@
 
 | 项 | 结果 |
 |---|---|
-| 后端全量 | 6266 passed / 10 skipped / 399 subtests / 329.14s；进程 exit 1 仅 PowerShell stderr 包装，pytest 摘要无 FAILED |
+| 后端全量 | 6270 passed / 10 skipped / 399 subtests / 327.09s；进程 exit 1 仅 PowerShell stderr 包装，pytest 摘要无 FAILED |
 | 前端四件套 | type-check 0；lint 0 error（既有 warning）；test 359 passed；build 成功 |
 | 门禁 | `check_all --fast --guards --local` **EXIT 0**；`check_all --ci` **EXIT 0** |
 
@@ -324,4 +324,4 @@
 2. **生产不可达**：`192.168.1.18` 按文档不可达；本文件的“通过”只到本地/CI 层，生产部署版本与数据未核。
 3. **GUI 未执行**：本地全量排除了 `tests/gui/`；Win 桌面与浏览器交互只到代码/单测层。
 4. **人工验收未执行**：`docs/guides/人工测试方案.md` 的记录表 **全部 ⬜**，没有一份人工签署的端到端结果（P1-08）。
-5. **时间窗**：所有实测截至 2026-11-10 19:05（Asia/Shanghai）；之后的新提交需重跑。
+5. **时间窗**：所有实测截至 2026-11-10 19:32（Asia/Shanghai）；之后的新提交需重跑。
