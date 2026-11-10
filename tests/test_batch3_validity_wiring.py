@@ -27,6 +27,13 @@ def test_pipeline_passes_query_engine_to_check_standard(db):
     checker.check_standard.assert_called_once_with("GB 1-2020", query_engine=sentinel)
 
 
+def test_factory_default_auto_move_enabled():
+    """P1-07：auto_move_expired 的出厂默认是 true，文档/代码注释按此对齐。"""
+    from pilotstd.core.config.defaults import FACTORY_DEFAULTS
+
+    assert FACTORY_DEFAULTS["validity.auto_move_expired"] is True
+
+
 def test_run_validity_check_accepts_query_engine(tmp_path):
     """入口签名必须接受 query_engine（API/调度器据此接线）。"""
     result = run_validity_check(

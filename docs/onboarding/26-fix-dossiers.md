@@ -116,14 +116,14 @@ Web 五段式执行后，下载成功的文件留在 `/standards` 根目录，�
 ### 根因候选
 
 1. L2 没有拿到“废止”结论（查询结果/缓存/站点）；
-2. `auto_move_expired` 默认 false；
+2. `auto_move_expired` 默认 **true**（2026-11-07 决策；旧文档误写 false）；
 3. `standard_validity` 709 条畸形键，L1/L2 对不上；
 4. 历史未知 → L3 自证循环；
 5. 手动运行不更新 `checked_count`，看起来“没检查”。**已修（2026-11-10）**：手动 run 也传 `update_counters=True`。
 
 ### 必须先定的边界
 
-1. 是否开启 `auto_move_expired`？默认关闭是有意保护。
+1. 是否开启 `auto_move_expired`？**默认开启（FACTORY_DEFAULTS=true）**；只有显式 false 才关闭。
 2. 废止状态集合以 `ABOLISHED_STATUSES_WITH_EXPIRED` 为准；
 3. 搬文件失败是否保持原状态（当前是）；
 4. 3 条无法还原的 validity 行是否保留。
@@ -135,7 +135,7 @@ Web 五段式执行后，下载成功的文件留在 `/standards` 根目录，�
 - 搬文件成功/失败回滚；
 - 709 条修复 dry-run。
 
-**就绪度**：v74 已随 v0.171.0 部署，`/api/health` 实测 `schema_version=74`；畸形 709→4；`auto_move_expired` 仍未开启。
+**就绪度**：v74 已随 v0.171.0 部署，`/api/health` 实测 `schema_version=74`；畸形 709→4；`auto_move_expired` **默认开启**（2026-11-07 起自动搬 + 通知；旧文档“仍未开启”已更正）。
 
 ---
 

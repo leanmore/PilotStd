@@ -7,6 +7,16 @@
 
 ## 2026-11-10（P1-05/P1-07/P1-04）
 
+### P1-07 auto_move_expired 默认值与文档对齐
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `pilotstd/core/validity_checker.py`、`docs/onboarding/26-fix-dossiers.md`、`tests/test_batch3_validity_wiring.py` |
+| 行为 | 裁定“默认开”是 2026-11-07 有意决策：docstring 改“默认开启（FACTORY_DEFAULTS=True），显式 false 才不搬”；26 D-03 的根因/边界/就绪度三处“默认 false/仍未开启”更正；新增 FACTORY_DEFAULTS 默认值断言。**不改 defaults.py 行为** |
+| 测试 | `pytest tests/test_batch3_validity_wiring.py tests/test_validity_checker.py -q` → **20 passed** |
+| 回滚 | 还原 docstring/26 文字与默认值断言 |
+| 关联 | ISSUE_LEDGER P1-07；AC-5 |
+
 ### P1-05 monitor_stats 重启恢复
 
 | 项 | 内容 |

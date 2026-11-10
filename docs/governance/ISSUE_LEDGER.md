@@ -153,9 +153,10 @@
 | **证据** | 三个文件的行；`data/config.json` 的 `validity.auto_move_expired=true`；`26` 总结又说“已启用（2026-11-07）”——同一文档自相矛盾。 |
 | **来源** | defaults.py、validity_checker.py、26 D-03、AC-5 |
 | **影响验收** | **AC-5 部分 FAIL**：行为与文档不一致，验收无法判断“预期是否搬移”；若用户不想自动搬，会丢文件位置。 |
-| **修复方案** | 先裁定：若“默认开”是 2026-11-07 的有意决策，则改 docstring、`26` D-03 行、`08` 边界表，并在 `update_status` 搬移前 `logger.info("auto_move_expired=true, moving ...")`；若不是，则 `defaults.py` 改 `False`，要求显式 opt-in，并补迁移把已有 `true` 保留/提示。补测试：默认值断言 + `should_apply_side_effects` 行为。 |
-| **验证** | `pytest tests/test_validity_checker.py tests/test_validity_move_closure.py -q`；`ConfigManager().get("validity.auto_move_expired")` 实测。 |
-| **修后通过** | **AC-5**。 |
+| **修复方案** | 裁定“默认开”是 2026-11-07 的有意决策：改 `validity_checker.py` docstring、`26` D-03 根因/边界/就绪度三处，补 `FACTORY_DEFAULTS` 默认值测试；不改 `defaults.py` 行为，避免升级后突然变成“不搬”。**已实现**。 |
+| **验证** | `pytest tests/test_batch3_validity_wiring.py tests/test_validity_checker.py -q` → **20 passed**；`FACTORY_DEFAULTS["validity.auto_move_expired"] is True` 断言钉住。 |
+| **修后通过** | **AC-5 子场景（默认开关与文档一致）**。 |
+| **状态** | **已修（2026-11-10，文档/注释对齐）**：默认 true 不变；旧文档“默认 false/仍未开启”已更正；补默认值测试。 |
 
 ---
 

@@ -77,7 +77,8 @@ class ValidityChecker:
 
         只有 **L2（适配器实时查询）** 的结论才够格：L1 是名称关键词猜测、L3 是历史行，
         二者单独命中「废止/被代替」不得搬文件或入队（2026-11-03 修）。
-        默认关闭（`validity.auto_move_expired=false`）：要自动搬文件必须显式开启。
+        默认开启（`FACTORY_DEFAULTS["validity.auto_move_expired"]=True`，2026-11-07 决策）；
+        只有显式设 false 才不搬文件。
         """
         if evidence != "L2":
             return False
