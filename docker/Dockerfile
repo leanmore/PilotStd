@@ -23,6 +23,10 @@ COPY --from=builder /install/bin /usr/local/bin/
 # 3. 注入 PYTHONPATH（--target 安装必须）
 ENV PYTHONPATH=/install
 
+# U39: 依赖组合 smoke；失败直接 fail build，不能等运行时才发现
+# （cloakbrowser 0.7.2 + playwright 1.64.1；1.65 会移除 _impl._js_handle）
+RUN python -c "from cloakbrowser import launch, launch_persistent_context"
+
 # 创建非 root 用户
 RUN useradd -m appuser
 ENV CLOAKBROWSER_CACHE_DIR=/app/data/cloakbrowser

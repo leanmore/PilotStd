@@ -1,7 +1,7 @@
-<!-- Meta: Last-Reviewed=2026-11-05 | Review-Cycle=90d | Status=Active -->
+<!-- Meta: Last-Reviewed=2026-11-10 | Review-Cycle=90d | Status=Active -->
 # PilotStd Docker 使用指南
 
-**日期**: 2026-11-05 | **版本**: v1.1
+**日期**: 2026-11-10 | **版本**: v1.2
 **适用**: 群晖 DSM 7.2+ (Container Manager, Docker Engine 24.0.2) / 其他支持 Docker Compose 的 Linux 系统
 
 ---
@@ -389,6 +389,8 @@ ports:
 ## 七、可信 IP 自动更新（CloakBrowser）
 
 Docker 镜像已内置 CloakBrowser 依赖（定制 Chromium，不需要原版 Chromium）。
+
+> **2026-11-10（v1.2，U39）**：依赖已钉为 `cloakbrowser==0.7.2` + `playwright==1.64.1`。playwright 1.65 移除了 `_impl._js_handle`，cloakbrowser 0.7.1 会在 import 时失败；0.7.2 已适配并 cap `<1.65`。Dockerfile 构建阶段新增 `RUN python -c "from cloakbrowser import launch, launch_persistent_context"`，该 import 失败会 **fail build**，不再等容器运行时才发现。
 
 1. 在 `.env` 增加：
    ```text

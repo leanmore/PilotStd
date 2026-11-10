@@ -12,10 +12,10 @@
 | 优先级 | 定义（用户给定，未自创） | 条数 |
 |---|---|---:|
 | **P0** | 影响验收用例通过 = 系统不能用 | **2** |
-| **P1** | 影响验收用例的部分场景 = 能用但不完整 | **9** |
+| **P1** | 影响验收用例的部分场景 = 能用但不完整 | **10** |
 | **P2** | 不影响验收，但是质量债 | **13** |
 | **P3** | 接受不修（写“为什么不修 + 什么条件下重新考虑”） | **15** |
-| **合计** | | **39** |
+| **合计** | | **40** |
 
 **P0 自检**：P0=2，对应“最难通过的两条验收用例”——AC-1（批量一键闭环）与 AC-4（查询/缓存正确性）。不是 20 条，因为六问题中的 W2/W3/W4 已有代码/测试闭环，只剩局部场景；不是 1 条，因为“批量少下”和“旧结论当新结论”是两条独立的验收失败链。若把 10 条上限认定为已裁决设计，P0 降为 1；若公告回退过期也被接受，P0=0——那说明本审计过窄，需重跑第 1 步。
 
@@ -186,6 +186,19 @@
 | **修后通过** | **AC-2/AC-7 子场景（Inbox 根空目录清理）**。 |
 | **状态** | **已修（2026-11-10）**：`_cleanup_empty_dirs` 跳过 root 本身；C21 测试由 strict xfail 转正常。 |
 
+### P1-10 cloakbrowser 0.7.1 与 playwright 1.65 不兼容
+
+| 项 | 内容 |
+|---|---|
+| **现象** | Docker 启动反复报 `ModuleNotFoundError: playwright._impl._js_handle`，`from cloakbrowser/human/engine.py:29`；cloakbrowser 0.7.1 声明 `playwright>=1.53` 无上限，1.65 移除该私有模块后 import 失败。 |
+| **证据** | 临时 venv：0.7.1+1.65.0 精确复现；0.7.1+1.62.0 OK；0.7.2+1.64.1 import OK；0.7.2+1.65.0 resolver 拒绝；`pip check` 无冲突；Docker build 日志安装 `cloakbrowser-0.7.2` + `playwright-1.64.1`。 |
+| **来源** | U39、Docker 启动日志、cloakbrowser CHANGELOG 0.7.2 |
+| **影响验收** | 浏览器自动化/`wechat_ip` 在 Docker 不可用；若 import 在启动路径上会阻断服务。 |
+| **修复方案** | `docker/requirements-docker.txt`：`cloakbrowser==0.7.2` + `playwright==1.64.1`；Dockerfile 增加 `RUN python -c "from cloakbrowser import launch, launch_persistent_context"`，失败即 fail build。 |
+| **验证** | wechat_ip 单测 **26 passed**；临时 venv import 成功；Docker build smoke（CI `docker` job）通过；Docker 运行时 import 待部署/CI 容器再跑一次。 |
+| **修后通过** | **U39 依赖兼容子场景**；不改变 wechat_ip 业务逻辑。 |
+| **状态** | **已修（2026-11-10，含 Docker build smoke）**。 |
+
 ---
 
 > P2 规则：必须写“如果不修，代价是什么”。
@@ -228,7 +241,7 @@
 | **P3-12** | G-050 已知局限：改名/拆分假红、多语句 `return` 不识别、同 handler 多 debug 只算 1 | 门禁口径有意偏松；假红可人工确认；多语句 handler 的 `info` 在生产可见 | 文件大规模改名/拆分，或新增“多语句 return”模式 → 调整基线键/扫描口径 | gates G-050 |
 | **P3-13** | `data/backups/` 保留 2 份迁移前备份（v74→v75、v75→v76，共 4.3 MB） | 迁移前备份是回滚资产；体积小；已清理到只留最近两份 | 磁盘压力 / 备份保留策略变更 → 移出仓库或归档 | CLOSEOUT、目录实测 |
 | **P3-14** | CLI `main.py --help` 在无 `SUPERUSER` 时于 argparse 前 FATAL 退出 | CLI 不是交付物（Q8：exe `console=False`、无入口声明），仅开发调试；设置 `SUPERUSER` 后 12 命令正常 | CLI 被列为交付物/文档主推 `main.py --help` → 把 env 校验移到命令执行前，help 先可用 | 入口 A4、Q8 |
-| **P3-15** | monitor 批处理化（D25 598 批次键 / D26 34 manager 实例） | U38 实测：598 个独立 scope=598 键、同一 scope=1 键；同一 scheduler 34 目录并发只建 1 个 manager，34 未复现。598 是“独立 scope 聚合”的当前语义；批量场景应由 monitor debounce/批处理合并，不是改 `ensure_batch_key`。 | 每个文件事件一个 `auto_run` → 通知不合并；但这是 monitor 批处理化需求，不是 `ensure_batch_key` 缺陷 | 做 monitor 批处理化时一并验证：把同目录短时间多事件合并为一个批次，再断言通知条数/manager 实例数；当前接受 | U38 D25/D26、`08` #11/#D-04 |
+| **P3-15** | monitor 批处理化（D25 598 批次键 / D26 34 manager 实例） | U38 实测：598 个独立 scope=598 键、同一 scope=1 键；同一 scheduler 34 目录并发只建 1 个 manager，34 未复现。598 是“独立 scope 聚合”的当前语义；批量场景应由 monitor debounce/批处理合并，不是改 `ensure_batch_key`。**598 批次键和 34 manager 的最终解法是 monitor 批处理化（W-002 方案 A 的 P0-1：单 manager 注入 + debounce + 一批一次归档），不是改 `ensure_batch_key` 或 `_mgr_lock`。本项定性为 P3 接受，是因为 batch 化是独立架构项目，不是缺陷修复。** | 每个文件事件一个 `auto_run` → 通知不合并；但这是 monitor 批处理化需求，不是 `ensure_batch_key` 缺陷 | 做 monitor 批处理化时一并验证：把同目录短时间多事件合并为一个批次，再断言通知条数/manager 实例数；当前接受 | U38 D25/D26、`08` #11/#D-04 |
 
 ### 4.1 U38 对账补记（2026-11-10）
 
@@ -274,6 +287,7 @@
 | P1-07 | AC-5 子场景（默认开关与文档一致） |
 | P1-08 | AC-1/2/3/5/7 的证据强度 |
 | P1-09 | AC-2/AC-7 子场景（Inbox 根空目录清理） |
+| P1-10 | U39 依赖兼容子场景（cloakbrowser import / Docker smoke） |
 
 ### 5.3 为什么 P0 不是 20 条，也不是 1 条
 
