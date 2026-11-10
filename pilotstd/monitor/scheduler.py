@@ -31,7 +31,7 @@ def _cleanup_empty_dirs(watch_root: str, start_dir: str) -> int:
     try:
         root = os.path.realpath(watch_root)
         start = os.path.realpath(start_dir)
-        if os.path.commonpath([root, start]) != root or start == root:
+        if os.path.commonpath([root, start]) != root:
             return 0
     except (OSError, ValueError) as exc:
         logger.warning("清理空目录路径校验失败，跳过: %s (%s)", start_dir, exc)  # i18n-allow: 内部运维日志
@@ -39,6 +39,9 @@ def _cleanup_empty_dirs(watch_root: str, start_dir: str) -> int:
 
     removed = 0
     for dirpath, _dirnames, _filenames in os.walk(start, topdown=False):
+        # 永不删除 watch_root 本身；start==root 时仍要清理它下面的空子目录。
+        if os.path.realpath(dirpath) == root:
+            continue
         try:
             os.rmdir(dirpath)
             removed += 1

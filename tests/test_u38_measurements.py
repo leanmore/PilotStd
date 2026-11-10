@@ -11,8 +11,6 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from pilotstd.core.db import Database
 from pilotstd.core.file_index import FileIndexRepository
 from pilotstd.core.status import Status
@@ -99,10 +97,6 @@ def _run_on_file_with_watch(mgr, path: str, watch_path: Path, tmp_path: Path):
     return stats
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="C21 确认缺陷：_cleanup_empty_dirs 在 start_dir==watch_root 时直接 return 0",
-)
 def test_c21_on_file_cleans_empty_child_dir(tmp_path):
     """C21 用户路径：归档后空子目录消失（必须走 _on_file，不是单测函数）。"""
     inbox = tmp_path / "inbox"

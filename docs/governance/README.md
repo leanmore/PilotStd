@@ -10,7 +10,7 @@
 | [notification_coverage.md](notification_coverage.md) | 通知系统覆盖度基线（**42** 事件 × i18n/e2e/审计/术语 四维度；**2026-10-05 阶段 4 · P6 · 4c** 起含平台层事件 `desktop_toast`，其 L-22 专项已闭环），新增事件的准入检查清单；由 `scripts/audit_notification_coverage.py`（G-045 门禁）扫描生成。**4d 增补**：**层级结构维度**由 `tests/test_notification_class_layer_contract.py`（4 例）守护——类别清单同序同集 / 事件→类别映射逐项相等 / 每类至少一个事件承接（`manual_test` 例外）/ `spec_hash` 对层结构敏感（`gates.md` v1.85） | 活跃 |
 | [verification-antipatterns.md](verification-antipatterns.md) | 验证与报告方法论的反模式集（口径 / 可复现性 / 检测器判别力 / 抽象时机），每条附可复现的判别方式 | 活跃 |
 | [ACCEPTANCE_CASES.md](ACCEPTANCE_CASES.md) | U36 治理验收用例（7 条：操作 + 一句话判据 + 代码/表/配置依赖）；含 W-001 缺失说明与当前证据强度 | U36 / 2026-11-09 |
-| [ISSUE_LEDGER.md](ISSUE_LEDGER.md) | U36 全量治理问题台账（37 条：P0 2 / P1 8 / P2 13 / P3 14），每条含证据、来源、影响 AC、修复方案/代价/触发条件；2026-11-10：P1-01/P1-02/P1-05/P1-07 已修，P1-04 定性审计表，P2-03 补记 `ensure_expire_dir` 零调用；U38 测量见 `docs/.local/U38-ledger-gap.md` | U36 / 2026-11-10 |
+| [ISSUE_LEDGER.md](ISSUE_LEDGER.md) | U36 全量治理问题台账（39 条：P0 2 / P1 9 / P2 13 / P3 15），每条含证据、来源、影响 AC、修复方案/代价/触发条件；2026-11-10：P1-01/P1-02/P1-05/P1-07/P1-09 已修，P1-04 定性审计表，P2-03 补记 `ensure_expire_dir` 零调用；U38 测量见 `docs/.local/U38-ledger-gap.md` | U36 / 2026-11-10 |
 | [file-inclusion-criteria.md](file-inclusion-criteria.md) | 文件入仓五条规则（R1-R5） | v1.0 |
 | [capabilities_registry.md](capabilities_registry.md) | 非功能性能力登记簿 | 活跃 |
 | [../guides/refactoring-lessons.md](../guides/refactoring-lessons.md) | 拆分经验 + **拆分前检查项**（注释密度预估 / G-010 拆分证据；原 `refactoring_checklist.md` 已于 `efa7514a` 删除） | 活跃 |
