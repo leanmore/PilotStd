@@ -274,7 +274,7 @@
 
 ---
 
-## 4. U36 P0 修复后执行记录（2026-11-09 21:45，code commit `72856e99`）
+## 4. U36 P0/P1 修复后执行记录（2026-11-09/10）
 
 ### AC-1 执行记录
 
@@ -299,6 +299,14 @@
 | 5. 结果 | **过（缓存层 + 查询链）** | `pytest tests/test_query.py` → **83 passed**；全量后端 **6259 passed / 10 skipped / 318.73s** |
 
 **残留**：v2 真实 ≥1000 条样本；过期公告集中回源的生产网络压力（P3-06/P0-02 风险）未实测。
+
+### AC-5 子场景执行记录（P1-01/P1-02，2026-11-10）
+
+| 项 | 操作 | 证据 |
+|---|---|---|
+| P1-01 手动计数 | `POST /api/validity/run`（mock `do_check`）；断言 `update_counters=True` | `tests/test_api_validity_manual_counters.py` 2 例；相关 validity 套件 324 passed |
+| P1-02 中间报告 | 12 个候选全部变化 → 第 10 条变化发中间报告 | `test_batch_notification_at_10_changes` 断言 `count=10/changed=10/failed=0` |
+| 结果 | **AC-5 子场景过**；AC-5 整体仍 PARTIAL（P1-07 默认开关、P2-11 4 条畸形键） | 台账 §5.1 |
 
 ### 总体验证
 

@@ -5,6 +5,28 @@
 
 ---
 
+## 2026-11-10（P1-01/P1-02，AC-5）
+
+### P1-01 手动 `/api/validity/run` 推进轮次计数
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `docker/api/validity.py`、`tests/test_api_validity_manual_counters.py` |
+| 行为 | 手动 run 由 `update_counters=False` 改为 `True`，与定时任务同口径；`checked_count` 是轮次累计，`/api/validity/history` 是按日聚合，语义不同但不再出现“历史有记录、计数 0” |
+| 测试 | 新增 2 例：手动 run 必须传 `update_counters=True`；失败返回 500。相关 validity 套件 **95 passed** |
+| 回滚 | 改回 `update_counters=False` 并删除新增测试 |
+| 关联 | ISSUE_LEDGER P1-01；AC-5 |
+
+### P1-02 `validity_batch_report` 中间消息真实进度
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `pilotstd/core/_validity_pipeline.py`、`tests/test_validity_checker_full.py` |
+| 行为 | `_apply_validity_result` 增加 `checked_count/failed_count` 入参；每 10 条变化的中间报告 `count=已处理条数、changed=累计变化、failed=累计失败`，删除硬编码 `0/10/0`；最终报告口径不变 |
+| 测试 | `test_batch_notification_at_10_changes` 增加断言：第 10 条变化时 `count=10/changed=10/failed=0`，`change_detail` 10 条 |
+| 回滚 | 还原 `_apply_validity_result` 签名与 payload；测试同步还原 |
+| 关联 | ISSUE_LEDGER P1-02；AC-3/AC-5 |
+
 ## 2026-11-09（P0 修复，commit `72856e99`）
 
 ### P0-01 移除 Web 一键下载 10 条硬上限（AC-1）

@@ -152,7 +152,16 @@ def _process_validity_batch(
             _notify_failed(notification_mgr, db, std_no, RuntimeError(err))
         elif result:
             validity_log.record(db, std_no, result=result)
-            if _apply_validity_result(std_no, result, checker, db, notification_mgr, change_detail):
+            if _apply_validity_result(
+                std_no,
+                result,
+                checker,
+                db,
+                notification_mgr,
+                change_detail,
+                checked_count=i + 1,
+                failed_count=len(failed_list),
+            ):
                 changed_list.append(std_no)
                 changed += 1
         else:
@@ -169,6 +178,8 @@ def _apply_validity_result(
     db: Any,
     notification_mgr: Any,
     change_detail: list[dict],
+    checked_count: int = 0,
+    failed_count: int = 0,
 ) -> bool:
     """把单条检查结果落库；状态确有变化时追加变更明细并每 10 条发一次批次报告。"""
     old_row = db.fetchone(f"SELECT status FROM {_TABLE} WHERE standard_number=?", (std_no,))
@@ -194,9 +205,9 @@ def _apply_validity_result(
             notification_mgr.send_event(
                 "validity_batch_report",
                 {
-                    "count": 0,
-                    "changed": 10,
-                    "failed": 0,
+                    "count": checked_count,
+                    "changed": len(change_detail),
+                    "failed": failed_count,
                     "adapter_status": {},
                     "change_detail": change_detail[-10:],
                 },

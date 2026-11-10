@@ -772,7 +772,7 @@ class TestProcessValidityBatch(unittest.TestCase):
         )
 
     def test_batch_notification_at_10_changes(self):
-        """每累计 10 条变更 → 发送 validity_batch_report 通知。"""
+        """每累计 10 条变更 → 发送 validity_batch_report，数字为真实进度（P1-02）。"""
         mock_checker = MagicMock()
         mock_checker.check_standard.return_value = {
             "status": Status.WITHDRAWN_NORMALIZED.value,
@@ -784,6 +784,11 @@ class TestProcessValidityBatch(unittest.TestCase):
         _process_validity_batch(candidates, mock_checker, self.mock_db, self.mock_notif, 50, 0)
         batch_calls = [c for c in self.mock_notif.send_event.call_args_list if c[0][0] == "validity_batch_report"]
         self.assertGreaterEqual(len(batch_calls), 1)
+        payload = batch_calls[0][0][1]
+        self.assertEqual(payload["count"], 10)
+        self.assertEqual(payload["changed"], 10)
+        self.assertEqual(payload["failed"], 0)
+        self.assertEqual(len(payload["change_detail"]), 10)
 
     def test_no_notification_mgr(self):
         mock_checker = MagicMock()

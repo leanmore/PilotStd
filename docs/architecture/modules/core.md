@@ -502,6 +502,8 @@ pilotstd/core/
 > **归档通知正文（2026-11-07）**：archive_complete 构建器始终写 `body`（count/skip/fail/dirs）；零搬移时 notification_log 也能看到“发生了什么”，不再只有标题。
 > **公告回看/漏跑默认值（2026-11-07）**：`announcement.lookback_days=7`、`announcement.missed_after_hours=36` 写入配置默认值；抓取服务据此回看并告警，不影响 checkpoint 推进。
 > **时效性检查病历（2026-11-07，v76）**：新增 `validity_check_log`，每次检查保存标准号/时间/证据/状态/来源/失败原因/结果 JSON；失败仍发 `validity_standard_failed`，保留期默认 90 天。
+> **时效性中间报告真实进度（2026-11-10，P1-02）**：`_validity_pipeline._apply_validity_result` 每 10 条变化发的 `validity_batch_report`，`count` 改为已处理条数、`changed` 为累计变化数、`failed` 为累计失败数，不再硬编码 `0/10/0`；最终报告口径不变。
+> **手动检查计数（2026-11-10，P1-01）**：`docker/api/validity.py` 手动 `/api/validity/run` 改传 `update_counters=True`，与定时任务同口径；`checked_count` 是轮次累计，`/api/validity/history` 是按日聚合。
 > **时效性 L2 失败可见（2026-11-07）**：在线查询异常从 debug 提升为 warning，避免静默回落到 L3；查询结果仍只经 `standard_info_cache` 精确命中落盘，validity 本身不保存完整查询明细。
 > **过期搬移并行期（2026-11-07）**：`validity.auto_move_expired` 默认开启；被代替标准在新标准 `implement_date` 前只标记/通知，实施日后补搬并发 `expire_standard_moved`。
 > **并发写入原子化（2026-11-07）**：`FileIndexRepository.upsert()` 改为单条 `ON CONFLICT(file_path) DO UPDATE`；`ValidityChecker.register_new_standard()` 改为 `INSERT OR IGNORE ... WHERE NOT EXISTS` + `rowcount` 判断首次登记，消除两处 SELECT+INSERT 竞争。
