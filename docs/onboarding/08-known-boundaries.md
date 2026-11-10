@@ -97,6 +97,8 @@
   - 空目录不清理；
   - 每文件一条归档通知。
 
+> **2026-11-10 U38 复测**：当前 `_on_file` 已调用 `auto_run`，`effect_status` 与 `organize_fallback` 都走主链（C22/C23 通过）；**空目录清理仍有一个真实缺口**：`_cleanup_empty_dirs(start==watch_root)` 直接 `return 0`，所以直接放在 Inbox 的文件的空子目录不会被清（C21，待裁定修生产）。
+
 **不要误判**
 
 - 不是“设计成轻量监控”；历史 commit 明确“归档从未实现”，后来才补归档（见 [`03-architecture.md`](03-architecture.md)）。

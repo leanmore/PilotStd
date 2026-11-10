@@ -254,7 +254,8 @@ sequenceDiagram
 
 ### 关键认知
 
-监控 `_on_file` **不调用**这两步；所以无标准号文件/跳过目录会留在 Inbox。
+监控 `_on_file` 在 2026-11-10 前**不调用**这两步；当时无标准号文件/跳过目录会留在 Inbox。  
+**2026-11-10 复测更新**：`_on_file` 已改为调用 `auto_run`，因此 `organize_fallback`（无标准号兜底）和 `query` 回写 `effect_status` 都走主链；旧描述只适用于历史版本。若 `storage.mirror_fallback=false`，才仍留在 Inbox。
 
 ---
 
