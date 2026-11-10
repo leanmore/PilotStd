@@ -147,6 +147,35 @@ jobs:
       # T-28（R12-2）：加 `-rs` —— 让 CI 日志给出跳过明细（原先只有汇总行 `N skipped`，
       #   44 处跳过的位置与原因在 CI 侧不可得）。xdist（-n auto）下各 worker 会各自打印短摘要，
       #   汇总可能分段；如需机器可读清单，用 `python tests/skip_census.py <日志> --json` 解析。
+      # U37: 根目录测试不得在模块级 import pilotstd.ui/PyQt6；backend job
+      # 不安装 PyQt6，这类 import 会在 collection 阶段直接红。
+      - name: Forbid GUI imports in backend tests
+        run: python scripts/check_backend_test_imports.py
+
+      # U37: 先 collect 一次，1 分钟内暴露 import/collection 错误；参数与
+      # 下面 Run backend tests 的 --ignore 集保持一致。
+      - name: Backend test collection (fail fast)
+        env:
+          STANDARD_ROOT: /tmp/standards
+          SUPERUSER: superadmin
+          ADMIN_USERNAME: superadmin
+        run: |
+          mkdir -p /tmp/standards
+          python -m pytest tests/ --collect-only -q -p no:pytest-qt \
+            --ignore=tests/gui/ \
+            --ignore=tests/test_regression_architecture.py \
+            --ignore-glob="*test_ui*.py" \
+            --ignore=tests/test_scan_misc.py \
+            --ignore=tests/test_groups23_remaining.py \
+            --ignore=tests/test_last_push.py \
+            --ignore=tests/test_unified_progress.py \
+            --ignore=tests/test_platform_notify.py \
+            --ignore=tests/test_monitor.py \
+            --ignore=tests/test_query.py \
+            --deselect "tests/test_core.py::TestFileUtils::test_safe_move_and_copy" \
+            --deselect "tests/test_cli.py::TestCLIMove::test_cmd_move" \
+            --ignore=tests/test_ci_scan_fix.py
+
       - name: Run backend tests
         env:
           STANDARD_ROOT: /tmp/standards

@@ -1,5 +1,9 @@
-# tests/test_remaining_batch3_logs.py — U-3/U-4 批 3：查询/UI 5 条日志升级
-"""锁定批 3 的代表点：轮转/标题/搜索解析/下载 CSV/导出目录树失败必须 WARNING。"""
+# tests/test_remaining_batch3_logs.py — U-3/U-4 批 3：查询 3 条日志升级
+"""锁定批 3 的纯逻辑代表点：轮转/标题/搜索解析失败必须 WARNING。
+
+UI 两条（下载 CSV / 导出目录树）在 tests/gui/test_ui_logs.py：
+backend job 不安装 PyQt6，根目录测试不得 import pilotstd.ui。
+"""
 
 import logging
 from types import SimpleNamespace
@@ -7,8 +11,6 @@ from types import SimpleNamespace
 from pilotstd.announce.notifier import AnnounceNotifier
 from pilotstd.query.adapters.base import BaseAdapter
 from pilotstd.query.rotator import SiteRotator
-from pilotstd.ui.core.handlers.download_flow_engine import DownloadFlowEngine
-from pilotstd.ui.main_window.parts import _export_ops
 
 
 class _BadDB:
@@ -64,32 +66,3 @@ def test_adapter_search_json_failure_warns(monkeypatch, caplog) -> None:
         assert adapter._post_search_candidates("GB/T 1") == []
 
     assert any("搜索响应解析失败" in r.message for r in caplog.records)
-
-
-def test_download_csv_parse_failure_warns(monkeypatch, caplog) -> None:
-    """下载 CSV 解析失败 → WARNING + []。"""
-    import csv as csv_mod
-
-    def _boom(*a, **k):  # noqa: ANN002, ANN003
-        raise RuntimeError("bad csv")
-
-    # 该函数在体内 `import csv`，故 patch 全局 csv.DictReader（同一模块对象）
-    monkeypatch.setattr(csv_mod, "DictReader", _boom)
-    with caplog.at_level(logging.WARNING, logger="pilotstd.ui.core.handlers.download_flow_engine"):
-        assert DownloadFlowEngine.parse_download_csv("standard_number\nGB 1\n") == []
-
-    assert any("下载 CSV 解析失败" in r.message for r in caplog.records)
-
-
-def test_export_folder_tree_scan_failure_warns(tmp_path, monkeypatch, caplog) -> None:
-    """导出目录树 scandir 无权限 → WARNING（导出内容被截断可见）。"""
-
-    def _boom(path):
-        raise PermissionError("denied")
-
-    monkeypatch.setattr(_export_ops.os, "scandir", _boom)
-    lines: list = []
-    with caplog.at_level(logging.WARNING, logger="pilotstd.ui"):
-        _export_ops._collect_folder_tree(None, str(tmp_path), lines, "", 0)
-
-    assert any("导出失败" in r.message for r in caplog.records)

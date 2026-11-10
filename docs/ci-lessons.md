@@ -63,6 +63,10 @@
 - **预防**:
   - Handler 层不应直接导入 `PyQt6` 模块，应通过依赖注入延迟导入
   - `test-backend` job 应仅运行非 GUI 测试
+- **2026-11-10 复发（U37）**: `tests/test_remaining_batch3_logs.py` 在模块顶层 import `pilotstd.ui`（`DownloadFlowEngine` / `_export_ops`），`test-backend` 无 PyQt6 → collection error；同一文件又不在 G-029 认可的 `tests/gui/` 路径，含 UI 变更的旧 run 的 `repo-compliance` 也红。
+  - **修复**: 纯逻辑 3 条留在 `tests/test_remaining_batch3_logs.py`；UI 2 条移到 `tests/gui/test_ui_logs.py`（顶部 `pytest.importorskip("PyQt6")`）。
+  - **新守卫**: `scripts/check_backend_test_imports.py` 扫描 `tests/test_*.py` 的**模块级** import（排除 `tests/gui/` 与 `test-backend` 的 `--ignore` 集），发现 `pilotstd.ui`/`PyQt6` 直接 fail；CI 在 `Run backend tests` 前增加该守卫 + `pytest --collect-only`（同 `--ignore` 参数）。
+  - **预防**: 新增 UI 测试必须放 `tests/gui/`；根目录测试只放纯逻辑，不得在模块级 import UI。
 
 ### 2.3 Windows 长路径测试在 Linux 中无效
 

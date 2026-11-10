@@ -64,10 +64,15 @@ root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
-from PyQt6.QtWidgets import QApplication, QMessageBox
+try:
+    import PyQt6  # noqa: F401
+    from PyQt6.QtWidgets import QApplication, QMessageBox
 
-from pilotstd import core
-from pilotstd.ui.main_window import MainWindow
+    from pilotstd import core
+    from pilotstd.ui.main_window import MainWindow
+except ImportError:
+    # GUI job 应安装 PyQt6；若环境缺依赖，整目录 skip，而不是 collection error。
+    collect_ignore_glob = ["*"]
 
 # ── 会话级临时目录 ──────────────────────────────────────────
 _TMPDIR = tempfile.mkdtemp(prefix="pilotstd_gui_mock_")
