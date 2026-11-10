@@ -21,12 +21,12 @@
 | 10 | DB 写存在 SELECT+INSERT 竞争 | 已修复（2026-11-07） | file_index 原子 UPSERT；validity 首次登记 INSERT OR IGNORE |
 | 11 | monitor 懒加载 manager 无锁 | 实现缺陷 | 多实例/重复校验 |
 | 12 | `validity_check_queue` 表不存在 | 已修复（v75） | 队列建表 + 60s 消费；见 #12 详述 |
-| 13 | `/api/auto` 未传 `root_path` | 实现缺陷 | 该端点按当前签名不可用 |
+| 13 | `/api/auto` 未传 `root_path` | 已修复（2026-11-10，P2-09） | `storage.inbox_dir`（默认 `/inbox`）传入；`test_api_scheduler_export_auto.py` 断言 |
 | 14 | 下载只有 `openstd_download`；非 GB 无适配器，采标 GB 受版权限制 | 设计边界 + 能力缺口 | 非 GB/采标 GB 无法自动下载 |
 | 15 | Web TaskView 没有“停止”按钮 | 已修复（Web B；Win A 不变） | `/task` 停止按钮；阶段间协作式停止 |
 | 16 | 通知重试覆盖不均：钉钉企业卡片/飞书应用消息单次请求 | 已修复（2026-11-07） | 两条路径接入 `_with_retry`；429/5xx 退避重试 |
 | 17 | 通知未读数与列表口径不一致 | 已修复（v0.171.0 + 管理员系统通知） | 普通用户按自身；管理员默认含系统通知；all=true 才是全部用户 |
-| 18 | 通知日志按渠道各写一行，Web 铃铛直接展示导致同一事件重复 | 已修复（Web 展示层） | 铃铛按事件去重、角标按事件计数；日志页仍保留渠道明细 |
+| 18 | 通知日志按渠道各写一行，Web 铃铛直接展示导致同一事件重复 | 已修复（Web 展示层） | 铃铛按事件去重、角标按事件计数；日志页仍保留渠道明细；2026-11-10 补：铃铛按钮固定 2.5rem，标记已读后 Popover 不再向左偏移 |
 | 19 | 可信 IP 自动更新依赖浏览器，Docker 镜像未装 Playwright/Chromium | 已接入 CloakBrowser（待部署） | CloakBrowser 自带定制 Chromium；需要 license key 和首次二进制下载 |
 | 20 | 时效性检查只落状态，不落查询明细 | 已修复（v76，待部署） | `validity_check_log` 保存证据/来源/失败原因/结果 JSON |
 | 21 | 公告定时任务漏跑/晚发布公告可能漏抓 | 已修复（2026-11-07） | checkpoint 保留；定时多回看 7 天；超过 36 小时未成功抓取会在完成通知中告警 |

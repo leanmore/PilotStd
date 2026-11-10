@@ -215,7 +215,7 @@
 | **P2-06** | `scripts/check_g_032_doc_health.py` 首字节 EF BB BF（BOM）；G-010 报 `invalid non-printable character U+FEFF` 并跳过函数规模检查；G-050 对 SyntaxError 文件静默跳过 | 字节检查；`check_all` 输出 `[WARN] 语法解析失败`；G-050 已知局限 | 文档健康门禁自身不在 AST 门禁覆盖内；BOM 类问题可能扩散 | 去 BOM（UTF-8 无 BOM 保存）；在 G-038/G-050 增加 BOM 检查；把“SyntaxError 跳过清单”打印出来 | 入口 A/门禁输出 |
 | **P2-07** | 门禁覆盖缺口：`ci.yml:898` `check_module_doc_mappings.py --strict` 仍是告警期（exit 0）；G-031 只校验“文档存在+映射齐全”，不校验内容数字；G-048 只校验 `core.md` 的模块数 | `ci.yml`、gates G-031/G-048、A-4/E-6 | docs-sync 永远不阻断；`index/MAP/18/20` 的数字漂移无人拦 | 给 `--strict` 定截止日并切 `--strict-block`；把“路由数/表数/文档数”纳入 G-048 同类检查；或明确写“只告警”并从发布门槛移除 | A-4/E-6、G-031/G-048 |
 | **P2-08** | UI 覆盖率 23%（U56），`TaskView.vue` 有效行 462 > 400（G-010 警告）；GUI 只在 CI/Windows 跑。**状态：部分完成（2026-11-09）**——补 3 个 GUI 用例，TaskView 行覆盖 **60.34→74.56%**、分支 **45.88→59.74%**、函数 **57.14→71.42%**；**不拆分**（理由见 §5.4） | U56 §2；G-010 输出；本次 vitest coverage | GUI 回归只能等 CI；TaskView 继续膨胀，后续改一键流程风险高 | 保持现有拆分（`TaskHistoryList`/`types`/`taskPipeline`）；本次补失败/历史/恢复分支；拆分触发条件见 §5.4 | U56、G-010、本次覆盖 |
-| **P2-09** | `/api/auto` 调 `mgr.auto_run()` 无 `root_path`；`auto_run(root_path, ...)` 必 TypeError，admin 调用 500 | `docker/api/auto.py:25`、`facade/_auto.py` 签名、`08 #13` | 暴露的 admin 端点不可用；若有人按 API 文档调用会以为系统坏了 | 传 `get_settings().storage.root_dir` 或 `get_library_root()`；若确实废弃则返回 410 并从 `20` 删除；补 API 测试 | 08 #13、入口 A7 |
+| **P2-09** | `/api/auto` 调 `mgr.auto_run()` 无 `root_path`；`auto_run(root_path, ...)` 必 TypeError，admin 调用 500。**状态：已修（2026-11-10）**：改用 `storage.inbox_dir`（默认 `/inbox`）传入 | `docker/api/auto.py:25`、`facade/_auto.py` 签名、`08 #13` | 暴露的 admin 端点不可用；若有人按 API 文档调用会以为系统坏了 | 传 `get_settings().storage.root_dir` 或 `get_library_root()`；若确实废弃则返回 410 并从 `20` 删除；补 API 测试 | 08 #13、入口 A7 |
 | **P2-10** | 验证底座问题：G-050 仍余 168 条（46 pass/50 return/72 debug）；`pytest` 6254 passed 但进程 exit 1（stderr 的 `UnicodeDecodeError` 被 PowerShell 包成 NativeCommandError）；`pnpm test` 354 passed 但 exit 1（同类） | `silent_errors_baseline.json`；本次全量；`04-watch` V-2 | “全绿但 exit 1”会训练人忽略退出码，真失败被漏；静默错余量让新错误混入 | 非迁移文件的 pass/return 逐条 triage（cache/file_utils/config 优先）；测试命令用 `cmd /c` 或 `--junitxml` + 解析，不靠 stderr；CI 以 JUnit 为准 | G-050、V-2、本次实测 |
 | **P2-11** | v74 后仍有 4 条畸形 `standard_validity` 键无法唯一还原（如 `47013-2015` part=-1/.2 歧义） | 26 D-03、27 §5、`_migrate_v74` | 这 4 条标准永远不被 L1/L2 正确处理，统计分母也排除它们 | 出 4 条逐条 mapping/人工裁定；能合并的合并，不能的标 `manual_required` 并在 UI 可见；生产执行需窗口 | 26 D-03、27 §5 |
 | **P2-12** | CLOSEOUT 遗留：明文凭证文件已删除、3 个文件已脱敏，但**凭证未轮换**（百度/腾讯/阿里云/Docker 密码） | `CLOSEOUT_REPORT.md` §四-1、`待确认清单.md` §二 | 如果这些是真实凭证，删除文件不等于失效；仍可能被已读过的进程/备份使用 | 在云控制台/Docker 轮换；轮换后更新 `config.json` 并复测通知/OCR；记录日期 | CLOSEOUT、P2-12 |
@@ -261,6 +261,17 @@
 ---
 
 ## 五、验收覆盖与优先级自检
+
+### 4.2 2026-11-10 扫尾补记（P2-09 + 5 问）
+
+| 项 | 状态 | 证据/说明 |
+|---|---|---|
+| P2-09 `/api/auto` | **已修** | `docker/api/auto.py` 用 `mgr.cfg.get("storage.inbox_dir", "/inbox")` 传参；`test_api_scheduler_export_auto.py` 9 passed，断言 `auto_run("/inbox")` |
+| 通知内容 | **分析，无新增代码改动** | 小铃铛按 `event_type+standard+time+title+body` 去重；渠道副本同 body 合并、不同 body 会保留（可能重复展示）；长 body CSS 两行截断；未发现空标题/空 body 的新证据 |
+| validity_check_log | **落盘有，使用方无（P2 open）** | `validity_log.record` 写 `result_json/previous_status`；生产/前端无 SELECT，只有测试读；建议后续加只读 API 或删除该表，当前未改 |
+| 可信 IP 浏览器 | **已修两处** | `WechatIPUpdater._pw` 初始化并在 `close()` stop；Docker 补 `playwright install chromium` + `PLAYWRIGHT_BROWSERS_PATH=/ms-playwright`，避免 Playwright 回退无浏览器 |
+| 公告漏跑 | **已修** | 定时任务按 `_missed_gap_hours()` 扩大 `lookback_days`；新增 `tests/test_announce_lookback.py` 2 passed，默认 7 天、240h gap→≥10 天 |
+| 小铃铛偏移 | **已修** | `NotificationBell.vue` 固定锚点/按钮 `2.5rem`，badge 消失不再改变宽度；`NotificationBell.test.ts` 7 passed |
 
 ### 5.1 每条 AC 被哪些条目影响
 
