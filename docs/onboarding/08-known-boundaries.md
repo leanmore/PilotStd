@@ -79,7 +79,8 @@
 - manager 懒加载仍有 `_mgr_lock` 双检；
 - 归档后调用 `_cleanup_empty_dirs(watch_path, source_root)`；
 - 同一目录 10 秒内只触发一次，避免多文件事件重复跑主链；
-- 回归：`test_monitor_archive_e2e.py` + `test_monitor_cleanup.py` → 7 passed。
+- **2026-11-10（P1-05）**：启动时 `MonitorStats.load_today()` 从 `monitor_stats` 恢复当天 processed/success/failed，重启不再归零；DB 失败 warning 后保持 0，不阻断启动；
+- 回归：`test_monitor_archive_e2e.py` + `test_monitor_cleanup.py` → 7 passed；`test_monitor.py` 含恢复/失败降级用例。
 
 **历史证据（修复前）**
 

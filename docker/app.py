@@ -225,10 +225,10 @@ def _start_all_schedulers(_cron_mgr) -> None:
     # 文件监控自动启动
     try:
         _cron_mgr.monitor_service.start_scheduler()
-        # 初始化监控统计内存计数器
+        # 初始化监控统计内存计数器，并从当天 monitor_stats 恢复（P1-05）
         from pilotstd.monitor.config import get_monitor_stats
 
-        get_monitor_stats()
+        get_monitor_stats().load_today()
     except Exception:
         logger.warning("文件监控启动失败", exc_info=True)
 

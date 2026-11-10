@@ -1,9 +1,12 @@
 # 模块：项目//配置脚本
 """文件监控配置读写——存储到数据库 cache_config 表。统计值由 MonitorStats 管理。"""
 
+import logging
 import threading
 from datetime import date
 from typing import Any
+
+logger = logging.getLogger("pilotstd.monitor")
 
 DEFAULTS = {
     "enabled": "true",
@@ -113,6 +116,28 @@ class MonitorStats:
                 self._stats = {"processed": 0, "success": 0, "failed": 0}
                 self._stats_date = today
                 self._dirty = False
+
+    def load_today(self) -> None:
+        """启动时从 monitor_stats 恢复当天计数（P1-05）。
+
+        只读当天行；DB 不可用/表缺失时 warning 后保持内存 0，不阻断启动。
+        """
+        try:
+            db = self._get_db()
+            rows = db.fetchall(
+                "SELECT stat_key, stat_value FROM monitor_stats WHERE stat_date=?",
+                (date.today().isoformat(),),
+            )
+        except Exception as e:
+            logger.warning("monitor stats restore failed: %s", e)
+            return
+        with self._lock:
+            for row in rows:
+                key = row["stat_key"]
+                if key in self._stats:
+                    self._stats[key] = int(row["stat_value"] or 0)
+            # 恢复值来自库，不需要再写回
+            self._dirty = False
 
     def increment(self, key: str) -> None:
         """内存计数 +1。锁内仅做内存操作，_ensure_date 在锁外调用。"""

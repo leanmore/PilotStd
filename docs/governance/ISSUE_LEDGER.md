@@ -124,9 +124,10 @@
 | **证据** | 代码行；表普查 B12；`tests/test_monitor.py` 只测内存单例，不测重启；`08 #2` 只修了归档，没有提统计。 |
 | **来源** | 表维度 B12、入口 A5、AC-2 |
 | **影响验收** | **AC-2 部分 FAIL**：判据明确要求“重启后今日统计不归零”。 |
-| **修复方案** | `MonitorStats.__init__` / `_ensure_date` 首次运行时 `SELECT stat_key, stat_value FROM monitor_stats WHERE stat_date=?`（today），把 `processed/success/failed` 灌入内存；`_flush` 保持 INSERT OR REPLACE。补“写入→新实例→读回”的测试。 |
-| **验证** | `pytest tests/test_monitor.py tests/test_monitor_scheduler.py -q`；手工重启验证。 |
-| **修后通过** | **AC-2**。 |
+| **修复方案** | 新增 `MonitorStats.load_today()`：按 `stat_date=今天` 读 `monitor_stats` 恢复 processed/success/failed；由 `docker/app.py` 启动时调用（不改变 `MonitorStats()` 单测默认零值）；DB 失败 warning 后保持 0。`_flush` 保持 INSERT OR REPLACE。**已实现**。 |
+| **验证** | `pytest tests/test_monitor.py tests/test_monitor_scheduler.py tests/integration/test_monitor_archive_e2e.py -q` → **49 passed**；新增恢复 7/5/2、DB 失败保持 0 两例。 |
+| **修后通过** | **AC-2**（重启后今日统计不归零）。 |
+| **状态** | **已修（2026-11-10）**：`load_today` + 启动接线；DB 失败降级不阻断。 |
 
 ---
 

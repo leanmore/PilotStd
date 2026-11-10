@@ -46,6 +46,30 @@ class TestMonitorStats:
         result["processed"] = 999
         assert stats._stats["processed"] == 1
 
+    def test_load_today_restores_counts(self, stats):
+        """P1-05：启动时从 DB 恢复当天 processed/success/failed。"""
+        from datetime import date
+
+        mock_db = MagicMock()
+        mock_db.fetchall.return_value = [
+            {"stat_key": "processed", "stat_value": 7},
+            {"stat_key": "success", "stat_value": 5},
+            {"stat_key": "failed", "stat_value": 2},
+        ]
+        stats._db = mock_db
+        stats._stats_date = date.today().isoformat()
+        stats.load_today()
+        assert stats.get_today_stats() == {"processed": 7, "success": 5, "failed": 2}
+        assert stats._dirty is False
+
+    def test_load_today_db_failure_keeps_zero(self, stats):
+        """P1-05：DB 不可用时保持 0，不阻断启动。"""
+        mock_db = MagicMock()
+        mock_db.fetchall.side_effect = RuntimeError("db down")
+        stats._db = mock_db
+        stats.load_today()
+        assert stats.get_today_stats() == {"processed": 0, "success": 0, "failed": 0}
+
     def test_flush_when_not_dirty_noop(self, stats):
         """无变更时 _flush 不应写库。"""
         mock_db = MagicMock()

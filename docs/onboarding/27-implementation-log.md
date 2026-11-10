@@ -5,6 +5,18 @@
 
 ---
 
+## 2026-11-10（P1-05/P1-07/P1-04）
+
+### P1-05 monitor_stats 重启恢复
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `pilotstd/monitor/config.py`、`docker/app.py`、`tests/test_monitor.py` |
+| 行为 | 新增 `MonitorStats.load_today()`：启动时按 `stat_date=今天` 读 `monitor_stats` 恢复 processed/success/failed；DB 失败 warning 后保持 0；`get_today_stats` 不再因重启归零 |
+| 测试 | 新增 2 例：恢复 7/5/2；DB 抛错保持 0。monitor 相关 **49 passed** |
+| 回滚 | 删除 `load_today` 调用与两个测试 |
+| 关联 | ISSUE_LEDGER P1-05；AC-2 |
+
 ## 2026-11-10（P1-01/P1-02，AC-5）
 
 ### P1-01 手动 `/api/validity/run` 推进轮次计数
