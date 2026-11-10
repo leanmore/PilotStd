@@ -65,9 +65,10 @@
 | **证据** | 代码行如上；`11-open-questions.md` Q4（checked_count=0 vs history 15 天）；`17-validity-state-machine.md:101` 明确写“手动不增加”。 |
 | **来源** | 11 Q4、17 §六-2、AC-5 |
 | **影响验收** | **AC-5 部分 FAIL**：判据要求“手动运行后页面计数与历史一致，或明示本轮不计入”。当前两者都没有。 |
-| **修复方案** | 方案 A（推荐）：手动 run 也传 `update_counters=True`，但 `round_completed` 只在“覆盖全部到期标准”时置真；方案 B：新增一个 `last_manual_run` 字段（{checked, changed, at}，**当前未实现**）并让 UI 显示“最近手动运行：N 条”，不动轮次计数。改 `docker/api/validity.py` + `web/src/views` 的 validity 配置卡；补 API 测试“手动 run 后 config 返回非 0 或 last_manual_run 非空”。 |
-| **验证** | `pytest tests/test_validity_config_api.py tests/test_batch3_validity_wiring.py -q`；前端 type-check + 相关 vitest。 |
-| **修后通过** | **AC-5**（时效性检查闭环）。 |
+| **修复方案** | 采用方案 A：手动 run 也传 `update_counters=True`，与定时任务同口径；`round_completed` 仍只在 `checked_count >= standard_validity` 合法总数时置真，不因单次手动 run 直接完成。改 `docker/api/validity.py`；补 API 测试断言“手动 run 必须传 true”。**已实现**。 |
+| **验证** | `pytest tests/test_api_validity_manual_counters.py tests/test_batch3_validity_wiring.py tests/test_validity_checker_full.py tests/test_validity_config_api.py -q` → **95 passed**。 |
+| **修后通过** | **AC-5 子场景（手动检查计数）**；AC-5 整体还受 P1-02/P1-07/P2-11 影响。 |
+| **状态** | **已修（2026-11-10）**：`docker/api/validity.py` 手动 run 改 `update_counters=True`；新增 2 例 API 测试。 |
 
 ---
 
@@ -79,9 +80,10 @@
 | **证据** | 代码行如上；`17-validity-state-machine.md:94` 已把它记为细节；`tests/test_validity_checker_full.py:775` 只断言“发了”，没断言数字。 |
 | **来源** | 17 §五注、AC-3/AC-5、代码复核 |
 | **影响验收** | **AC-3/AC-5 部分 FAIL**：通知对账要求消息数字可对账；中间消息会污染对账。 |
-| **修复方案** | 把 `_process_validity_batch` 的累计变量传入：`count = len(candidates)`（或当前已处理数）、`changed = len(change_detail)`（累计）；若不想发中间消息，直接删除该分支，只保留最终报告。改 `_validity_pipeline.py`；补 10/11 条变化的测试，断言中间/最终数字一致。 |
-| **验证** | `pytest tests/test_validity_checker_full.py tests/test_notification_e2e.py -q`。 |
-| **修后通过** | **AC-3、AC-5**。 |
+| **修复方案** | 采用“真实进度”而非删消息：`_apply_validity_result` 增加 `checked_count/failed_count`，`_process_validity_batch` 传 `i+1` 与累计失败数；中间 payload 为 `count=已处理条数、changed=累计变化、failed=累计失败`；最终报告口径不变。改 `_validity_pipeline.py`；测试断言第 10 条变化时 `10/10/0`。**已实现**。 |
+| **验证** | `pytest tests/test_validity_checker_full.py tests/test_notification_e2e.py -q`；相关 validity 套件 **95 passed**。 |
+| **修后通过** | **AC-3、AC-5 子场景（中间报告数字）**。 |
+| **状态** | **已修（2026-11-10）**：删除 `0/10/0` 硬编码，中间报告使用已处理/累计变化/累计失败。 |
 
 ---
 

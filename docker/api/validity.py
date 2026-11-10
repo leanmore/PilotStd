@@ -5,6 +5,7 @@
 # ///→获取执行历史
 # ///队列→将指定文件加入时效性检查队列
 import logging
+from typing import cast
 
 from fastapi import Depends, Query, Request
 from fastapi.responses import JSONResponse
@@ -143,7 +144,7 @@ def _live_validity_next_run() -> str | None:
     try:
         from docker.scheduler import get_validity_next_run
 
-        return get_validity_next_run()
+        return cast(str | None, get_validity_next_run())
     except Exception as e:
         logger.warning("读取时效性检查下次执行时间失败: %s", e)
         return None
@@ -262,7 +263,7 @@ def run_validity_check(request: Request, mgr=Depends(get_manager_dep)):
         notification_mgr=mgr.notification_mgr,
         db=mgr.db,
         adapter_mgr=mgr.adapter_manager,
-        update_counters=False,
+        update_counters=True,
         query_engine=mgr.query_engine,
     )
     if result["ok"]:

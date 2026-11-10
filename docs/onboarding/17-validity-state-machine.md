@@ -91,17 +91,17 @@ AND validity.auto_move_expired == true
 | `validity_standard_failed` | 单条检查异常 |
 | `validity_system_failed` | 整轮异常 |
 
-> `validity_batch_report` 的“每 10 条变化”分支里 `count=0, changed=10` 是硬编码，和最终批次报告不一致；记录为细节。
+> `validity_batch_report` 的“每 10 条变化”分支：2026-11-10 起 `count` 为已处理条数、`changed` 为累计变化数、`failed` 为累计失败数，与最终报告同口径（P1-02）。
 
 ---
 
 ## 六、当前已知问题
 
-1. **`validity_check_queue` 表不存在**：`/api/validity/enqueue` 实际不可用；
-2. **`checked_count` 只有定时任务 `update_counters=true` 才增加**；手动 `/api/validity/run` 不增加，所以线上可能“历史有记录、计数为 0”；
-3. **畸形键**：`' 11120-2011'` 这类行无法解析，L1/L2 都不会真正处理；`_finalize` 的分母只统计 `GLOB '[A-Z]*'`，避免被它们卡住；
+1. **`validity_check_queue` 表已由 v75 建表并 60s 消费**；`/api/validity/enqueue` 可用（见 26 D-03）；
+2. **`checked_count` 是轮次累计**；2026-11-10 起手动 `/api/validity/run` 也传 `update_counters=True`，与定时任务同口径；`/api/validity/history` 是按日聚合，二者语义不同，不再出现“历史有记录、计数为 0”的误导；
+3. **畸形键**：v74 已把 709 条修到 4 条；剩余 4 条无法唯一还原，L1/L2 不会真正处理；`_finalize` 的分母只统计 `GLOB '[A-Z]*'`，避免被它们卡住；
 4. **L3 自证循环**：历史未知 → L3 未知 → 继续未知；没有 L1/L2 证据就不会自行变废止；
-5. **L2 受查询缓存影响**：Q7 的 stale cache 会让 L2 拿到旧状态。
+5. **L2 受查询缓存影响**：Q7 的 stale cache 会让 L2 拿到旧状态；主表 stale 已拦、公告回退 TTL 于 2026-11-09 补（P0-02）。
 
 ---
 

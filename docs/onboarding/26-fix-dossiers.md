@@ -111,7 +111,7 @@ Web 五段式执行后，下载成功的文件留在 `/standards` 根目录，�
 | 副作用 | `should_apply_side_effects` | 必须 `evidence=="L2"` 且 `validity.auto_move_expired=true` |
 | 搬文件 | `_move_expired_file` | 按 code/number/year/part 找 `file_index`；失败回滚；不写废止状态 |
 | 采样 | `_sample_due_standards` | `check_ratio` 线上 12；`next_check` 到期 |
-| 计数 | `_finalize_validity_round` | 只有 `update_counters=true`（定时任务）才加 |
+| 计数 | `_finalize_validity_round` | `update_counters=true` 才加；2026-11-10 起手动 `/api/validity/run` 也传 true |
 
 ### 根因候选
 
@@ -119,7 +119,7 @@ Web 五段式执行后，下载成功的文件留在 `/standards` 根目录，�
 2. `auto_move_expired` 默认 false；
 3. `standard_validity` 709 条畸形键，L1/L2 对不上；
 4. 历史未知 → L3 自证循环；
-5. 手动运行不更新 `checked_count`，看起来“没检查”。
+5. 手动运行不更新 `checked_count`，看起来“没检查”。**已修（2026-11-10）**：手动 run 也传 `update_counters=True`。
 
 ### 必须先定的边界
 

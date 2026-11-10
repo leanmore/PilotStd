@@ -91,13 +91,13 @@
 
 ## Q4. `validity.checked_count` 与检查历史不一致
 
-**状态**：待查：Web 页面显示与通知消息不一致
+**状态**：已修（2026-11-10）：手动 run 与定时任务同口径
 
-- 线上 `/api/validity/config`：`checked_count=0`、`round_completed=false`；
-- 但 `/api/validity/history` 有 15 个检查日期，例如 2026-11-05 checked=49 / changed=7、2026-11-04 checked=240 / changed=39；
-- 可能原因：手动 `/api/validity/run` 传 `update_counters=false`；定时任务才传 true；或计数器按“轮次”而非“历史”统计；或配置保存/重建时被重置；
-- 用户补充：Web 页面显示的数字/状态，与通知渠道消息不一致；两者可能相关，也可能独立，合并跟踪（另见 Q8）；
-- 需要先查清“计数器语义”，不能直接把 0 当成“没检查”。
+- 原问题：线上 `/api/validity/config` 的 `checked_count=0`、`round_completed=false`，但 `/api/validity/history` 有 15 天记录；
+- 根因：手动 `/api/validity/run` 固定传 `update_counters=False`，只有定时任务推进轮次计数；`checked_count` 是“轮次累计”，`history` 是“按日聚合”，两者语义不同；
+- 修复：手动 run 改为 `update_counters=True`（`docker/api/validity.py`）；页面仍即时显示本次 `checked/changed`，轮次计数也随手动检查推进；
+- 验证：`tests/test_api_validity_manual_counters.py`（手动 run 必须传 true + 失败 500）；`tests/test_validity_checker_full.py` 轮次计数用例。
+- 注意：这不代表“历史 15 天 = 本轮已检查 15 天”；轮次计数只在覆盖 `standard_validity` 总数时置 `round_completed`。
 
 ---
 
