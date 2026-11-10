@@ -120,6 +120,20 @@ class TestPersistBatchState:
              patch("pilotstd.query.engine._batch_dispatcher.get_db_path", return_value=":memory:"):
             BatchDispatcher._persist_batch_state({"all_overflow": [], "metrics": None}, n=5, completed=5)
 
+    def test_writes_completed_audit_row(self):
+        """P1-04：该表是完成审计，写入 status=completed；不作为续跑读侧。"""
+        mock_db = MagicMock()
+        with patch("pilotstd.query.engine._batch_dispatcher.Database", return_value=mock_db), \
+             patch("pilotstd.query.engine._batch_dispatcher.get_db_path", return_value=":memory:"):
+            BatchDispatcher._persist_batch_state(
+                {"all_overflow": [], "metrics": None}, n=5, completed=3
+            )
+        sql, params = mock_db.execute.call_args[0]
+        assert "INSERT OR REPLACE INTO batch_state" in sql
+        assert params[1] == "completed"
+        assert params[2] == 5
+        assert params[3] == 3
+
 
 class TestBatchDispatchIntegration:
     """原 4 处永久 skip（T-29／R13-1）的真实替代覆盖——用 mock 驱动真实编排逻辑，不起外部依赖。"""

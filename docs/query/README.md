@@ -162,19 +162,24 @@ SiteState:
 | 溢出重试 | `_overflow.py:135` | `_try_overflow(site)` → 站点跳过 |
 | 路由过滤 | `rotator.py:93` | `daily_count >= daily_limit` → `all_used` |
 
-## 断点续传机制
+## 批次完成审计（不是断点续传）
 
 ### batch_state 表 [src: `pilotstd/core/db/migrations.py:427-439`]
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | `batch_id` | TEXT PK | 批次唯一标识 `batch-YYYYMMDD-HHMMSS-PID` |
-| `status` | TEXT | pending/running/completed/failed/paused |
+| `status` | TEXT | 历史枚举；当前写入恒为 `completed` |
 | `total_items` | INTEGER | 批次总条目数 |
 | `completed_items` | INTEGER | 已完成数 |
 | `failed_items` | INTEGER | 失败数 |
-| `overflow_pool` | TEXT(JSON) | 待溢出重试条目列表 `[(idx, [item]), ...]` |
-| `adapter_quota_snapshot` | TEXT(JSON) | 中断时适配器状态快照 |
+| `overflow_pool` | TEXT(JSON) | 完成时的溢出条目快照 |
+| `adapter_quota_snapshot` | TEXT(JSON) | 完成时的适配器状态快照 |
+
+> **P1-04 定性（2026-11-10）**：该表当前是**批次完成审计记录**，不是“断点续传”：
+> `_batch_dispatcher._persist_batch_state()` 只在批次结束时 `INSERT OR REPLACE status='completed'`，
+> **全仓没有 SELECT/恢复逻辑**。迁移文件的历史 docstring 仍写“支持中断后断点续传”，以本段为准。
+> 若将来要做续跑，需先定义稳定 batch_id、幂等重入、stale 判定与读侧恢复流程，不能只靠这张表。
 
 ### adapter_quota_snapshot Schema v1 [src: `pilotstd/query/engine/_metrics.py:64-82`]
 
@@ -193,20 +198,14 @@ SiteState:
 }
 ```
 
-### 恢复流程
-
-```
-1. 查询 batch_state WHERE status IN ('interrupted', 'paused')
-2. 读取 overflow_pool → 恢复溢出队列
-3. 读取 adapter_quota_snapshot → apply_adapter_snapshot(rotator, snapshot)
-   - cooldown_until 取 max（防止覆盖新冷却）
-   - 未知适配器 skip + warning
-4. 重入 query_batch_parsed() → _handle_overflow() 处理剩余条目
-```
-
 ### 写入时机 [src: `pilotstd/query/engine/_batch_dispatch.py:347-365`]
 
 `_finalize_batch()` 末尾执行 `INSERT OR REPLACE INTO batch_state`，非阻断（异常仅记录日志）。
+
+### 当前没有恢复流程
+
+不要把 `status IN ('interrupted','paused')` 当作可恢复入口——当前没有任何读取方，
+也没有进程重启后重入批次的上层调用。若产品确需续跑，按上面的前置条件单独立项。
 
 ## 22 个适配器摘要
 

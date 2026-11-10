@@ -368,7 +368,12 @@ class BatchDispatcher:
 
     @staticmethod
     def _persist_batch_state(state: dict, n: int, completed: int) -> None:
-        """batch_state 持久化写入。"""
+        """批次完成审计写入（P1-04）。
+
+        本表是**完成审计记录**，不是断点续跑：只在批次结束时写一行
+        `status='completed'`，全仓没有 SELECT/恢复逻辑。若将来要做续跑，
+        需要先定义稳定的 batch_id、幂等重入与 stale 判定，再补读侧。
+        """
         metrics = state.get("metrics")
         batch_id = metrics.batch_id if metrics else f"batch-legacy-{int(time.time())}"
         try:

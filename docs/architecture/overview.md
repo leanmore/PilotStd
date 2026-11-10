@@ -184,7 +184,7 @@ graph TD
 | `standard_validity` | v16 | 时效性检查状态 |
 | `user_favorites` | v36 | 收藏关系（v44 解耦后仅存二元语义） |
 | `favorite_downloads` | v44 | 归档下载状态机（v44 新建） |
-| `batch_state` | v43 | 断点续传批次状态 |
+| `batch_state` | v43 | 批次完成审计（当前只写、不用于续跑；P1-04） |
 | `query_metrics` | v43 | Metrics 计数器持久化 |
 | `daily_quota` | v11 | 适配器日配额追踪 |
 | `adapter_state` | v33 | 冷却/URL 状态持久化 |

@@ -7,6 +7,16 @@
 
 ## 2026-11-10（P1-05/P1-07/P1-04）
 
+### P1-04 batch_state 定性为完成审计（不实现续跑）
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `pilotstd/query/engine/_batch_dispatcher.py`、`tests/unit/query/engine/test_batch_dispatch.py`、`docs/query/README.md`、`docs/architecture/overview.md`、`docs/migrations/README.md` |
+| 行为 | `_persist_batch_state` docstring 写明“只写不读、完成审计，不是续跑”；`query/README` 的“断点续传机制/恢复流程”改为“批次完成审计/当前没有恢复流程”；表注释不改（P-106），文档以新定性为准 |
+| 测试 | 新增 1 例：`_persist_batch_state` 写 `status=completed` 审计行；`test_batch_dispatch.py` **16 passed** |
+| 回滚 | 还原 docstring/文档描述与新增测试 |
+| 关联 | ISSUE_LEDGER P1-04；AC-7 子场景 |
+
 ### P1-07 auto_move_expired 默认值与文档对齐
 
 | 项 | 内容 |

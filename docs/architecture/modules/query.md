@@ -173,6 +173,10 @@ BaseAdapter (ABC)
 
 `announcement/matcher.py` 写入的 `expires_at` 当前为 `NULL`，所以 TTL 实际靠 `cached_at`。回退过期后查询会回源；网络压力需在验证环境观察。回归：`tests/test_query.py`（5 条缓存三态 + 1 条 QueryEngine 全链）。
 
+## 批次完成审计（P1-04，2026-11-10）
+
+`_batch_dispatcher._persist_batch_state()` 只在批次结束时写 `batch_state` 一行 `status='completed'`，**全仓没有 SELECT/恢复逻辑**；该表是完成审计，不是断点续传。历史迁移 docstring 仍写“断点续传”，以 `docs/query/README.md` 的“批次完成审计”段为准。若将来要做续跑，需先定义稳定 batch_id、幂等重入、stale 判定与读侧恢复，再单独立项。
+
 ## 相关文档
 
 - [管理模块](manager.md) — 适配器调用方（`StandardManager` 门面）

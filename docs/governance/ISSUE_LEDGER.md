@@ -110,9 +110,10 @@
 | **证据** | 代码行；表 DDL 注释；`23-peripheral-features.md` 说任务中心真实消费方不完整；`tests/unit/query/engine/test_batch_dispatch.py:121` 只测 `_persist_batch_state` 写入。 |
 | **来源** | 表维度 B10、AC-7、23 §三 |
 | **影响验收** | **AC-7 部分 FAIL**：重启/中断后没有“从已完成项继续”的路径；表却声称有。 |
-| **修复方案** | 方案 A（推荐，成本低）：把表改名为“批次审计日志”，删除“断点续传”注释/文档，状态写 `completed` 是事实；方案 B（成本高）：批次启动时按 `batch_id` 读未完成行，恢复 `completed_items` 与 overflow，补 `status='running'` 心跳；需要定义 stale 判定与幂等。先与产品确认是否真的需要续跑。 |
-| **验证** | 方案 A：文档/DDL 注释一致，`pytest tests/unit/query/engine/test_batch_dispatch.py`；方案 B：新增“中断→重启→只跑剩余项”的集成测试。 |
-| **修后通过** | **AC-7**（若做方案 B）；方案 A 只消除“假承诺”，AC-7 仍靠其他恢复路径。 |
+| **修复方案** | 采用方案 A：**定性为批次完成审计表**，不实现续跑。代码 docstring 写明“只写不读、不作为续跑读侧”；`query/README` 删除虚假的“恢复流程”，改为“当前没有恢复流程”；`overview`/`migrations` 同步改名。历史迁移注释不改（P-106）。**已实现**。 |
+| **验证** | `pytest tests/unit/query/engine/test_batch_dispatch.py -q` → **16 passed**；新增“写入 status=completed 审计行”断言。 |
+| **修后通过** | **AC-7 子场景（不再有假续跑承诺）**；AC-7 整体仍 partial（P1-05 已修，P2-10 等）。 |
+| **状态** | **设计如此（2026-11-10）**：`batch_state` 是完成审计，不用于续跑；触发重开条件＝产品明确要求“进程重启后续跑批量查询”，届时按方案 B 补读侧/幂等/stale 判定。 |
 
 ---
 
