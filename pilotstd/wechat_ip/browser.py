@@ -72,6 +72,7 @@ class WechatIPUpdater:
         self._browser = None
         self._context = None
         self._page = None
+        self._pw = None
 
     def _launch(self):
         """启动浏览器。优先 CloakBrowser，不可用则 Playwright。"""
@@ -140,13 +141,22 @@ class WechatIPUpdater:
         logger.info("Playwright 已启动 (headless=%s, cache=%s)", self.headless, self.cache_dir)
 
     def close(self):
-        """关闭浏览器。"""
+        """关闭浏览器；Playwright 引擎同时 stop，避免遗留 driver 进程。"""
         try:
             if self._browser:
                 self._browser.close()
-                self._browser = None
         except Exception as e:
             logger.debug("close wechat_ip browser failed: %s", e)
+        finally:
+            self._browser = None
+            self._context = None
+            self._page = None
+            if self._pw is not None:
+                try:
+                    self._pw.stop()
+                except Exception as e:
+                    logger.warning("stop wechat_ip playwright failed: %s", e)
+                self._pw = None
 
     def _parse_cookie(self, cookie_str: str) -> list[dict]:
         """将 HeaderString 格式 Cookie 转为浏览器格式。委托给 logic.parse_cookie_string。"""

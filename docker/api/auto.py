@@ -25,7 +25,9 @@ class AutoRunResponse(BaseModel):
 def auto_run(request: Request, mgr=Depends(get_manager_dep)):
     """一键处理：扫描 → 查询 → 下载 → 归档。"""
     try:
-        results = mgr.auto_run()
+        # P2-09：auto_run 的第一个参数是源目录；API 不能无参调用。
+        root_path = str(mgr.cfg.get("storage.inbox_dir", "/inbox") or "/inbox")
+        results = mgr.auto_run(root_path)
         return {"ok": True, "results": results, "message": "一键处理完成"}
     except Exception as e:
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)

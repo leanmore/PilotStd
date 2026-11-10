@@ -148,10 +148,12 @@ def test_export_error_is_reported_not_raised(client: TestClient, mgr: MagicMock)
 
 
 def test_auto_run_success(client: TestClient, mgr: MagicMock) -> None:
+    mgr.cfg.get.return_value = "/inbox"
     mgr.auto_run.return_value = {"scanned": 3}
     r = client.post("/api/auto")
     assert r.status_code == 200
     assert r.json() == {"ok": True, "results": {"scanned": 3}, "message": "一键处理完成"}
+    mgr.auto_run.assert_called_once_with("/inbox")
 
 
 def test_auto_run_failure_returns_500(client: TestClient, mgr: MagicMock) -> None:

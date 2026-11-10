@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import logging
+import math
 from datetime import datetime, timezone
 from typing import Any
 
@@ -114,8 +115,11 @@ class AnnounceService:
 
         self._last_check_start = iso_now()
         missed_gap = self._missed_gap_hours()
+        lookback_override: int | None = None
         if missed_gap:
             logger.warning("公告定时任务疑似漏跑: 距上次成功抓取约 %s 小时", missed_gap)
+            # 版本更新/停机可能超过默认 7 天回看；按实际 gap 向上取整，至少覆盖漏跑窗口。
+            lookback_override = max(1, math.ceil(missed_gap / 24))
 
         # 运行期防御：应用偏好设置表缺失时降级为全量增量检查，
         # 避免自动公告定时任务每日崩溃（根因由第五十八版迁移补建解决）
@@ -129,7 +133,7 @@ class AnnounceService:
             result = self.check_announcements_filtered(since_date=user_since)
             self._clear_user_since_date()
         else:
-            result = self.check_announcements()
+            result = self.check_announcements(lookback_days=lookback_override)
 
         if isinstance(result, dict) and missed_gap:
             result["missed_gap_hours"] = missed_gap
@@ -164,7 +168,7 @@ class AnnounceService:
 
     # 胶水方法：委托至爬取/_运行器------------分隔
 
-    def check_announcements(self) -> dict[str, Any]:
+    def check_announcements(self, lookback_days: int | None = None) -> dict[str, Any]:
         # 定时/手动共用：checkpoint 之外多回看几天，覆盖晚发布和停机漏抓。
         lookback = 0
         if self._mgr is not None:
@@ -172,6 +176,8 @@ class AnnounceService:
                 lookback = int(self._mgr.cfg.get("announcement.lookback_days", 7) or 0)
             except (TypeError, ValueError):
                 lookback = 0
+        if lookback_days is not None:
+            lookback = max(lookback, lookback_days)
         return self.crawler.check_all(lookback_days=lookback)
 
     def check_announcements_filtered(

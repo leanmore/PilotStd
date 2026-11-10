@@ -79,8 +79,8 @@ StandardManager (BaseFacade)
 - **归档/扫描路径的失败可见性（2026-10-17，体检 D-8 第 6 批）**：`expire`/`mirror`/`organizer` 的文件清理 `OSError`、`_backfill_std_name` 的缓存查询与 `result_json` 解析失败、`scan_directory(_stream)` 的缓存失效失败，均由 `pass` 改为 debug（行为不变）；契约由 `tests/test_silent_error_observability_batch6.py` 锁定。
 
 - **抓取失败历史读侧（2026-11-09，P1-03）**：`AnnounceService.get_fetch_failures(limit, unresolved_only)` 读 `fetch_failures`，返回 `total/unresolved/items`；`GET /api/announce/fetch-failures` 供公告页/诊断读取；`AnnounceView` 显示“抓取失败 N 条未解决”面板。此前该表只写不读，失败只有即时通知、没有历史/恢复状态出口。
-- **公告抓取回看（2026-11-07）**：`AnnounceService.check_announcements` 读取 `announcement.lookback_days`（默认 7），从 checkpoint 向前多回看；定时入口用 `_missed_gap_hours` 检测超过 `announcement.missed_after_hours`（默认 36）的漏跑并写入完成通知。
-- **可信 IP 自动更新（2026-11-07）**：A1 接入 CloakBrowser 0.7.1（自带定制 Chromium，依赖 Playwright 控制层）；启动时预装内核并用 `binary_info()` 检查，缓存 `/app/data/cloakbrowser`；需要 `CLOAKBROWSER_LICENSE_KEY`；状态页不再用空 URL 校验 Cookie。
+- **公告抓取回看（2026-11-07；2026-11-10 U38 补强）**：`AnnounceService.check_announcements` 读取 `announcement.lookback_days`（默认 7），从 checkpoint 向前多回看；定时入口用 `_missed_gap_hours` 检测超过 `announcement.missed_after_hours`（默认 36）的漏跑，**并按实际 gap 向上取整扩大 lookback**（覆盖版本更新/停机超过 7 天），再写入完成通知。
+- **可信 IP 自动更新（2026-11-10 U39）**：升级 CloakBrowser 0.7.2 + 钉 Playwright 1.64.1；`WechatIPUpdater.close()` 同时 stop Playwright driver；Docker 预装 Playwright Chromium（`/ms-playwright`）供回退路径使用；构建期 `RUN python -c "from cloakbrowser import launch, launch_persistent_context"` fail-fast。
 - **下载任务持久化（2026-11-07）**：`DownloadEngine` 把任务状态写入 `task_queue`（task_type=download）；启动补跑未完成任务，`retry_count >= max_retries` 停止。
 - **归档预览名与冲突（2026-11-07）**：`FileMover.normalize_filename` 优先使用 `ParsedStdInfo.final_name`；`OrganizerCore` 对同名不同内容写入 `pending_lookup`（reason=archive_conflict），不覆盖、不自动改名。
 - **auto_run 报告（2026-11-07）**：`_auto_run_impl` 增加 `organize_failed`，monitor 据此把主链归档失败计入 `failed`，不再把“解析到但搬不动”记成成功。

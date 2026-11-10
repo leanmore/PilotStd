@@ -139,6 +139,15 @@ const goToLogs = () => {
 .notification-bell {
   display: inline-flex;
   align-items: center;
+  /* 固定锚点宽度：badge 从有到无时按钮不能变窄，否则 PrimeVue Popover 会向左重算 */
+  width: 2.5rem;
+  justify-content: center;
+}
+
+.notification-bell :deep(.p-button) {
+  width: 2.5rem;
+  min-width: 2.5rem;
+  justify-content: center;
 }
 
 .notification-dropdown {

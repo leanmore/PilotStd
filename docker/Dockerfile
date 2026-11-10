@@ -37,8 +37,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gosu git curl libxcb1 libgl1 libglib2.0-0 libsm6 libxext6 fonts-noto-cjk && \
     rm -rf /var/lib/apt/lists/*
 
-# CloakBrowser 使用自带 Chromium；这里只安装 Playwright 的系统依赖，不下载 Playwright 浏览器。
+# CloakBrowser 使用自带 Chromium；Playwright 兜底路径也需要 Chromium，否则回退必失败。
+# 固定浏览器目录到镜像层，避免 runtime 用户读不到 /root/.cache。
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 RUN python -m playwright install-deps chromium && rm -rf /var/lib/apt/lists/*
+RUN python -m playwright install chromium
 
 COPY docker/entrypoint.sh /app/entrypoint.sh
 COPY docker/cloakbrowser.sh /app/cloakbrowser.sh
