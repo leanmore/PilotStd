@@ -49,6 +49,22 @@
 | 40 | `user_settings` | id:INTEGER<br>user_id:INTEGER<br>settings:JSON<br>updated_at:DATETIME |
 | 41 | `users` | id:INTEGER<br>username:TEXT<br>password_hash:TEXT<br>salt:TEXT<br>role:TEXT<br>must_change_password:INTEGER<br>created_at:TEXT |
 
+## 一-补：deprecated / 只写未读列（P2-01 方案 B，2026-11-11）
+
+以下列**不删**，保留 schema 兼容；代码不读或只写未读。若未来确认永久废弃，再评估 v77 迁移（需维护窗口，当前不做）。
+
+| 表.列 | 状态 | 说明 |
+|---|---|---|
+| `announcement_record.approved_by` | deprecated | 仅迁移/DDL；无审批流读取 |
+| `api_keys.created_by` | deprecated | 仅 DDL；API Key 创建人未展示 |
+| `fetch_checkpoint.since_date_override` | deprecated | 仅 DDL；增量日期由 checkpoint/回看计算 |
+| `fetch_failures.last_retry_at` | deprecated | 仅 DDL；重试时间未写未读 |
+| `query_metrics.recorded_at` | deprecated | 仅 DDL 默认值；指标按 batch_id/时间查询 |
+| `standard_validity.last_status_updated_at` | 只写未读 | `ValidityChecker` 写入；无 API/UI 读取 |
+| `validity_check_log.previous_status` | 只写未读 | 病历写入；`validity_check_log` 无生产读取方（见 P2-01） |
+
+> 裁决：P2-01 选 B——**不删列**，只标 deprecated；删列需 v77 迁移 + 维护窗口，未来确认“永久废弃”再评估。
+
 ## 二、迁移模块（32 个文件 / 76 个版本）
 
 | # | 文件 | 注册版本 | 说明 |

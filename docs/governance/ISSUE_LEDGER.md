@@ -14,8 +14,8 @@
 | **P0** | 影响验收用例通过 = 系统不能用 | **2** |
 | **P1** | 影响验收用例的部分场景 = 能用但不完整 | **10** |
 | **P2** | 不影响验收，但是质量债 | **13** |
-| **P3** | 接受不修（写“为什么不修 + 什么条件下重新考虑”） | **15** |
-| **合计** | | **40** |
+| **P3** | 接受不修（写“为什么不修 + 什么条件下重新考虑”） | **16** |
+| **合计** | | **41** |
 
 **P0 自检**：P0=2，对应“最难通过的两条验收用例”——AC-1（批量一键闭环）与 AC-4（查询/缓存正确性）。不是 20 条，因为六问题中的 W2/W3/W4 已有代码/测试闭环，只剩局部场景；不是 1 条，因为“批量少下”和“旧结论当新结论”是两条独立的验收失败链。若把 10 条上限认定为已裁决设计，P0 降为 1；若公告回退过期也被接受，P0=0——那说明本审计过窄，需重跑第 1 步。
 
@@ -207,13 +207,13 @@
 
 | ID | 问题 | 证据 | 如果不修，代价 | 修复建议 | 来源 |
 |---|---|---|---|---|---|
-| **P2-01** | 死列/只写字段 7 个：`announcement_record.approved_by`、`api_keys.created_by`、`fetch_checkpoint.since_date_override`、`fetch_failures.last_retry_at`、`query_metrics.recorded_at`、`standard_validity.last_status_updated_at`、`validity_check_log.previous_status` | 表列普查 + grep：前 5 个仅迁移/DDL；后 2 个只写不读 | 维护者以为“有审批人/重试时间/上一状态”可查，实际查不到；schema 噪声增加误判 | 新增 v77 迁移：能删的删（`approved_by/created_by/since_date_override/last_retry_at/recorded_at`），不能删的在 `18` 标“预留/未读”；`last_status_updated_at/previous_status` 要么接 UI/API，要么删除 | 表维度 B22、§2.3 |
-| **P2-02** | 死配置 `validity.update_interval`（`defaults.py:157`、`config.json`），API 实际用 `total_weeks*7` | `defaults.py`、`docker/api/validity.py:133-136`、config 普查 | 运维改 `update_interval` 不生效，误以为检查频率变了 | 从 defaults 删除或标 deprecated；读取处统一 `total_weeks`；`settings_schema` 同步 | 配置普查、P2-02 |
+| **P2-01** | 死列/只写字段 7 个：`announcement_record.approved_by`、`api_keys.created_by`、`fetch_checkpoint.since_date_override`、`fetch_failures.last_retry_at`、`query_metrics.recorded_at`、`standard_validity.last_status_updated_at`、`validity_check_log.previous_status`。**状态：方案 B 已落地（2026-11-11）**：`18` 新增 deprecated/只写未读表；**不删列**，未来确认永久废弃再评估 v77 迁移 | 表列普查 + grep：前 5 个仅迁移/DDL；后 2 个只写不读 | 维护者以为“有审批人/重试时间/上一状态”可查，实际查不到；schema 噪声增加误判 | 方案 B：`18` 标 deprecated + 未来 v77 条件；不删列 | 表维度 B22、§2.3 |
+| **P2-02** | 死配置 `validity.update_interval`（`defaults.py:157`、`config.json`），API 实际用 `total_weeks*7`。**状态：已修（2026-11-11）**：从 `FACTORY_DEFAULTS` 删除；旧 config 键残留也不读取；API 兼容响应仍计算 `update_interval` | `defaults.py`、`docker/api/validity.py:133-136`、config 普查 | 运维改 `update_interval` 不生效，误以为检查频率变了 | 从 defaults 删除；读取处统一 `total_weeks`；`settings_schema` 无需同步（未登记） | 配置普查、P2-02 |
 | **P2-03** | 零调用函数/方法：`CacheManager.mark_stale/mark_valid`、`scope_of`、`TaskQueue.register_handler/pause`、`PipelineStore.is_stop_requested/mark_interrupted`、`verify_password`、`to_iso/days_ago_iso`、`get_fallback_chain`、`install_wheel_bytes`、`parse_hcno_from_search_page`、`execute_request_interval`、21 个 `_get_*_adapter`、`_on_query_result_ready`、`DirBuilder.ensure_expire_dir`（U38 实测零调用） | vulture 60% + grep 逐条 | 死代码让 vulture 噪声/维护者误以为有入口；`verify_password` 是安全陷阱（旧格式） | 分批删除；`verify_password` 先确认无外部调用后删；getters 已由 A-33 裁定“下轮清理”；给 vulture 加“零调用 allowlist”防回潮 | A-33、W1-U1、vulture |
 | **P2-04** | 文档数字/状态漂移：`13` 仍把 Q7 写成“未覆盖”（未区分主表已修/公告回退未修）、`17` 说队列表不存在、`18` 同页写“43 表/清单 41”（SQLite 实测 **45 张业务表**，46 含 `sqlite_sequence`；G-052 从迁移提取 **43**）、`19/24` 说无停止按钮/归档不含下载件、`20` 写 **134 条**（G-052 口径 **123 个 `/api` 路径**；`audit_api_matrix` **139 route/call pairs**，含非 `/api` 与方法对；三个口径未注明）、`index` 写 G-005~G-050（有 G-052）、`DOCUMENTATION_MAP` 117 篇（当前活跃 155＝审计前 153 + 本次新增 2）。**状态：已修（2026-11-10）**：13/18/20/index/MAP 已更新；17 已在 P1-07 修；19/24 复核已是“停止按钮/下载件入归档”，无需改 | 各文件行；G-052 `load_facts()`=123 routes/43 tables；`audit_api_matrix`=139；SQLite=45 业务表 | 下一个人按文档会得出相反结论，重复排查/误改 | 更新上述 8 处；**在同一处写清口径**（“唯一 `/api` 路径”/“route×method 对”/“业务表”）；把“路由数/表数/文档数”改为生成或加门禁；`index/MAP` 与 `find_docs` 输出对齐 | 13/17/18/19/20、index、MAP |
 | **P2-05** | **8 条** markdown 死链 + 4 篇孤儿文档：`docs/architecture/modules/core.md:452`、`manager.md:199/200`、`parser.md:60`、`ui.md:61/62/85`、`debt/02-accepted.md:113` 指向已归档/已删的 plans 或 `STATUS.md`；孤儿 `notification-custom-menu.md`、`notification-field-contract.md`、`notification-stages-contract.md`、`openapi-frontend-contract.md`（扫描器另报的 `PITFALLS.md` “self” 是代码块 `](self)` 假阳性，已剔除）。**状态：已修（2026-11-10）**：死链改指 `docs/.local/archive/2026-11-08/docs/plans/...` 或活文档；4 篇孤儿挂到 `docs/architecture/notification-system.md` §五 | 自写链接扫描（相对/根路径都试）；G-032 只查代码 span | 新人点开 404；契约文档没人找到，重复定义 | 修 8 条链接（改 `../../debt/...`/归档路径/删 `STATUS` 链接）；4 篇入 `DOCUMENTATION_MAP` 或 `index`；G-032 增加 markdown 链接维度并跳过 fenced code block | 链接扫描、G-032 |
 | **P2-06** | `scripts/check_g_032_doc_health.py` 首字节 EF BB BF（BOM）；G-010 报 `invalid non-printable character U+FEFF` 并跳过函数规模检查；G-050 对 SyntaxError 文件静默跳过 | 字节检查；`check_all` 输出 `[WARN] 语法解析失败`；G-050 已知局限 | 文档健康门禁自身不在 AST 门禁覆盖内；BOM 类问题可能扩散 | **已修（2026-11-10）**：去 BOM；新增 `tests/test_no_bom.py` 扫描 `pilotstd/ docker/ scripts/` 全量 `.py`；G-038/G-050 后续再加 BOM 维度 | 入口 A/门禁输出 |
-| **P2-07** | 门禁覆盖缺口：`ci.yml:898` `check_module_doc_mappings.py --strict` 仍是告警期（exit 0）；G-031 只校验“文档存在+映射齐全”，不校验内容数字；G-048 只校验 `core.md` 的模块数 | `ci.yml`、gates G-031/G-048、A-4/E-6 | docs-sync 永远不阻断；`index/MAP/18/20` 的数字漂移无人拦 | 给 `--strict` 定截止日并切 `--strict-block`；把“路由数/表数/文档数”纳入 G-048 同类检查；或明确写“只告警”并从发布门槛移除 | A-4/E-6、G-031/G-048 |
+| **P2-07** | 门禁覆盖缺口：`ci.yml:898` `check_module_doc_mappings.py --strict` 仍是告警期（exit 0）；G-031 只校验“文档存在+映射齐全”，不校验内容数字；G-048 只校验 `core.md` 的模块数。**状态：部分修（2026-11-11）**：已切 `--strict-block`（v2.40），模块映射未同步即 fail CI；数字校验仍待做 | `ci.yml`、gates G-031/G-048、A-4/E-6 | docs-sync 永远不阻断；`index/MAP/18/20` 的数字漂移无人拦 | 已切 `--strict-block`；数字校验另立 P2（未做） | A-4/E-6、G-031/G-048 |
 | **P2-08** | UI 覆盖率 23%（U56），`TaskView.vue` 有效行 462 > 400（G-010 警告）；GUI 只在 CI/Windows 跑。**状态：部分完成（2026-11-09）**——补 3 个 GUI 用例，TaskView 行覆盖 **60.34→74.56%**、分支 **45.88→59.74%**、函数 **57.14→71.42%**；**不拆分**（理由见 §5.4） | U56 §2；G-010 输出；本次 vitest coverage | GUI 回归只能等 CI；TaskView 继续膨胀，后续改一键流程风险高 | 保持现有拆分（`TaskHistoryList`/`types`/`taskPipeline`）；本次补失败/历史/恢复分支；拆分触发条件见 §5.4 | U56、G-010、本次覆盖 |
 | **P2-09** | `/api/auto` 调 `mgr.auto_run()` 无 `root_path`；`auto_run(root_path, ...)` 必 TypeError，admin 调用 500。**状态：已修（2026-11-10）**：改用 `storage.inbox_dir`（默认 `/inbox`）传入 | `docker/api/auto.py:25`、`facade/_auto.py` 签名、`08 #13` | 暴露的 admin 端点不可用；若有人按 API 文档调用会以为系统坏了 | 传 `get_settings().storage.root_dir` 或 `get_library_root()`；若确实废弃则返回 410 并从 `20` 删除；补 API 测试 | 08 #13、入口 A7 |
 | **P2-10** | 验证底座问题：G-050 仍余 168 条（46 pass/50 return/72 debug）；`pytest` 6254 passed 但进程 exit 1（stderr 的 `UnicodeDecodeError` 被 PowerShell 包成 NativeCommandError）；`pnpm test` 354 passed 但 exit 1（同类） | `silent_errors_baseline.json`；本次全量；`04-watch` V-2 | “全绿但 exit 1”会训练人忽略退出码，真失败被漏；静默错余量让新错误混入 | 非迁移文件的 pass/return 逐条 triage（cache/file_utils/config 优先）；测试命令用 `cmd /c` 或 `--junitxml` + 解析，不靠 stderr；CI 以 JUnit 为准 | G-050、V-2、本次实测 |
@@ -244,6 +244,7 @@
 | **P3-13** | `data/backups/` 保留 2 份迁移前备份（v74→v75、v75→v76，共 4.3 MB） | 迁移前备份是回滚资产；体积小；已清理到只留最近两份 | 磁盘压力 / 备份保留策略变更 → 移出仓库或归档 | CLOSEOUT、目录实测 |
 | **P3-14** | CLI `main.py --help` 在无 `SUPERUSER` 时于 argparse 前 FATAL 退出 | CLI 不是交付物（Q8：exe `console=False`、无入口声明），仅开发调试；设置 `SUPERUSER` 后 12 命令正常 | CLI 被列为交付物/文档主推 `main.py --help` → 把 env 校验移到命令执行前，help 先可用 | 入口 A4、Q8 |
 | **P3-15** | monitor 批处理化（D25 598 批次键 / D26 34 manager 实例） | U38 实测：598 个独立 scope=598 键、同一 scope=1 键；同一 scheduler 34 目录并发只建 1 个 manager，34 未复现。598 是“独立 scope 聚合”的当前语义；批量场景应由 monitor debounce/批处理合并，不是改 `ensure_batch_key`。**598 批次键和 34 manager 的最终解法是 monitor 批处理化（W-002 方案 A 的 P0-1：单 manager 注入 + debounce + 一批一次归档），不是改 `ensure_batch_key` 或 `_mgr_lock`。本项定性为 P3 接受，是因为 batch 化是独立架构项目，不是缺陷修复。** | 每个文件事件一个 `auto_run` → 通知不合并；但这是 monitor 批处理化需求，不是 `ensure_batch_key` 缺陷 | 做 monitor 批处理化时一并验证：把同目录短时间多事件合并为一个批次，再断言通知条数/manager 实例数；当前接受 | U38 D25/D26、`08` #11/#D-04 |
+| **P3-16** | 真实并发 100 文件批量验证（Docker/真实 DB/真实通知渠道） | mock/集成 100 文件已过（AC-1/AC-2），但不触发真实线程并发、SQLite 写锁、通知聚合/渠道并发；598/694/34 的原始场景需真实 Docker | 批量退化可能在真实并发下才出现；当前无 Docker 环境 | 用户提供 Docker 环境后：100 文件同时投放，观察 `notification_log` 条数、UNIQUE 错误、manager 实例数、DB locked；作为 P3-15 monitor 批处理化的验收 | U38 自诊断、P3-15 |
 
 ### 4.1 U38 对账补记（2026-11-10）
 
@@ -271,6 +272,10 @@
 | P2-05 死链/孤儿 | **已修** | 8 条死链改指归档/活文档；4 篇孤儿挂到 `notification-system.md` §五；G-032/链接扫描待加维度 |
 | P2-06 BOM | **已修** | `check_g_032_doc_health.py` 去 BOM；`tests/test_no_bom.py` 全量扫描 `pilotstd/docker/scripts` |
 | P2-04 文档数字 | **已修** | 13/18/20/index/MAP 更新；19/24 复核已正确；17 已在 P1-07 修；三个路由口径写明 |
+| P2-01 死列 | **方案 B 已落地** | `18` 新增 deprecated/只写未读表；不删列；未来 v77 条件 |
+| P2-02 死配置 | **已修** | `FACTORY_DEFAULTS` 删除 `validity.update_interval`；`test_validity_dead_config.py` 断言 |
+| P2-07 门禁 strict | **部分修** | `check_module_doc_mappings.py --strict-block` 接入 CI（gates v2.40）；数字校验另立 |
+| P3-16 真实并发 | **P3 外部阻塞** | 100 文件 mock/集成已过；真实 Docker 100 文件并发（通知/UNIQUE/manager/DB lock）待用户环境 |
 | 通知内容 | **分析，无新增代码改动** | 小铃铛按 `event_type+standard+time+title+body` 去重；渠道副本同 body 合并、不同 body 会保留（可能重复展示）；长 body CSS 两行截断；未发现空标题/空 body 的新证据 |
 | validity_check_log | **落盘有，使用方无（P2 open）** | `validity_log.record` 写 `result_json/previous_status`；生产/前端无 SELECT，只有测试读；建议后续加只读 API 或删除该表，当前未改 |
 | 可信 IP 浏览器 | **已修两处** | `WechatIPUpdater._pw` 初始化并在 `close()` stop；Docker 补 `playwright install chromium` + `PLAYWRIGHT_BROWSERS_PATH=/ms-playwright`，避免 Playwright 回退无浏览器 |
