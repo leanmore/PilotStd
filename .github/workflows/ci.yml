@@ -606,9 +606,12 @@ jobs:
         working-directory: web
         run: pnpm install --frozen-lockfile
 
-      - name: Install Playwright browsers
+      # ubuntu-24.04 runner 已带 Chromium 运行库；--with-deps 会 apt 拉字体，
+      # 近期 azure.archive.ubuntu.com DNS 解析失败导致整个 frontend-e2e 卡死/红。
+      # 只装浏览器，不跑 apt；缺库问题由后续 launch 失败直接暴露。
+      - name: Install Playwright Chromium
         working-directory: web
-        run: pnpm exec playwright install --with-deps chromium
+        run: pnpm exec playwright install chromium
 
       # Step 1: 确保端口空闲（必须在启动 backend 之前执行）
       - name: Ensure port 9028 is free

@@ -633,6 +633,7 @@ B1（声明类 vs 实现类）已覆盖同一语义、且每次 CI 都在跑；�
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
+| v2.41 | 2026-11-12 | **frontend-e2e Playwright 安装去 apt**：`--with-deps` 在 GitHub Runner 遇到 `azure.archive.ubuntu.com` DNS 故障会卡死并 exit 100；改为 `playwright install chromium`，Runner 已带运行库。 |
 | v2.40 | 2026-11-11 | **P2-07：`check_module_doc_mappings.py` 从 `--strict`（告警）切 `--strict-block`（阻断）**；与 `docs_sync_check.py` 同口径，核心模块变更未同步文档即 fail CI。 |
 | v2.39 | 2026-11-11 | **P2-06 BOM 修复**：`scripts/check_g_032_doc_health.py` 去 UTF-8 BOM；新增 `tests/test_no_bom.py` 扫描 `pilotstd/ docker/ scripts/` 全量 `.py`，防止 BOM 再让 G-010/G-050 静默跳过文件。 |
 | v2.38 | 2026-11-10 | **新增 G-053 backend 测试 GUI import 守卫（U37）**：`scripts/check_backend_test_imports.py` 扫描 `tests/test_*.py` 的模块级 `pilotstd.ui` / `PyQt6` import（排除 `tests/gui/` 与 backend CI 的 `--ignore` 集）；CI 在 `Run backend tests` 前执行该守卫 + `pytest --collect-only`（同 `--ignore` 参数），把 collection error 从 5 分钟缩短到 1 分钟内。起因：`tests/test_remaining_batch3_logs.py` 顶层 import `pilotstd.ui`，backend 无 PyQt6 → 3 轮红；同文件又不在 G-029 认可路径。修复：3 条纯逻辑留在根目录，2 条 UI 测试移到 `tests/gui/test_ui_logs.py`（`importorskip`）。 |

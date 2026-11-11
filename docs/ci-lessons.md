@@ -309,6 +309,13 @@ CI 的 NODE_VERSION 从浮动 22 固定到 22.23.4，修复 2026-10-21 Node.js �
 - **验证**：`python scripts/check_module_doc_mappings.py --strict-block` PASS；`check_all --ci` 必须 0。
 - **注意**：切阻断后，改 `pilotstd/core/`、`docker/api/`、`pilotstd/query/`、`pilotstd/ui/` 必须同批改对应文档，否则本地/CI 都会被拦。
 
+## 2026-11-12 frontend-e2e 的 Playwright `--with-deps` 被 apt DNS 拖死
+
+- **现象**：`frontend-e2e` 在 `pnpm exec playwright install --with-deps chromium` 失败；`Temporary failure resolving 'azure.archive.ubuntu.com'`，字体包下载失败，`Installation process exited with code: 100`。测试还没开始。
+- **根因**：`--with-deps` 触发 apt 更新/安装字体；GitHub 托管 Runner 到 Ubuntu 镜像的 DNS 瞬时故障，apt 等待 3+ 分钟后失败。
+- **修复**：`ubuntu-24.04` Runner 已带 Chromium 运行库，改为 `pnpm exec playwright install chromium`，跳过 apt；缺库问题会在浏览器 launch 时直接暴露，不再被 apt DNS 卡死。
+- **注意**：若未来 Runner 基础镜像真的缺库，应显式安装固定包或使用 Playwright 官方镜像，不要恢复无重试的 `--with-deps`。
+
 ## Agent 工作教训（2026-11-07 从 AGENTS.md 迁入）
 
 > 这些是“为什么会犯错”的案例，不放进自动加载的 AGENTS；需要时再查阅。
