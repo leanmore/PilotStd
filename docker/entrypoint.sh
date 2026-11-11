@@ -29,6 +29,15 @@ fi
 # 确保持久化目录存在
 mkdir -p /app/data /app/logs /app/downloads
 
+# fresh 部署的 ./config 卷可能为空：只在缺失时播种默认站点能力配置，
+# 不覆盖用户已修改的 site_capabilities.yaml。
+mkdir -p /app/config
+if [ ! -f /app/config/site_capabilities.yaml ] && [ -f /app/config-defaults/site_capabilities.yaml ]; then
+    cp /app/config-defaults/site_capabilities.yaml /app/config/site_capabilities.yaml
+    chmod 644 /app/config/site_capabilities.yaml
+    echo "[INIT] 已播种默认 /app/config/site_capabilities.yaml"
+fi
+
 # 确保 DB 文件存在并可打开（防止空volume/损坏DB导致启动crash loop）
 # 注意：此段以 root 运行，若创建了 DB 文件则需在 chown 之前完成
 python -c "

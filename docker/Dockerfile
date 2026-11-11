@@ -45,6 +45,9 @@ RUN python -m playwright install chromium
 
 COPY docker/entrypoint.sh /app/entrypoint.sh
 COPY docker/cloakbrowser.sh /app/cloakbrowser.sh
+# 默认站点能力配置：fresh 部署的 ./config 卷可能是空目录；
+# entrypoint 只在缺失时播种，已有用户配置不覆盖。
+COPY config/site_capabilities.yaml /app/config-defaults/site_capabilities.yaml
 RUN chmod +x /app/entrypoint.sh /app/cloakbrowser.sh
 
 # 4. 最后复制业务代码（变更频繁，放最后以利用上层缓存）
