@@ -175,6 +175,35 @@ describe('TaskView 归档 items 构造', () => {
     for (let i = 1; i <= 20; i++) expect(paths).toContain(`/standards/${i}.pdf`)
   })
 
+  it('100 个 exact 项全部进入下载与归档（批量覆盖）', async () => {
+    const results = Array.from({ length: 100 }, (_, i) => ({
+      standard_number: `GB/T ${i + 1}-2020`,
+      match_status: 'exact',
+      is_adopted: false,
+    }))
+    mockPostQuery.mockResolvedValue({ stats: { found: 100, downloadable: 100 }, results })
+    mockPostDownload.mockResolvedValue({
+      stats: { success: 100, skipped: 0 },
+      results: results.map((r, i) => ({
+        standard_number: r.standard_number,
+        standard_name: `标准 ${i + 1}`,
+        status: 'success',
+        saved_path: `/standards/${i + 1}.pdf`,
+      })),
+    })
+    const wrapper = mountTaskView()
+    await flushPromises()
+    wrapper.findComponent({ name: 'Button' }).vm.$emit('click')
+    for (let i = 0; i < 20; i++) await flushPromises()
+
+    const dlNums = mockPostDownload.mock.calls[0][0]
+    expect(dlNums).toHaveLength(100)
+    const items = mockPostArchive.mock.calls[0][0]
+    expect(items).toHaveLength(101)
+    const paths = items.map((i: any) => i.source_path)
+    for (let i = 1; i <= 100; i++) expect(paths).toContain(`/standards/${i}.pdf`)
+  })
+
   it('任务页提供停止按钮', async () => {
     const wrapper = mountTaskView()
     await flushPromises()

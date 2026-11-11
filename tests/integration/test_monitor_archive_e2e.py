@@ -166,6 +166,23 @@ class TestMonitorArchiveEndToEnd:
 
         assert _counts(stats) == {"processed": 1, "failed": 1}, _counts(stats)
 
+    def test_100_files_archived_in_one_event(self, tmp_path):
+        """批量覆盖：同目录 100 个文件由一个 _on_file 事件触发全量归档。"""
+        inbox = tmp_path / "inbox"
+        inbox.mkdir()
+        files = []
+        for i in range(100):
+            src = inbox / f"GB {i + 1}-2020 测试.pdf"
+            src.write_bytes(_PDF_BYTES)
+            files.append(src)
+
+        with _run_on_file(None, str(files[0]), tmp_path) as (stats, db):
+            assert not files[0].exists()
+            rows = db.fetchall("SELECT file_path FROM file_index")
+            assert len(rows) == 100, len(rows)
+
+        assert _counts(stats) == {"processed": 1, "success": 1}
+
     def test_auto_archive_disabled_does_not_touch_inbox(self, tmp_path):
         """`auto_archive=false` 时确实什么都不做（含计数）——开关不再是"名不副实"。"""
         inbox = tmp_path / "inbox"

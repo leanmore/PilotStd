@@ -308,6 +308,15 @@
 | P1-02 中间报告 | 12 个候选全部变化 → 第 10 条变化发中间报告 | `test_batch_notification_at_10_changes` 断言 `count=10/changed=10/failed=0` |
 | 结果 | **AC-5 子场景过**；AC-5 整体仍 PARTIAL（P1-07 默认开关、P2-11 4 条畸形键） | 台账 §5.1 |
 
+### 批量覆盖执行记录（2026-11-11，100 文件）
+
+| AC | 场景 | 证据 | 结果 |
+|---|---|---|---|
+| AC-1 | Web 五段式 100 个 exact 项 | `TaskView.test.ts` 新增“100 个 exact 项全部进入下载与归档”：`postDownload` 100 个号、归档 101 条（1 扫描件 + 100 下载件） | **mock 批量过** |
+| AC-2 | monitor 同目录 100 个文件 | `tests/integration/test_monitor_archive_e2e.py::test_100_files_archived_in_one_event`：一次 `_on_file` 归档 100 条、`file_index` 100 行、计数 processed=1/success=1 | **代码/集成批量过** |
+
+> 仍不是生产级：AC 生产级覆盖 0/7；批量覆盖从 0/7 提升到 **2/7**（AC-1 mock、AC-2 集成）。
+
 ### 总体验证
 
 | 项 | 结果 |
