@@ -219,7 +219,7 @@
 | **P2-10** | 验证底座问题：G-050 仍余 168 条（46 pass/50 return/72 debug）；`pytest` 6254 passed 但进程 exit 1（stderr 的 `UnicodeDecodeError` 被 PowerShell 包成 NativeCommandError）；`pnpm test` 354 passed 但 exit 1（同类） | `silent_errors_baseline.json`；本次全量；`04-watch` V-2 | “全绿但 exit 1”会训练人忽略退出码，真失败被漏；静默错余量让新错误混入 | 非迁移文件的 pass/return 逐条 triage（cache/file_utils/config 优先）；测试命令用 `cmd /c` 或 `--junitxml` + 解析，不靠 stderr；CI 以 JUnit 为准 | G-050、V-2、本次实测 |
 | **P2-11** | v74 后仍有 4 条畸形 `standard_validity` 键无法唯一还原（如 `47013-2015` part=-1/.2 歧义） | 26 D-03、27 §5、`_migrate_v74` | 这 4 条标准永远不被 L1/L2 正确处理，统计分母也排除它们 | 出 4 条逐条 mapping/人工裁定；能合并的合并，不能的标 `manual_required` 并在 UI 可见；生产执行需窗口 | 26 D-03、27 §5 |
 | **P2-12** | CLOSEOUT 遗留：明文凭证文件已删除、3 个文件已脱敏，但**凭证未轮换**（百度/腾讯/阿里云/Docker 密码） | `CLOSEOUT_REPORT.md` §四-1、`待确认清单.md` §二 | 如果这些是真实凭证，删除文件不等于失效；仍可能被已读过的进程/备份使用 | 在云控制台/Docker 轮换；轮换后更新 `config.json` 并复测通知/OCR；记录日期 | CLOSEOUT、P2-12 |
-| **P2-13** | 11 个前端视图未配置 `meta.permission`（`audit_api_matrix` 的 `unguarded_views`：`AnnounceDetail`、`AnnounceView`、`FavoritesView`、`ForbiddenView`、`HomeView`、`LegacyRedirect`、`NotificationLogsView`、`OrganizeView`、`PendingView`、`RegisterView`、`StandardsStatusView`）；其中 **`OrganizeView` 的“加入有效性队列”调用 admin-only `/api/validity/enqueue`**，非 admin 点按钮会得 403 | `scripts/audit_api_matrix.py`：`unguarded_views=11`；`docker/api/validity.py` 的 `@require_role("admin")`；`OrganizeView.vue:77-88` | 非 admin 进入页面后点按钮得 403/空白，误以为系统坏；权限体验不一致 | 给这些路由/视图补 `meta.permission` 或按钮级 `v-if`（至少 OrganizeView 的 enqueue）；后端 403 返回可读中文；加前端路由守卫测试 | 入口 A2、API 审计 |
+| **P2-13** | 11 个前端视图未配置 `meta.permission`（`audit_api_matrix` 的 `unguarded_views`：`AnnounceDetail`、`AnnounceView`、`FavoritesView`、`ForbiddenView`、`HomeView`、`LegacyRedirect`、`NotificationLogsView`、`OrganizeView`、`PendingView`、`RegisterView`、`StandardsStatusView`）；其中 **`OrganizeView` 的“加入有效性队列”调用 admin-only `/api/validity/enqueue`**，非 admin 点按钮会得 403。**状态：已修（2026-11-10）**：11 个路由全部补 `meta.permission`（guest/user；Organize user），Organize 的 enqueue 控件按 `role===admin` 隐藏；audit `unguarded_views=0` | `scripts/audit_api_matrix.py`：`unguarded_views=11`；`docker/api/validity.py` 的 `@require_role("admin")`；`OrganizeView.vue:77-88` | 非 admin 进入页面后点按钮得 403/空白，误以为系统坏；权限体验不一致 | 给这些路由/视图补 `meta.permission` 或按钮级 `v-if`（至少 OrganizeView 的 enqueue）；后端 403 返回可读中文；加前端路由守卫测试 | 入口 A2、API 审计 |
 
 ---
 
@@ -267,6 +267,7 @@
 | 项 | 状态 | 证据/说明 |
 |---|---|---|
 | P2-09 `/api/auto` | **已修** | `docker/api/auto.py` 用 `mgr.cfg.get("storage.inbox_dir", "/inbox")` 传参；`test_api_scheduler_export_auto.py` 9 passed，断言 `auto_run("/inbox")` |
+| P2-13 视图权限 | **已修** | 11 个视图补 `meta.permission`（guest/user）；OrganizeView enqueue 控件 `v-if=canEnqueue`；`audit_api_matrix --check` 的 `unguarded_views=0`；`test_audit_api_matrix.py` 断言 0 |
 | 通知内容 | **分析，无新增代码改动** | 小铃铛按 `event_type+standard+time+title+body` 去重；渠道副本同 body 合并、不同 body 会保留（可能重复展示）；长 body CSS 两行截断；未发现空标题/空 body 的新证据 |
 | validity_check_log | **落盘有，使用方无（P2 open）** | `validity_log.record` 写 `result_json/previous_status`；生产/前端无 SELECT，只有测试读；建议后续加只读 API 或删除该表，当前未改 |
 | 可信 IP 浏览器 | **已修两处** | `WechatIPUpdater._pw` 初始化并在 `close()` stop；Docker 补 `playwright install chromium` + `PLAYWRIGHT_BROWSERS_PATH=/ms-playwright`，避免 Playwright 回退无浏览器 |

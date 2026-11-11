@@ -6,6 +6,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
+import { createPinia } from 'pinia'
 import zhCN from '@/locales/zh-CN.json'
 import zhTW from '@/locales/zh-TW.json'
 import en from '@/locales/en.json'
@@ -56,7 +57,7 @@ const TEXT_STUBS = {
 
 function mountWith(component: unknown, locale: Locale) {
   return mount(component as never, {
-    global: { plugins: [makeI18n(locale)], stubs: TEXT_STUBS },
+    global: { plugins: [makeI18n(locale), createPinia()], stubs: TEXT_STUBS },
   } as never)
 }
 

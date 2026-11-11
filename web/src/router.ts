@@ -6,15 +6,15 @@ import http, { cancelByRouteTag } from './api/http'
 import LoginView from './views/LoginView.vue'
 
 const routes = [
-  { path: '/login', component: LoginView, meta: { guest: true } },
-  { path: '/403', component: () => import('./views/ForbiddenView.vue'), meta: { guest: true } },
-  { path: '/register', component: () => import('./views/RegisterView.vue'), meta: { guest: true } },
+  { path: '/login', component: LoginView, meta: { guest: true, permission: 'guest' } },
+  { path: '/403', component: () => import('./views/ForbiddenView.vue'), meta: { guest: true, permission: 'guest' } },
+  { path: '/register', component: () => import('./views/RegisterView.vue'), meta: { guest: true, permission: 'guest' } },
   {
     path: '/',
     component: () => import('./views/HomeView.vue'),
     meta: {
       titleKey: 'nav.home', icon: 'pi pi-home', color: 'var(--primary)',
-      showInSidebar: true, sidebarOrder: 1,
+      showInSidebar: true, sidebarOrder: 1, permission: 'user',
     },
   },
   {
@@ -32,7 +32,7 @@ const routes = [
     meta: {
       titleKey: 'nav.organize', icon: 'pi pi-folder', color: 'var(--warning)',
       showInSidebar: true, showInQuickActions: true, quickActionType: 'navigation',
-      quickActionOrder: 2, sidebarOrder: 3,
+      quickActionOrder: 2, sidebarOrder: 3, permission: 'user',
     },
   },
   {
@@ -41,7 +41,7 @@ const routes = [
     meta: {
       titleKey: 'nav.pending', icon: 'pi pi-hourglass', color: 'var(--info)',
       showInSidebar: true, showInQuickActions: true, quickActionType: 'navigation',
-      quickActionOrder: 3, sidebarOrder: 4,
+      quickActionOrder: 3, sidebarOrder: 4, permission: 'user',
     },
   },
   {
@@ -49,7 +49,7 @@ const routes = [
     component: () => import('./views/FavoritesView.vue'),
     meta: {
       titleKey: 'nav.favorites', icon: 'pi pi-star', color: 'var(--warning)',
-      showInSidebar: true, sidebarOrder: 4.5,
+      showInSidebar: true, sidebarOrder: 4.5, permission: 'user',
     },
   },
   {
@@ -58,7 +58,7 @@ const routes = [
     meta: {
       titleKey: 'nav.announce', icon: 'pi pi-megaphone', color: 'var(--success)',
       showInSidebar: true, showInQuickActions: true, quickActionType: 'navigation',
-      quickActionOrder: 4, sidebarOrder: 6,
+      quickActionOrder: 4, sidebarOrder: 6, permission: 'user',
     },
   },
   {
@@ -66,20 +66,20 @@ const routes = [
     name: 'AnnouncementDetail',
     component: () => import('./views/AnnounceDetail.vue'),
     // 文案存 key，由 AppLayout/QuickActionsCard 的既有 titleKey 机制翻译
-    meta: { titleKey: 'announce.detail.route_title' },
+    meta: { titleKey: 'announce.detail.route_title', permission: 'user' },
   },
   {
     path: '/announce/:announceNo',
     name: 'AnnouncementDetailLegacy',
     component: () => import('./views/LegacyRedirect.vue'),
-    meta: { titleKey: 'legacy.redirecting' },
+    meta: { titleKey: 'legacy.redirecting', permission: 'user' },
   },
   {
     path: '/notification-logs',
     component: () => import('./views/NotificationLogsView.vue'),
     meta: {
       titleKey: 'nav.notification_logs', icon: 'pi pi-list', color: 'var(--warning)',
-      showInSidebar: true, sidebarOrder: 7,
+      showInSidebar: true, sidebarOrder: 7, permission: 'user',
     },
   },
   {
@@ -87,7 +87,7 @@ const routes = [
     component: () => import('./views/StandardsStatusView.vue'),
     meta: {
       titleKey: 'nav.standards_status', icon: 'pi pi-verified', color: 'var(--info)',
-      showInSidebar: true, sidebarOrder: 8,
+      showInSidebar: true, sidebarOrder: 8, permission: 'user',
     },
   },
   {

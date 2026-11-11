@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { getFiles, postCleanEmpty } from '@/api'
 import { enqueueValidityCheck } from '@/api/validity'
 import { getItem, setItem } from '@/lib/storage'
+import { useAppStore } from '@/stores/app'
 import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
 import DataView from 'primevue/dataview'
@@ -13,6 +14,8 @@ import Tag from 'primevue/tag'
 import LogBar from '@/components/LogBar.vue'
 
 const { t } = useI18n()
+const appStore = useAppStore()
+const canEnqueue = computed(() => appStore.role === 'admin')
 
 const rootPath = ref('/standards')
 const files = ref<any[]>([])
@@ -148,7 +151,7 @@ const breadcrumbs = computed(() => {
     <Tag severity="success" :value="files.filter(f=>f.type==='pdf').length + ' PDF'" />
     <Tag severity="warn" :value="t('organize.other', { n: files.filter(f=>f.type!=='pdf').length })" />
     <div style="flex:1" />
-    <div v-if="selectedFiles.size > 0" class="op-bar">
+    <div v-if="canEnqueue && selectedFiles.size > 0" class="op-bar">
       <span class="selected-count">{{ t('organize.selected', { n: selectedFiles.size }) }}</span>
       <Button :label="t('organize.enqueue_validity')" icon="pi pi-clock" size="small" :loading="enqueueLoading" @click="doEnqueue" />
     </div>
@@ -159,7 +162,7 @@ const breadcrumbs = computed(() => {
   <DataView :value="paginatedFiles" size="small" class="mt-2">
     <template #list="slotProps">
       <!-- 全选行 -->
-      <div class="select-all-row">
+      <div v-if="canEnqueue" class="select-all-row">
         <Checkbox :model-value="isAllSelected()" @change="toggleAll" :input-id="'select-all'" />
         <label for="select-all" class="select-all-label">{{ t('organize.select_all') }}</label>
       </div>
@@ -171,7 +174,7 @@ const breadcrumbs = computed(() => {
           @click="item.type === 'dir' ? browse(item.path) : undefined"
         >
           <Checkbox
-            v-if="item.type !== 'dir'"
+            v-if="item.type !== 'dir' && canEnqueue"
             :model-value="isFileSelected(item.path)"
             @change="toggleFile(item.path)"
           />

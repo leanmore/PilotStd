@@ -20,6 +20,7 @@ def test_matrix_smoke() -> None:
     assert report["calls"] >= 50
     assert report["unmatched"] == [], report["unmatched"]
     assert report["method_mismatch"] == []
+    assert report["unguarded_views"] == [], report["unguarded_views"]
     assert report["user_write_allowlist"], "用户白名单解析为空，说明 AST 常量提取失效"
 
 
