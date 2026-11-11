@@ -154,7 +154,8 @@ FACTORY_DEFAULTS = {
     "validity.auto_move_expired": True,
     # ── 已废弃字段（兼容旧前端）──
     "validity.frequency": "weekly",  # @deprecated 已废弃，用 frequency_weeks 替代
-    "validity.update_interval": 28,  # @deprecated 已废弃，用 total_weeks 替代
+    # validity.update_interval 已删除（P2-02，2026-11-11）：先读 total_weeks；
+    # 旧配置键即使残留在 config.json 也不会被读取。
     # ──阶段4:日期提醒──
     "tasks.date_reminder_enabled": False,
     "tasks.date_reminder_cron": "0 2 * * *",
