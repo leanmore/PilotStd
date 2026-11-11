@@ -13,6 +13,7 @@ from concurrent.futures import ThreadPoolExecutor
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
+import docker.manager as docker_manager
 import pilotstd.monitor.scheduler as scheduler_module
 from pilotstd.core.db import Database
 from pilotstd.core.file_index import FileIndexRepository
@@ -112,6 +113,23 @@ def test_100_concurrent_get_scheduler_returns_one(monkeypatch):
     monkeypatch.setattr(scheduler_module, "FileMonitorScheduler", FakeScheduler)
     with ThreadPoolExecutor(max_workers=100) as pool:
         result = list(pool.map(lambda _: scheduler_module.get_scheduler(), range(100)))
+
+    assert len(constructed) == 1, len(constructed)
+    assert len({id(x) for x in result}) == 1
+
+
+def test_100_concurrent_get_manager_returns_one(monkeypatch):
+    """docker.manager 单例竞态：100 线程首次获取只能构造一个 StandardManager。"""
+    constructed = []
+
+    class FakeManager:
+        def __init__(self):
+            constructed.append(self)
+
+    monkeypatch.setattr(docker_manager, "_mgr", None)
+    monkeypatch.setattr(docker_manager, "StandardManager", FakeManager)
+    with ThreadPoolExecutor(max_workers=100) as pool:
+        result = list(pool.map(lambda _: docker_manager.get_manager(), range(100)))
 
     assert len(constructed) == 1, len(constructed)
     assert len({id(x) for x in result}) == 1

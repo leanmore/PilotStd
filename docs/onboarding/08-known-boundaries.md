@@ -19,7 +19,7 @@
 | 8 | 规范化只预览，归档忽略 `new_filename` | 已修复（2026-11-07） | 归档以预览名（`final_name`）为准；重名冲突走待确认 |
 | 9 | 归档通知按“每次调用”发 | 已修复（2026-11-07） | 一次 auto_run 共用 batch_scope；零搬移仍发且正文完整 |
 | 10 | DB 写存在 SELECT+INSERT 竞争 | 已修复（2026-11-07） | file_index 原子 UPSERT；validity 首次登记 INSERT OR IGNORE |
-| 11 | monitor 懒加载 manager 无锁 | 已修（2026-11-11） | `get_scheduler()` 单例加锁 + `_mgr_lock` 双检；100 线程/`threading.Timer` 测试只 1 个 manager |
+| 11 | monitor 懒加载 manager 无锁 | 已修（2026-11-11） | `get_scheduler()` / `docker.manager.get_manager()` 单例加锁 + `_mgr_lock` 双检；100 线程/`threading.Timer` 测试只 1 个 manager |
 | 12 | `validity_check_queue` 表不存在 | 已修复（v75） | 队列建表 + 60s 消费；见 #12 详述 |
 | 13 | `/api/auto` 未传 `root_path` | 已修复（2026-11-10，P2-09） | `storage.inbox_dir`（默认 `/inbox`）传入；`test_api_scheduler_export_auto.py` 断言 |
 | 14 | 下载只有 `openstd_download`；非 GB 无适配器，采标 GB 受版权限制 | 设计边界 + 能力缺口 | 非 GB/采标 GB 无法自动下载 |
