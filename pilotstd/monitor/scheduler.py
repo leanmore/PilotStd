@@ -74,11 +74,16 @@ def resolve_monitor_config(cfg: dict | None = None) -> dict:
     }
 
 
+_scheduler_lock = threading.Lock()
+
+
 def get_scheduler():
-    """返回全局单例 FileMonitorScheduler 实例。"""
+    """返回全局单例 FileMonitorScheduler 实例（并发安全）。"""
     global _instance
     if _instance is None:
-        _instance = FileMonitorScheduler()
+        with _scheduler_lock:
+            if _instance is None:
+                _instance = FileMonitorScheduler()
     return _instance
 
 
