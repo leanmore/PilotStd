@@ -4,14 +4,14 @@
 > 新人入门：见仓库根的新人入门入口；本索引不重复列 29 份 onboarding 文档。
 > 开始任务前先跑 `python scripts/find_docs.py "<关键词>"`，再按命中结果读 1~3 篇。
 > 工作流闸门与红线见 AGENTS；详细步骤见 onboarding/00。
-> **找全部文档** → [`DOCUMENTATION_MAP.md`](DOCUMENTATION_MAP.md)（117 篇，按"治理/现状/指引/历史/期望"分层）；
+> **找全部文档** → [`DOCUMENTATION_MAP.md`](DOCUMENTATION_MAP.md)（2026-11-10 活跃 **155 篇**；MAP 表为 2026-10-24 的 117 篇快照，待全量重建）；
 > **看接下来做什么、什么时候做** → [`ROADMAP.md`](ROADMAP.md)。
 
 ## 治理文档（docs/governance/）
 
 | 文件 | 内容 | 触发条件 |
 |------|------|----------|
-| `gates.md` | 门禁规则 G-005~G-050（32 个编号）完整清单 | 涉及门禁配置变更 |
+| `gates.md` | 门禁规则 G-005~G-053 完整清单 | 涉及门禁配置变更 |
 
 ## 参考文档（docs/reference/）
 
