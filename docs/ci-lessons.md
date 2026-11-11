@@ -302,6 +302,13 @@ CI 的 NODE_VERSION 从浮动 22 固定到 22.23.4，修复 2026-10-21 Node.js �
 
 ---
 
+## 2026-11-11 模块文档映射门禁切阻断（P2-07）
+
+- **变更**：`check_module_doc_mappings.py` 从 `--strict`（告警）切 `--strict-block`（阻断），与 `docs_sync_check.py` 同口径。
+- **原因**：此前核心模块变更即使未同步架构文档也只告警，`docs-compliance` 可长期“PASS: 无变更文件”；P2-07 要求把“文档存在+映射齐全”变成真门禁。
+- **验证**：`python scripts/check_module_doc_mappings.py --strict-block` PASS；`check_all --ci` 必须 0。
+- **注意**：切阻断后，改 `pilotstd/core/`、`docker/api/`、`pilotstd/query/`、`pilotstd/ui/` 必须同批改对应文档，否则本地/CI 都会被拦。
+
 ## Agent 工作教训（2026-11-07 从 AGENTS.md 迁入）
 
 > 这些是“为什么会犯错”的案例，不放进自动加载的 AGENTS；需要时再查阅。

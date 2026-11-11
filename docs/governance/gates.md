@@ -633,6 +633,7 @@ B1（声明类 vs 实现类）已覆盖同一语义、且每次 CI 都在跑；�
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
+| v2.40 | 2026-11-11 | **P2-07：`check_module_doc_mappings.py` 从 `--strict`（告警）切 `--strict-block`（阻断）**；与 `docs_sync_check.py` 同口径，核心模块变更未同步文档即 fail CI。 |
 | v2.39 | 2026-11-11 | **P2-06 BOM 修复**：`scripts/check_g_032_doc_health.py` 去 UTF-8 BOM；新增 `tests/test_no_bom.py` 扫描 `pilotstd/ docker/ scripts/` 全量 `.py`，防止 BOM 再让 G-010/G-050 静默跳过文件。 |
 | v2.38 | 2026-11-10 | **新增 G-053 backend 测试 GUI import 守卫（U37）**：`scripts/check_backend_test_imports.py` 扫描 `tests/test_*.py` 的模块级 `pilotstd.ui` / `PyQt6` import（排除 `tests/gui/` 与 backend CI 的 `--ignore` 集）；CI 在 `Run backend tests` 前执行该守卫 + `pytest --collect-only`（同 `--ignore` 参数），把 collection error 从 5 分钟缩短到 1 分钟内。起因：`tests/test_remaining_batch3_logs.py` 顶层 import `pilotstd.ui`，backend 无 PyQt6 → 3 轮红；同文件又不在 G-029 认可路径。修复：3 条纯逻辑留在根目录，2 条 UI 测试移到 `tests/gui/test_ui_logs.py`（`importorskip`）。 |
 | v2.37 | 2026-11-09 | **G-050 基线终值 + 查询/UI 5 处收口（U-3/U-4 批 3）**：`query/rotator.reset_all_cooldowns`（清冷却失败仍打印"已重置"→ warning）、`announce/notifier._fetch_announcement_titles`（标题拉取失败 → warning）、`query/adapters/base._post_search_candidates`（JSON 解析失败 → warning，带适配器名）、`ui/core/handlers/download_flow_engine.parse_download_csv`（CSV 解析失败 → warning）、`ui/main_window/parts/_export_ops._collect_folder_tree`（scandir 无权限 → warning）。**U-3/U-4 25 条未处理全部闭环**。G-050 最终基线：pass **46** / return **50**（54→50）/ debug **72**（73→72），合计 **193 → 168**（累计 −25）。测试：`tests/test_remaining_batch3_logs.py` 5 例 |
