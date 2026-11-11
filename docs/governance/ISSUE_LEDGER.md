@@ -244,7 +244,7 @@
 | **P3-13** | `data/backups/` 保留 2 份迁移前备份（v74→v75、v75→v76，共 4.3 MB） | 迁移前备份是回滚资产；体积小；已清理到只留最近两份 | 磁盘压力 / 备份保留策略变更 → 移出仓库或归档 | CLOSEOUT、目录实测 |
 | **P3-14** | CLI `main.py --help` 在无 `SUPERUSER` 时于 argparse 前 FATAL 退出 | CLI 不是交付物（Q8：exe `console=False`、无入口声明），仅开发调试；设置 `SUPERUSER` 后 12 命令正常 | CLI 被列为交付物/文档主推 `main.py --help` → 把 env 校验移到命令执行前，help 先可用 | 入口 A4、Q8 |
 | **P3-15** | monitor 批处理化（D25 598 批次键 / D26 34 manager 实例） | U38 实测：598 个独立 scope=598 键、同一 scope=1 键；同一 scheduler 34 目录并发只建 1 个 manager。**2026-11-11 补**：34 未在 `_on_file` 锁路径复现，但发现 `get_scheduler()` 单例无锁（并发首次获取可造多个 scheduler/manager），已加锁；100 并发 `get_scheduler`→1。598 是“独立 scope 聚合”的当前语义；批量场景应由 monitor debounce/批处理合并，不是改 `ensure_batch_key`。**598 批次键和 34 manager 的最终解法是 monitor 批处理化（W-002 方案 A 的 P0-1：单 manager 注入 + debounce + 一批一次归档），不是改 `ensure_batch_key` 或 `_mgr_lock`。本项定性为 P3 接受，是因为 batch 化是独立架构项目，不是缺陷修复。** | 每个文件事件一个 `auto_run` → 通知不合并；但这是 monitor 批处理化需求，不是 `ensure_batch_key` 缺陷；单例竞态已另修 | 做 monitor 批处理化时一并验证：把同目录短时间多事件合并为一个批次，再断言通知条数/manager 实例数；当前接受 | U38 D25/D26、`08` #11/#D-04 |
-| **P3-16** | 真实并发 100 文件批量验证（Docker/真实 DB/真实通知渠道） | mock/集成 100 文件已过（AC-1/AC-2）；**2026-11-11 补本地并发**：100 线程 `_on_file` 只构造 1 个 manager；100 个真实 `threading.Timer` 回调也只构造 1 个；100 线程同路径 upsert 最终 1 行、无 UNIQUE/locked；**另修 `get_scheduler()` 单例竞态**（100 并发→1 scheduler）。**仍不触发**真实通知渠道/跨进程 SQLite 锁 | 批量退化可能在真实渠道并发下才出现；当前无 Docker 环境 | mock 部分已完成；剩余需用户 Docker：100 文件同时投放，观察 `notification_log` 条数、UNIQUE 错误、manager 实例数、DB locked；作为 P3-15 验收 | U38 自诊断、P3-15、`test_p3_16_concurrency_mock.py` |
+| **P3-16** | 真实并发 100 文件批量验证（Docker/真实 DB/真实通知渠道） | mock/集成 100 文件已过（AC-1/AC-2）；**2026-11-11 补本地并发**：100 线程 `_on_file` 只构造 1 个 manager；100 个真实 `threading.Timer` 回调也只构造 1 个；100 线程同路径 upsert 最终 1 行、无 UNIQUE/locked；**另修 `get_scheduler()` 单例竞态**（100 并发→1 scheduler）。**远程 Docker Web 已实测可达（`/api/health` 200，schema 76）**，但本机无 Docker CLI，且 HTTP 无“上传 PDF 到 `/inbox`”入口；仍缺 100 文件投放/写窗口 | 批量退化可能在真实渠道并发下才出现；本机无 Docker CLI，远程 Web 可达但缺投放/写窗口 | mock 部分已完成；剩余需用户给远程 `/inbox` 投放方式（SMB/SSH/宿主机）或授权写窗口：100 文件同时投放，观察 `notification_log` 条数、UNIQUE 错误、manager 实例数、DB locked；作为 P3-15 验收 | U38 自诊断、P3-15、`test_p3_16_concurrency_mock.py`、`/api/health` 实测 |
 
 ### 4.1 U38 对账补记（2026-11-10）
 
@@ -275,7 +275,7 @@
 | P2-01 死列 | **方案 B 已落地** | `18` 新增 deprecated/只写未读表；不删列；未来 v77 条件 |
 | P2-02 死配置 | **已修** | `FACTORY_DEFAULTS` 删除旧的 `update_interval` 键；`test_validity_dead_config.py` 断言 |
 | P2-07 门禁 strict | **部分修** | `check_module_doc_mappings.py --strict-block` 接入 CI（gates v2.40）；数字校验另立 |
-| P3-16 真实并发 | **mock 部分完成，外部剩余** | 100 线程/Timer manager=1；100 线程同路径 upsert=1 行；`get_scheduler` 100 并发=1；真实通知渠道仍待 Docker |
+| P3-16 真实并发 | **mock 部分完成，外部剩余** | 100 线程/Timer manager=1；100 线程同路径 upsert=1 行；`get_scheduler` 100 并发=1；远程 Docker Web 可达，但缺 `/inbox` 投放/写窗口 |
 | 通知内容 | **分析，无新增代码改动** | 小铃铛按 `event_type+standard+time+title+body` 去重；渠道副本同 body 合并、不同 body 会保留（可能重复展示）；长 body CSS 两行截断；未发现空标题/空 body 的新证据 |
 | validity_check_log | **落盘有，使用方无（P2 open）** | `validity_log.record` 写 `result_json/previous_status`；生产/前端无 SELECT，只有测试读；建议后续加只读 API 或删除该表，当前未改 |
 | 可信 IP 浏览器 | **已修两处** | `WechatIPUpdater._pw` 初始化并在 `close()` stop；Docker 补 `playwright install chromium` + `PLAYWRIGHT_BROWSERS_PATH=/ms-playwright`，避免 Playwright 回退无浏览器 |
