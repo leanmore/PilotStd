@@ -38,3 +38,10 @@
 
 - 本页不承载设计细节；任何设计细节以归档原文为准
 - 本页不承诺合并时间；合并前，9 份原文是唯一设计依据
+
+## 五、子契约（未归档活文档）
+
+- [通知自定义菜单](../design/notification-custom-menu.md)
+- [通知字段契约](../reference/notification-field-contract.md)
+- [通知阶段契约](../reference/notification-stages-contract.md)
+- [OpenAPI 前后端契约](../testing/openapi-frontend-contract.md)

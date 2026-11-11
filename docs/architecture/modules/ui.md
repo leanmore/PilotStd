@@ -58,8 +58,8 @@ MainWindow (QMainWindow)
 
 ## Windows 端事件分流（W2，2026-10-03）
 
-> 设计见 [notification-system-design/00-framework.md](../../plans/notification-system-design/00-framework.md) §3.5 与
-> [02-framework-update.md](../../plans/notification-system-design/02-framework-update.md)（W2 行）。
+> 设计见 [notification-system-design/00-framework.md](../../.local/archive/2026-11-08/docs/plans/notification-system-design/00-framework.md) §3.5 与
+> [02-framework-update.md](../../.local/archive/2026-11-08/docs/plans/notification-system-design/02-framework-update.md)（W2 行）。
 
 - **分流点**：`NotificationManager.set_local_sink()`（核心只认一个回调，**不 import** UI/PyQt）；
   `_dispatcher.send_event` 在 `_enabled` 早退**之前**调用它 —— 渠道开关与"本端是否可见"是两件事。
@@ -82,7 +82,7 @@ MainWindow (QMainWindow)
 
 ## Handler 组合模式
 
-> 旧版 28 个 Mixin 已在 2026-07-11 全部重构为 Handler 组合模式。参见 [STATUS.md](../../../STATUS.md)。
+> 旧版 28 个 Mixin 已在 2026-07-11 全部重构为 Handler 组合模式。参见 [通知系统索引](../notification-system.md)。
 
 - `MainWindow.__init__()` 中构造 `MainWindowCore` 容器
 - 每个 Handler 通过 callback 回调 MainWindow 的 UI 方法
