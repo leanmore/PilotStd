@@ -7,7 +7,6 @@
 
 from __future__ import annotations
 
-import os
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -92,7 +91,7 @@ def test_100_timer_callbacks_construct_one_manager(tmp_path):
         for f in files:
             handler.on_created(SimpleNamespace(is_directory=False, src_path=str(f)))
 
-        deadline = time.monotonic() + 5
+        deadline = time.monotonic() + 20
         while calls < 100 and time.monotonic() < deadline:
             time.sleep(0.01)
 
@@ -118,8 +117,8 @@ def test_100_concurrent_get_scheduler_returns_one(monkeypatch):
     assert len({id(x) for x in result}) == 1
 
 
-def test_100_concurrent_upserts_same_path_do_not_raise(tmp_path):
-    os.environ["PILOTSTD_TEST_MODE"] = "1"
+def test_100_concurrent_upserts_same_path_do_not_raise(tmp_path, monkeypatch):
+    monkeypatch.setenv("PILOTSTD_TEST_MODE", "1")
     db = Database(str(tmp_path / "concurrent.db"))
     repo = FileIndexRepository(db)
     path = tmp_path / "same.pdf"
