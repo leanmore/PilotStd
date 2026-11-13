@@ -627,3 +627,9 @@ pilotstd/core/
 > 三处解析降级均保留 `debug`/空返回（回退即预期行为、无数据丢失、热路径防刷屏），理由逐条登记在
 > `docs/debt/p2-10-silent-errors-triage.md`；G-050 基线随之 168 → 165。
 > 契约：`tests/test_p2_10_silent_error_triage.py`。
+
+> **2026-11-13 通知聚合 shutdown 后回调（P2-10 exit-1）**：`NotificationAggregator` 新增
+> `_closed` 标记——`shutdown()` 置位后，晚到的 `_on_timer` / `_schedule_next` 直接返回，
+> 不再续期或写 `debug` 日志。根因：pytest 捕获关闭后回调仍 `logger.debug`，线程内抛
+> `ValueError: I/O operation on closed file`，导致「全绿但进程 exit 1」。契约：
+> `tests/test_scheduler_timer_drift.py::test_timer_callback_after_shutdown_is_dropped`。

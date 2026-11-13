@@ -19,6 +19,7 @@
 
 from __future__ import annotations
 
+import logging
 import threading
 import time
 from unittest.mock import MagicMock
@@ -449,3 +450,22 @@ class TestRenewalFaultRecovery:
         with agg._lock:
             assert agg._buffers == {}
             assert agg._timers == {}
+
+    def test_timer_callback_after_shutdown_is_dropped(self, caplog):
+        """shutdown 后到达的定时器回调不得再续期/写日志（P2-10 exit-1 根因）。
+
+        实况：pytest 捕获关闭后，一个已启动但未拿到锁的回调仍会 `logger.debug`，
+        线程内抛 `ValueError: I/O operation on closed file` → 进程 exit 1。
+        """
+        agg = NotificationAggregator(sender_func=MagicMock(), window_seconds=0.05)
+        agg.push(event_type="probe", title="T", content="c", target_id="e1")
+        group = _group(agg)
+        agg.shutdown()
+
+        with caplog.at_level(logging.DEBUG, logger="pilotstd.core.notification.aggregate_buffer"):
+            agg._on_timer(group)  # 模拟"定时器已触发、晚于 shutdown"
+            agg._schedule_next(group, 0.05)
+
+        assert group not in agg._timers
+        assert group not in agg._window_start
+        assert not [r for r in caplog.records if "通知聚合续期" in r.getMessage()]

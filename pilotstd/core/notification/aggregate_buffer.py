@@ -126,6 +126,10 @@ class NotificationAggregator:
         self._buffers: dict[str, list[_Entry]] = {}
         self._timers: dict[str, threading.Timer | None] = {}
         self._window_start: dict[str, float] = {}
+        # 关闭标记：shutdown() 后到达的定时器回调必须直接返回。
+        # 否则解释器/pytest 捕获关闭后回调仍会 logger.debug → 线程内
+        # ValueError: I/O operation on closed file（P2-10 exit-1 根因）。
+        self._closed = False
         # 事件特定格式化回调：_→(,)→
         self._formatters: dict[str, Callable[..., str]] = {}
         # 摘要渲染器：聚合消息正文基于结构块渲染生成（基类渲染器，无渠道转义）
@@ -264,6 +268,7 @@ class NotificationAggregator:
         """优雅关闭：取消所有定时器，立即发送缓冲中所有残留消息。"""
         pending: dict[str, list[_Entry]] = {}
         with self._lock:
+            self._closed = True
             for key in list(self._buffers.keys()):
                 pending[key] = self._buffers.pop(key, [])
             for key in list(self._timers.keys()):
@@ -310,6 +315,10 @@ class NotificationAggregator:
 
         发送一律在**锁外**执行：网络 IO 耗时不得阻塞其它分组的入队与回调。
         """
+        if self._closed:
+            # shutdown 后仍可能有一个"已启动但未拿到锁"的回调：直接丢弃，
+            # 不在捕获/日志流关闭后继续续期（P2-10 exit-1）。
+            return
         force_entries: list[_Entry] | None = None
         case_entries: list[_Entry] | None = None
         now = time.monotonic()
@@ -356,6 +365,9 @@ class NotificationAggregator:
         续期失败不得让该分组**永久滞留**：兜底为记录告警并清除窗口起点，
         使下一次 `enqueue` 重新起算窗口（消息仍在 `_buffers` 中，不会丢失）。
         """
+        if self._closed:
+            # 持锁方已关闭：不再新建定时器/写续期日志（回调可能晚于 shutdown 到达）
+            return
         try:
             timer = threading.Timer(max(delay, _MIN_TIMER_SLEEP), self._on_timer, args=(group,))
             timer.daemon = True

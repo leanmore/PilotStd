@@ -404,6 +404,15 @@
 | 测试 | G-013 相关 23 passed；G-050 基线 165 → 164，PASS |
 | 回滚 | 删 `[WARN]` 两行并恢复基线 |
 
+### 32. P2-10 exit-1 修复（聚合器 shutdown 后回调）
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `pilotstd/core/notification/aggregate_buffer.py`、`tests/test_scheduler_timer_drift.py` |
+| 行为 | 新增 `_closed`：`shutdown()` 置位后晚到的 `_on_timer`/`_schedule_next` 直接返回，不再续期/写 debug 日志（原先在 pytest 捕获关闭后写日志 → 线程内 `ValueError: I/O operation on closed file` → 全绿但 exit 1） |
+| 测试 | 新增 `test_timer_callback_after_shutdown_is_dropped`；定时器/聚合 51 passed；通知相关 1248 passed；全量 6740 passed/12 skipped |
+| 回滚 | 删除 `_closed` 三处判断与回归用例 |
+
 ---
 
 ## 验证汇总
