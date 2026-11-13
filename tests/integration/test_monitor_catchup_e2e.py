@@ -225,6 +225,27 @@ class TestMonitorCatchupEndToEnd:
         assert not new.exists()
         assert env["state"]["saved"] and env["state"]["saved"][0] > 2000.0
 
+    def test_root_level_files_processed_as_separate_last_batch(self, env):
+        """根目录散件不能被折叠进子目录批次，否则会变成一个 825 文件的超大批次。
+
+        远程 2026-11-13 实测：根下 3 个散件 + 62 个子目录 → 只生成 1 批。
+        """
+        inbox = env["tmp"] / "inbox"
+        (inbox / "GB 国家标准").mkdir(parents=True)
+        (inbox / "GB 国家标准" / "GB 1-2020 A.pdf").write_bytes(_PDF)
+        root_file = inbox / "GB 2-2020 根散件.pdf"
+        root_file.write_bytes(_PDF)
+
+        env["monkeypatch"].setattr(scheduler_mod, "get_config", lambda: _cfg(inbox))
+        scheduler = FileMonitorScheduler(manager=env["mgr"])
+        scheduler.handler = StandardFileHandler(callback=lambda p: None, delay_seconds=0)
+        scheduler._catch_up_existing(threading.Event())
+
+        # 子目录先跑，根目录散件最后单独一批
+        assert env["mgr"].auto_run_roots == [str(inbox / "GB 国家标准"), str(inbox)]
+        assert len(env["mgr"].moved) == 2
+        assert not list(inbox.rglob("*.pdf"))
+
     def test_disabled_config_does_not_scan(self, env):
         """scan_existing_on_start=false：启动不补扫（存量留给手动）。"""
         inbox = env["tmp"] / "inbox"

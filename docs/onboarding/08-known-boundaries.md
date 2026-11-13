@@ -613,6 +613,7 @@
 1. `FileMonitorScheduler._run()` 在 `observer.start()` 后起 daemon 线程 `_catch_up_existing(stop_event)`：
    - 按 `recursive` 遍历 `watch_path`，复用 `StandardFileHandler._should_handle(path, cfg=...)` 过滤（一次取配置，不逐文件查库）；
    - 按**父目录**分组，祖先目录折叠后代（`auto_run(dir)` 会递归扫子目录），每批一次 `_on_file(该目录首个文件)`；目录间 1s 间隔，`stop()` 可立即打断；
+   - **根目录散件单独成批且排在最后**：若 `watch_path` 根下直接有文件，不能把它和子目录折叠（否则 `auto_run(watch_path)` 会把全部文件塞进一个超大批次——2026-11-13 远程实测：根下 3 个散件 + 62 个子目录只生成 1 批）；
    - 被打断时**不推进 watermark**（下次重扫安全）。
 2. 配置 `monitor.scan_existing_on_start` 写入 `DEFAULTS`（默认 `true`）；只在 `monitor.enabled` 且 `auto_archive` 为真时执行。
 3. watermark 存 `cache_config` 的 `monitor_state.catchup_watermark`（不新增表）：值 = 本次补扫**开始时间**（epoch 秒）；`0` ⇒ 首次全处理；补扫期间新增的文件下次仍会处理。

@@ -238,13 +238,24 @@ class FileMonitorScheduler:
         return groups, skipped
 
     @staticmethod
-    def _collapse_catchup_dirs(groups: dict[str, list[str]]) -> list[str]:
-        """祖先目录折叠：父目录的 auto_run 递归扫描会覆盖子目录，返回需处理的目录列表。"""
+    def _collapse_catchup_dirs(groups: dict[str, list[str]], watch_path: str) -> list[str]:
+        """祖先目录折叠：父目录的 auto_run 递归扫描会覆盖子目录，返回需处理的目录列表。
+
+        根目录（`watch_path` 自身）里若直接有文件，**不能**把它和子目录一起折叠：
+        否则 `auto_run(watch_path)` 会把 825 个文件塞进**一个**超大批次（实测 2026-11-13
+        远程：根下 3 个散件 + 62 个子目录 → 只生成 1 批）。根散件改为**最后单独一批**，
+        此时子目录已被前面的批次排空，根批次只会处理散件。
+        """
+        root = os.path.normpath(watch_path)
         kept: list[str] = []
         for key in sorted(groups):
+            if os.path.normpath(key) == root:
+                continue
             if any(key == anc or key.startswith(anc + os.sep) for anc in kept):
                 continue
             kept.append(key)
+        if any(os.path.normpath(key) == root for key in groups):
+            kept.append(root)
         return kept
 
     def _process_catchup_batches(self, kept, groups, stop_event):
@@ -306,7 +317,7 @@ class FileMonitorScheduler:
                 skipped,
             )
             return
-        kept = self._collapse_catchup_dirs(groups)
+        kept = self._collapse_catchup_dirs(groups, watch_path)
         total_files = sum(len(groups[key]) for key in kept)
         logger.info(
             "[MONITOR] 启动补扫开始: %d 目录 / %d 文件（watermark 跳过 %d）",  # i18n-allow: 内部运维日志

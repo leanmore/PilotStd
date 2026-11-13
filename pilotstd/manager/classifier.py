@@ -217,8 +217,8 @@ class QueryClassifier:
                 )
                 if result is None or not result.is_found():
                     continue
-                if self._query_engine._use_cache:
-                    self._query_engine._cache.put(result)
+                if self._query_engine.use_cache:
+                    self._query_engine.cache.put(result)
                 replaces = adapter.fetch_replaces_detail(result)
                 if replaces:
                     return str(replaces)

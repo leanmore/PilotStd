@@ -413,6 +413,15 @@
 | 测试 | 新增 `test_timer_callback_after_shutdown_is_dropped`；定时器/聚合 51 passed；通知相关 1248 passed；全量 6740 passed/12 skipped |
 | 回滚 | 删除 `_closed` 三处判断与回归用例 |
 
+### 33. monitor 根散件成批 + 替代关系补查属性（远程批量实测暴露）
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `pilotstd/monitor/scheduler.py`、`pilotstd/manager/classifier.py`、`tests/integration/test_monitor_catchup_e2e.py`、`tests/unit/manager/test_classifier_coverage.py` |
+| 行为 | ① 根目录散件不再与子目录折叠成 1 个超大批次，改为子目录批次在前、根散件最后单独一批；② `classifier.resolve_replaces` 由 `_use_cache`/`_cache` 改为 `use_cache`/`cache`（原写法每次补查都 AttributeError，被吞成"替代标准查找失败"） |
+| 测试 | e2e 7 passed（新增根散件用例）；classifier 26 passed（测试改 `MagicMock(spec=QueryEngine)`，旧写法必红） |
+| 回滚 | 还原折叠逻辑与两处属性名 |
+
 ---
 
 ## 验证汇总

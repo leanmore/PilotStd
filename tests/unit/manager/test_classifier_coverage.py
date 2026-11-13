@@ -192,13 +192,17 @@ class TestResolveReplaces:
         mock_parse.return_value = {"code": "GB/T", "number": 1234,
                                    "year": 2020, "num_prefix": ""}
         a = _make_adapter("gb_site", found=True)
-        engine = MagicMock()
-        engine._use_cache = True
-        engine._cache = MagicMock()
+        # 用 spec 锁住真实属性面：`_use_cache`/`_cache` 不存在（2026-11-13 远程实测
+        # AttributeError → 替代关系全部补查失败），必须走 use_cache / cache 属性。
+        from pilotstd.query.engine import QueryEngine
+
+        engine = MagicMock(spec=QueryEngine)
+        engine.use_cache = True
+        engine.cache = MagicMock()
         clf = _make_clf(adapters=[a], query_engine=engine)
         result = clf.resolve_replaces("GB/T 1234-2020")
         assert result == "GB/T 9999-2024"
-        engine._cache.put.assert_called_once()
+        engine.cache.put.assert_called_once()
 
     @patch(PARSE_PATCH)
     def test_multi_adapter_first_hit_stops(self, mock_parse):

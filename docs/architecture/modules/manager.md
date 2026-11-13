@@ -242,4 +242,9 @@ StandardManager (BaseFacade)
 > 有效性信息可能未入库）、`organize/organizer` 的去重删源（源目录残留重复件）与删旧重复件失败。
 > 文案均带失败后果，**控制流与返回值不变**；配合 core.md 的 5 处，G-050 debug 基线 90 → 79。
 
+> **2026-11-13 替代关系补查属性修复（远程实测）**：`classifier.resolve_replaces` 读
+> `self._query_engine._use_cache` / `._cache`，而 `QueryEngine` 只暴露 `use_cache` / `cache`
+> 属性 → 每次补查都 `AttributeError`（被 `except` 吞成「替代标准查找失败」），远程 825 文件
+> 批量时集中暴露。改为正确属性；测试改用 `MagicMock(spec=QueryEngine)`，旧写法会直接失败。
+
 - **零调用清理（2026-11-13，P2-03 批 1）**：删除 AdapterManager.execute_request_interval（零调用）；get_request_interval 保留。
