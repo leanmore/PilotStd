@@ -1,6 +1,5 @@
 {
   "debug": {
-    "docker/_static_token.py": 1,
     "docker/api/adapter.py": 1,
     "docker/api/organize.py": 1,
     "pilotstd/announcement/_circuit_breaker.py": 1,
@@ -9,7 +8,7 @@
     "pilotstd/core/_validity_pipeline.py": 1,
     "pilotstd/core/audit.py": 1,
     "pilotstd/core/cache_manager.py": 6,
-    "pilotstd/core/config/manager.py": 3,
+    "pilotstd/core/config/manager.py": 2,
     "pilotstd/core/config/paths.py": 1,
     "pilotstd/core/file_index.py": 2,
     "pilotstd/core/file_utils.py": 4,
@@ -63,7 +62,6 @@
     "scripts/update_status.py": 2
   },
   "return": {
-    "docker/scheduler.py": 1,
     "pilotstd/core/logger.py": 1,
     "pilotstd/core/name_resolution.py": 3,
     "pilotstd/core/notification/_builders_common.py": 1,

@@ -61,8 +61,9 @@ def _ensure_static_token_in_db():
         db.close()
         _STATIC_TOKEN_INITIALIZED = True
     except Exception as e:
-        # 首次启动时 DB 可能尚未初始化：不阻断，但要留痕（后续请求重试）
-        logger.debug("static token db init failed: %s", e)
+        # 首次启动时 DB 可能尚未初始化：不阻断，但要留痕（后续请求重试）。
+        # 用 warning 而非 debug：若始终失败，静态 API Key 会永久不可用，启动日志必须能看见（P2-10 批 1）。
+        logger.warning("static token db init failed (retry on next request): %s", e)
 
 
 def get_static_token() -> str:

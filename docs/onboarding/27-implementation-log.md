@@ -334,6 +334,33 @@
 | 测试 | 公告/调度测试通过 |
 | 回滚 | 设 `announcement.lookback_days=0` |
 
+### 24. P2-14 部署验证（site_capabilities 播种）
+
+| 项 | 内容 |
+|---|---|
+| 文件 | 无代码改动（验证既有 `docker/entrypoint.sh` + `docker/Dockerfile`） |
+| 行为 | 远程已运行 `v0.181.8`（image `ghcr.io/leanmore/pilotstd:v0.181.8`，health commit `38d04b7c`，含 `8ca0106b`）；`POST /api/validity/run` → **200 / 40s / checked=30 / changed=8**；`/api/validity/history` 新增 `2026-11-13 checked=30 changed=8 success`（修复前最高停在 11-05） |
+| 测试 | 远程实测（只读 + 一次 admin validity run，已获授权）；本地 `tests/test_docker_config_seed.py` 2 passed |
+| 回滚 | 无（配置播种只在缺失时执行，不覆盖用户配置） |
+
+### 25. P2-10 静默吞错批 1（50 条 triage）
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `docker/_static_token.py`、`docker/scheduler.py`、`pilotstd/core/config/manager.py`、`scripts/silent_errors_baseline.json`、新增 `tests/test_p2_10_silent_error_triage.py`、`docs/debt/p2-10-silent-errors-triage.md` |
+| 行为 | 3 条升级 warning（静态令牌落库失败、备份目录不可读、`.bak` 回滚失败→默认值覆盖配置）；47 条 allowlist 并逐条写理由；基线 168 → 165（pass 46/return 49/debug 70） |
+| 测试 | 新增 3 例；`tests/unit/core/config` + `test_backup_retention` + `test_scheduler_extra` 共 42 passed；G-050 PASS |
+| 回滚 | 还原 3 处日志级别 + 恢复旧基线（`git show 635e0e93:scripts/silent_errors_baseline.json`） |
+
+### 26. monitor 存量扫描判定（08 #23）
+
+| 项 | 内容 |
+|---|---|
+| 文件 | 只读排查：`pilotstd/monitor/scheduler.py`、`handler.py`、`docker/app.py`、`docker/entrypoint.sh` |
+| 行为 | 判定 **A（代码为纯事件驱动）+ B（不符合用户期望）**：`_run()` 只 `observer.schedule/start`，无启动遍历；`handler.py` 只有 created/modified/moved；`last_processed` 硬编码空串（`scheduler.py:248`）。远程 825 文档滞留即此场景 |
+| 测试 | 无代码改动；`docs/onboarding/08-known-boundaries.md #23` 记录修复方案（`scan_existing_on_start` + watermark），**改生产行为需授权** |
+| 回滚 | 不适用 |
+
 ---
 
 ## 验证汇总

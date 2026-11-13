@@ -1,0 +1,129 @@
+# P2-10 静默吞错 triage（批 1）
+
+> 日期：2026-11-13  
+> 基线：HEAD `635e0e93`（批 1 改动前）  
+> 门禁：G-050 `scripts/check_g_050_silent_errors.py` + `scripts/silent_errors_baseline.json`  
+> 范围：只做**非迁移文件**；迁移文件受 P-106 约束（不改源码），基线只用于阻止新增。
+
+---
+
+## 一、总量与口径
+
+G-050 按 AST 统计三类"失败不可见"：
+
+| 类别 | 定义 | 批 1 前 | 批 1 后 |
+|---|---|---|---|
+| `pass` | `except` 体只有 `pass` | 46 | 46 |
+| `return` | `except` 体只有 `return <空/False/None>` | 50 | 49 |
+| `debug` | `except` 体内只有 `logger.debug` | 72 | 70 |
+| **合计** | | **168** | **165** |
+
+拆分：迁移文件 **40** 条（冻结）、非迁移 **128 → 125** 条。  
+批 1 处理 **50** 条（47 条 allowlist + 3 条升级 warning，见第三节）。
+
+---
+
+## 二、判定规则
+
+- **warning（改代码）**：失败意味着核心承诺被静默破坏、用户配置/数据有丢失风险，或失败后无法自愈且生产日志不可见。要求低频（不会每次请求都刷）。
+- **allowlist（保留原级别）**：失败后的回退就是预期行为、无数据丢失、或处于每次调用都执行的热路径（升 warning 会刷屏）。理由必须写进本表；基线本身就是白名单。
+- **不允许**：为过门禁而加 `# noqa` / `skipif` / 空 `except` 注释（AGENTS §三.2）。
+
+---
+
+## 三、批 1 清单（50 条）
+
+### 3.1 升级为 warning（3 条，已改）
+
+| 位置 | 类别 | 判定 | 理由 |
+|---|---|---|---|
+| `docker/_static_token.py:66` `_ensure_static_token_in_db` | debug | **warning** | 静态 API Key 落库失败；若永久失败，`pst_static` Key 静默不可用。原注释写"要留痕"却只在 debug。 |
+| `docker/scheduler.py:118` `_prune_old_backups` | return | **warning** | 备份目录不可读 → 保留策略静默失效，备份只增不减会撑满磁盘。 |
+| `pilotstd/core/config/manager.py:225` `_load` `.bak` 分支 | debug | **warning** | 主配置损坏 + 写前备份不可用 → 下一步即以默认值覆盖用户配置，是"静默丢配置"的唯一现场。 |
+
+### 3.2 allowlist（47 条，保留原级别）
+
+| 位置 | 类别 | 理由 |
+|---|---|---|
+| `docker/api/adapter.py:86` | debug | 适配器显示名回退为适配器名；失败仅影响展示文案 |
+| `docker/api/organize.py:100` | debug | 清空目录 best-effort；目录非空/占用是常态 |
+| `pilotstd/announcement/_circuit_breaker.py:63` | debug | 配置非法 → 默认冻结档位；每次熔断调用都读，升 warning 会刷屏 |
+| `pilotstd/announcement/ocr/_pdf_utils.py:56` | debug | 线程优先级属性能优化，失败不影响 OCR 结果 |
+| `pilotstd/core/_file_index_query.py:155` | debug | 缓存 JSON 损坏 → 回退重新解析，数据源仍可用 |
+| `pilotstd/core/_file_index_query.py:253` | debug | 同上（批量版） |
+| `pilotstd/core/_validity_pipeline.py:57` | debug | 只补详情列表名称；有效性判定不受影响（源码注释已裁定） |
+| `pilotstd/core/audit.py:84` | debug | `detail` 非法 JSON 时保留原字符串，审计行不丢 |
+| `pilotstd/core/cache_manager.py:262` | debug | DB 体积统计探针，失败只影响展示 |
+| `pilotstd/core/cache_manager.py:291` | debug | PRAGMA 估算失败 → 用默认估算 |
+| `pilotstd/core/cache_manager.py:300` | debug | 行数统计失败 → 跳过该表 |
+| `pilotstd/core/cache_manager.py:354` | debug | `cache_config` 读失败 → 用默认值；DB 故障会在别处暴露 |
+| `pilotstd/core/cache_manager.py:363` | debug | 同上 |
+| `pilotstd/core/cache_manager.py:372` | debug | 同上 |
+| `pilotstd/core/config/manager.py:183` | debug | 清理崩溃残留 `.tmp`；失败不影响加载 |
+| `pilotstd/core/config/manager.py:230` | debug | 损坏文件改名备份失败；后续仍初始化默认值，主告警已在 `.bak` 分支 |
+| `pilotstd/core/config/paths.py:26` | debug | 冻结包目录探测失败 → 回退 `%APPDATA%`，有注释边界 |
+| `pilotstd/core/file_index.py:71` | debug | 停止时 `close_all` 失败；进程即将退出 |
+| `pilotstd/core/file_index.py:97` | debug | 启动校验延迟查询失败 → 固定 10s |
+| `pilotstd/core/file_index.py:122` | pass | GBK 控制台导致日志输出失败；不影响校验结果（已评审） |
+| `pilotstd/core/file_utils.py:69` | debug | NFKC 归一化失败 → 保留原名（幂等降级） |
+| `pilotstd/core/file_utils.py:270` | debug | 移动失败后的临时目标清理失败；主错误已 `logger.error` |
+| `pilotstd/core/file_utils.py:329` | debug | 清理系统垃圾文件失败 → 目录保留 |
+| `pilotstd/core/file_utils.py:334` | debug | `rmdir` 失败（非空/占用）→ 目录保留 |
+| `pilotstd/core/logger.py:180` | return | 探测控制台流可用性；异常即"不可用" |
+| `pilotstd/core/name_resolution.py:83` | return | 列探测失败 → 视为无该列（降级不抛） |
+| `pilotstd/core/name_resolution.py:101` | return | 缓存 JSON 非法 → 空名，调用方回退 |
+| `pilotstd/core/name_resolution.py:134` | return | 缓存表懒建期查询失败 → 空名 |
+| `pilotstd/core/notification/_builders_common.py:58` | return | 发布日期非法 → 不显示生效日 |
+| `pilotstd/core/notification/_credentials.py:242` | return | 旧配置回退读取（仅显式迁移用）；失败即"无旧配置" |
+| `pilotstd/core/notification/_dispatcher.py:52` | debug | 可见性记录不得影响主流程（源码注释裁定） |
+| `pilotstd/core/notification/_links.py:54` | return | 配置桩缺 `get` → 空链接 |
+| `pilotstd/core/notification/_policy.py:40` | debug | 策略列坏 JSON → 空列表；每次派发都读，升 warning 会刷屏 |
+| `pilotstd/core/notification/channels/base.py:78` | return | `retry after` 解析失败 → 回退固定退避 |
+| `pilotstd/core/notification/channels/wechat.py:214` | debug | 错误响应体读取失败的原因已写进可见 `body` |
+| `pilotstd/core/notification_aggregator.py:447` | debug | Web 端无 PyQt6 → 直接显示，正常分支 |
+| `pilotstd/core/notification_aggregator.py:524` | return | 配置读失败 → 默认开启自动暂停 |
+| `pilotstd/core/task/manager.py:52` | debug | `result_json` 半截写入 → 空 dict（数据质量问题） |
+| `pilotstd/download/adapters/openstd_download.py:253` | debug | 详情页预访问失败 → 继续验证码链路 |
+| `pilotstd/download/adapters/openstd_download.py:277` | debug | 全文页打开失败 → 继续验证码链路 |
+| `pilotstd/manager/facade/__init__.py:75` | debug | `standard_info_cache` JSON 非法 → 跳过缓存 |
+| `pilotstd/manager/facade/_organize.py:189` | debug | 缓存 `result_json` 非法 → 用文件名派生名称 |
+| `pilotstd/manager/facade/_organize.py:191` | debug | 缓存表查询失败 → 用文件名派生名称 |
+| `pilotstd/manager/organize/expire.py:57` | debug | 过期目录 `rmdir` 失败（非空/占用） |
+| `pilotstd/manager/organize/mirror.py:123` | debug | 清只读失败 → 后续 `move` 失败会被上层记录 |
+| `pilotstd/manager/organize/mirror.py:138` | debug | 同上（文件级） |
+| `pilotstd/query/__init__.py:64` | return | mock 适配器可选导入 |
+
+---
+
+## 四、代码变更（3 条）
+
+| 文件 | 变更 | 测试 |
+|---|---|---|
+| `docker/_static_token.py` | `logger.debug` → `logger.warning`，文案注明"下次请求重试" | `tests/test_p2_10_silent_error_triage.py::test_static_token_init_failure_warns` |
+| `docker/scheduler.py` | `except OSError: return []` → 先 `logger.warning` 再返回 | `...::test_prune_backup_dir_unreadable_warns` |
+| `pilotstd/core/config/manager.py` | `.bak` 回滚失败 `logger.debug` → `logger.warning` | `...::test_corrupt_config_with_unusable_bak_warns` |
+
+新增测试 3 例，`python -m pytest tests/test_p2_10_silent_error_triage.py -q` → 3 passed；  
+回归 `tests/unit/core/config` + `tests/test_backup_retention.py` + `tests/test_scheduler_extra.py` → 42 passed。
+
+---
+
+## 五、基线收紧
+
+`scripts/silent_errors_baseline.json` 由 `--emit` 重新生成：`pass 46 / return 49 / debug 70`（168 → 165）。  
+`python scripts/check_g_050_silent_errors.py` → PASS。
+
+---
+
+## 六、剩余 78 条（批 2 / 批 3）
+
+| 区域 | 条数 | 说明 |
+|---|---|---|
+| `pilotstd/ui/` | 28 | Qt 生命周期/事件总线/文件树；多为关闭/销毁路径的 best-effort |
+| `scripts/` | 22 | **优先**：门禁脚本吞错会制造假绿（`check_g_013`/`check_g_029`/`docs_sync_check` 等），逐条判 warning 或"读文件失败必须非零退出" |
+| `pilotstd/query/` | 19 | 适配器网络回退（`csres`/`hbba`/`njbz365` 替代标准请求失败 debug）、路由指标、冷却恢复 |
+| `pilotstd/wechat_ip/` | 5 | 浏览器/IP 检测 |
+| `pilotstd/scan/` | 4 | watcher 索引、解析器 |
+
+批 2 建议顺序：`scripts/`（假绿风险最高）→ `query/`（用户可见的查询回退）→ `wechat_ip/`。  
+批 3：`ui/` + `scan/`。

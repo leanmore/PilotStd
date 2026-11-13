@@ -112,7 +112,10 @@ def _prune_old_backups(backup_dir: str, keep: int = _BACKUP_KEEP) -> list[str]:
     """
     try:
         entries = [f for f in os.listdir(backup_dir) if f.endswith(".bak")]
-    except OSError:
+    except OSError as e:
+        # 目录不可读/不存在时无法裁剪：备份只增不减会最终撑满磁盘，
+        # 属可观测性问题，不能静默 return []（P2-10 批 1）。
+        logger.warning("backup dir unreadable, skip retention prune: %s (%s)", backup_dir, e)
         return []
 
     def mtime(name: str) -> float:

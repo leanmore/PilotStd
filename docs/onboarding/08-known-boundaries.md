@@ -31,6 +31,7 @@
 | 20 | 时效性检查只落状态，不落查询明细 | 已修复（v76，待部署） | `validity_check_log` 保存证据/来源/失败原因/结果 JSON |
 | 21 | 公告定时任务漏跑/晚发布公告可能漏抓 | 已修复（2026-11-07） | checkpoint 保留；定时多回看 7 天；超过 36 小时未成功抓取会在完成通知中告警 |
 | 22 | v49 迁移会清空 `user_preferences` 真实偏好数据 | 历史数据缺陷（不修） | 仅影响 v48 及更早的库升级；受 P-106 约束不可修，见 #22 |
+| 23 | Docker monitor 只处理**新文件事件**，启动时不扫 `/inbox` 存量 | 产品语义缺口（待授权） | 部署/重启前放入的文件永远不会被拾取；远程实测 825 个文档滞留，见 #23 |
 
 ---
 
@@ -593,6 +594,43 @@
 
 - `docs/technical-debt.md` P-106（迁移源码不可变）
 - 测试锚点：`tests/test_migrate_v49_user_preferences.py`（只锁结构契约，不锁数据保留）
+
+---
+
+### 23. Docker monitor 不扫启动存量（产品语义缺口，待授权）
+
+**判定（2026-11-13，只读代码 + 远程观察）**
+
+- **代码事实 = A（设计如此：纯事件驱动）**：
+  - `pilotstd/monitor/scheduler.py:136-171` `_run()` 的顺序是 `os.makedirs`（153）→ 建 `StandardFileHandler`（158）→ `observer.schedule`（160）→ `observer.start`（161）→ sleep 轮询（166-167），**没有对 `watch_path` 的任何遍历**；
+  - `pilotstd/monitor/handler.py:29-42` 只实现 `on_created` / `on_modified` / `on_moved`；`_handle`（44-65）只由事件触发；
+  - `docker/app.py:225-233` lifespan 只调 `monitor_service.start_scheduler()`；`docker/entrypoint.sh` 无扫描动作；
+  - 文档口径一致：`docs/onboarding/02-file-journey.md:54`「发现新文件后扫描+归档」、`03-architecture.md:92`「每个文件事件会触发一次扫描」。
+- **产品语义 = B（与用户期望不符，属缺口）**：
+  - 用户明确期望「monitor 启动时处理存量」；
+  - 远程实测 `/inbox` **825 个文档 / 62 个目录**，`processed_today=0`、`last_processed=""`（该字段在 `scheduler.py:248` 硬编码空串，监控状态无法显示最后处理文件）；
+  - Web 端**没有**一键处理入口：`web/src` 调用的端点里没有 `/api/auto`（只有分阶段 `scan/query/download/normalize/archive`），存量文件只能逐阶段手工跑；
+  - 结论：不是 C（不存在"扫描了但没处理"的代码路径）。
+
+**影响**
+
+- 部署/重启窗口内放进 `/inbox` 的文件不会产生事件 → 永远滞留，且面板显示"健康"（processed=0 不报错）；
+- 远程 825 个文档即此场景；`P3-16` 的"100 文件批量"因此无法验收。
+
+**修复方案（改生产行为，需授权后再做）**
+
+1. `FileMonitorScheduler._run()` 在 `observer.start()` 之后启动 daemon 线程 `_catch_up_existing()`：
+   - 按 `resolve_monitor_config()` 的 `recursive` 遍历 `watch_path`，用 `StandardFileHandler._should_handle` 同一套扩展名/忽略规则过滤；
+   - 按**父目录**分组，逐目录调用 `_on_file(该目录首个文件)`，复用现有去抖/锁/空目录清理，一批目录 = 一批通知（825 文件 ≈ 62 批，而不是 825 次 `auto_run`）；
+   - 线程内检查 `_stop`，目录之间留短间隔，避免启动瞬间打满查询/下载。
+2. 配置开关 `monitor.scan_existing_on_start`（默认 `true`，可关）；只在 `monitor.enabled` 且 `auto_archive` 为真时执行。
+3. 持久化 watermark（`monitor_catchup_watermark`）：记录上次补扫完成时间；只处理 `mtime` 晚于 watermark 的文件/目录，避免每次重启重复通知"无新增文件"。
+4. `last_processed` 实装：`_on_file` 成功/失败后记录路径 + 时间，`get_status()` 返回真实值。
+5. 授权后先写失败测试（启动前放入文件的 e2e：启动 → 断言 `auto_run` 被调用、文件被归档），再改行为；文档同步改 `02`/`03`/`06`。
+
+**无风险替代（未采用，留作授权前的手动通道）**：Web 快捷操作加"处理 Inbox 存量"按钮，直接调已存在的 `POST /api/auto`（`docker/api/auto.py`，admin）；不改 monitor 行为。
+
+**关联**：P3-16（真实批量）、ISSUE_LEDGER P3-16 备注、`tests/integration/test_monitor_archive_e2e.py`。
 
 ---
 

@@ -219,8 +219,10 @@ class ConfigManager:
                     self.save()
                     return
                 except (json.JSONDecodeError, OSError) as e:
-                    # 备份同样不可用 → 走原有"备份损坏文件 + 默认值初始化"路径（契约④不变）
-                    logger.debug("config .bak rollback failed, falling back to defaults: %s", e)
+                    # 备份同样不可用 → 走原有"备份损坏文件 + 默认值初始化"路径（契约④不变）。
+                    # 这条必须 warning：主文件损坏 + 备份不可用 = 用户配置即将被默认值覆盖，
+                    # 是"静默丢配置"的唯一现场；debug 级在生产不可见（P2-10 批 1）。
+                    logger.warning("config .bak rollback failed, falling back to defaults: %s", e)
             # 数据损坏时备份原文件，避免数据彻底丢失
             backup = self._filepath + ".corrupted." + datetime.now().strftime("%Y%m%d%H%M%S")
             try:

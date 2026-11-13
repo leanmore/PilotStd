@@ -168,11 +168,17 @@
 ### G-050：静默吞错棘轮
 
 - **检查内容**：生产代码（`pilotstd/` + `docker/` + `scripts/`，排除 `templates/` 与 `scripts/archive/`）中三类"失败不可见"——`except` 体只有 `pass`、`except` 体只有 `return` 空/False/None、`except` 体内 `logger.debug`
-- **基线**：`scripts/silent_errors_baseline.json`（按文件 × 类别计数；**2026-11-09 重算（E2-batch2，纳入 scripts/）**：pass **46** / return **57** / debug **90**）
+- **基线**：`scripts/silent_errors_baseline.json`（按文件 × 类别计数；**2026-11-13 重算（P2-10 批 1）**：pass **46** / return **49** / debug **70**，合计 **165**；批 1 前 168）
 - **阻断条件**：任一文件任一类别当前计数 > 基线 → 阻断；< 基线仅 WARN（提示收紧基线）
 - **执行方式**：`python scripts/check_g_050_silent_errors.py`（`check_all.sh --fast` 与 CI `repo-compliance`）
 - **识别口径（2026-11-09 修正，U34-E1）**：`debug` 类识别 `logger`/`log`/`logging`/`*_log` 以及 `self.log`/`self.logger`/`_core.log` 等接收者（原只认 `Name("logger")`）；遍历 handler 时**剪掉内层 `except` 与函数/lambda 体**（原 `ast.walk` 会把内层 handler、内层函数的 debug 重复算到外层）；`return` 类同时识别 `set()`/`list()`/`dict()`/`tuple()` 无参构造（原先只认字面量）。
-- **背景**：体检 D-8/D-9/D-10。存量 91 处已分批修复并带测试；剩余 43 处为迁移文件（P-106 不可改）/编码回退/日志防御，已评审登记
+- **背景**：体检 D-8/D-9/D-10。存量 91 处已分批修复并带测试；剩余 165 处中 **40 处为迁移文件**（P-106 不可改），**125 处非迁移已进入 triage**（批 1 处理 50 条：3 条升 warning + 47 条 allowlist，见 `docs/debt/p2-10-silent-errors-triage.md`）
+
+**P2-10 triage 进度（2026-11-13）**
+
+- 批 1 已做（50 条）：`docker/_static_token.py`（静态令牌落库失败）、`docker/scheduler.py`（备份目录不可读）、`pilotstd/core/config/manager.py`（`.bak` 回滚失败）三处 `debug`/空 `return` 升 `warning`；其余 47 条按"回退即预期行为/热路径防刷屏"allowlist，逐条理由见 `docs/debt/p2-10-silent-errors-triage.md`。
+- 基线随批收紧 168 → 165；新增 `tests/test_p2_10_silent_error_triage.py` 3 例锁定 warning。
+- 剩余 78 条：`scripts/` 22（假绿风险最高，批 2 先做）→ `query/` 19 → `wechat_ip/` 5 → `ui/` 28 + `scan/` 4（批 3）。
 
 **G-050 已知局限（2026-11-09）**
 
@@ -633,6 +639,7 @@ B1（声明类 vs 实现类）已覆盖同一语义、且每次 CI 都在跑；�
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
+| v2.42 | 2026-11-13 | **P2-10 批 1：G-050 基线 168 → 165**（pass 46 / return 49 / debug 70）。50 条非迁移 triage：3 条升级 warning——`docker/_static_token.py`（静态令牌落库失败）、`docker/scheduler.py`（备份目录不可读 → 保留策略失效）、`pilotstd/core/config/manager.py`（`.bak` 回滚失败 → 默认值覆盖用户配置）；47 条 allowlist（回退即预期行为/热路径防刷屏），逐条理由见 `docs/debt/p2-10-silent-errors-triage.md`。新增 `tests/test_p2_10_silent_error_triage.py` 3 例。剩余 78 条：scripts 22 / query 19 / wechat_ip 5 / ui 28 / scan 4 |
 | v2.41 | 2026-11-12 | **frontend-e2e Playwright 安装去 apt**：`--with-deps` 在 GitHub Runner 遇到 `azure.archive.ubuntu.com` DNS 故障会卡死并 exit 100；改为 `playwright install chromium`，Runner 已带运行库。 |
 | v2.40 | 2026-11-11 | **P2-07：`check_module_doc_mappings.py` 从 `--strict`（告警）切 `--strict-block`（阻断）**；与 `docs_sync_check.py` 同口径，核心模块变更未同步文档即 fail CI。 |
 | v2.39 | 2026-11-11 | **P2-06 BOM 修复**：`scripts/check_g_032_doc_health.py` 去 UTF-8 BOM；新增 `tests/test_no_bom.py` 扫描 `pilotstd/ docker/ scripts/` 全量 `.py`，防止 BOM 再让 G-010/G-050 静默跳过文件。 |

@@ -619,3 +619,11 @@ pilotstd/core/
 > **2026-11-09 通知渠道凭证读取失败可见化（U-3/U-4 批 2b）**：`NotificationManager._channel_credentials`
 > 的 `except` 由 `debug` 升 `warning`（保留 i18n 键 `notification.manager.credential_read_failed`）——
 > 单渠道读不到凭证时轮询继续、该渠道本轮不发送，属「单渠道失败继续」而非全局失败，故**不升 error**。
+
+> **2026-11-13 P2-10 批 1（配置/文件工具/cache 逐条 triage）**：`ConfigManager._load()` 的
+> 「主配置损坏 + 写前备份 `.bak` 也不可用」分支由 `debug` 升 **`warning`**——下一步即以工厂默认值
+> 覆盖用户配置，是「静默丢配置」的唯一现场（`config/manager.py`）。同批评估的 `cache_manager`
+> 三处 cache_config 读取回退、`file_utils` 三处清理失败、`file_index` 延迟查询回退、`name_resolution`
+> 三处解析降级均保留 `debug`/空返回（回退即预期行为、无数据丢失、热路径防刷屏），理由逐条登记在
+> `docs/debt/p2-10-silent-errors-triage.md`；G-050 基线随之 168 → 165。
+> 契约：`tests/test_p2_10_silent_error_triage.py`。
