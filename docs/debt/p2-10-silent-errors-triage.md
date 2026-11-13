@@ -115,16 +115,11 @@ G-050 按 AST 统计三类"失败不可见"：
 
 ---
 
-## 六、剩余 56 条（批 3 / 批 4）
+## 六、剩余 28 条（批 4）
 
 | 区域 | 条数 | 说明 |
 |---|---|---|
-| `pilotstd/query/` | 19 | 适配器网络回退（`csres`/`hbba`/`njbz365` 替代标准请求失败 debug）、路由指标、冷却恢复 |
-| `pilotstd/wechat_ip/` | 5 | 浏览器/IP 检测 |
-| `pilotstd/scan/` | 4 | watcher 索引、解析器 |
-
-批 3 建议顺序：`query/`（用户可见的查询回退）→ `wechat_ip/` → `scan/`。  
-批 4：`ui/` 28 条（Qt 生命周期/事件总线/文件树，多为关闭/销毁路径的 best-effort）。
+| `pilotstd/ui/` | 28 | Qt 生命周期/事件总线/文件树，多为关闭/销毁路径的 best-effort |
 
 ---
 
@@ -156,3 +151,44 @@ G-050 按 AST 统计三类"失败不可见"：
 | `scripts/find_docs.py:28` | return | allowlist | 读不到文档 → 空串（检索工具，不中断全量） |
 
 **批 2 结论**：scripts 是门禁自身，但这 22 条要么是"读不到 → 保守回退（更严格）"，要么是"语法错误交给 ruff"，没有发现第二处假绿；唯一会让规则失效的 `check_g_013` 已升 `[WARN]`。
+
+---
+
+## 八、批 3 清单（query 19 + wechat_ip 5 + scan 4 = 28 条；全部 allowlist）
+
+判定口径：网络/解析/浏览器回退的失败由**上层结果**（查询命中率、通知、页面状态）暴露，
+逐条升 warning 会在批量查询时刷屏；语法/编码错误由 ruff、G-047 兜底。
+
+| 位置 | 类别 | 理由 |
+|---|---|---|
+| `pilotstd/query/adapters/csres.py:228` | debug | 替代标准网络请求失败 → 本轮无替代信息；路由链继续 |
+| `pilotstd/query/adapters/dbba.py:92` | debug | 实施日期解析失败 → 保留原值 |
+| `pilotstd/query/adapters/hbba.py:144` | debug | 同上 |
+| `pilotstd/query/adapters/hbba.py:192` | debug | 替代标准请求失败 → 本轮无替代信息 |
+| `pilotstd/query/adapters/njbz365.py:150` | debug | 同上 |
+| `pilotstd/query/adapters/nrsis.py:94` | pass | 编码回退循环：该编码解不开 → 试下一个 |
+| `pilotstd/query/adapters/nrsis.py:100` | pass | 同上 |
+| `pilotstd/query/adapters/tdpress.py:37` | return | 日期/编码解析失败 → 空串 |
+| `pilotstd/query/adapters/ttbz.py:108` | debug | 站点网络异常 → 返回空结果，路由链继续 |
+| `pilotstd/query/engine/_batch_dispatcher.py:342` | debug | 指标自增失败，不影响查询 |
+| `pilotstd/query/engine/_routing.py:75` | debug | 评分器失败 → 回退硬编码路由（已在 core.md 登记） |
+| `pilotstd/query/network.py:123` | debug | 重试期间日志；最终失败由调用方记录 |
+| `pilotstd/query/rotator.py:415` | debug | 冷却状态恢复失败 → 跳过，下一轮重建 |
+| `pilotstd/query/routing/router_v2_metrics.py:45` | debug | 指标写库失败，不影响路由 |
+| `pilotstd/query/routing/router_v2_metrics.py:56` | debug | 指标入队失败，不影响路由 |
+| `pilotstd/query/routing/scorer.py:108` | debug | 站点配置覆盖读取失败 → 默认权重（core.md 已登记） |
+| `pilotstd/query/search_strategy.py:250` | return | 策略解析失败 → 空串，调用方跳过 |
+| `pilotstd/query/search_strategy.py:331` | return | 同上（布尔分支） |
+| `pilotstd/query/site_config/_loader.py:49` | return | 站点配置读不到 → 空 dict，用默认 |
+| `pilotstd/scan/parser/_exact_matcher.py:54` | return | 值解析失败 → None，按不匹配处理 |
+| `pilotstd/scan/parser/_exact_matcher.py:110` | return | 同上 |
+| `pilotstd/scan/parser/_number_extractor.py:62` | return | 数字提取失败 → None，交由后续解析器 |
+| `pilotstd/scan/watcher.py:71` | debug | 索引写入失败（文件被锁/删除）→ 下次事件重试 |
+| `pilotstd/wechat_ip/browser.py:148` | debug | 关闭浏览器失败；进程即将退出 |
+| `pilotstd/wechat_ip/browser.py:172` | return | 启动失败 → False，调用方发 security_alert（远程已见） |
+| `pilotstd/wechat_ip/browser.py:296` | return | 同上 |
+| `pilotstd/wechat_ip/detector.py:32` | return | IP 格式非法 → False（视为未变化） |
+| `pilotstd/wechat_ip/detector.py:53` | debug | 单个检测源失败 → 换下一个源 |
+
+**批 3 结论**：28 条全部 allowlist，无代码变更；基线保持 `164`（pass 46 / return 48 / debug 70）。
+剩余 `pilotstd/ui/` 28 条留批 4。

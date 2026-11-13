@@ -432,6 +432,24 @@
 | 暴露 | 根目录 3 个散件触发祖先折叠 → 1 个超大批次（已修 `2e031a49`）；`classifier.resolve_replaces` 属性名错误导致替代补查全失败（同批修）；批量查询把站点链打空 → 604/809 `chain_exhausted`（下一轮查站点限流/适配器） |
 | 结论 | 真实批量跑通、无 DB 竞争/多实例；"全部归档"未达成是 pipeline 语义（只归档 exact，其余待确认） |
 
+### 35. P2-11 一次性修复脚本（dry-run 就绪）
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `scripts/repair_validity_keys_v2.py`、`tests/test_repair_validity_keys_v2.py` |
+| 行为 | 默认 dry-run；`--apply` 先复制 `.bak-<ts>` 再写；5 条 TSG 合并（状态/检查时间/次数取优）、2 条 `manual_required`、可改名项 rename；幂等 |
+| 验证 | 对远程备份 `remote_v76.bak` 实跑：**merge 5 / manual_required 2**；3 例测试（dry-run 不写、apply 备份+合并+幂等、计划分类） |
+| 回滚 | 用 `--apply` 生成的 `.bak-<ts>` 还原 |
+
+### 36. P2-10 批 3（query 19 + wechat_ip 5 + scan 4 = 28 条）
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `docs/debt/p2-10-silent-errors-triage.md`（仅文档，无代码变更） |
+| 行为 | 28 条全部 allowlist：网络/解析/浏览器回退失败由上层结果暴露，逐条升 warning 会在批量查询刷屏；语法/编码由 ruff/G-047 兜底 |
+| 测试 | G-050 基线保持 164（pass 46/return 48/debug 70），PASS |
+| 回滚 | 不适用 |
+
 ---
 
 ## 验证汇总

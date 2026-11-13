@@ -178,8 +178,9 @@
 
 - 批 1 已做（50 条）：`docker/_static_token.py`（静态令牌落库失败）、`docker/scheduler.py`（备份目录不可读）、`pilotstd/core/config/manager.py`（`.bak` 回滚失败）三处 `debug`/空 `return` 升 `warning`；其余 47 条按"回退即预期行为/热路径防刷屏"allowlist，逐条理由见 `docs/debt/p2-10-silent-errors-triage.md`。
 - 批 2 已做（scripts 22 条，21 allowlist + 1 升可见）：`scripts/check_g_013_test_coverage.py` 读 commit message 失败改为 stderr `[WARN]`（空消息会让"fix 必须带测试"规则失效）；其余为"读文件/解析失败→保守回退，语法错误由 ruff 兜底"。
+- 批 3 已做（query 19 + wechat_ip 5 + scan 4 = 28 条，**全部 allowlist**）：网络/解析/浏览器回退的失败由上层结果暴露，逐条升 warning 会在批量查询时刷屏；基线保持 164 不变。
 - 基线随批收紧 168 → 164；批 1 新增 `tests/test_p2_10_silent_error_triage.py` 3 例锁定 warning。
-- 剩余 56 条：`query/` 19 + `wechat_ip/` 5 + `scan/` 4（批 3）→ `ui/` 28（批 4）。
+- 剩余 28 条：`pilotstd/ui/`（批 4）。
 
 **G-050 已知局限（2026-11-09）**
 
