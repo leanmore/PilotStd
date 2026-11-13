@@ -621,7 +621,7 @@
 5. 测试：`tests/integration/test_monitor_catchup_e2e.py` 6 例（启动前放文件→归档、祖先折叠、watermark、禁用、stop 打断、last_processed）；本地 825 文件压测 `scripts/stress_monitor_catchup.py`。
 
 **本地 825 文件压测（真 parse/搬文件/写 file_index）**：62 批、825 搬移、解析失败 0、UNIQUE 0、locked 0、inbox 剩余文件 0、剩余空目录 0。  
-**远程真实批量**：CI run `43434928596` success，镜像 **v0.182.0** 已构建；宿主机 `docker compose pull/up` 后启动即自动补扫，验收数字见 ISSUE_LEDGER P3-16。
+**远程真实批量（2026-11-13，v0.182.0）**：826 文件/62 目录，首次启动补扫扫描 820、识别 809（去重 9、解析失败 2）、查询 809、**归档 220**、**606 留 inbox（`/api/pending` 604 条 `chain_exhausted`＝查询链耗尽 + 2 解析失败）**；空目录 62→25；UNIQUE/locked/多 manager 均 0。因根目录 3 个散件被折叠，本轮只生成 **1 个超大批次**（已修 `2e031a49`：子目录在前、根散件最后单独一批）。"全部归档"未达成的主因是**批量查询把站点链打空（604/809 chain_exhausted，站点限流/无结果）**，不是 monitor 没处理。
 
 **关联**：P3-16、`tests/integration/test_monitor_archive_e2e.py`、`docs/onboarding/02-file-journey.md` / `03-architecture.md` / `06-runtime-ops.md`。
 

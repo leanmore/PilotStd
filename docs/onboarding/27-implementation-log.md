@@ -422,6 +422,16 @@
 | 测试 | e2e 7 passed（新增根散件用例）；classifier 26 passed（测试改 `MagicMock(spec=QueryEngine)`，旧写法必红） |
 | 回滚 | 还原折叠逻辑与两处属性名 |
 
+### 34. 远程 825 文件真实批量（v0.182.0 部署实测）
+
+| 项 | 内容 |
+|---|---|
+| 场景 | 2026-11-13 21:56–22:05，远程 826 文件/62 目录，首次启动补扫（部署前放入，无事件） |
+| 结果 | 扫描 820（6 个被扩展名过滤）、识别 809（去重 9、解析失败 2）、查询 809 条、归档 220（exact）、606 留 inbox（`/api/pending` 604 条 `chain_exhausted` 查询链耗尽 + 2 解析失败）；空目录 62→25；monitor processed=1/success=1/last_processed 有值；UNIQUE/locked/StandardManager 均 0 |
+| 通知 | today notification_log 24→34：scan_complete 2、query_complete 2、替代失败聚合 8（每渠道一行） |
+| 暴露 | 根目录 3 个散件触发祖先折叠 → 1 个超大批次（已修 `2e031a49`）；`classifier.resolve_replaces` 属性名错误导致替代补查全失败（同批修）；批量查询把站点链打空 → 604/809 `chain_exhausted`（下一轮查站点限流/适配器） |
+| 结论 | 真实批量跑通、无 DB 竞争/多实例；"全部归档"未达成是 pipeline 语义（只归档 exact，其余待确认） |
+
 ---
 
 ## 验证汇总
