@@ -15,6 +15,12 @@
 | E2E + Integration 总耗时 | 16.0s | 2026-08-03 | — |
 | 合计行覆盖率 | **12.4%** | 2026-08-03 | 678b246 |
 
+> **2026-11-13 增量（P3-16 / P2-10 / P2-07）**：新增
+> `tests/integration/test_monitor_catchup_e2e.py`（6 例，启动补扫真归档）、
+> `tests/test_p2_10_silent_error_triage.py`（3 例）、`tests/test_check_docs_drift_counts.py`（4 例）
+> 与 G-013 消息读取 `[WARN]` 用例（1 例）；`pytest` 全量 **6740 passed / 12 skipped**
+> （见 `docs/governance/ISSUE_LEDGER.md` P2-10、P3-16）。
+
 ## 核心模块覆盖状态
 
 | 模块 | E2E | Integration | 备注 |
@@ -43,6 +49,7 @@
 | 日期 | 用例数 | 覆盖率 | 变更说明 |
 |------|:--:|:--:|------|
 | 2026-08-03 | 11 | 12.4% | 初始基线：detect_ip(4) + gongbiaoku(4) + Baidu OCR(3) |
+| 2026-11-13 | +14 | — | P3-16 monitor 启动补扫 e2e(6) + P2-10 triage(3) + G-052 数字校验(4) + G-013 消息告警(1) |
 
 ## 使用说明
 
