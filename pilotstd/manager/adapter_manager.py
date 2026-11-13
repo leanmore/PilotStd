@@ -91,17 +91,6 @@ class AdapterManager:
             return float(self._rotator._sites[name].request_interval)
         return 0.0
 
-    def execute_request_interval(self, name: str) -> None:
-        """执行 request_interval 等待（在每次适配器查询前调用）。
-
-        从 SiteState.request_interval 读取间隔值并 time.sleep。
-        若值为 0 或站点不存在则跳过。
-        """
-        interval = self.get_request_interval(name)
-        if interval > 0:
-            time.sleep(interval)
-            logger.debug("request_interval_wait: site=%s interval=%.1fs", name, interval)
-
     def test_adapter(self, name: str) -> dict[str, Any]:
         """测试单个适配器连通性。"""
         if name not in self.list_adapters():

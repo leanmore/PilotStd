@@ -26,11 +26,6 @@ _FOREIGN_FALLBACK = ["ahbz", "njbz365"]
 _INDUSTRY_FALLBACK = ["hbba", "njbz365", "csres"]
 
 
-def get_fallback_chain() -> list[str]:
-    """返回按权重排序的完整兜底链（评分器失败时使用）。"""
-    return list(_DEFAULT_FALLBACK_CHAIN)
-
-
 # 按标准代号分流：专业站点优先，365二线，国标/行业兜底
 def _build_default_code_routes() -> dict[str, list[str]]:
     from ...organizer.industry_lookup import _DB_PROVINCE_MAP

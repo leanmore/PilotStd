@@ -181,3 +181,5 @@ BaseAdapter (ABC)
 
 - [管理模块](manager.md) — 适配器调用方（`StandardManager` 门面）
 - [查询引擎](../../query/README.md) — 批量查询、路由、配额管理
+
+- **零调用清理（2026-11-13，P2-03 批 1）**：删除 _constants.get_fallback_chain；_DEFAULT_FALLBACK_CHAIN 仍被 _routing 与测试使用。

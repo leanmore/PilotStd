@@ -241,3 +241,5 @@ StandardManager (BaseFacade)
 > 调用方可能读到旧索引）、`organize/expire.merge_expire_from_source`（过期目录合并失败，
 > 有效性信息可能未入库）、`organize/organizer` 的去重删源（源目录残留重复件）与删旧重复件失败。
 > 文案均带失败后果，**控制流与返回值不变**；配合 core.md 的 5 处，G-050 debug 基线 90 → 79。
+
+- **零调用清理（2026-11-13，P2-03 批 1）**：删除 AdapterManager.execute_request_interval（零调用）；get_request_interval 保留。
