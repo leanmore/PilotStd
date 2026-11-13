@@ -427,7 +427,7 @@
 | 项 | 内容 |
 |---|---|
 | 场景 | 2026-11-13 21:56–22:05，远程 826 文件/62 目录，首次启动补扫（部署前放入，无事件） |
-| 结果 | 扫描 820（6 个被扩展名过滤）、识别 809（去重 9、解析失败 2）、查询 809 条、归档 220（exact）、606 留 inbox（`/api/pending` 604 条 `chain_exhausted` 查询链耗尽 + 2 解析失败）；空目录 62→25；monitor processed=1/success=1/last_processed 有值；UNIQUE/locked/StandardManager 均 0 |
+| 结果 | 自动运行日志原值：`scan=809, query_found=796, download_success=0, organize_moved=204, organize_failed=0, mirror_skipped=0, fallback_mirrored=43`（成功 204 / 失败 0 / 兜底 43 / 解析失败 2、去重 9）；`/api/pending` 604 条 `chain_exhausted`；inbox 826→606；空目录 62→25；monitor processed=1/success=1/last_processed 有值；UNIQUE/locked/StandardManager 均 0；22:34 重启后 `启动补扫: 无待处理文件（watermark=…，跳过 605）` |
 | 通知 | today notification_log 24→34：scan_complete 2、query_complete 2、替代失败聚合 8（每渠道一行） |
 | 暴露 | 根目录 3 个散件触发祖先折叠 → 1 个超大批次（已修 `2e031a49`）；`classifier.resolve_replaces` 属性名错误导致替代补查全失败（同批修）；批量查询把站点链打空 → 604/809 `chain_exhausted`（下一轮查站点限流/适配器） |
 | 结论 | 真实批量跑通、无 DB 竞争/多实例；"全部归档"未达成是 pipeline 语义（只归档 exact，其余待确认） |
