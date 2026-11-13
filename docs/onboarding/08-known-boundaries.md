@@ -620,7 +620,7 @@
 5. 测试：`tests/integration/test_monitor_catchup_e2e.py` 6 例（启动前放文件→归档、祖先折叠、watermark、禁用、stop 打断、last_processed）；本地 825 文件压测 `scripts/stress_monitor_catchup.py`。
 
 **本地 825 文件压测（真 parse/搬文件/写 file_index）**：62 批、825 搬移、解析失败 0、UNIQUE 0、locked 0、inbox 剩余文件 0、剩余空目录 0。  
-**远程真实批量**：需部署 v0.181.9 后由启动补扫自动跑，验收数字见 ISSUE_LEDGER P3-16。
+**远程真实批量**：CI run `43434928596` success，镜像 **v0.182.0** 已构建；宿主机 `docker compose pull/up` 后启动即自动补扫，验收数字见 ISSUE_LEDGER P3-16。
 
 **关联**：P3-16、`tests/integration/test_monitor_archive_e2e.py`、`docs/onboarding/02-file-journey.md` / `03-architecture.md` / `06-runtime-ops.md`。
 
