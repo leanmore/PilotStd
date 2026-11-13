@@ -168,7 +168,7 @@
 ### G-050：静默吞错棘轮
 
 - **检查内容**：生产代码（`pilotstd/` + `docker/` + `scripts/`，排除 `templates/` 与 `scripts/archive/`）中三类"失败不可见"——`except` 体只有 `pass`、`except` 体只有 `return` 空/False/None、`except` 体内 `logger.debug`
-- **基线**：`scripts/silent_errors_baseline.json`（按文件 × 类别计数；**2026-11-13 重算（P2-10 批 1）**：pass **46** / return **49** / debug **70**，合计 **165**；批 1 前 168）
+- **基线**：`scripts/silent_errors_baseline.json`（按文件 × 类别计数；**2026-11-13 重算（P2-10 批 2）**：pass **46** / return **48** / debug **70**，合计 **164**；批 1 前 168）
 - **阻断条件**：任一文件任一类别当前计数 > 基线 → 阻断；< 基线仅 WARN（提示收紧基线）
 - **执行方式**：`python scripts/check_g_050_silent_errors.py`（`check_all.sh --fast` 与 CI `repo-compliance`）
 - **识别口径（2026-11-09 修正，U34-E1）**：`debug` 类识别 `logger`/`log`/`logging`/`*_log` 以及 `self.log`/`self.logger`/`_core.log` 等接收者（原只认 `Name("logger")`）；遍历 handler 时**剪掉内层 `except` 与函数/lambda 体**（原 `ast.walk` 会把内层 handler、内层函数的 debug 重复算到外层）；`return` 类同时识别 `set()`/`list()`/`dict()`/`tuple()` 无参构造（原先只认字面量）。
@@ -177,8 +177,9 @@
 **P2-10 triage 进度（2026-11-13）**
 
 - 批 1 已做（50 条）：`docker/_static_token.py`（静态令牌落库失败）、`docker/scheduler.py`（备份目录不可读）、`pilotstd/core/config/manager.py`（`.bak` 回滚失败）三处 `debug`/空 `return` 升 `warning`；其余 47 条按"回退即预期行为/热路径防刷屏"allowlist，逐条理由见 `docs/debt/p2-10-silent-errors-triage.md`。
-- 基线随批收紧 168 → 165；新增 `tests/test_p2_10_silent_error_triage.py` 3 例锁定 warning。
-- 剩余 78 条：`scripts/` 22（假绿风险最高，批 2 先做）→ `query/` 19 → `wechat_ip/` 5 → `ui/` 28 + `scan/` 4（批 3）。
+- 批 2 已做（scripts 22 条，21 allowlist + 1 升可见）：`scripts/check_g_013_test_coverage.py` 读 commit message 失败改为 stderr `[WARN]`（空消息会让"fix 必须带测试"规则失效）；其余为"读文件/解析失败→保守回退，语法错误由 ruff 兜底"。
+- 基线随批收紧 168 → 164；批 1 新增 `tests/test_p2_10_silent_error_triage.py` 3 例锁定 warning。
+- 剩余 56 条：`query/` 19 + `wechat_ip/` 5 + `scan/` 4（批 3）→ `ui/` 28（批 4）。
 
 **G-050 已知局限（2026-11-09）**
 
@@ -643,6 +644,7 @@ B1（声明类 vs 实现类）已覆盖同一语义、且每次 CI 都在跑；�
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
+| v2.45 | 2026-11-13 | **P2-10 批 2（scripts 22 条）**：21 条 allowlist（读文件/解析失败 → 保守回退，语法错误由 ruff 兜底）+ 1 条升可见——`check_g_013_test_coverage.py` 读 commit message 失败改 stderr `[WARN]`（空消息会让"fix 必须带测试"规则失效）。G-050 基线 **165 → 164**（pass 46/return 48/debug 70）。剩余 56 条：query 19 / wechat_ip 5 / scan 4 / ui 28 |
 | v2.44 | 2026-11-13 | **monitor 启动补扫（08#23 / P3-16，用户授权「默认开 + watermark」）**：`_run()` 在 observer 启动后起 `monitor-catchup` 线程，`_catch_up_existing` 按目录分批（祖先折叠）、1s 间隔、`stop` 可打断；`monitor.scan_existing_on_start` 默认 `true`；watermark 存 `monitor_state.catchup_watermark`（= 本次扫描开始时间，被打断不推进）；`last_processed` 落 `monitor_state.last_processed`。e2e `tests/integration/test_monitor_catchup_e2e.py` 6 例；本地 825 文件压测 62 批 / 825 搬移 / 0 UNIQUE / 0 locked。**同批**：C24 `/api/export/standards` 改 `mgr.file_index.get_status_stats()`（原调门面不存在的方法，恒 `{"ok": false}`）；P2-11 远程备份实测 **7 条**畸形键（5 条可合并到 `TSG …` + 2 条 `manual_required`）。压测脚本 `scripts/stress_monitor_catchup.py`（非门禁） |
 | v2.43 | 2026-11-13 | **P2-07：G-052 增加数字声明校验**（`COUNT_CLAIMS`）——6 处写死数字必须与代码抽取一致：`03-architecture`/`19-web-win-inventory` 的「42 个 router 模块、124 个唯一 `/api` 路径」、`20-api-route-inventory` 的「124 唯一路径 / 140 route×method」、`onboarding/README` 与 `18-schema-migrations` 的「43 张表 / 32 个迁移模块」。声明被删也阻断（防绕过）。同批修正 4 处漂移数字（41→42、132→124、41/29→43/32、123/139→124/140）。测试 `tests/test_check_docs_drift_counts.py`（4 例） |
 | v2.42 | 2026-11-13 | **P2-10 批 1：G-050 基线 168 → 165**（pass 46 / return 49 / debug 70）。50 条非迁移 triage：3 条升级 warning——`docker/_static_token.py`（静态令牌落库失败）、`docker/scheduler.py`（备份目录不可读 → 保留策略失效）、`pilotstd/core/config/manager.py`（`.bak` 回滚失败 → 默认值覆盖用户配置）；47 条 allowlist（回退即预期行为/热路径防刷屏），逐条理由见 `docs/debt/p2-10-silent-errors-triage.md`。新增 `tests/test_p2_10_silent_error_triage.py` 3 例。剩余 78 条：scripts 22 / query 19 / wechat_ip 5 / ui 28 / scan 4 |

@@ -231,8 +231,8 @@ def get_commit_message(msg_file: Optional[str] = None) -> str:
             capture_output=True, text=True, encoding='utf-8', errors='replace', check=False, timeout=10
         )
         return (result.stdout or '') if result.returncode == 0 else ''
-    except Exception:
-        return ''
+    except Exception as e:  # noqa: BLE001 - 空消息会让"fix 必须带测试"规则失效，必须留痕
+        print(f"[WARN] 读取 commit message 失败，按空消息处理: {e}", file=sys.stderr); return ''  # noqa: E702
 
 
 def get_changed_files() -> List[str]:

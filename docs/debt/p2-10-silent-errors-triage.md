@@ -11,15 +11,15 @@
 
 G-050 按 AST 统计三类"失败不可见"：
 
-| 类别 | 定义 | 批 1 前 | 批 1 后 |
-|---|---|---|---|
-| `pass` | `except` 体只有 `pass` | 46 | 46 |
-| `return` | `except` 体只有 `return <空/False/None>` | 50 | 49 |
-| `debug` | `except` 体内只有 `logger.debug` | 72 | 70 |
-| **合计** | | **168** | **165** |
+| 类别 | 定义 | 批 1 前 | 批 1 后 | 批 2 后 |
+|---|---|---|---|---|
+| `pass` | `except` 体只有 `pass` | 46 | 46 | 46 |
+| `return` | `except` 体只有 `return <空/False/None>` | 50 | 49 | 48 |
+| `debug` | `except` 体内只有 `logger.debug` | 72 | 70 | 70 |
+| **合计** | | **168** | **165** | **164** |
 
-拆分：迁移文件 **40** 条（冻结）、非迁移 **128 → 125** 条。  
-批 1 处理 **50** 条（47 条 allowlist + 3 条升级 warning，见第三节）。
+拆分：迁移文件 **40** 条（冻结）、非迁移 **128 → 126** 条。  
+批 1 处理 **50** 条（47 条 allowlist + 3 条升级 warning，见第三节）；批 2 处理 **22** 条 scripts（21 allowlist + 1 升可见，见第七节）。
 
 ---
 
@@ -110,20 +110,49 @@ G-050 按 AST 统计三类"失败不可见"：
 
 ## 五、基线收紧
 
-`scripts/silent_errors_baseline.json` 由 `--emit` 重新生成：`pass 46 / return 49 / debug 70`（168 → 165）。  
+`scripts/silent_errors_baseline.json` 由 `--emit` 重新生成：批 1 后 `pass 46 / return 49 / debug 70`（168 → 165），批 2 后 `pass 46 / return 48 / debug 70`（165 → 164）。  
 `python scripts/check_g_050_silent_errors.py` → PASS。
 
 ---
 
-## 六、剩余 78 条（批 2 / 批 3）
+## 六、剩余 56 条（批 3 / 批 4）
 
 | 区域 | 条数 | 说明 |
 |---|---|---|
-| `pilotstd/ui/` | 28 | Qt 生命周期/事件总线/文件树；多为关闭/销毁路径的 best-effort |
-| `scripts/` | 22 | **优先**：门禁脚本吞错会制造假绿（`check_g_013`/`check_g_029`/`docs_sync_check` 等），逐条判 warning 或"读文件失败必须非零退出" |
 | `pilotstd/query/` | 19 | 适配器网络回退（`csres`/`hbba`/`njbz365` 替代标准请求失败 debug）、路由指标、冷却恢复 |
 | `pilotstd/wechat_ip/` | 5 | 浏览器/IP 检测 |
 | `pilotstd/scan/` | 4 | watcher 索引、解析器 |
 
-批 2 建议顺序：`scripts/`（假绿风险最高）→ `query/`（用户可见的查询回退）→ `wechat_ip/`。  
-批 3：`ui/` + `scan/`。
+批 3 建议顺序：`query/`（用户可见的查询回退）→ `wechat_ip/` → `scan/`。  
+批 4：`ui/` 28 条（Qt 生命周期/事件总线/文件树，多为关闭/销毁路径的 best-effort）。
+
+---
+
+## 七、批 2 清单（scripts 22 条；21 allowlist + 1 升可见）
+
+| 位置 | 类别 | 判定 | 理由 |
+|---|---|---|---|
+| `scripts/check_g_013_test_coverage.py:234` | return | **升可见** | 读 commit message 失败返回 `''` 会让规则 0（fix 必须带测试）失效；改为 stderr `[WARN]` 后仍返回空串 |
+| `scripts/fix_relative_imports.py:34` | return | allowlist | 文件不在扫描根内 → `None`（路径判定，非错误） |
+| `scripts/fix_relative_imports.py:64` | return | allowlist | 解析失败 → 空集合；语法错误由 ruff 兜底 |
+| `scripts/fix_relative_imports.py:98` | return | allowlist | 无法解析相对导入 → `False`（不改写即最安全） |
+| `scripts/audit_api_matrix.py:115` | return | allowlist | 非字面量 → `None`（抽取器按"未知"处理，偏保守） |
+| `scripts/audit_api_matrix.py:150` | return | allowlist | 白名单文件读不到 → `()`（所有路由按非公开，偏严格） |
+| `scripts/check_g_013_test_coverage.py:365` | return | allowlist | 语法错误 → `None`，已注释"交由其他门禁处理" |
+| `scripts/check_property_proxy.py:57` | return | allowlist | 非字面量 → 空集合（白名单解析偏严格） |
+| `scripts/check_property_proxy.py:73` | return | allowlist | 语法错误 → 空集合（ruff 兜底） |
+| `scripts/check_relative_imports.py:63` | return | allowlist | 不在包内 → `None`（路径判定） |
+| `scripts/check_relative_imports.py:227` | return | allowlist | 解析失败 → 空集合（ruff 兜底） |
+| `scripts/update_status.py:56` | pass | allowlist | 测试 JSON 解析失败 → 回退统计测试文件数（状态生成器，非门禁） |
+| `scripts/update_status.py:81` | pass | allowlist | 门禁输出解析失败 → `—`（状态生成器） |
+| `scripts/_chain_scan_guards.py:25` | return | allowlist | AST 读不到 → `None`，审计脚本跳过该文件 |
+| `scripts/_docs_sync_io.py:196` | return | allowlist | `claude` 不可用 → `False`（有文档说明，走只提示分支） |
+| `scripts/_gate_paths.py:47` | return | allowlist | 路径在 root 之外 → `False`（不参与 gitignore 判定） |
+| `scripts/check_g_015_relative_imports.py:71` | return | allowlist | `__init__.py` 语法错误 → `False`（ruff 兜底） |
+| `scripts/check_g_029_test_coverage.py:50` | return | allowlist | git 失败 → `None`，调用方判 FAIL（与"0 个文件"区分） |
+| `scripts/check_i18n_hardcoded_python.py:223` | return | allowlist | 基线 JSON 坏 → 空基线（会让所有命中变"新增"，偏严格） |
+| `scripts/check_no_conflict_markers.py:96` | return | allowlist | 二进制/不可读文件跳过（冲突标记只在文本里） |
+| `scripts/docs_sync_check.py:423` | pass | allowlist | stdout 重配编码失败 → 忽略（不影响判定） |
+| `scripts/find_docs.py:28` | return | allowlist | 读不到文档 → 空串（检索工具，不中断全量） |
+
+**批 2 结论**：scripts 是门禁自身，但这 22 条要么是"读不到 → 保守回退（更严格）"，要么是"语法错误交给 ruff"，没有发现第二处假绿；唯一会让规则失效的 `check_g_013` 已升 `[WARN]`。

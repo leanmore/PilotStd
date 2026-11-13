@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import importlib.util
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -18,6 +19,8 @@ SCRIPT = ROOT / "scripts" / "check_g_013_test_coverage.py"
 
 
 def _load():
+    # 脚本用 `from _gate_git import ...`（同目录模块），单独跑本文件时需把 scripts/ 入路径
+    sys.path.insert(0, str(SCRIPT.parent))
     spec = importlib.util.spec_from_file_location("check_g_013_test_coverage", SCRIPT)
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
@@ -71,3 +74,12 @@ def test_filename_containing_test_is_not_a_test_change() -> None:
     assert result["passed"] is False
     assert gate.is_test_file("tests/test_x.py") is True
     assert gate.is_test_file("scripts/check_g_013_test_coverage.py") is False
+
+
+def test_commit_message_read_failure_warns(tmp_path, capsys) -> None:
+    """读消息失败 → 返回空串但 stderr 留 WARN（静默空消息会让规则 0 失效）。"""
+    missing = tmp_path / "no_such_msg_file"
+    assert gate.get_commit_message(str(missing)) == ""
+    err = capsys.readouterr().err
+    assert "[WARN]" in err
+    assert "commit message" in err

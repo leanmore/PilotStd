@@ -87,7 +87,7 @@
     "scripts/_docs_sync_io.py": 1,
     "scripts/_gate_paths.py": 1,
     "scripts/audit_api_matrix.py": 2,
-    "scripts/check_g_013_test_coverage.py": 2,
+    "scripts/check_g_013_test_coverage.py": 1,
     "scripts/check_g_015_relative_imports.py": 1,
     "scripts/check_g_029_test_coverage.py": 1,
     "scripts/check_i18n_hardcoded_python.py": 1,

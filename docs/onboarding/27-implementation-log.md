@@ -395,6 +395,15 @@
 | 行为 | 远程实测 `/api/export/standards` 恒返回 `{"ok": false, "error": "'StandardManager' object has no attribute 'get_status_stats'"}`；改为 `mgr.file_index.get_status_stats()` |
 | 测试 | 测试 mock 删除 `get_status_stats` 伪属性（`del mgr.get_status_stats`），9 passed；修复前该断言必红 |
 
+### 31. P2-10 批 2（scripts 22 条）
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `scripts/check_g_013_test_coverage.py`、`scripts/silent_errors_baseline.json`、`docs/debt/p2-10-silent-errors-triage.md` |
+| 行为 | 22 条中 21 条 allowlist（读文件/解析失败 → 保守回退；语法错误由 ruff 兜底）；`check_g_013` 读 commit message 失败由静默 `return ''` 改为 stderr `[WARN]`（空消息会让"fix 必须带测试"规则失效） |
+| 测试 | G-013 相关 23 passed；G-050 基线 165 → 164，PASS |
+| 回滚 | 删 `[WARN]` 两行并恢复基线 |
+
 ---
 
 ## 验证汇总
