@@ -232,14 +232,14 @@ batch_scope("imp")
 
 | 端 | 事实 |
 |---|---|
-| **Web API** | `docker/api/` 共 **41 个 router 模块、132 个路由**；按域拆分（scan/query/download/normalize/archive/...） |
+| **Web API** | `docker/api/` 共 **42 个 router 模块、124 个唯一 `/api` 路径**；按域拆分（scan/query/download/normalize/archive/...） |
 | **Web 五段式** | `POST /api/scan` → `/api/query` → `/api/download` → `/api/normalize` → `/api/archive`；`pipeline_runs` 记录每步状态；下载只取 `exact` 非采标，**2026-11-09 起不再截断为 10 条**（引擎按 `download.batch_size` 分批）；下载成功项已在前端加入归档 items |
 | **Web 鉴权** | `POST /api/login` + session cookie + CSRF；`/api/health` 公开；静态 token 不是当前主路径 |
 | **Win Worker** | 8 个 QThread：`ScanWorker`、`QueryWorker`、`DownloadWorker`、`NormalizeWorker`、`ArchiveWorker`、`AutoWorker`、`AnnounceWorker`、`UpdateDownloadWorker` |
 | **Win 一键** | `AutoWorker.run()` 包装 `StandardManager.auto_run_stream()`，通过 Qt 信号逐阶段回传 |
 | **CLI** | 12 个子命令：scan / query / download / organize / auto / pending / normalize / announce / task / move / expire / validity |
 
-**注意**：Web 的 132 个路由不是 132 个页面；很多是状态、配置、日志、通知、用户等支撑接口。五段式主链只有 5 个核心端点。
+**注意**：Web 的 124 个唯一 `/api` 路径不是 124 个页面；很多是状态、配置、日志、通知、用户等支撑接口。五段式主链只有 5 个核心端点。
 
 Win 的取消是**协作式**：`check_stop()` 在检查点抛 `WorkerAborted`，底层 `*_stream` 以单条粒度退出；不是强杀线程。Web TaskView 目前没有对应取消按钮，见 [`08-known-boundaries.md`](08-known-boundaries.md) #15。
 

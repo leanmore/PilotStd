@@ -361,6 +361,15 @@
 | 测试 | 无代码改动；`docs/onboarding/08-known-boundaries.md #23` 记录修复方案（`scan_existing_on_start` + watermark），**改生产行为需授权** |
 | 回滚 | 不适用 |
 
+### 27. P2-07 数字声明门禁（G-052 扩展）
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `scripts/check_docs_drift.py`、新增 `tests/test_check_docs_drift_counts.py`；文档 `03`/`19`/`20`/`onboarding/README` |
+| 行为 | `COUNT_CLAIMS` 登记 6 处写死数字，与代码抽取（router 模块数 / 唯一 `/api` 路径 / route×method 对 / 迁移表数 / 迁移模块数）比对；不符或声明缺失 → `count_drift`/`count_missing` 阻断；同批修 4 处漂移 |
+| 测试 | 新增 4 例（现状一致 / 事实变化检出 / 声明缺失 / 数值不符带行号）；`python scripts/check_docs_drift.py` → 0 违规 |
+| 回滚 | 删 `COUNT_CLAIMS`/`check_count_claims` 调用与测试，数字声明随之回退 |
+
 ---
 
 ## 验证汇总

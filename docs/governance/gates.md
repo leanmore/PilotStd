@@ -47,7 +47,7 @@
 | G-049 | 通知模块防膨胀门禁 | `pilotstd/core/notification/`：`manager.py` **≤340**、`aggregate_buffer.py` **≤400**、`_builders_batch.py` **≤380**、`callback_service.py` / `_builders_system.py` / `_manager_ops.py` **≤350**、`renderer.py` **≤300**（有效代码行，口径与 G-010 一致；静态规格数据表 `*_data.py` 不纳入） | 任一文件有效行超上限（输出文件/当前值/上限） | `scripts/check_g_049_manager_size.py` | ✅ 已部署（A-2，2026-10-18 扩展） |
 | G-050 | 静默吞错棘轮 | 三类失败不可见：`except: pass`、`except → return 空/False/None`、`except` 内 `logger.debug`（`pilotstd/`+`docker/`，排除 templates） | 任一文件任一类别计数 > 基线 | `scripts/check_g_050_silent_errors.py` | ✅ 已部署（v2.07；基线 `scripts/silent_errors_baseline.json`） |
 | G-051 | API 权限矩阵 | 写操作路由必须有显式 `@require_role("admin")`（或用户白名单/公开白名单），前端 `http.*` 调用必须能匹配到后端路由 | 任一缺口（`--check`） | `scripts/audit_api_matrix.py` | ✅ 已部署（2026-11-05） |
-| G-052 | 文档漂移 | `docs/` 中出现的 `/api/...` 必须是真实路由，配置键必须在 defaults/scope，表名必须在迁移中（归档/ADR/债务台账豁免） | 任一不存在（`check_docs_drift.py`） | `scripts/check_docs_drift.py` | ✅ 已部署（2026-11-05） |
+| G-052 | 文档漂移 | `docs/` 中出现的 `/api/...` 必须是真实路由，配置键必须在 defaults/scope，表名必须在迁移中（归档/ADR/债务台账豁免）；**P2-07（2026-11-13）**：另校验 `COUNT_CLAIMS` 里 6 处写死的数字（router 模块/唯一 API 路径/route×method/表数/迁移模块数），声明缺失也阻断 | 任一不存在或数字不符（`check_docs_drift.py`） | `scripts/check_docs_drift.py` | ✅ 已部署（2026-11-05；数字校验 2026-11-13） |
 | G-053 | backend 测试 GUI import 守卫 | `tests/test_*.py` 的**模块级** import 不得出现 `pilotstd.ui` / `PyQt6`（`tests/gui/` 与 backend CI 已忽略文件除外） | 任一命中（`check_backend_test_imports.py`） | `scripts/check_backend_test_imports.py` | ✅ 已部署（2026-11-10，U37） |
 
 > G-051 在 CI 的 `repo-compliance` 作业中执行：`python scripts/audit_api_matrix.py --check`（写端点缺显式 admin 或前端死调用即失败）。
@@ -639,6 +639,7 @@ B1（声明类 vs 实现类）已覆盖同一语义、且每次 CI 都在跑；�
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
+| v2.43 | 2026-11-13 | **P2-07：G-052 增加数字声明校验**（`COUNT_CLAIMS`）——6 处写死数字必须与代码抽取一致：`03-architecture`/`19-web-win-inventory` 的「42 个 router 模块、124 个唯一 `/api` 路径」、`20-api-route-inventory` 的「124 唯一路径 / 140 route×method」、`onboarding/README` 与 `18-schema-migrations` 的「43 张表 / 32 个迁移模块」。声明被删也阻断（防绕过）。同批修正 4 处漂移数字（41→42、132→124、41/29→43/32、123/139→124/140）。测试 `tests/test_check_docs_drift_counts.py`（4 例） |
 | v2.42 | 2026-11-13 | **P2-10 批 1：G-050 基线 168 → 165**（pass 46 / return 49 / debug 70）。50 条非迁移 triage：3 条升级 warning——`docker/_static_token.py`（静态令牌落库失败）、`docker/scheduler.py`（备份目录不可读 → 保留策略失效）、`pilotstd/core/config/manager.py`（`.bak` 回滚失败 → 默认值覆盖用户配置）；47 条 allowlist（回退即预期行为/热路径防刷屏），逐条理由见 `docs/debt/p2-10-silent-errors-triage.md`。新增 `tests/test_p2_10_silent_error_triage.py` 3 例。剩余 78 条：scripts 22 / query 19 / wechat_ip 5 / ui 28 / scan 4 |
 | v2.41 | 2026-11-12 | **frontend-e2e Playwright 安装去 apt**：`--with-deps` 在 GitHub Runner 遇到 `azure.archive.ubuntu.com` DNS 故障会卡死并 exit 100；改为 `playwright install chromium`，Runner 已带运行库。 |
 | v2.40 | 2026-11-11 | **P2-07：`check_module_doc_mappings.py` 从 `--strict`（告警）切 `--strict-block`（阻断）**；与 `docs_sync_check.py` 同口径，核心模块变更未同步文档即 fail CI。 |

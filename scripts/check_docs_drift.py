@@ -53,6 +53,48 @@ API_TOKEN_RE = re.compile(r"(?<![\w<])/api/[A-Za-z0-9_\-{}/.]+")
 CONFIG_TOKEN_RE = re.compile(r"`([a-z][a-z0-9_]*(?:\.[a-z0-9_]+)+)`")
 TABLE_TOKEN_RE = re.compile(r"`([a-z][a-z0-9_]{3,})`")
 
+# 数字声明（P2-07）：文档里写死的“事实数字”必须与代码抽取一致。
+# 每条捕获的数字顺序必须与 expected() 返回顺序一致；声明被删/改到匹配不上也算失败
+# （否则“删掉数字”就能绕过门禁）。只收口径明确、可机器判定的数字，不做全文数字猜测。
+COUNT_CLAIMS: tuple[dict, ...] = (
+    {
+        "doc": "docs/onboarding/03-architecture.md",
+        "pattern": r"\*\*(\d+) 个 router 模块、(\d+) 个唯一 `/api` 路径\*\*",
+        "label": "router 模块数 / 唯一 API 路径数",
+        "expected": lambda f: (f["router_modules"], len(f["routes"])),
+    },
+    {
+        "doc": "docs/onboarding/19-web-win-inventory.md",
+        "pattern": r"\*\*(\d+) 个 router 模块、(\d+) 个唯一 `/api` 路径\*\*",
+        "label": "router 模块数 / 唯一 API 路径数",
+        "expected": lambda f: (f["router_modules"], len(f["routes"])),
+    },
+    {
+        "doc": "docs/onboarding/20-api-route-inventory.md",
+        "pattern": r"G-052 \*\*(\d+) 个唯一 `/api` 路径\*\*；`audit_api_matrix` \*\*(\d+) 个 route×method 对\*\*",
+        "label": "唯一 API 路径数 / route×method 对数",
+        "expected": lambda f: (len(f["routes"]), f["route_method_pairs"]),
+    },
+    {
+        "doc": "docs/onboarding/README.md",
+        "pattern": r"(\d+) 张表 \+ (\d+) 个迁移模块清单",
+        "label": "迁移可解析表数 / 迁移模块数",
+        "expected": lambda f: (len(f["tables"]), f["migration_modules"]),
+    },
+    {
+        "doc": "docs/onboarding/18-schema-migrations.md",
+        "pattern": r"迁移可解析业务表 \*\*(\d+) 张\*\*",
+        "label": "迁移可解析表数",
+        "expected": lambda f: (len(f["tables"]),),
+    },
+    {
+        "doc": "docs/onboarding/18-schema-migrations.md",
+        "pattern": r"迁移模块 \*\*(\d+) 个 `_migrate\*\.py`\*\*",
+        "label": "迁移模块数",
+        "expected": lambda f: (f["migration_modules"],),
+    },
+)
+
 
 def _i18n_keys() -> set[str]:
     """收集三语 JSON 的全部叶子键，用于把“文案键”与“配置键”区分开。"""
@@ -106,6 +148,15 @@ def load_facts() -> dict:
 
     statuses = {s.value for s in Status}
     i18n_keys = _i18n_keys()
+    # P2-07 数字声明的代码事实：路由模块数、迁移模块数、route×method 对数
+    api_dir = ROOT / "docker" / "api"
+    router_modules = sum(
+        1 for p in api_dir.glob("*.py") if "APIRouter(" in p.read_text(encoding="utf-8")
+    )
+    migration_modules = len(list(MIGRATIONS.glob("_migrate_*.py")))
+    route_method_pairs = len(
+        {(normalize_backend(r.path), method) for r in routes for method in r.methods}
+    )
     return {
         "routes": sorted(route_paths),
         "tables": sorted(tables),
@@ -115,6 +166,9 @@ def load_facts() -> dict:
         "statuses": sorted(statuses),
         "i18n_key_count": len(i18n_keys),
         "_i18n_keys": sorted(i18n_keys),
+        "router_modules": router_modules,
+        "migration_modules": migration_modules,
+        "route_method_pairs": route_method_pairs,
     }
 
 
@@ -194,6 +248,59 @@ def scan_docs(facts: dict) -> dict:
     return {"facts": facts, "violations": violations}
 
 
+def check_count_claims(
+    facts: dict, claims: tuple[dict, ...] | None = None, root: Path | None = None
+) -> list[dict]:
+    """校验文档写死的数字声明与代码事实一致（P2-07）。
+
+    只认 `COUNT_CLAIMS` 里显式登记的“口径明确”数字；声明缺失按违规处理，
+    防止通过删除数字绕过门禁。
+    """
+    root = root or ROOT
+    selected = COUNT_CLAIMS if claims is None else claims
+    violations: list[dict] = []
+    for claim in selected:
+        path = root / claim["doc"]
+        if not path.exists():
+            violations.append(
+                {
+                    "kind": "count_missing",
+                    "file": claim["doc"],
+                    "line": 0,
+                    "token": claim["pattern"],
+                    "reason": "数字声明所在文档不存在",
+                }
+            )
+            continue
+        text = path.read_text(encoding="utf-8")
+        match = re.search(claim["pattern"], text)
+        if not match:
+            violations.append(
+                {
+                    "kind": "count_missing",
+                    "file": claim["doc"],
+                    "line": 0,
+                    "token": claim["pattern"],
+                    "reason": "数字声明缺失（删除声明不能绕过门禁）",
+                }
+            )
+            continue
+        claimed = tuple(int(g) for g in match.groups())
+        expected = tuple(int(v) for v in claim["expected"](facts))
+        if claimed != expected:
+            line_no = text[: match.start()].count("\n") + 1
+            violations.append(
+                {
+                    "kind": "count_drift",
+                    "file": claim["doc"],
+                    "line": line_no,
+                    "token": " / ".join(str(c) for c in claimed),
+                    "reason": f"{claim['label']}：文档 {claimed} ≠ 实际 {expected}",
+                }
+            )
+    return violations
+
+
 def _compose_port() -> str:
     """读取 compose 的宿主端口（用于端口一致性的扩展检查）。"""
     compose = ROOT / "docker-compose.yml"
@@ -228,7 +335,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--strict", action="store_true", help="保留参数，默认即阻断")
     args = parser.parse_args(argv)
 
-    report = scan_docs(load_facts())
+    facts = load_facts()
+    report = scan_docs(facts)
+    report["violations"].extend(check_count_claims(facts))
     if args.json_path:
         Path(args.json_path).write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     print(render(report))

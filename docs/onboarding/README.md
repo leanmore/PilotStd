@@ -145,7 +145,7 @@ flowchart LR
 | [`15-query-adapter-matrix.md`](15-query-adapter-matrix.md) | 21 个查询适配器逐站能力/配额矩阵 |
 | [`16-notification-matrix.md`](16-notification-matrix.md) | 44 个通知事件 × 4 渠道矩阵 |
 | [`17-validity-state-machine.md`](17-validity-state-machine.md) | 有效性 L1/L2/L3 状态机 |
-| [`18-schema-migrations.md`](18-schema-migrations.md) | 41 张表 + 29 个迁移模块清单 |
+| [`18-schema-migrations.md`](18-schema-migrations.md) | 43 张表 + 32 个迁移模块清单 |
 | [`19-web-win-inventory.md`](19-web-win-inventory.md) | Web/Win/CLI 功能与分支清单 |
 | [`20-api-route-inventory.md`](20-api-route-inventory.md) | 132 个 API 路由全量清单 |
 | [`21-notification-builders.md`](21-notification-builders.md) | 44 个通知事件的 builder/payload 明细 |
