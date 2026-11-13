@@ -109,7 +109,9 @@ def test_scheduler_history_stats(client: TestClient, monkeypatch) -> None:
 
 
 def _seed_export(mgr: MagicMock) -> None:
-    mgr.get_status_stats.return_value = {"total": 1}
+    # 2026-11-13 回归：统计来自 file_index（门面没有 get_status_stats）
+    del mgr.get_status_stats
+    mgr.file_index.get_status_stats.return_value = {"total": 1}
     mgr.export_service.get_standards_data.return_value = {
         "items": [{"standard_number": "GB/T 1-2020", "status": "现行"}]
     }
@@ -138,7 +140,8 @@ def test_export_csv(client: TestClient, mgr: MagicMock) -> None:
 
 
 def test_export_error_is_reported_not_raised(client: TestClient, mgr: MagicMock) -> None:
-    mgr.get_status_stats.side_effect = RuntimeError("db down")
+    del mgr.get_status_stats
+    mgr.file_index.get_status_stats.side_effect = RuntimeError("db down")
     r = client.get("/api/export/standards")
     assert r.status_code == 200
     assert r.json() == {"ok": False, "error": "db down"}

@@ -370,6 +370,31 @@
 | 测试 | 新增 4 例（现状一致 / 事实变化检出 / 声明缺失 / 数值不符带行号）；`python scripts/check_docs_drift.py` → 0 违规 |
 | 回滚 | 删 `COUNT_CLAIMS`/`check_count_claims` 调用与测试，数字声明随之回退 |
 
+### 28. monitor 启动补扫（08#23 / P3-16；用户授权默认开）
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `pilotstd/monitor/scheduler.py`、`handler.py`、`config.py`；新增 `tests/integration/test_monitor_catchup_e2e.py`、`scripts/stress_monitor_catchup.py` |
+| 行为 | `_run()` 在 observer 启动后起 `monitor-catchup` daemon 线程：按目录分批、祖先折叠、1s 间隔、`stop` 可打断；`monitor.scan_existing_on_start` 默认 `true`；watermark `monitor_state.catchup_watermark`（= 扫描开始时间，被打断不推进）；`last_processed` 落 `monitor_state.last_processed` |
+| 测试 | 新增 e2e 6 例（启动前放文件→归档、祖先折叠、watermark、禁用、stop 打断、last_processed）；monitor 相关 94 passed；本地 825 文件压测：62 批 / 825 搬移 / 0 UNIQUE / 0 locked / inbox 清空 |
+| 回滚 | `monitor.scan_existing_on_start=false` 立即停用；代码回滚删除 `_catch_up_existing` 与三个 state 辅助函数 |
+
+### 29. P2-11 畸形 validity 键实测（7 条，非 4）
+
+| 项 | 内容 |
+|---|---|
+| 数据 | 远程 `pre_migration_v75_to_v76.bak`（`/api/backup/download`）：`standard_validity` 819 行，前导空格缺代号键 7 条 |
+| 判定 | ` 11-2020`/` 23-2021`/` 7-2019`/` 8001-2019`/` 8002-2022` → 合并到已存在的 `TSG …`（`T/SG` 候选都是修改单）；` 19001-2020`/` 47008-1947` → `manual_required`（file_index 无同号同年） |
+| 下一步 | 一次性修复脚本 dry-run + 生产窗口执行；2 条在 UI 标 `manual_required`。未发现 `47013-2015` part 歧义 |
+
+### 30. C24 导出接口恒失败（已修）
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `docker/api/export.py`、`tests/test_api_scheduler_export_auto.py` |
+| 行为 | 远程实测 `/api/export/standards` 恒返回 `{"ok": false, "error": "'StandardManager' object has no attribute 'get_status_stats'"}`；改为 `mgr.file_index.get_status_stats()` |
+| 测试 | 测试 mock 删除 `get_status_stats` 伪属性（`del mgr.get_status_stats`），9 passed；修复前该断言必红 |
+
 ---
 
 ## 验证汇总

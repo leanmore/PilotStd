@@ -51,7 +51,7 @@ sequenceDiagram
 | Web 手动扫描 | `POST /api/scan` → `docker/api/scan.py` | 扫描指定目录，返回文件列表 |
 | Win 手动扫描 | `ScanWorker` → `mgr.scan_directory()` | 扫描后进入表格 |
 | CLI | `python main.py --cli scan <dir>` | 扫描并输出 |
-| Docker 监控 | `pilotstd/monitor/scheduler.py::_on_file` | 发现新文件后扫描+归档 |
+| Docker 监控 | `pilotstd/monitor/scheduler.py::_on_file` | 新文件事件触发扫描+归档；**启动时另做一次存量补扫**（`_catch_up_existing`，按目录分批，默认开） |
 | Win 可选 watcher | `pilotstd/scan/watcher.py::FileWatcher` | **只更新 `file_index`，不归档** |
 
 ### 关键认知

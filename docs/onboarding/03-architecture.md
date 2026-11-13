@@ -89,7 +89,7 @@ flowchart TB
 - **Web**：前后端分离，五个 API 分别有 `pipeline_runs` 状态；生产当前下载结果不回灌归档，本地代码已修待部署（见 [`08-known-boundaries.md`](08-known-boundaries.md)）。
 - **Win**：`AutoWorker` 在一个 QThread 内调 `auto_run_stream`，下载/归档共享同一批 `ParsedStdInfo`。
 - **CLI**：同步调用 `auto_run`，没有 UI 线程。
-- **Docker Monitor**：只看 `/inbox`，不查/不下；每个文件事件会触发一次扫描。
+- **Docker Monitor**：只看 `/inbox`，不查/不下；每个文件事件会触发一次扫描。**启动时先补扫存量**（`_catch_up_existing`：按目录分批、`monitor.scan_existing_on_start` 默认开、watermark 防重复），之后才完全依赖事件。
 
 ### Win 的另一个 watcher
 

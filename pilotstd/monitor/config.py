@@ -16,6 +16,8 @@ DEFAULTS = {
     "file_patterns": ".pdf,.docx,.doc",
     "ignore_patterns": "~$,.tmp,.swp",
     "auto_archive": "true",
+    # P3-16 / 08#23：启动时补扫 watch_path 下已存在的文件（默认开；热水位见 catchup_watermark）
+    "scan_existing_on_start": "true",
 }
 
 
@@ -38,7 +40,7 @@ def get_config() -> dict[str, Any]:
         if k not in cfg:
             cfg[k] = v
     # 类型转换
-    for bool_key in ("enabled", "recursive", "auto_archive"):
+    for bool_key in ("enabled", "recursive", "auto_archive", "scan_existing_on_start"):
         cfg[bool_key] = cfg.get(bool_key, "true") == "true"
     cfg["delay_seconds"] = int(cfg.get("delay_seconds", "5"))
     cfg["file_patterns"] = [p.strip() for p in cfg.get("file_patterns", ".pdf,.docx,.doc").split(",") if p.strip()]
@@ -57,6 +59,7 @@ def set_config(updates: dict) -> None:
         "file_patterns",
         "ignore_patterns",
         "auto_archive",
+        "scan_existing_on_start",
     ):
         if key in updates:
             val = updates[key]
@@ -71,6 +74,66 @@ def set_config(updates: dict) -> None:
                 "VALUES (?, ?, datetime('now', 'localtime'))",
                 (f"monitor.{key}", val),
             )
+
+
+# ── 启动补扫水位 + 最后处理文件（P3-16 / 08#23）────────────────
+# 存在 cache_config 的 `monitor_state.*` 命名空间：不会被 get_config() 的
+# `monitor.%` 前缀匹配，避免把运行时状态混进用户配置。
+_WATERMARK_KEY = "monitor_state.catchup_watermark"
+_LAST_PROCESSED_KEY = "monitor_state.last_processed"
+
+
+def _get_state(key: str) -> str:
+    """读取 monitor_state.* 的字符串值；任何异常返回空串（调用方用自己的默认值）。"""
+    try:
+        db = _db()
+        row = db.fetchone("SELECT config_value FROM cache_config WHERE config_key=?", (key,))
+        return str(row["config_value"]) if row and row["config_value"] is not None else ""
+    except Exception as e:
+        logger.warning("monitor state read failed (%s): %s", key, e)
+        return ""
+
+
+def _set_state(key: str, value: str) -> None:
+    """写入 monitor_state.*；失败只 warning，不阻断监控主流程。"""
+    try:
+        db = _db()
+        db.execute(
+            "INSERT OR REPLACE INTO cache_config (config_key, config_value, updated_at) "
+            "VALUES (?, ?, datetime('now', 'localtime'))",
+            (key, value),
+        )
+    except Exception as e:
+        logger.warning("monitor state save failed (%s): %s", key, e)
+
+
+def get_catchup_watermark() -> float:
+    """上次启动补扫的**开始时间**（epoch 秒）。
+
+    未跑过 / 读取失败返回 0.0 ⇒ 首次启动必须处理全部存量（不能用默认值把存量跳过）。
+    存"开始时间"而不是"完成时间"：补扫期间新增的文件（mtime 晚于开始时间）下次仍会被处理。
+    """
+    raw = _get_state(_WATERMARK_KEY)
+    try:
+        return float(raw) if raw else 0.0
+    except ValueError:
+        logger.warning("monitor catchup watermark invalid: %r", raw)
+        return 0.0
+
+
+def set_catchup_watermark(ts: float) -> None:
+    """补扫正常跑完后推进水位（被 stop 打断时不调用，下次重扫更安全）。"""
+    _set_state(_WATERMARK_KEY, f"{float(ts):.3f}")
+
+
+def get_last_processed() -> str:
+    """最后处理文件的路径（状态页 `last_processed`）。"""
+    return _get_state(_LAST_PROCESSED_KEY)
+
+
+def set_last_processed(path: str) -> None:
+    """记录最后处理文件（每批一次，不是每文件）。"""
+    _set_state(_LAST_PROCESSED_KEY, str(path))
 
 
 # ── 监控统计内存计数器 ───────────────────────────────────────────

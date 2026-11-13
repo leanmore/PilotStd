@@ -9,7 +9,14 @@ from typing import Any
 
 from watchdog.observers import Observer
 
-from .config import get_config, get_monitor_stats
+from .config import (
+    get_catchup_watermark,
+    get_config,
+    get_last_processed,
+    get_monitor_stats,
+    set_catchup_watermark,
+    set_last_processed,
+)
 from .handler import StandardFileHandler
 
 logger = logging.getLogger(__name__)
@@ -90,12 +97,18 @@ def get_scheduler():
 # 后台线程驱动，文件就绪后触发自动归档
 # 全局单例模式，通过_调度器()获取，/管理生命周期
 class FileMonitorScheduler:
+    # 补扫目录之间的间隔（秒）：避免启动瞬间打满查询/下载；stop 时可被立即打断。
+    CATCHUP_INTERVAL_SECONDS = 1.0
+
     def __init__(self, manager: Any = None):
         self.observer: Observer | None = None  # type: ignore[valid-type]
         self.handler: StandardFileHandler | None = None
         self.running = False
         self._thread: threading.Thread | None = None
         self._stop = threading.Event()
+        self._catchup_stop: threading.Event | None = None
+        self._catchup_thread: threading.Thread | None = None
+        self._last_processed = ""
         self._mgr = manager  # 依赖注入，避免 monitor→manager 反向导入
         self._mgr_lock = threading.Lock()  # 懒加载 manager 的并发保护
         # 同一目录可能有多个文件事件；只允许一个主链运行，并做短时间去抖
@@ -116,6 +129,8 @@ class FileMonitorScheduler:
             )
             return
         self._stop.clear()
+        # 每次启动用新的补扫停止信号：旧补扫线程持有旧 Event，stop() 已置位，不会串到新一轮
+        self._catchup_stop = threading.Event()
         self._thread = threading.Thread(target=self._run, daemon=True, name="file-monitor")
         self._thread.start()
         logger.info("[MONITOR] 启动成功")
@@ -123,10 +138,15 @@ class FileMonitorScheduler:
     def stop(self):
         """停止文件监控，等待后台线程退出并清理资源。"""
         self._stop.set()
+        if self._catchup_stop is not None:
+            self._catchup_stop.set()
         if self.observer:
             self.observer.stop()
         if self._thread:
             self._thread.join(timeout=5)
+        if self._catchup_thread is not None:
+            self._catchup_thread.join(timeout=5)
+            self._catchup_thread = None
         self.running = False
         logger.info(
             "监控调度器已停止: trace_id=%s source_type=monitor_scheduler target_chat_id=-",
@@ -141,13 +161,14 @@ class FileMonitorScheduler:
            Observer生命周期+sleep循环需集成/E2E测试。
            参见：docs/testing/playbook.md §UI-layer skip rule #3
         """
-        resolved = resolve_monitor_config()
+        cfg = get_config()
+        resolved = resolve_monitor_config(cfg)
         watch_path = resolved["watch_path"]
         delay = resolved["delay_seconds"]
         recursive = resolved["recursive"]
 
         source = ("env" if os.environ.get("PILOTSTD_STORAGE_INBOX_DIR")
-                  else ("db" if get_config().get("watch_path") else "default"))
+                  else ("db" if cfg.get("watch_path") else "default"))
         logger.info("[MONITOR] watch_path=%s (source=%s)", watch_path, source)
         try:
             os.makedirs(watch_path, exist_ok=True)
@@ -162,6 +183,25 @@ class FileMonitorScheduler:
         self.running = True
         logger.info("[MONITOR] 监控 %s (recursive=%s delay=%ds)", watch_path, recursive, delay)
 
+        # P3-16 / 08#23：observer 已就绪后再补扫存量，扫不到的窗口由事件兜底。
+        if cfg.get("scan_existing_on_start", True) and cfg.get("auto_archive", True):
+            if self._catchup_stop is None:
+                self._catchup_stop = threading.Event()
+            self._last_processed = get_last_processed()
+            self._catchup_thread = threading.Thread(
+                target=self._catch_up_existing,
+                args=(self._catchup_stop,),
+                daemon=True,
+                name="monitor-catchup",
+            )
+            self._catchup_thread.start()
+        else:
+            logger.info(
+                "[MONITOR] 启动补扫已禁用（scan_existing_on_start=%s auto_archive=%s）",  # i18n-allow: 内部运维日志
+                cfg.get("scan_existing_on_start", True),
+                cfg.get("auto_archive", True),
+            )
+
         try:
             while not self._stop.is_set():
                 time.sleep(1)
@@ -169,6 +209,118 @@ class FileMonitorScheduler:
             self.observer.stop()
             self.observer.join()
             self.running = False
+
+    def _collect_catchup_groups(self, watch_path, recursive, watermark, cfg, stop_event):
+        """遍历 watch_path，按父目录收集 mtime 晚于 watermark 的待补扫文件。"""
+        groups: dict[str, list[str]] = {}
+        skipped = 0
+        try:
+            for dirpath, dirnames, filenames in os.walk(watch_path):
+                if stop_event.is_set():
+                    return groups, skipped
+                for name in filenames:
+                    path = os.path.join(dirpath, name)
+                    if self.handler is None or not self.handler._should_handle(path, cfg=cfg):
+                        continue
+                    try:
+                        mtime = os.path.getmtime(path)
+                    except OSError:
+                        continue
+                    if mtime <= watermark:
+                        skipped += 1
+                        continue
+                    groups.setdefault(dirpath, []).append(path)
+                if not recursive:
+                    dirnames[:] = []
+        except OSError as e:
+            logger.warning("[MONITOR] 启动补扫遍历失败，跳过本轮: %s", e)  # i18n-allow: 内部运维日志
+            return {}, skipped
+        return groups, skipped
+
+    @staticmethod
+    def _collapse_catchup_dirs(groups: dict[str, list[str]]) -> list[str]:
+        """祖先目录折叠：父目录的 auto_run 递归扫描会覆盖子目录，返回需处理的目录列表。"""
+        kept: list[str] = []
+        for key in sorted(groups):
+            if any(key == anc or key.startswith(anc + os.sep) for anc in kept):
+                continue
+            kept.append(key)
+        return kept
+
+    def _process_catchup_batches(self, kept, groups, stop_event):
+        """逐目录调用 _on_file；返回 (完成目录数, 是否被 stop 打断)。"""
+        for idx, key in enumerate(kept, 1):
+            if stop_event.is_set():
+                logger.info(
+                    "[MONITOR] 启动补扫被停止: %d/%d 目录，水位不推进",  # i18n-allow: 内部运维日志
+                    idx - 1,
+                    len(kept),
+                )
+                return idx - 1, True
+            logger.info(
+                "[MONITOR] 启动补扫 %d/%d: %s（%d 文件）",  # i18n-allow: 内部运维日志
+                idx,
+                len(kept),
+                key,
+                len(groups[key]),
+            )
+            self._on_file(groups[key][0])
+            if idx < len(kept) and stop_event.wait(self.CATCHUP_INTERVAL_SECONDS):
+                logger.info(
+                    "[MONITOR] 启动补扫被停止: %d/%d 目录，水位不推进",  # i18n-allow: 内部运维日志
+                    idx,
+                    len(kept),
+                )
+                return idx, True
+        return len(kept), False
+
+    def _catch_up_existing(self, stop_event: threading.Event):
+        """启动补扫：处理 watch_path 下**已存在**的文件（08#23 / P3-16）。
+
+        设计要点：
+        - 只处理 mtime 晚于 `catchup_watermark` 的文件；watermark 默认 0 ⇒ 首次启动全处理；
+        - 按**父目录**分批（`auto_run(dir)` 会递归扫子目录），祖先目录折叠后代，避免重复扫描；
+        - 每批一次 `_on_file`，复用去抖/锁/空目录清理，一批 ≈ 一条通知；
+        - 目录间 `CATCHUP_INTERVAL_SECONDS` 间隔，`stop` 可立即打断；被打断时不推进 watermark。
+
+        注意：`auto_run` 在 worker 线程里跑，超大目录会持续较久；daemon 线程在进程退出时中断，
+        此时 watermark 未推进，下次启动会重扫（已处理的文件已被搬走，不会重复）。
+        """
+        cfg = get_config()
+        watch_path = resolve_monitor_config(cfg)["watch_path"]
+        if not os.path.isdir(watch_path):
+            logger.warning("[MONITOR] 启动补扫跳过：watch_path 不存在 %s", watch_path)  # i18n-allow: 内部运维日志
+            return
+        watermark = get_catchup_watermark()
+        scan_started = time.time()
+        groups, skipped = self._collect_catchup_groups(
+            watch_path, bool(cfg.get("recursive", True)), watermark, cfg, stop_event
+        )
+        if stop_event.is_set():
+            return
+        if not groups:
+            set_catchup_watermark(scan_started)
+            logger.info(
+                "[MONITOR] 启动补扫: 无待处理文件（watermark=%.3f，跳过 %d 个旧文件）",  # i18n-allow: 内部运维日志
+                watermark,
+                skipped,
+            )
+            return
+        kept = self._collapse_catchup_dirs(groups)
+        total_files = sum(len(groups[key]) for key in kept)
+        logger.info(
+            "[MONITOR] 启动补扫开始: %d 目录 / %d 文件（watermark 跳过 %d）",  # i18n-allow: 内部运维日志
+            len(kept),
+            total_files,
+            skipped,
+        )
+        done, interrupted = self._process_catchup_batches(kept, groups, stop_event)
+        if interrupted:
+            return
+        set_catchup_watermark(scan_started)
+        logger.info(
+            "[MONITOR] 启动补扫完成: %d 目录 / %d 文件", done, total_files  # i18n-allow: 内部运维日志
+        )
 
     def _on_file(self, path: str):
         """文件稳定后触发：解析 → 归档 → 按**真实归档结果**计数。
@@ -180,7 +332,7 @@ class FileMonitorScheduler:
         """
         cfg = get_config()
         if not cfg.get("auto_archive", True):
-            logger.info("[MONITOR] 自动归档已禁用，跳过: %s", path)
+            logger.info("[MONITOR] 自动归档已禁用，跳过: %s", path)  # i18n-allow: 内部运维日志
             return
 
         stats = get_monitor_stats()
@@ -235,17 +387,22 @@ class FileMonitorScheduler:
         finally:
             with self._dir_lock:
                 self._active_dirs.discard(source_root)
+            # 状态页可观测性（08#23 第 4 步）：最后处理的文件路径 + 落库，重启后仍可见
+            self._last_processed = path
+            set_last_processed(path)
 
     def get_status(self) -> dict:
         """返回监控运行状态，包含运行标志、路径、今日统计等。"""
         cfg = get_config()
         today_stats = get_monitor_stats().get_today_stats()
+        if not self._last_processed:
+            self._last_processed = get_last_processed()
         return {
             "running": self.running,
             "enabled": cfg.get("enabled", True),
             "watch_path": cfg.get("watch_path", "/inbox"),
             "delay_seconds": cfg.get("delay_seconds", 5),
-            "last_processed": "",
+            "last_processed": self._last_processed,
             "processed_today": today_stats["processed"],
             "success_today": today_stats["success"],
             "failed_today": today_stats["failed"],

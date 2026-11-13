@@ -125,7 +125,8 @@ notification / Telegram / wechat
 
 - `FileWatcher` 只更新 `file_index`；
 - **不归档、不查询、不下载**；
-- 与 Docker 的 `monitor._on_file` 不是同一个东西。
+- 与 Docker 的 `monitor._on_file` 不是同一个东西；
+- Docker monitor 启动时会补扫 `/inbox` 存量（`monitor.scan_existing_on_start` 默认开，按目录分批、watermark 防重复）；**Win watcher 没有补扫**，存量靠手动 scan。
 
 ---
 

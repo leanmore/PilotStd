@@ -169,8 +169,11 @@ class TestDefaults:
             "file_patterns",
             "ignore_patterns",
             "auto_archive",
+            "scan_existing_on_start",
         }
         assert set(DEFAULTS.keys()) == required
+        # 08#23：启动补扫默认开（用户 2026-11-13 授权）
+        assert DEFAULTS["scan_existing_on_start"] == "true"
 
 
 class TestStandardFileHandler:

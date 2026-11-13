@@ -64,12 +64,16 @@ class StandardFileHandler(FileSystemEventHandler):
         t.daemon = True
         t.start()
 
-    def _should_handle(self, path: str) -> bool:
-        """根据扩展名白名单和忽略模式判断文件是否应触发回调。"""
+    def _should_handle(self, path: str, cfg: dict | None = None) -> bool:
+        """根据扩展名白名单和忽略模式判断文件是否应触发回调。
+
+        `cfg` 可选：启动补扫一次取配置后复用，避免逐文件查库（825 文件 ≈ 825 次连接）。
+        """
         basename = os.path.basename(path)
         if basename.startswith("."):
             return False
-        cfg = get_config()
+        if cfg is None:
+            cfg = get_config()
         ext = os.path.splitext(path)[1].lower()
         patterns = cfg.get("file_patterns", [".pdf", ".docx", ".doc"])
         if patterns and ext not in patterns:
