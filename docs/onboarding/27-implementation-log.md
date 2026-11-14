@@ -468,6 +468,7 @@
 | 测试 | `tests/test_check_gui_coverage_ratchet.py` 8 passed（等值/超缓冲下降/缓冲内下降/上涨提示/文件消失/type_only 软提醒/报告缺失 exit 2/Windows 绝对路径归一）；本地实跑覆盖率报告 PASS |
 | 备注 | ① 超时**不全局放宽**：`NotificationConfig.test.ts` 的单个用例标 `30_000`（v8 插桩下该用例慢），其余恢复默认 5s；② 棘轮规则写死"提升覆盖率必须同 PR 收紧基线"，脚本在上涨时打印 `建议基线值 X.XX`；③ `type_only` 文件一旦出现可执行行即 FAIL（升格进棘轮或移出代码）；④ 基线文件消失 → 提示"同 PR 改路径，不加豁免"。`TaskProgress.vue`/`TaskManager.vue` 列为第二批候选（先确认是否落在同一失败/恢复分支） |
 | 回滚 | 删 CI 两步 + 两个脚本/基线 + 还原 `vite.config.ts` reporter |
+| 后续 | 2026-11-14 补 `TaskHistoryList.test.ts` 6 例（四状态/分页/详情-重跑-删除事件/英文 locale），行覆盖 **9.09% → 100%** 并同 PR 收紧基线；CI run `43584408939` **13/13 全绿**（含 `test-frontend` 的 G-054 步骤与 `repo-compliance` 的严格文档联动） |
 
 ---
 
