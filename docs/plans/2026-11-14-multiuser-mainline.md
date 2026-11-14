@@ -29,7 +29,7 @@
 
 - **动作**：`/api/auto`、`/api/archive` 在调用 manager 时传 `NotificationContext(scope="user", user_id=<当前用户>)`；`get_current_user_id()` 在 admin 鉴权后可用（archive 已在用）。
 - **完成判据**：两个用户各触发一次 auto 与 archive → `notification_log` 对应行的 `user_id` 分别为两人；`user_id=0` 的行数为 0（除非确属系统事件）。
-- **不阻塞**：A-40 的数据归属标记（可同批做小步，但 P1 判据不依赖它）。
+- **不阻塞（明确口径）**：A-40 不阻塞 P1 判据；顺手可做，不顺手不碰，**不为此中断 P1**。
 
 ### P2 · 队列/聚合隔离验证
 

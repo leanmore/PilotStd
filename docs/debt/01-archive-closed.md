@@ -1667,3 +1667,19 @@ GUI 设置页 (ui/core/handlers/_settings*.py)          Web API (docker/api/sett
 | V-1 | T-16 `docs_sync_check.py` 严格模式（告警期→阻断期） | **已闭环**：CI 早已用 `--strict-block` | `.github/workflows/ci.yml` 的 docs-sync 步骤：`python scripts/docs_sync_check.py --strict-block`；本轮 `check_all --ci` 实测该步骤阻断生效 |
 | V-5 | T-38 G-032 交叉引用对「版本历史行」不适用（原记 10 处） | **已收敛**：复跑仅 4 条 warning，其中唯一"不存在引用"是 gates.md 版本历史行 v2.33 里**自述的历史死链**（`docs/architecture/architecture.md`），属该条目的目标场景 | 2026-11-14 `python scripts/check_g_032_doc_health.py --guards`：4 warning（STATUS ×2、known-issues 27 天、gates v2.33 历史死链）；无"10 处" |
 | V-12 | G-032 交叉引用的一般性历史遗留 | **同 V-5 收口**，不再单列跟踪 | 同上 |
+
+---
+
+## 2026-11-14 A-33 归档（删除 20 个懒加载 getter）
+
+| 编号 | 条目 | 结论 | 证据 |
+|---|---|---|---|
+| A-33 | `_get_*_adapter()` 懒加载 20 个函数全库零调用 | **已删除（2026-11-14）**：按三分法归 ① 后经用户裁定删除——生产 0 调用、唯一消费者是 `tests/test_query_init.py` 自锁；来源为 Initial commit `9256b383`（非逆向产物）；与 `adapters/registry.py` 22 个适配器非一一对应（缺 ahbz/dbba）；脚手架已停止生成该模式 | `pilotstd/query/__init__.py` 删 140 行，留一句"适配器统一走 registry，勿再加 getter"；`tests/test_query_init.py` 只保留顶层导出契约；全仓 `git grep _get_.*_adapter` 仅剩无关的 `_get_all_query_adapters`；全量测试 + `--ci` 绿；查证见 `docs/records/2026-11-14-a33-lazy-getters-audit.md` |
+
+---
+
+## 2026-11-14 V-4 销账（空库迁移链不再打印 OperationalError）
+
+| 编号 | 条目 | 结论 | 证据 |
+|---|---|---|---|
+| V-4 | T-36 空库跑迁移链固定打印 3 条 `OperationalError` | **已不可复现，销账（2026-11-14）**：按原文探针复跑，空库建库至 `schema_version=76`，**0 条 ERROR/OperationalError 日志** | 探针：临时目录新建 `Database(path)`，root logger 捕获全部 ERROR 级与含 `OperationalError` 的记录 → `error_records=0`；三条旧告警（`no such table: _schema_version`、`no such table: standard_info_cache`、`duplicate column name: user_id`）均未再出现，推断由后续迁移的防御性检查（先查 `sqlite_master`/列存在）消除 |

@@ -22,7 +22,6 @@
 |---|---|---|---|---|
 | **V-2** | **T-21** 本地 `vitest run` 偶发「全绿但 exit=1」 | `观察中` | 再次出现 | 立即 `node node_modules/vitest/vitest.mjs run *> log.txt 2>&1` 存全量输出。**2026-10-16 复跑：42 files / 324 passed、exit=0**（仍未复现） |
 | **V-3** | **T-35** 配置文件跨进程写锁 | `观察中`（**已决定不引入文件锁**） | 实测到一次并发写丢配置 | 比对 `config.json` 与 `config.json.bak` 的键差异；届时优先"原子写 + 重试 + 写后校验"或 SQLite 配置后端 |
-| **V-4** | **T-36** 空库跑迁移链固定打印 3 条 `OperationalError` | `观察中` | ① 有人因这些日志误判故障；② 探针出现"多出的告警" | 按原文探针复跑，去重后应恰为 3 条：`no such table: _schema_version`、`no such table: standard_info_cache`、`duplicate column name: user_id`（**2026-10-16 复现一致**） |
 | **V-6** | **T-31** 自动 `chore: bump version` 提交不触发 CI | `观察中` | 出现一次"版本号/CHANGELOG 不一致"事故 | 查 `pilotstd/__init__.py` 与 `CHANGELOG.md` 顶部版本；兜底是 `G-009`（`ci.yml:205`） |
 | **V-7** | **平台侧告警**：`ubuntu-latest → Ubuntu 26` 预告 | `观察中`（**残留项有日期**） | **2026-10-19 起**验证仍用 `ubuntu-latest` 的作业（可用 `ubuntu-24.04` 钉住规避） | `gh api repos/{owner}/{repo}/check-runs/<id>/annotations` ⇒ **2026-10-16 实测：`warning=0 / notice=9`**（原文记"24 warning"是**升级前**旧数，已更正；Node20 弃用告警已随批次 A 的 43 处 action 升级清零） |
 | **V-8** | `#33` `TaskView.vue` 逼近 G-010 警告线（有效行 399 / 线 400） | `观察中` | 任何编辑 `web/src/views/TaskView.vue` 的提交 | `python scripts/check_g_010_code_size.py`；**2026-10-16 实测**：该文件**未进 >400 名单**（仅 `_migrate_v16_v49.py` 438 与 `event_spec_data.py` 417），且其最后改动为 `5592b71c`（`2026-09-27T10:57:22+08:00`）⇒ 399 行的记载仍成立 |

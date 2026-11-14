@@ -1,51 +1,18 @@
-"""query/__init__.py 补测 — 懒加载适配器函数。"""
+"""query 包顶层导出契约（A-33 后仅保留 __all__ 检查）。
+
+原文件测的是 20 个 `_get_*_adapter` 懒加载函数——生产 0 调用、唯一消费者就是这些测试，
+属"自我维系的导出面"；2026-11-14 已连同函数一起删除（见
+`docs/records/2026-11-14-a33-lazy-getters-audit.md`）。适配器统一走
+`pilotstd/query/adapters/registry.py`。
+"""
 
 
-class TestLazyLoader:
-    def test_get_csres_adapter(self):
-        from pilotstd.query import _get_csres_adapter
-        cls = _get_csres_adapter()
-        assert cls.__name__ == "CsresAdapter"
-
-    def test_get_njbz365_adapter(self):
-        from pilotstd.query import _get_njbz365_adapter
-        cls = _get_njbz365_adapter()
-        assert cls.__name__ == "Njbz365Adapter"
-
-    def test_get_hbba_adapter(self):
-        from pilotstd.query import _get_hbba_adapter
-        cls = _get_hbba_adapter()
-        assert cls.__name__ == "HbbaAdapter"
-
-    def test_get_iso_gov_adapter(self):
-        from pilotstd.query import _get_iso_gov_adapter
-        cls = _get_iso_gov_adapter()
-        assert cls.__name__ == "IsoGovAdapter"
-
-    def test_get_ttbz_adapter(self):
-        from pilotstd.query import _get_ttbz_adapter
-        cls = _get_ttbz_adapter()
-        assert cls.__name__ == "TTBZAdapter"
-
-    def test_get_mock_adapter_returns_class_or_none(self):
-        from pilotstd.query import _get_mock_adapter
-        result = _get_mock_adapter()
-        assert result is None or hasattr(result, "__name__")
-
+class TestTopLevelExports:
     def test_top_level_exports(self):
         import pilotstd.query as q
+
         assert q.QueryResult is not None
         assert q.QueryEngine is not None
         assert q.SiteRotator is not None
-
-    def test_get_std_gov_adapter(self):
-        from pilotstd.query import _get_std_gov_adapter
-        assert _get_std_gov_adapter().__name__ == "StdGovAdapter"
-
-    def test_get_mee_adapter(self):
-        from pilotstd.query import _get_mee_adapter
-        assert _get_mee_adapter().__name__ == "MEEAdapter"
-
-    def test_get_energy_adapter(self):
-        from pilotstd.query import _get_energy_adapter
-        assert _get_energy_adapter().__name__ == "EnergyAdapter"
+        assert q.BaseAdapter is not None
+        assert q.CacheRepository is not None

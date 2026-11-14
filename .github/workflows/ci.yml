@@ -81,7 +81,7 @@ jobs:
 
       - name: Forbid production imports from test modules
         run: |
-          if grep -rn "from pilotstd\..*\.mock\|from tests\." pilotstd/ --include="*.py" | grep -v "except ImportError\|_get_mock_adapter"; then
+          if grep -rn "from pilotstd\..*\.mock\|from tests\." pilotstd/ --include="*.py" | grep -v "except ImportError"; then
             echo "❌ Production code imports test-only module. Abort."
             exit 1
           fi

@@ -27,7 +27,6 @@
 | **A-27** | **自定义菜单（企微/飞书/Telegram/钉钉）** | 调研中（2026-10-29 立项，当前主线） | 企微 a（3+5）、飞书 b（3+5 或 5+10，仅单聊）、Telegram c（命令列表）、钉钉 d（待补信息）；菜单动作映射、配置存储、静态/动态生成待方案确认；复用回调端点处理菜单 click | 方案确认后开工 |
 
 | **A-32** | **cookiecutter 把 `myadapter.py` 判为二进制**（binaryornot 特征判定；同目录测试/README 正常） | 已兜底 | `post_gen_project.py` 用 `_CONTEXT`（`cookiecutter|tojson`）+ Jinja2 手动渲染；**属绕开行为**，判定边界：只匹配 `{{` + `cookiecutter` 字面量；**不覆盖** `{% if %}` 控制块（不含字面量会被跳过）、也可能误判合法代码里的 `{{`（如格式化字符串）。扩展其它文件前先检查这两类边界；待修复后删除该步 | 触发条件＝升级 cookiecutter 时 |
-| **A-33** | **`_get_*_adapter()` 懒加载全库零调用**（A-31 调查发现） | 未修 | 保留现有代码不动（超 A-31 范围）；模板已停止生成新 getter；可整体清理 | 触发条件＝下次清理遗留代码时 |
 
 | **A-40** | **旧数据 `user_id=1` 的归属未校验**：v71 回填把所有存量日志/队列归 user 1；真正多用户时需判断归属（单用户升级可接受） | 未修 | 触发：启用多用户；修法：迁移时按用户映射或标记来源 | 触发条件＝A-21 多用户上线；**不阻塞主线**（见 docs/plans/2026-11-14-multiuser-mainline.md） |
 | **A-42** | **API auto/archive 未传用户上下文**：两端点已有 @require_role("admin")，但调用 manager 时未传 NotificationContext(user_id=...) ⇒ 事件归 system（user 0），多用户下用户看不到自己触发的通知（原文"无 auth 依赖"已过时） | 未修 | 在调用点传 get_current_user_id() 的上下文；见多用户主线 P1 | 触发条件＝多用户主线 P1；**不阻塞主线** |
@@ -36,7 +35,7 @@
 > **A-27 子项（2026-11-08，实现完成后的部署/后续待办）**
 > - **A-27.1 真实渠道 API 验证（部署时）**：企微需 `corpid`/`corpsecret`/`agentid`；飞书需 `app_id`/`secret` + 测试群 `chat_id`；Telegram 需 bot token。代码已实现，单测覆盖 fake transport，**真实 API 未调用**。**阻塞部署验证**。
 > - **A-27.2 菜单配置前端 UI**：当前通过 config + admin API 管理，前端设置页未做。**不阻塞发布**。
-> - **A-27.3 API 端到端鉴权测试**：`sync`/`status` 端点有服务层单测，未做 TestClient 端到端鉴权测试（admin 装饰器依赖运行期用户上下文）。**不阻塞发布**。
+> - **A-27.3 API 端到端鉴权测试**：**已补（2026-11-14）**——`tests/test_notification_menu_api.py` 9 例：无会话 401（中间件）、普通用户 403（`require_role`）、admin 200、同步失败 400、缺参 422、非 admin 不触发 `sync_channel`。**不阻塞发布**。
 > - **A-27.4 Telegram 形态说明**：命令列表（`setMyCommands`）已实现，但这是 Telegram 官方唯一菜单形态，**非持久菜单**；文档已标注。**已接受**。
 
 > **2026-11-08（W1-U1）遗留候选**：`pilotstd/ui/main_window/parts/_query_ops.py::_on_query_result_ready` 在 `MainWindow.query_result_ready` 信号删除后**仅剩测试直接调用**（`tests/gui/test_coverage_queries.py:44`、`tests/gui/test_main_window_core.py:328`），生产链路已由 `QueryUIHandler.on_query_result_ready`（`pilotstd/ui/core/handlers/_query.py:183/:199`）承担。**下次清理 UI 遗留代码时**：删方法并同步迁移/删除这两处测试。

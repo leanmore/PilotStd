@@ -10,6 +10,8 @@
 | 总行数 | **3,875** 非空行（= 3,256 + 619；2026-10-25 实测） |
 | 状态 | 活跃 |
 
+> **2026-11-14（A-33）**：`pilotstd/query/__init__.py` 删除 20 个 `_get_*_adapter` 懒加载函数——生产 0 调用、唯一消费者是测试自锁，且会绕过 `adapters/registry.py` 单一真相源。**适配器类统一从 `pilotstd/query/adapters/registry.py` 的 `ALL_ADAPTERS` 获取**，不要在本包再加同类 getter（`tests/test_query_init.py` 只保留顶层导出契约）。
+
 ## 模块职责
 
 封装各标准查询网站的 API 调用，统一为 `QueryResult` 输出。每个适配器负责一个站点的搜索请求构造、响应解析、结果标准化。基类提供渐进式搜索策略和评分机制，子类只需实现站点特定的 `_search` 或 `_search_candidates`。

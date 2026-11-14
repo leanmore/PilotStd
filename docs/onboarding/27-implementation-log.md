@@ -507,6 +507,15 @@
 | 测试 | `pytest tests/test_e2e_adapters.py` → 2 passed / 15 skipped；文档门禁与 `check_all --ci` 全绿 |
 | 回滚 | 还原 `run_local_e2e.sh` 的 export、删除两份新文档、恢复 A-41/A-42 原行 |
 
+### 43. A-33 删除 + A-27.3 鉴权 e2e + V-4 销账 + 08 状态刷新（2026-11-14）
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `pilotstd/query/__init__.py`、`tests/test_query_init.py`、`tests/test_notification_menu_api.py`（新增）、`.github/workflows/ci.yml`、`docs/onboarding/08-known-boundaries.md`、`docs/debt/{01,04}`、`docs/plans/2026-11-14-multiuser-mainline.md` |
+| 行为 | ① **A-33 删除**：`query/__init__.py` 删 20 个 `_get_*_adapter`（140 行），留一句"适配器统一走 registry，勿再加 getter"；`test_query_init.py` 只保留顶层导出契约；CI 里对 `_get_mock_adapter` 的旧 grep 豁免同步移除。② **A-27.3**：新增菜单端点鉴权 e2e 9 例（无会话 401 / 普通用户 403 / admin 200 / 同步失败 400 / 缺参 422 / 非 admin 不触发 `sync_channel`）。③ **V-4 销账**：空库迁移探针复跑 `schema_version=76`、`error_records=0`，三条旧 `OperationalError` 不可复现。④ **08 状态刷新**：`#19`（CloakBrowser）、`#23`（monitor 补扫）从"待部署"改为"已部署验证"；`#23` 小节标题同步。⑤ 多用户计划 P1 的 A-40 口径收紧为"不阻塞判据、顺手可做、不为此中断" |
+| 测试 | `pytest tests/test_notification_menu_api.py` → 9 passed；`pytest tests/test_query_init.py tests/test_query.py` → 84 passed；**全量 `pytest tests/ -q -n 8` → 6338 passed / 21 skipped / 0 failed（398s，exit 0）**；`--ci` 全绿 |
+| 回滚 | 恢复 `query/__init__.py` 的 20 个 getter 与测试、删除新测试文件、恢复 08 两行与小节标题 |
+
 ---
 
 ## 验证汇总
