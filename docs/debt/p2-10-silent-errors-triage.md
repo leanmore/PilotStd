@@ -243,7 +243,7 @@ G-050 `PASS`。P2-10 到此**四个批次全部完成**。
 
 | 档 | 判据（`check_g_050_silent_errors.py:105-117`） | 162 中的数量 |
 |---|---|---|
-| `pass` | `except` 体**只有一条** `pass` | 46（其中 **40 在迁移文件**，受 P-106 不可改，永久冻结） |
+| `pass` | `except` 体**只有一条** `pass` | 46 = **迁移 40**（P-106 冻结，不可改源码）+ **非迁移 6**（`core/file_index.py` 1、`query/adapters/nrsis.py` 2、`scripts/docs_sync_check.py` 1、`scripts/update_status.py` 2） |
 | `return` | `except` 体**只有一条** `return <空/None/False/0/空容器>` | 47 |
 | `debug` | `except` 体内出现 `logger.debug(...)`（可与其他语句共存） | 69 |
 
@@ -255,6 +255,6 @@ G-050 `PASS`。P2-10 到此**四个批次全部完成**。
 
 **口径自证**：`scripts/silent_errors_baseline.json` 新增 `_meta`（total / tiers / migration_frozen / triaged_allowlist / review_due），并由 `tests/test_check_g_050_silent_errors.py::test_baseline_meta_matches_counts` 钉住——改计数不同步 `_meta` 即红。
 
-**复审节奏**：`_meta.review_due = 2027-02-14`（季度）。到期复核两件事：① 122 条 allowlist 里是否已有"上层结果不再暴露"的情形（该升 warning）；② 迁移冻结 40 条是否随 P-106 到期可动。
+**复审节奏**：`_meta.review_due = 2027-02-14`（季度）。到期复核两件事：① 122 条 allowlist 里是否已有"上层结果不再暴露"的情形（该升 warning）；② 迁移冻结 40 条是否随 P-106 到期可动。**到期提醒是机制的**：`check_g_050_silent_errors.py` 在 `review_due < today` 时打印 `[WARN] G-050 基线待复审`（软提醒、退出码仍 0），由 `test_review_due_overdue_only_warns` 锁定。
 
 

@@ -234,3 +234,20 @@ def test_baseline_meta_matches_counts() -> None:
     assert meta["tiers"] == sums, meta["tiers"]
     assert meta["total"] == sum(sums.values()), meta["total"]
     assert meta["migration_frozen"] + meta["triaged_allowlist"] == meta["total"]
+
+
+def test_review_due_overdue_only_warns(tmp_path, monkeypatch, capsys) -> None:
+    """`_meta.review_due` 过期 → 只打 WARN，退出码仍 0（软提醒，不阻断 CI）。"""
+    baseline = {"_meta": {"review_due": "2020-01-01"}, "pass": {}, "return": {}, "debug": {}}
+    bpath = tmp_path / "baseline.json"
+    bpath.write_text(json.dumps(baseline), encoding="utf-8")
+    monkeypatch.setattr(gate, "BASELINE", bpath)
+    scan_root = tmp_path / "scan"
+    scan_root.mkdir()
+
+    rc = gate.main(["--root", str(scan_root)])
+
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "G-050 基线待复审" in out
+    assert "review_due=2020-01-01" in out

@@ -61,7 +61,7 @@
 | `fetch_failures.last_retry_at` | deprecated | 仅 DDL；重试时间未写未读 |
 | `query_metrics.recorded_at` | deprecated | 仅 DDL 默认值；指标按 batch_id/时间查询 |
 | `standard_validity.last_status_updated_at` | 只写未读 | `ValidityChecker` 写入；无 API/UI 读取 |
-| `validity_check_log.previous_status` | 只写未读 | 病历写入；`validity_check_log` 无生产读取方（见 P2-01）；**整表只写不读**——将来要诊断出口请新增只读 API（带鉴权），不要直接查表；v0.19x 仍无读路径则评估降级为归档表（迁移源码受 P-106 保护，注释不可改，故口径记在此处） |
+| `validity_check_log.previous_status` | 只写未读 | 病历写入；`validity_check_log` 无生产读取方（见 P2-01）；**整表只写不读**——将来要诊断出口请新增只读 API（带鉴权），不要直接查表；v0.19x 仍无读路径则评估降级为归档表；**降级必须新增迁移（v77+）改表，不得改 v76 源码**（P-106 checksum：改旧迁移会让所有已升级库启动即 `DatabaseError`）；迁移源码受保护、注释不可改，故口径记在此处 |
 
 > 裁决：P2-01 选 B——**不删列**，只标 deprecated；删列需 v77 迁移 + 维护窗口，未来确认“永久废弃”再评估。
 

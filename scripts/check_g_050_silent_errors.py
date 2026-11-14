@@ -24,6 +24,7 @@ import argparse
 import ast
 import json
 import sys
+from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -190,6 +191,16 @@ def main(argv: list[str] | None = None) -> int:
         print(f"FAIL: 基线文件不存在: {BASELINE}")
         return 1
     baseline = json.loads(BASELINE.read_text(encoding="utf-8"))
+
+    # 口径生效期检查（U36 复审项）：`_meta.review_due` 只是书面日期，没有机制会提醒；
+    # 这里做**软提醒**（WARN，不阻断）——否则 2027 年 `_meta` 就成了装饰。
+    meta = baseline.get("_meta") or {}
+    due = str(meta.get("review_due") or "")
+    if due and due < date.today().isoformat():
+        print(
+            f"[WARN] G-050 基线待复审（review_due={due}）：复核 122 条 allowlist 是否仍成立、"
+            f"40 条迁移冻结是否随 P-106 到期可动"
+        )
 
     exceeded, tightenable = compare(current, baseline)
     total = {kind: sum(v.values()) for kind, v in current.items()}
