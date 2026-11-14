@@ -4,6 +4,8 @@
 只有在显式设置 `PILOTSTD_RUN_NETWORK_TESTS=1` 时才运行：
     PowerShell: $env:PILOTSTD_RUN_NETWORK_TESTS=1; python -m pytest tests/test_e2e_adapters.py -v
 这样无外网的办公室/CI 环境不会因为"真实站点打不通"而误红。
+**CI 不设置该变量 ⇒ 网络 e2e 不在 CI 运行**（这是明确的缺口，不是静默跳过）；
+需要真实验证时在本地跑 ash scripts/run_local_e2e.sh（脚本内已 export 该变量）。
 
 修改以下模块后，必须在本地手动运行本文件验证：
   - pilotstd/query/adapters/ 下的适配器（ahbz/dbba/hbba/iso_gov/njbz365/std_gov）

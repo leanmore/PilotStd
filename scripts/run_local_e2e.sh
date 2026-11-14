@@ -5,6 +5,9 @@
 mkdir -p reports
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 
+# A-37：网络 e2e 默认跳过，本脚本是唯一的手动入口，必须显式开启
+export PILOTSTD_RUN_NETWORK_TESTS=1
+
 python -m pytest tests/test_e2e_adapters.py \
     -v \
     --tb=short \

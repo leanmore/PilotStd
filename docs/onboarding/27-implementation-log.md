@@ -498,6 +498,15 @@
 | 验证 | `check_g_032_doc_health.py --guards` → 4 warning（与销账前一致）；`check_all --fast --guards --local` 全绿；观察中计数 16 → 13 |
 | 回滚 | 从 01 删除该节并恢复 04-watch 三行 |
 
+### 42. A-37 CI 缺口确认 + A-33 查证 + A-41 接受 + 多用户主线计划（2026-11-14）
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `scripts/run_local_e2e.sh`、`tests/test_e2e_adapters.py`、`docs/records/2026-11-14-a33-lazy-getters-audit.md`、`docs/plans/2026-11-14-multiuser-mainline.md`、`docs/debt/{02,03}`、`.github/PULL_REQUEST_TEMPLATE.md` |
+| 行为 | ① **A-37 确认**：CI 不设置 `PILOTSTD_RUN_NETWORK_TESTS` ⇒ 网络 e2e **不在 CI 运行**（明确缺口，非静默跳过）；`run_local_e2e.sh` 内显式 export 变量，作为唯一手动入口；② **A-33 查证**（只读）：20 个 getter 来自 Initial commit `9256b383`，9 个仅被 `tests/test_query_init.py` 引用、11 个零引用；与 `registry.py` 的 22 个适配器**非一一对应**（缺 ahbz/dbba）；无动态/文档引用 ⇒ 按三分法归 ①（保留 + 注明勿新增），不满足 ②/③；③ **A-41 转接受**（不做 admin 跨用户视图，理由入 02-accepted）；④ **多用户主线**拆 P1（事件归属接线）/P2（队列聚合隔离）/P3（AC-6 验收），A-40/A-42 等枝节标"不阻塞主线"；⑤ **diff coverage 两步走**（先只报告不阻断，PR 模板写死"先补测试"） |
+| 测试 | `pytest tests/test_e2e_adapters.py` → 2 passed / 15 skipped；文档门禁与 `check_all --ci` 全绿 |
+| 回滚 | 还原 `run_local_e2e.sh` 的 export、删除两份新文档、恢复 A-41/A-42 原行 |
+
 ---
 
 ## 验证汇总
