@@ -235,3 +235,26 @@ G-050 按 AST 统计三类"失败不可见"：
 基线 **164 → 162**（pass 46 / return 47 / debug 69）；`scripts/silent_errors_baseline.json` 已同步收紧，
 G-050 `PASS`。P2-10 到此**四个批次全部完成**。
 
+---
+
+## 十、基线口径（为什么 162 = 46 + 47 + 69，且没有"第四档"）
+
+> 这一节是为了防止"164→162 到底减了什么"被误读。三档是**AST 形态分类**，不是"修好/没修好"。
+
+| 档 | 判据（`check_g_050_silent_errors.py:105-117`） | 162 中的数量 |
+|---|---|---|
+| `pass` | `except` 体**只有一条** `pass` | 46（其中 **40 在迁移文件**，受 P-106 不可改，永久冻结） |
+| `return` | `except` 体**只有一条** `return <空/None/False/0/空容器>` | 47 |
+| `debug` | `except` 体内出现 `logger.debug(...)`（可与其他语句共存） | 69 |
+
+**三个必须写死的口径**：
+
+1. **`pass` 不是"测试通过"，是"`except: pass`"**。所以"修好两条应该进 pass"不成立——修好 = 该处不再命中任何一档，直接从基线**移除**（`return`/`debug` 各 −1）。本轮 162 正是这样来的：`_cleanup.py` 的 debug 2→1，`rules_page.py` 的 return 1→0（加 warning 后 handler 体变两条语句，不再是"单语句 return"）。
+2. **基线本身就是 allowlist**（脚本 docstring `:126-128` 明写"无需 `# g050-allow` 逐条标注"）。因此不存在"allowlist 是否计入 162"的问题——**162 全部是被冻结的站点**：40 条迁移冻结 + **122 条已 triage 的 allowlist**（批 1 的 47 + 批 2 的 21 + 批 3 的 28 + 批 4 的 26，含少量批间调整）。若把 allowlist 从总数里剔除，`compare()` 会把它当"新增"直接 FAIL，棘轮就失效了。
+3. **"修好"与"登记"的差别只体现在基线位置**：修好 ⇒ 该文件该档计数 −1（基线与现状同时下降）；登记 ⇒ 计数不变、理由写进本文件。**本轮 2 条是"修好"**（基线下降），26 条是"登记"（基线不变）。
+
+**口径自证**：`scripts/silent_errors_baseline.json` 新增 `_meta`（total / tiers / migration_frozen / triaged_allowlist / review_due），并由 `tests/test_check_g_050_silent_errors.py::test_baseline_meta_matches_counts` 钉住——改计数不同步 `_meta` 即红。
+
+**复审节奏**：`_meta.review_due = 2027-02-14`（季度）。到期复核两件事：① 122 条 allowlist 里是否已有"上层结果不再暴露"的情形（该升 warning）；② 迁移冻结 40 条是否随 P-106 到期可动。
+
+

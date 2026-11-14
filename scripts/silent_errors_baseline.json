@@ -1,4 +1,17 @@
 {
+  "_meta": {
+    "migration_frozen": 40,
+    "note": "基线即 allowlist：三档合计 = 被冻结的不可见失败点；修复 = 从基线移除该条（收紧），不存在第四档",
+    "review_due": "2027-02-14",
+    "tiers": {
+      "debug": 69,
+      "pass": 46,
+      "return": 47
+    },
+    "total": 162,
+    "triaged_allowlist": 122,
+    "updated_at": "2026-11-14"
+  },
   "debug": {
     "docker/api/adapter.py": 1,
     "docker/api/organize.py": 1,

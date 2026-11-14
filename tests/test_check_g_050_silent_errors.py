@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -215,3 +216,21 @@ def test_scripts_archive_is_excluded(tmp_path) -> None:
     """scripts/archive/ 是历史探针，按前缀排除，不计入。"""
     counts = gate.scan(_tree_at(tmp_path, "scripts/archive/old_probe.py", _SIMPLE_PASS))
     assert "scripts/archive/old_probe.py" not in counts["pass"]
+
+
+# ── 基线口径自证：`_meta` 必须与三档合计一致（防止改了计数却不同步口径）──────
+
+
+def test_baseline_meta_matches_counts() -> None:
+    """`silent_errors_baseline.json` 的 `_meta` 是三档计数的口径声明，必须自洽。
+
+    门禁本身只比较 pass/return/debug 三档（`compare()`），`_meta` 不参与判定；
+    但它是"162 到底是什么"的唯一书面口径（迁移冻结 40 + 已 triage allowlist 122），
+    所以用测试钉住：任何人改计数不同步 `_meta` 即红。
+    """
+    baseline = json.loads(gate.BASELINE.read_text(encoding="utf-8"))
+    meta = baseline["_meta"]
+    sums = {kind: sum(baseline[kind].values()) for kind in ("pass", "return", "debug")}
+    assert meta["tiers"] == sums, meta["tiers"]
+    assert meta["total"] == sum(sums.values()), meta["total"]
+    assert meta["migration_frozen"] + meta["triaged_allowlist"] == meta["total"]

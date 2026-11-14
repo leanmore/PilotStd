@@ -23,7 +23,7 @@
 | 9 | `parse_hcno_from_search_page` | `pilotstd/download/adapters/openstd_download.py` | 0 | 1 个测试文件 | **保留** | 下载适配器的页面解析 helper；适配器站点改版时是首选排查/复用点。触发：openstd 站点改版后确认新解析器完全替代时删 |
 | 10 | `DirBuilder.ensure_expire_dir` | `pilotstd/organizer/dir_builder.py` | 0 | 1 个测试文件 | **保留** | C20 已裁定"规格描述错、`safe_move` 懒建目录"，方法本身是对的兜底；U38 已记录零调用。触发：目录构建重构时把"懒建"收敛到一处再删 |
 | 11 | `scope_of` | `pilotstd/core/config/scope.py:41` | `scripts/migrate_notification_scope.py:37` | 1 个测试文件 | **保留** | 有脚本消费者（迁移脚本用它决定键归属），不是死代码 |
-| 12 | `_on_query_result_ready`（MainWindow） | `pilotstd/ui/main_window/parts/_query_ops.py:24` | 0（信号 `query_result_ready` 已于 W1-U1 删除） | 8 处调用（`tests/gui/test_coverage_queries.py` 7 + `test_main_window_core.py` 1） | **保留，但登记为"UI 遗留清理批"首项** | W1-U1 已给出处置（删方法 + 迁移两处测试），但那两处测试实际在断言"列渲染"，要迁到 `QueryUIHandler.on_query_result_ready` 才能删，属重构而非清理。触发：下一次 UI 结构改动（P2-08 拆分/TaskView 再膨胀）时一并做 |
+| 12 | `_on_query_result_ready`（MainWindow） | `pilotstd/ui/main_window/parts/_query_ops.py:24` | 0（信号 `query_result_ready` 已于 W1-U1 删除） | 8 处调用（`tests/gui/test_coverage_queries.py` 7 + `test_main_window_core.py` 1） | **保留 · 标记为「测试债务」**（不是"扩展点"） | W1-U1 已给出处置（删方法 + 迁移两处测试），但那两处测试实际在断言"列渲染"，要迁到 `QueryUIHandler.on_query_result_ready` 才能删，属重构而非清理。**这 8 处测试保护的是死代码的形状，不是功能**——见 §四 |
 | 13 | 21 个 `_get_*_adapter` 懒加载 getter | 19 个在 `pilotstd/query/__init__.py` | 0 | 0 | **保留** | A-33 已裁定：模板已停止生成新 getter，现存仅作兼容；一次删 21 个会改动查询包导出面。触发：下次清理遗留代码时整批删 + 同步 `__all__` |
 
 ---
@@ -41,6 +41,18 @@
 
 | 批 | 内容 | 前置 |
 |---|---|---|
-| 批 3（可选） | 删 12 号 `_on_query_result_ready` + 迁移 8 处测试断言到 `QueryUIHandler` | 与 UI 结构改动同批 |
+| 批 3（可选） | 删 12 号 `_on_query_result_ready` + 迁移 8 处测试断言到 `QueryUIHandler` | 与 UI 结构改动同批；**先按 §四 判断这 8 处断言哪些本就该随死代码下线** |
 | 批 4（可选） | 删 13 号 21 个 getter + 同步 `query/__init__.py` 导出 | 确认无动态 `getattr` 调用（已 grep 0） |
 | 批 5（可选） | 删 5 号 `verify_password` 的旧哈希分支 + 两处测试 | 先确认存量库无 `salt:sha256` 格式哈希 |
+
+---
+
+## 四、测试债务（与死代码分开挂账）
+
+`_on_query_result_ready` 的 8 处调用是**测试债务**，不是"保留理由"：
+
+- 生产信号 `query_result_ready` 已在 W1-U1 删除，该方法**永不执行**；
+- 8 处测试断言的是"这 8 列怎么渲染"，**保护的是死代码的形状**——方法将来怎么改都不会有生产影响，测试却会红，形成"改死代码要改测试"的假耦合；
+- 正确处理不是"等重构"，而是二分：断言里**属于列渲染逻辑**的部分迁移到 `QueryUIHandler.on_query_result_ready`（真实路径），**属于死方法本身**的部分随方法一起删除；
+- 判据：删方法后，`QueryUIHandler` 侧覆盖率不下降、且没有 `# pragma: no cover` 补丁。
+
