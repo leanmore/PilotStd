@@ -58,3 +58,24 @@ def test_value_mismatch_reports_line(tmp_path):
     violations = drift.check_count_claims({}, claims=claims, root=tmp_path)
     assert [v["kind"] for v in violations] == ["count_drift"]
     assert violations[0]["line"] == 2
+
+
+# ── P2-07 扩围（2026-11-14）：数字声明必须写 reason，白名单不能默默加 ──────────
+
+
+def test_all_claims_have_reason():
+    """每条 COUNT_CLAIMS 都必须写豁免理由，否则白名单会退化成垃圾桶。"""
+    drift = _load()
+    assert drift.check_count_claims_meta() == []
+    assert all(str(c.get("reason") or "").strip() for c in drift.COUNT_CLAIMS)
+
+
+def test_claim_without_reason_is_violation():
+    """缺 reason 的声明 → claim_meta 违规（不依赖文档内容，纯元数据校验）。"""
+    drift = _load()
+    claims = (
+        {"doc": "docs/a.md", "pattern": r"(\d+)", "label": "x", "expected": lambda f: (1,)},
+    )
+    violations = drift.check_count_claims_meta(claims)
+    assert [v["kind"] for v in violations] == ["claim_meta"]
+    assert "缺少 reason" in violations[0]["reason"]

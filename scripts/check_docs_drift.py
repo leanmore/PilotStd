@@ -57,41 +57,48 @@ TABLE_TOKEN_RE = re.compile(r"`([a-z][a-z0-9_]{3,})`")
 # 每条捕获的数字顺序必须与 expected() 返回顺序一致；声明被删/改到匹配不上也算失败
 # （否则“删掉数字”就能绕过门禁）。只收口径明确、可机器判定的数字，不做全文数字猜测。
 COUNT_CLAIMS: tuple[dict, ...] = (
+    # 每条必须写 reason（P2-07 扩围规则，2026-11-14）：白名单不能"看到红就加一条"。
     {
         "doc": "docs/onboarding/03-architecture.md",
         "pattern": r"\*\*(\d+) 个 router 模块、(\d+) 个唯一 `/api` 路径\*\*",
         "label": "router 模块数 / 唯一 API 路径数",
         "expected": lambda f: (f["router_modules"], len(f["routes"])),
+        "reason": "架构总览的入口数字，读者据此判断系统规模；路由增删后旧值会直接误导新人。",
     },
     {
         "doc": "docs/onboarding/19-web-win-inventory.md",
         "pattern": r"\*\*(\d+) 个 router 模块、(\d+) 个唯一 `/api` 路径\*\*",
         "label": "router 模块数 / 唯一 API 路径数",
         "expected": lambda f: (f["router_modules"], len(f["routes"])),
+        "reason": "Web/Win 端点清单的基数；口径与 03 相同，两处必须同步，否则读者对不上账。",
     },
     {
         "doc": "docs/onboarding/20-api-route-inventory.md",
         "pattern": r"G-052 \*\*(\d+) 个唯一 `/api` 路径\*\*；`audit_api_matrix` \*\*(\d+) 个 route×method 对\*\*",
         "label": "唯一 API 路径数 / route×method 对数",
         "expected": lambda f: (len(f["routes"]), f["route_method_pairs"]),
+        "reason": "同一页并列两种口径（唯一路径 vs route×method），写错会让人把 124 与 140 混用。",
     },
     {
         "doc": "docs/onboarding/README.md",
         "pattern": r"(\d+) 张表 \+ (\d+) 个迁移模块清单",
         "label": "迁移可解析表数 / 迁移模块数",
         "expected": lambda f: (len(f["tables"]), f["migration_modules"]),
+        "reason": "onboarding 首页的规模提示；表迁移只能从代码抽取，手写必然漂移。",
     },
     {
         "doc": "docs/onboarding/18-schema-migrations.md",
         "pattern": r"迁移可解析业务表 \*\*(\d+) 张\*\*",
         "label": "迁移可解析表数",
         "expected": lambda f: (len(f["tables"]),),
+        "reason": "schema 说明的权威数字；与 SQLite 实测口径不同（需并列注明），写错会被当成表丢了。",
     },
     {
         "doc": "docs/onboarding/18-schema-migrations.md",
         "pattern": r"迁移模块 \*\*(\d+) 个 `_migrate\*\.py`\*\*",
         "label": "迁移模块数",
         "expected": lambda f: (f["migration_modules"],),
+        "reason": "迁移清单的条目基数；新增迁移后不同步，读者会以为迁移链缺口。",
     },
 )
 
@@ -248,6 +255,26 @@ def scan_docs(facts: dict) -> dict:
     return {"facts": facts, "violations": violations}
 
 
+def check_count_claims_meta(claims: tuple[dict, ...] | None = None) -> list[dict]:
+    """校验数字声明的元数据：每条 `reason` 必填（P2-07 扩围规则）。
+
+    P2-07 扩围后白名单会变长，若"加一条数字声明"不需要理由，白名单就会退化成
+    "看到红就加一条"的垃圾桶。这里把"必须写理由"变成机械校验，缺了直接判违规。
+    """
+    selected = COUNT_CLAIMS if claims is None else claims
+    return [
+        {
+            "kind": "claim_meta",
+            "file": claim.get("doc", "?"),
+            "line": 0,
+            "token": claim.get("label", ""),
+            "reason": "COUNT_CLAIMS 条目缺少 reason（白名单必须写豁免理由）",
+        }
+        for claim in selected
+        if not str(claim.get("reason") or "").strip()
+    ]
+
+
 def check_count_claims(
     facts: dict, claims: tuple[dict, ...] | None = None, root: Path | None = None
 ) -> list[dict]:
@@ -337,6 +364,7 @@ def main(argv: list[str] | None = None) -> int:
 
     facts = load_facts()
     report = scan_docs(facts)
+    report["violations"].extend(check_count_claims_meta())
     report["violations"].extend(check_count_claims(facts))
     if args.json_path:
         Path(args.json_path).write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
