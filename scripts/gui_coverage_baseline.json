@@ -1,0 +1,30 @@
+{
+  "_meta": {
+    "note": "GUI 单文件行覆盖率棘轮（P2-08）。只收运行时文件；纯类型文件列 type_only，不参与阈值。基线取 2026-11-14 实测值，只能不降。",
+    "generated_at": "2026-11-14",
+    "generated_by": "cd web && npx vitest run --coverage --coverage.reporter=json-summary",
+    "tolerance_pp": 0.5,
+    "review_due": "2027-02-14"
+  },
+  "files": {
+    "src/views/TaskView.vue": {
+      "lines": 74.56,
+      "note": "主线五段编排；2026-11-09 补失败/历史/恢复用例后 60.34 → 74.56"
+    },
+    "src/views/TaskView/TaskHistoryList.vue": {
+      "lines": 9.09,
+      "note": "历史列表：当前只有 2/22 行被覆盖，是 P2-08 失败/恢复 fixture 的主要缺口"
+    },
+    "src/utils/taskPipeline.ts": {
+      "lines": 87.5,
+      "note": "五段流水线工具；14/16 行"
+    }
+  },
+  "type_only": [
+    "src/views/TaskView/types.ts"
+  ],
+  "second_batch_candidates": [
+    "src/views/TaskProgress.vue",
+    "src/views/TaskManager.vue"
+  ]
+}

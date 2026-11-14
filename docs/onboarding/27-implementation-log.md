@@ -459,6 +459,16 @@
 | 测试 | 新增 `tests/gui/test_ui_silent_errors_batch4.py` 2 passed（caplog 锁 WARNING + 返回值不变）；`tests/gui/test_cleanup_flow_engine.py` + `test_coverage_misc.py` 41 passed；G-050 基线 **164 → 162**（pass 46/return 47/debug 69）PASS；ruff 两文件 All checks passed |
 | 回滚 | 两处改回 `logger.debug` / `return []` 并恢复基线对应项（`_cleanup.py:2`、`rules_page` return:1） |
 
+### 38. P2-08 · G-054 GUI 单文件覆盖率棘轮（2026-11-14）
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `scripts/check_gui_coverage_ratchet.py`、`scripts/gui_coverage_baseline.json`、`tests/test_check_gui_coverage_ratchet.py`、`web/vite.config.ts`（reporter 加 `json-summary`）、`.github/workflows/ci.yml`（`test-frontend` 两步） |
+| 行为 | 读 `web/coverage/coverage-summary.json`，对基线登记的前端**运行时**文件做"只降不升"（0.5pp 缓冲）：TaskView 74.56 / TaskHistoryList 9.09 / taskPipeline 87.5；`types.ts` 无执行行（0/0）列 `type_only`，只软提醒。**不发明固定阈值**（用户裁定）；上涨只提示收紧 |
+| 测试 | `tests/test_check_gui_coverage_ratchet.py` 8 passed（等值/超缓冲下降/缓冲内下降/上涨提示/文件消失/type_only 软提醒/报告缺失 exit 2/Windows 绝对路径归一）；本地实跑覆盖率报告 PASS |
+| 备注 | v8 插桩后 `NotificationConfig` 定时器用例超默认 5s（既有 flake，非本次引入）→ CI 用 `--testTimeout=60000` 规避，不改测试代码；`TaskProgress.vue`/`TaskManager.vue` 列为第二批候选（先确认是否落在同一失败/恢复分支） |
+| 回滚 | 删 CI 两步 + 两个脚本/基线 + 还原 `vite.config.ts` reporter |
+
 ---
 
 ## 验证汇总

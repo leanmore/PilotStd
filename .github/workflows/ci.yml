@@ -493,10 +493,14 @@ jobs:
       - name: PrimeVue icon import check
         run: bash scripts/check-primevue-icons.sh
 
-      - name: Run tests
+      - name: Run tests（带覆盖率，供 G-054 棘轮）
         run: |
           cd web
-          pnpm run test
+          # testTimeout 放宽到 60s：v8 插桩后 NotificationConfig 的定时器用例会超默认 5s（已知 flake）
+          pnpm run test -- --coverage --testTimeout=60000
+
+      - name: G-054 — GUI 单文件覆盖率棘轮（P2-08）
+        run: python scripts/check_gui_coverage_ratchet.py
 
       - name: Check dead TypeScript exports
         run: |

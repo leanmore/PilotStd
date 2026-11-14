@@ -53,7 +53,8 @@ export default defineConfig({
     setupFiles: [resolve(__dirname, 'src/test-setup.ts')],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'html'],
+      // json-summary 供 G-054 单文件覆盖率棘轮读取（scripts/check_gui_coverage_ratchet.py）
+      reporter: ['text', 'html', 'json-summary'],
       thresholds: {
         lines: 48.07,
         branches: 32.12,
