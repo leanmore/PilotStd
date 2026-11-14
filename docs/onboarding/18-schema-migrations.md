@@ -3,7 +3,7 @@
 > 来源：`C:\Temp\pilotstd_live_logs\prebatch.bak` 的 `sqlite_master` / `PRAGMA table_info`，2026-11-07 只读实测。
 > 当前 schema **v76**；迁移可解析业务表 **43 张**；SQLite 实测业务表 **45 张**（P2-04，含 2 张迁移解析不到的运行时表）；迁移模块 **32 个 `_migrate*.py`**（另有 `migrations.py` / `_migration_checksum.py` 两个基础设施文件）。
 
-## 一、表清单（旧快照 41 张；当前以迁移解析/SQLite 实测为准）
+## 一、表清单（旧快照 41 个表；当前以迁移解析/SQLite 实测为准）
 
 | # | 表 | 列 |
 |---|---|---|

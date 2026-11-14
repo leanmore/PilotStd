@@ -79,3 +79,19 @@ def test_claim_without_reason_is_violation():
     violations = drift.check_count_claims_meta(claims)
     assert [v["kind"] for v in violations] == ["claim_meta"]
     assert "缺少 reason" in violations[0]["reason"]
+
+
+def test_repeated_number_claims_are_registered_separately():
+    """同一数字在多处复述时必须各自登记（2026-11-14 全量扫描补的两条）。"""
+    drift = _load()
+    by_doc: dict[str, list[str]] = {}
+    for claim in drift.COUNT_CLAIMS:
+        by_doc.setdefault(claim["doc"], []).append(claim["pattern"])
+    arch = by_doc["docs/onboarding/03-architecture.md"]
+    assert len(arch) >= 2, "03 的表格行与正文复述应各有一条声明"
+    assert any("Web 的" in p for p in arch)
+    schema = by_doc["docs/onboarding/18-schema-migrations.md"]
+    assert len(schema) >= 2, "18 的正文表数与迁移模块数应各有一条声明"
+    # 标题里的历史快照改成"41 个表"，避免被当成现行表数声明（全量扫描 2026-11-14）
+    heading = (ROOT / "docs/onboarding/18-schema-migrations.md").read_text(encoding="utf-8")
+    assert "旧快照 41 个表" in heading

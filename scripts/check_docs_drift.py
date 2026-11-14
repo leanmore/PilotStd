@@ -87,6 +87,13 @@ COUNT_CLAIMS: tuple[dict, ...] = (
         "reason": "onboarding 首页的规模提示；表迁移只能从代码抽取，手写必然漂移。",
     },
     {
+        "doc": "docs/onboarding/03-architecture.md",
+        "pattern": r"Web 的 (\d+) 个唯一",
+        "label": "Web 端唯一 API 路径数（正文复述）",
+        "expected": lambda f: (len(f["routes"]),),
+        "reason": "正文复述同一数字；只改表格不改正文会造成同页矛盾（全量扫描 2026-11-14 发现）。",
+    },
+    {
         "doc": "docs/onboarding/16-notification-matrix.md",
         "pattern": r"\*\*(\d+) 个事件\*\*",
         "label": "通知事件数",
