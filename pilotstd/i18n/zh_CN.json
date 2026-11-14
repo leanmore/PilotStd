@@ -276,6 +276,7 @@
     "title_pending_query_complete": "查询完成",
     "title_site_cooldown": "冷却时间较长",
     "title_new_std_unavailable": "新标准暂不可下载",
+    "download_skipped_bad_date": "另有 {count} 条因发布日期格式异常，未加入等待队列，请手动检查",
     "title_update_found": "发现新版本",
     "title_no_update": "检查更新",
     "title_update_download": "下载更新",

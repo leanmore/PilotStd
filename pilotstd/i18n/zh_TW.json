@@ -215,6 +215,7 @@
     "title_export_hint": "匯出提示",
     "title_site_cooldown": "冷卻時間較長",
     "title_new_std_unavailable": "新標準暫不可下載",
+    "download_skipped_bad_date": "另有 {count} 條因發布日期格式異常，未加入等待佇列，請手動檢查",
     "title_update_found": "發現新版本",
     "title_no_update": "檢查更新",
     "title_update_download": "下載更新",

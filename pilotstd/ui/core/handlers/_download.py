@@ -259,8 +259,7 @@ class DownloadUIHandler:
                 if lines:
                     lines.append("")
                 # 这些标准没有进队列：若不说，用户会把「暂不可下载」误读成「已排队、到期自动下」。
-                # i18n-allow: 与同函数 failed_details 同风格的运行期拼接，待统一迁入 i18n 键
-                skipped_hint = f"另有 {len(skipped_list)} 条因发布日期格式异常，未加入等待队列，请手动检查"
+                skipped_hint = _("download_skipped_bad_date").format(count=len(skipped_list))
                 lines.append(skipped_hint)
             QMessageBox.information(self._parent, _("title_new_std_unavailable"), "\n".join(lines))
         return too_new_set

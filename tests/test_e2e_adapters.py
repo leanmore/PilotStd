@@ -1,7 +1,9 @@
 """端到端测试：真实 HTTP 请求验证各适配器对 GB/行业/国外/地方标准的查询结果。
 
-⚠️ 本文件中的测试依赖国内站点真实网络，仅在本地开发环境运行。
-GitHub CI 通过 @unittest.skipIf(_CI) 自动跳过这些测试。
+⚠️ 本文件中的测试依赖国内站点真实网络，**默认全部跳过**（A-37，2026-11-14）。
+只有在显式设置 `PILOTSTD_RUN_NETWORK_TESTS=1` 时才运行：
+    PowerShell: $env:PILOTSTD_RUN_NETWORK_TESTS=1; python -m pytest tests/test_e2e_adapters.py -v
+这样无外网的办公室/CI 环境不会因为"真实站点打不通"而误红。
 
 修改以下模块后，必须在本地手动运行本文件验证：
   - pilotstd/query/adapters/ 下的适配器（ahbz/dbba/hbba/iso_gov/njbz365/std_gov）
@@ -28,7 +30,8 @@ from pilotstd.query.adapters.iso_gov import IsoGovAdapter
 from pilotstd.query.adapters.njbz365 import Njbz365Adapter
 from pilotstd.query.adapters.std_gov import StdGovAdapter
 
-_CI = os.environ.get("CI", "").lower() in ("true", "1")
+# A-37：网络 e2e 改为"显式开启"而非"CI 才跳过"——无外网环境（办公室/离线）直接跑会红
+_RUN_NETWORK = os.environ.get("PILOTSTD_RUN_NETWORK_TESTS", "").lower() in ("1", "true", "yes")
 
 
 class TestE2EStdGov(unittest.TestCase):
@@ -37,7 +40,7 @@ class TestE2EStdGov(unittest.TestCase):
     def setUp(self):
         self.a = StdGovAdapter()
 
-    @unittest.skipIf(_CI, "CI 环境跳过网络依赖测试")
+    @unittest.skipUnless(_RUN_NETWORK, "未设置 PILOTSTD_RUN_NETWORK_TESTS=1，跳过网络依赖测试")
     @unittest.skip("外部 API 行为不稳定，std_gov 搜索结果可能变更")
     def test_gb_exact_match(self):
         """GB/T 24001-2016 应返回 exact"""
@@ -49,7 +52,7 @@ class TestE2EStdGov(unittest.TestCase):
         self.assertIn("质量", r.standard_name or "", f"标准名称应包含'质量': {r.standard_name}")
 
 
-@unittest.skipIf(_CI, "CI 环境跳过网络依赖测试")
+@unittest.skipUnless(_RUN_NETWORK, "未设置 PILOTSTD_RUN_NETWORK_TESTS=1，跳过网络依赖测试")
 class TestE2ENjbz365(unittest.TestCase):
     """南京标准平台 — 国外 + 行业标准"""
 
@@ -94,7 +97,7 @@ class TestE2ENjbz365(unittest.TestCase):
         )
 
 
-@unittest.skipIf(_CI, "CI 环境跳过网络依赖测试")
+@unittest.skipUnless(_RUN_NETWORK, "未设置 PILOTSTD_RUN_NETWORK_TESTS=1，跳过网络依赖测试")
 class TestE2EHbba(unittest.TestCase):
     """行业标准平台 — 行业标准"""
 
@@ -128,7 +131,7 @@ class TestE2EHbba(unittest.TestCase):
         )
 
 
-@unittest.skipIf(_CI, "CI 环境跳过网络依赖测试")
+@unittest.skipUnless(_RUN_NETWORK, "未设置 PILOTSTD_RUN_NETWORK_TESTS=1，跳过网络依赖测试")
 class TestE2EDbba(unittest.TestCase):
     """地方标准平台 — 地方标准"""
 
@@ -148,7 +151,7 @@ class TestE2EDbba(unittest.TestCase):
         )
 
 
-@unittest.skipIf(_CI, "CI 环境跳过网络依赖测试")
+@unittest.skipUnless(_RUN_NETWORK, "未设置 PILOTSTD_RUN_NETWORK_TESTS=1，跳过网络依赖测试")
 class TestE2EIsoGov(unittest.TestCase):
     """国际标准平台 — ISO/IEC 标准"""
 
@@ -174,7 +177,7 @@ class TestE2EIsoGov(unittest.TestCase):
         )
 
 
-@unittest.skipIf(_CI, "CI 环境跳过网络依赖测试")
+@unittest.skipUnless(_RUN_NETWORK, "未设置 PILOTSTD_RUN_NETWORK_TESTS=1，跳过网络依赖测试")
 class TestE2ECrossAdapter(unittest.TestCase):
     """跨适配器一致性：同一条标准在不同站点应都能查到（第七维度）"""
 
@@ -230,7 +233,7 @@ class TestE2ECrossAdapter(unittest.TestCase):
         self.assertTrue(found, "GB/T 24001-2016 应在新站点 ahbz 或 std_gov 查到")
 
 
-@unittest.skipIf(_CI, "CI 环境跳过网络依赖测试")
+@unittest.skipUnless(_RUN_NETWORK, "未设置 PILOTSTD_RUN_NETWORK_TESTS=1，跳过网络依赖测试")
 class TestE2EAhbz(unittest.TestCase):
     """安徽标准平台 — 新站点端到端"""
 
@@ -309,7 +312,7 @@ class TestAllSitesCooled(unittest.TestCase):
                     rotator.force_cooldown(name, int(remaining))
 
 
-@unittest.skipIf(_CI, "CI 环境跳过网络依赖测试")
+@unittest.skipUnless(_RUN_NETWORK, "未设置 PILOTSTD_RUN_NETWORK_TESTS=1，跳过网络依赖测试")
 class TestSiteUnavailable(unittest.TestCase):
     """异常韧性——站点不可用时引擎自动切换下一个站点，不崩溃（第三维度）"""
 

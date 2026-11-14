@@ -1648,3 +1648,12 @@ GUI 设置页 (ui/core/handlers/_settings*.py)          Web API (docker/api/sett
 
 | A-34 | 偶发顺序失败未复现，不构成待办 |
 | A-38 | 复核为误报（std_gov 带 q 参数正常），非缺陷 |
+
+---
+
+## 2026-11-14 新归档（A-37 / C-6）
+
+| 编号 | 条目 | 结论 | 证据 |
+|---|---|---|---|
+| A-37 | 网络 e2e 未与 `PILOTSTD_RUN_NETWORK_TESTS` 对齐 | **已修（2026-11-14）**：从"CI 才跳过"改为"显式开启才跑"，无外网环境不再误红 | `tests/test_e2e_adapters.py` 顶部说明 + `_RUN_NETWORK`；默认跑该文件为 **2 passed / 15 skipped**；设 `PILOTSTD_RUN_NETWORK_TESTS=1` 才执行真实站点用例 |
+| C-6 | pending 弹窗 skipped 提示只中文（i18n-allow 豁免） | **已修（2026-11-14）**：新增三语键 `download_skipped_bad_date`，删除行内拼接与 `i18n-allow` | `pilotstd/i18n/{zh_CN,en,zh_TW}.json`、`pilotstd/ui/core/handlers/_download.py`；`check_i18n_key_count` 与 `check_i18n_hardcoded_python` 均 PASS |

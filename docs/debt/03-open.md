@@ -29,12 +29,10 @@
 | **A-32** | **cookiecutter 把 `myadapter.py` 判为二进制**（binaryornot 特征判定；同目录测试/README 正常） | 已兜底 | `post_gen_project.py` 用 `_CONTEXT`（`cookiecutter|tojson`）+ Jinja2 手动渲染；**属绕开行为**，判定边界：只匹配 `{{` + `cookiecutter` 字面量；**不覆盖** `{% if %}` 控制块（不含字面量会被跳过）、也可能误判合法代码里的 `{{`（如格式化字符串）。扩展其它文件前先检查这两类边界；待修复后删除该步 | 触发条件＝升级 cookiecutter 时 |
 | **A-33** | **`_get_*_adapter()` 懒加载全库零调用**（A-31 调查发现） | 未修 | 保留现有代码不动（超 A-31 范围）；模板已停止生成新 getter；可整体清理 | 触发条件＝下次清理遗留代码时 |
 
-| **A-37** | **网络 e2e 未与 PILOTSTD_RUN_NETWORK_TESTS 机制对齐**：	ests/test_e2e_adapters.py 仅按 CI 跳过，办公室/无外网时直接跑真实站点并红（如 ahbz 查不到 GB/T 19001-2016） | 未修 | 触发：无外网环境；修法：复用 PILOTSTD_RUN_NETWORK_TESTS=1 显式开关，不另搞探测逻辑 | 触发条件＝下次改网络测试 |
 | **A-40** | **旧数据 `user_id=1` 的归属未校验**：v71 回填把所有存量日志/队列归 user 1；真正多用户时需判断归属（单用户升级可接受） | 未修 | 触发：启用多用户；修法：迁移时按用户映射或标记来源 | 触发条件＝A-21 多用户上线 |
 | **A-41** | **failed-items 无 admin 全量视图**：当前只按 user_id 过滤 | 未修 | 需要时加 `all=true`（仅 admin）或 `user_id` 查询参数 | 触发条件＝admin 需要跨用户排障 |
 | **A-42** | **API auto/archive 无 auth 依赖，事件归 system**：`/api/auto`、`/api/archive` 未接 `get_current_user_id`，多用户时用户看不到自己触发的通知 | 未修 | 需要前端 token + 端点加 auth 后再传 context=user；单用户不影响 | 触发条件＝多用户 API 场景 |
 | **A-43** | **SQLite 实测表数（45）无法机械核对**：`18-schema-migrations.md` 写的"SQLite 实测业务表 45 张"来自**实跑迁移链后的 `sqlite_master` 计数**；`load_facts()` 只解析迁移源码（得到 43）。G-052 全量审计把它列为"已登记但无法机械核对"，未扩第 7 类 | 未修（已单独立项，2026-11-14） | 修法二选一：① 新增"空库跑迁移后数表"的事实源（昂贵，需单独评估代价）；② 把该处数字改为"以实测为准"不写具体值 | 触发条件＝有人质疑 43/45 不一致、或动迁移链/表结构时 |
-| **C-6 遗留** | **pending 弹窗 skipped 提示的 i18n**：`pilotstd/ui/core/handlers/_download.py` 的「另有 M 条因发布日期格式异常，未加入等待队列，请手动检查」目前用行内 `# i18n-allow` 豁免（G-047 通过，但仅中文） | 未修 · **P2** | 三语化：在 `pilotstd/i18n/{zh_CN,en,zh_TW}.json` 加键（建议 `download_skipped_bad_date`），代码改 `_("download_skipped_bad_date").format(count=...)` 并删掉 `i18n-allow` | 触发条件＝多语言用户反馈，或下次 i18n 统一迁移；**不影响功能，只影响多语言用户** |
 
 > **A-27 子项（2026-11-08，实现完成后的部署/后续待办）**
 > - **A-27.1 真实渠道 API 验证（部署时）**：企微需 `corpid`/`corpsecret`/`agentid`；飞书需 `app_id`/`secret` + 测试群 `chat_id`；Telegram 需 bot token。代码已实现，单测覆盖 fake transport，**真实 API 未调用**。**阻塞部署验证**。

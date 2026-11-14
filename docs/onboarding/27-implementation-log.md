@@ -480,6 +480,15 @@
 | 备注（评审加固） | ① `--strict` 下拿不到 git 历史直接 FAIL（exit 2），不再降级——`repo-compliance` 的 checkout 已确认 `fetch-depth: 0`；② 宽口径抽样 15 篇发现"`N 张`"写法未被原规则命中（文档实际把数字写在粗体里、后面只跟一个"张"字，原规则只认"张表"），已修正正则；③ 新增第 6 类"通知事件数"（`**N 个事件**`，由 `load_facts()["events"]` 核对，`16-notification-matrix.md` 登记）；④ 豁免表加 `review_due=2027-02-14` 季度复审；⑤ 顺带核实 `TaskProgress` 删除后 `git grep` 在 `web/src` **0 命中**；⑥ **全量证据（非抽样）**：按命中位置复跑 221 篇 × 6 类——18 处命中 / 11 处覆盖 / 6 处豁免 / **0 未登记** / 1 处无法机械核对（SQLite 实测表数），详见 `docs/records/2026-11-14-g052-count-claims-full-audit.md`；⑦ **G-052 一期封版**（6 类冻结、不主动找第 7 类）：7 条边界数字 1 条立项 A-43、6 条明确不做；⑧ **V-15 裁定接受**：隔离实测该用例仅 1.185s，30s 是全量并发下的余量（不是等真实定时器，fake timers 无效），理由与复审触发见 `docs/debt/02-accepted.md` §六 |
 | 回滚 | 删审计脚本与豁免表、还原 `check_all.sh`/`ci.yml` 两处接线；`git revert` 恢复 `TaskProgress.vue` |
 
+### 40. A-37 网络 e2e 显式开关 + C-6 pending 提示 i18n（2026-11-14）
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `tests/test_e2e_adapters.py`、`pilotstd/ui/core/handlers/_download.py`、`pilotstd/i18n/{zh_CN,en,zh_TW}.json` |
+| 行为 | ① A-37：网络 e2e 从"CI 才跳过"改为"**显式开启才跑**"（`PILOTSTD_RUN_NETWORK_TESTS=1`），无外网的办公室/离线环境不再因真实站点打不通而误红；② C-6：pending 弹窗"另有 N 条因发布日期格式异常"从行内中文拼接迁入三语键 `download_skipped_bad_date`，删除 `i18n-allow` 豁免 |
+| 测试 | `pytest tests/test_e2e_adapters.py` → **2 passed / 15 skipped**（默认全跳过网络用例）；`check_i18n_key_count` PASS（三语 947 键一致）、`check_i18n_hardcoded_python` PASS；ruff 通过 |
+| 回滚 | 还原三语键与提示拼接、恢复 `@unittest.skipIf(_CI, …)` |
+
 ---
 
 ## 验证汇总

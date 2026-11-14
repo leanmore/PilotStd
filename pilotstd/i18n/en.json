@@ -273,6 +273,7 @@
     "title_pending_query_complete": "Query Complete",
     "title_site_cooldown": "Cooldown Active",
     "title_new_std_unavailable": "New Standards Unavailable",
+    "download_skipped_bad_date": "{count} more standard(s) skipped: invalid publication date, not queued — please check manually",
     "title_update_found": "Update Found",
     "title_no_update": "Check for Updates",
     "title_update_download": "Download Update",
