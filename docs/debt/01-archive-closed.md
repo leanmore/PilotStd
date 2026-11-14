@@ -1657,3 +1657,13 @@ GUI 设置页 (ui/core/handlers/_settings*.py)          Web API (docker/api/sett
 |---|---|---|---|
 | A-37 | 网络 e2e 未与 `PILOTSTD_RUN_NETWORK_TESTS` 对齐 | **已修（2026-11-14）**：从"CI 才跳过"改为"显式开启才跑"，无外网环境不再误红 | `tests/test_e2e_adapters.py` 顶部说明 + `_RUN_NETWORK`；默认跑该文件为 **2 passed / 15 skipped**；设 `PILOTSTD_RUN_NETWORK_TESTS=1` 才执行真实站点用例 |
 | C-6 | pending 弹窗 skipped 提示只中文（i18n-allow 豁免） | **已修（2026-11-14）**：新增三语键 `download_skipped_bad_date`，删除行内拼接与 `i18n-allow` | `pilotstd/i18n/{zh_CN,en,zh_TW}.json`、`pilotstd/ui/core/handlers/_download.py`；`check_i18n_key_count` 与 `check_i18n_hardcoded_python` 均 PASS |
+
+---
+
+## 2026-11-14 销账（V-1 / V-5 / V-12）
+
+| 编号 | 条目 | 结论 | 证据 |
+|---|---|---|---|
+| V-1 | T-16 `docs_sync_check.py` 严格模式（告警期→阻断期） | **已闭环**：CI 早已用 `--strict-block` | `.github/workflows/ci.yml` 的 docs-sync 步骤：`python scripts/docs_sync_check.py --strict-block`；本轮 `check_all --ci` 实测该步骤阻断生效 |
+| V-5 | T-38 G-032 交叉引用对「版本历史行」不适用（原记 10 处） | **已收敛**：复跑仅 4 条 warning，其中唯一"不存在引用"是 gates.md 版本历史行 v2.33 里**自述的历史死链**（`docs/architecture/architecture.md`），属该条目的目标场景 | 2026-11-14 `python scripts/check_g_032_doc_health.py --guards`：4 warning（STATUS ×2、known-issues 27 天、gates v2.33 历史死链）；无"10 处" |
+| V-12 | G-032 交叉引用的一般性历史遗留 | **同 V-5 收口**，不再单列跟踪 | 同上 |

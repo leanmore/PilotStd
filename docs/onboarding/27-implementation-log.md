@@ -489,6 +489,15 @@
 | 测试 | `pytest tests/test_e2e_adapters.py` → **2 passed / 15 skipped**（默认全跳过网络用例）；`check_i18n_key_count` PASS（三语 947 键一致）、`check_i18n_hardcoded_python` PASS；ruff 通过 |
 | 回滚 | 还原三语键与提示拼接、恢复 `@unittest.skipIf(_CI, …)` |
 
+### 41. 技术债销账：V-1 / V-5 / V-12（2026-11-14）
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `docs/debt/04-watch.md`、`docs/debt/01-archive-closed.md`、`docs/technical-debt.md` |
+| 行为 | 三条"观察中"经复核销账：V-1（T-16 严格模式）CI 早已 `--strict-block`；V-5/V-12（G-032 交叉引用）复跑只剩 4 条 warning，其中唯一"不存在引用"是 gates.md 版本历史行自述的历史死链，属该条目目标场景，无原文所称"10 处" |
+| 验证 | `check_g_032_doc_health.py --guards` → 4 warning（与销账前一致）；`check_all --fast --guards --local` 全绿；观察中计数 16 → 13 |
+| 回滚 | 从 01 删除该节并恢复 04-watch 三行 |
+
 ---
 
 ## 验证汇总

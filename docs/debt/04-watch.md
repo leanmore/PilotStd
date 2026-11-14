@@ -20,18 +20,15 @@
 
 | # | 条目 | 状态 | 触发条件（何时重新动手） | 复核方式 |
 |---|---|---|---|---|
-| **V-1** | **T-16** `docs_sync_check.py` 严格模式（告警期 → 阻断期） | `观察中`（**计数已严重滞后**） | 连续 3~5 次零误报。**实测：main 上自 2026-09-27 起已有 176 次 push 运行**（2026-10-01 起 130 次），期间未回写计数 ⇒ 条件事实上早已满足。切换动作＝`ci.yml` 的 `Docs sync check` 步骤把 `--strict` 改 `--strict-block`（一行） | 每次推送后读 CI 的 `[docs-compliance]` 段，误报 0 则计数 +1 |
 | **V-2** | **T-21** 本地 `vitest run` 偶发「全绿但 exit=1」 | `观察中` | 再次出现 | 立即 `node node_modules/vitest/vitest.mjs run *> log.txt 2>&1` 存全量输出。**2026-10-16 复跑：42 files / 324 passed、exit=0**（仍未复现） |
 | **V-3** | **T-35** 配置文件跨进程写锁 | `观察中`（**已决定不引入文件锁**） | 实测到一次并发写丢配置 | 比对 `config.json` 与 `config.json.bak` 的键差异；届时优先"原子写 + 重试 + 写后校验"或 SQLite 配置后端 |
 | **V-4** | **T-36** 空库跑迁移链固定打印 3 条 `OperationalError` | `观察中` | ① 有人因这些日志误判故障；② 探针出现"多出的告警" | 按原文探针复跑，去重后应恰为 3 条：`no such table: _schema_version`、`no such table: standard_info_cache`、`duplicate column name: user_id`（**2026-10-16 复现一致**） |
-| **V-5** | **T-38** G-032 交叉引用检查对「版本历史行」不适用 | `观察中`（**计数与行号已更正**） | 下次有文档健康类门禁修订时一并处理 | `python scripts/check_g_032_doc_health.py --guards` ⇒ **2026-10-16 实测 10 处**不存在引用（原文记 8 处）；**原文所引 gates.md 行 539/540 已不存在**，`manager/facade/_scan.py`、`pilotstd/core/parser.py`、`pilotstd/core/_scan.py`、`pilotstd/ui/main_window.py`、`config/service.py` 的实际引用位于 **行 579 / 629 / 633 / 634** |
 | **V-6** | **T-31** 自动 `chore: bump version` 提交不触发 CI | `观察中` | 出现一次"版本号/CHANGELOG 不一致"事故 | 查 `pilotstd/__init__.py` 与 `CHANGELOG.md` 顶部版本；兜底是 `G-009`（`ci.yml:205`） |
 | **V-7** | **平台侧告警**：`ubuntu-latest → Ubuntu 26` 预告 | `观察中`（**残留项有日期**） | **2026-10-19 起**验证仍用 `ubuntu-latest` 的作业（可用 `ubuntu-24.04` 钉住规避） | `gh api repos/{owner}/{repo}/check-runs/<id>/annotations` ⇒ **2026-10-16 实测：`warning=0 / notice=9`**（原文记"24 warning"是**升级前**旧数，已更正；Node20 弃用告警已随批次 A 的 43 处 action 升级清零） |
 | **V-8** | `#33` `TaskView.vue` 逼近 G-010 警告线（有效行 399 / 线 400） | `观察中` | 任何编辑 `web/src/views/TaskView.vue` 的提交 | `python scripts/check_g_010_code_size.py`；**2026-10-16 实测**：该文件**未进 >400 名单**（仅 `_migrate_v16_v49.py` 438 与 `event_spec_data.py` 417），且其最后改动为 `5592b71c`（`2026-09-27T10:57:22+08:00`）⇒ 399 行的记载仍成立 |
 | **V-9** | `event_spec_data.py`（417 有效行）1b 拆分豁免 | `观察中` | ① 突破 500 阻断档；② 新增变动频繁的业务族 | `python scripts/check_g_010_code_size.py`（2026-10-16 实测 417） |
 | **V-10** | `HomeView.vue` 的 grid-layout-plus workaround | `观察中` | 升级 `grid-layout-plus`（`web/package.json:22`） | 删 `layout.value = [...layout.value]` 克隆 → 浏览器实测锁定/解锁后拖拽是否仍生效 |
 | **V-11** | G-044 术语覆盖缺口（B-1）：三语严格相等仅覆盖登记键（40/346） | `观察中` | ① 通知文案新增/变更批次；② 术语表扩容专项立项 | `python scripts/check_terminology.py --report` 的"未覆盖说明"行 |
-| **V-12** | G-032 交叉引用的一般性历史遗留 | `观察中` | 同 V-5 | 同 V-5（10 处中除版本历史行外的部分） |
 | **V-13** | 工具链**版本漂移**：本地 `ruff 0.15.17` vs 归档配置里钉的 `v0.11.6` | `观察中`（2026-10-16 新增；2026-10-17 入口收口后该钉版**不再被执行**，仅存档） | 本地 `ruff format --check` 报"would reformat"而复现 | `python -m ruff --version` 与 `docs/archive/pre-commit-config.archived.yaml` 中 `ruff-pre-commit` 的 `rev` 比对；**不要按它重排**——那份配置的 31 个 hook 从未执行，现行口径是 CI 的 `ruff check`（G-038）与本地 `ruff check`；实测 `engine.py` 2 处属此类 |
 | **V-14** | L1 mypy 口径：`--follow-imports=skip` 下 `download/session.py:38` 的 `[override]` 不报 | `观察中`（2026-10-05 已定性） | 若将来改为 mypy 默认 `follow-imports` | `python -m mypy pilotstd/ docker/ --follow-imports=skip --ignore-missing-imports` ⇒ **2026-10-16 实测 442 文件 0 error** |
 | **V-16** | `src/components/TaskManager.vue` 分支覆盖仅 **27.9%**（行 51.85%），失败/重试分支无测试 | `观察中`（2026-11-14 起，P2-08 调查产出） | 随其**下次功能变更**（或 SettingsTabSystem 改动）时补失败分支用例；不在 TaskView 链路，故不进 P2-08 第二批 | `npx vitest run --coverage --coverage.include=src/components/TaskManager.vue --coverage.reporter=json-summary` 看 lines/branches；分支回到 ≥60% 即摘除 |
