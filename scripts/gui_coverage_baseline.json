@@ -4,7 +4,8 @@
     "generated_at": "2026-11-14",
     "generated_by": "cd web && npx vitest run --coverage --coverage.reporter=json-summary",
     "tolerance_pp": 0.5,
-    "review_due": "2027-02-14"
+    "review_due": "2027-02-14",
+    "updated_at": "2026-11-14"
   },
   "files": {
     "src/views/TaskView.vue": {
@@ -12,8 +13,8 @@
       "note": "主线五段编排；2026-11-09 补失败/历史/恢复用例后 60.34 → 74.56"
     },
     "src/views/TaskView/TaskHistoryList.vue": {
-      "lines": 9.09,
-      "note": "历史列表：当前只有 2/22 行被覆盖，是 P2-08 失败/恢复 fixture 的主要缺口"
+      "lines": 100.0,
+      "note": "历史列表：2026-11-14 补 6 例直接挂载测试（状态四分支/翻页/详情-重跑-删除事件），9.09% → 100%，同 PR 收紧基线"
     },
     "src/utils/taskPipeline.ts": {
       "lines": 87.5,

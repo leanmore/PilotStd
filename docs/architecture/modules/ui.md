@@ -122,6 +122,8 @@ UI 层的状态判定与展示不再硬编码中文：`main_window/parts/_query_
 
 > 来源：2026-09-26 清理调试输出（`chore: 清调试输出 + ci-lessons 补 Qt qFatal 教训链`）——生产路径上前一版残留 4 处 `print(f"[TRACE] …")`。
 
+> **2026-11-14（P2-10 批 4）**：UI 层静默错治理口径落地——只有"**用户主动操作 + 失败后界面看起来正常**"的路径才升 `warning`，Qt 生命周期竞态（对象已销毁/信号已断开）与逐条热路径保持原级别。本批升 warning 两处：`core/handlers/_cleanup.py::CleanupHandler.scan_empty_dirs`（点"清理空目录"时扫描失败，界面只显示"没有可清理目录"）、`pages/rules_page.py::RulesPage._get_rules`（`sites.rules` JSON 损坏时静默按空表展示，用户再保存一次就把坏串覆盖成空表）。其余 26 处 allowlist 理由见 `docs/debt/p2-10-silent-errors-triage.md` §九；G-050 基线同步收紧为 162。
+
 - UI 层统一使用模块级 `logger`（`logger.debug/info/warning/exception`），**生产路径不 `print`**；已清理：`core/handlers/_archive.py::on_normalize`、`main_window/parts/_query_ops.py::_do_pending_query`（改前/改后各一条）、`main_window/parts/_ui_setup_ops.py::_setup_scanner`。
 - **有意保留的 stderr 输出**（非调试残留，改动会破坏其契约）：
   - `main_window/parts/_run_main.py` 的 `_qt_message_handler` —— 把 Qt C++ 层 WARNING/CRITICAL/FATAL 写 stderr（`flush=True`），是 Qt 消息的唯一出口，改成 `logging` 有重入风险；

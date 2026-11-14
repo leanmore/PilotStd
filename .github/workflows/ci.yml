@@ -496,7 +496,9 @@ jobs:
       - name: Run tests（带覆盖率，供 G-054 棘轮）
         run: |
           cd web
-          pnpm run test -- --coverage
+          # 注意：pnpm run <script> -- <args> 会把 `--` 原样传给 vitest（变成文件过滤），
+          # 必须写成 `pnpm run test --coverage` 才能真的开启覆盖率
+          pnpm run test --coverage
 
       - name: G-054 — GUI 单文件覆盖率棘轮（P2-08）
         run: python scripts/check_gui_coverage_ratchet.py

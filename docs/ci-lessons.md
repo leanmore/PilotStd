@@ -331,3 +331,23 @@ CI 的 NODE_VERSION 从浮动 22 固定到 22.23.4，修复 2026-10-21 Node.js �
 | P-107 | 预存问题告知但不越界修，单独排工单 |
 | P-108 | 交付四要素：差异表 + 文件清单 + 验证结果 + 自审清单 |
 | P-109 | 改全局状态前先 GET 快照，结束时恢复快照值（不是默认值） |
+
+## 2026-11-14：前端覆盖率门禁 G-054 接入（三次踩坑）
+
+- **`pnpm run <script> -- <args>` 的 `--` 会被原样传给 vitest**：CI 写成
+  `pnpm run test -- --coverage` 时，实际执行的是 `npx vitest run "--" "--coverage"`，
+  覆盖率根本没开 → `coverage-summary.json` 不存在 → G-054 以 exit 2 失败（表现为
+  `test-frontend` 红）。正确写法是 **`pnpm run test --coverage`**（不带 `--`）。
+  本地复刻 CI 命令时用 `pnpm.cmd run test --coverage` 验证过：生成 summary、366 passed。
+- **改了 CI 工作流必须同批改 `docs/ci-lessons.md`**：`docs_sync_check.py --strict-block`
+  的"CI/CD 工作流变更"规则会阻断；本地 `check_all --local` 不跑严格模式，所以
+  "本地全绿、CI 红"。
+- **改了 `pilotstd/ui/` 必须同批改 `docs/architecture/modules/ui.md`**：
+  `check_module_doc_mappings.py --strict-block` 按模块映射阻断，同样不在本地 `--local` 口径里。
+- **超时不要全局放宽**：v8 插桩会让个别 jsdom 用例变慢，正确做法是给**单个用例**
+  标 `30_000`，其余保持默认 5s；否则所有卡住的测试都要等 60s 才失败，超时信号失效。
+- **棘轮的"收紧"必须写进规则**：覆盖率上涨若没人同 PR 改基线，下一批删掉 fixture
+  覆盖率掉回旧水位也不会触发——G-054 因此在"上涨"时直接打印建议基线值。
+
+- **验证命令**：`pnpm.cmd run test --coverage`；`python scripts/check_gui_coverage_ratchet.py`；
+  `bash scripts/check_all.sh --fast --guards --local`。
