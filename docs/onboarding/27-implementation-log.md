@@ -476,7 +476,8 @@
 |---|---|
 | 文件 | `scripts/audit_count_claims.py`、`scripts/count_claims_exempt.json`、`tests/test_audit_count_claims.py`、`scripts/check_all.sh`（`--fast` 接入）、`.github/workflows/ci.yml`（`repo-compliance` 步骤）、`web/src/components/TaskProgress.vue`（删除） |
 | 行为 | ① 审计 `git log --since` 近 3 个月改动文档中**含计数类声明**的部分：命中必须登记在 `COUNT_CLAIMS`（数字由 G-052 校验）或在豁免表写明理由，空理由按违规；豁免过期给 WARN。分母只算"改动且含声明"，纯错别字改动不误伤；拿不到 git 历史降级 WARN。② 删除 `TaskProgress.vue`（全库无 import、0/3 行覆盖），P2-03 首次真删除 |
-| 测试 | `tests/test_audit_count_claims.py` 7 passed；`tests/test_check_docs_drift_counts.py` 6 passed；审计实跑 221 篇改动文档 / 5 篇已登记 / 2 篇豁免 → PASS；前端 366 passed、build 通过 |
+| 测试 | `tests/test_audit_count_claims.py` **9 passed**（含浅克隆：`--strict` 无历史 → exit 2；非 strict → WARN）；`tests/test_check_docs_drift_counts.py` 6 passed；审计实跑 221 篇改动文档 / **6 篇已登记** / 2 篇豁免 → PASS；前端 366 passed、build 通过 |
+| 备注（评审加固） | ① `--strict` 下拿不到 git 历史直接 FAIL（exit 2），不再降级——`repo-compliance` 的 checkout 已确认 `fetch-depth: 0`；② 宽口径抽样 15 篇发现"`N 张`"写法未被原规则命中（文档实际把数字写在粗体里、后面只跟一个"张"字，原规则只认"张表"），已修正正则；③ 新增第 6 类"通知事件数"（`**N 个事件**`，由 `load_facts()["events"]` 核对，`16-notification-matrix.md` 登记）；④ 豁免表加 `review_due=2027-02-14` 季度复审；⑤ 顺带核实 `TaskProgress` 删除后 `git grep` 在 `web/src` **0 命中** |
 | 回滚 | 删审计脚本与豁免表、还原 `check_all.sh`/`ci.yml` 两处接线；`git revert` 恢复 `TaskProgress.vue` |
 
 ---

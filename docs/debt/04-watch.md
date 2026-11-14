@@ -36,6 +36,7 @@
 | **V-14** | L1 mypy 口径：`--follow-imports=skip` 下 `download/session.py:38` 的 `[override]` 不报 | `观察中`（2026-10-05 已定性） | 若将来改为 mypy 默认 `follow-imports` | `python -m mypy pilotstd/ docker/ --follow-imports=skip --ignore-missing-imports` ⇒ **2026-10-16 实测 442 文件 0 error** |
 | **V-15** | `NotificationConfig.test.ts` 单用例被标 `30_000`（v8 覆盖率插桩下变慢）——治标，非治本 | `观察中`（2026-11-14 起） | P2-08 收尾后独立小批：用 `vi.useFakeTimers()` + `advanceTimersByTime()` 替换真实等待，去掉 30s；同类"等真实时间"的新用例一律先问"能不能用假时钟" | 若该用例耗时回到 <5s 或 CI 出现超时红，说明时机成熟；`grep -rn "30_000" web/src` 应只剩 0 处 |
 | **V-16** | `src/components/TaskManager.vue` 分支覆盖仅 **27.9%**（行 51.85%），失败/重试分支无测试 | `观察中`（2026-11-14 起，P2-08 调查产出） | 随其**下次功能变更**（或 SettingsTabSystem 改动）时补失败分支用例；不在 TaskView 链路，故不进 P2-08 第二批 | `npx vitest run --coverage --coverage.include=src/components/TaskManager.vue --coverage.reporter=json-summary` 看 lines/branches；分支回到 ≥60% 即摘除 |
+| **V-17** | G-012 注释密度对**新建脚本**反复红（2026-11-14 两次：0.9%、2.0%），被迫为过门禁补低价值注释 | `观察中`（2026-11-14 起） | 下次改 G-012 时评估：① 新文件是否给一轮过渡期；② 是否改按"公共函数是否有 docstring"而非"行注释密度"；在此之前新脚本按现规则补 3~5 行有效注释 | `python scripts/check_g_012_comment_density.py` 看是否再有新脚本因 DENSITY 红；若同类红第 3 次出现即提规则修改 |
 
 ## 三、R15 观察期（2026-10-01 起约一周，**2026-10-16 补收口**）
 

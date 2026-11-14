@@ -37,12 +37,19 @@ logger = logging.getLogger(__name__)
 EXEMPT_PATH = ROOT / "scripts" / "count_claims_exempt.json"
 
 # 计数类声明的"类型登记表"：只认这些口径明确的短语，避免把"N 个"这类泛数字全算进来。
-# 新增类型前先确认：数字能从代码/事实里机械核对，否则只会制造误报。
+# 每一类的"机械核对方式"（扩类时必须写清楚，否则标准会漂）：
+# - router 模块数：`scripts/check_docs_drift.py::load_facts()["router_modules"]`（扫描 docker/api 的 router 文件）
+# - 唯一 API 路径数：同 `load_facts()["routes"]`（去重后的 `/api/...` 路径集合）
+# - route×method 对数：同 `load_facts()["route_method_pairs"]`（由 audit_api_matrix 统计）
+# - 迁移可解析表数：同 `load_facts()["tables"]`（从迁移源码解析 CREATE TABLE）
+# - 迁移模块数：同 `load_facts()["migration_modules"]`（`_migrate*.py` 计数）
+# 只有"同一份代码事实能推出唯一数字"的类型才允许登记；靠人判断的（如"渠道数"）先不扩。
 CLAIM_TYPES: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("router 模块数", re.compile(r"(?<!\d)(\d+)\s*个 router 模块")),
     ("唯一 API 路径数", re.compile(r"(?<!\d)(\d+)\s*个唯一\s*`?/api`?\s*路径")),
     ("route×method 对数", re.compile(r"(?<!\d)(\d+)\s*个\s*route×method")),
-    ("迁移可解析表数", re.compile(r"(?<!\d)(\d+)\s*张表")),
+    ("迁移可解析表数", re.compile(r"(?<!\d)(\d+)\s*张(?:表|\*\*|[，。、；）)])")),
+    ("通知事件数", re.compile(r"\*\*(?<!\d)(\d+)\s*个事件\*\*")),
     ("迁移模块数", re.compile(r"(?<!\d)(\d+)\s*个迁移模块")),
 )
 
@@ -159,6 +166,11 @@ def main(argv: list[str] | None = None) -> int:
     # 拿不到 git 历史时返回 None：CLI 降级 WARN，不阻断浅克隆/打包环境
     changed = collect_changed_docs(args.since, root)
     if changed is None:
+        # 严格模式（CI）下不允许降级：浅克隆会让门禁恒绿但一篇都不查，和"没接门禁"等价
+        if args.strict:
+            print("FAIL: 拿不到 git 历史（浅克隆/非 git 环境），--strict 下不允许降级——"
+                  "请给该 job 配 actions/checkout fetch-depth: 0")
+            return 2
         print("[WARN] 拿不到 git 历史（浅克隆/非 git 环境），跳过计数声明审计")
         return 0
 

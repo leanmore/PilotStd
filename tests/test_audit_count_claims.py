@@ -74,3 +74,21 @@ def test_stale_exemption_warns(tmp_path) -> None:
     failures, warns, _ = gate.check(["docs/a.md"], tmp_path, {"docs/a.md": "历史条目"}, set())
     assert failures == []
     assert any("豁免已过期" in w for w in warns)
+
+
+# ── 浅克隆防守（2026-11-14）：strict 下拿不到 git 历史必须 FAIL，不能降级 ──────────
+
+
+def test_strict_without_git_history_fails(monkeypatch, tmp_path):
+    """CI 用 --strict：浅克隆会被 checkout 成 depth=1，此时必须红而不是 WARN。"""
+    monkeypatch.setattr(gate, "collect_changed_docs", lambda *a, **k: None)
+    rc = gate.main(["--root", str(tmp_path), "--strict"])
+    assert rc == 2
+
+
+def test_non_strict_without_git_history_warns(monkeypatch, tmp_path, capsys):
+    """本地非 strict：拿不到历史只 WARN，不阻断开发者。"""
+    monkeypatch.setattr(gate, "collect_changed_docs", lambda *a, **k: None)
+    rc = gate.main(["--root", str(tmp_path)])
+    assert rc == 0
+    assert "跳过计数声明审计" in capsys.readouterr().out

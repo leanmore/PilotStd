@@ -87,6 +87,13 @@ COUNT_CLAIMS: tuple[dict, ...] = (
         "reason": "onboarding 首页的规模提示；表迁移只能从代码抽取，手写必然漂移。",
     },
     {
+        "doc": "docs/onboarding/16-notification-matrix.md",
+        "pattern": r"\*\*(\d+) 个事件\*\*",
+        "label": "通知事件数",
+        "expected": lambda f: (len(f["events"]),),
+        "reason": "事件矩阵的条目基数；新增/删除 EventSpec 后不同步，读者会按旧数量核对渠道覆盖。",
+    },
+    {
         "doc": "docs/onboarding/18-schema-migrations.md",
         "pattern": r"迁移可解析业务表 \*\*(\d+) 张\*\*",
         "label": "迁移可解析表数",
