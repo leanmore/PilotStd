@@ -94,4 +94,4 @@ def test_repeated_number_claims_are_registered_separately():
     assert len(schema) >= 2, "18 的正文表数与迁移模块数应各有一条声明"
     # 标题里的历史快照改成"41 个表"，避免被当成现行表数声明（全量扫描 2026-11-14）
     heading = (ROOT / "docs/onboarding/18-schema-migrations.md").read_text(encoding="utf-8")
-    assert "旧快照 41 个表" in heading
+    assert "历史快照 41 个表" in heading

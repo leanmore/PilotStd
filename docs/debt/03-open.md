@@ -33,6 +33,7 @@
 | **A-40** | **旧数据 `user_id=1` 的归属未校验**：v71 回填把所有存量日志/队列归 user 1；真正多用户时需判断归属（单用户升级可接受） | 未修 | 触发：启用多用户；修法：迁移时按用户映射或标记来源 | 触发条件＝A-21 多用户上线 |
 | **A-41** | **failed-items 无 admin 全量视图**：当前只按 user_id 过滤 | 未修 | 需要时加 `all=true`（仅 admin）或 `user_id` 查询参数 | 触发条件＝admin 需要跨用户排障 |
 | **A-42** | **API auto/archive 无 auth 依赖，事件归 system**：`/api/auto`、`/api/archive` 未接 `get_current_user_id`，多用户时用户看不到自己触发的通知 | 未修 | 需要前端 token + 端点加 auth 后再传 context=user；单用户不影响 | 触发条件＝多用户 API 场景 |
+| **A-43** | **SQLite 实测表数（45）无法机械核对**：`18-schema-migrations.md` 写的"SQLite 实测业务表 45 张"来自**实跑迁移链后的 `sqlite_master` 计数**；`load_facts()` 只解析迁移源码（得到 43）。G-052 全量审计把它列为"已登记但无法机械核对"，未扩第 7 类 | 未修（已单独立项，2026-11-14） | 修法二选一：① 新增"空库跑迁移后数表"的事实源（昂贵，需单独评估代价）；② 把该处数字改为"以实测为准"不写具体值 | 触发条件＝有人质疑 43/45 不一致、或动迁移链/表结构时 |
 | **C-6 遗留** | **pending 弹窗 skipped 提示的 i18n**：`pilotstd/ui/core/handlers/_download.py` 的「另有 M 条因发布日期格式异常，未加入等待队列，请手动检查」目前用行内 `# i18n-allow` 豁免（G-047 通过，但仅中文） | 未修 · **P2** | 三语化：在 `pilotstd/i18n/{zh_CN,en,zh_TW}.json` 加键（建议 `download_skipped_bad_date`），代码改 `_("download_skipped_bad_date").format(count=...)` 并删掉 `i18n-allow` | 触发条件＝多语言用户反馈，或下次 i18n 统一迁移；**不影响功能，只影响多语言用户** |
 
 > **A-27 子项（2026-11-08，实现完成后的部署/后续待办）**
