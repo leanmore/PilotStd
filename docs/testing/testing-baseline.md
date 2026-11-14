@@ -118,3 +118,10 @@
 | `wechat_ip/detector` | 82% | — | 主路径 + 降级已由 E2E 守护 |
 | `announcement/ocr/_baidu` | 79% | — | Integration 已覆盖两步协议 + 降级 |
 | `query/adapters/gongbiaoku` | 部分 | — | HTML 解析主路径已覆盖 |
+
+> **2026-11-14 口径更正（对 2026-11-13 的 "6740 passed"）**：该数字是**测试 + subtests 的合计**，
+> 不是测试数。同 commit（`ed8ba431`）复跑：**6333 passed / 11 skipped / 401 subtests**；
+> 当前 HEAD（A-33 删 10 例、A-27.3/P1 等新增 21 例后）：**6338 passed / 21 skipped / 401 subtests**。
+> 差异来源：① subtests 旧记录被并入 passed（+401）；② A-37 把网络 e2e 改为显式开启，
+> 该文件从 13 passed/4 skipped 变为 2 passed/15 skipped（−11 passed、+11 skipped）；
+> ③ 新增/删除用例净 +5。**结论：不是假绿，是计数口径 + 有意的网络用例跳过。**

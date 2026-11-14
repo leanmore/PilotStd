@@ -6,8 +6,11 @@ from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
 from pydantic import BaseModel
 
+from pilotstd.core.notification.context import NotificationContext
+
 from ..auth import require_role
 from ..manager import get_manager_dep
+from ._identity import resolve_user_id
 
 router = APIRouter(tags=["auto"])
 
@@ -27,7 +30,10 @@ def auto_run(request: Request, mgr=Depends(get_manager_dep)):
     try:
         # P2-09：auto_run 的第一个参数是源目录；API 不能无参调用。
         root_path = str(mgr.cfg.get("storage.inbox_dir", "/inbox") or "/inbox")
-        results = mgr.auto_run(root_path)
+        # 多用户 P1：管理端点由 admin 触发，事件归属必须是触发人，不能落到 system(0)，
+        # 否则多用户下用户看不到自己触发的通知（AC-6 判据）。
+        context = NotificationContext(scope="admin", user_id=resolve_user_id(request))
+        results = mgr.auto_run(root_path, context=context)
         return {"ok": True, "results": results, "message": "一键处理完成"}
     except Exception as e:
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)

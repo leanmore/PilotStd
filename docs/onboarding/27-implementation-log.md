@@ -516,6 +516,16 @@
 | 测试 | `pytest tests/test_notification_menu_api.py` → 9 passed；`pytest tests/test_query_init.py tests/test_query.py` → 84 passed；**全量 `pytest tests/ -q -n 8` → 6338 passed / 21 skipped / 0 failed（398s，exit 0）**；`--ci` 全绿 |
 | 回滚 | 恢复 `query/__init__.py` 的 20 个 getter 与测试、删除新测试文件、恢复 08 两行与小节标题 |
 
+### 44. 多用户主线 P1：事件归属接线（2026-11-14）
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `docker/api/_identity.py`（新增）、`docker/api/auto.py`、`docker/api/archive.py`、`tests/test_api_auto_archive_user_context.py`（新增）、`tests/test_api_identity_resolve.py`（新增）、`tests/test_api_scheduler_export_auto.py`（断言同步） |
+| 行为 | `/api/auto`、`/api/archive` 调用 manager 时显式传 `NotificationContext(scope="admin", user_id=当前用户)`；此前不传 ⇒ 事件归 system(0)。当前用户由 `resolve_user_id(request)` 解析：优先中间件写入的 ContextVar，缺失时退回 JWT cookie 的 `sub`，**无法确定则 401，绝不返回 0** |
+| 测试 | 新增 2 + 3 例：端点收到 `context.user_id==1 / log_user_id==1`（先红后绿）；`resolve_user_id` 三分支（ContextVar 优先 / cookie 兜底 / 无身份 401）。回归：`test_api_scheduler_export_auto.py`、`test_docker_api.py` 共 65 passed |
+| DB 级判据 | 待真实双用户环境执行 SQL：`SELECT user_id,count(*) FROM notification_log WHERE event_type IN ('auto_pipeline_summary','archive_complete') AND date(sent_at)=date('now','localtime') GROUP BY user_id;` 期望两人各一行、无 0（见计划 P1） |
+| 回滚 | 删 `_identity.py` 与两处调用、恢复原调用与测试断言 |
+
 ---
 
 ## 验证汇总

@@ -27,8 +27,19 @@
 
 ### P1 · 事件归属接线（下一步，先做这个）
 
-- **动作**：`/api/auto`、`/api/archive` 在调用 manager 时传 `NotificationContext(scope="user", user_id=<当前用户>)`；`get_current_user_id()` 在 admin 鉴权后可用（archive 已在用）。
-- **完成判据**：两个用户各触发一次 auto 与 archive → `notification_log` 对应行的 `user_id` 分别为两人；`user_id=0` 的行数为 0（除非确属系统事件）。
+- **进度（2026-11-14）**：代码完成——`/api/auto` 与 `/api/archive` 均构造
+  `NotificationContext(scope="admin", user_id=get_current_user_id(...))` 并传入
+  `auto_run` / `archive_standards`（此前不传 ⇒ system(0)）。API 层测试
+  `tests/test_api_auto_archive_user_context.py` 2 例（先红后绿）：断言 context 非空、
+  `user_id==1`、`log_user_id==1`。
+- **DB 级判据（待真实双用户环境复核）**：
+  ```sql
+  SELECT user_id, count(*) FROM notification_log
+  WHERE event_type IN ('auto_pipeline_summary','archive_complete')
+    AND date(sent_at)=date('now','localtime')
+  GROUP BY user_id;
+  ```
+  期望：两个用户各一行、`user_id` 分别为两人；**不得出现 user_id=0**。
 - **不阻塞（明确口径）**：A-40 不阻塞 P1 判据；顺手可做，不顺手不碰，**不为此中断 P1**。
 
 ### P2 · 队列/聚合隔离验证

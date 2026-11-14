@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
-from unittest.mock import MagicMock
+from unittest.mock import ANY, MagicMock
 
 import pytest
 from fastapi import FastAPI
@@ -156,7 +156,7 @@ def test_auto_run_success(client: TestClient, mgr: MagicMock) -> None:
     r = client.post("/api/auto")
     assert r.status_code == 200
     assert r.json() == {"ok": True, "results": {"scanned": 3}, "message": "一键处理完成"}
-    mgr.auto_run.assert_called_once_with("/inbox")
+    mgr.auto_run.assert_called_once_with("/inbox", context=ANY)
 
 
 def test_auto_run_failure_returns_500(client: TestClient, mgr: MagicMock) -> None:

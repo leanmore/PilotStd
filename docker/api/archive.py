@@ -6,11 +6,13 @@ from fastapi.routing import APIRouter
 from pydantic import BaseModel
 
 from pilotstd.core.audit import get_current_user_id, write_audit
+from pilotstd.core.notification.context import NotificationContext
 from pilotstd.core.path_guard import get_allowed_roots, validate_path_in_root
 from pilotstd.models import ParsedStdInfo
 
 from ..auth import require_role
 from ..manager import get_manager_dep
+from ._identity import resolve_user_id
 from ._pipeline import safe_update_step
 
 logger = logging.getLogger(__name__)
@@ -101,7 +103,11 @@ def archive_files(
             )
             parsed_list.append(parsed)
 
-        result = mgr.archive_standards(parsed_list, word_source_root=word_source_root)
+        # 多用户 P1：admin 手动归档的事件归属触发人，不能落 system(0)
+        context = NotificationContext(scope="admin", user_id=resolve_user_id(request))
+        result = mgr.archive_standards(
+            parsed_list, word_source_root=word_source_root, context=context
+        )
         mgr.pipeline_store.update_step(
             run_id,
             "archive",
