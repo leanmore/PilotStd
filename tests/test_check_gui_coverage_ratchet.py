@@ -21,10 +21,11 @@ def _load():
 gate = _load()
 
 
-def _summary(path: Path, mapping: dict[str, float]) -> Path:
+def _summary(path: Path, mapping: dict[str, float], totals: dict[str, int] | None = None) -> Path:
+    totals = totals or {}
     payload = {"total": {"lines": {"pct": 0}}}
     for rel, pct in mapping.items():
-        payload[str(path.parent / rel)] = {"lines": {"pct": pct}}
+        payload[str(path.parent / rel)] = {"lines": {"pct": pct, "total": totals.get(rel, 0)}}
     path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
     return path
 
@@ -67,7 +68,10 @@ def test_rise_reports_tightening_hint(tmp_path, capsys) -> None:
     summary = _summary(tmp_path / "sum.json", {"src/a.vue": 80.0})
     baseline = _baseline(tmp_path / "base.json", {"src/a.vue": 74.56})
     assert _run(tmp_path, summary, baseline) == 0
-    assert "可收紧基线" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert "可收紧基线" in out
+    # 收紧要能"照抄一个数字"，否则没人会在同 PR 里改基线
+    assert "建议基线值 80.00" in out
 
 
 def test_missing_tracked_file_fails(tmp_path, capsys) -> None:
@@ -82,6 +86,18 @@ def test_type_only_file_is_soft(tmp_path, capsys) -> None:
     baseline = _baseline(tmp_path / "base.json", {}, type_only=["src/types.ts"])
     assert _run(tmp_path, summary, baseline) == 0
     assert "纯类型文件行覆盖率" in capsys.readouterr().out
+
+
+def test_type_only_gains_executable_lines_fails(tmp_path, capsys) -> None:
+    """纯类型文件里出现可执行代码 → 必须升格进棘轮，不能继续软提醒。"""
+    summary = _summary(
+        tmp_path / "sum.json", {"src/types.ts": 100.0}, totals={"src/types.ts": 3}
+    )
+    baseline = _baseline(tmp_path / "base.json", {}, type_only=["src/types.ts"])
+    assert _run(tmp_path, summary, baseline) == 1
+    out = capsys.readouterr().out
+    assert "3 条可执行行" in out
+    assert "移入 files 纳入棘轮" in out
 
 
 def test_missing_summary_exits_2(tmp_path) -> None:

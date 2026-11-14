@@ -251,3 +251,19 @@ def test_review_due_overdue_only_warns(tmp_path, monkeypatch, capsys) -> None:
     assert rc == 0
     assert "G-050 基线待复审" in out
     assert "review_due=2020-01-01" in out
+
+
+def test_review_due_invalid_format_warns_not_raises(tmp_path, monkeypatch, capsys) -> None:
+    """`review_due` 写成非法日期 → 明确 WARN（不能静默跳过，也不能抛 ValueError 阻断 CI）。"""
+    baseline = {"_meta": {"review_due": "2027/02/14"}, "pass": {}, "return": {}, "debug": {}}
+    bpath = tmp_path / "baseline.json"
+    bpath.write_text(json.dumps(baseline), encoding="utf-8")
+    monkeypatch.setattr(gate, "BASELINE", bpath)
+    scan_root = tmp_path / "scan"
+    scan_root.mkdir()
+
+    rc = gate.main(["--root", str(scan_root)])
+
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "review_due 非法" in out

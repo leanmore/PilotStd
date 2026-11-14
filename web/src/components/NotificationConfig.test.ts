@@ -331,7 +331,7 @@ describe('NotificationConfig', () => {
     await ok.vm.$nextTick()
     await ok.vm.$nextTick()
     expect(ok.html()).not.toContain('策略服务读取失败')
-  })
+  }, 30_000)  // v8 覆盖率插桩下本用例会明显变慢（jsdom 定时器 + ink-bar），单独放宽；其余用例保持默认 5s
 
   // ── 阶段 3 · Step 2：形态分区展示 + 互斥校验 + 参数提示 ──────────────────────
 

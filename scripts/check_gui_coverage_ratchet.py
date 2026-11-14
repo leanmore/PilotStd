@@ -45,26 +45,30 @@ def normalize_key(raw: str) -> str:
     return path
 
 
-def load_summary(path: Path) -> dict[str, float]:
-    """读取 `coverage-summary.json`，返回 {相对路径: lines.pct}。
+def load_summary(path: Path) -> dict[str, dict[str, float]]:
+    """读取 `coverage-summary.json`，返回 {相对路径: {"pct": 行覆盖率, "total": 可执行行数}}。
 
     v8 的 key 是本机绝对路径（Windows 反斜杠 / Linux 斜杠），必须统一归一，
     否则 CI（Linux）与本机（Windows）的基线永远对不上。
     """
     data: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
-    out: dict[str, float] = {}
+    out: dict[str, dict[str, float]] = {}
     for key, value in data.items():
         if key == "total":
             continue
         lines = (value or {}).get("lines") or {}
         pct = lines.get("pct")
         if isinstance(pct, (int, float)):
-            out[normalize_key(key)] = float(pct)
+            total = lines.get("total")
+            out[normalize_key(key)] = {
+                "pct": float(pct),
+                "total": float(total) if isinstance(total, (int, float)) else 0.0,
+            }
     return out
 
 
 def check(
-    summary: dict[str, float], baseline: dict[str, Any], tolerance: float
+    summary: dict[str, dict[str, float]], baseline: dict[str, Any], tolerance: float
 ) -> tuple[list[str], list[str], list[str]]:
     """返回 (违规, 可收紧提醒, 备注)。违规非空即 FAIL。"""
     failures: list[str] = []
@@ -78,19 +82,28 @@ def check(
     for rel, meta in sorted(files.items()):
         floor = float(meta.get("lines", 0.0)) if isinstance(meta, dict) else float(meta)
         if rel not in summary:
-            failures.append(f"{rel}: 未出现在覆盖率报告里（文件改名/移走？请同步基线）")
+            failures.append(f"{rel}: 未出现在覆盖率报告里（文件改名/移走？请同 PR 更新基线路径，不加豁免）")
             continue
-        current = summary[rel]
+        current = summary[rel]["pct"]
         if current < floor - tolerance:
             failures.append(f"{rel}: {floor:.2f}% → {current:.2f}%（下降超过 {tolerance}pp）")
         elif current > floor + tolerance:
-            warns.append(f"{rel}: {floor:.2f}% → {current:.2f}%（已提升，可收紧基线）")
+            # 输出"建议基线值"，让收紧变成机械动作（改一个数字），否则棘轮会被留在旧水位
+            warns.append(
+                f"{rel}: {floor:.2f}% → {current:.2f}%（已提升，可收紧基线；建议基线值 {current:.2f}）"
+            )
 
     for rel in type_only:
         if rel not in summary:
             notes.append(f"{rel}: 纯类型文件未出现在报告（不影响判定）")
-        elif summary[rel] < 100.0:
-            warns.append(f"{rel}: 纯类型文件行覆盖率 {summary[rel]:.2f}%（应为 100%，检查是否有可执行代码混入）")
+        elif summary[rel]["total"] > 0:
+            # 纯类型文件里出现了可执行代码 ⇒ 必须纳入棘轮或把代码移出，不能继续软提醒
+            failures.append(
+                f"{rel}: 纯类型文件出现 {summary[rel]['total']:.0f} 条可执行行"
+                f"（行覆盖 {summary[rel]['pct']:.2f}%）——需移入 files 纳入棘轮，或把运行时代码移出该文件"
+            )
+        elif summary[rel]["pct"] < 100.0:
+            warns.append(f"{rel}: 纯类型文件行覆盖率 {summary[rel]['pct']:.2f}%（应为 100%，检查是否有可执行代码混入）")
 
     return failures, warns, notes
 

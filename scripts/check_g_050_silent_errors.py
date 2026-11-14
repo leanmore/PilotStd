@@ -195,12 +195,19 @@ def main(argv: list[str] | None = None) -> int:
     # 口径生效期检查（U36 复审项）：`_meta.review_due` 只是书面日期，没有机制会提醒；
     # 这里做**软提醒**（WARN，不阻断）——否则 2027 年 `_meta` 就成了装饰。
     meta = baseline.get("_meta") or {}
-    due = str(meta.get("review_due") or "")
-    if due and due < date.today().isoformat():
-        print(
-            f"[WARN] G-050 基线待复审（review_due={due}）：复核 122 条 allowlist 是否仍成立、"
-            f"40 条迁移冻结是否随 P-106 到期可动"
-        )
+    due = str(meta.get("review_due") or "").strip()
+    if due:
+        try:
+            due_date = date.fromisoformat(due)
+        except ValueError:
+            # 非法格式不能静默跳过（否则复审日写错等于没有），也不能抛异常阻断 CI
+            print(f"[WARN] G-050 基线 _meta.review_due 非法（{due!r}，应为 YYYY-MM-DD），已跳过复审提醒")
+        else:
+            if due_date < date.today():
+                print(
+                    f"[WARN] G-050 基线待复审（review_due={due}）：复核 122 条 allowlist 是否仍成立、"
+                    f"40 条迁移冻结是否随 P-106 到期可动"
+                )
 
     exceeded, tightenable = compare(current, baseline)
     total = {kind: sum(v.values()) for kind, v in current.items()}
