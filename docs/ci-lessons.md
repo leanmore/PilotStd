@@ -348,6 +348,15 @@ CI 的 NODE_VERSION 从浮动 22 固定到 22.23.4，修复 2026-10-21 Node.js �
   标 `30_000`，其余保持默认 5s；否则所有卡住的测试都要等 60s 才失败，超时信号失效。
 - **棘轮的"收紧"必须写进规则**：覆盖率上涨若没人同 PR 改基线，下一批删掉 fixture
   覆盖率掉回旧水位也不会触发——G-054 因此在"上涨"时直接打印建议基线值。
+- **门禁的失败模式救了它自己**：`--` 坑让 `coverage-summary.json` 从未生成，G-054 的
+  "报告缺失 exit 2" 当场把假绿变成红，而不是静默 PASS。**新增门禁时要先设计"产物缺失时
+  怎么失败"**，别让缺输入等价于通过。
+- **基线数字必须交代来源**：74.56 / 9.09 / 87.5 是本地 `npx vitest run --coverage` 生成的，
+  CI 直到 `491b1175` 才按同口径校验过一次（run `43584408939`）。以后新增覆盖率类基线，
+  在基线 `_meta` 里写 `generated_by` + `generated_at`，并在台账注明"CI 何时首次生效"。
+- **同类传参风险已排查**：全仓 `.github/workflows/*.yml` 与 `scripts/*.sh` 中
+  `pnpm run <script> -- <args>` 只剩注释一条（即本坑），无第二处；`web/package.json`
+  的 scripts 也不含吞参数写法。**下次给 pnpm 传参一律不带 `--`**，并本地复刻验证。
 
 - **验证命令**：`pnpm.cmd run test --coverage`；`python scripts/check_gui_coverage_ratchet.py`；
   `bash scripts/check_all.sh --fast --guards --local`。

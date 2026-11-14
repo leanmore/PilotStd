@@ -1,4 +1,4 @@
-﻿# 技术债 · 已修复 / 需观察
+# 技术债 · 已修复 / 需观察
 
 > 本文件是 `docs/technical-debt.md` 四分类之一：**需观察**——已处置但需盯住是否复发，或受外部依赖限制只能等事件触发。
 > 每条必须有：**状态**、**触发条件（什么情况下要重新动手）**、**复核方式（怎么一眼看出是否复发）**。
@@ -34,6 +34,7 @@
 | **V-12** | G-032 交叉引用的一般性历史遗留 | `观察中` | 同 V-5 | 同 V-5（10 处中除版本历史行外的部分） |
 | **V-13** | 工具链**版本漂移**：本地 `ruff 0.15.17` vs 归档配置里钉的 `v0.11.6` | `观察中`（2026-10-16 新增；2026-10-17 入口收口后该钉版**不再被执行**，仅存档） | 本地 `ruff format --check` 报"would reformat"而复现 | `python -m ruff --version` 与 `docs/archive/pre-commit-config.archived.yaml` 中 `ruff-pre-commit` 的 `rev` 比对；**不要按它重排**——那份配置的 31 个 hook 从未执行，现行口径是 CI 的 `ruff check`（G-038）与本地 `ruff check`；实测 `engine.py` 2 处属此类 |
 | **V-14** | L1 mypy 口径：`--follow-imports=skip` 下 `download/session.py:38` 的 `[override]` 不报 | `观察中`（2026-10-05 已定性） | 若将来改为 mypy 默认 `follow-imports` | `python -m mypy pilotstd/ docker/ --follow-imports=skip --ignore-missing-imports` ⇒ **2026-10-16 实测 442 文件 0 error** |
+| **V-15** | `NotificationConfig.test.ts` 单用例被标 `30_000`（v8 覆盖率插桩下变慢）——治标，非治本 | `观察中`（2026-11-14 起） | P2-08 收尾后独立小批：用 `vi.useFakeTimers()` + `advanceTimersByTime()` 替换真实等待，去掉 30s；同类"等真实时间"的新用例一律先问"能不能用假时钟" | 若该用例耗时回到 <5s 或 CI 出现超时红，说明时机成熟；`grep -rn "30_000" web/src` 应只剩 0 处 |
 
 ## 三、R15 观察期（2026-10-01 起约一周，**2026-10-16 补收口**）
 

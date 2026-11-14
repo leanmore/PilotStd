@@ -359,6 +359,19 @@ run_local() {
     else
         log_fail "G-031 文档联动同步（本地）"
     fi
+
+    # 2026-11-14：本地 `--local` 不跑 CI 的严格模式（docs_sync_check --strict-block /
+    # check_module_doc_mappings --strict-block），改这些路径时会出现"本地绿、CI 红"
+    # （实测：改 .github/workflows/ci.yml 要同批改 docs/ci-lessons.md；改 pilotstd/ui/
+    # 要同批改 docs/architecture/modules/ui.md）。这里只做提醒、不自动跑：
+    # 严格模式需要一个真实的提交范围，未提交时自动跑会误判。
+    local sensitive
+    sensitive=$( { git diff --cached --name-only --diff-filter=ACMR; git diff --name-only --diff-filter=ACMR; } 2>/dev/null \
+        | grep -E '^(\.github/workflows/|pilotstd/ui/|scripts/|docs/architecture/modules/)' || true )
+    if [ -n "$sensitive" ]; then
+        log_warn "以下变更会触发 CI 严格模式（本地 --local 不覆盖）：$(echo "$sensitive" | tr '\n' ' ')"
+        log_warn "提交前请跑：bash scripts/check_all.sh --ci（复刻 docs_sync_check / module_doc_mappings 的 --strict-block）"
+    fi
 }
 
 # ============================================================
