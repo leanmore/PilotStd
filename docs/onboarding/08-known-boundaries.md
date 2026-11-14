@@ -535,7 +535,7 @@
 - `get_unread_count()` 不带 `user_id`，直接 `COUNT(*) WHERE is_read=0`；
 - `mark_logs_read(ids=[])` 更新 `notification_log` 全表，不按用户。
 
-**已修（本地代码，未部署）**
+**已修（2026-11-07 代码；v0.171.0 起随镜像发布）**
 
 - `get_unread_count(user_id)` / `mark_logs_read(..., user_id)` 已按用户过滤；
 - API 的 `/api/notification/unread-count` 与 `/api/notification/read` 都传当前用户；

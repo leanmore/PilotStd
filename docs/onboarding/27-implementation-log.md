@@ -450,6 +450,15 @@
 | 测试 | G-050 基线保持 164（pass 46/return 48/debug 70），PASS |
 | 回滚 | 不适用 |
 
+### 37. P2-10 批 4（`pilotstd/ui/` 28 条，四批收官）
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `pilotstd/ui/core/handlers/_cleanup.py`、`pilotstd/ui/pages/rules_page.py`、`scripts/silent_errors_baseline.json`、`docs/debt/p2-10-silent-errors-triage.md`、`tests/gui/test_ui_silent_errors_batch4.py` |
+| 行为 | 28 条中 2 条升 warning：① `CleanupHandler.scan_empty_dirs` 扫描失败——原 debug 会让界面只显示"没有可清理目录"，像成功；② `RulesPage._get_rules` 的 `sites.rules` JSON 损坏——原静默返回 `[]`，用户再保存一次就把坏串覆盖成空表。其余 26 条 allowlist（Qt 对象已销毁/信号已断开、无权限子项逐条跳过、sip 不可用回退、退出路径），逐条理由见 triage §九 |
+| 测试 | 新增 `tests/gui/test_ui_silent_errors_batch4.py` 2 passed（caplog 锁 WARNING + 返回值不变）；`tests/gui/test_cleanup_flow_engine.py` + `test_coverage_misc.py` 41 passed；G-050 基线 **164 → 162**（pass 46/return 47/debug 69）PASS；ruff 两文件 All checks passed |
+| 回滚 | 两处改回 `logger.debug` / `return []` 并恢复基线对应项（`_cleanup.py:2`、`rules_page` return:1） |
+
 ---
 
 ## 验证汇总

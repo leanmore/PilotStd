@@ -191,4 +191,47 @@ G-050 按 AST 统计三类"失败不可见"：
 | `pilotstd/wechat_ip/detector.py:53` | debug | 单个检测源失败 → 换下一个源 |
 
 **批 3 结论**：28 条全部 allowlist，无代码变更；基线保持 `164`（pass 46 / return 48 / debug 70）。
-剩余 `pilotstd/ui/` 28 条留批 4。
+
+---
+
+## 九、批 4 清单（`pilotstd/ui/` 28 条；2 条升 warning + 26 条 allowlist）
+
+判定口径（Qt 侧与业务侧不同）：**Qt 对象生命周期竞态（对象已销毁/信号已断开）属预期分支**，
+逐条升 warning 会在每次关窗/刷新时刷屏；反过来，**用户主动触发、失败后界面显示"看起来正常"**
+的两处必须升 warning。
+
+| 位置 | 类别 | 判定 | 理由 |
+|---|---|---|---|
+| `pilotstd/ui/core/handlers/_cleanup.py:135` | debug | **warning（已改）** | 用户点"清理空目录"时扫描失败，界面只会显示"没有可清理目录"，看着像成功；低频、非热路径 |
+| `pilotstd/ui/pages/rules_page.py:85` | return | **warning + return（已改）** | `sites.rules` JSON 损坏 → 静默按空表展示，用户再保存一次就把坏串覆盖成空表；属"配置静默丢失" |
+| `pilotstd/ui/core/event_bus.py:105` | debug | allowlist | `reset()` 期间 `QApplication` 已销毁 → `processEvents` 跳过；teardown 热路径 |
+| `pilotstd/ui/core/event_bus.py:150` | debug | allowlist | 退订未注册的回调 = 幂等语义（`list.remove` 抛 ValueError），不是故障 |
+| `pilotstd/ui/core/event_bus.py:212` | return | allowlist | 取回调弱引用失败 → `None`（按"已失效"处理，偏保守） |
+| `pilotstd/ui/core/event_bus.py:239` | return | allowlist | 判存活失败 → `False`（宁可不投递，不会误投） |
+| `pilotstd/ui/core/handlers/_cleanup.py:181` | debug | allowlist | 清只读时逐文件 `chmod` 失败；真正的删除失败由 `rmtree` 分支弹窗提示 |
+| `pilotstd/ui/core/handlers/_query.py:117` | return | allowlist | 取 work_table 时 C++ 对象已删 → `False`，调用方随后走重建 |
+| `pilotstd/ui/core/handlers/persistence_flow_engine.py:90` | debug | allowlist | 表头 Base64 损坏 → `b""`，只影响列宽恢复，默认值可接受 |
+| `pilotstd/ui/core/handlers/scan_flow_engine.py:84` | return | allowlist | 文件名里的顺序号解析失败 → `None`（非标准件是常态，不是错误） |
+| `pilotstd/ui/core/handlers/scan_flow_engine.py:134` | return | allowlist | 同上（PDF 头解析分支） |
+| `pilotstd/ui/drive_enumerator.py:28` | return | allowlist | `WorkerAborted` = 用户取消，属控制流而非失败 |
+| `pilotstd/ui/main_window/_window_lifecycle.py:64` | debug | allowlist | 退出时 DB 备份失败 → 紧接 `shutdown()`，进程即将结束 |
+| `pilotstd/ui/main_window/_window_lifecycle.py:68` | debug | allowlist | 退出时 manager 关闭失败；进程退出本身是最终兜底 |
+| `pilotstd/ui/main_window/parts/_export_ops.py:44` | debug | allowlist | 导出清单逐条拼路径失败（`os.path.join` 几乎不抛），且导出结果由状态栏数字体现 |
+| `pilotstd/ui/main_window/parts/_file_tree_ops.py:62` | debug | allowlist | `PyQt6.sip` 不可用 → 跳过失效判断，回退路径 |
+| `pilotstd/ui/main_window/parts/_file_tree_ops.py:147` | debug | allowlist | 设置文件图标失败 = 外观降级，不影响数据 |
+| `pilotstd/ui/main_window/parts/_file_tree_ops.py:152` | debug | allowlist | 无权限/被占用的子项跳过（网络盘常见，逐条，升 warning 会刷屏） |
+| `pilotstd/ui/main_window/parts/_file_tree_ops.py:154` | debug | allowlist | 同上兜底分支 |
+| `pilotstd/ui/main_window/parts/_ui_setup_ops.py:403` | debug | allowlist | 非主线程注册 SIGTERM 抛 ValueError 属预期；主流程仍靠 `aboutToQuit`/`atexit` |
+| `pilotstd/ui/qt_lifecycle.py:57` | return | allowlist | 旧版 PyQt6 无 `sip.isdeleted` → 视为存活（回退语义，注释已写明） |
+| `pilotstd/ui/qt_lifecycle.py:74` | return | allowlist | `isdeleted` 调用异常 → 视为存活，避免误杀仍可用的对象 |
+| `pilotstd/ui/qt_lifecycle.py:83` | debug | allowlist | 孤儿 worker 不在注册表（重复释放）→ 幂等 |
+| `pilotstd/ui/qt_lifecycle.py:145` | debug | allowlist | `disconnect` 时已断开/对象已销毁 → 预期 |
+| `pilotstd/ui/qt_lifecycle.py:165` | return | allowlist | `worker.wait` 时 C++ 对象已销毁 → 按已停止处理（返回 True 偏保守） |
+| `pilotstd/ui/themes.py:290` | debug | allowlist | 非 Windows/无 DWM → 深色标题栏不生效，外观降级 |
+| `pilotstd/ui/workers/_common.py:141` | debug | allowlist | `sip` 不可用 → 走回退清理，不阻断关闭 |
+| `pilotstd/ui/workers/_common.py:146` | debug | allowlist | 移除日志 handler 失败（重复 close）→ 幂等 |
+
+**批 4 结论**：28 条中 2 条升 warning（均为"用户主动操作 + 失败后界面看起来正常"），26 条 allowlist。
+基线 **164 → 162**（pass 46 / return 47 / debug 69）；`scripts/silent_errors_baseline.json` 已同步收紧，
+G-050 `PASS`。P2-10 到此**四个批次全部完成**。
+

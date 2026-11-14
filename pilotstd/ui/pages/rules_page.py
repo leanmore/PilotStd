@@ -4,6 +4,7 @@
 # 提供规则列表展示和编辑功能，支持数据导入/导出。
 
 import json
+import logging
 from typing import Any, Optional
 
 from PyQt6.QtWidgets import (
@@ -24,6 +25,8 @@ from PyQt6.QtWidgets import (
 )
 
 from ...i18n import _
+
+logger = logging.getLogger(__name__)
 
 # ──：规则列表展示控件──
 
@@ -82,7 +85,10 @@ class RulesPage(QWidget):
         if isinstance(raw, str):
             try:
                 parsed = json.loads(raw)
-            except json.JSONDecodeError:
+            except json.JSONDecodeError as e:
+                # 静默返回 [] 会让用户以为“规则丢了”，随后一次保存就把坏串覆盖成空表
+                # ⇒ 配置损坏必须留 warning（P2-10 批 4）；日志用英文避免新增 i18n 硬编码
+                logger.warning("site rules JSON parse failed, showing empty list: %s", e)
                 return []
             return parsed if isinstance(parsed, list) else []
         # 可能将数据数组反序列化为程序
