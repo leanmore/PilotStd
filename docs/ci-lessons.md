@@ -366,3 +366,10 @@ CI 的 NODE_VERSION 从浮动 22 固定到 22.23.4，修复 2026-10-21 Node.js �
 
 - **验证命令**：`pnpm.cmd run test --coverage`；`python scripts/check_gui_coverage_ratchet.py`；
   `bash scripts/check_all.sh --fast --guards --local`。
+
+## 2026-11-14：清理 `ci.yml` 的过期 grep 豁免（A-33）
+
+- `Forbid production imports from test modules` 步骤里排除 `_get_mock_adapter` 的条件，是为
+  已删除的懒加载 getter 设的；A-33 删掉 20 个 getter 后该豁免已无对象。
+- **教训**：豁免条件要跟着被豁免对象一起走——对象删除后豁免仍在，会让规则"看起来更宽"，
+  下一个读 CI 的人会误以为 grep 有额外合法用例。删代码时顺手 `git grep` 豁免里的符号。
