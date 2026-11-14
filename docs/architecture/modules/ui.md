@@ -132,6 +132,11 @@ UI 层的状态判定与展示不再硬编码中文：`main_window/parts/_query_
   - `pilotstd/templates/adapter/**` —— cookiecutter 生成钩子与探针脚本（生成期/开发者工具）。
 - **G-005 与本节的关系（2026-10-16 对齐）**：G-005（`scripts/check_g_005_log_tags.py`）的规则是"禁止 `_log()` / 裸 `print` / `print(stderr)`"，与本节前两条**本就冲突**——该门禁此前**从未被任何入口调用**（`check_all.sh` / CI / husky 三处零命中），所以冲突一直没暴露。本次处置：**保留本节的既有决定**（不改那两处代码），把例外**编码进门禁**——`EXCLUDED_ALLOWED_STDERR` 具名登记上述两文件（**不是**按目录放行；同目录同名的其它文件出现 `print(stderr)` 仍判违规），并把该门禁接进 `check_all.sh` 的 `run_fast()`。⚠️ 增删这两个例外**必须同步改本节**，受控测试 `tests/test_check_g_005_log_tags.py` 会锁死清单（改动清单即红）。
 
+## i18n 约定
+
+- UI 运行期文案一律走 `_()`（`pilotstd/i18n/{zh_CN,en,zh_TW}.json`），**不再接受"行内中文拼接 + `i18n-allow` 豁免"**；新增文案必须在三语文件同时加键，`check_i18n_key_count` 会比对键数一致。
+- 2026-11-14（C-6 遗留）：pending 弹窗里"另有 N 条因发布日期格式异常，未加入等待队列"从行内拼接迁到 `download_skipped_bad_date`（`{count}` 占位），`pilotstd/ui/core/handlers/_download.py` 里对应的豁免注释已删除。这是该约定的第一个样板：**数字用占位符，不用 f-string 拼中文**。
+
 ## 工作流
 
 ```
