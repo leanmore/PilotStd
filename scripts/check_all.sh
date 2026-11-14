@@ -239,6 +239,15 @@ run_fast() {
         echo "$_wait_violations"
         log_fail "G-XXX _wait_worker 防回潮 — 请使用 wait_for_worker_and_ui"
     fi
+
+    # G-052 第二阶段（P2-07，2026-11-14）：近 3 个月改动文档里的计数类声明，
+    # 必须登记在 COUNT_CLAIMS（由 G-052 校验数字）或在 scripts/count_claims_exempt.json
+    # 里写明理由。拿不到 git 历史时脚本自行降级 WARN，不会误红浅克隆环境。
+    if python scripts/audit_count_claims.py --strict; then
+        log_pass "G-052 计数声明全覆盖审计"
+    else
+        log_fail "G-052 计数声明全覆盖审计"
+    fi
 }
 
 # ============================================================

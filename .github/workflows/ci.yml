@@ -878,6 +878,9 @@ jobs:
       #   并发组 ci-cd 串行，见主簿「六、观察项」T-30）。对照组：test-backend 的 Ruff 步骤作业内
       #   +30~34s（其前置 Install dependencies 独占 23~29s）。前移的实质收益＝让 lint 成为作业内**首个**
       #   信号、不再排在其他 10 个检查之后；检查逻辑、命令、范围一字未改。
+      - name: G-052 — 计数声明全覆盖审计（近 3 个月改动文档）
+        run: python scripts/audit_count_claims.py --strict
+
       - name: G-038 — 历史遗留错误清零（Ruff+Mypy+裸noqa）
         run: |
           pip install ruff mypy

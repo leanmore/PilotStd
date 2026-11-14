@@ -357,6 +357,12 @@ CI 的 NODE_VERSION 从浮动 22 固定到 22.23.4，修复 2026-10-21 Node.js �
 - **同类传参风险已排查**：全仓 `.github/workflows/*.yml` 与 `scripts/*.sh` 中
   `pnpm run <script> -- <args>` 只剩注释一条（即本坑），无第二处；`web/package.json`
   的 scripts 也不含吞参数写法。**下次给 pnpm 传参一律不带 `--`**，并本地复刻验证。
+- **G-052 第二阶段接入 CI 的代价（2026-11-14）**：`repo-compliance` 新增
+  `audit_count_claims.py --strict`——**近 3 个月改动过的文档里，凡含"N 个 router 模块 /
+  N 个唯一 API 路径 / N 张表 / N 个迁移模块"等计数声明，必须登记 `COUNT_CLAIMS`
+  或在 `count_claims_exempt.json` 写明理由**，否则 CI 红。豁免过期（窗口内不再命中）
+  会给 WARN 提示删除。教训：**给文档加"听起来像规模数字"的句子时，先想它会不会被这条
+  审计扫到**；确实属于历史记录的，加豁免并写清"为什么这个数字不用跟代码变"。
 
 - **验证命令**：`pnpm.cmd run test --coverage`；`python scripts/check_gui_coverage_ratchet.py`；
   `bash scripts/check_all.sh --fast --guards --local`。

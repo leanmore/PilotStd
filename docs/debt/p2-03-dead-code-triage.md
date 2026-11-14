@@ -57,3 +57,15 @@
 - 判据：删方法后，`QueryUIHandler` 侧覆盖率不下降、且没有 `# pragma: no cover` 补丁。
 - **到期机制（防无声长大）**：下面任一条件触发即做，不再"等重构"——① 下次修改 `QueryUIHandler.on_query_result_ready` 或 TaskView 列定义时**同批**迁移；② 2026-Q2 季度复审时若仍未动，直接评估"删方法 + 删断言"（最多损失那 8 处对死代码的覆盖，`QueryUIHandler` 路径另有测试兜底）。
 
+
+---
+
+## 五、2026-11-14 执行：删除 `TaskProgress.vue`（本批唯一删除）
+
+| 项 | 内容 |
+|---|---|
+| 对象 | `web/src/components/TaskProgress.vue`（657 B，`defineOptions` + 3 行脚本） |
+| 证据 | `git grep -n "TaskProgress"` 全仓**无 import**（仅本文件自身、文档里的同名后端类、以及错误的 `src/views/` 路径）；行覆盖 0/3；`main.ts` 无全局注册 |
+| 判定 | 真死代码，不属于"扩展点/工具族/测试夹具"——P2-03 上一批 13 组 0 删除的理由在这里都不成立 |
+| 验证 | `vitest run` 366 passed（46 files）、`pnpm run build` 成功；`pnpm run type-check` / `lint` 通过 |
+| 副作用 | `scripts/gui_coverage_baseline.json` 的 `second_batch_candidates` 原写成错误路径 `src/views/TaskProgress.vue`，已清空并注明：TaskProgress 删除、TaskManager 转观察项 V-16 |

@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "note": "GUI 单文件行覆盖率棘轮（P2-08）。只收运行时文件；纯类型文件列 type_only，不参与阈值。基线取 2026-11-14 实测值，只能不降。",
+    "note": "GUI 单文件行覆盖率棘轮（P2-08）。只收运行时文件；纯类型文件列 type_only，不参与阈值。基线取 2026-11-14 实测值，只能不降。 第二批候选已清空：TaskProgress.vue 无 import（2026-11-14 删除），TaskManager.vue 转观察项 V-16。",
     "generated_at": "2026-11-14",
     "generated_by": "cd web && npx vitest run --coverage --coverage.reporter=json-summary",
     "tolerance_pp": 0.5,
@@ -24,8 +24,5 @@
   "type_only": [
     "src/views/TaskView/types.ts"
   ],
-  "second_batch_candidates": [
-    "src/views/TaskProgress.vue",
-    "src/views/TaskManager.vue"
-  ]
+  "second_batch_candidates": []
 }

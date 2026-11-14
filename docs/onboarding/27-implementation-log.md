@@ -470,6 +470,15 @@
 | 回滚 | 删 CI 两步 + 两个脚本/基线 + 还原 `vite.config.ts` reporter |
 | 后续 | 2026-11-14 补 `TaskHistoryList.test.ts` 6 例（四状态/分页/详情-重跑-删除事件/英文 locale），行覆盖 **9.09% → 100%** 并同 PR 收紧基线；CI run `43584408939` **13/13 全绿**（含 `test-frontend` 的 G-054 步骤与 `repo-compliance` 的严格文档联动） |
 
+### 39. G-052 第二阶段（计数声明全覆盖审计）+ 删除死组件 TaskProgress
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `scripts/audit_count_claims.py`、`scripts/count_claims_exempt.json`、`tests/test_audit_count_claims.py`、`scripts/check_all.sh`（`--fast` 接入）、`.github/workflows/ci.yml`（`repo-compliance` 步骤）、`web/src/components/TaskProgress.vue`（删除） |
+| 行为 | ① 审计 `git log --since` 近 3 个月改动文档中**含计数类声明**的部分：命中必须登记在 `COUNT_CLAIMS`（数字由 G-052 校验）或在豁免表写明理由，空理由按违规；豁免过期给 WARN。分母只算"改动且含声明"，纯错别字改动不误伤；拿不到 git 历史降级 WARN。② 删除 `TaskProgress.vue`（全库无 import、0/3 行覆盖），P2-03 首次真删除 |
+| 测试 | `tests/test_audit_count_claims.py` 7 passed；`tests/test_check_docs_drift_counts.py` 6 passed；审计实跑 221 篇改动文档 / 5 篇已登记 / 2 篇豁免 → PASS；前端 366 passed、build 通过 |
+| 回滚 | 删审计脚本与豁免表、还原 `check_all.sh`/`ci.yml` 两处接线；`git revert` 恢复 `TaskProgress.vue` |
+
 ---
 
 ## 验证汇总

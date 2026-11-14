@@ -17,6 +17,7 @@
 ### 门禁支柱
 
 - [ ] **本地检查已通过**（`scripts/check_all.sh` 零警告）
+- [ ] **严格模式已复刻**：若改过 `.github/workflows/`、`pilotstd/ui/`、`scripts/`、`docs/architecture/modules/`（本地 `--local` 会打印"严格模式提醒" WARN），已跑 `bash scripts/check_all.sh --ci`，不把"本地绿、CI 红"带进 PR
 - [ ] **文档与代码已在同一个 commit 中提交**
 - [ ] **已确认新增/修改的 i18n key 在所有 locale 文件中存在**（`web/src/locales/*.json` 键名对齐，无遗漏）→ 排查指南见 [i18n-troubleshooting-sop.md](docs/reference/i18n-troubleshooting-sop.md)
 
