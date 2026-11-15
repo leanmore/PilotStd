@@ -625,3 +625,20 @@
 ---
 
 ## 验证汇总
+
+### 50. 三批移入复盘 + P1 pending 核销修复/回填 + 216 残留查证 + 实时路径规则（2026-11-15）
+
+| 项 | 内容 |
+|---|---|
+| 口径 | 以 **572 事件 / 22 批 / 扫描 572 / 搬移 355** 为准（此前 413/10/530/317 是 19:06:42 后中间观察，已废弃） |
+| P1 修复 | `_organize._resolve_archived_pending`：归档成功（源文件已不在）后按 `build_standard_number` 同键把 pending 置 `resolved`；新增 2 例测试（归档核销/源仍在不核销） |
+| 历史回填 | 线上按 `file_index` 精确同键回填 **387 条** → `pending` 605→217；另补 `TSG Z8002-2022` 1 条（Z 前缀格式不匹配）→ 现在 pending **217**、resolved **388** |
+| 216 残留 | 216 个非杂项文件全部未进 `file_index`；与 pending 一一对应（pending 217 = 216 + 孤儿 `GB 31422.1-2025`）；`skipped_exists/conflict_pending` 历史未落日志，需下批按新日志细分 |
+| P3 补日志 | `_auto_run_impl` 新增 `归档明细: moved/failed/skipped_exists/conflict_pending/skipped_source/dedup_skipped` |
+| 实时规则 | 572 文件写入既有目录 → 全部触发；12:29 后新建 TSG 目录 → 零触发。推断：recursive watch 只对启动时既有目录建 watch，新子目录依赖目录创建事件补 watch（Windows bind mount 未送达）。**结论：新目录必须 restart 补扫；旧目录可实时**（A-44/08#26 已更新） |
+| mtime 硬前置 | API 读不到 inbox mtime（`/api/files`/`scan` 只回 size）；216 若 mtime>watermark 则下次 restart 会重扫，需宿主 `Get-ChildItem` 确认；确认前 62 批全量不投 |
+| 测试 | 全量见汇报；`test_p211_root_cause.py` 14 例（含 2 例核销） |
+
+---
+
+## 验证汇总

@@ -223,6 +223,22 @@ class OrganizeHandler:
             except Exception as e:
                 logger.warning("发送废止标准通知失败: %s, error=%s", std_no, e)  # i18n-allow: 内部日志
 
+    def _resolve_archived_pending(self, items: Any) -> None:
+        """归档成功（moved>0）后按同一规范键核销 pending_lookup，避免“已归档仍待确认”。"""
+        svc = getattr(self._core, "pending_svc", None)
+        if svc is None:
+            return
+        keys: list[str] = []
+        for p in items:
+            src = getattr(p, "source_path", "") or ""
+            if not src or os.path.exists(src):
+                continue  # 源文件仍在 = 未真正归档
+            key = build_standard_number(str(p.logical_code or ""), p.number, getattr(p, "part", None), p.year)
+            if key:
+                keys.append(key)
+        if keys:
+            svc.resolve_pending_by_numbers(keys, "resolved")
+
     def archive_standards(
         self,
         parsed_list: list[ParsedStdInfo] | None = None,
@@ -255,6 +271,7 @@ class OrganizeHandler:
         _EXPIRE_STATUSES = status_dict.ABOLISHED_STATUSES_WITH_EXPIRED
         if moved > 0:
             self._register_moved_standards(items, ctx, _EXPIRE_STATUSES)
+            self._resolve_archived_pending(items)
         try:
             if self._core.notification_mgr:
                 # 归档目标目录从整理器明细行的「源文件名 -> 目标路径」中提取（去重父目录）

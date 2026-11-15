@@ -256,3 +256,12 @@ StandardManager (BaseFacade)
 - 代号为空时从 `raw_filename` 用 `parse_std_number` 补解析（TSG 等可解析）；
 - 仍无法确定 → 跳过 `register_new_standard` 并 WARNING，不写畸形键。
 回归：`tests/test_p211_root_cause.py`（含归档从文件名补代号、无代号跳过）。
+
+## pending 核销与归档明细（2026-11-15，P1/P3）
+
+- `OrganizeHandler.archive_standards`：`moved>0` 后调用 `_resolve_archived_pending`，按
+  `std_utils.build_standard_number` 同键把 `pending_lookup` 置 `resolved`（源文件仍在则不核销），
+  避免“已归档仍待确认”；回归 `tests/test_p211_root_cause.py`（+2 例）。
+- `AutoPipeline._auto_run_impl`：归档后打印
+  `归档明细: moved/failed/skipped_exists/conflict_pending/skipped_source/dedup_skipped`，
+  用于区分“查到但没搬”是目标同名同内容还是同名冲突。

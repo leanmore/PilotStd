@@ -127,3 +127,70 @@ def test_parse_tsg_letter_prefix():
     assert parsed["number"] == 8002
     assert parsed["year"] == 2022
     assert parsed["num_prefix"] == "Z"
+
+def test_archive_resolves_pending_by_canonical_key(tmp_path):
+    """归档成功（源文件已不在）→ 同规范键的 pending 行置 resolved。"""
+    from pilotstd.manager.pending_service import PendingService
+
+    db = Database(str(tmp_path / "p.db"))
+    db.execute(
+        "INSERT INTO pending_lookup (standard_number, status) VALUES (?, ?)",
+        ("GB/T 1-2020", "pending"),
+    )
+    core = SimpleNamespace(
+        organizer_svc=_Organizer(),
+        validity_checker=None,
+        notification_mgr=None,
+        parsed_results=[],
+        db=db,
+        pending_svc=PendingService(db, None),
+    )
+    handler = OrganizeHandler(core)
+    item = ParsedStdInfo(
+        raw_filename="GB/T 1-2020 测试.pdf",
+        source_path=str(tmp_path / "not-exists.pdf"),
+        logical_code="GB/T",
+        number=1,
+        year=2020,
+        std_name="测试",
+        final_name="GB/T 1-2020 测试.pdf",
+    )
+    handler.archive_standards([item])
+    row = db.fetchone("SELECT status FROM pending_lookup WHERE standard_number='GB/T 1-2020'")
+    assert row["status"] == "resolved"
+    db.close()
+
+
+def test_archive_keeps_pending_when_source_still_exists(tmp_path):
+    """源文件仍在（未真正归档）→ 不核销 pending。"""
+    from pilotstd.manager.pending_service import PendingService
+
+    db = Database(str(tmp_path / "p2.db"))
+    db.execute(
+        "INSERT INTO pending_lookup (standard_number, status) VALUES (?, ?)",
+        ("GB/T 2-2020", "pending"),
+    )
+    still_there = tmp_path / "still.pdf"
+    still_there.write_text("x", encoding="utf-8")
+    core = SimpleNamespace(
+        organizer_svc=_Organizer(),
+        validity_checker=None,
+        notification_mgr=None,
+        parsed_results=[],
+        db=db,
+        pending_svc=PendingService(db, None),
+    )
+    handler = OrganizeHandler(core)
+    item = ParsedStdInfo(
+        raw_filename="GB/T 2-2020 测试.pdf",
+        source_path=str(still_there),
+        logical_code="GB/T",
+        number=2,
+        year=2020,
+        std_name="测试",
+        final_name="GB/T 2-2020 测试.pdf",
+    )
+    handler.archive_standards([item])
+    row = db.fetchone("SELECT status FROM pending_lookup WHERE standard_number='GB/T 2-2020'")
+    assert row["status"] == "pending"
+    db.close()

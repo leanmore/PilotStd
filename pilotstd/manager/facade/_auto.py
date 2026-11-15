@@ -84,6 +84,17 @@ class AutoPipeline:
         org_result = self._organize.archive_standards(parsed)
         report["organize_moved"] = org_result["moved"]
         report["organize_failed"] = int(org_result.get("failed", 0) or 0)
+        # 2026-11-15：归档明细计数必须可见（否则"查到没搬"无法区分同名同内容/同名冲突）
+        logger.info(
+            "归档明细: moved=%d failed=%d skipped_exists=%d conflict_pending=%d "  # i18n-allow: 内部日志
+            "skipped_source=%d dedup_skipped=%d",
+            int(org_result.get("moved", 0) or 0),
+            int(org_result.get("failed", 0) or 0),
+            int(org_result.get("skipped_exists", 0) or 0),
+            int(org_result.get("conflict_pending", 0) or 0),
+            int(org_result.get("skipped_source", 0) or 0),
+            int(org_result.get("dedup_skipped", 0) or 0),
+        )
         report["mirror_skipped"] = 0
         report["fallback_mirrored"] = 0
         logger.info("阶段耗时 archive: %.1fs (%d 已移动)", _time.monotonic() - t_stage, report["organize_moved"])
