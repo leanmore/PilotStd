@@ -609,3 +609,19 @@
 ---
 
 ## 验证汇总
+
+### 49. 62 批目的/补扫并发/试投放定位 + monitor 实时缺陷挂账（2026-11-15）
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `docs/records/2026-11-15-p3-16-p2-11-attribution.md`（§十一 实时路径证据）、`docs/debt/03-open.md`（A-44）、`docs/onboarding/08-known-boundaries.md`（#26）、`docs/technical-debt.md`（计数） |
+| 目的判定 | 62 批/825 是**本地压测**，远程从未跑过（远程 11-13 补扫仅 1 目录/3 文件，809 文件是 API 触发）；**建议先做 3~5 目录的小场景**验证 `2e031a49` 分批语义，825 全量作为压力测试单独评估（预期与 11-13 同：配额耗尽、604 chain_exhausted，无新信息） |
+| 并发结论 | **串行**：`_process_catchup_batches` 逐目录 `for`，每批 `_on_file` **同步**调 `auto_run(dir)`，目录间 `CATCHUP_INTERVAL_SECONDS=1.0s`（`scheduler.py:261-286`、`:101`、`:376`）；不存在并发全扫。restart 方案可行；但配额是跨目录累计消耗，825 仍会像 11-13 一样耗尽站点 |
+| 分批语义证据 | 本地 `tests/integration/test_monitor_catchup_e2e.py` **7 passed**（嵌套目录祖先折叠、根散件最后单独一批、watermark 跳过旧文件、stop 打断） |
+| 试投放 | 需宿主执行（我只有 API，无投放/改 mtime 通道）：放 1 文件到新孙目录 → `LastWriteTime=now` → 先等 15s 看 `检测到新文件`（预期无）→ `docker compose restart app` → 看 `启动补扫开始: 1 目录 / 1 文件`（预期有） |
+| monitor 缺陷 | **A-44 / 08#26**：Windows bind mount 下 inotify 不传播，实时路径实际未工作；修复选项 PollingObserver / named volume / 文档写明仅 restart 补扫；**挂待办，不现在修**，与 62 批并行不互为前置 |
+| 测试 | 监控 e2e 7 例通过；文档门禁 `--fast --guards --local` 见汇报 |
+
+---
+
+## 验证汇总
