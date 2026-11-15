@@ -668,3 +668,13 @@
 | watermark 语义 | 补扫完成时仍把 watermark 设为 `scan_started`（不是完成时间）：补扫期间新写入的 mtime 更晚，下次仍会处理，**不会把新文件推前跳过**；与实时 monitor 共用 `_on_file` 目录去重（`_active_dirs`/`_recent_dirs`），同目录不会被两条路径重复处理 |
 | 测试 | replay 端点改为“默认可用 + 源缺失逐条 ok=False”；新增 catchup API 2 例、scheduler trigger 2 例（未运行/启动+并发拒绝）；`test_monitor_scheduler.py` 共 27 例通过 |
 | 文档计数 | 唯一 API 路径 125→126、route×method 141→142（03/19/20 已同步） |
+
+### 53. 小场景补扫暴露的两个 monitor 缺陷（2026-11-15，已修）
+
+| 缺陷 | 现象 | 修复 |
+|---|---|---|
+| 折叠计数少算 | `/inbox/__replay_small` 的 a 与 a/nested 折叠后日志报 `3 目录 / 4 文件`（应为 5），`1/3: a（1 文件）` 少算子目录文件 | 新增 `_count_catchup_files(groups, kept)`：按 kept 祖先汇总其自身+后代文件数；总览与逐目录日志都用它 |
+| 祖先/后代重复处理 | 补扫 `a` 批递归覆盖 `a/nested` 时，nested 的实时事件又自己触发一次（生产日志 21:47:12 补扫 a / 21:47:17 nested 单独处理） | `_on_file` 增加 `_covered_by_ancestor()`：路径在正在跑或 10s 内跑过的祖先目录下 → 跳过；同一目录去重逻辑保留 |
+| 附带发现 | 生产 `organize.auto_clean_source=true`，`skipped_exists` 会删除源文件（小场景 5 个副本处理后被自动清理，属预期配置） | 不改配置，记录到边界（复制件不会残留） |
+
+验证：`test_monitor_scheduler.py` + `test_monitor_catchup_e2e.py` 共 29 例通过；全量与 `--ci` 见汇报。

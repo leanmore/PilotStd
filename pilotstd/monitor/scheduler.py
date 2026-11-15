@@ -96,6 +96,32 @@ def get_scheduler():
 
 # 后台线程驱动，文件就绪后触发自动归档
 # 全局单例模式，通过_调度器()获取，/管理生命周期
+def _count_catchup_files(groups: dict[str, list[str]], kept: list[str]) -> int:
+    """统计 kept 目录及其后代目录的文件总数（祖先折叠后不能只数 kept 自身）。"""
+    total = 0
+    for key, files in groups.items():
+        if any(key == k or key.startswith(k.rstrip("/") + "/") for k in kept):
+            total += len(files)
+    return total
+
+
+def _covered_by_ancestor(
+    path: str, active_dirs: set[str], recent_dirs: dict[str, float], now: float, window: float = 10.0
+) -> bool:
+    """path 是否已被某个祖先目录的批次覆盖（正在跑，或 10s 内跑过）。
+
+    批次按目录触发时 `auto_run(dir)` 会递归扫描子目录；子目录随后自身的实时事件
+    不应再触发一次（2026-11-15 生产复现：a/nested 被 a 批与自身事件各处理一次）。
+    """
+    for d in active_dirs:
+        if path == d or path.startswith(d.rstrip("/") + "/"):
+            return True
+    for d, ts in recent_dirs.items():
+        if (path == d or path.startswith(d.rstrip("/") + "/")) and now - ts < window:
+            return True
+    return False
+
+
 class FileMonitorScheduler:
     # 补扫目录之间的间隔（秒）：避免启动瞬间打满查询/下载；stop 时可被立即打断。
     CATCHUP_INTERVAL_SECONDS = 1.0
@@ -301,7 +327,7 @@ class FileMonitorScheduler:
                 idx,
                 len(kept),
                 key,
-                len(groups[key]),
+                _count_catchup_files(groups, [key]),
             )
             self._on_file(groups[key][0])
             if idx < len(kept) and stop_event.wait(self.CATCHUP_INTERVAL_SECONDS):
@@ -346,7 +372,7 @@ class FileMonitorScheduler:
             )
             return
         kept = self._collapse_catchup_dirs(groups, watch_path)
-        total_files = sum(len(groups[key]) for key in kept)
+        total_files = _count_catchup_files(groups, kept)
         logger.info(
             "[MONITOR] 启动补扫开始: %d 目录 / %d 文件（watermark 跳过 %d）",  # i18n-allow: 内部运维日志
             len(kept),
@@ -383,6 +409,9 @@ class FileMonitorScheduler:
         # 同一目录只跑一条主链：并发回调直接跳过，10 秒内也不重复触发
         with self._dir_lock:
             last = self._recent_dirs.get(source_root, 0.0)
+            if _covered_by_ancestor(source_root, self._active_dirs, self._recent_dirs, now):
+                logger.info("[MONITOR] 已被祖先目录批次覆盖/去抖，跳过: %s", path)  # i18n-allow: 内部运维日志
+                return
             if source_root in self._active_dirs or now - last < 10:
                 logger.info("[MONITOR] 同目录处理中/去抖，跳过: %s", path)  # i18n-allow: 内部运维日志
                 return

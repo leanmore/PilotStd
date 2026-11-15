@@ -222,3 +222,21 @@ def test_trigger_catchup_starts_thread_and_guards_concurrency(monkeypatch):
     sched._catchup_stop.set()
     sched._catchup_thread.join(timeout=3)
     time.sleep(0.05)
+
+def test_covered_by_ancestor_active_and_recent():
+    from pilotstd.monitor.scheduler import _covered_by_ancestor
+
+    now = 1000.0
+    assert _covered_by_ancestor("/inbox/a/nested", {"/inbox/a"}, {}, now) is True
+    assert _covered_by_ancestor("/inbox/a/nested", set(), {"/inbox/a": now - 5}, now) is True
+    assert _covered_by_ancestor("/inbox/b", {"/inbox/a"}, {}, now) is False
+    assert _covered_by_ancestor("/inbox/a", {"/inbox/a"}, {}, now) is True
+
+
+def test_count_catchup_files_includes_descendants():
+    from pilotstd.monitor.scheduler import _count_catchup_files
+
+    groups = {"/inbox/a": ["x"], "/inbox/a/nested": ["y"], "/inbox/b": ["z"]}
+    kept = ["/inbox/a", "/inbox/b"]
+    assert _count_catchup_files(groups, kept) == 3
+    assert _count_catchup_files(groups, ["/inbox/a"]) == 2
