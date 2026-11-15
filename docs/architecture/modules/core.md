@@ -649,3 +649,10 @@ pilotstd/core/
 - `std_utils.build_standard_number(code, number, part, year)`：空代号/非法编号返回空串，杜绝 `" 11-2020"` 畸形键；`CANONICAL_KEY_RE` 定义规范形态。
 - `ValidityChecker.register_new_standard`：只接受 `CODE number[.part]-year` 且无前导空格；畸形键拒绝并 WARNING。
 - 背景：归档时 `logical_code` 为空会拼出前导空格键，线上 `standard_validity` 累计 7 条且每轮复检复现；数据修复（合并 5 / manual 2）已在线上快照副本验证，生产 apply 待窗口。
+
+## 标准号解析加固（2026-11-15，P2-11 后续）
+
+- `parse_std_number` 入口新增合订本残片归一（`47008-1947 010-2010` → `47008-2010`，不再把 1947 当年份）
+  和 TSG 字母前缀通道（`TSG Z8002-2022` → code=TSG、number=8002、num_prefix=Z）。
+- 背景：`bddc6943`（2026-08-20）的合订本归一只在 `scan/parser/_text_cleaner.py`，归档/validity 路径用的
+  `parse_std_number` 未覆盖，导致 ` 47008-1947` 畸形键；回归见 `tests/test_p211_root_cause.py`。

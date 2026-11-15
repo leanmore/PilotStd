@@ -593,3 +593,19 @@
 ---
 
 ## 验证汇总
+
+### 48. P2-11 生产 apply + 33 份 TSG 归档 + 合订本解析根因（2026-11-15）
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `pilotstd/core/std_utils.py`（合订本归一 + TSG 前缀解析）、`tests/test_p211_root_cause.py`（+2 例）、归因记录 §六~§八、ISSUE_LEDGER P2-11、多用户计划 P1 |
+| P2-11 apply | 备份 `pilotstd_manual_20261115_123510.bak` → `/query` 逐条 merge：819→**814**、distinct=814、畸形 7→**2**；integrity ok；FK 4 条与 11-09 备份一致（既有、非本次）；二次 dry-run 仅 2 manual |
+| TSG 归档 | 33/33 解析成功（含 `TSG Z8002` 前缀修复）；`POST /api/archive` **moved 33 / failed 0 / conflict 0**；inbox 0 剩、standards 33 份、file_index TSG 0→33（总 204→237） |
+| P1 生产验证 | 归档后 `notification_log` 新增 `batch_summary` 两行，`user_id=1`（触发人）、无 0 ⇒ P1 生产端到端验证通过 |
+| 47008-1947 根因 | `bddc6943`（2026-08-20）的合订本归一只落在 scan `TextCleaner`，`parse_std_number` 未覆盖；归档/validity 路径直取 1947 当年份。已在 `parse_std_number` 入口补同一归一，并补 TSG 字母前缀通道 |
+| 未决 | 2 条 manual 键保留（` 19001-2020`/` 47008-1947`），待裁定删除或标记 |
+| 测试 | 新增/修改后 `test_p211_root_cause.py` 12 例、`test_std_utils.py` 全通过；全量与 `--ci` 见汇报 |
+
+---
+
+## 验证汇总

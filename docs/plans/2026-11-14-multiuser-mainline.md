@@ -34,7 +34,7 @@
   `user_id==1`、`log_user_id==1`。
 - **2026-11-15 集成验证完成**：`tests/test_p1_multiuser_integration.py` 3 例（真实
   `NotificationManager` + 临时库 + 真实路由/中间件）：两个管理员分别触发 auto/archive →
-  `notification_log.user_id` = 1/2、无 0。**状态：代码 + 集成测试完成，生产端到端待有环境时补。**
+  `notification_log.user_id` = 1/2、无 0。**状态：代码 + 集成测试完成；2026-11-15 生产端到端已验证**——33 份 TSG 归档后 `notification_log` 新增 `batch_summary`（user_id=1，触发人），无 user_id=0。
 - **DB 级判据（待真实双用户环境复核）**：
   ```sql
   SELECT user_id, count(*) FROM notification_log

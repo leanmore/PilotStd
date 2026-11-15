@@ -18,6 +18,14 @@ def is_canonical_standard_number(key: str) -> bool:
     return bool(key) and key == key.strip() and bool(CANONICAL_KEY_RE.match(key))
 
 
+# 合订本残片（OCR/转录）："47008-1947 010-2010" → 起始编号 + 真实年份
+_COMBINED_RANGE_RE = re.compile(
+    r"(\d{2,5})[-－]((?:19|20)\d{2})\s+(\d{2,5})[-－]((?:19|20)\d{2})"
+)
+# TSG 字母前缀编号：TSG Z8002-2022（Z 是规则分类前缀，不是代号的一部分）
+_TSG_PREFIX_RE = re.compile(r"^TSG\s*([A-Z])?\s*(\d{3,5})\s*[-－]\s*((?:19|20)\d{2})")
+
+
 def _as_int(value: Any) -> int:
     """宽松转 int：空/非数字返回 0（不用 try/except，避免被 G-050 记为静默吞错）。"""
     if isinstance(value, bool):
@@ -404,6 +412,19 @@ def parse_std_number(text: str) -> dict[str, Any] | None:
     if not text:
         return None
     text = text.strip()
+    # 合订本残片先归一到"起始编号-真实年份"，避免把 1947 之类残片年份当年份
+    text = _COMBINED_RANGE_RE.sub(r"\1-\4 合订本", text)  # i18n-allow: 合订本标识
+    tsg = _TSG_PREFIX_RE.match(text)
+    if tsg:
+        return {
+            "raw_code": "TSG",
+            "code": "TSG",
+            "number": int(tsg.group(2)),
+            "year": int(tsg.group(3)),
+            "part": None,
+            "num_prefix": tsg.group(1) or "",
+            "num_suffix": "",
+        }
 
     # 按优先级依次尝试各解析器
     for parser in (

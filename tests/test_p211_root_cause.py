@@ -106,3 +106,24 @@ def test_archive_registration_skips_when_code_unknown(tmp_path):
     rows = db.fetchall("SELECT standard_number FROM standard_validity")
     assert rows == []
     db.close()
+
+
+def test_parse_combined_range_uses_real_year():
+    """合订本残片 "47008-1947 010-2010"：取起始编号 + 真实年份 2010，不是 1947。"""
+    from pilotstd.core.std_utils import parse_std_number
+
+    parsed = parse_std_number("NB/T 47008-1947 010-2010 合订本.pdf")
+    assert parsed["code"] == "NBT"
+    assert parsed["number"] == 47008
+    assert parsed["year"] == 2010
+
+
+def test_parse_tsg_letter_prefix():
+    """TSG Z8002-2022：代号 TSG、编号 8002、前缀 Z（不是 code=TSGZ800）。"""
+    from pilotstd.core.std_utils import parse_std_number
+
+    parsed = parse_std_number("TSG Z8002-2022 特种设备检验人员考核规则 第2号修改单.docx")
+    assert parsed["code"] == "TSG"
+    assert parsed["number"] == 8002
+    assert parsed["year"] == 2022
+    assert parsed["num_prefix"] == "Z"
