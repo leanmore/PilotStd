@@ -23,7 +23,6 @@ from ..auth import require_role
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["replay-admin"])
 
-_ENABLE_ENV = "PILOTSTD_ENABLE_REPLAY_STAGE"
 _SRC_ROOTS = ("/inbox", "/standards")
 _DST_PREFIXES = ("/inbox/__replay_",)
 _DST_EXACT = "/inbox/_quarantine"
@@ -110,9 +109,7 @@ def stage_one(action: str, source: str, target: str, set_mtime: bool) -> None:
 @router.post("/api/admin/replay-stage", response_model=StageResponse)
 @require_role("admin")
 def replay_stage(request: Request, body: StageRequest):
-    """受控投放：默认关闭；启用后仅 copy/move 到测试前缀。"""
-    if os.environ.get(_ENABLE_ENV, "").strip().lower() not in ("1", "true", "yes"):
-        raise HTTPException(403, "replay stage disabled")
+    """受控投放：仅 copy/move 到测试前缀（admin + 白名单 + 审计）。"""
     if not body.items:
         raise HTTPException(400, "items 不能为空")  # i18n-allow: 管理端点错误
     if len(body.items) > _MAX_ITEMS:

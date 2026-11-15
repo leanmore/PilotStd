@@ -115,6 +115,8 @@ class FileMonitorScheduler:
         self._active_dirs: set[str] = set()
         self._recent_dirs: dict[str, float] = {}
         self._dir_lock = threading.Lock()
+        # 手动触发补扫的并发保护：同一时刻只允许一个补扫线程（2026-11-15）
+        self._catchup_trigger_lock = threading.Lock()
 
     def start(self):
         """启动文件监控后台线程。"""
@@ -209,6 +211,32 @@ class FileMonitorScheduler:
             self.observer.stop()
             self.observer.join()
             self.running = False
+
+    def trigger_catchup(self) -> dict[str, object]:
+        """手动触发一次启动补扫（admin 端点用）。
+
+        并发与 watermark 语义：
+        - 同一时刻只允许一个补扫；已在跑时返回 started=False，不排队；
+        - watermark 仍由 `_catch_up_existing` 在**正常跑完**时设为 `scan_started`：
+          补扫期间新写入的文件 mtime 会晚于该值，下次仍会被处理，不会被推前跳过；
+        - 与实时 monitor 共用 `_on_file` 的目录级去重（`_active_dirs`/`_recent_dirs`），
+          同一目录不会被实时与补扫重复处理。
+        """
+        if not self.running:
+            return {"started": False, "reason": "monitor not running"}
+        with self._catchup_trigger_lock:
+            if self._catchup_thread is not None and self._catchup_thread.is_alive():
+                return {"started": False, "reason": "catchup already running"}
+            stop = threading.Event()
+            self._catchup_stop = stop
+            self._catchup_thread = threading.Thread(
+                target=self._catch_up_existing,
+                args=(stop,),
+                daemon=True,
+                name="monitor-catchup-manual",
+            )
+            self._catchup_thread.start()
+            return {"started": True, "reason": ""}
 
     def _collect_catchup_groups(self, watch_path, recursive, watermark, cfg, stop_event):
         """遍历 watch_path，按父目录收集 mtime 晚于 watermark 的待补扫文件。"""

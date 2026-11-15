@@ -40,13 +40,16 @@ def test_stage_one_copy_and_move(tmp_path):
     assert moved.exists() and not src.exists()
 
 
-def test_endpoint_disabled_by_default(monkeypatch):
-    monkeypatch.delenv("PILOTSTD_ENABLE_REPLAY_STAGE", raising=False)
+def test_endpoint_enabled_but_missing_source_reports_item_error():
+    """端点默认可用（admin+白名单+审计）；源不存在时逐条 ok=False，不抛 500。"""
     app = FastAPI()
     app.include_router(router)
     client = TestClient(app, cookies=admin_cookies())
     r = client.post(
         "/api/admin/replay-stage",
-        json={"items": [{"source": "/inbox/a.pdf", "target": "/inbox/__replay_x/a.pdf"}]},
+        json={"items": [{"source": "/inbox/not-exists.pdf", "target": "/inbox/__replay_x/a.pdf"}]},
     )
-    assert r.status_code == 403
+    assert r.status_code == 200
+    body = r.json()
+    assert body["failed"] == 1 and body["ok"] == 0
+    assert body["results"][0]["ok"] is False

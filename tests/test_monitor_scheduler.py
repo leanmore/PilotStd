@@ -189,3 +189,36 @@ class TestGetStatus:
                 assert status["watch_path"] == "/watch"
                 assert status["processed_today"] == 10
                 assert status["failed_today"] == 2
+
+
+def test_trigger_catchup_requires_running_monitor():
+    from pilotstd.monitor.scheduler import FileMonitorScheduler
+
+    sched = FileMonitorScheduler(manager=object())
+    assert sched.trigger_catchup()["started"] is False
+
+
+def test_trigger_catchup_starts_thread_and_guards_concurrency(monkeypatch):
+    import threading
+    import time
+
+    from pilotstd.monitor.scheduler import FileMonitorScheduler
+
+    sched = FileMonitorScheduler(manager=object())
+    sched.running = True
+    started = threading.Event()
+
+    def _fake_catchup(stop_event):
+        started.set()
+        stop_event.wait(5)
+
+    monkeypatch.setattr(sched, "_catch_up_existing", _fake_catchup)
+    first = sched.trigger_catchup()
+    assert first["started"] is True
+    assert started.wait(2)
+    second = sched.trigger_catchup()
+    assert second["started"] is False
+    assert second["reason"] == "catchup already running"
+    sched._catchup_stop.set()
+    sched._catchup_thread.join(timeout=3)
+    time.sleep(0.05)

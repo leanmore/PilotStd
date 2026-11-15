@@ -658,3 +658,13 @@
 ---
 
 ## 验证汇总
+
+### 52. M1 工具修正：去掉 env 开关 + 服务端补扫触发（2026-11-15）
+
+| 项 | 内容 |
+|---|---|
+| #2 端点 | `/api/admin/replay-stage` 去掉 `PILOTSTD_ENABLE_REPLAY_STAGE` 开关，直接可用；安全边界仍为 admin + realpath + `/inbox/__replay_*`/`_quarantine` 白名单 + 逐条审计 |
+| 补扫触发 | 新增 `POST /api/admin/monitor/catchup`（admin + `MONITOR_CATCHUP_TRIGGER` 审计）；`FileMonitorScheduler.trigger_catchup()` 起一个 `monitor-catchup-manual` 线程，已在跑时返回 `started=False` 不排队 |
+| watermark 语义 | 补扫完成时仍把 watermark 设为 `scan_started`（不是完成时间）：补扫期间新写入的 mtime 更晚，下次仍会处理，**不会把新文件推前跳过**；与实时 monitor 共用 `_on_file` 目录去重（`_active_dirs`/`_recent_dirs`），同目录不会被两条路径重复处理 |
+| 测试 | replay 端点改为“默认可用 + 源缺失逐条 ok=False”；新增 catchup API 2 例、scheduler trigger 2 例（未运行/启动+并发拒绝）；`test_monitor_scheduler.py` 共 27 例通过 |
+| 文档计数 | 唯一 API 路径 125→126、route×method 141→142（03/19/20 已同步） |

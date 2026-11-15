@@ -5,6 +5,9 @@ from fastapi import Depends, Request
 from fastapi.routing import APIRouter
 from pydantic import BaseModel, field_validator
 
+from pilotstd.core.audit import write_audit
+from pilotstd.monitor.scheduler import get_scheduler
+
 from ..auth import require_role
 from ..manager import get_manager_dep
 
@@ -104,3 +107,25 @@ def start_monitor(request: Request, mgr=Depends(get_manager_dep)):
 @require_role("admin")
 def stop_monitor(request: Request, mgr=Depends(get_manager_dep)):
     return mgr.monitor_service.stop()
+
+class CatchupResponse(BaseModel):
+    """手动补扫触发结果：是否启动及原因。"""
+
+    started: bool
+    reason: str = ""
+
+
+@router.post("/api/admin/monitor/catchup", response_model=CatchupResponse)
+@require_role("admin")
+def trigger_catchup(request: Request):
+    """服务端触发一次启动补扫（与实时 monitor 共用目录去重；watermark 语义见 scheduler）。"""
+    result = get_scheduler().trigger_catchup()
+    try:
+        write_audit(
+            action="MONITOR_CATCHUP_TRIGGER",
+            resource="POST /api/admin/monitor/catchup",
+            detail={"started": result.get("started"), "reason": result.get("reason", "")},
+        )
+    except Exception as exc:  # noqa: BLE001 - 审计失败不改变触发结果，但必须留痕
+        logger.warning("monitor catchup audit failed: %s", exc)
+    return {"started": bool(result.get("started")), "reason": str(result.get("reason") or "")}
