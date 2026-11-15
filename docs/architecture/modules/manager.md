@@ -265,3 +265,10 @@ StandardManager (BaseFacade)
 - `AutoPipeline._auto_run_impl`：归档后打印
   `归档明细: moved/failed/skipped_exists/conflict_pending/skipped_source/dedup_skipped`，
   用于区分“查到但没搬”是目标同名同内容还是同名冲突。
+
+## M1 工具补充（2026-11-15，续）
+
+- `OrganizeHandler._register_moved_standards` 的键构造带 `num_prefix`；`_resolve_archived_pending`
+  对“同键 + 带前缀变体”双试（Z 前缀 pending 可核销）。
+- `AutoPipeline` 归档明细日志（moved/failed/skipped_exists/conflict_pending/skipped_source/
+  dedup_skipped）见上节；本批未再改 manager 逻辑。

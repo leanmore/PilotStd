@@ -50,6 +50,7 @@ class DirItem(BaseModel):
     type: Literal["dir", "file"]
     path: str
     size: int
+    mtime: float = 0.0  # epoch 秒；目录为 0（不参与补扫判断）
 
 
 class ListFilesResponse(BaseModel):

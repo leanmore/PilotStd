@@ -94,6 +94,7 @@ def test_not_found_sentinel_is_ng_not_lo(caplog, monkeypatch):
     assert ctx["item_chains"][0] == ["s1"]
     assert overflow == [(0, ("GB/T", 1, 2020, "标题", None))]
     assert "chain_exhausted" not in metrics.counts
+    assert metrics.counts.get("no_result") == 1
     assert "[LO]" not in caplog.text
 
 

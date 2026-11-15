@@ -197,12 +197,22 @@ class OrganizeHandler:
     def _register_moved_standards(self, items: Any, ctx: NotificationContext, expire_statuses: Any) -> None:
         """归档成功后登记 validity 键（并触发废止通知）；孤儿代号跳过登记。"""
         for p in items:
-            std_no = build_standard_number(str(p.logical_code or ""), p.number, getattr(p, "part", None), p.year)
+            std_no = build_standard_number(
+                str(p.logical_code or ""),
+                p.number,
+                getattr(p, "part", None),
+                p.year,
+                getattr(p, "num_prefix", "") or "",
+            )
             if not std_no:
                 parsed = parse_std_number(getattr(p, "raw_filename", "") or "")
                 if parsed:
                     std_no = build_standard_number(
-                        str(parsed.get("code") or ""), parsed.get("number"), parsed.get("part"), parsed.get("year")
+                        str(parsed.get("code") or ""),
+                        parsed.get("number"),
+                        parsed.get("part"),
+                        parsed.get("year"),
+                        parsed.get("num_prefix", "") or "",
                     )
             if not std_no:
                 logger.warning(
@@ -233,9 +243,19 @@ class OrganizeHandler:
             src = getattr(p, "source_path", "") or ""
             if not src or os.path.exists(src):
                 continue  # 源文件仍在 = 未真正归档
-            key = build_standard_number(str(p.logical_code or ""), p.number, getattr(p, "part", None), p.year)
-            if key:
-                keys.append(key)
+            base = build_standard_number(
+                str(p.logical_code or ""), p.number, getattr(p, "part", None), p.year
+            )
+            prefixed = build_standard_number(
+                str(p.logical_code or ""),
+                p.number,
+                getattr(p, "part", None),
+                p.year,
+                getattr(p, "num_prefix", "") or "",
+            )
+            for key in (base, prefixed):
+                if key and key not in keys:
+                    keys.append(key)
         if keys:
             svc.resolve_pending_by_numbers(keys, "resolved")
 

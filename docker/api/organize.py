@@ -62,12 +62,15 @@ def list_files(path: str = "/standards", mgr=Depends(get_manager_dep)):
         for entry in os.scandir(safe_path):
             if entry.name.startswith("@eaDir"):
                 continue
+            is_dir = entry.is_dir()
+            stat = entry.stat()
             items.append(
                 {
                     "name": entry.name,
-                    "type": "dir" if entry.is_dir() else "file",
+                    "type": "dir" if is_dir else "file",
                     "path": os.path.join(safe_path, entry.name),
-                    "size": entry.stat().st_size if not entry.is_dir() else 0,
+                    "size": 0 if is_dir else stat.st_size,
+                    "mtime": 0.0 if is_dir else stat.st_mtime,
                 }
             )
     except (PermissionError, OSError) as e:

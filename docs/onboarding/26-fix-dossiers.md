@@ -259,3 +259,14 @@ Web 五段式执行后，下载成功的文件留在 `/standards` 根目录，�
 | D-06 查询缓存 | 已部署 | 观察回源压力 |
 
 > 这些 dossier 已到“可以评审方案”的层级；真正改代码前，还需对每个 D 补齐“边界决策 + 失败测试 + 回滚”。
+
+## D-04 archive_conflict 超时规则（2026-11-15，M1 #5）
+
+- 冲突行写入 `pending_lookup`：`reason='archive_conflict'`、`match_status='conflict'`、`status='pending'`；
+  来源是 `Organizer._record_archive_conflict`（目标同名但内容不同，源文件不移动）。
+- **出口**：待确认页/API `resolve_pending` 人工确认（confirmed/discarded 或 resolved）。
+- **超时规则（本批只文档、不做定时任务）**：
+  - 冲突行创建后 **30 天**未处理 → 视为过期；处理方式：置 `status='resolved'`，并在 `resolution`
+    备注 `expired_conflict`，源文件保持原位（仍可在 `_quarantine`/inbox 追溯）。
+  - 责任：日常运维（季度清点）；触发做自动定时任务的条件：冲突行 >20 条，或出现超过 30 天未清的冲突。
+- 当前线上冲突行 **0 条**（2026-11-15 实测）。

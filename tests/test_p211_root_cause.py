@@ -194,3 +194,45 @@ def test_archive_keeps_pending_when_source_still_exists(tmp_path):
     row = db.fetchone("SELECT status FROM pending_lookup WHERE standard_number='GB/T 2-2020'")
     assert row["status"] == "pending"
     db.close()
+
+
+def test_build_standard_number_with_letter_prefix():
+    """TSG Z8002-2022：带前缀时保留 Z，不丢成 TSG 8002-2022。"""
+    from pilotstd.core.std_utils import build_standard_number
+
+    assert build_standard_number("TSG", 8002, None, 2022, "Z") == "TSG Z8002-2022"
+    assert build_standard_number("TSG", 8002, None, 2022, "") == "TSG 8002-2022"
+
+
+def test_archive_resolves_z_prefixed_pending(tmp_path):
+    """归档 Z 前缀标准时，同键与带前缀变体都要核销。"""
+    from pilotstd.manager.pending_service import PendingService
+
+    db = Database(str(tmp_path / "z.db"))
+    db.execute(
+        "INSERT INTO pending_lookup (standard_number, status) VALUES (?, ?)",
+        ("TSG Z8002-2022", "pending"),
+    )
+    core = SimpleNamespace(
+        organizer_svc=_Organizer(),
+        validity_checker=None,
+        notification_mgr=None,
+        parsed_results=[],
+        db=db,
+        pending_svc=PendingService(db, None),
+    )
+    handler = OrganizeHandler(core)
+    item = ParsedStdInfo(
+        raw_filename="TSG Z8002-2022 特种设备检验人员考核规则.docx",
+        source_path=str(tmp_path / "not-exists-z.docx"),
+        logical_code="TSG",
+        number=8002,
+        year=2022,
+        std_name="特种设备检验人员考核规则",
+        final_name="TSG Z8002-2022 特种设备检验人员考核规则.docx",
+        num_prefix="Z",
+    )
+    handler.archive_standards([item])
+    row = db.fetchone("SELECT status FROM pending_lookup WHERE standard_number='TSG Z8002-2022'")
+    assert row["status"] == "resolved"
+    db.close()

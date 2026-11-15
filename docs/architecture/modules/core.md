@@ -656,3 +656,10 @@ pilotstd/core/
   和 TSG 字母前缀通道（`TSG Z8002-2022` → code=TSG、number=8002、num_prefix=Z）。
 - 背景：`bddc6943`（2026-08-20）的合订本归一只在 `scan/parser/_text_cleaner.py`，归档/validity 路径用的
   `parse_std_number` 未覆盖，导致 ` 47008-1947` 畸形键；回归见 `tests/test_p211_root_cause.py`。
+
+## M1 工具补充（2026-11-15）
+
+- `std_utils.build_standard_number` 增加 `num_prefix`（`TSG Z8002-2022` 保留 Z）；归档核销
+  `_resolve_archived_pending` 同时尝试“无前缀键 + 带前缀键”，修复 Z 前缀 pending 漏核销。
+- `_mini_bucket._record_no_result`/`_overflow._try_overflow_site`：查询未找到（None/哨兵）时
+  计 `no_result`，与 `quota_exhausted`/`chain_exhausted` 并列。

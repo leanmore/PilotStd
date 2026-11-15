@@ -206,6 +206,9 @@ class MiniBucketHandler:
         ctx["item_chains"].setdefault(idx, []).append(assigned_site)
         chain_str = "→".join(ctx["item_chains"].get(idx, []))
         logger.info("查询 [%s] [NG]%s tried=%s", target_display, assigned_site, chain_str)  # i18n-allow: 内部日志
+        m = ctx.get("metrics")
+        if m:
+            m.increment("no_result")
         if not skip_overflow:
             overflow_items.append((idx, item))
 

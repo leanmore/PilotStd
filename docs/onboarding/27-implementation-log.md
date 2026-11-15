@@ -642,3 +642,19 @@
 ---
 
 ## 验证汇总
+
+### 51. M1 工具代码：mtime / 受控投放端点 / Z 前缀 / no_result / 冲突超时（2026-11-15）
+
+| 项 | 内容 |
+|---|---|
+| #1 mtime | `DirItem` 增 `mtime: float`（epoch），`/api/files` 对文件回 `st_mtime`（目录 0）；只读、不改旧字段 |
+| #2 受控端点 | 新增 `POST /api/admin/replay-stage`（`docker/api/replay_stage.py`）：默认关（`PILOTSTD_ENABLE_REPLAY_STAGE=1` 才开），仅 copy/move，目标限 `/inbox/__replay_*` 与 `/inbox/_quarantine`，源限 `/inbox`、`/standards`，realpath 校验、逐条错误、写 `REPLAY_STAGE` 审计、单次 ≤2000 |
+| #3 Z 前缀 | `build_standard_number` 增 `num_prefix`（`TSG Z8002-2022`）；归档核销“同键 + 带前缀变体”双试；回归覆盖 Z/无前缀/带前缀 |
+| #4 no_result | 查询 NG（None/未找到哨兵）时 `no_result` +1，与 `quota_exhausted`/`chain_exhausted` 并列；V-18 可关 |
+| #5 冲突超时 | `26-fix-dossiers.md` D-04：30 天未处理视为过期、置 resolved + `expired_conflict` 备注、运维责任；本批不做定时任务 |
+| 测试 | `test_p211_root_cause.py` 16 例、`test_p316_overflow_semantics.py` 4 例（含 no_result 断言）；全量与 `--ci` 见汇报 |
+| 待部署 | #1/#2 随镜像部署后，才能做 #6~#10（mtime 查证、216 处置、小场景、P3-16 生产验证） |
+
+---
+
+## 验证汇总

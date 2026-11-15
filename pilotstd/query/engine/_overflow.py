@@ -83,12 +83,15 @@ class OverflowHandler:
             )
             return False
 
-        if result and not result.is_found():
-            # 适配器“未找到”哨兵（error_message 已设、match_status 空）：不是低分，按 NG 处理
+        if result is None or not result.is_found():
+            # 未找到（None 或哨兵）：不是低分，按 NG 处理，并单独计 no_result
             self._core.record(site, 1)
             tried_chain = state["item_chains"].get(idx, [])
             tried_chain.append(site)
             state["item_chains"][idx] = tried_chain
+            m = state.get("metrics")
+            if m:
+                m.increment("no_result")
             return False
         if result:
             result.source_site = site

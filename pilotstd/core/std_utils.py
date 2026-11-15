@@ -36,7 +36,9 @@ def _as_int(value: Any) -> int:
     return int(text) if text.isdigit() else 0
 
 
-def build_standard_number(logical_code: str, number: Any, part: Any = None, year: Any = None) -> str:
+def build_standard_number(
+    logical_code: str, number: Any, part: Any = None, year: Any = None, num_prefix: str = ""
+) -> str:
     """拼规范标准号；代号为空/编号非法时返回空串（调用方不得写入 DB）。
 
     背景（2026-11-15 P2-11 根因）：`_organize` 曾直接 `f"{p.logical_code} {p.number}"`，
@@ -48,7 +50,8 @@ def build_standard_number(logical_code: str, number: Any, part: Any = None, year
         return ""
     part_val = _as_int(part)
     suffix = f".{part_val}" if part_val > 0 else ""
-    key = f"{code} {num}{suffix}"
+    prefix = str(num_prefix or "").strip()
+    key = f"{code} {prefix}{num}{suffix}"
     year_val = _as_int(year)
     if year_val > 0:
         key += f"-{year_val}"

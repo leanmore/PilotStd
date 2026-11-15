@@ -46,6 +46,7 @@ from .api.pending import router as pending_router
 from .api.quality import router as quality_router
 from .api.query import router as query_router
 from .api.query_debug import router as query_debug_router
+from .api.replay_stage import router as replay_stage_router
 from .api.scan import router as scan_router
 from .api.scheduler import router as scheduler_router
 from .api.settings import router as settings_router
@@ -407,6 +408,7 @@ app.include_router(logs_router)
 
 # ── 文件与自动化 ──
 app.include_router(upload_router)
+app.include_router(replay_stage_router)
 app.include_router(tasks_router)
 app.include_router(auto_router)
 
