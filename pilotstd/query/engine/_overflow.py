@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING, Any, Callable, Optional
 from pilotstd.core.status import Status
 
 from ..models import QueryResult
+from ..routing.router_v2 import get_routing_service, is_v2_enabled
 from ..search_strategy import MATCH_SCORE
 
 if TYPE_CHECKING:
@@ -82,6 +83,13 @@ class OverflowHandler:
             )
             return False
 
+        if result and not result.is_found():
+            # 适配器“未找到”哨兵（error_message 已设、match_status 空）：不是低分，按 NG 处理
+            self._core.record(site, 1)
+            tried_chain = state["item_chains"].get(idx, [])
+            tried_chain.append(site)
+            state["item_chains"][idx] = tried_chain
+            return False
         if result:
             result.source_site = site
             self._core.record(site, 1)
@@ -133,12 +141,15 @@ class OverflowHandler:
             return
 
         chain = self._routing._build_chain_for_item(item, preferred_site)
-        start = 1 if chain and chain[0] == self._routing._bucket_key(item[0], preferred_site) else 0
+        tried = list(state["item_chains"].get(idx, []))
+        # 只有主站**确实尝试过**才跳过它（2026-11-15：原判定恒为真，空链/未尝试也被跳过）
+        start = 1 if chain and chain[0] in tried else 0
         found = False
         adapter_map = self._core.adapter_map
         rotator = self._core.rotator
 
         # 遍历站点链：跳过主站点（已查过），按优先级重试后续站点
+        attempted: list[str] = []
         for site in chain[start:]:
             if site not in adapter_map:
                 continue
@@ -160,25 +171,39 @@ class OverflowHandler:
                 continue
 
             adapter = adapter_map[site]
+            attempted.append(site)
             if self._try_overflow_site(idx, item, site, adapter, state, result_callback):
                 found = True
                 break
 
+        # 单站链允许同站重试一次（2026-11-15 裁定）：主站一次未中不再等于整链作废。
+        # 上限：每个条目最多重试一次，且仅当主站确实试过、本次未尝试过它、且未重试过。
+        retried = state.setdefault("_retried", set())
+        if not found and len(chain) == 1 and chain[0] in tried and not attempted and idx not in retried:
+            site = chain[0]
+            if site in adapter_map and (not rotator or rotator.get_cooldown_remaining(site) <= 0):
+                if site not in state["overflow_quota"] or state["_try_overflow"](site):
+                    retried.add(idx)
+                    if self._try_overflow_site(idx, item, site, adapter_map[site], state, result_callback):
+                        found = True
+
         if not found:
             chain_str = "→".join(state["item_chains"].get(idx, [])) or "none"
             _td2 = f"{item[0]} {item[1]}-{item[2]}"
-            logger.info("查询 [%s] [NG] tried=%s", _td2, chain_str)
-            # ✅#461:_计数器
+            quota_out = bool(not chain and is_v2_enabled() and get_routing_service().quota.all_exhausted())
+            reason = "quota_exhausted" if quota_out else "chain_exhausted"
+            logger.info("查询 [%s] [NG] tried=%s reason=%s", _td2, chain_str, reason)  # i18n-allow: 内部日志
+            # ✅#461:_计数器（2026-11-15：配额耗尽与真正链路耗尽分开计数）
             m = state.get("metrics")
             if m:
-                m.increment("chain_exhausted")
+                m.increment(reason)
             state["pending_reasons"].append((idx, chain_str))
             state["results"][idx] = QueryResult(
                 standard_number=f"{item[0]} {item[1]}-{item[2]}",
                 standard_name=item[3],
                 status=Status.PENDING.value,
                 source_site="",
-                match_status="chain_exhausted",
+                match_status=reason,
             )
             state["bump"]()
 

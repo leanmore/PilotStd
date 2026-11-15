@@ -185,3 +185,14 @@ BaseAdapter (ABC)
 - [查询引擎](../../query/README.md) — 批量查询、路由、配额管理
 
 - **零调用清理（2026-11-13，P2-03 批 1）**：删除 _constants.get_fallback_chain；_DEFAULT_FALLBACK_CHAIN 仍被 _routing 与测试使用。
+
+## 溢出/配额语义修正（2026-11-15，P3-16）
+
+- `QuotaManager.all_exhausted()`：判断全部站点批次配额是否耗尽，用于区分"空链"是配额问题还是无路由。
+- `_overflow._process_overflow_item`：
+  - `start` 只在主站**确实尝试过**（`item_chains` 记录）时跳过它；原判定 `_bucket_key` 恒等于 `chain[0]`，导致空链/未尝试也被跳过；
+  - **单站链允许同站重试一次**（每条目上限一次，`_retried` 记录），失败后不再重试；
+  - 空链且 v2 配额全耗尽 → `match_status="quota_exhausted"` + 指标 `quota_exhausted`；否则 `chain_exhausted`；
+  - 适配器"未找到"哨兵（`error_message` 已设、`match_status` 空）按 NG 处理，不再记 `[LO]` 0 分。
+- `_mini_bucket._process_single_query`：同样的哨兵判定，`[LO]` 只用于真实低分结果。
+- 回归：`tests/test_p316_overflow_semantics.py`（4 例：哨兵=NG、真实低分仍 LO、单站重试一次、空链配额原因）。

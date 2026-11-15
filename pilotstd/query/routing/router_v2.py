@@ -216,6 +216,13 @@ class QuotaManager:
                 return True
             return self._used[site_id] >= cap.constraints.batch_limit
 
+    def all_exhausted(self) -> bool:
+        """所有站点配额是否都已耗尽（用于区分“空链”是配额问题还是确实无路由）。"""
+        with self._lock:
+            return all(
+                self._used[s.site_id] >= s.constraints.batch_limit for s in self._capabilities.values()
+            )
+
     def _filter_by_layer(self, layer: str) -> list[SiteCapability]:
         """按层级过滤站点，返回保持 YAML 原始顺序的站点列表。"""
         sites = list(self._capabilities.values())

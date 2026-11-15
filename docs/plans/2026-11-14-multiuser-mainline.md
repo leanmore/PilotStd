@@ -32,6 +32,9 @@
   `auto_run` / `archive_standards`（此前不传 ⇒ system(0)）。API 层测试
   `tests/test_api_auto_archive_user_context.py` 2 例（先红后绿）：断言 context 非空、
   `user_id==1`、`log_user_id==1`。
+- **2026-11-15 集成验证完成**：`tests/test_p1_multiuser_integration.py` 3 例（真实
+  `NotificationManager` + 临时库 + 真实路由/中间件）：两个管理员分别触发 auto/archive →
+  `notification_log.user_id` = 1/2、无 0。**状态：代码 + 集成测试完成，生产端到端待有环境时补。**
 - **DB 级判据（待真实双用户环境复核）**：
   ```sql
   SELECT user_id, count(*) FROM notification_log

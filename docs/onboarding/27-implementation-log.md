@@ -562,3 +562,19 @@
 - 未执行 709 条数据修复；
 - 未改 monitor 的查询/下载/兜底、validity、缓存、v2；
 - 未提交 git。
+
+### 46. P2-11 文件核对 + P1 集成验证 + P3-16 语义修复（2026-11-15）
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `docs/records/2026-11-15-p3-16-p2-11-attribution.md`、`pilotstd/query/engine/{_overflow,_mini_bucket}.py`、`pilotstd/query/routing/router_v2.py`、`pilotstd/core/file_index.py`、`tests/test_p316_overflow_semantics.py`、`tests/test_p1_multiuser_integration.py`、`tests/test_file_index_validation_guard.py`、`docs/architecture/modules/query.md`、`docs/plans/2026-11-14-multiuser-mainline.md` |
+| P2-11 第一步 | 11-09 备份 820 条索引逐条核对容器 `/standards`：**154 在**（18.8%）/ 494 文件名缺 / 172 父目录 404；**TSG 34 条全部父目录 404**。整类缺失：TSG、HG/T、JB/T、HG、API… ⇒ "文件大面积不在" |
+| P2-11 新约束 | 直接恢复备份不可持久：666/820=81% < 90% 保护阈值，下次启动仍会被删；需"离线复算 + 一次性数据修复"或"重扫重建"，待授权/决策 |
+| P1 集成 | 新增 `tests/test_p1_multiuser_integration.py` 3 例（真实 `NotificationManager` + 临时库 + 真实路由/中间件）：管理员 1 触发 auto → `user_id=1`；管理员 2 触发 archive → `user_id=2`；全表无 `user_id=0`。P1 状态：代码 + 集成完成，生产端到端待环境 |
+| P3-16 修复 | ① "未找到"哨兵按 NG，不再计 `[LO]` 0 分（`_overflow`/`_mini_bucket`）；② `start` 只在主站确实尝试过时跳过；③ 单站链同站重试一次（`_retried` 上限）；④ 空链区分 `quota_exhausted`（v2 全站配额耗尽）与 `chain_exhausted`，指标分开计数；`QuotaManager.all_exhausted()` 支撑 |
+| 测试 | `test_p316_overflow_semantics.py` 4 例、`test_p1_multiuser_integration.py` 3 例、`test_file_index_validation_guard.py` 8 例；相关 overflow/routing/query 66 例通过；全量与 `--ci` 见汇报 |
+| 回滚 | 还原 4 个代码文件与 3 个测试文件、恢复记录/计划相应段落 |
+
+---
+
+## 验证汇总

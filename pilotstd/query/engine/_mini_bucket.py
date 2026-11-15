@@ -140,6 +140,76 @@ class MiniBucketHandler:
 
     # ── 单条查询处理 ──
 
+
+    def _apply_found_result(
+        self,
+        ctx: dict,
+        idx: int,
+        item: tuple,
+        result: Any,
+        assigned_site: str,
+        target_display: str,
+        primary_site: str,
+        overflow_items: list,
+        skip_overflow: bool,
+        elapsed: float,
+    ) -> None:
+        """按分数落结果：>=100 收敛，否则回池等溢出（LO）。"""
+        result.source_site = assigned_site
+        self._core.record(assigned_site, 1)
+        ctx["_record_usage"](assigned_site)
+        ctx["_record_match"](assigned_site, getattr(result, "match_status", "err"))
+        score = MATCH_SCORE.get(getattr(result, "match_status", ""), 0)
+        ctx["item_chains"].setdefault(idx, []).append(assigned_site)
+
+        if score >= 100:
+            ctx["results"][idx] = result
+            with ctx["_prog_lock"]:
+                ctx["_prog_ok"][0] += 1
+            logger.info(
+                "查询 [%s] [OK]%s(%s)",
+                target_display,
+                assigned_site,
+                getattr(result, "match_status", ""),
+            )
+            cache = self._core.cache
+            if cache:
+                cache.put(result)
+                logger.info("[CACHE] put exact match: %s → %s", target_display, assigned_site)
+            if ctx["result_callback"] and result.is_found():
+                ctx["result_callback"](idx, result)
+            _record_v2_hit(target_display, assigned_site, elapsed)
+            ctx["bump"]()
+            return
+        logger.info(
+            "查询 [%s] [LO]%s(%s=%d) 未达100分回池",
+            target_display,
+            assigned_site,
+            getattr(result, "match_status", ""),
+            score,
+        )
+        ctx["overflow_events"].append((time.time(), primary_site, assigned_site, idx))
+        if not skip_overflow:
+            overflow_items.append((idx, item))
+
+    def _record_no_result(
+        self,
+        ctx: dict,
+        idx: int,
+        item: tuple,
+        assigned_site: str,
+        target_display: str,
+        overflow_items: list,
+        skip_overflow: bool,
+    ) -> None:
+        """记录“站点未找到”（哨兵/None）：按 NG 入溢出池，不计低分。"""
+        ctx["item_chains"].setdefault(idx, []).append(assigned_site)
+        chain_str = "→".join(ctx["item_chains"].get(idx, []))
+        logger.info("查询 [%s] [NG]%s tried=%s", target_display, assigned_site, chain_str)  # i18n-allow: 内部日志
+        if not skip_overflow:
+            overflow_items.append((idx, item))
+
+
     def _check_request_blocked(
         self,
         assigned_site: str,
@@ -203,49 +273,13 @@ class MiniBucketHandler:
             return
 
         target_display = f"{item[0]} {item[1]}-{item[2]}"
-        if result:
-            result.source_site = assigned_site
-            self._core.record(assigned_site, 1)
-            ctx["_record_usage"](assigned_site)
-            ctx["_record_match"](assigned_site, getattr(result, "match_status", "err"))
-            score = MATCH_SCORE.get(getattr(result, "match_status", ""), 0)
-            ctx["item_chains"].setdefault(idx, []).append(assigned_site)
-
-            if score >= 100:
-                ctx["results"][idx] = result
-                with ctx["_prog_lock"]:
-                    ctx["_prog_ok"][0] += 1
-                logger.info(
-                    "查询 [%s] [OK]%s(%s)",
-                    target_display,
-                    assigned_site,
-                    getattr(result, "match_status", ""),
-                )
-                cache = self._core.cache
-                if cache:
-                    cache.put(result)
-                    logger.info("[CACHE] put exact match: %s → %s", target_display, assigned_site)
-                if ctx["result_callback"] and result.is_found():
-                    ctx["result_callback"](idx, result)
-                _record_v2_hit(target_display, assigned_site, _elapsed)
-                ctx["bump"]()
-            else:
-                logger.info(
-                    "查询 [%s] [LO]%s(%s=%d) 未达100分回池",
-                    target_display,
-                    assigned_site,
-                    getattr(result, "match_status", ""),
-                    score,
-                )
-                ctx["overflow_events"].append((time.time(), primary_site, assigned_site, idx))
-                if not skip_overflow:
-                    overflow_items.append((idx, item))
-        else:
-            ctx["item_chains"].setdefault(idx, []).append(assigned_site)
-            chain_str = "→".join(ctx["item_chains"].get(idx, []))
-            logger.info("查询 [%s] [NG]%s tried=%s", target_display, assigned_site, chain_str)
-            if not skip_overflow:
-                overflow_items.append((idx, item))
+        if not result or not result.is_found():
+            # “未找到”哨兵与 None 同按 NG 入溢出池（2026-11-15：不再误记 0 分 LO）
+            self._record_no_result(ctx, idx, item, assigned_site, target_display, overflow_items, skip_overflow)
+            return
+        self._apply_found_result(
+            ctx, idx, item, result, assigned_site, target_display, primary_site, overflow_items, skip_overflow, _elapsed
+        )
 
     # ── 小桶批量查询 ──
 
