@@ -119,9 +119,15 @@
 | `announcement/ocr/_baidu` | 79% | — | Integration 已覆盖两步协议 + 降级 |
 | `query/adapters/gongbiaoku` | 部分 | — | HTML 解析主路径已覆盖 |
 
-> **2026-11-14 口径更正（对 2026-11-13 的 "6740 passed"）**：该数字是**测试 + subtests 的合计**，
-> 不是测试数。同 commit（`ed8ba431`）复跑：**6333 passed / 11 skipped / 401 subtests**；
-> 当前 HEAD（A-33 删 10 例、A-27.3/P1 等新增 21 例后）：**6338 passed / 21 skipped / 401 subtests**。
-> 差异来源：① subtests 旧记录被并入 passed（+401）；② A-37 把网络 e2e 改为显式开启，
-> 该文件从 13 passed/4 skipped 变为 2 passed/15 skipped（−11 passed、+11 skipped）；
-> ③ 新增/删除用例净 +5。**结论：不是假绿，是计数口径 + 有意的网络用例跳过。**
+### 测试数口径（四列，2026-11-15 定死）
+
+| 时点 | collected | passed | subtests | skipped |
+|---|---|---|---|---|
+| 2026-11-13 `ed8ba431`（复核） | 6344 | 6333 | 401 | 11 |
+| 2026-11-15 HEAD（P3-16/P2-11 批次后） | 6381 | 6360 | 401 | 21 |
+
+- `collected`：pytest 收集用例数（`--collect-only`）；`passed`：用例通过数，**不含** subtests；
+  `subtests`：pytest-subtests 子用例通过数（独立一行输出）；`skipped`：跳过数。
+- 旧记录 "6740 passed" = **passed + subtests**（6333 + 401 ≈ 6740），属口径混淆；此后一律按四列报数。
+- 11-13 → 11-15 的差异：A-37 把网络 e2e 改为显式开启（该文件 13→2 passed、4→15 skipped）；
+  A-33 删 10 例；本批新增 A-27.3 9 例、P1 5 例、file_index 保护 8 例、G-052/G-050 若干。

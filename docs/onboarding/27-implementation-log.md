@@ -526,6 +526,18 @@
 | DB 级判据 | 待真实双用户环境执行 SQL：`SELECT user_id,count(*) FROM notification_log WHERE event_type IN ('auto_pipeline_summary','archive_complete') AND date(sent_at)=date('now','localtime') GROUP BY user_id;` 期望两人各一行、无 0（见计划 P1） |
 | 回滚 | 删 `_identity.py` 与两处调用、恢复原调用与测试断言 |
 
+### 45. P3-16/P2-11 只读归因 + file_index 批量删除保护（2026-11-15）
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `docs/records/2026-11-15-p3-16-p2-11-attribution.md`（新增）、`pilotstd/core/file_index.py`、`tests/test_file_index_validation_guard.py`（新增）、`docs/testing/testing-baseline.md`、`docs/onboarding/08-known-boundaries.md`（#24）、`docs/debt/04-watch.md`（V-18）、`docs/architecture/modules/core.md` |
+| 证据 | 远程 v0.187.0 只读：`app.log.3/.4` 的 `[NG]` 604（`tried=none` 445）、`[LO]` 160（全为空 match_status 的"未找到"哨兵）、冷却 0/配额耗尽 0/溢出失败 0、`[QUOTA]` 用量；`app.log.9` 2026-11-11 21:41:42 `清理 820 条失效记录`；11-09 备份 `file_index=820`（TSG 34）vs 线上 204（TSG 0）；本地 `RouterEngine` 探针（配额耗尽前后链长 4→0） |
+| 结论 | P3-16：主因是 **v2 单次运行配额耗尽→空链 + 溢出 start=1 跳过主站**（445），其次 **"未找到"哨兵被误记 0 分 `[LO]`**（160），单站链无重试（159）；**不是补源/策略为主**。P2-11：`file_index` 的 TSG 行于 11-11 被启动校验批量删除（挂载未就绪），非归档遗漏/迁移/清理任务 → 线上只能 **0 merge / 7 manual**，恢复需数据决策 |
+| 修复 | `validate_paths` 加批量删除保护（缺失 ≥90% 且 ≥50 行 → 跳过 + WARNING）；8 例回归（含 55 真/5 失、全失 60 行、小表仍清理）；`core.md`/`08` #24 回写 |
+| 观测 | V-18：`query_metrics` 无法区分 chain_exhausted 原因（0 不落库），归因靠日志；待 P3-16 修代码时一并落键 |
+| 未做 | P1 DB 级判据（触发 `/api/auto` 会重查 604 pending + 发通知，属生产写 → 未执行，评估见汇报）；P3-16 代码修复、P2-11 apply 均未动 |
+| 测试 | 全量 **6381 collected / 6360 passed / 401 subtests / 21 skipped / 0 failed**（359s，exit 0）；`--ci` 全绿 |
+
 ---
 
 ## 验证汇总

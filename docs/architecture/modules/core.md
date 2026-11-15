@@ -633,3 +633,13 @@ pilotstd/core/
 > 不再续期或写 `debug` 日志。根因：pytest 捕获关闭后回调仍 `logger.debug`，线程内抛
 > `ValueError: I/O operation on closed file`，导致「全绿但进程 exit 1」。契约：
 > `tests/test_scheduler_timer_drift.py::test_timer_callback_after_shutdown_is_dropped`。
+
+## 文件索引启动校验（2026-11-15 加固）
+
+`FileIndexRepository.validate_paths()` 在启动后逐条检查 `file_index.file_path` 是否存在，失效则删除。
+2026-11-11 21:41 远程容器启动时 `/standards` 挂载未就绪，该逻辑把 **820 条**索引全部删除
+（日志：`file_index 启动校验完成（延迟 5.0s），清理 820 条失效记录`），导致 P2-11 的 TSG 证据丢失。
+
+现加**批量删除保护**：总行数 ≥ `_MASS_DELETE_GUARD_MIN_ROWS`（50）且缺失占比 ≥
+`_MASS_DELETE_GUARD_MISSING_RATIO`（0.9）时，判定为挂载/根目录异常，**跳过删除并 WARNING**，
+交人工确认；小比例失效行仍正常清理。回归：`tests/test_file_index_validation_guard.py`。

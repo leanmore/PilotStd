@@ -25,6 +25,19 @@ from .status import Status
 
 logger = logging.getLogger(__name__)
 
+# ── 批量删除保护（2026-11-15）──
+# 事故：2026-11-11 21:41 容器启动时挂载未就绪，validate_paths 把 820 条 file_index
+# 全部判为失效并删除（日志：file_index 启动校验完成，清理 820 条失效记录）。
+# 规则：总行数达到阈值且缺失比例达到阈值时，视为“运行环境异常（挂载/根目录未就绪）”，
+# 跳过删除并告警，交人工确认；正常的小比例失效行仍按原逻辑清理。
+_MASS_DELETE_GUARD_MIN_ROWS = 50
+_MASS_DELETE_GUARD_MISSING_RATIO = 0.9
+
+
+def _is_mass_delete_anomaly(total: int, missing: int) -> bool:
+    """缺失行数达到阈值且占比过高 → 疑似挂载/根目录异常，禁止批量删除。"""
+    return total >= _MASS_DELETE_GUARD_MIN_ROWS and missing / total >= _MASS_DELETE_GUARD_MISSING_RATIO
+
 
 class FileIndexRepository:
     """本地文件索引仓库。
@@ -137,15 +150,24 @@ class FileIndexRepository:
             logger.warning("validate_paths query failed: %s", e, exc_info=True)
             self._validation_complete.set()
             return 0
+        missing = [r for r in rows if not os.path.exists(r["file_path"])]
+        if missing and _is_mass_delete_anomaly(len(rows), len(missing)):
+            logger.warning(
+                "file_index 校验跳过：%d/%d 条路径不存在（疑似挂载/根目录未就绪），本次不删除；"  # i18n-allow: 运维日志
+                "请检查 /standards 等挂载后重启，或人工确认后再清理",
+                len(missing),
+                len(rows),
+            )
+            self._validation_complete.set()
+            return 0
         deleted = 0
-        for r in rows:
-            if not os.path.exists(r["file_path"]):
-                try:
-                    self._db.execute(f"DELETE FROM {FILE_INDEX_TABLE} WHERE id=?", (r["id"],))
-                    deleted += 1
-                except Exception as e:
-                    # 删不掉就会留下脏记录，索引统计长期失真（U34 批 1 升 warning）
-                    logger.warning("file_index 删除无效记录失败: id=%s (%s)", r["id"], e)
+        for r in missing:
+            try:
+                self._db.execute(f"DELETE FROM {FILE_INDEX_TABLE} WHERE id=?", (r["id"],))
+                deleted += 1
+            except Exception as e:
+                # 删不掉就会留下脏记录，索引统计长期失真（U34 批 1 升 warning）
+                logger.warning("file_index 删除无效记录失败: id=%s (%s)", r["id"], e)
         self._validation_complete.set()
         return deleted
 
