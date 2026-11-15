@@ -196,3 +196,9 @@ BaseAdapter (ABC)
   - 适配器"未找到"哨兵（`error_message` 已设、`match_status` 空）按 NG 处理，不再记 `[LO]` 0 分。
 - `_mini_bucket._process_single_query`：同样的哨兵判定，`[LO]` 只用于真实低分结果。
 - 回归：`tests/test_p316_overflow_semantics.py`（4 例：哨兵=NG、真实低分仍 LO、单站重试一次、空链配额原因）。
+
+## 引擎指标补充（2026-11-15，M1）
+
+- `_mini_bucket._record_no_result` 与 `_overflow._try_overflow_site`：查询未找到（None/哨兵）
+  计 `no_result`，与 `quota_exhausted`/`chain_exhausted` 并列；`build_standard_number`
+  增加 `num_prefix` 供归档登记/核销（TSG Z8002-2022）。
