@@ -161,3 +161,36 @@ def test_apply_merges_backs_up_and_is_idempotent(db_path, capsys):
         conn.close()
     assert {r.action for r in repairs} == {"manual_required"}
     assert len(repairs) == 2
+
+def test_plan_with_validity_source(db_path):
+    """① 内部同号/同年 canonical：5 条可 merge，19001/47008/9999 无 canonical → manual。"""
+    mod = _load()
+    conn = sqlite3.connect(db_path)
+    try:
+        repairs = mod.plan_repairs(conn, source="validity")
+    finally:
+        conn.close()
+    by_key = {r.malformed: r for r in repairs}
+    for num, year, canonical, _m, _a in TSG_CASES:
+        assert by_key[f" {num}-{year}"].action == "merge", by_key[f" {num}-{year}"]
+        assert by_key[f" {num}-{year}"].canonical == canonical
+    for key in (" 19001-2020", " 47008-1947", " 9999-2020"):
+        assert by_key[key].action == "manual_required"
+
+
+def test_plan_with_validity_source_ambiguous_code(db_path):
+    """同号/同年出现两个代号 → 不猜，manual。"""
+    mod = _load()
+    conn = sqlite3.connect(db_path)
+    try:
+        conn.execute(
+            "INSERT INTO standard_validity (standard_number, status, check_count) VALUES (?,?,?)",
+            ("T/SG 11-2020", "未知", 0),
+        )
+        conn.commit()
+        repairs = mod.plan_repairs(conn, source="validity")
+    finally:
+        conn.close()
+    row = next(r for r in repairs if r.malformed == " 11-2020")
+    assert row.action == "manual_required"
+    assert "ambiguous" in row.reason

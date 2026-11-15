@@ -17,7 +17,7 @@ from pilotstd.core.status import Status
 from ...core.notification import EVENT_ARCHIVE_COMPLETE
 from ...core.notification.batch import ensure_batch_key
 from ...core.notification.context import NotificationContext
-from ...core.std_utils import classify_std_code
+from ...core.std_utils import build_standard_number, classify_std_code, parse_std_number
 from ...i18n import t
 from ...models import ParsedStdInfo
 from ...organizer.industry_lookup import INDUSTRY_MAP
@@ -193,6 +193,36 @@ class OrganizeHandler:
         return parsed
 
     # 归档_—统一归档入口，所有端（命令行//用户界面）均通过此方法归档
+
+    def _register_moved_standards(self, items: Any, ctx: NotificationContext, expire_statuses: Any) -> None:
+        """归档成功后登记 validity 键（并触发废止通知）；孤儿代号跳过登记。"""
+        for p in items:
+            std_no = build_standard_number(str(p.logical_code or ""), p.number, getattr(p, "part", None), p.year)
+            if not std_no:
+                parsed = parse_std_number(getattr(p, "raw_filename", "") or "")
+                if parsed:
+                    std_no = build_standard_number(
+                        str(parsed.get("code") or ""), parsed.get("number"), parsed.get("part"), parsed.get("year")
+                    )
+            if not std_no:
+                logger.warning(
+                    "跳过标准登记：无法确定规范标准号（code=%r number=%r）", p.logical_code, p.number
+                )  # i18n-allow: 内部日志
+                continue
+            try:
+                if self._core.validity_checker:
+                    self._core.validity_checker.register_new_standard(std_no, self._core.notification_mgr)
+            except Exception as e:
+                logger.warning("注册新标准失败: %s, error=%s", std_no, e)  # i18n-allow: 内部日志
+            try:
+                if self._core.notification_mgr and getattr(p, "effect_status", "") in expire_statuses:
+                    payload = {"standard_number": std_no, "target_path": getattr(p, "source_path", "")}
+                    if getattr(p, "std_name", ""):
+                        payload["standard_name"] = p.std_name
+                    self._core.notification_mgr.send_event("expire_standard_moved", payload, context=ctx)
+            except Exception as e:
+                logger.warning("发送废止标准通知失败: %s, error=%s", std_no, e)  # i18n-allow: 内部日志
+
     def archive_standards(
         self,
         parsed_list: list[ParsedStdInfo] | None = None,
@@ -224,29 +254,7 @@ class OrganizeHandler:
         moved = result.get("moved", 0)
         _EXPIRE_STATUSES = status_dict.ABOLISHED_STATUSES_WITH_EXPIRED
         if moved > 0:
-            for p in items:
-                std_no = f"{p.logical_code} {p.number}"
-                if p.year:
-                    std_no += f"-{p.year}"
-                try:
-                    if self._core.validity_checker:
-                        self._core.validity_checker.register_new_standard(std_no, self._core.notification_mgr)
-                except Exception as e:
-                    logger.warning("注册新标准失败: %s, error=%s", std_no, e)
-                # 废止标准同步触发__（与归档_同时触发）
-                try:
-                    if self._core.notification_mgr and getattr(p, "effect_status", "") in _EXPIRE_STATUSES:
-                        payload = {
-                            "standard_number": std_no,
-                            "target_path": getattr(p, "source_path", ""),
-                        }
-                        if getattr(p, "std_name", ""):
-                            payload["standard_name"] = p.std_name
-                        self._core.notification_mgr.send_event(
-                            "expire_standard_moved", payload, context=ctx
-                        )
-                except Exception as e:
-                    logger.warning("发送废止标准通知失败: %s, error=%s", std_no, e)
+            self._register_moved_standards(items, ctx, _EXPIRE_STATUSES)
         try:
             if self._core.notification_mgr:
                 # 归档目标目录从整理器明细行的「源文件名 -> 目标路径」中提取（去重父目录）

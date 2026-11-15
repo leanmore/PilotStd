@@ -33,6 +33,7 @@
 | 22 | v49 迁移会清空 `user_preferences` 真实偏好数据 | 历史数据缺陷（不修） | 仅影响 v48 及更早的库升级；受 P-106 约束不可修，见 #22 |
 | 23 | Docker monitor 只处理**新文件事件**，启动时不扫 `/inbox` 存量 | 已修复并部署验证（2026-11-13 v0.182.0：826 文件首次补扫；2026-11-14 状态刷新） | 启动补扫 `_catch_up_existing`：按目录分批 + watermark；实测 22:34 重启后 `跳过 605 个旧文件` 未重复处理；见 #23 详述与 P3-16 |
 | 24 | `file_index` 启动校验按"容器内路径是否存在"删除记录，挂载未就绪时可能整表清空 | 已加保护（2026-11-15）：缺失 ≥90% 且总行数 ≥50 时跳过删除并 WARNING | 事故：2026-11-11 21:41 远程启动时 `/standards` 未就绪，820 条全部被删（日志 `清理 820 条失效记录`），P2-11 的 TSG 证据随之丢失；见 [归因记录](../records/2026-11-15-p3-16-p2-11-attribution.md) 与 `tests/test_file_index_validation_guard.py` |
+| 25 | 归档登记 `standard_validity` 时若 `logical_code` 为空，会拼出 `" 11-2020"` 这类畸形键 | 已修复（2026-11-15）：`build_standard_number` 空代号返回空串 → 归档从文件名补解析 → 仍无则跳过；`register_new_standard` 增加规范键守卫 | 根因与验证见 [归因记录](../records/2026-11-15-p3-16-p2-11-attribution.md) 五；回归 `tests/test_p211_root_cause.py` |
 
 ---
 

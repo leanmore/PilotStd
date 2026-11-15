@@ -42,6 +42,9 @@ MALFORMED_RE = re.compile(r"^\s+(\d+)(?:\.(\d+))?-(\d{4})$")
 # file_index 里改单/修改单类文件不是独立标准，不能拿它的代号做规范键
 AMENDMENT_MARK = "修改单"
 
+# 规范键形态：`CODE number[.part]-year`（用于从 standard_validity 自身找同号/同年 canonical）
+CANONICAL_RE = re.compile(r"^(\S+) (\d+)(?:\.(\d+))?-(\d{4})$")
+
 
 @dataclass
 class Repair:
@@ -86,6 +89,26 @@ def _canonical_candidates(conn: sqlite3.Connection, number: int, year: int, part
     return result
 
 
+def _validity_candidates(conn: sqlite3.Connection, number: int, year: int, part: int | None) -> dict[str, list[str]]:
+    """Return {logical_code: [canonical keys]} from standard_validity itself (P2-11 source ①)."""
+    result: dict[str, list[str]] = {}
+    for row in conn.execute("SELECT standard_number FROM standard_validity"):
+        key = str(row["standard_number"] or "")
+        match = CANONICAL_RE.match(key)
+        if not match:
+            continue
+        code = match.group(1)
+        num = int(match.group(2))
+        key_part = int(match.group(3)) if match.group(3) else None
+        key_year = int(match.group(4))
+        if num != number or key_year != year:
+            continue
+        if part is not None and key_part != part:
+            continue
+        result.setdefault(code, []).append(key)
+    return result
+
+
 def _is_amendment_only(names: list[str]) -> bool:
     """True when every file row for a code is an amendment (``修改单``)."""
     return bool(names) and all(AMENDMENT_MARK in name for name in names)
@@ -97,8 +120,37 @@ def _build_canonical(code: str, number: int, part: int | None, year: int) -> str
     return f"{code} {number}{suffix}-{year}"
 
 
-def plan_repairs(conn: sqlite3.Connection) -> list[Repair]:
-    """Compute repair actions without writing anything."""
+def _validity_repair(
+    row: sqlite3.Row, key: str, candidates: dict[str, list[str]], existing: dict[str, sqlite3.Row]
+) -> Repair:
+    """Build one repair from validity-internal canonical candidates (single code only)."""
+    if len(candidates) != 1:
+        return Repair(
+            key,
+            action="manual_required",
+            reason=f"ambiguous validity codes: {sorted(candidates)}",
+            row_id=row["id"],
+        )
+    canonical = next(iter(candidates.values()))[0]
+    target = existing.get(canonical)
+    if target is not None and int(target["id"]) != int(row["id"]):
+        return Repair(
+            key,
+            canonical=canonical,
+            action="merge",
+            reason=f"canonical exists (id={target['id']})",
+            row_id=row["id"],
+            canonical_id=target["id"],
+        )
+    return Repair(key, canonical=canonical, action="rename", reason="validity canonical", row_id=row["id"])
+
+
+def plan_repairs(conn: sqlite3.Connection, source: str = "file_index") -> list[Repair]:
+    """Compute repair actions without writing anything.
+
+    source="validity" 时用 standard_validity 内部同号/同年 canonical（P2-11 裁定 ①），
+    不再依赖 file_index（线上已被启动校验清空）。
+    """
     if conn.row_factory is None:
         conn.row_factory = sqlite3.Row  # 调用方可能用默认 tuple 工厂
     if not _table_exists(conn, "standard_validity"):
@@ -114,9 +166,15 @@ def plan_repairs(conn: sqlite3.Connection) -> list[Repair]:
         number = int(match.group(1))
         part = int(match.group(2)) if match.group(2) else None
         year = int(match.group(3))
-        candidates = _canonical_candidates(conn, number, year, part)
+        if source == "validity":
+            candidates = _validity_candidates(conn, number, year, part)
+        else:
+            candidates = _canonical_candidates(conn, number, year, part)
         if not candidates:
-            repairs.append(Repair(key, action="manual_required", reason="no file_index evidence", row_id=row["id"]))
+            repairs.append(Repair(key, action="manual_required", reason=f"no {source} evidence", row_id=row["id"]))
+            continue
+        if source == "validity":
+            repairs.append(_validity_repair(row, key, candidates, existing))
             continue
         main_codes = {code: names for code, names in candidates.items() if not _is_amendment_only(names)}
         if len(main_codes) != 1:
@@ -238,6 +296,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--db", required=True, help="path to pilotstd.db (explicit, no default)")
     parser.add_argument("--apply", action="store_true", help="backup then write (default: dry-run)")
     parser.add_argument("--json", dest="json_path", help="write the plan as JSON")
+    parser.add_argument(
+        "--source",
+        choices=("file_index", "validity"),
+        default="file_index",
+        help="canonical evidence source; validity = use standard_validity same-number/year (P2-11 ①)",
+    )
     args = parser.parse_args(argv)
 
     # --db 必填且要求真实路径：避免误把生产库当成默认参数
@@ -247,7 +311,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     conn = _connect(db_path)
     try:
-        repairs = plan_repairs(conn)
+        repairs = plan_repairs(conn, source=args.source)
         _print_plan(repairs)
         if args.json_path:
             Path(args.json_path).write_text(

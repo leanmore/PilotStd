@@ -248,3 +248,11 @@ StandardManager (BaseFacade)
 > 批量时集中暴露。改为正确属性；测试改用 `MagicMock(spec=QueryEngine)`，旧写法会直接失败。
 
 - **零调用清理（2026-11-13，P2-03 批 1）**：删除 AdapterManager.execute_request_interval（零调用）；get_request_interval 保留。
+
+## 归档登记标准号（2026-11-15，P2-11 根因）
+
+`OrganizeHandler.archive_standards` 不再直接拼接 `logical_code + number`：
+- 用 `std_utils.build_standard_number` 生成规范键；
+- 代号为空时从 `raw_filename` 用 `parse_std_number` 补解析（TSG 等可解析）；
+- 仍无法确定 → 跳过 `register_new_standard` 并 WARNING，不写畸形键。
+回归：`tests/test_p211_root_cause.py`（含归档从文件名补代号、无代号跳过）。

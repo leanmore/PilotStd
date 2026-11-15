@@ -643,3 +643,9 @@ pilotstd/core/
 现加**批量删除保护**：总行数 ≥ `_MASS_DELETE_GUARD_MIN_ROWS`（50）且缺失占比 ≥
 `_MASS_DELETE_GUARD_MISSING_RATIO`（0.9）时，判定为挂载/根目录异常，**跳过删除并 WARNING**，
 交人工确认；小比例失效行仍正常清理。回归：`tests/test_file_index_validation_guard.py`。
+
+## 标准号登记（2026-11-15 加固，P2-11 根因）
+
+- `std_utils.build_standard_number(code, number, part, year)`：空代号/非法编号返回空串，杜绝 `" 11-2020"` 畸形键；`CANONICAL_KEY_RE` 定义规范形态。
+- `ValidityChecker.register_new_standard`：只接受 `CODE number[.part]-year` 且无前导空格；畸形键拒绝并 WARNING。
+- 背景：归档时 `logical_code` 为空会拼出前导空格键，线上 `standard_validity` 累计 7 条且每轮复检复现；数据修复（合并 5 / manual 2）已在线上快照副本验证，生产 apply 待窗口。

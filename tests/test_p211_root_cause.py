@@ -1,0 +1,108 @@
+"""P2-11 根因回归：空代号不得写出畸形 validity 键（2026-11-15）。"""
+
+from __future__ import annotations
+
+from types import SimpleNamespace
+
+import pytest
+
+from pilotstd.core.db import Database
+from pilotstd.core.std_utils import build_standard_number
+from pilotstd.core.validity_checker import ValidityChecker
+from pilotstd.manager.facade._organize import OrganizeHandler
+from pilotstd.models import ParsedStdInfo
+
+
+@pytest.mark.parametrize(
+    ("code", "number", "part", "year", "expected"),
+    [
+        ("TSG", 11, None, 2020, "TSG 11-2020"),
+        ("GB/T", 1, 1, 2020, "GB/T 1.1-2020"),
+        ("TSG", 7, None, None, "TSG 7"),
+        ("", 11, None, 2020, ""),
+        ("  ", 11, None, 2020, ""),
+        ("TSG", 0, None, 2020, ""),
+    ],
+)
+def test_build_standard_number(code, number, part, year, expected):
+    assert build_standard_number(code, number, part, year) == expected
+
+
+@pytest.fixture
+def checker(tmp_path):
+    db = Database(str(tmp_path / "v.db"))
+    yield ValidityChecker(db)
+    db.close()
+
+
+def _count(db, key):
+    return db.fetchone("SELECT COUNT(*) AS c FROM standard_validity WHERE standard_number=?", (key,))["c"]
+
+
+def test_register_rejects_malformed_key(checker, tmp_path):
+    db = checker._db
+    checker.register_new_standard(" 11-2020")
+    assert _count(db, " 11-2020") == 0
+
+
+def test_register_accepts_canonical_key(checker):
+    checker.register_new_standard("TSG 11-2020")
+    assert _count(checker._db, "TSG 11-2020") == 1
+
+
+class _Organizer:
+    def organize(self, items, word_source_root, overwrite=False):
+        return {"moved": len(items)}
+
+
+def test_archive_registration_recovers_code_from_filename(tmp_path):
+    """代号为空但有文件名时，从文件名补解析出 TSG，而不是写 ' 11-2020'。"""
+    db = Database(str(tmp_path / "a.db"))
+    checker = ValidityChecker(db)
+    core = SimpleNamespace(
+        organizer_svc=_Organizer(),
+        validity_checker=checker,
+        notification_mgr=None,
+        parsed_results=[],
+        db=db,
+    )
+    handler = OrganizeHandler(core)
+    item = ParsedStdInfo(
+        raw_filename="TSG 11-2020 锅炉安全技术规程.pdf",
+        source_path="/inbox/TSG 11-2020 锅炉安全技术规程.pdf",
+        logical_code="",
+        number=11,
+        year=2020,
+        std_name="锅炉安全技术规程",
+        final_name="TSG 11-2020 锅炉安全技术规程.pdf",
+    )
+    handler.archive_standards([item])
+    assert _count(db, " 11-2020") == 0
+    assert _count(db, "TSG 11-2020") == 1
+    db.close()
+
+
+def test_archive_registration_skips_when_code_unknown(tmp_path):
+    db = Database(str(tmp_path / "b.db"))
+    checker = ValidityChecker(db)
+    core = SimpleNamespace(
+        organizer_svc=_Organizer(),
+        validity_checker=checker,
+        notification_mgr=None,
+        parsed_results=[],
+        db=db,
+    )
+    handler = OrganizeHandler(core)
+    item = ParsedStdInfo(
+        raw_filename="unknown-file.pdf",
+        source_path="/inbox/unknown-file.pdf",
+        logical_code="",
+        number=0,
+        year=0,
+        std_name="",
+        final_name="unknown-file.pdf",
+    )
+    handler.archive_standards([item])
+    rows = db.fetchall("SELECT standard_number FROM standard_validity")
+    assert rows == []
+    db.close()

@@ -47,6 +47,11 @@ class ValidityChecker:
 
     def register_new_standard(self, standard_number: str, notification_mgr: Any = None) -> None:
         """归档后注册新标准，初始状态='未知'，next_check_at=now（立即可查）。"""
+        from .std_utils import is_canonical_standard_number
+
+        if not is_canonical_standard_number(standard_number or ""):
+            logger.warning("拒绝登记畸形标准号: %r", standard_number)  # i18n-allow: 内部日志
+            return
         now = datetime.now(timezone.utc).isoformat()
         # 单条 INSERT OR IGNORE：并发首次登记不会撞 standard_number 唯一键，
         # 也不会在 SELECT 与 INSERT 之间被另一个线程抢先插入。

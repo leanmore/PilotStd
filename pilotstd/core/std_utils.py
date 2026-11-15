@@ -9,6 +9,43 @@ GB_T_CODES: frozenset[Any] = frozenset({"GB/T", "GBT"})
 GB_Z_CODES: frozenset[Any] = frozenset({"GB/Z", "GBZ"})
 SAMPLE_CODES: frozenset[Any] = frozenset({"GSB"})
 
+# 规范键形态：`CODE number[.part]-year`（可选年份）；用于阻断“空代号 + 前导空格”的畸形键
+CANONICAL_KEY_RE = re.compile(r"^\S+ \d+(?:\.\d+)?(?:-\d{4})?$")
+
+
+def is_canonical_standard_number(key: str) -> bool:
+    """是否规范标准号（无前导空格、CODE number[.part]-year 形态）。"""
+    return bool(key) and key == key.strip() and bool(CANONICAL_KEY_RE.match(key))
+
+
+def _as_int(value: Any) -> int:
+    """宽松转 int：空/非数字返回 0（不用 try/except，避免被 G-050 记为静默吞错）。"""
+    if isinstance(value, bool):
+        return 0
+    if isinstance(value, int):
+        return value
+    text = str(value or "").strip()
+    return int(text) if text.isdigit() else 0
+
+
+def build_standard_number(logical_code: str, number: Any, part: Any = None, year: Any = None) -> str:
+    """拼规范标准号；代号为空/编号非法时返回空串（调用方不得写入 DB）。
+
+    背景（2026-11-15 P2-11 根因）：`_organize` 曾直接 `f"{p.logical_code} {p.number}"`，
+    代号为空时写出 `" 11-2020"` 这类畸形键，standard_validity 里累计 7 条且每轮复检都命中。
+    """
+    code = str(logical_code or "").strip()
+    num = _as_int(number)
+    if not code or num <= 0:
+        return ""
+    part_val = _as_int(part)
+    suffix = f".{part_val}" if part_val > 0 else ""
+    key = f"{code} {num}{suffix}"
+    year_val = _as_int(year)
+    if year_val > 0:
+        key += f"-{year_val}"
+    return key
+
 
 def is_gb_code(code: str) -> bool:
     """判断是否属于 openstd 可检索的 GB 家族（含 GB/T、GB/Z）。"""

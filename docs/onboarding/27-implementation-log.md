@@ -578,3 +578,18 @@
 ---
 
 ## 验证汇总
+
+### 47. P2-11 数据修复验证 + 根因修复 + TSG 文件查证（2026-11-15）
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `scripts/repair_validity_keys_v2.py`（新增 `--source validity`）、`pilotstd/core/std_utils.py`（`build_standard_number`/`CANONICAL_KEY_RE`）、`pilotstd/manager/facade/_organize.py`、`pilotstd/core/validity_checker.py`、`tests/test_p211_root_cause.py`（新增）、`tests/test_repair_validity_keys_v2.py`（+2 例）、归因记录 §五、`08` #25、`core.md`/`manager.md`、ISSUE_LEDGER P2-11 |
+| 文件查证 | TSG 文件**未全丢**：`/inbox` 35 处（33 份在 `AQ 安全生产/TSG 特种设备安全技术规范/`）+ `/standards` 8 处（1 主文件 + 修改单）；`/output`、`/app/output` 0 ⇒ 不立"文件缺失"债务 |
+| 数据修复 | 线上快照副本（`/query` 灌 819 行）实跑：**merge 5 / manual 2**；`--apply` 后 819→814、畸形 7→2、二次 dry-run 幂等；生产 apply **未执行**（待窗口） |
+| 根因 | 归档时 `f"{logical_code} {number}"` 在代号为空时写出 `" 11-2020"`；`register_new_standard` 无校验直接落库，每轮复检复现（线上 `updated_at` 持续变化）。修复：`build_standard_number` 空代号返回空串、归档从文件名补解析、仍无则跳过、`register` 增加规范键守卫 |
+| 测试 | `tests/test_p211_root_cause.py` 10 例通过；`test_repair_validity_keys_v2.py` 5 例通过；全量与 `--ci` 见汇报 |
+| 回滚 | 还原脚本 `--source` 分支与三个代码文件、删两个测试文件、恢复文档段落 |
+
+---
+
+## 验证汇总
