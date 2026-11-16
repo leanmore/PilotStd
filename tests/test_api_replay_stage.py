@@ -27,6 +27,11 @@ def test_validate_allows_data_quarantine_target():
     assert dst == "/data/_quarantine/a.pdf"
 
 
+def test_validate_allows_data_quarantine_as_source():
+    src, dst = validate_item("/data/_quarantine/a.pdf", "/inbox/__replay_restore/a.pdf")
+    assert src == "/data/_quarantine/a.pdf"
+
+
 def test_validate_rejects_same_path():
     with pytest.raises(ValueError):
         validate_item("/inbox/a.pdf", "/inbox/a.pdf")

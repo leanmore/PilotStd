@@ -23,7 +23,7 @@ from ..auth import require_role
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["replay-admin"])
 
-_SRC_ROOTS = ("/inbox", "/standards")
+_SRC_ROOTS = ("/inbox", "/standards", "/data/_quarantine")
 _DST_PREFIXES = ("/inbox/__replay_",)
 _DST_EXACT = "/data/_quarantine"
 _MAX_ITEMS = 2000
@@ -84,7 +84,7 @@ def _dst_allowed(dst: str) -> bool:
     dst = _norm(dst)
     if _under(dst, _DST_EXACT):
         return True
-    return any(_under(dst, prefix) for prefix in _DST_PREFIXES)
+    return any(dst.startswith(prefix) for prefix in _DST_PREFIXES)
 
 
 # 单条校验：源必须在 /inbox 或 /standards，目标必须在测试前缀，且不能原地移动

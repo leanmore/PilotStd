@@ -710,3 +710,15 @@
 
 
 M3 前置（补）：AC-6 集成 3 例、离线补扫（stop 后 catchup）1 例；全量 6425/6404。
+### 57. M3 鏀跺彛鍓嶇疆锛欰-40 璁㈡銆丠J 婧愮櫧鍚嶅崟銆丄C-6 鐢熶骇缂哄彛锛?026-11-16锛?
+| 椤?| 鍐呭 |
+|---|---|
+| v71 鏃堕棿 | 鎻愪氦 `874aae24`锛?026-10-31 19:17:58 +0800锛涜縼绉绘妸涓よ〃 user_id 鍔犲垪骞跺洖濉?1 |
+| 杩佺Щ鍓嶆潵婧?| 浠ｇ爜鍐欑偣锛歚docker/scheduler.py`銆乣pilotstd/announce/notifier.py`銆乣validity_checker`銆乣_auto.py`銆乣_organize.py`銆乣_scan.py`銆乣security_notifier`銆乣docker/api/*`銆備簨浠剁被鍨嬫贩鏉傦細`task_result/daily/security_alert/announcement_*/notification_delivery_failed/anomaly_alert` 涓虹郴缁燂紱`test/notification_credential_changed` 鏄庣‘鐢ㄦ埛鍔ㄤ綔锛沗archive_complete/batch_summary/scan_*` 鍙屾潵婧愶紙UI 涓?monitor 鑷姩锛?|
+| 鍗曠敤鎴锋椂浠ｇ敤鎴?| 浠?`mystdpilot`锛坕d=1锛宎dmin锛?026-07-02 鍒涘缓锛夛紱`a35_user2` 2026-11-02 鎵嶅缓 |
+| 璁㈡ | 澶囦唤 `pilotstd_manual_20261116_203411.bak`锛沵anifest `C:\Temp\a40_correction_ids.json`锛況ollback `C:\Temp\a40_rollback.sql`锛沗notification_log` **452 琛?* `user_id 1鈫?`锛坄sent_at < 2026-10-31T19:17:58` 涓旀帓闄?test/credential_changed锛夛紱鏍稿鍚?user0=2364銆乽ser1=91銆乽ser5=2锛沺re-v71 浠呭墿 `test` 2 + `notification_credential_changed` 4 淇濇寔 1 |
+| queue | **鏈敼**锛歚notification_queue.user_id` 璇箟鏄€滈潤闊宠ˉ鍙戞敹浠朵汉鈥濓紝鍘嗗彶鍞竴鐢ㄦ埛鍗?id=1锛涙敼鎴?0 浼氱牬鍧忚ˉ鍙戣矾鐢憋紙鎶ュ憡鍙ｅ緞锛?|
+| 娈嬩綑 | 2026-10-31~11-14 鐨?89 琛屼粛鏄?user1锛坴71 鍚庨粯璁ゅ€笺€丳1 context 鍓嶏級锛涙寜鑰佹澘鈥滄棭浜庤縼绉绘棩鈥濆彛寰勬湭鍔紝寰呭喅 |
+| HJ 536 | `replay-stage` 婧愮櫧鍚嶅崟鍔?`/data/_quarantine`锛涙祴璇?7 渚嬮€氳繃锛泇0.191.1 閮ㄧ讲鍚庡彲 `move` 鍒?`/inbox/__replay_hj536/` 鍐嶅綊妗ｃ€乸ending 鑷姩鏍搁攢 |
+| AC-6 鐢熶骇缂哄彛 | 涓存椂鐢ㄦ埛 `add_user` 寮哄埗闄嶇骇 user锛坄_determine_role`锛夛紝`test-event` 403锛涙櫘閫氱敤鎴锋棤榛樿閫氱煡绛栫暐/娓犻亾锛屾敹钘忎簨浠朵笉钀介€氱煡锛沗DELETE /api/users` 鍦ㄧ敤鎴锋湁鏀惰棌鏃?FK 500锛堥渶鍏堟竻 favorites/log/queue锛夈€傜敓浜?e2e 闇€绗簩鐪熷疄 admin 鎴栬ˉ浜у搧鑳藉姏 |
+
