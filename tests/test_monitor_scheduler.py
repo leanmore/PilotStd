@@ -240,3 +240,25 @@ def test_count_catchup_files_includes_descendants():
     kept = ["/inbox/a", "/inbox/b"]
     assert _count_catchup_files(groups, kept) == 3
     assert _count_catchup_files(groups, ["/inbox/a"]) == 2
+
+def test_trigger_catchup_allowed_when_monitor_stopped_but_handler_kept(monkeypatch):
+    """62 批前置：stop 实时后仍可手动补扫（observer 停、handler 在）。"""
+    import threading
+
+    from pilotstd.monitor.scheduler import FileMonitorScheduler
+
+    sched = FileMonitorScheduler(manager=object())
+    sched.running = False
+    sched.handler = object()
+    started = threading.Event()
+
+    def _fake_catchup(stop_event):
+        started.set()
+        stop_event.wait(5)
+
+    monkeypatch.setattr(sched, "_catch_up_existing", _fake_catchup)
+    result = sched.trigger_catchup()
+    assert result["started"] is True
+    assert started.wait(2)
+    sched._catchup_stop.set()
+    sched._catchup_thread.join(timeout=3)

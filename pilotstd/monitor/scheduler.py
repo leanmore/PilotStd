@@ -248,7 +248,9 @@ class FileMonitorScheduler:
         - 与实时 monitor 共用 `_on_file` 的目录级去重（`_active_dirs`/`_recent_dirs`），
           同一目录不会被实时与补扫重复处理。
         """
-        if not self.running:
+        # 允许“先 stop 再补扫”（62 批前置：停实时 → 投放 → catchup → start）：
+        # observer 停止后 handler 仍在，_catch_up_existing 可独立跑；start() 会重建 observer。
+        if not self.running and self.handler is None:
             return {"started": False, "reason": "monitor not running"}
         with self._catchup_trigger_lock:
             if self._catchup_thread is not None and self._catchup_thread.is_alive():

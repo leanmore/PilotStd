@@ -699,3 +699,14 @@
 | P2 缺陷 2 | 聚合键无用户维度，user1/user2/system 合并 → 键加 `u{origin}`（批次 `1·uN·batch·notify`、常规 `2·notify[·entity]·uN`、daily 同）；system 自成 u0，不与 user1 混 |
 | P2 缺陷 3 | `_QUEUE_MESSAGE_FIELDS` 漏 `delivery_user_id`，补发回退 host._user_id（默认 1）→ 加入白名单，补发按队列 owner 选渠道 |
 | 测试 | 新增 `tests/test_p2_notification_isolation.py` 3 例（队列归属/system=0、聚合不跨用户、补发路由）；相关回归 64 例通过；全量与 `--ci` 见汇报 |
+### 56. M3 鍓嶇疆锛氬疄鏃舵姠鍗犳満鍒躲€乹uarantine 杩佺Щ銆丄C-6 闆嗘垚锛?026-11-16锛?
+| 椤?| 鍐呭 |
+|---|---|
+| quarantine 杩佺Щ | v0.190.3 閮ㄧ讲鍚庢墽琛?`move_quarantine_to_data.py`锛?3 涓枃浠?move 鍒?`/data/_quarantine`锛宱k=33/failed=0锛沗/inbox/_quarantine` 宸茬┖锛沗file_index` 773 涓嶅彉銆乸ending 35/resolved 570 涓嶅彉锛涙竻鍗?`move_quarantine_manifest.json`銆佸洖婊?`rollback_quarantine_to_inbox.py` |
+| 62 鎵圭 4 鏉″墠缃紙瀹炴椂鎶㈠崰锛?| **鏈哄埗锛歴top 鈫?鎶曟斁 鈫?catchup 鈫?start**銆俙POST /api/monitor/stop` 鍋?observer锛坔andler 淇濈暀锛夛紱`POST /api/admin/replay-stage` 鎶曟斁锛沗POST /api/admin/monitor/catchup` 鍦?monitor 鍋滄鐘舵€佷笅涔熷彲瑙﹀彂锛坄trigger_catchup` 浠呭湪 `handler is None` 鏃舵嫆缁濓級锛涜窇瀹?`POST /api/monitor/start` 鎭㈠瀹炴椂銆傛鏃跺彧浼氳蛋 `_collapse_catchup_dirs` 琛ユ壂鍒嗘壒锛屼笉浼氳瀹炴椂鎶㈣窇 |
+| AC-6 闆嗘垚娴嬭瘯 | 鏂板 `tests/test_ac6_notification_isolation.py` 3 渚嬶細鍙岀敤鎴峰悇鍙湅鑷繁閫氱煡锛泆ser1 鏍囪宸茶涓嶅奖鍝?user2 鏈鏁帮紱user2 鏃犳硶鏍囪 user1 鐨勯€氱煡锛?03/404锛夆€斺€斿叏閮ㄩ€氳繃 |
+| A-40 | 鎶€鏈彛寰勪笉鍙橈紙瀛橀噺鎸?11-14 鍓嶇晫瀹氾級锛岀姸鎬佹敼涓?*寰呰€佹澘纭锛堜骇鍝佸喅绛栵級**锛屼笉鏍囧凡瀹屾垚 |
+| 寰呭姙 | v0.190.4 閮ㄧ讲鍚庢寜 stop鈫抍atchup鈫抯tart 娴佺▼鍋氫竴娆?62 鎵瑰墠缃紨缁冿紙鍙€夛級锛汳3 鐢熶骇绔埌绔緟绗簩璐﹀彿瀵嗙爜/绐楀彛纭 |
+
+
+M3 前置（补）：AC-6 集成 3 例、离线补扫（stop 后 catchup）1 例；全量 6425/6404。
