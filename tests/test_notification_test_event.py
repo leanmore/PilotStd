@@ -41,3 +41,41 @@ def test_uninitialized_channel_rejected():
     mgr._channels = {}
     result = api.test_event(None, {"channel": "telegram", "level": "info"}, nmgr=mgr)
     assert result == {"ok": False, "error": "channel not initialized"}
+
+def _request_with_role():
+    from unittest.mock import MagicMock
+
+    req = MagicMock()
+    req.state.role = "admin"
+    return req
+
+
+def test_admin_can_target_another_user(monkeypatch):
+    mgr = _mgr()
+    mgr.channels_for.return_value = {"telegram": object()}
+    monkeypatch.setattr(api, "get_current_role", lambda request: "admin")
+    result = api.test_event(
+        _request_with_role(),
+        {"channel": "telegram", "level": "warning", "target_user_id": 7},
+        nmgr=mgr,
+        user_id=1,
+    )
+    assert result == {"ok": True, "queued": False}
+    msg = mgr._do_send.call_args.args[0]
+    assert msg.user_id == 7 and msg.delivery_user_id == 7
+
+
+def test_non_admin_cannot_target_another_user(monkeypatch):
+    import pytest
+    from fastapi import HTTPException
+
+    mgr = _mgr()
+    monkeypatch.setattr(api, "get_current_role", lambda request: "user")
+    with pytest.raises(HTTPException) as exc:
+        api.test_event(
+            _request_with_role(),
+            {"channel": "telegram", "target_user_id": 7},
+            nmgr=mgr,
+            user_id=1,
+        )
+    assert exc.value.status_code == 403

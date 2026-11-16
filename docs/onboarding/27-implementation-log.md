@@ -732,3 +732,14 @@ M3 前置（补）：AC-6 集成 3 例、离线补扫（stop 后 catchup）1 例
 | 寰呭仛 | 渚濇嵁娓呭崟璇勪及鍙噸鏂颁笅杞界殑鏉＄洰锛堜笅杞介摼/鍏憡璁板綍锛夛紱`HJ 536-2009` 鐨?exact pending 鍥犳枃浠朵涪澶辨殏涓嶈兘褰掓。锛屽緟琛ユ枃浠?|
 | 鏁欒 | 鍐欒矾寰勫繀椤诲厛瀵圭収 compose 鎸傝浇锛涒€淎PI 鍖栤€濅笉绛変簬鈥滄寔涔呭寲鈥濓紝娴嬭瘯宸ュ叿鐨勭洰鏍囪矾寰勫繀椤诲湪鎸佷箙鍗峰唴 |
 
+### 59. M3 鍖咃細A1 缂哄け鏍告煡銆丄2 娈嬩綑璁㈡銆丄3 62 鎵规紨缁冦€丅 AC-6 鍊熸笭閬擄紙2026-11-16锛?
+| 椤?| 鍐呭 |
+|---|---|
+| A1 | 33 涓枃浠讹紙manifest `C:\Temp\move_quarantine_manifest.json`锛夛細`file_index` 0 鍛戒腑銆乣/standards` 鏍戞寜鏂囦欢鍚?0 鍛戒腑 鈫?**33/33 缂哄け**锛涘凡鍦?pending 缃?`reason='file_missing'`锛?3 鏉★紝鐘舵€佷粛 pending锛屼笉浼鍏抽棴锛夛紱娓呭崟 `C:\Temp\a1_missing.json`锛沗HJ 536-2009` 鍚屽垪缂哄け |
+| A2 | 10-31~11-14 鐨?89 琛岋細绯荤粺绫?**67 琛?* user1鈫?锛坄security_alert/delivery_failed/task_result/daily/scan_empty/announcement_*/auto_backup/anomaly_alert`锛夛紝鏉′欢鍚?`id <= 4415`锛堟湰鎵瑰墠鏈€澶?id锛屾帓闄ゆ柊琛岋級锛涚敤鎴风被淇濈暀锛歛rchive 10 / scan 2 / test 4 / credential 4锛涘浠?`pilotstd_manual_20261116_212910.bak`锛宮anifest `C:\Temp\a40_residual_ids.json`銆乺ollback `C:\Temp\a40_residual_rollback.sql`锛涙牳瀵?user0=2437銆乽ser1=24銆乽ser5=2锛泀ueue 鏈姩 |
+| A3 | 62 鎵规紨缁冿細`stop`锛坮unning=False锛夆啋 `replay-stage` 鎶曟斁 5 鏂囦欢 鈫?`catchup` 鈫?`鍚姩琛ユ壂寮€濮?3 鐩綍 / 5 鏂囦欢`銆?/3 a锛? 鏂囦欢锛夈€?/3 b锛?锛夈€?/3 c锛?锛夆啋 `start` 鎭㈠ running=True锛涙棤瀹炴椂鎶㈣窇 |
+| B1 | 鏃犵幇鏈?API 鍙粰浠栦汉鎸傛笭閬?绛栫暐锛坄/api/notification/policy` 浠呭綋鍓嶇敤鎴凤紱娓犻亾鏄叏灞€閰嶇疆锛夆噿 **浠ｇ爜鏀瑰姩**锛歚/api/notification/test-event` 澧炲姞 `target_user_id`锛堜粎 admin锛夛紝澶嶇敤 `channels_for(target)` 涓庢棦鏈夋笭閬擄紝涓嶆柊寤烘笭閬?绛栫暐锛涢潪 admin 403 |
+| B2 | `replay-stage` 婧?鐩爣鐧藉悕鍗曞凡鏄?`/app/data/_quarantine`锛堟寔涔呭嵎锛夛紱A1 鏃犻渶鍙栧洖锛堟枃浠跺凡缂哄け锛夛紝淇濈暀浠ュ鎭㈠ |
+| B3 | 鏈壒浠ｇ爜锛歚docker/api/notification.py`锛坱arget_user_id锛夈€乣tests/test_notification_test_event.py`锛?2 渚嬶級锛沗replay_stage.py` 璺緞 `/app/data` |
+| 閮ㄧ讲 | v0.191.2 宸查儴缃诧紱鏈壒浠ｇ爜寰?v0.191.3 |
+

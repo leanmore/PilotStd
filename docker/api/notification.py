@@ -15,7 +15,7 @@
 
 import logging
 
-from fastapi import Depends, Request
+from fastapi import Depends, HTTPException, Request
 from fastapi.routing import APIRouter
 from pydantic import BaseModel
 
@@ -23,6 +23,7 @@ from pilotstd.core.notification import NotificationMessage
 from pilotstd.core.notification.channel_spec import CHANNEL_NAMES
 from pilotstd.i18n import t
 
+from ..auth import get_current_role
 from ..manager import get_manager_dep as get_manager_dep  # 兼容再导出：tests 的 patch 目标
 from . import notification_config, notification_logs, notification_policy
 from .notification_config import update_config as update_config  # 兼容再导出
@@ -76,8 +77,15 @@ def test_event(
     `level` 仅 info/warning；`bypass_aggregation=True` 只跳过聚合与分档节流，
     不跳过静音、落库与发送。
     """
+    # AC-6：admin 可指定 target_user_id，借用该用户既有渠道发一条测试事件（不新建渠道/策略）
+    effective = user_id
+    target = body.get("target_user_id")
+    if target is not None:
+        if request is None or get_current_role(request) != "admin":
+            raise HTTPException(403, "admin only")
+        effective = int(target)
     # 系统关/用户关都拦截；响应区分是谁关的
-    if not nmgr.enabled_for(user_id):
+    if not nmgr.enabled_for(effective):
         reason = "system" if not nmgr._system_enabled else "user"
         return {"ok": False, "error": f"notification disabled: {reason}"}
     channel = body.get("channel", "")
@@ -97,8 +105,8 @@ def test_event(
         body=body.get("body") or t("notification.api.test_body"),
         level=level,
         event_type="test",
-        user_id=user_id,
-        delivery_user_id=user_id,
+        user_id=effective,
+        delivery_user_id=effective,
     )
     nmgr._do_send(msg, [channel], bypass_aggregation=True)
     queued = level == "info" and nmgr._is_quiet_hours()
