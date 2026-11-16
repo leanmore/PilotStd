@@ -23,9 +23,9 @@ from ..auth import require_role
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["replay-admin"])
 
-_SRC_ROOTS = ("/inbox", "/standards", "/data/_quarantine")
+_SRC_ROOTS = ("/inbox", "/standards", "/app/data/_quarantine")
 _DST_PREFIXES = ("/inbox/__replay_",)
-_DST_EXACT = "/data/_quarantine"
+_DST_EXACT = "/app/data/_quarantine"
 _MAX_ITEMS = 2000
 
 
@@ -95,7 +95,7 @@ def validate_item(source: str, target: str) -> tuple[str, str]:
     if not any(_under(src, root) for root in _SRC_ROOTS):
         raise ValueError(f"源路径不在允许的根目录内: {source}")  # i18n-allow: 管理端点错误
     if not _dst_allowed(dst):
-        raise ValueError(f"目标不在 __replay_/_data/_quarantine 前缀内: {target}")  # i18n-allow: 管理端点错误
+        raise ValueError(f"目标不在 __replay_/_app/data/_quarantine 前缀内: {target}")  # i18n-allow: 管理端点错误
     if src == dst:
         raise ValueError("源与目标相同")  # i18n-allow: 管理端点错误
     return src, dst

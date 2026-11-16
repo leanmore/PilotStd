@@ -655,5 +655,5 @@
 ## 27. 隔离目录必须在 monitor watch 根之外（2026-11-16）
 
 `/inbox/_quarantine` 在 `/inbox` 递归 watch 内，移入会被实时二次处理（11-15 实测 183/216 被重跑）。
-统一用 `/data/_quarantine`；`replay-stage` 白名单已改；迁移见 `27-implementation-log.md` #54。
+统一用 `/app/data/_quarantine`（`./data:/app/data` 持久化卷）；`/data` 是容器临时层，重启会丢（11-16 已发生：33 个隔离文件丢失，见 27 #58）。
 

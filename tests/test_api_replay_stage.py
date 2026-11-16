@@ -23,13 +23,13 @@ def test_validate_rejects_target_outside_prefix(tmp_path):
 
 
 def test_validate_allows_data_quarantine_target():
-    src, dst = validate_item("/inbox/a.pdf", "/data/_quarantine/a.pdf")
-    assert dst == "/data/_quarantine/a.pdf"
+    src, dst = validate_item("/inbox/a.pdf", "/app/data/_quarantine/a.pdf")
+    assert dst == "/app/data/_quarantine/a.pdf"
 
 
 def test_validate_allows_data_quarantine_as_source():
-    src, dst = validate_item("/data/_quarantine/a.pdf", "/inbox/__replay_restore/a.pdf")
-    assert src == "/data/_quarantine/a.pdf"
+    src, dst = validate_item("/app/data/_quarantine/a.pdf", "/inbox/__replay_restore/a.pdf")
+    assert src == "/app/data/_quarantine/a.pdf"
 
 
 def test_validate_rejects_same_path():

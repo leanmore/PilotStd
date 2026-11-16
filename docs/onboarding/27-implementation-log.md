@@ -722,3 +722,13 @@ M3 前置（补）：AC-6 集成 3 例、离线补扫（stop 后 catchup）1 例
 | HJ 536 | `replay-stage` 婧愮櫧鍚嶅崟鍔?`/data/_quarantine`锛涙祴璇?7 渚嬮€氳繃锛泇0.191.1 閮ㄧ讲鍚庡彲 `move` 鍒?`/inbox/__replay_hj536/` 鍐嶅綊妗ｃ€乸ending 鑷姩鏍搁攢 |
 | AC-6 鐢熶骇缂哄彛 | 涓存椂鐢ㄦ埛 `add_user` 寮哄埗闄嶇骇 user锛坄_determine_role`锛夛紝`test-event` 403锛涙櫘閫氱敤鎴锋棤榛樿閫氱煡绛栫暐/娓犻亾锛屾敹钘忎簨浠朵笉钀介€氱煡锛沗DELETE /api/users` 鍦ㄧ敤鎴锋湁鏀惰棌鏃?FK 500锛堥渶鍏堟竻 favorites/log/queue锛夈€傜敓浜?e2e 闇€绗簩鐪熷疄 admin 鎴栬ˉ浜у搧鑳藉姏 |
 
+### 58. 浜嬫晠涓庝慨姝ｏ細`/data/_quarantine` 鏈寕杞斤紝33 涓殧绂绘枃浠堕殢 v0.191.1 閲嶅惎涓㈠け锛?026-11-16锛?
+| 椤?| 鍐呭 |
+|---|---|
+| 璧峰洜 | 11-16 19:4x 鎶?33 涓枃浠朵粠 `/inbox/_quarantine` 绉诲埌 `/data/_quarantine`銆俢ompose 鍙寕杞?`./data:/app/data`銆乣./inbox`銆乣./standards`锛?*`/data` 鏄鍣ㄤ复鏃跺眰** |
+| 鍚庢灉 | v0.191.1 閮ㄧ讲閲嶅缓瀹瑰櫒 鈫?`/data/_quarantine` 娓呯┖锛?3 涓枃浠讹紙鍚?`HJ 536-2009`锛変涪澶憋紱瀹夸富鏃犲壇鏈€丏B 鏃犳枃浠躲€乣file_index` 鏃犺褰?|
+| 娓呭崟 | 33 鏉¤矾寰勮 `C:\Temp\move_quarantine_manifest.json`锛坄target` 瀛楁鍗充涪澶变綅缃級 |
+| 淇 | `replay-stage` 鐨勯殧绂昏矾寰勬敼涓?**`/app/data/_quarantine`**锛坄./data:/app/data` 宸叉寕杞斤紝鎸佷箙鍖栵級锛涙簮/鐩爣鐧藉悕鍗曞悓姝ワ紱娴嬭瘯 7 渚嬮€氳繃 |
+| 寰呭仛 | 渚濇嵁娓呭崟璇勪及鍙噸鏂颁笅杞界殑鏉＄洰锛堜笅杞介摼/鍏憡璁板綍锛夛紱`HJ 536-2009` 鐨?exact pending 鍥犳枃浠朵涪澶辨殏涓嶈兘褰掓。锛屽緟琛ユ枃浠?|
+| 鏁欒 | 鍐欒矾寰勫繀椤诲厛瀵圭収 compose 鎸傝浇锛涒€淎PI 鍖栤€濅笉绛変簬鈥滄寔涔呭寲鈥濓紝娴嬭瘯宸ュ叿鐨勭洰鏍囪矾寰勫繀椤诲湪鎸佷箙鍗峰唴 |
+
