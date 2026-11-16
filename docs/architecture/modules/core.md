@@ -663,3 +663,10 @@ pilotstd/core/
   `_resolve_archived_pending` 同时尝试“无前缀键 + 带前缀键”，修复 Z 前缀 pending 漏核销。
 - `_mini_bucket._record_no_result`/`_overflow._try_overflow_site`：查询未找到（None/哨兵）时
   计 `no_result`，与 `quota_exhausted`/`chain_exhausted` 并列。
+
+## M2 P2 双用户隔离（2026-11-16）
+
+- `_suppression_queue._QUEUE_MESSAGE_FIELDS` 增加 `delivery_user_id`，补发按队列 owner 选渠道；
+  `enqueue` 保留 `user_id=0`（system 不再被写成 1）。
+- `aggregate_keys.group_key` 增加 `u{origin}` 用户维度（批次键 `1·uN·batch·notify`、常规键
+  `2·notify[·entity]·uN`、daily 仍 `2·daily·uN`）；`events_in_group`/`group_entity` 已兼容。

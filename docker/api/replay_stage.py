@@ -25,7 +25,7 @@ router = APIRouter(tags=["replay-admin"])
 
 _SRC_ROOTS = ("/inbox", "/standards")
 _DST_PREFIXES = ("/inbox/__replay_",)
-_DST_EXACT = "/inbox/_quarantine"
+_DST_EXACT = "/data/_quarantine"
 _MAX_ITEMS = 2000
 
 
@@ -64,28 +64,38 @@ class StageResponse(BaseModel):
 
 
 # 路径校验统一用 realpath 后再做前缀比较，避免 ../ 或符号链接逃逸
+def _norm(path: str) -> str:
+    """统一成 POSIX 风格（Windows 单测/容器路径一致），并去掉盘符。"""
+    text = path.replace(chr(92), "/")
+    if len(text) >= 2 and text[1] == ":":
+        text = text[2:]
+    return text
+
+
 def _under(path: str, root: str) -> bool:
     """path 是否在 root 内（含相等）。"""
-    return path == root or path.startswith(root + os.sep)
+    path, root = _norm(path), _norm(root)
+    return path == root or path.startswith(root.rstrip("/") + "/")
 
 
 # 目标只允许两个测试前缀：__replay_*（投放）与 _quarantine（隔离）
 def _dst_allowed(dst: str) -> bool:
     """目标必须落在测试前缀内。"""
-    if dst == _DST_EXACT or dst.startswith(_DST_EXACT + os.sep):
+    dst = _norm(dst)
+    if _under(dst, _DST_EXACT):
         return True
-    return any(dst.startswith(prefix) for prefix in _DST_PREFIXES)
+    return any(_under(dst, prefix) for prefix in _DST_PREFIXES)
 
 
 # 单条校验：源必须在 /inbox 或 /standards，目标必须在测试前缀，且不能原地移动
 def validate_item(source: str, target: str) -> tuple[str, str]:
     """校验并返回 (src_real, dst_real)；越界直接抛 ValueError。"""
-    src = os.path.realpath(source)
-    dst = os.path.realpath(target)
+    src = _norm(os.path.realpath(source))
+    dst = _norm(os.path.realpath(target))
     if not any(_under(src, root) for root in _SRC_ROOTS):
         raise ValueError(f"源路径不在允许的根目录内: {source}")  # i18n-allow: 管理端点错误
     if not _dst_allowed(dst):
-        raise ValueError(f"目标不在 __replay_/_quarantine 前缀内: {target}")  # i18n-allow: 管理端点错误
+        raise ValueError(f"目标不在 __replay_/_data/_quarantine 前缀内: {target}")  # i18n-allow: 管理端点错误
     if src == dst:
         raise ValueError("源与目标相同")  # i18n-allow: 管理端点错误
     return src, dst

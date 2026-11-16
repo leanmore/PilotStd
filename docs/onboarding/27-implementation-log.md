@@ -678,3 +678,24 @@
 | 附带发现 | 生产 `organize.auto_clean_source=true`，`skipped_exists` 会删除源文件（小场景 5 个副本处理后被自动清理，属预期配置） | 不改配置，记录到边界（复制件不会残留） |
 
 验证：`test_monitor_scheduler.py` + `test_monitor_catchup_e2e.py` 共 29 例通过；全量与 `--ci` 见汇报。
+
+### 54. `_quarantine` 移出 watch 根：`/inbox/_quarantine` → `/data/_quarantine`（2026-11-16）
+
+- 根因：`/inbox/_quarantine` 在 monitor 的 `/inbox` 递归 watch 内，移入的文件被实时重新处理
+  （11-15 216 个隔离文件里 183 个被二次处理：`file_index` 592→773、`pending` 216→35）。
+- 代码：`docker/api/replay_stage.py` 的目标白名单 `_DST_EXACT` 改为 `/data/_quarantine`
+  （`/inbox/__replay_*` 不变）；路径比较统一 POSIX（去盘符），Windows 单测可跑。
+- 迁移：`C:\Temp\move_quarantine_to_data.py`（清单 `C:\Temp\move_quarantine_manifest.json`、
+  回滚 `C:\Temp/rollback_quarantine_to_inbox.py`），v0.190.3 部署后执行 33 个文件移位。
+- 测试：`test_api_replay_stage.py` 6 例（新增 `/data/_quarantine` 正例）；`--ci` 见汇报。
+
+### 55. M2：A-40 归属结论 + P2 双用户隔离修复（2026-11-16）
+
+| 项 | 内容 |
+|---|---|
+| A-40 证据 | `notification_log`：user0=1908、user1=543（541 条 `sent_at<2026-11-14`，2 条 11-15 真实用户）、user5=2；`notification_queue`：user1=147（137 条 <11-14）。⇒ v71 回填的“存量 user1”可按 **sent_at/created_at < 2026-11-14** 界定；多用户上线后新数据由 P1 context 正确归属 |
+| A-40 结论 | **接受现状、不回溯**：历史 541 日志 + 137 队列行保留 user1，不做迁移/标记列；新数据可区分（user0 系统 / user1..N 真实）。依据：单用户升级期无第二用户，回溯无法可靠拆分 |
+| P2 缺陷 1 | 静音队列 `user_id or 1` 把 system(0) 写成 1 → 改为原值入库（0 保留） |
+| P2 缺陷 2 | 聚合键无用户维度，user1/user2/system 合并 → 键加 `u{origin}`（批次 `1·uN·batch·notify`、常规 `2·notify[·entity]·uN`、daily 同）；system 自成 u0，不与 user1 混 |
+| P2 缺陷 3 | `_QUEUE_MESSAGE_FIELDS` 漏 `delivery_user_id`，补发回退 host._user_id（默认 1）→ 加入白名单，补发按队列 owner 选渠道 |
+| 测试 | 新增 `tests/test_p2_notification_isolation.py` 3 例（队列归属/system=0、聚合不跨用户、补发路由）；相关回归 64 例通过；全量与 `--ci` 见汇报 |

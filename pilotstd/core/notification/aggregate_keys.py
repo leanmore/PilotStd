@@ -80,7 +80,14 @@ def group_key(msg: NotificationMessage) -> str:
     # 属"改了就没退路"，与本簿"两件可独立回滚的事不绑一个变量"的设计相悖（见 `03-实施路径.md:41`）。
     if agg_key_mode() == "v1":
         return f"{msg.event_type}{_GROUP_SEP}{entity}" if entity else msg.event_type
+    origin = getattr(msg, "user_id", 0) or 0
+    delivery = getattr(msg, "delivery_user_id", 0) or 0
+    # 以“触发者”分桶：system(0) 自成一组（即使投递给管理员），避免与 user1 的摘要混合
+    owner_seg = f"u{origin}" if (origin or delivery) else ""
     if batch:
+        # 批次键也按用户隔离；owner 段放在 notify 之前，保持 events_in_group 取 parts[-1]
+        if owner_seg:
+            return f"1{_GROUP_SEP}{owner_seg}{_GROUP_SEP}{batch}{_GROUP_SEP}{notify}"
         return f"1{_GROUP_SEP}{batch}{_GROUP_SEP}{notify}"
     # ②日常路径（需求②原文："公告拉取/收藏/收藏转下载 → 时间窗内聚合成 1 条，不要短时间内连发多条"）：
     # 这三类场景刻意**共用一个"日常桶"**（`2<SEP>daily`）——
@@ -93,8 +100,11 @@ def group_key(msg: NotificationMessage) -> str:
     task_kind = (getattr(msg, "task_kind", "") or "").strip()
     if notify == "user_activity" or task_kind == "favorite_download":
         # A-35：按投递用户分桶，禁止 user2 的收藏并进 user1 的 daily 聚合
-        owner = getattr(msg, "delivery_user_id", 0) or getattr(msg, "user_id", 0) or 0
-        return f"2{_GROUP_SEP}daily{_GROUP_SEP}u{owner}"
+        return f"2{_GROUP_SEP}daily{_GROUP_SEP}u{origin}"
+    if owner_seg:
+        if entity:
+            return f"2{_GROUP_SEP}{notify}{_GROUP_SEP}{entity}{_GROUP_SEP}{owner_seg}"
+        return f"2{_GROUP_SEP}{notify}{_GROUP_SEP}{owner_seg}"
     return f"2{_GROUP_SEP}{notify}{_GROUP_SEP}{entity}" if entity else f"2{_GROUP_SEP}{notify}"
 
 
@@ -128,5 +138,7 @@ def group_entity(group: str) -> str:
     if len(parts) >= 3 and parts[0] == "2":
         if parts[1] == "daily":
             return ""
+        if len(parts) == 3 and parts[2].startswith("u"):
+            return ""  # 纯 owner 段（无实体）
         return parts[2]
     return ""

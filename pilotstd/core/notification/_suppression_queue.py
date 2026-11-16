@@ -54,6 +54,8 @@ _QUEUE_MESSAGE_FIELDS = (
     # ——与 1a/1b/1c 三批同一类缺陷（写入/重建两侧必须同源）
     "task_kind",
     "user_id",
+    # P2：静音补发必须带回投递用户，否则释放时回退 host._user_id（默认 1）
+    "delivery_user_id",
 )
 
 
@@ -135,7 +137,7 @@ class SuppressionQueue:
         self._db.execute(
             "INSERT INTO notification_queue (event_type, event_data, status, scheduled_time, created_at, user_id) "
             "VALUES (?, ?, 'suppressed', ?, ?, ?)",
-            (msg.event_type, event_data, scheduled.isoformat(), now.isoformat(), user_id or 1),
+            (msg.event_type, event_data, scheduled.isoformat(), now.isoformat(), user_id),
         )
         return scheduled.isoformat()
 

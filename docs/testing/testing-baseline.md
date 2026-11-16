@@ -124,7 +124,7 @@
 | 时点 | collected | passed | subtests | skipped |
 |---|---|---|---|---|
 | 2026-11-13 `ed8ba431`（复核） | 6344 | 6333 | 401 | 11 |
-| 2026-11-15 HEAD（M1 折叠/去重修复后） | 6417 | 6396 | 401 | 21 |
+| 2026-11-16 HEAD（M1 闭合/M2 P2 修复后） | 6421 | 6400 | 401 | 21 |
 
 - `collected`：pytest 收集用例数（`--collect-only`）；`passed`：用例通过数，**不含** subtests；
   `subtests`：pytest-subtests 子用例通过数（独立一行输出）；`skipped`：跳过数。

@@ -22,6 +22,11 @@ def test_validate_rejects_target_outside_prefix(tmp_path):
         validate_item("/inbox/a.pdf", "/inbox/other/a.pdf")
 
 
+def test_validate_allows_data_quarantine_target():
+    src, dst = validate_item("/inbox/a.pdf", "/data/_quarantine/a.pdf")
+    assert dst == "/data/_quarantine/a.pdf"
+
+
 def test_validate_rejects_same_path():
     with pytest.raises(ValueError):
         validate_item("/inbox/a.pdf", "/inbox/a.pdf")

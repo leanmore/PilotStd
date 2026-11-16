@@ -651,3 +651,9 @@
 7. 哪些问题不能“顺手修”，为什么？
 
 参考答案见 [`10-assessment.md`](10-assessment.md)。
+
+## 27. 隔离目录必须在 monitor watch 根之外（2026-11-16）
+
+`/inbox/_quarantine` 在 `/inbox` 递归 watch 内，移入会被实时二次处理（11-15 实测 183/216 被重跑）。
+统一用 `/data/_quarantine`；`replay-stage` 白名单已改；迁移见 `27-implementation-log.md` #54。
+
