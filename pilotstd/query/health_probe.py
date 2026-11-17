@@ -17,28 +17,34 @@ logger = logging.getLogger(__name__)
 
 # 每站固定探针（可按站点实际收录调整；同一探针不随机，保证可比）
 PROBES: dict[str, str] = {
-    "ahbz": "GB/T 19001-2016",
-    "ccsn": "GB/T 19001-2016",
-    "csres": "GB/T 19001-2016",
-    "cssn": "GB/T 19001-2016",
-    "dbba": "GB/T 19001-2016",
-    "energy": "NB/T 47014-2011",
-    "gongbiaoku": "GB/T 19001-2016",
-    "hbba": "HG/T 20592-2009",
-    "iso_gov": "ISO 9001:2015",
-    "jjg": "JJG 1-2003",
-    "jtst": "GB/T 19001-2016",
-    "mee": "HJ 536-2009",
-    "miit": "GB/T 19001-2016",
-    "ncha": "GB/T 19001-2016",
-    "njbz365": "GB/T 19001-2016",
-    "nrsis": "NB/T 47013-2015",
-    "sppt": "GB/T 19001-2016",
-    "sppt_local": "GB/T 19001-2016",
-    "std_gov": "GB/T 19001-2016",
-    "tdpress": "GB/T 19001-2016",
-    "ttbz": "GB/T 19001-2016",
+    # 2026-11-17 校准：取各站点 standard_info_cache 中最近一次 match_status=exact 的标准号
+    "ahbz": "NB/T 47016-2023",
+    "csres": "GB/T 17395-2024",
+    "cssn": "GB/T 8165-2008",
+    "dbba": "DB50/T 1982-2026",
+    "hbba": "JB/T 13964-2020",
+    "iso_gov": "ISO 16852:2016",
+    "jjg": "JJG 141-2013",
+    "mee": "GB 37822-2019",
+    "njbz365": "NB/T 47033-2013",
+    "std_gov": "GB/T 10827.6-2023",
 }
+
+# 无成功缓存、无法校准探针的站点：只报“探针待定”，不输出误导性 no_result
+PROBE_PENDING: dict[str, str] = {
+    "ccsn": "no exact cache",
+    "energy": "no exact cache",
+    "gongbiaoku": "no exact cache",
+    "jtst": "no exact cache",
+    "miit": "no exact cache",
+    "ncha": "no exact cache",
+    "nrsis": "no exact cache",
+    "sppt": "no exact cache",
+    "sppt_local": "no exact cache",
+    "tdpress": "no exact cache",
+    "ttbz": "no exact cache",
+}
+
 
 _HEALTH_FILE = os.environ.get("PILOTSTD_HEALTH_PROBE_FILE", "/app/data/health_probe.json")
 _last_result: dict | None = None
@@ -123,8 +129,15 @@ def run_health_check(timeout: float = 20.0) -> dict:
                         "error": str(exc)[:200],
                     }
                 )
+    for site, reason in PROBE_PENDING.items():
+        rows.append(
+            {"site": site, "probe": "", "status": "probe_pending", "elapsed_ms": 0, "error": reason}
+        )
     rows.sort(key=lambda r: r["site"])
-    summary = {k: sum(1 for r in rows if r["status"] == k) for k in ("found", "no_result", "error")}
+    summary = {
+        k: sum(1 for r in rows if r["status"] == k)
+        for k in ("found", "no_result", "error", "probe_pending")
+    }
     result = {"checked_at": started_at, "summary": summary, "results": rows}
     global _last_result
     _last_result = result

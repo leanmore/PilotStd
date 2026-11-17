@@ -29,6 +29,7 @@ def test_pending_fallback_is_chain_exhausted():
 
 def test_health_probe_found_and_error(monkeypatch, tmp_path):
     monkeypatch.setattr(health_probe, "PROBES", {"fake": "GB/T 1-2020", "bad": "GB/T 2-2020"})
+    monkeypatch.setattr(health_probe, "PROBE_PENDING", {})
     monkeypatch.setattr(health_probe, "_HEALTH_FILE", str(tmp_path / "health.json"))
     monkeypatch.setattr(
         "pilotstd.query.adapters.registry.ALL_ADAPTERS",
@@ -38,7 +39,7 @@ def test_health_probe_found_and_error(monkeypatch, tmp_path):
     by_site = {r["site"]: r for r in result["results"]}
     assert by_site["fake"]["status"] == "found"
     assert by_site["bad"]["status"] == "error"
-    assert result["summary"] == {"found": 1, "no_result": 0, "error": 1}
+    assert result["summary"] == {"found": 1, "no_result": 0, "error": 1, "probe_pending": 0}
     assert (tmp_path / "health.json").exists()
 
 

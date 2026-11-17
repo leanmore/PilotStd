@@ -791,3 +791,16 @@
 | a35_user2 | 3 收藏 + 3 favorite_downloads 清理后删除用户（id=3）；users 现仅 `mystdpilot`；清单 `C:\Temp\a35_user2_data.json`；执行前备份 |
 | 33 文件 | 扫全部挂载点（`/inbox`、`/standards`、`output`、`data`、`logs`）**0 命中** → 维持 `file_missing` |
 | A-44 用户文档 | 08 仅开发侧；已在 `docs/guides/用户帮助文档.md` 增加“文件监控的已知限制”（新目录→重启补扫、批量 ≤30/目录） |
+
+
+### 64. a35_user2 查证、探针校准、61 重查可信度、pending 对账（2026-11-17）
+
+| 项 | 结论 |
+|---|---|
+| a35_user2 来源 | `audit_logs`：2026-11-02 10:51:03 `USER_ADD`（user_id=1，/api/users）创建；10:51:54 该用户以 role=user 访问 `/api/notification/logs/2483/diagnostics` 被拒（`ACCESS_DENIED`）——即 A-35 多用户日志隔离测试账号；无其他操作/通知记录 |
+| 可恢复性 | 删除前备份 `pilotstd_manual_20261117_201624.bak` 存在（API 可列）；备份含 user3 + 3 收藏 + 3 favorite_downloads，可恢复；**确认为测试账号，删除正确，不恢复** |
+| 探针校准 | 从 `standard_info_cache` 取每站最近 `match_status=exact` 号：std_gov GB/T 10827.6-2023、ahbz NB/T 47016-2023、csres GB/T 17395-2024、cssn GB/T 8165-2008、dbba DB50/T 1982-2026、hbba JB/T 13964-2020、iso_gov ISO 16852:2016、jjg JJG 141-2013、mee GB 37822-2019、njbz365 NB/T 47033-2013；其余 11 站无 exact 缓存 → `probe_pending`，不输出 no_result |
+| 本地重跑 | found=3 / no_result=7 / error=0 / probe_pending=11；no_result 的 7 站（std_gov/ahbz/csres/dbba/hbba/iso_gov/njbz365）探针来自 exact 缓存，no_result 更像适配器/网络/解析退化（iso_gov 日志 503），不是探针选错 |
+| 61 重查可信度 | `daily_quota` 今日各站 0~3 次、无 `quota_exhausted` 指标；抽查日志：SHB 6-1999 `tried=njbz365`、NB 47007/47019 `tried=energy→energy`（单站链+一次同站重试）⇒ 0.58s/条由**单站链**解释，不是配额快速耗尽；但**不能证明多站链 P3-16 存量效果**，需在链路/配额充足时用多站代码重跑；GB 抽查出现 csres 日志“找到 评分=100”而 API stats found=0（结果合并/统计异常，另记） |
+| pending 对账 | 现 61 = 33 `file_missing`（32 chain +1 exact，11-13 创建，id 100~） + 28 空分类（11-17 由 62 批产生，id 600+）；原 35（34 chain +1 exact）中 **2 条**（GB/T 20671.4-2026、GB 3609.2-2025）已 `resolved`（file_moved_quarantine→目标在 file_index），34 = 32 file_missing + 2 resolved；28 不是 34 减少，而是**新产生** |
+| 代码 | 探针表校准 + `PROBE_PENDING`（11 站）；测试更新（probe_pending 计数） |
