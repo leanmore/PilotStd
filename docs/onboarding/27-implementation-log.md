@@ -699,50 +699,51 @@
 | P2 缺陷 2 | 聚合键无用户维度，user1/user2/system 合并 → 键加 `u{origin}`（批次 `1·uN·batch·notify`、常规 `2·notify[·entity]·uN`、daily 同）；system 自成 u0，不与 user1 混 |
 | P2 缺陷 3 | `_QUEUE_MESSAGE_FIELDS` 漏 `delivery_user_id`，补发回退 host._user_id（默认 1）→ 加入白名单，补发按队列 owner 选渠道 |
 | 测试 | 新增 `tests/test_p2_notification_isolation.py` 3 例（队列归属/system=0、聚合不跨用户、补发路由）；相关回归 64 例通过；全量与 `--ci` 见汇报 |
-### 56. M3 鍓嶇疆锛氬疄鏃舵姠鍗犳満鍒躲€乹uarantine 杩佺Щ銆丄C-6 闆嗘垚锛?026-11-16锛?
-| 椤?| 鍐呭 |
+### 56. M3 前置：实时抢占机制、quarantine 迁移、AC-6 集成（2026-11-16）
+
+| 项 | 内容 |
 |---|---|
-| quarantine 杩佺Щ | v0.190.3 閮ㄧ讲鍚庢墽琛?`move_quarantine_to_data.py`锛?3 涓枃浠?move 鍒?`/data/_quarantine`锛宱k=33/failed=0锛沗/inbox/_quarantine` 宸茬┖锛沗file_index` 773 涓嶅彉銆乸ending 35/resolved 570 涓嶅彉锛涙竻鍗?`move_quarantine_manifest.json`銆佸洖婊?`rollback_quarantine_to_inbox.py` |
-| 62 鎵圭 4 鏉″墠缃紙瀹炴椂鎶㈠崰锛?| **鏈哄埗锛歴top 鈫?鎶曟斁 鈫?catchup 鈫?start**銆俙POST /api/monitor/stop` 鍋?observer锛坔andler 淇濈暀锛夛紱`POST /api/admin/replay-stage` 鎶曟斁锛沗POST /api/admin/monitor/catchup` 鍦?monitor 鍋滄鐘舵€佷笅涔熷彲瑙﹀彂锛坄trigger_catchup` 浠呭湪 `handler is None` 鏃舵嫆缁濓級锛涜窇瀹?`POST /api/monitor/start` 鎭㈠瀹炴椂銆傛鏃跺彧浼氳蛋 `_collapse_catchup_dirs` 琛ユ壂鍒嗘壒锛屼笉浼氳瀹炴椂鎶㈣窇 |
-| AC-6 闆嗘垚娴嬭瘯 | 鏂板 `tests/test_ac6_notification_isolation.py` 3 渚嬶細鍙岀敤鎴峰悇鍙湅鑷繁閫氱煡锛泆ser1 鏍囪宸茶涓嶅奖鍝?user2 鏈鏁帮紱user2 鏃犳硶鏍囪 user1 鐨勯€氱煡锛?03/404锛夆€斺€斿叏閮ㄩ€氳繃 |
-| A-40 | 鎶€鏈彛寰勪笉鍙橈紙瀛橀噺鎸?11-14 鍓嶇晫瀹氾級锛岀姸鎬佹敼涓?*寰呰€佹澘纭锛堜骇鍝佸喅绛栵級**锛屼笉鏍囧凡瀹屾垚 |
-| 寰呭姙 | v0.190.4 閮ㄧ讲鍚庢寜 stop鈫抍atchup鈫抯tart 娴佺▼鍋氫竴娆?62 鎵瑰墠缃紨缁冿紙鍙€夛級锛汳3 鐢熶骇绔埌绔緟绗簩璐﹀彿瀵嗙爜/绐楀彛纭 |
+| quarantine 迁移 | v0.190.3 部署后执行 `move_quarantine_to_data.py`：33 个文件 move 到 `/data/_quarantine`，ok=33/failed=0；`/inbox/_quarantine` 已空；`file_index` 773 不变、pending 35/resolved 570 不变；清单 `move_quarantine_manifest.json`、回滚 `rollback_quarantine_to_inbox.py` |
+| 62 批第 4 条前置（实时抢占） | **机制：stop → 投放 → catchup → start**。`POST /api/monitor/stop` 停 observer（handler 保留）；`POST /api/admin/replay-stage` 投放；`POST /api/admin/monitor/catchup` 在 monitor 停止状态下也可触发（`trigger_catchup` 仅在 `handler is None` 时拒绝）；跑完 `POST /api/monitor/start` 恢复实时。此时只会走 `_collapse_catchup_dirs` 补扫分批，不会被实时抢跑 |
+| AC-6 集成测试 | 新增 `tests/test_ac6_notification_isolation.py` 3 例：双用户各只看自己通知；user1 标记已读不影响 user2 未读数；user2 无法标记 user1 的通知（403/404）——全部通过 |
+| A-40 | 技术口径不变（存量按 11-14 前界定），状态改为**待老板确认（产品决策）**，不标已完成 |
+| 待办 | v0.190.4 部署后按 stop→catchup→start 流程做一次 62 批前置演练（可选）；M3 生产端到端待第二账号密码/窗口确认 |
 
+### 57. M3 收口前置：A-40 订正、HJ 源白名单、AC-6 生产缺口（2026-11-16）
 
-M3 前置（补）：AC-6 集成 3 例、离线补扫（stop 后 catchup）1 例；全量 6425/6404。
-### 57. M3 鏀跺彛鍓嶇疆锛欰-40 璁㈡銆丠J 婧愮櫧鍚嶅崟銆丄C-6 鐢熶骇缂哄彛锛?026-11-16锛?
-| 椤?| 鍐呭 |
+| 项 | 内容 |
 |---|---|
-| v71 鏃堕棿 | 鎻愪氦 `874aae24`锛?026-10-31 19:17:58 +0800锛涜縼绉绘妸涓よ〃 user_id 鍔犲垪骞跺洖濉?1 |
-| 杩佺Щ鍓嶆潵婧?| 浠ｇ爜鍐欑偣锛歚docker/scheduler.py`銆乣pilotstd/announce/notifier.py`銆乣validity_checker`銆乣_auto.py`銆乣_organize.py`銆乣_scan.py`銆乣security_notifier`銆乣docker/api/*`銆備簨浠剁被鍨嬫贩鏉傦細`task_result/daily/security_alert/announcement_*/notification_delivery_failed/anomaly_alert` 涓虹郴缁燂紱`test/notification_credential_changed` 鏄庣‘鐢ㄦ埛鍔ㄤ綔锛沗archive_complete/batch_summary/scan_*` 鍙屾潵婧愶紙UI 涓?monitor 鑷姩锛?|
-| 鍗曠敤鎴锋椂浠ｇ敤鎴?| 浠?`mystdpilot`锛坕d=1锛宎dmin锛?026-07-02 鍒涘缓锛夛紱`a35_user2` 2026-11-02 鎵嶅缓 |
-| 璁㈡ | 澶囦唤 `pilotstd_manual_20261116_203411.bak`锛沵anifest `C:\Temp\a40_correction_ids.json`锛況ollback `C:\Temp\a40_rollback.sql`锛沗notification_log` **452 琛?* `user_id 1鈫?`锛坄sent_at < 2026-10-31T19:17:58` 涓旀帓闄?test/credential_changed锛夛紱鏍稿鍚?user0=2364銆乽ser1=91銆乽ser5=2锛沺re-v71 浠呭墿 `test` 2 + `notification_credential_changed` 4 淇濇寔 1 |
-| queue | **鏈敼**锛歚notification_queue.user_id` 璇箟鏄€滈潤闊宠ˉ鍙戞敹浠朵汉鈥濓紝鍘嗗彶鍞竴鐢ㄦ埛鍗?id=1锛涙敼鎴?0 浼氱牬鍧忚ˉ鍙戣矾鐢憋紙鎶ュ憡鍙ｅ緞锛?|
-| 娈嬩綑 | 2026-10-31~11-14 鐨?89 琛屼粛鏄?user1锛坴71 鍚庨粯璁ゅ€笺€丳1 context 鍓嶏級锛涙寜鑰佹澘鈥滄棭浜庤縼绉绘棩鈥濆彛寰勬湭鍔紝寰呭喅 |
-| HJ 536 | `replay-stage` 婧愮櫧鍚嶅崟鍔?`/data/_quarantine`锛涙祴璇?7 渚嬮€氳繃锛泇0.191.1 閮ㄧ讲鍚庡彲 `move` 鍒?`/inbox/__replay_hj536/` 鍐嶅綊妗ｃ€乸ending 鑷姩鏍搁攢 |
-| AC-6 鐢熶骇缂哄彛 | 涓存椂鐢ㄦ埛 `add_user` 寮哄埗闄嶇骇 user锛坄_determine_role`锛夛紝`test-event` 403锛涙櫘閫氱敤鎴锋棤榛樿閫氱煡绛栫暐/娓犻亾锛屾敹钘忎簨浠朵笉钀介€氱煡锛沗DELETE /api/users` 鍦ㄧ敤鎴锋湁鏀惰棌鏃?FK 500锛堥渶鍏堟竻 favorites/log/queue锛夈€傜敓浜?e2e 闇€绗簩鐪熷疄 admin 鎴栬ˉ浜у搧鑳藉姏 |
+| v71 时间 | 提交 `874aae24`，2026-10-31 19:17:58 +0800；迁移把两表 user_id 加列并回填 1 |
+| 迁移前来源 | 代码写点：`docker/scheduler.py`、`pilotstd/announce/notifier.py`、`validity_checker`、`_auto.py`、`_organize.py`、`_scan.py`、`security_notifier`、`docker/api/*`。事件类型混杂：`task_result/daily/security_alert/announcement_*/notification_delivery_failed/anomaly_alert` 为系统；`test/notification_credential_changed` 明确用户动作；`archive_complete/batch_summary/scan_*` 双来源（UI 与 monitor 自动） |
+| 单用户时代用户 | 仅 `mystdpilot`（id=1，admin，2026-07-02 创建）；`a35_user2` 2026-11-02 才建 |
+| 订正 | 备份 `pilotstd_manual_20261116_203411.bak`；manifest `C:\Temp\a40_correction_ids.json`；rollback `C:\Temp\a40_rollback.sql`；`notification_log` **452 行** `user_id 1→0`（`sent_at < 2026-10-31T19:17:58` 且排除 test/credential_changed）；核对后 user0=2364、user1=91、user5=2；pre-v71 仅剩 `test` 2 + `notification_credential_changed` 4 保持 1 |
+| queue | **未改**：`notification_queue.user_id` 语义是“静音补发收件人”，历史唯一用户即 id=1；改成 0 会破坏补发路由（报告口径） |
+| 残余 | 2026-10-31~11-14 的 89 行仍是 user1（v71 后默认值、P1 context 前）；按老板“早于迁移日”口径未动，待决 |
+| HJ 536 | `replay-stage` 源白名单加 `/data/_quarantine`；测试 7 例通过；v0.191.1 部署后可 `move` 到 `/inbox/__replay_hj536/` 再归档、pending 自动核销 |
+| AC-6 生产缺口 | 临时用户 `add_user` 强制降级 user（`_determine_role`），`test-event` 403；普通用户无默认通知策略/渠道，收藏事件不落通知；`DELETE /api/users` 在用户有收藏时 FK 500（需先清 favorites/log/queue）。生产 e2e 需第二真实 admin 或补产品能力 |
 
-### 58. 浜嬫晠涓庝慨姝ｏ細`/data/_quarantine` 鏈寕杞斤紝33 涓殧绂绘枃浠堕殢 v0.191.1 閲嶅惎涓㈠け锛?026-11-16锛?
-| 椤?| 鍐呭 |
+### 58. 事故与修正：`/data/_quarantine` 未挂载，33 个隔离文件随 v0.191.1 重启丢失（2026-11-16）
+
+| 项 | 内容 |
 |---|---|
-| 璧峰洜 | 11-16 19:4x 鎶?33 涓枃浠朵粠 `/inbox/_quarantine` 绉诲埌 `/data/_quarantine`銆俢ompose 鍙寕杞?`./data:/app/data`銆乣./inbox`銆乣./standards`锛?*`/data` 鏄鍣ㄤ复鏃跺眰** |
-| 鍚庢灉 | v0.191.1 閮ㄧ讲閲嶅缓瀹瑰櫒 鈫?`/data/_quarantine` 娓呯┖锛?3 涓枃浠讹紙鍚?`HJ 536-2009`锛変涪澶憋紱瀹夸富鏃犲壇鏈€丏B 鏃犳枃浠躲€乣file_index` 鏃犺褰?|
-| 娓呭崟 | 33 鏉¤矾寰勮 `C:\Temp\move_quarantine_manifest.json`锛坄target` 瀛楁鍗充涪澶变綅缃級 |
-| 淇 | `replay-stage` 鐨勯殧绂昏矾寰勬敼涓?**`/app/data/_quarantine`**锛坄./data:/app/data` 宸叉寕杞斤紝鎸佷箙鍖栵級锛涙簮/鐩爣鐧藉悕鍗曞悓姝ワ紱娴嬭瘯 7 渚嬮€氳繃 |
-| 寰呭仛 | 渚濇嵁娓呭崟璇勪及鍙噸鏂颁笅杞界殑鏉＄洰锛堜笅杞介摼/鍏憡璁板綍锛夛紱`HJ 536-2009` 鐨?exact pending 鍥犳枃浠朵涪澶辨殏涓嶈兘褰掓。锛屽緟琛ユ枃浠?|
-| 鏁欒 | 鍐欒矾寰勫繀椤诲厛瀵圭収 compose 鎸傝浇锛涒€淎PI 鍖栤€濅笉绛変簬鈥滄寔涔呭寲鈥濓紝娴嬭瘯宸ュ叿鐨勭洰鏍囪矾寰勫繀椤诲湪鎸佷箙鍗峰唴 |
+| 起因 | 11-16 19:4x 把 33 个文件从 `/inbox/_quarantine` 移到 `/data/_quarantine`。compose 只挂载 `./data:/app/data`、`./inbox`、`./standards`，**`/data` 是容器临时层** |
+| 后果 | v0.191.1 部署重建容器 → `/data/_quarantine` 清空，33 个文件（含 `HJ 536-2009`）丢失；宿主无副本、DB 无文件、`file_index` 无记录 |
+| 清单 | 33 条路径见 `C:\Temp\move_quarantine_manifest.json`（`target` 字段即丢失位置） |
+| 修正 | `replay-stage` 的隔离路径改为 **`/app/data/_quarantine`**（`./data:/app/data` 已挂载，持久化）；源/目标白名单同步；测试 7 例通过 |
+| 待做 | 依据清单评估可重新下载的条目（下载链/公告记录）；`HJ 536-2009` 的 exact pending 因文件丢失暂不能归档，待补文件 |
+| 教训 | 写路径必须先对照 compose 挂载；“API 化”不等于“持久化”，测试工具的目标路径必须在持久卷内 |
 
-### 59. M3 鍖咃細A1 缂哄け鏍告煡銆丄2 娈嬩綑璁㈡銆丄3 62 鎵规紨缁冦€丅 AC-6 鍊熸笭閬擄紙2026-11-16锛?
-| 椤?| 鍐呭 |
+### 59. M3 包：A1 缺失核查、A2 残余订正、A3 62 批演练、B AC-6 借渠道（2026-11-16）
+
+| 项 | 内容 |
 |---|---|
-| A1 | 33 涓枃浠讹紙manifest `C:\Temp\move_quarantine_manifest.json`锛夛細`file_index` 0 鍛戒腑銆乣/standards` 鏍戞寜鏂囦欢鍚?0 鍛戒腑 鈫?**33/33 缂哄け**锛涘凡鍦?pending 缃?`reason='file_missing'`锛?3 鏉★紝鐘舵€佷粛 pending锛屼笉浼鍏抽棴锛夛紱娓呭崟 `C:\Temp\a1_missing.json`锛沗HJ 536-2009` 鍚屽垪缂哄け |
-| A2 | 10-31~11-14 鐨?89 琛岋細绯荤粺绫?**67 琛?* user1鈫?锛坄security_alert/delivery_failed/task_result/daily/scan_empty/announcement_*/auto_backup/anomaly_alert`锛夛紝鏉′欢鍚?`id <= 4415`锛堟湰鎵瑰墠鏈€澶?id锛屾帓闄ゆ柊琛岋級锛涚敤鎴风被淇濈暀锛歛rchive 10 / scan 2 / test 4 / credential 4锛涘浠?`pilotstd_manual_20261116_212910.bak`锛宮anifest `C:\Temp\a40_residual_ids.json`銆乺ollback `C:\Temp\a40_residual_rollback.sql`锛涙牳瀵?user0=2437銆乽ser1=24銆乽ser5=2锛泀ueue 鏈姩 |
-| A3 | 62 鎵规紨缁冿細`stop`锛坮unning=False锛夆啋 `replay-stage` 鎶曟斁 5 鏂囦欢 鈫?`catchup` 鈫?`鍚姩琛ユ壂寮€濮?3 鐩綍 / 5 鏂囦欢`銆?/3 a锛? 鏂囦欢锛夈€?/3 b锛?锛夈€?/3 c锛?锛夆啋 `start` 鎭㈠ running=True锛涙棤瀹炴椂鎶㈣窇 |
-| B1 | 鏃犵幇鏈?API 鍙粰浠栦汉鎸傛笭閬?绛栫暐锛坄/api/notification/policy` 浠呭綋鍓嶇敤鎴凤紱娓犻亾鏄叏灞€閰嶇疆锛夆噿 **浠ｇ爜鏀瑰姩**锛歚/api/notification/test-event` 澧炲姞 `target_user_id`锛堜粎 admin锛夛紝澶嶇敤 `channels_for(target)` 涓庢棦鏈夋笭閬擄紝涓嶆柊寤烘笭閬?绛栫暐锛涢潪 admin 403 |
-| B2 | `replay-stage` 婧?鐩爣鐧藉悕鍗曞凡鏄?`/app/data/_quarantine`锛堟寔涔呭嵎锛夛紱A1 鏃犻渶鍙栧洖锛堟枃浠跺凡缂哄け锛夛紝淇濈暀浠ュ鎭㈠ |
-| B3 | 鏈壒浠ｇ爜锛歚docker/api/notification.py`锛坱arget_user_id锛夈€乣tests/test_notification_test_event.py`锛?2 渚嬶級锛沗replay_stage.py` 璺緞 `/app/data` |
-| 閮ㄧ讲 | v0.191.2 宸查儴缃诧紱鏈壒浠ｇ爜寰?v0.191.3 |
-
+| A1 | 33 个文件（manifest `C:\Temp\move_quarantine_manifest.json`）：`file_index` 0 命中、`/standards` 树按文件名 0 命中 → **33/33 缺失**；已在 pending 置 `reason='file_missing'`（33 条，状态仍 pending，不伪装关闭）；清单 `C:\Temp\a1_missing.json`；`HJ 536-2009` 同列缺失 |
+| A2 | 10-31~11-14 的 89 行：系统类 **67 行** user1→0（`security_alert/delivery_failed/task_result/daily/scan_empty/announcement_*/auto_backup/anomaly_alert`），条件含 `id <= 4415`（本批前最大 id，排除新行）；用户类保留：archive 10 / scan 2 / test 4 / credential 4；备份 `pilotstd_manual_20261116_212910.bak`，manifest `C:\Temp\a40_residual_ids.json`、rollback `C:\Temp\a40_residual_rollback.sql`；核对 user0=2437、user1=24、user5=2；queue 未动 |
+| A3 | 62 批演练：`stop`（running=False）→ `replay-stage` 投放 5 文件 → `catchup` → `启动补扫开始 3 目录 / 5 文件`、1/3 a（2 文件）、2/3 b（1）、3/3 c（2）→ `start` 恢复 running=True；无实时抢跑 |
+| B1 | 无现有 API 可给他人挂渠道/策略（`/api/notification/policy` 仅当前用户；渠道是全局配置）⇒ **代码改动**：`/api/notification/test-event` 增加 `target_user_id`（仅 admin），复用 `channels_for(target)` 与既有渠道，不新建渠道/策略；非 admin 403 |
+| B2 | `replay-stage` 源/目标白名单已是 `/app/data/_quarantine`（持久卷）；A1 无需取回（文件已缺失），保留以备恢复 |
+| B3 | 本批代码：`docker/api/notification.py`（target_user_id）、`tests/test_notification_test_event.py`（+2 例）；`replay_stage.py` 路径 `/app/data` |
+| 部署 | v0.191.2 已部署；本批代码待 v0.191.3 |
 
 ### 60. AC-6 生产验证（读隔离）+ A1 /inbox 补查 + test-event 审计（2026-11-17）
 
@@ -763,15 +764,16 @@ M3 前置（补）：AC-6 集成 3 例、离线补扫（stop 后 catchup）1 例
 - 遗留 2：33 个文件缺失 → `03-open` **A-46**，触发：公告记录/下载链可重取；pending 保持 `file_missing`。
 - 遗留 3：v0.192.1 审计 patch 已推 + CI 绿，随下次部署，不单独发版。
 - 62 批：缩小版（10 目录 / 202 文件）见下节；825 全量不做。
-### 62. 62 鎵圭缉灏忕増锛?0 鐩綍 / 202 鏂囦欢锛?026-11-17锛?
-| 椤?| 缁撴灉 |
-|---|---|
-| 褰㈡€?| `/inbox/__replay_b62/d01..d10`锛屾瘡鐩綍 20 鏂囦欢锛沝01 鍙﹀惈 `nested/` 2 鏂囦欢锛屽叡 **202** |
-| 鍒嗘壒 | `鍚姩琛ユ壂寮€濮? 10 鐩綍 / 202 鏂囦欢`锛?0 鎵?serial锛歞01锛?2 鏂囦欢锛宯ested 鎶樺彔杩?d01锛夈€乨02..d10锛堝悇 20锛夛紱瀹屾垚 `10 鐩綍 / 202 鏂囦欢` |
-| 鎶樺彔 | 姝ｇ‘锛歞01 涓?d01/nested 鍙骇鐢?**1 鎵?*锛涙棤鏍圭洰褰曟壒娆★紙涓嶅湪 `/inbox` 鏍规姇鏀撅級 |
-| 褰掓。 | `moved=12`銆乣skipped_exists=160`锛堝壇鏈潵鑷?standards锛岀洰鏍囧凡瀛樺湪锛沗auto_clean_source` 娓呯悊鍓湰锛夈€乣conflict_pending=0`銆乣failed=0` |
-| 鏌ヨ | `scan=200`銆乣query_found=172`锛涘彟鏈?28 鏉℃棤缁撴灉杞叆 pending |
-| 澶辫触/涓嶉噸璇?| 鏃犵‖澶辫触锛?0 涓畫鐣欙紙28 pending + 2 鏈壂鍒帮級鐣欏師鍦帮紝catchup 涓€娆℃€х粨鏉熴€佹湭閲嶈瘯锛涙紨缁冨悗宸插皢 30 涓壇鏈Щ `/app/data/_quarantine/__replay_b62` 娓呯悊 |
-| 鎸囨爣 | `no_result=189`銆乣quota_exhausted=0`銆乣chain_exhausted=0`锛涗絾 28 鏉?pending 鐨?`match_status=''`銆乣chain_exhausted=0` 鈫?**P3-16 涓夋寚鏍囧垎娴佷笉瀹屾暣**锛氭棤缁撴灉杞?pending 鏃舵湭璁?`chain_exhausted`锛堟柊澧炵己鍙ｏ紝褰掓煡璇㈢嚎锛?|
-| 825 缁撹 | **涓嶅仛鍏ㄩ噺**锛氱缉灏忕増宸茶鐩栧鐩綍鍒嗘壒/鎶樺彔/鏍规壒娆?澶辫触鐣欏師鍦帮紱鍏ㄩ噺鍙細閲嶅閰嶉鑰楀敖涓庡悓绫?pending锛屼俊鎭閲忔瀬浣?|
+### 62. 62 批缩小版：10 目录 / 202 文件（2026-11-17）
 
+| 项 | 结果 |
+|---|---|
+| 形态 | `/inbox/__replay_b62/d01..d10`，每目录 20 文件；d01 另含 `nested/` 2 文件，共 **202** |
+| 分批 | `启动补扫开始: 10 目录 / 202 文件`；10 批 serial：d01（22 文件，nested 折叠进 d01）、d02..d10（各 20）；完成 `10 目录 / 202 文件` |
+| 折叠 | 正确：d01 与 d01/nested 只产生 **1 批**；无根目录批次（不在 `/inbox` 根投放） |
+| 归档 | `moved=12`、`skipped_exists=160`（副本来自 standards，目标已存在；`auto_clean_source` 清理副本）、`conflict_pending=0`、`failed=0` |
+| 查询 | `scan=200`、`query_found=172`；另有 28 条无结果转入 pending |
+| 差异说明 | d01 日志 22 文件但 auto `scan=20`：其中 2 个是 `d01/nested` 副本，父批次处理时由 `auto_clean_source` 清理，原始文件仍在 `/standards` —— **预期行为，非待查项** |
+| 失败/不重试 | 无硬失败；30 个残留（28 pending + 2 未扫到）留原地，catchup 一次性结束、未重试；演练后已将 30 个副本移 `/app/data/_quarantine/__replay_b62` 清理 |
+| 指标 | `no_result=189`、`quota_exhausted=0`、`chain_exhausted=0`；但 28 条 pending 的 `match_status=''`、`chain_exhausted=0` → **P3-16 三指标分流不完整**：无结果转 pending 时未记 `chain_exhausted`（A-47，查询线） |
+| 825 结论 | **不做全量**：缩小版已覆盖多目录分批/折叠/根批次/失败留原地；全量只会重复配额耗尽与同类 pending，信息增量极低 |
