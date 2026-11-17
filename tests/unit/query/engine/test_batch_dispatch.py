@@ -219,3 +219,23 @@ class TestBatchDispatchIntegration:
         ctx.report._report_batch_summary.assert_called_once()
         assert ctx.core.query_active is False
         assert ctx.core.overflow_item_count == 0
+
+
+def test_csres_result_replaces_ng_result():
+    import threading
+
+    from pilotstd.query.engine._batch_dispatcher import BatchDispatcher
+
+    d = object.__new__(BatchDispatcher)
+    found = QueryResult(standard_number="GB 50016-2014", standard_name="建筑防火", match_status="exact")
+    ng = QueryResult(standard_number="GB 50016-2014", match_status="chain_exhausted")
+    state = {
+        "csres_results": {0: found},
+        "results": {0: ng},
+        "_prog_lock": threading.Lock(),
+        "_prog_ok": [0],
+        "bump": lambda: None,
+    }
+    d._collect_csres_results(state)
+    assert state["results"][0] is found
+    assert state["_prog_ok"][0] == 1

@@ -371,10 +371,14 @@ class BatchDispatcher:
     def _collect_csres_results(self, state: dict) -> None:
         """结果收集：将 csres 后台查询结果合并到主结果集。"""
         for idx, result in state["csres_results"].items():
-            if idx not in state["results"]:
+            existing = state["results"].get(idx)
+            # csres 后台结果晚到：已存在 NG/pending 但 csres 命中时必须覆盖，否则
+            # 日志显示“评分=100”而 API stats.found=0（2026-11-17 GB 50016-2014 复现）
+            if existing is None or (not existing.is_found() and result.is_found()):
                 state["results"][idx] = result
                 with state["_prog_lock"]:
-                    state["_prog_ok"][0] += 1
+                    if existing is None or not existing.is_found():
+                        state["_prog_ok"][0] += 1
                 state["bump"]()
 
     @staticmethod

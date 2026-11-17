@@ -804,3 +804,14 @@
 | 61 重查可信度 | `daily_quota` 今日各站 0~3 次、无 `quota_exhausted` 指标；抽查日志：SHB 6-1999 `tried=njbz365`、NB 47007/47019 `tried=energy→energy`（单站链+一次同站重试）⇒ 0.58s/条由**单站链**解释，不是配额快速耗尽；但**不能证明多站链 P3-16 存量效果**，需在链路/配额充足时用多站代码重跑；GB 抽查出现 csres 日志“找到 评分=100”而 API stats found=0（结果合并/统计异常，另记） |
 | pending 对账 | 现 61 = 33 `file_missing`（32 chain +1 exact，11-13 创建，id 100~） + 28 空分类（11-17 由 62 批产生，id 600+）；原 35（34 chain +1 exact）中 **2 条**（GB/T 20671.4-2026、GB 3609.2-2025）已 `resolved`（file_moved_quarantine→目标在 file_index），34 = 32 file_missing + 2 resolved；28 不是 34 减少，而是**新产生** |
 | 代码 | 探针表校准 + `PROBE_PENDING`（11 站）；测试更新（probe_pending 计数） |
+
+
+### 65. 全局问题总表建立 + csres 合并修复 + 探针校准 + 数据处置（2026-11-17）
+
+- 新建 docs/debt/00-global-issues.md（五维唯一基线）。
+- csres 晚到结果：_collect_csres_results 现会在既有 NG 时用 found 结果覆盖，并补 _prog_ok；单测 	est_csres_result_replaces_ng_result；根因是“csres 后台结果晚到，idx 已存在即被跳过”，影响 API stats/auto query_found，不影响 moved。
+- 探针校准：10 站用 standard_info_cache exact 号；11 站 probe_pending；本地 found=3/no_result=7/error=0。
+- 28 条空分类 pending 回填 chain_exhausted + 
+eason=copy_quarantined（manifest/rollback C:\Temp\pending28_*）；61 对账见 #64。
+- 30 副本在 /app/data/_quarantine/__replay_b62（生产持久卷），对应 28 pending 已标 copy_quarantined。
+- 审计确认：2986acde（v0.192.1）是 5e43c66b（v0.194.1）祖先。
