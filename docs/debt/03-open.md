@@ -32,6 +32,8 @@
 | **A-42** | **API auto/archive 未传用户上下文**：两端点已有 @require_role("admin")，但调用 manager 时未传 NotificationContext(user_id=...) ⇒ 事件归 system（user 0），多用户下用户看不到自己触发的通知（原文"无 auth 依赖"已过时） | 未修 | 在调用点传 get_current_user_id() 的上下文；见多用户主线 P1 | 触发条件＝多用户主线 P1；**不阻塞主线** |
 | **A-43** | **SQLite 实测表数（45）无法机械核对**：`18-schema-migrations.md` 写的"SQLite 实测业务表 45 张"来自**实跑迁移链后的 `sqlite_master` 计数**；`load_facts()` 只解析迁移源码（得到 43）。G-052 全量审计把它列为"已登记但无法机械核对"，未扩第 7 类 | 未修（已单独立项，2026-11-14） | 修法二选一：① 新增"空库跑迁移后数表"的事实源（昂贵，需单独评估代价）；② 把该处数字改为"以实测为准"不写具体值 | 触发条件＝有人质疑 43/45 不一致、或动迁移链/表结构时 |
 | **A-44** | **monitor 实时路径：新目录不触发（旧目录正常）**：19:02/19:06 的 572 文件写入已存在目录 → 572 条事件全部触发；12:29 后新建的 TSG 目录（33 文件）→ 零触发。推断：recursive watch 只在启动时对既有目录建 watch，新子目录依赖目录创建事件补 watch，而 Windows bind mount 下该事件未送达。规则：新目录投放必须 restart 补扫；旧目录可实时 | 观察中（2026-11-15） | 修法：① 启动时/定时对子目录补 watch（watchdog 新目录事件 + 巡检）；② 改 `PollingObserver`（成本低，推荐评估）；③ 文档写明“新目录必须 restart”。 当前先按 ③ 执行 | 触发：实时性成为需求、或迁移 Linux 宿主时复验 |
+| **A-45** | **无 dry-run/站内通知渠道**：生产渠道仅 wechat/dingtalk/feishu/telegram，`test-event` 会真实外发；AC-6 触发链路无法在生产安全复验（本次读隔离用受控 DB 种子行） | 定触发 | 触发：新增渠道系统，或 AC-6 需复验触发链路 | 修法：新增站内/dry-run 渠道（属新渠道系统，需产品决策）；不阻塞现有验收 |
+| **A-46** | **33 个隔离文件丢失**（`file_missing`，含 `HJ 536-2009`）：误移到未挂载 `/data`，v0.191.1 重启丢失；清单 `C:\Temp\move_quarantine_manifest.json` / `a1_missing.json` | 定触发 | 触发：发现公告记录/下载链可重新获取对应标准 | 修法：重取后走归档并核销 pending；在此之前 pending 保持 `file_missing`，不伪装关闭 |
 
 > **A-27 子项（2026-11-08，实现完成后的部署/后续待办）**
 > - **A-27.1 真实渠道 API 验证（部署时）**：企微需 `corpid`/`corpsecret`/`agentid`；飞书需 `app_id`/`secret` + 测试群 `chat_id`；Telegram 需 bot token。代码已实现，单测覆盖 fake transport，**真实 API 未调用**。**阻塞部署验证**。
@@ -93,3 +95,4 @@
 | 原 §六「**T-38 行写"G-032 现报 8 处"及行号 539/540/577**」 | **更正为 10 处，且原行号已失效** | 实测 `python scripts/check_g_032_doc_health.py` 报 **10 处**；原所指引用已不存在（详见 [04-watch.md](04-watch.md) T-38 行） |
 | 原 §六「**`tests/` 受控测试行②"流程补强（未实施）"**」 | **更正为"已由 R16 P0 落地"** | `scripts/check_all.sh:427` 定义 `run_gate_selftests`，`:465`/`:472` 调用 |
 | 「**隐式依赖 `cryptography` 未显式声明**」（我于 2026-10-17 曾登记为 A-7） | **撤回该条目**（不成立，不是债） | 我上一轮**漏查**：只 grep 了 `pyproject.toml` 与 `docker/requirements-docker.txt`，而那条"逐文件检查"命令因 PowerShell 语法错误**静默失败**，我据此误判"四个依赖文件均无声明"。实测 `requirements.txt:6` = `cryptography>=48.0.1`（段注释"敏感数据加密"）⇒ **本就是显式依赖**。教训：命令失败时不得依据其输出下结论（R-004 实证优先） |
+| **A-47** | **无结果转 pending 时未记 chain_exhausted**：62 批缩小版 28 条 pending 的 match_status 为空、chain_exhausted=0，no_result 188+ 与最终 pending 原因脱节（P3-16 指标分流不完整） | 待修（查询线） | 修法：record_pending 前按链结果写 match_status=chain_exhausted 并 +1 指标；与 A-45/A-46 同批可做 | 触发：下次改查询分类/指标时 |

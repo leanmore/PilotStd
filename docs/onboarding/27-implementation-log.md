@@ -754,3 +754,24 @@ M3 前置（补）：AC-6 集成 3 例、离线补扫（stop 后 catchup）1 例
 | A1 补查 | 33 个文件名在 `/inbox` 递归匹配 **0 命中**，与 `file_index`/`/standards` 一致 → 33/33 `file_missing` 维持 |
 | B 审计 | `/api/notification/test-event` 的 `target_user_id` 分支写 `write_audit(action=NOTIFICATION_TEST_TARGET, detail={target_user_id, channel})`；审计失败仅告警不影响发送；测试 +1 例（共 7 例通过） |
 | 62 批 | 四条前置全绿：v0.191.2+ 已部署、`/app/data/_quarantine` 持久卷、每目录 ≤30、stop→catchup→start 演练通过；仍不投 |
+
+
+### 61. M3 关闭确认（精确口径）与遗留定触发（2026-11-17）
+
+- **AC-6 验收口径**：**读/已读/隔离/清理 PASS**（临时用户 23：仅见自己、已读后未读 0、admin 不可见、按 FK 清理后删除）；**触发链路归属由 P1 生产验证**（33 份 TSG 归档 → `batch_summary user_id=1`），不由本轮重复验证。集成测试 3 例 + 生产读隔离证据归档于本记录。
+- 遗留 1：无 dry-run/站内渠道 → `03-open` **A-45**，触发：新增渠道系统或 AC-6 复验触发链路。
+- 遗留 2：33 个文件缺失 → `03-open` **A-46**，触发：公告记录/下载链可重取；pending 保持 `file_missing`。
+- 遗留 3：v0.192.1 审计 patch 已推 + CI 绿，随下次部署，不单独发版。
+- 62 批：缩小版（10 目录 / 202 文件）见下节；825 全量不做。
+### 62. 62 鎵圭缉灏忕増锛?0 鐩綍 / 202 鏂囦欢锛?026-11-17锛?
+| 椤?| 缁撴灉 |
+|---|---|
+| 褰㈡€?| `/inbox/__replay_b62/d01..d10`锛屾瘡鐩綍 20 鏂囦欢锛沝01 鍙﹀惈 `nested/` 2 鏂囦欢锛屽叡 **202** |
+| 鍒嗘壒 | `鍚姩琛ユ壂寮€濮? 10 鐩綍 / 202 鏂囦欢`锛?0 鎵?serial锛歞01锛?2 鏂囦欢锛宯ested 鎶樺彔杩?d01锛夈€乨02..d10锛堝悇 20锛夛紱瀹屾垚 `10 鐩綍 / 202 鏂囦欢` |
+| 鎶樺彔 | 姝ｇ‘锛歞01 涓?d01/nested 鍙骇鐢?**1 鎵?*锛涙棤鏍圭洰褰曟壒娆★紙涓嶅湪 `/inbox` 鏍规姇鏀撅級 |
+| 褰掓。 | `moved=12`銆乣skipped_exists=160`锛堝壇鏈潵鑷?standards锛岀洰鏍囧凡瀛樺湪锛沗auto_clean_source` 娓呯悊鍓湰锛夈€乣conflict_pending=0`銆乣failed=0` |
+| 鏌ヨ | `scan=200`銆乣query_found=172`锛涘彟鏈?28 鏉℃棤缁撴灉杞叆 pending |
+| 澶辫触/涓嶉噸璇?| 鏃犵‖澶辫触锛?0 涓畫鐣欙紙28 pending + 2 鏈壂鍒帮級鐣欏師鍦帮紝catchup 涓€娆℃€х粨鏉熴€佹湭閲嶈瘯锛涙紨缁冨悗宸插皢 30 涓壇鏈Щ `/app/data/_quarantine/__replay_b62` 娓呯悊 |
+| 鎸囨爣 | `no_result=189`銆乣quota_exhausted=0`銆乣chain_exhausted=0`锛涗絾 28 鏉?pending 鐨?`match_status=''`銆乣chain_exhausted=0` 鈫?**P3-16 涓夋寚鏍囧垎娴佷笉瀹屾暣**锛氭棤缁撴灉杞?pending 鏃舵湭璁?`chain_exhausted`锛堟柊澧炵己鍙ｏ紝褰掓煡璇㈢嚎锛?|
+| 825 缁撹 | **涓嶅仛鍏ㄩ噺**锛氱缉灏忕増宸茶鐩栧鐩綍鍒嗘壒/鎶樺彔/鏍规壒娆?澶辫触鐣欏師鍦帮紱鍏ㄩ噺鍙細閲嶅閰嶉鑰楀敖涓庡悓绫?pending锛屼俊鎭閲忔瀬浣?|
+
