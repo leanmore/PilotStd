@@ -239,3 +239,7 @@ def test_csres_result_replaces_ng_result():
     d._collect_csres_results(state)
     assert state["results"][0] is found
     assert state["_prog_ok"][0] == 1
+    # overflow 后续把 same idx 写回 NG，收尾前再合并一次必须恢复 found
+    state["results"][0] = ng
+    d._collect_csres_results(state)
+    assert state["results"][0] is found

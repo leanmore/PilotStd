@@ -152,6 +152,9 @@ class BatchHandler:
             self._collect_csres_results(state)
 
             temp_cooldown_skips = self._overflow._handle_overflow(state, result_callback, preferred_site)
+            # csres 后台结果可能在 overflow 之后才落定；overflow 会对未命中项写 pending，
+            # 故收尾前必须再合并一次，否则“日志评分=100 而 stats.found=0”（2026-11-17 复现）
+            self._collect_csres_results(state)
             return self._finalize_batch(state, parsed_list, n, temp_cooldown_skips)  # type: ignore[no-any-return]
         finally:
             try:

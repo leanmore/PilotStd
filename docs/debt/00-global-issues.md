@@ -7,10 +7,10 @@
 
 | ID | 事项 | 状态 | 判据/触发 |
 |---|---|---|---|
-| G-01 | csres 晚到结果被丢弃（`_collect_csres_results` 不覆盖既有 NG） | 待做 | 已修 + 单测；判据：部署后重查 GB 50016-2014 `stats.found>=1` 且日志评分 100 |
-| G-02 | 61 条重查可信度（单站链） | 待做 | 2026-11-17 22:42 复测 SHB：生产路由 (空)（仓库静态链 4 站）⇒ 运行态能力/配额过滤，非代码回归；判据：部署 v0.195.0 后低峰重跑，日志 	ried= 出现 ≥2 站且 stats 与日志一致 |
+| G-01 | csres 晚到结果被丢弃（overflow 再次覆盖） | 待做（修复已提交，待部署 v0.195.1） | 判据：部署后 GB 50016-2014 stats.found>=1；已加 overflow 后二次合并 |
+| G-02 | 61 条重查可信度 | 已闭合 | 2026-11-17 23:04 低峰重跑（298s）：found=3、not_found=58；SHB 日志 	ried=gongbiaoku→hbba→ahbz→njbz365（4 站真查），NB 单站为能力模型配置 |
 | G-03 | 健康检查探针 11 站 `probe_pending` | 等触发 | 触发：对应站点出现 `exact` 缓存；判据：自动纳入并输出 found/no_result |
-| G-04 | 健康检查生产首轮样本 | 等触发 | 触发：v0.194.x 部署；判据：`POST /api/adapters/health/run` 返回 21 站分布 + 日志 |
+| G-04 | 健康检查生产首轮 | 已闭合 | 2026-11-17 23:04 POST /api/adapters/health/run：found=3/no_result=7/error=0/probe_pending=11；日志 dapter_health site=... 可见 |
 | G-05 | 30 个 62 批副本（/app/data/_quarantine/__replay_b62） | 已闭合 | 均为 standards 副本；保留隔离区（持久卷、不监控）；28 条对应 pending 已标 copy_quarantined，无悬空 |
 | G-06 | 28 条空分类 pending 回填 | 已闭合 | 已回填 `chain_exhausted` + `reason=copy_quarantined`；manifest/rollback 见 `C:\Temp\pending28_*` |
 | G-07 | `health_probe.json` 轮转/上限 | 已闭合 | 单文件每次覆盖写，不增长；无需轮转（2026-11-17 确认） |
@@ -49,8 +49,8 @@
 
 | ID | 事项 | 条件 |
 |---|---|---|
-| G-04 | 健康检查生产首轮 | 部署 v0.194.x（当前生产 0.192.0） |
-| G-01 | stats 修复验证 | 部署后重查 |
+| G-04 | 健康检查生产首轮 | 已闭合 | 2026-11-17 23:04 POST /api/adapters/health/run：found=3/no_result=7/error=0/probe_pending=11；日志 dapter_health site=... 可见 |
+| G-01 | csres 晚到结果被丢弃（overflow 再次覆盖） | 待做（修复已提交，待部署 v0.195.1） | 判据：部署后 GB 50016-2014 stats.found>=1；已加 overflow 后二次合并 |
 | AC-6 触发链路 | 真实触发验证 | 需第二真实 admin 或 dry-run 渠道 |
 
 ## 六、已闭合（累计）
@@ -59,3 +59,21 @@
 - 62 批缩小版（10 目录/202 文件）；825 不做；
 - 33 文件扫 API 可见根 0 命中（`/inbox`、`/standards`）；30 副本留隔离区；
 - user5 2 条通知、a35_user2（测试账号）已清理。
+
+
+## 七、从 03-open/04-watch 映射的未闭合项（2026-11-17 梳理）
+
+| ID | 事项 | 状态 | 判据/触发 |
+|---|---|---|---|
+| T-40 | V6 wechat 真发未取证 | 等触发 | 触发：需要取证真实企微发送 |
+| T-42 | 渠道限流未逐家实现 | 等触发 | 触发：取到官方限流码或限流实际发生 |
+| A-22 | Windows 15 个共享事件托盘验收 | 等触发 | 触发：Windows 实机有人使用 |
+| A-27 | 自定义菜单（企微/飞书/TG/钉钉） | 等触发 | 触发：菜单需求排期 |
+| A-43 | SQLite 表数机械核对 | 等触发 | 触发：表数被质疑或动迁移链 |
+| A-44 | monitor 实时新目录 | 等触发 | 触发：依赖实时或换 PollingObserver |
+| A-45 | dry-run/站内渠道 | 等触发 | 触发：新增渠道或 AC-6 复验触发 |
+| A-46 | 33 文件重取 | 等触发 | 触发：公告记录/下载链可重取 |
+| A-47 | 无结果转 pending 分类 | 已闭合 | v0.195.0 部署；单测锁定 |
+| A-40 | 旧数据归属 | 已闭合（部分记录） | 452+67 行订正；queue 例外；残余 0 |
+| D-2/D-3 | 通知阶段 2 启动 / 主题判定观察 | 等触发 | 触发：业务排期/设计改进 |
+| V-16/V-17/A-5/A-32/P2-08 | 见 04-watch | 等触发 | 各条触发条件 |

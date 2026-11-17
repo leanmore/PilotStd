@@ -815,3 +815,15 @@
 eason=copy_quarantined（manifest/rollback C:\Temp\pending28_*）；61 对账见 #64。
 - 30 副本在 /app/data/_quarantine/__replay_b62（生产持久卷），对应 28 pending 已标 copy_quarantined。
 - 审计确认：2986acde（v0.192.1）是 5e43c66b（v0.194.1）祖先。
+
+
+### 66. v0.195.0 部署后验证 + 项目待办梳理（2026-11-17）
+
+| 项 | 结果 |
+|---|---|
+| 部署 | 生产 **v0.195.0**（`/api/system/version` 确认） |
+| 健康检查首轮 | `POST /api/adapters/health/run`：found=3/no_result=7/error=0/probe_pending=11；日志 `adapter_health site=...` 可见；7 个 no_result 探针来自 exact 缓存，属适配器/网络退化 |
+| 61 重查 | 低峰重跑 298s：found=3/not_found=58；`SHB 6-1999` 日志 `tried=gongbiaoku→hbba→ahbz→njbz365`（4 站真查），`NB 47007` 单站 energy（能力模型配置）— **P3-16 多站链生效** |
+| csres stats | 首次修复后仍 `GB 50016-2014 stats.found=0`：overflow 在 collect 之后又把 found 覆盖为 pending；已加 **overflow 后二次 `_collect_csres_results`** + 测试，待 v0.195.1 部署验证 |
+| 项目梳理 | `03-open/04-watch` 未闭合项已映射进 `docs/debt/00-global-issues.md` 第七节；当前 **待做 3 / 等触发 14 / 明确不做 1 / 已闭合 12** |
+| 已闭合回归 | A-47/P2/AC-6/健康检查/批次分发 46 例相关测试通过；A-40 数据核对：user0=2524、user1=24、无 user5、用户仅 mystdpilot |
