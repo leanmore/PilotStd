@@ -209,3 +209,5 @@ BaseAdapter (ABC)
   搜索引擎型走 query_with_strategy（与主链同入口）；三态 found/no_result/error + 耗时，
   写结构化日志与 /app/data/health_probe.json。
 - POST /api/adapters/health/run（admin）手动触发；dapter_health 每小时调度。
+- 2026-11-17：探针按 standard_info_cache 的 exact 记录校准（10 站）；无 exact 缓存的 11 站标
+  probe_pending，不计入 found/no_result，避免误报。
