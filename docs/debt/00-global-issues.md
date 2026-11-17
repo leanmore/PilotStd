@@ -8,10 +8,10 @@
 | ID | 事项 | 状态 | 判据/触发 |
 |---|---|---|---|
 | G-01 | csres 晚到结果被丢弃（`_collect_csres_results` 不覆盖既有 NG） | 待做 | 已修 + 单测；判据：部署后重查 GB 50016-2014 `stats.found>=1` 且日志评分 100 |
-| G-02 | 61 条重查可信度（单站链） | 待做 | 判据：低峰用多站代码重跑，日志 `tried=` 出现 ≥2 站，且 `stats` 与日志一致 |
+| G-02 | 61 条重查可信度（单站链） | 待做 | 2026-11-17 22:42 复测 SHB：生产路由 (空)（仓库静态链 4 站）⇒ 运行态能力/配额过滤，非代码回归；判据：部署 v0.195.0 后低峰重跑，日志 	ried= 出现 ≥2 站且 stats 与日志一致 |
 | G-03 | 健康检查探针 11 站 `probe_pending` | 等触发 | 触发：对应站点出现 `exact` 缓存；判据：自动纳入并输出 found/no_result |
 | G-04 | 健康检查生产首轮样本 | 等触发 | 触发：v0.194.x 部署；判据：`POST /api/adapters/health/run` 返回 21 站分布 + 日志 |
-| G-05 | 30 个 62 批副本（`/app/data/_quarantine/__replay_b62`） | 待做 | 判据：确认均为 standards 副本后删除或留存；28 条 pending 已标 `copy_quarantined` |
+| G-05 | 30 个 62 批副本（/app/data/_quarantine/__replay_b62） | 已闭合 | 均为 standards 副本；保留隔离区（持久卷、不监控）；28 条对应 pending 已标 copy_quarantined，无悬空 |
 | G-06 | 28 条空分类 pending 回填 | 已闭合 | 已回填 `chain_exhausted` + `reason=copy_quarantined`；manifest/rollback 见 `C:\Temp\pending28_*` |
 | G-07 | `health_probe.json` 轮转/上限 | 已闭合 | 单文件每次覆盖写，不增长；无需轮转（2026-11-17 确认） |
 | G-08 | v0.192.1 审计 patch 是否含在 v0.194.1 | 已闭合 | `git merge-base --is-ancestor 2986acde 5e43c66b` 通过 |
