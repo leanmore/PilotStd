@@ -202,3 +202,10 @@ BaseAdapter (ABC)
 - `_mini_bucket._record_no_result` 与 `_overflow._try_overflow_site`：查询未找到（None/哨兵）
   计 `no_result`，与 `quota_exhausted`/`chain_exhausted` 并列；`build_standard_number`
   增加 `num_prefix` 供归档登记/核销（TSG Z8002-2022）。
+
+## 适配器健康检查（2026-11-17）
+
+- pilotstd/query/health_probe.py：21 站固定探针，站点级适配器走 query_standards，
+  搜索引擎型走 query_with_strategy（与主链同入口）；三态 found/no_result/error + 耗时，
+  写结构化日志与 /app/data/health_probe.json。
+- POST /api/adapters/health/run（admin）手动触发；dapter_health 每小时调度。

@@ -40,3 +40,14 @@ def test_health_probe_found_and_error(monkeypatch, tmp_path):
     assert by_site["bad"]["status"] == "error"
     assert result["summary"] == {"found": 1, "no_result": 0, "error": 1}
     assert (tmp_path / "health.json").exists()
+
+
+def test_probe_one_direct_install(monkeypatch):
+    monkeypatch.setattr(
+        "pilotstd.query.adapters.registry.ALL_ADAPTERS",
+        {"fake": _FakeAdapter, "bad": _ErrorAdapter},
+    )
+    ok = health_probe._probe_one("fake", "GB/T 1-2020", 2)
+    bad = health_probe._probe_one("bad", "GB/T 2-2020", 2)
+    assert ok["status"] == "found" and ok["elapsed_ms"] >= 0
+    assert bad["status"] == "error" and "boom" in bad["error"]

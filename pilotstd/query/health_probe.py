@@ -61,11 +61,30 @@ def _probe_one(site: str, probe: str, timeout: float) -> dict:
         if cls is None:
             raise RuntimeError("adapter not registered")
         adapter: Any = cls()
-        # 适配器实现各自提供 query_standards（基类未声明），用 getattr 规避类型告警
-        query = getattr(adapter, "query_standards")
         with ThreadPoolExecutor(max_workers=1) as pool:
-            future = pool.submit(query, probe)
-            results = future.result(timeout=timeout)
+            if hasattr(adapter, "query_standards"):
+                # 站点级适配器：直接按标准号查询
+                future = pool.submit(adapter.query_standards, probe)
+                results = future.result(timeout=timeout)
+            else:
+                # 搜索引擎型适配器：走渐进式搜索（与主查询链同入口）
+                from ..core.std_utils import parse_std_number
+
+                parsed = parse_std_number(probe)
+                if not parsed:
+                    raise ValueError(f"probe parse failed: {probe}")
+                future = pool.submit(
+                    adapter.query_with_strategy,
+                    parsed["code"],
+                    parsed["number"],
+                    parsed["year"],
+                    "",
+                    parsed.get("part"),
+                    parsed.get("num_prefix", "") or "",
+                    parsed.get("num_suffix", "") or "",
+                )
+                single = future.result(timeout=timeout)
+                results = [single] if single is not None else []
         status = _classify(results)
         error = ""
     except Exception as exc:  # noqa: BLE001 - 单站失败必须记 error，不阻断其余站点
