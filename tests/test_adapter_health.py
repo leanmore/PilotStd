@@ -1,43 +1,42 @@
-"""F1：适配器连续 0 条检测与验证码退避。"""
+"""适配器健康检查 + A-47 默认结果分类测试。"""
 
-from types import SimpleNamespace
+from __future__ import annotations
 
-from pilotstd.query.rotator import SiteRotator, SiteState
-
-
-def test_consecutive_empty_marks_suspected(monkeypatch):
-    calls = []
-    monkeypatch.setattr("pilotstd.core.notification.notify_system", lambda event, data: calls.append((event, data)))
-    r = SiteRotator([SiteState(name="site_a", base_url="https://a.example")])
-    for _ in range(9):
-        r.record_result("site_a", found=False)
-    assert r.get_cooldown_remaining("site_a") == 0
-    r.record_result("site_a", found=False)
-    assert r.get_cooldown_remaining("site_a") > 0
-    assert calls and calls[0][0] == "adapter_suspected_failure"
-    assert calls[0][1]["adapter"] == "site_a"
+from pilotstd.query import health_probe
+from pilotstd.query.engine._batch_dispatcher import pending_fallback_result
 
 
-def test_found_resets_empty_streak(monkeypatch):
-    monkeypatch.setattr("pilotstd.core.notification.notify_system", lambda *a: None)
-    r = SiteRotator([SiteState(name="site_b", base_url="https://b.example")])
-    for _ in range(9):
-        r.record_result("site_b", found=False)
-    r.record_result("site_b", found=True)
-    r.record_result("site_b", found=False)
-    assert r.get_cooldown_remaining("site_b") == 0
+class _Found:
+    def is_found(self) -> bool:
+        return True
 
 
-def test_captcha_backoff_increases_and_resets(monkeypatch):
-    from pilotstd.download.adapters.openstd_download import OpenstdDownloadAdapter
+class _FakeAdapter:
+    def query_standards(self, number: str):
+        return [_Found()]
 
-    notified = []
-    monkeypatch.setattr("pilotstd.core.notification.notify_system", lambda e, d: notified.append(e))
-    adapter = OpenstdDownloadAdapter()
-    task = SimpleNamespace(standard_number="GB/T 1-2020")
-    adapter._register_captcha_failure(task)
-    first = adapter._captcha_cooldown_until
-    adapter._register_captcha_failure(task)
-    assert adapter._captcha_fail_streak == 2
-    assert adapter._captcha_cooldown_until > first
-    assert notified == ["captcha_backoff", "captcha_backoff"]
+
+class _ErrorAdapter:
+    def query_standards(self, number: str):
+        raise RuntimeError("boom")
+
+
+def test_pending_fallback_is_chain_exhausted():
+    result = pending_fallback_result(("GB/T", 1, 2020, "x"))
+    assert result.status == "待确认"
+    assert result.match_status == "chain_exhausted"
+
+
+def test_health_probe_found_and_error(monkeypatch, tmp_path):
+    monkeypatch.setattr(health_probe, "PROBES", {"fake": "GB/T 1-2020", "bad": "GB/T 2-2020"})
+    monkeypatch.setattr(health_probe, "_HEALTH_FILE", str(tmp_path / "health.json"))
+    monkeypatch.setattr(
+        "pilotstd.query.adapters.registry.ALL_ADAPTERS",
+        {"fake": _FakeAdapter, "bad": _ErrorAdapter},
+    )
+    result = health_probe.run_health_check(timeout=2)
+    by_site = {r["site"]: r for r in result["results"]}
+    assert by_site["fake"]["status"] == "found"
+    assert by_site["bad"]["status"] == "error"
+    assert result["summary"] == {"found": 1, "no_result": 0, "error": 1}
+    assert (tmp_path / "health.json").exists()

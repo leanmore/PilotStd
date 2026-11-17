@@ -777,3 +777,17 @@
 | 失败/不重试 | 无硬失败；30 个残留（28 pending + 2 未扫到）留原地，catchup 一次性结束、未重试；演练后已将 30 个副本移 `/app/data/_quarantine/__replay_b62` 清理 |
 | 指标 | `no_result=189`、`quota_exhausted=0`、`chain_exhausted=0`；但 28 条 pending 的 `match_status=''`、`chain_exhausted=0` → **P3-16 三指标分流不完整**：无结果转 pending 时未记 `chain_exhausted`（A-47，查询线） |
 | 825 结论 | **不做全量**：缩小版已覆盖多目录分批/折叠/根批次/失败留原地；全量只会重复配额耗尽与同类 pending，信息增量极低 |
+
+
+### 63. A-47 分类修复、pending 重查、健康检查、数据卫生（2026-11-17）
+
+| 项 | 内容 |
+|---|---|
+| A-47 修复 | `_batch_dispatcher._finalize_batch` 对无结果条目的默认结果改为 `status=pending`、`match_status='chain_exhausted'`，并按缺失条数 +`chain_exhausted` 指标（`pending_fallback_result` 单测锁定） |
+| pending 重查 | 实际 pending 61 条（33 `file_missing` + 28 空分类），非 34：`POST /api/query` 全量重查 61 条（35.7s）→ found 1、not_found 60；结果分类 59 `chain_exhausted` + 1 `exact` + 1 空 → 存量基本仍 no_result（预期，配额/站点覆盖），修复后新批次分类可正确落 chain_exhausted |
+| P2-08 | 已有：`test_organize_stream_exception_counts_failed`（失败计数）、`test_archive_resolves_pending_by_canonical_key`（归档恢复核销）、`skipped_source/conflict_pending` 用例；结论：失败/恢复分支已覆盖，无需新增 |
+| 健康检查 | 新增 `pilotstd/query/health_probe.py`（21 站固定探针，found/no_result/error + 耗时，JSON 结构化日志 + `/app/data/health_probe.json`）；API `GET /api/adapters/health`、`POST /api/adapters/health/run`（admin）；调度 `adapter_health` 每小时（默认启用）；测试 2 例；全量 **6428 collected / 6407 passed / 401 subtests / 21 skipped / 0 failed**；`--ci` 全绿 |
+| user5 | 2 条 `notification_log`（11-03 收藏，channel wechat/telegram）已删，manifest `C:\Temp\user5_ids.json` |
+| a35_user2 | 3 收藏 + 3 favorite_downloads 清理后删除用户（id=3）；users 现仅 `mystdpilot`；清单 `C:\Temp\a35_user2_data.json`；执行前备份 |
+| 33 文件 | 扫全部挂载点（`/inbox`、`/standards`、`output`、`data`、`logs`）**0 命中** → 维持 `file_missing` |
+| A-44 用户文档 | 08 仅开发侧；已在 `docs/guides/用户帮助文档.md` 增加“文件监控的已知限制”（新目录→重启补扫、批量 ≤30/目录） |

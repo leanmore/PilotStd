@@ -214,7 +214,8 @@ class TestBatchDispatchIntegration:
         out = dispatcher._finalize_batch(state, parsed, n=2, temp_cooldown_skips=0)
 
         assert out[0].standard_name == "甲"
-        assert out[1].error_message == "查询未完成"
+        assert out[1].error_message == "查询未完成（无结果）"
+        assert out[1].match_status == "chain_exhausted"
         ctx.report._report_batch_summary.assert_called_once()
         assert ctx.core.query_active is False
         assert ctx.core.overflow_item_count == 0

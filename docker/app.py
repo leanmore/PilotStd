@@ -20,6 +20,7 @@ from pydantic import BaseModel
 from pilotstd.services.favorite_chain_processor import process_chain
 
 from .api.adapter import router as adapter_router
+from .api.adapter_health import router as adapter_health_router
 from .api.admin_db import router as admin_db_router
 from .api.announce import router as announce_router
 from .api.announce_detail import router as announce_detail_router
@@ -408,6 +409,7 @@ app.include_router(logs_router)
 
 # ── 文件与自动化 ──
 app.include_router(upload_router)
+app.include_router(adapter_health_router)
 app.include_router(replay_stage_router)
 app.include_router(tasks_router)
 app.include_router(auto_router)

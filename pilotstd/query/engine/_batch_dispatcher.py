@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple
 from pilotstd.core.config.paths import get_db_path
 from pilotstd.core.db import Database
 
+from ...core.status import Status
 from ..models import QueryResult
 from ..search_strategy import ADAPTER_TYPE_MAP
 from ._constants import PROGRESS_TAG
@@ -37,6 +38,16 @@ def _log_trace_id() -> str:
     import secrets
 
     return secrets.token_hex(4)
+
+
+def pending_fallback_result(parsed: tuple) -> QueryResult:
+    """无结果/未完成的默认结果：按 chain_exhausted 归 pending（A-47 分类修复）。"""
+    return QueryResult(
+        standard_number=f"{parsed[0]} {parsed[1]}-{parsed[2]}",
+        status=Status.PENDING.value,
+        match_status="chain_exhausted",
+        error_message="查询未完成（无结果）",
+    )
 
 
 @dataclass(frozen=True)
@@ -445,14 +456,9 @@ class BatchDispatcher:
 
         self._persist_batch_state(state, n, c)
 
-        return [
-            state["results"].get(
-                i,
-                QueryResult(
-                    standard_number=f"{parsed_list[i][0]} {parsed_list[i][1]}-{parsed_list[i][2]}",
-                    error_message="查询未完成",
-                    source_site="",
-                ),
-            )
-            for i in range(n)
-        ]
+        missing = [i for i in range(n) if i not in state["results"]]
+        m = state.get("metrics")
+        if m and missing:
+            for _ in missing:
+                m.increment("chain_exhausted")
+        return [state["results"].get(i, pending_fallback_result(parsed_list[i])) for i in range(n)]

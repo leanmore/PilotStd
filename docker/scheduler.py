@@ -460,6 +460,18 @@ def start_scheduler():
         v_kwargs["minute"],
     )
 
+    # 适配器健康检查：每小时对 21 个适配器发固定探针（结果写日志 + /app/data）
+    from apscheduler.triggers.interval import IntervalTrigger
+
+    from pilotstd.query.health_probe import run_health_check as _run_adapter_health
+
+    scheduler.add_job(
+        _run_adapter_health,
+        trigger=IntervalTrigger(hours=1),
+        id="adapter_health",
+        replace_existing=True,
+    )
+
     scheduler.start()
     _heartbeat_stop.clear()
     threading.Thread(target=_heartbeat_loop, daemon=True, name="scheduler-heartbeat").start()
