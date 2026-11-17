@@ -79,3 +79,18 @@ def test_non_admin_cannot_target_another_user(monkeypatch):
             user_id=1,
         )
     assert exc.value.status_code == 403
+
+
+def test_admin_target_writes_audit(monkeypatch):
+    calls = []
+    mgr = _mgr()
+    mgr.channels_for.return_value = {"telegram": object()}
+    monkeypatch.setattr(api, "get_current_role", lambda request: "admin")
+    monkeypatch.setattr(api, "write_audit", lambda **kw: calls.append(kw))
+    api.test_event(
+        _request_with_role(),
+        {"channel": "telegram", "level": "warning", "target_user_id": 9},
+        nmgr=mgr,
+        user_id=1,
+    )
+    assert calls and calls[0]["detail"]["target_user_id"] == 9

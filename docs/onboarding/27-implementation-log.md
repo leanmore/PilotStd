@@ -743,3 +743,14 @@ M3 前置（补）：AC-6 集成 3 例、离线补扫（stop 后 catchup）1 例
 | B3 | 鏈壒浠ｇ爜锛歚docker/api/notification.py`锛坱arget_user_id锛夈€乣tests/test_notification_test_event.py`锛?2 渚嬶級锛沗replay_stage.py` 璺緞 `/app/data` |
 | 閮ㄧ讲 | v0.191.2 宸查儴缃诧紱鏈壒浠ｇ爜寰?v0.191.3 |
 
+
+### 60. AC-6 生产验证（读隔离）+ A1 /inbox 补查 + test-event 审计（2026-11-17）
+
+| 项 | 内容 |
+|---|---|
+| 部署 | 生产 v0.192.0（`/api/system/version` 确认） |
+| AC-6 | 临时用户 23：DB 种一条 `notification_log(user_id=23, channel=web)` 站内通知 → 该用户 `logs=1`、`unread=1` → 标记已读后 `unread=0`；同一行未出现在 admin(user1) 的日志中；清理（log/queue/favorites→DELETE 用户）后用户列表仅 `mystdpilot`、`a35_user2`；结果 **PASS（读/已读/隔离/清理）** |
+| 触发段说明 | 生产渠道仅 wechat/dingtalk/feishu/telegram 且 wechat/telegram 启用，`test-event` 会**真实外发**；无 dry-run 渠道，故触发段用受控 DB 种子行代替（归属触发链已由 P1 生产验证）。`target_user_id` 代码已上线，但 `web` 不是合法渠道名 → 该端点无法用于站内通知播种 |
+| A1 补查 | 33 个文件名在 `/inbox` 递归匹配 **0 命中**，与 `file_index`/`/standards` 一致 → 33/33 `file_missing` 维持 |
+| B 审计 | `/api/notification/test-event` 的 `target_user_id` 分支写 `write_audit(action=NOTIFICATION_TEST_TARGET, detail={target_user_id, channel})`；审计失败仅告警不影响发送；测试 +1 例（共 7 例通过） |
+| 62 批 | 四条前置全绿：v0.191.2+ 已部署、`/app/data/_quarantine` 持久卷、每目录 ≤30、stop→catchup→start 演练通过；仍不投 |

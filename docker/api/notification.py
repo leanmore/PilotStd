@@ -19,6 +19,7 @@ from fastapi import Depends, HTTPException, Request
 from fastapi.routing import APIRouter
 from pydantic import BaseModel
 
+from pilotstd.core.audit import write_audit
 from pilotstd.core.notification import NotificationMessage
 from pilotstd.core.notification.channel_spec import CHANNEL_NAMES
 from pilotstd.i18n import t
@@ -84,6 +85,14 @@ def test_event(
         if request is None or get_current_role(request) != "admin":
             raise HTTPException(403, "admin only")
         effective = int(target)
+        try:
+            write_audit(
+                action="NOTIFICATION_TEST_TARGET",
+                resource="POST /api/notification/test-event",
+                detail={"target_user_id": effective, "channel": str(body.get("channel") or "")},
+            )
+        except Exception as exc:  # noqa: BLE001 - 审计失败不改变发送结果，但必须留痕
+            logger.warning("test-event target audit failed: %s", exc)
     # 系统关/用户关都拦截；响应区分是谁关的
     if not nmgr.enabled_for(effective):
         reason = "system" if not nmgr._system_enabled else "user"
