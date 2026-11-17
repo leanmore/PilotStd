@@ -211,3 +211,5 @@ BaseAdapter (ABC)
 - POST /api/adapters/health/run（admin）手动触发；dapter_health 每小时调度。
 - 2026-11-17：探针按 standard_info_cache 的 exact 记录校准（10 站）；无 exact 缓存的 11 站标
   probe_pending，不计入 found/no_result，避免误报。
+
+- 2026-11-17：_collect_csres_results 对“csres 后台结果晚到、idx 已有 NG 结果”改为 found 覆盖，并补 _prog_ok；修复 API stats.found 与日志评分不一致。
