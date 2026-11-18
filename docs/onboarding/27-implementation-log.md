@@ -907,3 +907,8 @@ eason=new_status），没有 previous_status，所以显示 TSG 71-2023 — 现�
 
 - 	ests/test_monitor_hot_reload.py 5 例通过：PUT 配置触发 stop→start；	ests/integration/test_monitor_catchup_e2e.py 7 例通过；watchdog 
 ecursive 覆盖子目录。A-44 闭合。
+
+
+### 78. V-16 TaskManager 失败分支闭合（2026-11-19）
+
+- 	ests/test_core_task_manager.py 覆盖 ailed 字段归一、终态词表（completed/cancelled/failed）、result_json 防御与两种 result 形状；TaskManager 仅只读门面，运行时失败落库不在该层。V-16 闭合。
