@@ -272,3 +272,6 @@ StandardManager (BaseFacade)
   对“同键 + 带前缀变体”双试（Z 前缀 pending 可核销）。
 - `AutoPipeline` 归档明细日志（moved/failed/skipped_exists/conflict_pending/skipped_source/
   dedup_skipped）见上节；本批未再改 manager 逻辑。
+## 可信 IP 配置掩码（2026-11-19）
+
+- update_config 对 cookiecloud_key/password 的 *** 掩码值跳过写入，避免 GET→PUT 覆盖真实凭据。

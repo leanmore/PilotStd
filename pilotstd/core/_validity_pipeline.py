@@ -87,12 +87,19 @@ def _enqueue_gb_replacement(db: Any, new_standard: str, new_name: str) -> None:
         logger.warning("替代标准入下载队列失败: %s, error=%s", new_standard, e)  # i18n-allow: 内部日志
 
 
-def _record_change(db: Any, std_no: str, new_status: str, result: dict, apply_side_effects: bool = False) -> dict:
+def _record_change(
+    db: Any,
+    std_no: str,
+    new_status: str,
+    result: dict,
+    apply_side_effects: bool = False,
+    old_status: str | None = None,
+) -> dict:
     """记录一次状态变更；仅在证据充分（L2 且开关开启）时才把替代标准放入下载队列。"""
     detail = {
         "standard": std_no,
         "name": _std_name(db, std_no),
-        "reason": new_status,
+        "reason": f"{old_status or '未知'} → {new_status}",
         "new_standard": result.get("new_standard", ""),
         "new_standard_name": result.get("new_standard_name", ""),
     }
@@ -198,7 +205,7 @@ def _apply_validity_result(
     if not old_status or old_status == new_status:
         return False
     change_detail.append(
-        _record_change(db, std_no, new_status, result, checker.should_apply_side_effects(evidence))
+        _record_change(db, std_no, new_status, result, checker.should_apply_side_effects(evidence), old_status)
     )
     if len(change_detail) % 10 == 0 and notification_mgr:
         try:

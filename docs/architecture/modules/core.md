@@ -670,3 +670,6 @@ pilotstd/core/
   `enqueue` 保留 `user_id=0`（system 不再被写成 1）。
 - `aggregate_keys.group_key` 增加 `u{origin}` 用户维度（批次键 `1·uN·batch·notify`、常规键
   `2·notify[·entity]·uN`、daily 仍 `2·daily·uN`）；`events_in_group`/`group_entity` 已兼容。
+## 时效性变更详情补旧状态（2026-11-19）
+
+- _record_change 接收 old_status，reason 输出“旧 → 新”，避免只显示“— 现行”。

@@ -881,3 +881,11 @@ eason=copy_quarantined（manifest/rollback C:\Temp\pending28_*）；61 对账见
 - 生产通知 id=4505/4504（2026-11-18 01:00）：距上次成功抓取已约 375 小时，本次已开启回看补抓 → _missed_gap_hours() + lookback override 真实生效；
 - etch_checkpoint 有 3 个来源 last_fetched_at；	ests/test_announce_lookback.py 2 例 + 	est_announcement_checkpoint_regression.py 覆盖补抓/检查点不越失败项；
 - 结论：**U-4 功能正常，无需补实现**；剩余仅为“抓取结果为 0”的数据源问题（公告源无新数据/抓取异常），归 U-4 数据侧观察。
+
+
+### 74. CookieCloud 保存链路根因 + 有效性“—”根因（2026-11-19）
+
+- **U-3 根因**：GET /api/wechat-ip/config 对 key/password 返回 ***；前端 saveConfig 把 config.value 原样 PUT → 后端 update_config 无条件写入 → 真实 key/password 被覆盖成字面量 ***。修：后端对 cookiecloud_key/password == *** 跳过写入；测试 	est_masked_secret_not_overwritten。
+- **U-1 根因**：变更详情只写 new_status（
+eason=new_status），没有 previous_status，所以显示 TSG 71-2023 — 现行，读起来像“— → 现行”。修：_record_change 接收 old_status，reason 改为 旧 → 新（缺旧值显示“未知”）。
+- 两项均待部署验证；降级替代（GB 30871-2022→2014）仍待查数据源/解析。

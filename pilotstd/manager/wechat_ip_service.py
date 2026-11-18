@@ -118,7 +118,12 @@ class WechatIPService:
             "use_selenium",
         ):
             if key in body:
-                cfg.set(f"wechat_ip.{key}", body[key])
+                value = body[key]
+                # GET 对密钥字段做 "***" 掩码；前端原样回传时必须保留旧值，
+                # 否则每次保存都会把真实 key/password 覆盖成字面量 ***（2026-11-19 根因）
+                if key in ("cookiecloud_key", "cookiecloud_password") and value == "***":
+                    continue
+                cfg.set(f"wechat_ip.{key}", value)
 
         if "ip_sources" in body:
             cfg.set("wechat_ip.ip_sources", body["ip_sources"])

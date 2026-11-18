@@ -65,3 +65,21 @@ def test_update_config_encrypts_with_env_secret(monkeypatch):
     assert result["ok"] is True
     assert mgr.cfg.get("wechat_ip.encrypted_cookie", "")
     assert mgr.cfg.get("wechat_ip.cookie_source") == "manual"
+
+
+def test_masked_secret_not_overwritten(monkeypatch):
+    """GET 返回 *** 掩码；前端原样 PUT 时不得覆盖真实 key/password。"""
+    monkeypatch.setenv("WECHAT_IP_ENCRYPT_SECRET", "unit-test-secret")
+    mgr = _Mgr({
+        "wechat_ip.cookiecloud_key": "real-key",
+        "wechat_ip.cookiecloud_password": "real-pass",
+    })
+    result = WechatIPService(mgr).update_config({
+        "cookiecloud_key": "***",
+        "cookiecloud_password": "***",
+        "cookie_source": "cookiecloud",
+    })
+    assert result["ok"] is True
+    assert mgr.cfg.get("wechat_ip.cookiecloud_key") == "real-key"
+    assert mgr.cfg.get("wechat_ip.cookiecloud_password") == "real-pass"
+    assert mgr.cfg.get("wechat_ip.cookie_source") == "cookiecloud"
