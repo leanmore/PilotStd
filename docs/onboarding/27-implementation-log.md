@@ -874,3 +874,10 @@ eason=copy_quarantined（manifest/rollback C:\Temp\pending28_*）；61 对账见
 
 - health_probe.discover_probes()：运行时从 standard_info_cache 的 exact 记录为 probe_pending 站点补探针；仍无缓存才保留 pending。
 - 测试 	est_discover_probes_fills_pending；待部署后生效。
+
+
+### 73. U-4 公告抓取状态/补抓：已具备并有生产证据（2026-11-19）
+
+- 生产通知 id=4505/4504（2026-11-18 01:00）：距上次成功抓取已约 375 小时，本次已开启回看补抓 → _missed_gap_hours() + lookback override 真实生效；
+- etch_checkpoint 有 3 个来源 last_fetched_at；	ests/test_announce_lookback.py 2 例 + 	est_announcement_checkpoint_regression.py 覆盖补抓/检查点不越失败项；
+- 结论：**U-4 功能正常，无需补实现**；剩余仅为“抓取结果为 0”的数据源问题（公告源无新数据/抓取异常），归 U-4 数据侧观察。
