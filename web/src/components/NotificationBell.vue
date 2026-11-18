@@ -118,7 +118,7 @@ const goToLogs = () => {
             v-for="msg in recentMessages"
             :key="msg.id || msg.sent_at"
             class="notification-item"
-            :class="{ unread: !msg.is_read, read: msg.is_read }"
+            :class="{ unread: !msg.is_read, read: msg.is_read, warning: msg.level === 'warning', error: msg.level === 'error' }"
             @click="handleItemClick(msg)"
           >
             <div v-if="!msg.is_read" class="item-dot"></div>
@@ -202,6 +202,8 @@ const goToLogs = () => {
   background: var(--surface-hover, #f0f7ff);
 }
 
+.notification-item.warning .item-dot { background: #f59e0b; }
+.notification-item.error .item-dot { background: #ef4444; }
 .notification-item.unread {
   background: var(--primary-50, #eff6ff);
 }

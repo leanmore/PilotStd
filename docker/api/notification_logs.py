@@ -115,6 +115,15 @@ def task_context_view(raw: str, cfg) -> dict:
     keys = cfg.get("notification.logs.task_context_whitelist", []) or []
     return {k: data[k] for k in keys if k in data}
 
+def _business_level(event_type: str) -> str:
+    """业务级别：渠道投递成功不代表任务成功。"""
+    if event_type == "security_alert":
+        return "warning"
+    if event_type == "task_failure":
+        return "error"
+    return "info"
+
+
 @router.get("/api/notification/logs", response_model=NotificationLogPageResponse)
 def get_logs(
     request: Request,
@@ -168,6 +177,8 @@ def get_logs(
                 "body": r["body"],
                 "standard_number": r["standard_number"],
                 "status": r["status"],
+                # 投递状态与业务级别分开：安全告警/任务失败即使渠道投递成功也标 warning/error
+                "level": _business_level(r["event_type"]),
                 "error_msg": r["error_msg"],
                 "sent_at": r["sent_at"],
                 "is_read": r.get("is_read", 0),

@@ -40,6 +40,7 @@ interface NotificationLogItem {
   title: string | null
   body: string | null
   status?: string
+  level?: string
   sent_at: string
   is_read: number | boolean
 }
@@ -66,7 +67,7 @@ function normalize(item: NotificationLogItem): NotificationMessage {
     event_type: item.event_type,
     title: item.title ?? '',
     body: item.body ?? '',
-    level: 'info',
+    level: (item.level as 'info' | 'warning' | 'error') || 'info',
     sent_at: item.sent_at,
     is_read: Boolean(item.is_read),
   }
