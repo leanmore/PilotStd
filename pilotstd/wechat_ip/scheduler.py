@@ -51,7 +51,12 @@ def run_check(config: Any, notify_cb: Optional[Callable] = None) -> dict:
     cookie = _get_cookie(config)
     if not cookie:
         result["error"] = "无法获取 Cookie"
-        _notify(notify_cb, "IP 更新失败", "无法获取企业微信 Cookie", status="failed")
+        # 同一 IP 的同一失败只通知一次，避免每小时重复轰炸（修复后仍可继续重试）
+        fail_key = f"cookie|{ip}"
+        if config.get("wechat_ip.last_fail_key", "") != fail_key:
+            _notify(notify_cb, "IP 更新失败", "无法获取企业微信 Cookie", status="failed")
+            config.set("wechat_ip.last_fail_key", fail_key)
+            config.save()
         return result
 
     # 4. 获取应用列表
@@ -75,6 +80,7 @@ def run_check(config: Any, notify_cb: Optional[Callable] = None) -> dict:
 
         if ok:
             config.set("wechat_ip.last_ip", ip)
+            config.set("wechat_ip.last_fail_key", "")
             config.save()
             _notify(notify_cb, "可信 IP 已更新", f"公网 IP 已变更为 {ip}", status="ok")
         else:
