@@ -36,7 +36,8 @@
 |---|---|---|
 | A-44 | monitor 实时：新目录半残，必须 restart | 已闭合 | 2026-11-19 	ests/test_monitor_hot_reload.py 5 例（PUT stop→start）+ 	ests/integration/test_monitor_catchup_e2e.py 7 例通过；watchdog recursive 覆盖子目录 |
 | A-45 | dry-run 渠道 | 新增渠道或 AC-6 复验触发 |
-| V-16 | TaskManager 失败分支覆盖 | 已闭合 | 	ests/test_core_task_manager.py：ailed 归一（3）、终态词表 completed/cancelled/failed、result_json 防御、两种 result 形状均覆盖；TaskManager 为只读门面，执行失败落库在任务运行时 |
+| V-16 | TaskManager 失败分支覆盖 | 已闭合 | 	ests/test_core_task_manager.py：
+ailed 归一（3）、终态词表 completed/cancelled/failed、result_json 防御、两种 result 形状均覆盖；TaskManager 为只读门面，执行失败落库在任务运行时 |
 | P2-08 | diff coverage 转阻断 | 等触发（数据不足，继续收集） | 全仓无 diff-cover 工具/历史数据，仅 PR 模板说明“只报告”；待积累 1~2 个月数据再定阈值 |
 
 ## 四、明确不做
@@ -66,10 +67,11 @@
 | ID | 事项 | 状态 | 判据/触发 |
 |---|---|---|---|
 | T-40 | V6 wechat 真发未取证 | 等触发 | 触发：需要取证真实企微发送 |
-| T-42 | 渠道限流未逐家实现 | 等触发 | 触发：取到官方限流码或限流实际发生 |
+| T-42 | 渠道限流未逐家实现 | 已闭合 | channels/base.py 已实现：码优先（wechat 45009、feishu 99991400）、429/5xx 重试、Retry-After、关键词兜底；	ests/test_notification_rate_limit.py 3 例通过 |
 | A-22 | Windows 15 个共享事件托盘验收 | 等触发 | 触发：Windows 实机有人使用 |
 | A-27 | 自定义菜单（企微/飞书/TG/钉钉） | 等触发 | 触发：菜单需求排期 |
 | A-43 | SQLite 表数机械核对 | 已闭合 | 2026-11-19 生产表数与迁移链一致；check_schema_consistency.py 汇总 0 处不一致，文档未声明固定表数 |
 | A-40 | 旧数据归属 | 已闭合（部分记录） | 452+67 行订正；queue 例外；残余 0 |
 | D-2/D-3 | 通知阶段 2 启动 / 主题判定观察 | 等触发 | 触发：业务排期/设计改进 |
-| V-16 | TaskManager 失败分支覆盖 | 已闭合 | 	ests/test_core_task_manager.py：ailed 归一（3）、终态词表 completed/cancelled/failed、result_json 防御、两种 result 形状均覆盖；TaskManager 为只读门面，执行失败落库在任务运行时 |
+| V-16 | TaskManager 失败分支覆盖 | 已闭合 | 	ests/test_core_task_manager.py：
+ailed 归一（3）、终态词表 completed/cancelled/failed、result_json 防御、两种 result 形状均覆盖；TaskManager 为只读门面，执行失败落库在任务运行时 |

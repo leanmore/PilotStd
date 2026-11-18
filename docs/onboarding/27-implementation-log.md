@@ -912,3 +912,8 @@ ecursive 覆盖子目录。A-44 闭合。
 ### 78. V-16 TaskManager 失败分支闭合（2026-11-19）
 
 - 	ests/test_core_task_manager.py 覆盖 ailed 字段归一、终态词表（completed/cancelled/failed）、result_json 防御与两种 result 形状；TaskManager 仅只读门面，运行时失败落库不在该层。V-16 闭合。
+
+
+### 79. T-42 渠道限流闭合（2026-11-19）
+
+- channels/base.py 已码优先（wechat 45009、feishu 99991400；dingtalk/telegram 关键词+429）、Retry-After 上限、5xx 重试；	ests/test_notification_rate_limit.py 3 例通过。T-42 闭合。
