@@ -868,3 +868,9 @@ eason=copy_quarantined（manifest/rollback C:\Temp\pending28_*）；61 对账见
 - 修复：`NotificationBell` 发 `popover-show/hide`；`AppHeader` 用 `isHovered || notificationOpen` 保持顶栏显示；`alignOverlay` 保留。
 - 真实 UI 验证（dev 构建 + 生产 API，临时用户）：2 条渠道行 → 1 条展示；点击前后 `delta_left=8px`，弹层右缘距铃铛右缘 3.5px（无左跳），截图 `C:\Temp\bell_verified.png`。
 - 结论：**dev 真实操作通过**；生产 v0.195.4 待部署复验（按 R-1 未计“已闭合”）。
+
+
+### 72. G-03 健康检查探针自动发现（2026-11-19）
+
+- health_probe.discover_probes()：运行时从 standard_info_cache 的 exact 记录为 probe_pending 站点补探针；仍无缓存才保留 pending。
+- 测试 	est_discover_probes_fills_pending；待部署后生效。

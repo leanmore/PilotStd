@@ -30,6 +30,7 @@ def test_pending_fallback_is_chain_exhausted():
 def test_health_probe_found_and_error(monkeypatch, tmp_path):
     monkeypatch.setattr(health_probe, "PROBES", {"fake": "GB/T 1-2020", "bad": "GB/T 2-2020"})
     monkeypatch.setattr(health_probe, "PROBE_PENDING", {})
+    monkeypatch.setattr(health_probe, "discover_probes", lambda: {})
     monkeypatch.setattr(health_probe, "_HEALTH_FILE", str(tmp_path / "health.json"))
     monkeypatch.setattr(
         "pilotstd.query.adapters.registry.ALL_ADAPTERS",
@@ -44,6 +45,7 @@ def test_health_probe_found_and_error(monkeypatch, tmp_path):
 
 
 def test_probe_one_direct_install(monkeypatch):
+    monkeypatch.setattr(health_probe, "discover_probes", lambda: {})
     monkeypatch.setattr(
         "pilotstd.query.adapters.registry.ALL_ADAPTERS",
         {"fake": _FakeAdapter, "bad": _ErrorAdapter},
@@ -52,3 +54,17 @@ def test_probe_one_direct_install(monkeypatch):
     bad = health_probe._probe_one("bad", "GB/T 2-2020", 2)
     assert ok["status"] == "found" and ok["elapsed_ms"] >= 0
     assert bad["status"] == "error" and "boom" in bad["error"]
+
+
+def test_discover_probes_fills_pending(monkeypatch):
+    monkeypatch.setattr(health_probe, "PROBES", {})
+    monkeypatch.setattr(health_probe, "PROBE_PENDING", {"fake": "no cache"})
+    monkeypatch.setattr(health_probe, "discover_probes", lambda: {"fake": "GB/T 1-2020"})
+    class A:
+        def query_standards(self, number):
+            return []
+    monkeypatch.setattr("pilotstd.query.adapters.registry.ALL_ADAPTERS", {"fake": A})
+    monkeypatch.setattr(health_probe, "_HEALTH_FILE", "/tmp/x.json")
+    res = health_probe.run_health_check(timeout=2)
+    row = {r["site"]: r for r in res["results"]}
+    assert row["fake"]["status"] == "no_result"

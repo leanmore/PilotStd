@@ -58,6 +58,29 @@ def _classify(results) -> str:
 
 
 # 单站探针：独立线程 + 超时，任何异常都落 error，不阻断其余站点
+def discover_probes() -> dict[str, str]:
+    """从 standard_info_cache 的 exact 记录为 probe_pending 站点自动发现探针。"""
+    try:
+        from pilotstd.core.config.paths import get_db_path
+        from pilotstd.core.db import Database
+
+        db = Database(get_db_path())
+        rows = db.fetchall(
+            "SELECT source_site, standard_number FROM standard_info_cache "
+            "WHERE result_json LIKE '%\"match_status\": \"exact\"%' "
+            "ORDER BY id DESC"
+        )
+        found: dict[str, str] = {}
+        for r in rows:
+            site = str(r["source_site"] or "")
+            if site in PROBE_PENDING and site not in found and r["standard_number"]:
+                found[site] = str(r["standard_number"])
+        return found
+    except Exception as exc:  # noqa: BLE001 - 探针发现失败不影响主流程
+        logger.warning("adapter_health probe discovery failed: %s", exc)
+        return {}
+
+
 def _probe_one(site: str, probe: str, timeout: float) -> dict:
     started = time.time()
     try:
@@ -113,8 +136,10 @@ def run_health_check(timeout: float = 20.0) -> dict:
     """并发跑全部适配器探针，返回并持久化最后一次结果。"""
     started_at = datetime.now(timezone.utc).isoformat()
     rows: list[dict] = []
+    probes = dict(PROBES)
+    probes.update(discover_probes())
     with ThreadPoolExecutor(max_workers=6) as pool:
-        futures = {pool.submit(_probe_one, site, probe, timeout): site for site, probe in PROBES.items()}
+        futures = {pool.submit(_probe_one, site, probe, timeout): site for site, probe in probes.items()}
         for future in as_completed(futures):
             try:
                 rows.append(future.result())
@@ -130,6 +155,8 @@ def run_health_check(timeout: float = 20.0) -> dict:
                     }
                 )
     for site, reason in PROBE_PENDING.items():
+        if site in probes:
+            continue
         rows.append(
             {"site": site, "probe": "", "status": "probe_pending", "elapsed_ms": 0, "error": reason}
         )
