@@ -19,6 +19,11 @@ logger = logging.getLogger(__name__)
 # 后台查询处理器，独立线程执行适配器查询，替代原
 
 
+def csres_state_text(result) -> str:
+    """csres 结果状态文案：只有 is_found() 才算“找到”（日志不再把 not-found 写成找到）。"""
+    return "找到" if result is not None and result.is_found() else "未找到"  # i18n-allow: 内部日志
+
+
 class CsresHandler:
     """CSRES 后台查询处理器 — 独立线程执行 CSRES 适配器查询。
 
@@ -114,12 +119,13 @@ class CsresHandler:
                     csres_results[idx] = result
                     csres_failures[0] = 0
                     logger.info(
-                        "[CSRES] idx=%d code=%s num=%s %d-%d 状态=找到 评分=100",
+                        "[CSRES] idx=%d code=%s num=%s %d-%d 状态=%s",
                         idx,
                         item[0],
                         item[0],
                         item[1],
                         item[2],
+                        csres_state_text(result),
                     )
                 else:
                     csres_failures[0] += 1

@@ -827,3 +827,12 @@ eason=copy_quarantined（manifest/rollback C:\Temp\pending28_*）；61 对账见
 | csres stats | 首次修复后仍 `GB 50016-2014 stats.found=0`：overflow 在 collect 之后又把 found 覆盖为 pending；已加 **overflow 后二次 `_collect_csres_results`** + 测试，待 v0.195.1 部署验证 |
 | 项目梳理 | `03-open/04-watch` 未闭合项已映射进 `docs/debt/00-global-issues.md` 第七节；当前 **待做 3 / 等触发 14 / 明确不做 1 / 已闭合 12** |
 | 已闭合回归 | A-47/P2/AC-6/健康检查/批次分发 46 例相关测试通过；A-40 数据核对：user0=2524、user1=24、无 user5、用户仅 mystdpilot |
+
+
+### 67. v0.195.1 验证：csres 统计真相 + 日志修正（2026-11-18）
+
+- v0.195.1 部署；GB 50016-2014 重查 stats.found=0，结果行 error_message=未找到匹配结果 ⇒ **stats 正确**，此前“找到 评分=100”是 csres **日志文案错误**（if result: 即打印“找到”）。
+- 已修：新增 csres_state_text(result)，仅 is_found() 打印“找到”，否则“未找到”；单测 	est_csres_state.py。
+- 61 重查（v0.195.0）：298s、found=3/58；SHB 	ried=gongbiaoku→hbba→ahbz→njbz365 四站真查；NB 单站为能力模型配置。
+- 健康检查生产首轮：found=3/no_result=7/error=0/probe_pending=11（后续整点 hour 任务已跑，found=5/no_result=5）。
+- 总表：G-02/G-04 闭合；G-01 修订为“日志文案”待 v0.195.2。

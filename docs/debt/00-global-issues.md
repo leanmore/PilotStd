@@ -7,7 +7,7 @@
 
 | ID | 事项 | 状态 | 判据/触发 |
 |---|---|---|---|
-| G-01 | csres 晚到结果被丢弃（overflow 再次覆盖） | 待做（修复已提交，待部署 v0.195.1） | 判据：部署后 GB 50016-2014 stats.found>=1；已加 overflow 后二次合并 |
+| G-01 | csres 日志把 not-found 写成“找到 评分=100”（stats 本身正确） | 已修（待部署 v0.195.2） | 根因：if result: 即打“找到”；已改 csres_state_text() 按 is_found()；判据：部署后 GB 50016-2014 日志为“未找到”且 stats.found=0 |
 | G-02 | 61 条重查可信度 | 已闭合 | 2026-11-17 23:04 低峰重跑（298s）：found=3、not_found=58；SHB 日志 	ried=gongbiaoku→hbba→ahbz→njbz365（4 站真查），NB 单站为能力模型配置 |
 | G-03 | 健康检查探针 11 站 `probe_pending` | 等触发 | 触发：对应站点出现 `exact` 缓存；判据：自动纳入并输出 found/no_result |
 | G-04 | 健康检查生产首轮 | 已闭合 | 2026-11-17 23:04 POST /api/adapters/health/run：found=3/no_result=7/error=0/probe_pending=11；日志 dapter_health site=... 可见 |
@@ -50,7 +50,7 @@
 | ID | 事项 | 条件 |
 |---|---|---|
 | G-04 | 健康检查生产首轮 | 已闭合 | 2026-11-17 23:04 POST /api/adapters/health/run：found=3/no_result=7/error=0/probe_pending=11；日志 dapter_health site=... 可见 |
-| G-01 | csres 晚到结果被丢弃（overflow 再次覆盖） | 待做（修复已提交，待部署 v0.195.1） | 判据：部署后 GB 50016-2014 stats.found>=1；已加 overflow 后二次合并 |
+| G-01 | csres 日志把 not-found 写成“找到 评分=100”（stats 本身正确） | 已修（待部署 v0.195.2） | 根因：if result: 即打“找到”；已改 csres_state_text() 按 is_found()；判据：部署后 GB 50016-2014 日志为“未找到”且 stats.found=0 |
 | AC-6 触发链路 | 真实触发验证 | 需第二真实 admin 或 dry-run 渠道 |
 
 ## 六、已闭合（累计）
