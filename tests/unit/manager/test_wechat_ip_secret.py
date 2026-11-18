@@ -83,3 +83,11 @@ def test_masked_secret_not_overwritten(monkeypatch):
     assert mgr.cfg.get("wechat_ip.cookiecloud_key") == "real-key"
     assert mgr.cfg.get("wechat_ip.cookiecloud_password") == "real-pass"
     assert mgr.cfg.get("wechat_ip.cookie_source") == "cookiecloud"
+
+
+def test_cookiecloud_status_not_misreported_as_missing_secret():
+    mgr = _Mgr({"wechat_ip.cookie_source": "cookiecloud", "wechat_ip.cookiecloud_key": "k"})
+    assert WechatIPService(mgr).get_config()["cookie_status"] == "已配置 (CookieCloud)"
+
+    mgr2 = _Mgr({"wechat_ip.cookie_source": "cookiecloud"})
+    assert WechatIPService(mgr2).get_config()["cookie_status"] == "未配置 CookieCloud Key"

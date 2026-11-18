@@ -69,6 +69,13 @@ class WechatIPService:
         except Exception:
             cookie_status = "解密失败"
 
+        if cfg.get("wechat_ip.cookie_source", "manual") == "cookiecloud":
+            # CookieCloud 不需要本地加密密钥即可拉取；把"未配置密钥"误报成 Cookie 未配置会误导排障
+            cookie_status = (
+                "已配置 (CookieCloud)"  # i18n-allow: 固定状态值
+                if cfg.get("wechat_ip.cookiecloud_key")
+                else "未配置 CookieCloud Key"  # i18n-allow: 固定状态值
+            )  # i18n-allow: 与既有固定中文状态值同口径
         return {
             "enabled": cfg.get("wechat_ip.enabled", False),
             "interval_hours": cfg.get("wechat_ip.interval_hours", 6),

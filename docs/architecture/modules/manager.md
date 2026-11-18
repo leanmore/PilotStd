@@ -274,4 +274,4 @@ StandardManager (BaseFacade)
   dedup_skipped）见上节；本批未再改 manager 逻辑。
 ## 可信 IP 配置掩码（2026-11-19）
 
-- update_config 对 cookiecloud_key/password 的 *** 掩码值跳过写入，避免 GET→PUT 覆盖真实凭据。
+- update_config 对 cookiecloud_key/password 的 *** 掩码值跳过写入，避免 GET→PUT 覆盖真实凭据；get_config 在 CookieCloud 模式下按 key 显示“已配置 (CookieCloud)/未配置 CookieCloud Key”，不再误报“未配置密钥”。
