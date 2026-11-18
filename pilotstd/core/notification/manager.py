@@ -241,6 +241,10 @@ class NotificationManager:
         context: NotificationContext | None = None,
     ) -> None:
         """根据策略表分发通知；context 决定归属（默认 system=0）。"""
+        # A-45：dry-run 模式只留痕不投递（新渠道上线前验证策略/内容）
+        if self._cfg.get("notification.dry_run", False):
+            logger.info("notification dry_run: event=%s skipped", event_type)
+            return
         legacy = context is None
         ctx = context or NotificationContext(scope="system")
         if legacy:
