@@ -1,7 +1,7 @@
 <script setup lang="ts">
 defineOptions({ name: 'NotificationBell' })
 // 文案全部走 i18n（notification.bell.*），不硬编码中文
-import { ref, computed } from 'vue'
+import { nextTick, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import Button from 'primevue/button'
@@ -72,6 +72,11 @@ const handleItemClick = async (msg: { id?: number; is_read?: boolean; link_url?:
 
 const markAllAsRead = async () => {
   await markAsRead()
+  // 标记后 badge/按钮状态变化会触发 PrimeVue Popover 重排；等 DOM 更新后按当前触发器重新对齐，
+  // 否则弹层会停留在旧坐标（用户反馈：点击已读后通知栏偏到页面左侧）。
+  await nextTick()
+  const popover = popoverRef.value as unknown as { alignOverlay?: () => void } | null
+  popover?.alignOverlay?.()
 }
 
 const goToLogs = () => {

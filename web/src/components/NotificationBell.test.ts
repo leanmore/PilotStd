@@ -30,7 +30,7 @@ vi.mock('primevue/popover', () => ({
     name: 'Popover',
     template: '<div class="popover-stub"><slot /></div>',
     props: ['appendTo', 'show'],
-    methods: { toggle() {}, hide() {} },
+    methods: { toggle() {}, hide() {}, alignOverlay() { (this as unknown as { aligned?: boolean }).aligned = true } },
   },
 }))
 
@@ -123,5 +123,16 @@ describe('NotificationBell', () => {
     expect(english.find('button').attributes('aria-label')).toBe('Notifications')
     expect(english.html()).toContain('Mark all as read')
     expect(english.html()).toContain('View all notifications')
+  })
+})
+
+
+describe('NotificationBell 标记已读后重排', () => {
+  it('全部标记已读后调用 Popover.alignOverlay', async () => {
+    const wrapper = mountBell()
+    const popover = wrapper.findComponent({ name: 'Popover' })
+    await wrapper.find('.mark-all-button').trigger('click')
+    await flushPromises()
+    expect((popover.vm as unknown as { aligned?: boolean }).aligned).toBe(true)
   })
 })

@@ -851,3 +851,11 @@ eason=copy_quarantined（manifest/rollback C:\Temp\pending28_*）；61 对账见
 - 修复：`useNotification.dedupeMessages` 按 `(event_type,title,body,分钟)` 去重、未读优先；日志页仍按渠道展示原始行（投递诊断需要）。
 - 测试：`useNotification.test.ts` 新增去重用例；前端四件套 type-check/lint/test/build 全绿（367 例）。
 - 待部署 v0.195.3；部署后铃铛不再显示渠道副本，角标未读数同步按去重后计算。
+
+
+### 70. 铃铛标记已读后弹层偏左（2026-11-18）
+
+- 现象：点击“全部标记已读”后，PrimeVue Popover 停留在旧坐标，弹层偏到页面左侧（截图可见）。
+- 根因：标记已读使 badge/按钮状态变化并触发重排，Popover 未按新触发器坐标重新对齐；此前仅固定按钮宽度不够。
+- 修复：`markAllAsRead` 在 `nextTick` 后调用 `popover.alignOverlay()`；`NotificationBell.test` 新增断言（8 例通过）。
+- 08 #18 同步标注“2026-11-18 再修”；总表 G-10 已修（待 v0.195.3 部署）。
