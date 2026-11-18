@@ -385,3 +385,4 @@ CI 的 NODE_VERSION 从浮动 22 固定到 22.23.4，修复 2026-10-21 Node.js �
   - 修复后必须用**原始触发案例**复跑（同一标准号、同一入口），比对“日志三态 / API stats / 结果行”三者一致；
   - 先证伪“统计错”还是“日志错”，再改代码；两者修复方向相反。
 - **落地**：csres_state_text() 按 is_found() 输出；	ests/test_csres_state.py 锁定；总表 G-01 记录“先前修复不是根因”。
+- **PowerShell 写文件编码坑**：Windows PowerShell 的 Set-Content -Encoding utf8 会写 BOM，CI 解析器报 U+FEFF 并拒绝；请用 [System.IO.File]::WriteAllText() 或 PS7 的 -Encoding utf8NoBOM。此前 27 #56~59 的 UTF-8/GBK 乱码同源，均按编码问题处理。
