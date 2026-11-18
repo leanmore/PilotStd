@@ -7,7 +7,7 @@
 
 | ID | 事项 | 状态 | 判据/触发 |
 |---|---|---|---|
-| G-01 | csres 日志把 not-found 写成“找到 评分=100”（stats 本身正确） | 已修（待部署 v0.195.2） | 根因：if result: 即打“找到”；已改 csres_state_text() 按 is_found()；判据：部署后 GB 50016-2014 日志为“未找到”且 stats.found=0 |
+| G-01 | csres 日志把 not-found 写成“找到 评分=100” | 已闭合 | 2026-11-18 v0.195.2 复跑 GB 50016-2014：日志 状态=未找到、stats.found=0、结果行 未找到匹配结果；csres_state_text + 	est_csres_state.py 锁定 |
 | G-02 | 61 条重查可信度 | 已闭合 | 2026-11-17 23:04 低峰重跑（298s）：found=3、not_found=58；SHB 日志 	ried=gongbiaoku→hbba→ahbz→njbz365（4 站真查），NB 单站为能力模型配置 |
 | G-03 | 健康检查探针 11 站 `probe_pending` | 等触发 | 触发：对应站点出现 `exact` 缓存；判据：自动纳入并输出 found/no_result |
 | G-04 | 健康检查生产首轮 | 已闭合 | 2026-11-17 23:04 POST /api/adapters/health/run：found=3/no_result=7/error=0/probe_pending=11；日志 dapter_health site=... 可见 |
@@ -24,7 +24,7 @@
 | A-45 | 无 dry-run/站内通知渠道 | 等触发 | 触发：新增渠道系统或 AC-6 复验触发链路 |
 | A-46 | 33 个 file_missing 文件重取 | 等触发 | 触发：公告记录/下载链可重取；取到后归档并核销 |
 | A-47 | 无结果转 pending 分类 | 已闭合 | `_finalize_batch` 默认 pending+chain_exhausted；单测锁定（待部署生效） |
-| P3-16 多站链 | `_build_chain_for_item` 对 NB 仅 energy（能力模型单站）；SHB 运行时被过滤为 njbz365 | 待做（G-02） | 判据：确认是能力模型配置还是过滤；低峰重跑 |
+| P3-16 多站链 | NB 单站为能力模型配置；SHB 部署后 4 站真查 | 已闭合 | 2026-11-17 61 重查日志 SHB tried=gongbiaoku→hbba→ahbz→njbz365；NB energy→energy 属配置 |
 | P2-08 | Organize/Pending 失败/恢复分支 | 已闭合 | 既有测试覆盖（见 27 #63）；后续为覆盖率棘轮 |
 | A-40 | 旧数据 user_id 归属 | 已闭合（部分记录） | 452+67 行订正；残余 89→0（除用户动作 22 行）；queue 未改 |
 
@@ -50,7 +50,7 @@
 | ID | 事项 | 条件 |
 |---|---|---|
 | G-04 | 健康检查生产首轮 | 已闭合 | 2026-11-17 23:04 POST /api/adapters/health/run：found=3/no_result=7/error=0/probe_pending=11；日志 dapter_health site=... 可见 |
-| G-01 | csres 日志把 not-found 写成“找到 评分=100”（stats 本身正确） | 已修（待部署 v0.195.2） | 根因：if result: 即打“找到”；已改 csres_state_text() 按 is_found()；判据：部署后 GB 50016-2014 日志为“未找到”且 stats.found=0 |
+| G-01 | csres 日志把 not-found 写成“找到 评分=100” | 已闭合 | 2026-11-18 v0.195.2 复跑 GB 50016-2014：日志 状态=未找到、stats.found=0、结果行 未找到匹配结果；csres_state_text + 	est_csres_state.py 锁定 |
 | AC-6 触发链路 | 真实触发验证 | 需第二真实 admin 或 dry-run 渠道 |
 
 ## 六、已闭合（累计）

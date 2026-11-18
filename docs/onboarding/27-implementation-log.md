@@ -836,3 +836,10 @@ eason=copy_quarantined（manifest/rollback C:\Temp\pending28_*）；61 对账见
 - 61 重查（v0.195.0）：298s、found=3/58；SHB 	ried=gongbiaoku→hbba→ahbz→njbz365 四站真查；NB 单站为能力模型配置。
 - 健康检查生产首轮：found=3/no_result=7/error=0/probe_pending=11（后续整点 hour 任务已跑，found=5/no_result=5）。
 - 总表：G-02/G-04 闭合；G-01 修订为“日志文案”待 v0.195.2。
+
+
+### 68. v0.195.2 核验：csres 日志“未找到”确认（2026-11-18）
+
+- 生产 v0.195.2；GB 50016-2014 复跑：日志 [CSRES] ... 状态=未找到（不再误报“找到 评分=100”），stats.found=0，结果行 未找到匹配结果。
+- 总表 **G-01 关闭**（docs/debt/00-global-issues.md）。
+- 当前总表：待做 0、等触发 14、明确不做 1、已闭合 15。
