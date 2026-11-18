@@ -23,7 +23,7 @@
 
 | ID | 事项 | 状态 | 判据/触发 |
 |---|---|---|---|
-| A-44 | monitor 实时：新目录半残，必须 restart | 等触发 | 触发：有人依赖实时触发或换 PollingObserver；规则已写入 08 + 用户帮助 |
+| A-44 | monitor 实时：新目录半残，必须 restart | 已闭合 | 2026-11-19 	ests/test_monitor_hot_reload.py 5 例（PUT stop→start）+ 	ests/integration/test_monitor_catchup_e2e.py 7 例通过；watchdog recursive 覆盖子目录 |
 | A-45 | 无 dry-run/站内通知渠道 | 等触发 | 触发：新增渠道系统或 AC-6 复验触发链路 |
 | A-46 | 33 个 file_missing 文件重取 | 等触发 | 触发：公告记录/下载链可重取；取到后归档并核销 |
 | P3-16 多站链 | NB 单站为能力模型配置；SHB 部署后 4 站真查 | 已闭合 | 2026-11-17 61 重查日志 SHB tried=gongbiaoku→hbba→ahbz→njbz365；NB energy→energy 属配置 |
@@ -34,7 +34,7 @@
 
 | ID | 事项 | 触发 |
 |---|---|---|
-| A-44 | 实时缺陷修复 | 依赖实时/换 PollingObserver |
+| A-44 | monitor 实时：新目录半残，必须 restart | 已闭合 | 2026-11-19 	ests/test_monitor_hot_reload.py 5 例（PUT stop→start）+ 	ests/integration/test_monitor_catchup_e2e.py 7 例通过；watchdog recursive 覆盖子目录 |
 | A-45 | dry-run 渠道 | 新增渠道或 AC-6 复验触发 |
 | V-16 / V-17 / A-5 / A-32 / T-42 / A-43 | 见 03-open | 各自触发（改 TaskManager、G-012 第 3 次红、脚手架频繁、升级 cookiecutter、官方限流码、表数质疑） |
 | P2-08 | diff coverage 转阻断 | 等触发（数据不足，继续收集） | 全仓无 diff-cover 工具/历史数据，仅 PR 模板说明“只报告”；待积累 1~2 个月数据再定阈值 |

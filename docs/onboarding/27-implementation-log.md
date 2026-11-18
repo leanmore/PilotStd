@@ -901,3 +901,9 @@ eason=new_status），没有 previous_status，所以显示 TSG 71-2023 — 现�
 ### 76. A-43 表数核对（2026-11-19）
 
 - 生产 sqlite_master 非系统表 **43** 张；scripts/check_schema_consistency.py 汇总 0 处不一致；docs/architecture.md 未声明固定表数，无需改文档。A-43 闭合。
+
+
+### 77. A-44 monitor 热更新闭合（2026-11-19）
+
+- 	ests/test_monitor_hot_reload.py 5 例通过：PUT 配置触发 stop→start；	ests/integration/test_monitor_catchup_e2e.py 7 例通过；watchdog 
+ecursive 覆盖子目录。A-44 闭合。
