@@ -72,6 +72,22 @@ function normalize(item: NotificationLogItem): NotificationMessage {
   }
 }
 
+/**
+ * 铃铛是“消息中心”，不是“投递日志”：同一逻辑通知会按渠道各写一行（wechat/telegram），
+ * 直接渲染会出现“同一收藏成功两条”。按 (event_type,title,body,分钟) 去重；
+ * 未读优先保留，日志页仍按渠道展示原始行。
+ */
+export function dedupeMessages(items: NotificationMessage[]): NotificationMessage[] {
+  const byKey = new Map<string, NotificationMessage>()
+  for (const m of items) {
+    const minute = (m.sent_at || '').slice(0, 16)
+    const key = `${m.event_type}\u0000${m.title}\u0000${m.body}\u0000${minute}`
+    const prev = byKey.get(key)
+    if (!prev || (Boolean(prev.is_read) && !m.is_read)) byKey.set(key, m)
+  }
+  return Array.from(byKey.values())
+}
+
 function stopPolling(): void {
   if (timer === null) return
   clearInterval(timer)
@@ -100,7 +116,7 @@ async function refresh(): Promise<void> {
     const items = (res?.items ?? []) as NotificationLogItem[]
     // 铃铛是消息中心，不是投递诊断台：失败渠道副本不展示（日志页仍可查）。
     // 兼容测试/旧接口没有 status 字段的情况。
-    messages.value = items.filter((i) => !i.status || i.status === 'success').map(normalize)
+    messages.value = dedupeMessages(items.filter((i) => !i.status || i.status === 'success').map(normalize))
     error.value = ''
     consecutiveFailures = 0
   } catch (e) {

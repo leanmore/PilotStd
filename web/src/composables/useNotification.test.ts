@@ -44,7 +44,7 @@ vi.mock('@/api/notification', () => ({
   getNotificationLogs: mocks.getNotificationLogs,
 }))
 
-import { useNotification, POLL_INTERVAL_MS } from './useNotification'
+import { dedupeMessages, useNotification, POLL_INTERVAL_MS } from './useNotification'
 
 /** 在虚拟组件上下文中挂载 composable（onMounted/onUnmounted 才会执行）。 */
 function mountComposable() {
@@ -97,7 +97,7 @@ describe('useNotification', () => {
     await flush()
     // 造第 3 条未读，确认计数随数据变化
     mocks.getNotificationLogs.mockResolvedValue({
-      items: [...LOG_ITEMS, { ...LOG_ITEMS[0], id: 3, is_read: 0 }],
+      items: [...LOG_ITEMS, { ...LOG_ITEMS[0], id: 3, body: '另一条未读', sent_at: '2026-10-02T11:00:00', is_read: 0 }],
     })
     await w.vm.refresh()
     expect(w.vm.unreadCount).toBe(2)
@@ -238,5 +238,25 @@ describe('useNotification', () => {
     expect(w.vm.messages.every((m: { is_read?: boolean }) => m.is_read)).toBe(true)
     expect(w.vm.unreadCount).toBe(0)
     w.unmount()
+  })
+})
+
+
+describe('dedupeMessages', () => {
+  it('同一逻辑通知的渠道副本只保留一条（未读优先）', () => {
+    const base = {
+      event_type: 'daily',
+      title: '收藏成功',
+      body: '标准号：GB/T 12008.3-2026',
+      level: 'info' as const,
+      sent_at: '2026-11-03T22:49:04',
+    }
+    const rows = [
+      { ...base, id: 1, channel: 'wechat', is_read: true },
+      { ...base, id: 2, channel: 'telegram', is_read: false, sent_at: '2026-11-03T22:49:05' },
+    ] as never[]
+    const out = dedupeMessages(rows)
+    expect(out).toHaveLength(1)
+    expect(out[0].is_read).toBe(false)
   })
 })

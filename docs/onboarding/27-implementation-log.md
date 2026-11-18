@@ -843,3 +843,11 @@ eason=copy_quarantined（manifest/rollback C:\Temp\pending28_*）；61 对账见
 - 生产 v0.195.2；GB 50016-2014 复跑：日志 [CSRES] ... 状态=未找到（不再误报“找到 评分=100”），stats.found=0，结果行 未找到匹配结果。
 - 总表 **G-01 关闭**（docs/debt/00-global-issues.md）。
 - 当前总表：待做 0、等触发 14、明确不做 1、已闭合 15。
+
+
+### 69. Web 铃铛渠道副本去重（2026-11-18）
+
+- 现象：同一收藏成功在铃铛出现 2 条（wechat/telegram 各一行），旧数据 `message_id` 为空无法按消息归并。
+- 修复：`useNotification.dedupeMessages` 按 `(event_type,title,body,分钟)` 去重、未读优先；日志页仍按渠道展示原始行（投递诊断需要）。
+- 测试：`useNotification.test.ts` 新增去重用例；前端四件套 type-check/lint/test/build 全绿（367 例）。
+- 待部署 v0.195.3；部署后铃铛不再显示渠道副本，角标未读数同步按去重后计算。
