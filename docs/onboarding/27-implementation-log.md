@@ -859,3 +859,12 @@ eason=copy_quarantined（manifest/rollback C:\Temp\pending28_*）；61 对账见
 - 根因：标记已读使 badge/按钮状态变化并触发重排，Popover 未按新触发器坐标重新对齐；此前仅固定按钮宽度不够。
 - 修复：`markAllAsRead` 在 `nextTick` 后调用 `popover.alignOverlay()`；`NotificationBell.test` 新增断言（8 例通过）。
 - 08 #18 同步标注“2026-11-18 再修”；总表 G-10 已修（待 v0.195.3 部署）。
+
+
+### 71. 铃铛弹层偏左：真根因 + 真实 UI 验证（2026-11-18）
+
+- 复现（Playwright 对 v0.195.3）：打开时 `x=623.47`，点“全部标记已读”后 `x=11.5`，左移 612px。
+- 真根因：`AppHeader` 的 `topbar-right v-show="isHovered"`；鼠标移入弹层后 `mouseleave` 触发隐藏铃铛，Popover 锚点 rect 变 0，`alignOverlay` 反而把它对齐到左上角。
+- 修复：`NotificationBell` 发 `popover-show/hide`；`AppHeader` 用 `isHovered || notificationOpen` 保持顶栏显示；`alignOverlay` 保留。
+- 真实 UI 验证（dev 构建 + 生产 API，临时用户）：2 条渠道行 → 1 条展示；点击前后 `delta_left=8px`，弹层右缘距铃铛右缘 3.5px（无左跳），截图 `C:\Temp\bell_verified.png`。
+- 结论：**dev 真实操作通过**；生产 v0.195.4 待部署复验（按 R-1 未计“已闭合”）。

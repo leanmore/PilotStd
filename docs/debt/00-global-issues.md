@@ -2,6 +2,7 @@
 
 > 维护规则：每批收口只改状态/增删条目，不重列全表；状态仅三种：待做 / 等触发 / 已闭合。
 > 闭合判据必须可复核（测试、数据核对、日志行、部署确认）。
+> **用户可感知项（UI 定位/渲染、通知内容、行为结果）必须真实操作复验通过；“仅测试断言”只能标“已修复（待真实验证）”。**
 
 ## 一、本轮新产生（2026-11-17 批）
 
@@ -15,8 +16,8 @@
 | G-06 | 28 条空分类 pending 回填 | 已闭合 | 已回填 `chain_exhausted` + `reason=copy_quarantined`；manifest/rollback 见 `C:\Temp\pending28_*` |
 | G-07 | `health_probe.json` 轮转/上限 | 已闭合 | 单文件每次覆盖写，不增长；无需轮转（2026-11-17 确认） |
 | G-08 | v0.192.1 审计 patch 是否含在 v0.194.1 | 已闭合 | `git merge-base --is-ancestor 2986acde 5e43c66b` 通过 |
-| G-09 | Web 通知铃铛把渠道副本当独立消息（同一收藏成功出现 2 条） | 已修（待部署 v0.195.3） | 根因：`notification_log` 按渠道各一行（wechat/telegram），铃铛直接渲染；已在前端 `dedupeMessages` 按 `(event_type,title,body,分钟)` 去重（未读优先），日志页仍保留渠道行；`useNotification.test` 全绿（367 例） |
-| G-10 | Web 铃铛“标记已读”后弹层偏到页面左侧 | 已修（待部署 v0.195.3） | 根因：标记后 badge/按钮状态变化，PrimeVue Popover 未按新坐标重排；已加 `nextTick` + `alignOverlay()`，`NotificationBell.test` 断言调用；08 #18 同步 |
+| G-09 | Web 通知铃铛把渠道副本当独立消息 | 已修复（真实 UI 验证通过；生产待部署复验） | Playwright（dev 构建 + 生产 API）2 条渠道行 → 铃铛只显示 1 条；`useNotification` 按内容+分钟去重 |
+| G-10 | Web 铃铛“标记已读”后弹层偏左 | 已修复（真实 UI 验证通过；生产待部署复验） | 根因非“未重排”，而是 `topbar-right v-show=isHovered` 在鼠标移入弹层后隐藏铃铛，锚点变 0；已让 Popover 打开期间保持顶栏显示；Playwright 实测点击前后 delta 8px（弹层右缘距铃铛右缘 3.5px） |
 
 ## 二、之前悬着未闭合
 

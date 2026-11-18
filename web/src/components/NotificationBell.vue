@@ -12,6 +12,7 @@ import { useNotification } from '@/composables/useNotification'
 const router = useRouter()
 const { t } = useI18n()
 const { messages, markAsRead } = useNotification()
+const emit = defineEmits<{ (e: 'popover-show'): void; (e: 'popover-hide'): void }>()
 const popoverRef = ref<InstanceType<typeof Popover> | null>(null)
 
 // 同一事件会按启用渠道各写一条 notification_log；铃铛按“事件”展示，不展示渠道副本。
@@ -98,7 +99,7 @@ const goToLogs = () => {
       :aria-label="t('notification.bell.title')"
     />
 
-    <Popover ref="popoverRef" class="notification-popover">
+    <Popover ref="popoverRef" class="notification-popover" @show="emit('popover-show')" @hide="emit('popover-hide')">
       <div class="notification-dropdown">
         <div class="dropdown-header">
           <span class="header-title">{{ t('notification.bell.title') }}</span>

@@ -27,6 +27,8 @@ const emit = defineEmits<{
 
 // ── 悬停展开 / 滚动隐藏 ──
 const isHovered = ref(false)
+// Popover 打开期间顶栏不能因 mouseleave 收起：否则铃铛被 display:none，弹层会重排到左上角
+const notificationOpen = ref(false)
 const isScrollHidden = ref(false)
 let lastScrollY = 0
 
@@ -68,9 +70,9 @@ onUnmounted(() => {
       <span class="topbar-brand">PilotStd</span>
       <span class="topbar-title" v-show="isHovered">{{ pageTitle }}</span>
     </div>
-    <div class="topbar-right" v-show="isHovered">
+    <div class="topbar-right" v-show="isHovered || notificationOpen">
       <!-- 通知铃铛 -->
-      <NotificationBell />
+      <NotificationBell @popover-show="notificationOpen = true" @popover-hide="notificationOpen = false" />
       <!-- 主题切换 -->
       <button
         class="topbar-btn theme-btn"
