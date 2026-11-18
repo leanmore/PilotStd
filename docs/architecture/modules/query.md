@@ -215,3 +215,5 @@ BaseAdapter (ABC)
 - 2026-11-17：_collect_csres_results 对“csres 后台结果晚到、idx 已有 NG 结果”改为 found 覆盖，并补 _prog_ok；修复 API stats.found 与日志评分不一致。
 
 - 2026-11-18：query_batch_parsed 在 _handle_overflow 之后**再次** _collect_csres_results；overflow 会把未命中项写 pending，晚到的 csres found 必须二次合并才能进入 stats.found。
+
+- 2026-11-18：csres 日志改用 csres_state_text(result)，仅 is_found() 打“找到”；修复“not-found 被日志标成找到 评分=100”的误导。

@@ -1,4 +1,4 @@
-﻿
+
 """csres 状态文案：只有 is_found() 才是“找到”。"""
 
 from pilotstd.query.engine._csres import csres_state_text
