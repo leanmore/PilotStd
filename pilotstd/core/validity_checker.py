@@ -499,31 +499,10 @@ class ValidityChecker:
         return None
 
     def _replacement_info(self, standard_number: str) -> dict[str, str]:
-        """查替代标准：announcement_record.superseded_by 指向的新标准号。"""
-        try:
-            row = self._db.fetchone(
-                "SELECT superseded_by FROM announcement_record"
-                " WHERE standard_number=? AND COALESCE(superseded_by,'')<>'' LIMIT 1",
-                (standard_number,),
-            )
-            if row:
-                new_standard = str(row["superseded_by"] or "")
-                name_row = self._db.fetchone(
-                    "SELECT std_name, implement_date FROM announcement_record WHERE standard_number=? LIMIT 1",
-                    (new_standard,),
-                )
-                return {
-                    "new_standard": new_standard,
-                    "new_standard_name": str(name_row["std_name"] or "") if name_row else "",
-                    "new_standard_implementation_date": (
-                        str(name_row["implement_date"] or "")
-                        if name_row and "implement_date" in name_row.keys()
-                        else ""
-                    ),
-                }
-        except Exception:
-            logger.warning("replacement lookup failed for %s", standard_number, exc_info=True)
-        return {}
+        """查替代标准（实现见 validity_replacement.replacement_info）。"""
+        from .validity_replacement import replacement_info
+
+        return replacement_info(self._db, standard_number)
 
     def _cached_announcement_status(self, standard_number: str) -> str:
         """读 `announcement_match.result_json.status`（matcher 计算的结构化状态）。

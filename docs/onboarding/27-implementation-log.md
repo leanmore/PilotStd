@@ -889,3 +889,10 @@ eason=copy_quarantined（manifest/rollback C:\Temp\pending28_*）；61 对账见
 - **U-1 根因**：变更详情只写 new_status（
 eason=new_status），没有 previous_status，所以显示 TSG 71-2023 — 现行，读起来像“— → 现行”。修：_record_change 接收 old_status，reason 改为 旧 → 新（缺旧值显示“未知”）。
 - 两项均待部署验证；降级替代（GB 30871-2022→2014）仍待查数据源/解析。
+
+
+### 75. GB 30871-2022“降级替代”根因（2026-11-19）
+
+- 数据：nnouncement_record 把“代替旧号”写进 superseded_by（GB 30871-2022 → GB 30871-2014），语义反向；49,306 行非空，其中大量年份倒退。
+- 修复（先止损）：_replacement_info 解析新旧年份，新<旧时忽略并留日志；测试 	est_validity_replacement_direction.py。
+- 数据/源字段的彻底修正（合并方向迁移 + crawler 映射）另立任务，不在本轮改 4.9 万行。
