@@ -36,7 +36,8 @@ def test_explicit_empty_range_fails(monkeypatch) -> None:
     monkeypatch.setattr(gate, "_diff", lambda _spec: [])
     assert gate.get_changed_files() is None
     monkeypatch.setattr(gate, "_diff", lambda _spec: ["pilotstd/ui/x.py"])
-    assert gate.get_changed_files() == ["pilotstd/ui/x.py"]
+    # 2026-11-19 起返回 (变更列表, 本次使用的范围)：范围左端用于取基线内容判“仅注释变更”
+    assert gate.get_changed_files() == (["pilotstd/ui/x.py"], "abc..def")
 
 
 def test_zero_before_falls_back(monkeypatch) -> None:
@@ -49,7 +50,10 @@ def test_zero_before_falls_back(monkeypatch) -> None:
         return ["pilotstd/ui/x.py"] if "origin/" in spec else []
 
     monkeypatch.setattr(gate, "_diff", fake_diff)
-    assert gate.get_changed_files() == ["pilotstd/ui/x.py"]
+    got = gate.get_changed_files()
+    assert got is not None
+    files, _spec = got
+    assert files == ["pilotstd/ui/x.py"]
     assert "origin/" in calls[0]
 
 
