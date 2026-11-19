@@ -464,7 +464,8 @@ class TestChannelMessageIdsContract(unittest.TestCase):
 
         src = Path("pilotstd/core/notification/channel.py").read_text(encoding="utf-8")
         self.assertIn("CHANNEL_KEY_WHITELIST", src)
-        self.assertIn("未投递的渠道不出现在 dict 中", src)
+        # 注释里的标识符可能被反引号包裹（G-012 LANG 规则要求英文普通词中文化），忽略该格式差异
+        self.assertIn("未投递的渠道不出现在 dict 中", src.replace("`", ""))
         doc = Path("docs/reference/notification-field-contract.md").read_text(encoding="utf-8")
         self.assertIn("channel_message_ids", doc)
 

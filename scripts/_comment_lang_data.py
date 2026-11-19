@@ -22,6 +22,7 @@ TOOL_DIRECTIVES = (
     'isort:',       # isort
     'pragma:',      # coverage
     'TODO',         # 开发待办标记（含 TODO(P2) 等结构化前缀）
+    'i18n-allow',   # 项目自定义放行标记（G-047 同款，必须保留英文原文才能被识别）
 )
 
 # 中文注释中不可避免的技术标识符白名单（类名/模块名/接口路径/协议缩写等）

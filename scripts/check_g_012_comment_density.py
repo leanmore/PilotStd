@@ -23,7 +23,7 @@ from pathlib import Path
 
 # 静态数据表（工具指令前缀 / 中文字符白名单 / 术语对照）已拆出到同目录的数据模块
 from _comment_lang_data import (
-    _LANG_WHITELIST_PATTERN,
+    LANG_WHITELIST,
     TERM_TRANSLATIONS,
     TOOL_DIRECTIVES,
 )
@@ -31,6 +31,26 @@ from _gate_paths import is_git_ignored
 
 MIN_COMMENT_DENSITY = 0.03  # 最低注释密度：注释行 / 非空行 ≥ 3%
 MIN_DENSITY_LOGICAL_LINES = 50  # 仅对 ≥50 逻辑行的文件检查密度
+
+# 注释里可内嵌的“代码标识符”形态（V-17，2026-11-19）：
+# 含这些字符、数字或大写字母的英文片段视为标识符，不要求翻译
+_IDENT_CHARS = "_./\\()[]{}<>-:"
+_FILE_NAME_RE = re.compile(
+    r"[\w\u4e00-\u9fff][\w\u4e00-\u9fff\-]*\."
+    r"(?:py|pyi|md|json|ya?ml|sql|js|ts|vue|sh|ps1|bat|txt|log|csv|toml|ini|cfg|env|db|sqlite|png|zip)\b",
+    re.IGNORECASE,
+)
+_ASCII_TOKEN_RE = re.compile(r"[A-Za-z][A-Za-z0-9_.\-/()\[\]{}<>:]*")
+
+
+def _is_code_identifier(token: str) -> bool:
+    """判断英文片段是否形如代码标识符（而非英文普通词）。"""
+    if any(ch in _IDENT_CHARS for ch in token):
+        return True
+    if any(ch.isdigit() for ch in token):
+        return True
+    return any(ch.isupper() for ch in token)
+
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 EXCLUDE_DIRS = {
     ".git",
@@ -95,18 +115,30 @@ def _get_comment_text(line: str) -> str:
 
 
 def _is_chinese_comment(line: str) -> bool:
-    """检查注释是否全部为中文（工具指令注释豁免，白名单术语允许）。"""
+    """检查注释是否全部为中文（工具指令豁免，字符串/文件名/代码标识符可内嵌）。
+
+    判定口径（2026-11-19 收口 V-17，原规则为“出现任意英文字母即违规”）：
+    - 行内代码（反引号内）、引号字符串、文件名形态先剔除；
+    - 剩余英文片段只拦**英文普通词**；形如代码标识符的（含 `_` `.` `/` 括号连字符、
+      数字，或含大写字母，如 `PILOTSTD_API_TOKEN`、`aggregate_keys.py`、`task_id`）
+      放过——中文注释引用标识符是正常写作，逐字翻译反而失真。
+    """
     text = _get_comment_text(line)
     if not text:
         return True  # 空注释视为合规
     if any(text.startswith(d) for d in TOOL_DIRECTIVES):
         return True
-    # 先去掉引号内的字符串字面量（如 "\n\n"、'value'）
+    # 先去掉行内代码、文件名、引号内的字符串字面量（如 "\n\n"、'value'）
+    text = re.sub(r"`[^`]*`", "", text)
+    text = _FILE_NAME_RE.sub("", text)
     text = re.sub(r'"[^"]*"', '', text)
     text = re.sub(r"'[^']*'", '', text)
-    # 再剥离白名单术语
-    cleaned = _LANG_WHITELIST_PATTERN.sub('', text)
-    return not bool(re.search(r'[a-zA-Z]', cleaned))
+    # 整词白名单与代码标识符不算英文普通词
+    for token in _ASCII_TOKEN_RE.findall(text):
+        if token in LANG_WHITELIST or _is_code_identifier(token):
+            continue
+        return False
+    return True
 
 
 def _has_docstring(node: ast.AST) -> bool:
