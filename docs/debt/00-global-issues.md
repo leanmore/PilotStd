@@ -18,6 +18,7 @@
 | G-08 | v0.192.1 审计 patch 是否含在 v0.194.1 | 已闭合 | `git merge-base --is-ancestor 2986acde 5e43c66b` 通过 |
 | G-09 | Web 通知铃铛把渠道副本当独立消息 | 已修复（真实 UI 验证通过；生产待部署复验） | Playwright（dev 构建 + 生产 API）2 条渠道行 → 铃铛只显示 1 条；`useNotification` 按内容+分钟去重 |
 | G-10 | Web 铃铛“标记已读”后弹层偏左 | 已修复（真实 UI 验证通过；生产待部署复验） | 根因非“未重排”，而是 `topbar-right v-show=isHovered` 在鼠标移入弹层后隐藏铃铛，锚点变 0；已让 Popover 打开期间保持顶栏显示；Playwright 实测点击前后 delta 8px（弹层右缘距铃铛右缘 3.5px） |
+| G-11 | CI `test-backend` 红（状态字面量守卫 + 过期断言） | 已闭合 | `_validity_pipeline.py:102` 用裸 `'未知'` 字面量、`test_status_changed` 未随 `4003372e` 同步 reason 契约；改为 `Status.UNKNOWN.value` + 新断言；受影响 4 文件 159 例、全量 6371 passed（CI 等价命令 EXIT=0）；见 `27` #80 |
 
 ## 二、之前悬着未闭合
 

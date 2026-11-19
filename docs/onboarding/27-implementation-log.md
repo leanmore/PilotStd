@@ -917,3 +917,15 @@ ecursive 覆盖子目录。A-44 闭合。
 ### 79. T-42 渠道限流闭合（2026-11-19）
 
 - channels/base.py 已码优先（wechat 45009、feishu 99991400；dingtalk/telegram 关键词+429）、Retry-After 上限、5xx 重试；	ests/test_notification_rate_limit.py 3 例通过。T-42 闭合。
+
+
+### 80. CI test-backend 红：定位与修复（2026-11-19）
+
+- **取证**：run `44507312315`（HEAD `9e884970`）与 `44432226468`（`8228fa78`）都在 `test-backend / Run backend tests` 失败；job 日志接口 404（BlobNotFound），run 级 `logs.zip` 里也没有该 job 的文件。改走 `check-runs/{job_id}/annotations` 拿到两条失败测试名——这是本次绕开 BlobNotFound 的有效路径。
+- **失败 1**：`tests/unit/core/test_status_convergence.py::test_no_bare_status_literals_in_production` — `pilotstd/core/_validity_pipeline.py:102` 的 `f"{old_status or '未知'} → {new_status}"` 用了裸状态字面量，违反 #32-B 收敛守卫。
+- **失败 2**：`tests/test_validity_checker_full.py::TestProcessValidityBatch::test_status_changed` — `4003372e` 把 `reason` 从“新状态”改成“旧 → 新”，旧断言未同步。
+- **根因同源**：`4003372e`（交接单写作 `c322c1c0`，两者 patch-id 相同）只新增了 `	est_validity_change_detail.py`，漏改旧断言；且缺旧值时把“未知”写死。
+- **修复**：`reason` 改用 `Status.UNKNOWN.value`；断言改为 `f"{Status.ACTIVE.value} → {Status.WITHDRAWN_NORMALIZED.value}"`。
+- **验证**：受影响 4 个文件 159 例通过；全量单进程 `6421 passed / 23 skipped`（17:37）；CI 等价命令（`-n auto -p no:pytest-qt --timeout=60` + 同 ignore）`6371 passed / 23 skipped`，`EXIT=0`（9:04）；`ruff check` 通过；`mypy` 仅剩 OCR 模块缺 stub 的既有噪声（与本次无关）。
+- **坑记录**：`python -m pytest ... 2>&1 | Tee-Object ...` 会让原生 stderr 变成 ErrorRecord，pwsh 退出码报 1（全绿也报 1）；判定退出码要用 `*> 文件` 后读 `$LASTEXITCODE`。
+- **附带核实（影响 R-3）**：生产 v0.195.5（`5db18501`）**不含** `4003372e` → U-1“旧→新”、U-3“掩码不覆盖真实值”尚未上线；R-3 复验前必须先部署，否则会把“未部署”误判成“假闭合”。
