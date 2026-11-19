@@ -182,7 +182,7 @@ def _spawn_and_wait(batch, name, cmd, console_file):
     print(f"[OUTPUT] {console_file}")
     print(f"{'='*60}")
 
-    # D-19：不再用 shell 模式；子进程 stdout/stderr 直接写入 console_file
+    # D-19：不再用 `shell` 模式；子进程 stdout/stderr 直接写入 console_file
     out = open(console_file, "w", encoding="utf-8")
     try:
         proc = subprocess.Popen(
