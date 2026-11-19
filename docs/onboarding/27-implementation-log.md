@@ -944,3 +944,11 @@ ecursive 覆盖子目录。A-44 闭合。
   - 一处测试按源码文本断言注释（`test_notification_stage1c_fields.py`），注释加反引号后失配 → 改为剥离反引号再比对，保留“契约必须有可查落点”的原意。
 - **口径依据**：gates.md v1.13 已裁定“能中文化的一律中文，用作查证入口的标识符不意译”；本次区别是标识符不再需要逐条登记白名单。`--fix` 仍然禁用（实现是删光英文字母，会把注释改成病句）。
 - **编号澄清**：交接单把这条记作“V-17”，但 `04-watch.md` 的 V-17 实为“注释密度对新脚本反复红”，是另一件事，本次未动。
+
+### 82. G-029 把“纯注释改动”误判为缺测试（2026-11-19）
+
+- **现象**：V-17 注释批（15 个 `pilotstd/ui/` 文件、纯注释/docstring）让 CI 的 `repo-compliance` 红在 `G-029 核心模块变更测试同步检查`：UI 变更必须同批改 `tests/gui/`｜`tests/test_ui*`。
+- **判定**：注释不进 AST、docstring 文本不影响语义，这类变更强制补测试只能产物化无意义用例。
+- **修复**：新增 `is_comment_only(path, range)`——取范围左端基线内容与工作区内容各建 AST，docstring 文本归一化为 `<DOC>` 后比较，相同即从“需测试同步”集合剔除。基线取不到（新增文件/git 不可用/读失败）或任一侧语法错误，一律按真变更（宁可多要求一次测试）。
+- **验证**：`G029_RANGE=aceaf82c..87ab358f` 由 FAIL 转 PASS；`tests/test_check_g_029_comment_only.py` 5 例（注释/docstring 跳过、代码变更仍红、新文件与缺基线按真变更）。
+- **顺手修复**：该脚本缺 `sys.stdout.reconfigure(encoding="utf-8")`，Windows GBK 控制台在打印 ❌ 明细时 `UnicodeEncodeError`——失败原因不可见等于盲区，已按其余 20 个门禁同口径补齐。

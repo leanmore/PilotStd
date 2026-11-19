@@ -16,10 +16,15 @@
    目录），其余交给 G-013，避免同一文件被两套规则各判一次。
 """
 
+import ast
 import os
 import subprocess
 import sys
 from pathlib import Path
+
+# Windows 控制台默认 GBK：打印 ❌ 明细会 UnicodeEncodeError（看不到失败原因即等于盲区）
+if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
 
 ROOT = Path(__file__).resolve().parent.parent
 BASE_BRANCH = os.environ.get("BASE_BRANCH", "main")  # CI 中可通过环境变量指定对比分支
@@ -58,18 +63,76 @@ def _is_zero_before(range_spec: str) -> bool:
     return bool(left) and set(left) <= {"0"}
 
 
-def get_changed_files() -> list[str] | None:
-    """返回变更文件列表；显式范围为空时返回 None（调用方判 FAIL）。"""
+def get_changed_files() -> tuple[list[str], str] | None:
+    """返回 (变更文件列表, 本次使用的 git 范围)；显式范围为空时返回 None（调用方判 FAIL）。"""
     explicit = os.environ.get(RANGE_ENV, "").strip()
     if explicit and ".." in explicit and not _is_zero_before(explicit):
         files = _diff(explicit)
-        return files or None
+        return (files, explicit) if files else None
 
     for spec in (f"origin/{BASE_BRANCH}...HEAD", "HEAD~1..HEAD"):
         files = _diff(spec)
         if files:
-            return files
+            return files, spec
     return []
+
+
+def _normalized_ast(source: str) -> str | None:
+    """把 docstring 文本替换为占位符后的 AST 文本；语法错误返回 None（按真变更处理）。"""
+    try:
+        tree = ast.parse(source)
+    except SyntaxError as exc:
+        # 语法错误时无法判断是否“只改注释”，留痕后交由调用方按真变更处理
+        print(f"[WARN] G-029 源码无法解析，按真变更处理: {exc}", file=sys.stderr)
+        return None
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+            body = getattr(node, "body", [])
+            if (
+                body
+                and isinstance(body[0], ast.Expr)
+                and isinstance(body[0].value, ast.Constant)
+                and isinstance(body[0].value.value, str)
+            ):
+                body[0].value.value = "<DOC>"
+    return ast.dump(tree)
+
+
+def is_comment_only(path: str, range_spec: str, root: Path | None = None) -> bool:
+    """判断 `path` 在本次范围内是否**只改了注释/docstring**（AST 归一化后两侧一致）。
+
+    注释不进 AST，docstring 文本归一化为占位符 ⇒ 两侧 dump 相同即无代码语义变化。
+    基线内容取不到（新增文件/git 不可用/读失败）或任一侧语法错误时一律按“真变更”处理，
+    宁可多要求一次测试同步，也不静默放过。
+    """
+    base = range_spec.split("..")[0].strip()
+    if not base:
+        return False
+    work_root = root or ROOT
+    # 基线内容可能不存在（新增文件）或版本控制不可用；这两种情况都按“真变更”处理
+    before: str | None = None
+    after: str | None = None
+    try:
+        before = subprocess.run(
+            ["git", "show", f"{base}:{path}"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=True,
+            cwd=str(work_root),
+        ).stdout
+        after = (work_root / path).read_text(encoding="utf-8")
+    except (subprocess.CalledProcessError, FileNotFoundError, OSError) as exc:
+        # 不静默：读不到基线必须留痕，否则“无差异”会被误当成“只改注释”
+        print(f"[WARN] G-029 读不到基线内容，按真变更处理: {path}（{exc}）", file=sys.stderr)
+    if before is None or after is None:
+        return False
+    # 两侧 AST 归一化后相同 ⇒ 这段改动只落在注释/docstring
+    a = _normalized_ast(before)
+    if a is None:
+        return False
+    return a == _normalized_ast(after)
 
 
 def matches_any(path: str, prefixes: list[str]) -> bool:
@@ -79,21 +142,26 @@ def matches_any(path: str, prefixes: list[str]) -> bool:
 
 def main() -> int:
     """入口：检查 UI 变更是否同步更新了对应测试文件。"""
-    changed = get_changed_files()
-    if changed is None:
+    got = get_changed_files()
+    if got is None:
         print(
             f"[G-029] FAIL: 显式范围 {RANGE_ENV} 内 0 个变更文件，拒绝静默通过"
             "（检查 before/sha 取值是否为空或全零）"
         )
         return 1
+    changed, range_spec = got
     if not changed:
         print("[G-029] PASS: 无变更文件")
         return 0
 
     failures: list[str] = []
     for src_prefixes, test_prefixes in COVERAGE_MAP:
-        changed_src = [f for f in changed if matches_any(f, src_prefixes)]
+        changed_src = [
+            f for f in changed
+            if matches_any(f, src_prefixes) and not is_comment_only(f, range_spec)
+        ]
         if not changed_src:
+            print("[G-029] OK: UI 变更均为注释/docstring（AST 归一化后无差异），无需测试同步")
             continue
         if [f for f in changed if matches_any(f, test_prefixes)]:
             print(f"[G-029] OK: UI 变更已有测试同步 — {', '.join(changed_src)}")
