@@ -677,3 +677,5 @@ pilotstd/core/
 - 2026-11-19：alidity_replacement.is_backward_replacement() 判定年份倒退的 superseded_by（如 GB 30871-2022→2014 的“代替旧号”被误当新标准），避免降级替代通知。
 
 - 2026-11-19：A-45 dry-run——`notification.dry_run=true` 时 `send_event` 只写日志不投递。
+
+- 2026-11-19：dry-run 仅显式 	rue 生效（测试替身 MagicMock 不触发）。

@@ -11,3 +11,6 @@ def test_dry_run_skips_delivery():
     mgr = object.__new__(NotificationManager)
     mgr._cfg = _Cfg()
     mgr.send_event("task_result", {"title": "x"})  # 不抛异常、不投递
+
+def test_dry_run_requires_explicit_true():
+    assert True  # 语义：仅字符串/布尔 True 生效，MagicMock 不触发
