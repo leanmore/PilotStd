@@ -68,7 +68,7 @@ class DownloadEngine:
         self._task_store = DownloadTaskStore(db) if db is not None else None
 
         ensure_dir(self._save_root)
-        # 启动清理：删除超过 1 小时的 .part（下载中断残留；1 小时内可能仍在下载）
+        # 启动清理：删除超过 1 小时的 `.part`（下载中断残留；1 小时内可能仍在下载）
         try:
             removed = cleanup_stale_parts(self._save_root)
             if removed:
@@ -254,7 +254,7 @@ class DownloadEngine:
                 # · standard_name：从 task.query_result 取（`download/models.py:27` 的关联查询结果）；
                 #   取不到一律填 "-"（不猜、不报错）。
                 # · error_type：按 task.error_message 的关键词映射到既定枚举
-                #   （not_found / parse / network / timeout / unknown）；映射不出即 unknown。
+                #   （`not_found` / `parse` / `network` / `timeout` / `unknown`）；映射不出即 `unknown`。
                 _err = (getattr(task, "error_message", "") or "").lower()
                 if "timeout" in _err or "timed out" in _err:
                     _etype = "timeout"
@@ -483,7 +483,7 @@ class DownloadEngine:
                 for a in self._adapters:
                     if a.site_name == mapped:
                         return a
-        # 按标准性质路由（GB 类标准的全文只在 openstd，与哪个查询站点答的无关）
+        # 按标准性质路由（GB 类标准的全文只在 `openstd`，与哪个查询站点答的无关）
         if is_gb_code(self._logical_code(task)):
             for a in self._adapters:
                 if a.site_name == _OPENSTD_SITE_NAME:

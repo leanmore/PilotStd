@@ -63,7 +63,7 @@ class DingTalkChannel(NotificationChannel):
             getattr(self, f"_{name}") for name in self._ENTERPRISE_FIELDS
         )
         if self._enterprise and webhook_url:
-            # 方案 A2：两者都配时企业级优先，留一行 info 便于排查
+            # 方案 A2：两者都配时企业级优先，留一行信息级日志便于排查
             logger.info(t("notification.channel.dingtalk.enterprise_dual_read"))
         self._renderer = MarkdownRenderer()
         self._card_renderer = DingTalkCardRenderer()
@@ -271,7 +271,7 @@ class DingTalkChannel(NotificationChannel):
                 self._CARD_DELIVER_URL, data=deliver_body, headers=headers, timeout=10
             )
             if resp2.status_code != 200:
-                # 同一文案既进 last_error（日志表用户可见）也进 warning（排查用）
+                # 同一文案既进 last_error（日志表用户可见）也进警告级日志（排查用）
                 deliver_error = t("notification.channel.dingtalk.card_deliver_http").format(
                     status=resp2.status_code
                 )

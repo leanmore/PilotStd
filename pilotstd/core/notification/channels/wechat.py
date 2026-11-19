@@ -218,7 +218,7 @@ class WechatChannel(NotificationChannel):
             # 透传具体错误描述
             self.last_error = f"{e}: {body}" if body else str(e)
             logger.warning("企业微信通知异常: %s, body=%s", e, body, exc_info=True)
-            # HTTP 429/5xx 或网络类异常（无 HTTPError 即连接/超时类）⇒ 可重试
+            # HTTP 429/`5xx` 或网络类异常（无 HTTPError 即连接/超时类）⇒ 可重试
             return False, is_retryable_http_status(status) if status else True
 
     @staticmethod

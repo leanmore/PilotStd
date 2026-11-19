@@ -28,7 +28,7 @@ class MenuHTTPError(RuntimeError):
     """HTTP 层失败（测试替身可直接抛）。"""
 
 
-# 统一返回值：ok/code/message/data；code 保留渠道原始错误码便于排障
+# 统一返回值：`ok`/`code`/`message`/`data`；`code` 保留渠道原始错误码便于排障
 @dataclass(frozen=True)
 class MenuResult:
     """菜单操作结果：ok + 渠道原始 code + 可读 message + data。"""
@@ -165,7 +165,7 @@ class WecomMenuClient(MenuClient):
         return self._call("GET", "delete")
 
 
-# 企微按钮结构：有 children 时为分组，叶子按 type 区分 view/click
+# 企微按钮结构：有 `children` 时为分组，叶子按 `type` 区分 `view`/`click`
 def _wecom_item(item: MenuItem) -> dict[str, Any]:
     """企微按钮：分组用 name+sub_button，叶子用 type/name/url|key。"""
     label = t(item.label_key)
@@ -176,7 +176,7 @@ def _wecom_item(item: MenuItem) -> dict[str, Any]:
     return {"type": "view", "name": label, "url": item.url}
 
 
-# 飞书群菜单错误码（官方文档 232xxx 段）
+# 飞书群菜单错误码（官方文档 `232xxx` 段）
 _FEISHU_ERRORS = {
     232001: "invalid request parameter",
     232008: "unsupported chat mode",
@@ -334,7 +334,7 @@ class TelegramCommandClient(MenuClient):
         return self._call("deleteMyCommands")
 
 
-# 钉钉：官方机器人无持久菜单，显式返回 unsupported，避免调用方误判
+# 钉钉：官方机器人无持久菜单，显式返回 `unsupported`，避免调用方误判
 class DingtalkMenuClient(MenuClient):
     """钉钉机器人无持久菜单；保留显式“不支持”结论。"""
 

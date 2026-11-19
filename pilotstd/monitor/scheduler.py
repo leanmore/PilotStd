@@ -46,7 +46,7 @@ def _cleanup_empty_dirs(watch_root: str, start_dir: str) -> int:
 
     removed = 0
     for dirpath, _dirnames, _filenames in os.walk(start, topdown=False):
-        # 永不删除 watch_root 本身；start==root 时仍要清理它下面的空子目录。
+        # 永不删除 watch_root 本身；`start`==`root` 时仍要清理它下面的空子目录。
         if os.path.realpath(dirpath) == root:
             continue
         try:
@@ -123,7 +123,7 @@ def _covered_by_ancestor(
 
 
 class FileMonitorScheduler:
-    # 补扫目录之间的间隔（秒）：避免启动瞬间打满查询/下载；stop 时可被立即打断。
+    # 补扫目录之间的间隔（秒）：避免启动瞬间打满查询/下载；`stop` 时可被立即打断。
     CATCHUP_INTERVAL_SECONDS = 1.0
 
     def __init__(self, manager: Any = None):
@@ -211,7 +211,7 @@ class FileMonitorScheduler:
         self.running = True
         logger.info("[MONITOR] 监控 %s (recursive=%s delay=%ds)", watch_path, recursive, delay)
 
-        # P3-16 / 08#23：observer 已就绪后再补扫存量，扫不到的窗口由事件兜底。
+        # P3-16 / 08#23：`observer` 已就绪后再补扫存量，扫不到的窗口由事件兜底。
         if cfg.get("scan_existing_on_start", True) and cfg.get("auto_archive", True):
             if self._catchup_stop is None:
                 self._catchup_stop = threading.Event()
@@ -248,8 +248,8 @@ class FileMonitorScheduler:
         - 与实时 monitor 共用 `_on_file` 的目录级去重（`_active_dirs`/`_recent_dirs`），
           同一目录不会被实时与补扫重复处理。
         """
-        # 允许“先 stop 再补扫”（62 批前置：停实时 → 投放 → catchup → start）：
-        # observer 停止后 handler 仍在，_catch_up_existing 可独立跑；start() 会重建 observer。
+        # 允许“先 `stop` 再补扫”（62 批前置：停实时 → 投放 → `catchup` → `start`）：
+        # `observer` 停止后 `handler` 仍在，_catch_up_existing 可独立跑；start() 会重建 `observer`。
         if not self.running and self.handler is None:
             return {"started": False, "reason": "monitor not running"}
         with self._catchup_trigger_lock:
@@ -345,13 +345,13 @@ class FileMonitorScheduler:
         """启动补扫：处理 watch_path 下**已存在**的文件（08#23 / P3-16）。
 
         设计要点：
-        - 只处理 mtime 晚于 `catchup_watermark` 的文件；watermark 默认 0 ⇒ 首次启动全处理；
+        - 只处理 `mtime` 晚于 `catchup_watermark` 的文件；`watermark` 默认 0 ⇒ 首次启动全处理；
         - 按**父目录**分批（`auto_run(dir)` 会递归扫子目录），祖先目录折叠后代，避免重复扫描；
         - 每批一次 `_on_file`，复用去抖/锁/空目录清理，一批 ≈ 一条通知；
-        - 目录间 `CATCHUP_INTERVAL_SECONDS` 间隔，`stop` 可立即打断；被打断时不推进 watermark。
+        - 目录间 `CATCHUP_INTERVAL_SECONDS` 间隔，`stop` 可立即打断；被打断时不推进 `watermark`。
 
-        注意：`auto_run` 在 worker 线程里跑，超大目录会持续较久；daemon 线程在进程退出时中断，
-        此时 watermark 未推进，下次启动会重扫（已处理的文件已被搬走，不会重复）。
+        注意：`auto_run` 在 `worker` 线程里跑，超大目录会持续较久；`daemon` 线程在进程退出时中断，
+        此时 `watermark` 未推进，下次启动会重扫（已处理的文件已被搬走，不会重复）。
         """
         cfg = get_config()
         watch_path = resolve_monitor_config(cfg)["watch_path"]
@@ -393,8 +393,8 @@ class FileMonitorScheduler:
         """文件稳定后触发：解析 → 归档 → 按**真实归档结果**计数。
 
         计数口径（技术债 #30）：`success` 必须是"真归档成功"，不能是"文件名解析出来了"。
-        改前只调 `scan_directory`（仅解析、不搬文件、不写 `file_index`）却照记 success，
-        现场出现 `processed_today=6 / success_today=6` 而 inbox 里 6 个文件一个都没入库
+        改前只调 `scan_directory`（仅解析、不搬文件、不写 `file_index`）却照记 `success`，
+        现场出现 `processed_today=6 / success_today=6` 而 `inbox` 里 6 个文件一个都没入库
         → 面板显示健康、实际什么都没发生（`auto_archive` 开关形同虚设）。
         """
         cfg = get_config()
@@ -431,7 +431,7 @@ class FileMonitorScheduler:
                         from pilotstd.manager.facade import StandardManager  # noqa: PLC0415
 
                         self._mgr = StandardManager()
-            # monitor 只负责“发现文件稳定 → 触发主链”，不自己实现 scan+archive。
+            # `monitor` 只负责“发现文件稳定 → 触发主链”，不自己实现 `scan`+`archive`。
             report = self._mgr.auto_run(source_root)
             moved = int(report.get("organize_moved", 0) or 0) if isinstance(report, dict) else 0
             scanned = int(report.get("scan", 0) or 0) if isinstance(report, dict) else 0

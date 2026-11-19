@@ -15,7 +15,7 @@ class ValidityService:
 
     def __init__(self, manager: Any):
         self._mgr = manager
-        # 调度器可能并发触发 drain；同一实例只允许一个消费者
+        # 调度器可能并发触发 `drain`；同一实例只允许一个消费者
         self._queue_lock = threading.Lock()
 
     def get_history(self, page: int = 1, size: int = 20) -> dict[str, Any]:
@@ -65,7 +65,7 @@ class ValidityService:
                     "VALUES (?, 'pending', '', ?, ?)",
                     (str(fp), now, now),
                 )
-                # OR IGNORE：已存在 pending 行时 rowcount=0，不应谎报新增
+                # OR IGNORE：已存在 pending 行时 `rowcount`=0，不应谎报新增
                 inserted += int(cur.rowcount or 0)
             except Exception as e:
                 # 单条入队失败不阻断其余文件，但“少入队”必须可见

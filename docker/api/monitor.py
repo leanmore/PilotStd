@@ -27,7 +27,7 @@ class MonitorConfigResponse(BaseModel):
     file_patterns: list[str]
     ignore_patterns: list[str]
     auto_archive: bool
-    # 08#23：启动时补扫 /inbox 存量（默认 true；PUT /api/monitor/config 可关）
+    # 08#23：启动时补扫 `/inbox` 存量（默认 `true`；PUT /api/monitor/config 可关）
     scan_existing_on_start: bool
 
 

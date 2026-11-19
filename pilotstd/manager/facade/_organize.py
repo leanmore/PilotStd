@@ -273,7 +273,7 @@ class OrganizeHandler:
         items = parsed_list if parsed_list is not None else self._core.parsed_results
         total = len(items)
         # 通知聚合 B1 · E1：**一次归档 = 一个批次**。批次键驱动聚合器走①批次键
-        # （`correlation_id × notify_event`）⇒ 本次归档的完成通知收敛为一条（失败明细在 payload）。
+        # （`correlation_id × notify_event`）⇒ 本次归档的完成通知收敛为一条（失败明细在载荷）。
         # 若外层有导入上下文（`notification.batch.batch_scope`），则**共用**该次导入的键 ⇒ 与其它阶段合成一条。
         archive_batch_key = ensure_batch_key("arch")
         backfilled = 0
@@ -311,9 +311,9 @@ class OrganizeHandler:
                         "failed": int(result.get("failed", 0) or 0),
                         "directories": directories,
                         "category_stats": _archive_category_stats(items),
-                        # 通知聚合 B1 · E2：批次键随 payload 透传（分发层搬到消息字段）
+                        # 通知聚合 B1 · E2：批次键随载荷透传（分发层搬到消息字段）
                         "correlation_id": archive_batch_key,
-                        # 通知聚合 B1-1：失败明细（4 列口径；本方法内 result 来自 organize() 的返回值，
+                        # 通知聚合 B1-1：失败明细（4 列口径；本方法内 `result` 来自 organize() 的返回值，
                         # 无该键时降级为空列表 ⇒ 契约（G-045：声明的 key 必须由生产者提供）得到满足）
                         "failed_items": result.get("failed_items", []),
                     },
@@ -465,7 +465,7 @@ class OrganizeHandler:
         """流式规范化（线程安全）。"""
         from ...organizer.industry_lookup import get_folder_name
 
-        # 通知聚合 B1 · E1：**一次规范化 = 一个批次**（与归档同款；键随 payload 透传，
+        # 通知聚合 B1 · E1：**一次规范化 = 一个批次**（与归档同款；键随载荷透传，
         # 使本批的完成通知走①批次键收敛成一条，失败明细在 payload.failed_items）。
         # 外层若有导入上下文则共用其键（一次导入的查询/下载/规范化/存档合成一条）。
         normalize_batch_key = ensure_batch_key("norm")
@@ -511,7 +511,7 @@ class OrganizeHandler:
                 self._core.notification_mgr.send_event(
                     "normalize_complete",
                     # 通知聚合 B1-1：失败明细键（4 列口径）。本路径（规范化）当前按"整批一条"发送，
-                    # 逐条失败采集见 organize_stream 的 except 分支；此处先以空列表满足
+                    # 逐条失败采集见 organize_stream 的 `except` 分支；此处先以空列表满足
                     # G-045 契约（声明的 key 必须由生产者提供），后续细化时改为该分支的真实清单。
                     {"total": total, "success": len(results), "failed": 0, "failed_items": [],
                      "correlation_id": normalize_batch_key},

@@ -42,15 +42,15 @@ _QUEUE_MESSAGE_FIELDS = (
     "correlation_id",
     "delivery_status",
     "ack_status",
-    # 阶段 1b：任务视角（task_context 是 dict，落库/还原由 _json_codec 负责，
+    # 阶段 `1b`：任务视角（task_context 是字典，落库/还原由 _json_codec 负责，
     # 故它虽在 JSON 里但**不**列入本标量白名单——见 rebuild_message）
     "task_id",
     "notify_event",
     "content_type",
-    # 阶段 1c：callback_data 是**字符串**，属标量 → 入白名单；
-    # actions / attachments（规格列表）与 channel_message_ids（dict）走 _json_codec，不入此表
+    # 阶段 `1c`：callback_data 是**字符串**，属标量 → 入白名单；
+    # `actions` / `attachments`（规格列表）与 channel_message_ids（字典）走 _json_codec，不入此表
     "callback_data",
-    # 阶段 2.5a：task_kind 是字符串（标量）→ 入白名单。**漏了它就会在静音补发时静默丢失**
+    # 阶段 `2.5a`：task_kind 是字符串（标量）→ 入白名单。**漏了它就会在静音补发时静默丢失**
     # ——与 1a/1b/1c 三批同一类缺陷（写入/重建两侧必须同源）
     "task_kind",
     "user_id",
@@ -121,11 +121,11 @@ class SuppressionQueue:
             {
                 # 写入键集合由 _QUEUE_MESSAGE_FIELDS 驱动（**唯一数据源**）：
                 # 与重建侧共用同一常量，根治"两份字面量漂移"——新增字段只需改常量，
-                # 两侧自动同步（阶段 1a 起；1b 加入任务视角 3 字段；1c 加入 callback_data）。
+                # 两侧自动同步（阶段 `1a` 起；`1b` 加入任务视角 3 字段；`1c` 加入 callback_data）。
                 **{f: getattr(msg, f) for f in _QUEUE_MESSAGE_FIELDS},
                 # 非标量字段单独走编解码模块转 JSON 文本（SQLite 无原生 JSON 类型）：
-                # task_context / channel_message_ids 是 dict；actions / attachments 是规格列表，
-                # 先经 specs_to_jsonable 转字典列表再序列化（不能直接 dumps 规格对象）。
+                # task_context / channel_message_ids 是字典；`actions` / `attachments` 是规格列表，
+                # 先经 specs_to_jsonable 转字典列表再序列化（不能直接 `dumps` 规格对象）。
                 "task_context": _json_codec.dumps(msg.task_context),
                 "actions": _json_codec.dumps(specs_to_jsonable(msg.actions)),
                 "attachments": _json_codec.dumps(specs_to_jsonable(msg.attachments)),
@@ -144,12 +144,12 @@ class SuppressionQueue:
     def rebuild_message(self, data: dict) -> tuple[NotificationMessage, list[str]]:
         """按白名单从落库 JSON 重建消息与目标渠道（补发路径的唯一重建入口）。"""
         channels = data.pop("channels", [])
-        # 白名单重建：**必须**与 enqueue 的写入键保持一致，
+        # 白名单重建：**必须**与 `enqueue` 的写入键保持一致，
         # 否则新字段在补发路径被静默丢弃（只在静音时段暴露，最难发现）。
         # 契约由 tests/test_notification_stage1b_fields.py::TestQueueJsonRoundTrip 锁定。
         fields = {k: v for k, v in data.items() if k in _QUEUE_MESSAGE_FIELDS}
         # 非标量字段逐个还原（都经 _json_codec，空值/非法输入一律回退空容器，
-        # 保证字段类型恒定：dict 恒 dict、list 恒 list，不会变成 None）。
+        # 保证字段类型恒定：字典恒字典、列表恒列表，不会变成 None）。
         fields["task_context"] = _json_codec.loads_dict(data.get("task_context"))
         fields["actions"] = _json_codec.loads_list(data.get("actions"))
         fields["attachments"] = _json_codec.loads_list(data.get("attachments"))

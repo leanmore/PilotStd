@@ -54,7 +54,7 @@ def _log_skipped(
         return
     if not channels:
         return
-    # 未配置/未初始化的渠道不写 skipped 行，避免“没配置”被当成一次投递事件
+    # 未配置/未初始化的渠道不写 `skipped` 行，避免“没配置”被当成一次投递事件
     channels = [ch for ch in channels if ch in host._channels]
     if not channels:
         return
@@ -94,7 +94,7 @@ def send_event(
     )
     # W2（共享事件按端分流）：桌面端把事件落到**本地信号**（托盘气泡）。
     # 必须在 `_enabled` 早退**之前**——渠道开关（默认关闭）与"本端是否可见"是两件事；
-    # 若先早退，这些事件在 Windows 端就"两头都不落"（Docker 端的渠道/Web 由那边的 manager 负责）。
+    # 若先早退，这些事件在 Windows 端就"两头都不落"（Docker 端的渠道/Web 由那边的管理器负责）。
     # 本地信号看的是**构建器原始产出**（不施加三层模型投影，那是渠道侧阶段）。
     if host._local_sink is not None:
         host._local_sink(host._build_message(event_type, event_data))
@@ -119,12 +119,12 @@ def send_event(
     msg.user_id = log_user_id
     msg.delivery_user_id = delivery
     # 批次键透传（通知聚合 B1 · E2，2026-10-05）：构建器**不感知批次**（它是"单条消息长什么样"的出处），
-    # 批次标识由**调用方在导入/批量入口生成**后经 payload 传入，这里只做搬运——
+    # 批次标识由**调用方在导入/批量入口生成**后经载荷传入，这里只做搬运——
     # 落在 `NotificationMessage.correlation_id` 上，供聚合器的①批次键（`correlation_id × notify_event`）
     # 把整批通知收敛成一条。空值语义＝"非批次路径" ⇒ 走 ②日常聚合键（`notify_event × target_id`）。
     if not msg.correlation_id:
         msg.correlation_id = str(event_data.get("correlation_id") or "")
-    # 三层模型投影回填（阶段 2b-接入）：默认 stage=1 → 不生效，行为零变化。
+    # 三层模型投影回填（阶段 2b-接入）：默认 `stage=1` → 不生效，行为零变化。
     # 实现在 _manager_ops（并入本模块会超 G-010 的 500 阻断线）。
     host.ops.apply_mapping(msg, event_type, event_data)
     # 构建器契约校验：空消息拦截（失败仅记错误日志，不中断主业务流程）
@@ -140,7 +140,7 @@ def _suppress_nochange(host: Any, event_type: str, data: dict[str, Any]) -> bool
     """无变化任务默认仍通知；仅显式开启 suppress_nochange 才静默。"""
     cfg = getattr(host, "_cfg", None)
     raw = cfg.get("notification.suppress_nochange", False) if cfg is not None else False
-    # 测试替身/旧配置可能给 MagicMock 或其他非 bool 值；只有显式 True/1 才抑制
+    # 测试替身/旧配置可能给 MagicMock 或其他非布尔值；只有显式 True/1 才抑制
     if raw is not True and raw != 1:
         return False
     if event_type == "scan_empty":
@@ -196,7 +196,7 @@ def _throttled(host: Any, msg: NotificationMessage) -> bool:
 
 # N1 裁决（2026-10-24）：**警告及以上不受静音时段约束**。
 # 静音的本意是"别拿普通事吵我"，而警告/错误恰恰是"必须现在知道"——延后等于没告警。
-# 只影响静音分支；分档节流与聚合行为不变（警告的 bypass 由调用点的 bypass_aggregation 决定）。
+# 只影响静音分支；分档节流与聚合行为不变（警告的 `bypass` 由调用点的 bypass_aggregation 决定）。
 _QUIET_BYPASS_LEVELS = frozenset({"warning", "error"})
 
 
@@ -215,7 +215,7 @@ def do_send(
 ) -> None:
     """逐渠道发送：分档节流 → 静音期暂存（警告/错误除外）→ 聚合器入队 → 合并后发送。"""
     # B3（Docker 分档节流）：**长阶段**按主题 60 秒一条，与 Windows 端 W3 同窗口、同语义。
-    # 短阶段与警告不受影响（警告本就走 bypass）；节流是正常行为 ⇒ 只记 debug，不写日志行
+    # 短阶段与警告不受影响（警告本就走 `bypass`）；节流是正常行为 ⇒ 只记调试，不写日志行
     # （写行会污染投递健康统计，且让"被节流"看起来像"投递失败"）。
     if not bypass_aggregation and _throttled(host, msg):
         logger.debug(
@@ -274,17 +274,17 @@ def send_now(host: Any, msg: NotificationMessage, target_channels: list[str]) ->
                 t("notification.manager.send_failed_no_detail"),
                 sent_at,
             )
-        # ② 铸 token：仅在"消息带动作"时（无动作的通知保持 callback_data 为空，语义不变）
-        # owner 必须用**解析出的投递用户**（delivery_user_id），不能用 host._user_id：
-        # 后者恒为 manager 默认用户（1），非默认用户收到的按钮会拿别人的凭据验签。
+        # ② 铸令牌：仅在"消息带动作"时（无动作的通知保持 callback_data 为空，语义不变）
+        # `owner` 必须用**解析出的投递用户**（delivery_user_id），不能用 host._user_id：
+        # 后者恒为管理器的默认用户（1），非默认用户收到的按钮会拿别人的凭据验签。
         owner_id = owner if isinstance(owner, int) and owner > 0 else getattr(host, "_user_id", None)
         if two_phase and log_id and getattr(msg, "actions", None) and isinstance(owner_id, int):
             token = f"{log_id}:{owner_id}"
             msg.callback_data = token
             host.ops.update_log_fields(log_id, callback_data=token)
         # ③ 站内入口（阶段 3 · Step 1）：按系统配置的 Base URL 挂 `view_detail`（+有失败明细时
-        #    `open_logs`）为**链接型动作**；地址不可用 ⇒ 自动降级为纯文本提示（绝不生成 localhost）。
-        #    放在铸 token **之后**：token 只服务于"回调型动作"，不因站内链接而铸发。
+        #    `open_logs`）为**链接型动作**；地址不可用 ⇒ 自动降级为纯文本提示（绝不生成 `localhost`）。
+        #    放在铸令牌 **之后**：令牌只服务于"回调型动作"，不因站内链接而铸发。
         attach_web_actions(msg, getattr(host, "_cfg", None))
         try:
             ok = channel.send(msg)

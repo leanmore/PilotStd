@@ -27,7 +27,7 @@ class SiteState:
     probe_url: str = ""  # 健康检查探活 URL（空则回退 base_url，绝不回退 search_url）
     probe_method: str = "GET"  # 探活请求方法（GET/POST）
     # 探活请求参数：AJAX 端点（如 energy 的 stdPage）不带参数会直接返回 400，
-    # 会让健康检查把在线站点误判为 down，故按各站真实请求形态配置
+    # 会让健康检查把在线站点误判为 `down`，故按各站真实请求形态配置
     probe_params: Dict[str, Any] = field(default_factory=dict)
     max_requests: int = 200  # 每轮冷却前最大请求数
     daily_limit: int = 800  # 每日最大请求数（次日凌晨自动重置）

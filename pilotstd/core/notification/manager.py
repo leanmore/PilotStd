@@ -74,10 +74,10 @@ class NotificationManager:
         self._cfg = config
         self._db = db
         # user_id <= 0 表示“系统级”：解析为一个真实管理员作为默认渠道宿主，
-        # 否则 _channels 会按 0 号用户构造（无凭据 → 空），旧库无管理员时也无处回退（D5-3）。
+        # 否则 `_channels` 会按 0 号用户构造（无凭据 → 空），旧库无管理员时也无处回退（D5-3）。
         self._user_id = _resolve_default_user(db, user_id)
         self._policy = NotificationPolicyHelper(db, config)
-        # 静音暂存/补发：组合式注入（发送实现走 lambda ⇒ 每次补发再取 self._send_now，
+        # 静音暂存/补发：组合式注入（发送实现走 `lambda` ⇒ 每次补发再取 self._send_now，
         # 保证测试里替换 `mgr._send_now` 仍然生效）
         self._queue = _suppression_queue.SuppressionQueue(
             config, db, lambda msg, channels: self._send_now(msg, channels)
@@ -85,7 +85,7 @@ class NotificationManager:
         # 端点到本地的信号出口（W2 按端分流）：桌面端注入"弹托盘气泡"，Docker 端保持 None
         # ⇒ 渠道投递不变。**与 `_enabled` 无关**：渠道开关只管"是否投递渠道"。
         self._local_sink: Callable[[NotificationMessage], None] | None = None
-        # TG 接收通道（阶段 B2b-3）：默认不起线程，由 Docker lifespan 显式启动
+        # TG 接收通道（阶段 B2b-3）：默认不起线程，由 Docker 的 `lifespan` 显式启动
         self._telegram_receiver: Any = None
         self._cred_helper: CredentialHelper | None = None
         try:
@@ -107,7 +107,7 @@ class NotificationManager:
         db_enabled = self._read_user_enabled()
         self._enabled = self._system_enabled and (db_enabled if db_enabled is not None else True)
         self._channels: dict[str, Any] = {}
-        # A-21 3b-4：按 user_id 的渠道缓存；self._channels 是 manager 默认用户的缓存
+        # A-21 3b-4：按 user_id 的渠道缓存；self._channels 是管理器默认用户的缓存
         self._channel_cache: dict[int, dict[str, Any]] = {self._user_id: self._channels}
         # 日志/查询/清理（组合式，见 _manager_ops.NotificationOps）
         self.ops = NotificationOps(self)
@@ -118,8 +118,8 @@ class NotificationManager:
         self.aggregator: Optional[Any] = None
         # 回退值与 defaults.py 的 `notification.aggregate_enabled=True` 对齐（第 3 批修正）：
         # 原先回退 False，会让"配置里缺该键"的旧配置文件静默关闭聚合，与 events.py
-        # 文档「所有事件均经聚合器」以及 defaults 声明互相矛盾。窗口/批量两处
-        # 回退值同样取自 defaults（5 秒 / 50 条）。
+        # 文档「所有事件均经聚合器」以及 `defaults` 声明互相矛盾。窗口/批量两处
+        # 回退值同样取自 `defaults`（5 秒 / 50 条）。
         self._aggregate_enabled = config.get("notification.aggregate_enabled", True)
         if self._aggregate_enabled:
             from .aggregate_buffer import NotificationAggregator
@@ -191,7 +191,7 @@ class NotificationManager:
                 (user_id if user_id is not None else self._user_id,),
             )
         except Exception as e:
-            # 读不到配置 ≠ 用户关掉通知：默认开（U-3/U-4 批 2a），但必须留痕
+            # 读不到配置 ≠ 用户关掉通知：默认开（U-3/U-4 批 `2a`），但必须留痕
             # i18n-allow: 内部运维日志
             logger.warning("通知开关配置读取失败，按默认开处理: user_id=%s (%s)", user_id, e)
             return True
@@ -249,7 +249,7 @@ class NotificationManager:
         ctx = context or NotificationContext(scope="system")
         if legacy:
             # 未接线的旧调用：**系统级通知**——投递给全部管理员。
-            # 旧实现固定投给 manager 默认用户（恒为 1），后台任务通知因此全部落在 user 1
+            # 旧实现固定投给管理器默认用户（恒为 1），后台任务通知因此全部落在用户 1
             # 头上，其他管理员收不到（D5-3，2026-11-04 审计）。
             # 日志仍记 system(0)；旧库/测试替身取不到管理员时回退默认用户，保持兼容。
             try:
@@ -350,8 +350,8 @@ class NotificationManager:
         token = str((self._channel_credentials("telegram") or {}).get("bot_token") or "")
         if not token:
             return False
-        # 局部变量显式具体类型：`self._telegram_receiver` 是 Any，直接 return 会让 mypy
-        # 报 no-any-return（本项目禁止 cast/type: ignore，故用类型收窄收口）
+        # 局部变量显式具体类型：`self._telegram_receiver` 是 Any，直接返回会让 mypy
+        # 报 no-any-return（本项目禁止 `cast`/`type: ignore`，故用类型收窄收口）
         receiver: TelegramReceiver = self._telegram_receiver or TelegramReceiver(
             token, self._dispatch_telegram_update
         )
@@ -401,7 +401,7 @@ class NotificationManager:
             helper_obj = CredentialHelper(self._db, str(Path(filepath).parent))
             return helper_obj.get_channel(self._user_id, channel) or {}
         except Exception:
-            # 单渠道凭证读失败 → 该渠道本轮无凭证但轮询继续（U-3/U-4 批 2b 升 warning）
+            # 单渠道凭证读失败 → 该渠道本轮无凭证但轮询继续（U-3/U-4 批 `2b` 升为警告）
             logger.warning(
                 t("notification.manager.credential_read_failed").format(channel=channel),
                 exc_info=True,
@@ -426,8 +426,8 @@ class NotificationManager:
 
     # ── 日志：实现见 _manager_ops.NotificationOps，此处保留同名方法作为内部 API ──
     # 保留委托而不是让调用方直接用 self.ops：① _send_now 是内部路径，签名即契约；
-    # ② tests/test_notification_combo_patch.py 用 MagicMock(spec=NotificationManager) 打桩 _log，
-    #    spec 只认类属性，故 _log 必须是管理器的方法。
+    # ② tests/test_notification_combo_patch.py 用 MagicMock(spec=NotificationManager) 打桩 `_log`，
+    #    `spec` 只认类属性，故 `_log` 必须是管理器的方法。
     # （原 _broadcast_to_ws 与之并列，随 WebSocket 死代码清理于阶段 0 删除，见
     #   docs/plans/notification-redesign/06-阶段0-1实施方案.md §1.2。）
 

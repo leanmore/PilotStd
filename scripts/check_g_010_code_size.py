@@ -63,7 +63,7 @@ def has_split_evidence(file_path: Path) -> bool:
     if (parent / stem).is_dir():
         return True
 
-    # 证据2：同目录下存在 原文件名_*.py 文件
+    # 证据2：同目录下存在 原文件名_`*.py` 文件
     if any(parent.glob(f"{stem}_*.py")):
         return True
 
@@ -73,9 +73,9 @@ def has_split_evidence(file_path: Path) -> bool:
 def _count_logical_lines(lines: list[str], file_suffix: str = ".py") -> int:
     """统计有效代码行数（排除空行与纯注释行）。
 
-    - .py：剔除 # 开头行
-    - .ts：额外剔除 // 单行注释与 /* */ 块注释
-    - .vue：额外剔除 <!-- --> HTML 注释（模板内）
+    - `.py`：剔除 # 开头行
+    - `.ts`：额外剔除 // 单行注释与 /* */ 块注释
+    - `.vue`：额外剔除 <!-- --> HTML 注释（模板内）
     """
     in_block_comment = False  # /* */ 跨行注释状态
     in_html_comment = False  # <!-- --> 跨行注释状态

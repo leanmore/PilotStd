@@ -23,7 +23,7 @@ from ._attachment_parser import (  # noqa: F401 — 重导出
 
 logger = logging.getLogger(__name__)
 
-# 代替标准沿用同一 token 语法
+# 代替标准沿用同一 `token` 语法
 REPLACES_PATTERN = STD_CODE_PATTERN
 
 
@@ -542,7 +542,7 @@ def parse_announcement_detail(
                     att_items = parse_text_table(att_text)
 
     # 附件比网页表格更完整时以附件为主（DB 公告详情页只展示首屏 52 行，
-    # 完整 215/223 行在 .doc 附件中）；否则沿用“网页为主、附件补漏”的合并策略。
+    # 完整 215/223 行在 `.doc` 附件中）；否则沿用“网页为主、附件补漏”的合并策略。
     if att_items and len(att_items) > len(html_items):
         logger.info("attachment %d rows > HTML %d rows; use attachment as primary", len(att_items), len(html_items))
         for item in att_items:

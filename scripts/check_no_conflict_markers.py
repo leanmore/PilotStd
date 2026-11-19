@@ -41,7 +41,7 @@ _LEFT = "<" * 7
 _RIGHT = ">" * 7
 _EQUAL = "=" * 7
 
-# 白名单：仅限"用于测试本门禁自身"的 fixture 文件名后缀（避免测试夹具被判违规）
+# 白名单：仅限"用于测试本门禁自身"的夹具文件名后缀（避免测试夹具被判违规）
 WHITELIST_NAME_SUFFIXES = ("conflict-marker-fixture.txt",)
 
 # 单行片段展示长度上限（避免把整行超长 SQL 打进日志）

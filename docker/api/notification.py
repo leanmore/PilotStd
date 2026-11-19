@@ -34,7 +34,7 @@ from .notification_logs import MarkReadRequest as MarkReadRequest  # 兼容再�
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["notification"])
-# 子路由自身不声明 tags：父路由的 tags 在 include 时自动叠加（再传一次会重复成两个同名标签）
+# 子路由自身不声明 `tags`：父路由的 `tags` 在 `include` 时自动叠加（再传一次会重复成两个同名标签）
 router.include_router(notification_config.router)
 router.include_router(notification_logs.router)
 router.include_router(notification_policy.router)

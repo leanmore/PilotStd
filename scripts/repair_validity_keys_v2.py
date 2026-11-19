@@ -42,7 +42,7 @@ MALFORMED_RE = re.compile(r"^\s+(\d+)(?:\.(\d+))?-(\d{4})$")
 # file_index 里改单/修改单类文件不是独立标准，不能拿它的代号做规范键
 AMENDMENT_MARK = "修改单"
 
-# 规范键形态：`CODE number[.part]-year`（用于从 standard_validity 自身找同号/同年 canonical）
+# 规范键形态：`CODE number[.part]-year`（用于从 standard_validity 自身找同号/同年的规范键）
 CANONICAL_RE = re.compile(r"^(\S+) (\d+)(?:\.(\d+))?-(\d{4})$")
 
 
@@ -75,7 +75,7 @@ def _table_exists(conn: sqlite3.Connection, table: str) -> bool:
 
 def _canonical_candidates(conn: sqlite3.Connection, number: int, year: int, part: int | None) -> dict[str, list[str]]:
     """Return {logical_code: [std_name, ...]} for the given number/year[/part]."""
-    # 只有带分部的畸形键才按 part 过滤；不带分部的用 number+year 全量候选
+    # 只有带分部的畸形键才按 `part` 过滤；不带分部的用 `number`+`year` 全量候选
     sql = "SELECT logical_code, part, std_name FROM file_index WHERE number=? AND year=?"
     params: list[Any] = [number, year]
     if part is not None:

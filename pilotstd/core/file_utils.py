@@ -143,7 +143,7 @@ def hash_file_content(path: str) -> str:
     try:
         file_size = os.path.getsize(path)
     except OSError as e:
-        # 返回空哈希是既有契约，但「文件被静默跳过索引/去重」必须留痕（U34 批 1 升 warning）
+        # 返回空哈希是既有契约，但「文件被静默跳过索引/去重」必须留痕（U34 批 1 升为 `warning` 级别）
         # i18n-allow: 内部运维日志
         logger.warning("文件哈希计算失败（getsize）: %s (%s)", path, e)
         return ""

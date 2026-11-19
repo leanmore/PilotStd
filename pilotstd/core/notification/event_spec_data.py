@@ -194,7 +194,7 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         module_key="notification.module.download", trigger_file="pilotstd/tasks/favorite_download.py",
         # 名称：载荷携带「当前最高可得阶段名」（③决策→②查询→①解析，见 core/name_resolution.py）。
         # 生产方 favorite_download.py::_fetch_std_meta 已按该链取值 ⇒ 此声明须与生产方同批，
-        # 否则 tests/test_notification_e2e.py 的正向断言（builder ⊆ trigger）会失败。
+        # 否则 tests/test_notification_e2e.py 的正向断言（`builder` ⊆ `trigger`）会失败。
         payload_keys=frozenset(
             {"error", "standard_name", "standard_number"}
         ), security=False, branch_by=None, subscribable=True,
@@ -233,7 +233,8 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         i18n_category="notification.archive", default_channels=("wechat",), levels=("info",),
         module_key="notification.module.archive", trigger_file="pilotstd/manager/facade/_organize.py",
         # 2026-10-05 B1-3：按**实现**对齐——`_organize.py::archive_standards` 实际只传
-        # count / directories / category_stats（原声明的 elapsed_ms / standard_number / status / target_id 从未传入）；
+        # `count` / `directories` / category_stats
+        # （原声明的 elapsed_ms / standard_number / status / target_id 从未传入）；
         # 并追加 failed_items（批量导入失败明细，需求①）。
         payload_keys=frozenset({"category_stats", "count", "directories", "failed_items"}),
         security=False, branch_by=None, subscribable=True, aggregation="aggregate",
@@ -408,7 +409,7 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         verify_reason="chaos_condition",
     ),
 
-    # ── 平台层（1）──（阶段 4 · P6 · 4c：登记 `desktop_toast`，消除 G-045 盲区）
+    # ── 平台层（1）──（阶段 4 · P6 · `4c`：登记 `desktop_toast`，消除 G-045 盲区）
     # 与 `notification_delivery_failed` 同口径：归 `system_health`、`subscribable=False`（不进用户配置入口）、
     # `task_kind=""`（不是用户交办的任务）。**trigger_file 指向真实产出点**——桌面协调层的
     # `push(event_type="desktop_toast", ...)`（走 L2→L1 直构消息，**不经 `send_event`** ⇒ `payload_keys` 为空集，
@@ -532,7 +533,7 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         verify_reason="env_dependent",
     ),
     # Q11（2026-10-24 裁决）：一键处理（扫描→查询→下载→归档）的管道级终局汇总。
-    # 触发点在 `_auto.py` 的两个入口收尾；`task_kind=auto_pipeline` 按 Q11 映射到 scan 队列。
+    # 触发点在 `_auto.py` 的两个入口收尾；`task_kind=auto_pipeline` 按 Q11 映射到 `scan` 队列。
     EventSpec(key="auto_pipeline_summary", notify_event="batch_summary", content_type="field_list",
         task_kind="auto_pipeline",
         builder_ref="pilotstd.core.notification._builders_task_results:_build_auto_pipeline_summary_message",

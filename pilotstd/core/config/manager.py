@@ -101,7 +101,7 @@ class ConfigManager:
                         try:
                             shutil.copyfile(str(target), str(target) + ".bak")
                         except OSError as e:
-                            # 备份失败不阻断写盘，但要留痕：丢一次写将无法回滚（U34 批 1 升 warning）
+                            # 备份失败不阻断写盘，但要留痕：丢一次写将无法回滚（U34 批 1 升为警告）
                             # i18n-allow: 内部运维日志
                             logger.warning("配置备份失败，原配置仍在使用: %s (%s)", target, e)
                     os.replace(tmp_path, str(target))
@@ -169,7 +169,7 @@ class ConfigManager:
         写盘语义（#31-P2 / R14-3a，2026-10-01）：**仅当补默认值或迁移旧键实际改动了内存态时**
         才写回文件。原实现无条件 `save()`，等价于“每构造一次 = 读一次 + 写一次”——
         热路径（`scorer.get_profile` 每次新建实例）单批查询触发 ≈126 次整份 config.json 覆盖写
-        （实测 ≈0.58 s ／ ≈519 KiB），既放大“多实例 last-writer-wins 丢配置”的窗口，也拖慢查询。
+        （实测 ≈0.58 秒 ／ ≈519 KiB），既放大“多实例 last-writer-wins 丢配置”的窗口，也拖慢查询。
         保持的契约：① 文件不存在（首次运行）仍写盘；② 补默认值/迁移有变更写盘一次；
         ③ 显式 `set()` + `save()` 仍持久化；④ 损坏文件仍先备份 `.corrupted.<ts>` 再以默认值初始化并写盘。
         """
@@ -220,8 +220,8 @@ class ConfigManager:
                     return
                 except (json.JSONDecodeError, OSError) as e:
                     # 备份同样不可用 → 走原有"备份损坏文件 + 默认值初始化"路径（契约④不变）。
-                    # 这条必须 warning：主文件损坏 + 备份不可用 = 用户配置即将被默认值覆盖，
-                    # 是"静默丢配置"的唯一现场；debug 级在生产不可见（P2-10 批 1）。
+                    # 这条必须记警告：主文件损坏 + 备份不可用 = 用户配置即将被默认值覆盖，
+                    # 是"静默丢配置"的唯一现场；调试级在生产不可见（P2-10 批 1）。
                     logger.warning("config .bak rollback failed, falling back to defaults: %s", e)
             # 数据损坏时备份原文件，避免数据彻底丢失
             backup = self._filepath + ".corrupted." + datetime.now().strftime("%Y%m%d%H%M%S")
@@ -250,7 +250,7 @@ class ConfigManager:
 #   ② 他方写盘（GUI 设置页 `_settings.py` / Web `docker/api/settings.py` 各自持有的实例）：
 #      共享缓存已陈旧 → 移除该缓存并通知监听者，下次读取自动重建（读取新值）。
 # 明确**不做**基于时间的静默 TTL 缓存——失效只能由写盘或 `invalidate_shared_config()` 触发，
-#   否则会掩盖“配置已改但读不到”的 bug（用户约束）。
+#   否则会掩盖“配置已改但读不到”的缺陷（用户约束）。
 # 可重入锁（RLock）：构造 `ConfigManager` 时首次运行会在 `_load()` 内写盘并发布失效通知，
 # 而通知路径同样要进入本锁——非重入锁会自锁死（R14-3b 实测）。重入锁同时保证：
 # 同一路径的并发首次获取被串行化，所有调用方拿到**同一实例**。

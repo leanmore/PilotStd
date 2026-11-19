@@ -60,7 +60,7 @@ def _on_drives_ready(self, drives: list[Any]) -> None:
         if hasattr(_sip, "isdeleted") and _sip.isdeleted(self.this_pc):
             return
     except (ImportError, RuntimeError) as e:
-        # sip 不可用/对象已析构：跳过就绪回调是防御性行为，但要留痕
+        # `sip` 不可用/对象已析构：跳过就绪回调是防御性行为，但要留痕
         logger.debug("sip unavailable in _on_drives_ready: %s", e)
     self.this_pc.takeChildren()
     for name, path in drives:

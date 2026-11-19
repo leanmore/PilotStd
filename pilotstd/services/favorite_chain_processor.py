@@ -143,7 +143,7 @@ def process_pending_downloads(download_engine: Any = None, notify_per_record: bo
     if not notify_per_record:
         _notify_run_summary(outcomes)
         # 告终汇总：把本轮的 `abandoned` 单独成一条（含原因分类 + 操作建议）。
-        # 必须与 `_notify_run_summary` 分开：后者的 failed 计数把 abandoned 并了进去，
+        # 必须与 `_notify_run_summary` 分开：后者的失败计数把 abandoned 并了进去，
         # 用户无从得知"哪些已彻底放弃、不会再自动重试"。
         _notify_abandoned_summary([o[1] for o in outcomes if isinstance(o, tuple) and o[0] == "abandoned"])
     return len(outcomes)

@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 # 写操作统一要求 admin（D5-1，2026-11-04）：此前仅有部分路由带 @require_role，
 # 普通用户可直接 POST /api/validity/run、/api/organize、/api/announcements/{no}/reparse 等，
 # 触发全库搬家/重解析/归档。这里在中间件层统一收口（默认拒绝），仅放行下列
-# **用户自有数据**的写接口（它们内部都按 session user_id 过滤）：
+# **用户自有数据**的写接口（它们内部都按 `session` 的 user_id 过滤）：
 _USER_WRITE_ALLOWED_EXACT = frozenset(
     {
         "/api/query",  # 查询是 POST，但只读语义
@@ -223,7 +223,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             return _error_response("forbidden", "auth.api.forbidden", 403)
 
         # 统一写操作审计（E1）：所有已认证写请求至少留一条 API_WRITE，
-        # 敏感路由可再补带业务字段的细粒度审计；payload 不落库（防密码/token 泄露）。
+        # 敏感路由可再补带业务字段的细粒度审计；`payload` 不落库（防密码 / `token` 泄露）。
         if request.method in _WRITE_METHODS and path not in _AUDIT_SKIP:
             try:
                 from pilotstd.core.audit import write_audit

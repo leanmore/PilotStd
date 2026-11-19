@@ -97,7 +97,7 @@ async def notification_callback(channel: str, request: Request) -> Response:
         return JSONResponse(status_code=501, content={"ok": False})
     raw = await request.body()
     headers = {k: v for k, v in request.headers.items()}
-    # 企微的 `msg_signature`/`timestamp`/`nonce` 在查询串里（不是请求头）⇒ 合并进 headers，
+    # 企微的 `msg_signature`/`timestamp`/`nonce` 在查询串里（不是请求头）⇒ 合并进 `headers`，
     # 使服务层的取值路径与另外三家统一（服务层只认"一个 key→value 映射"）。
     if channel == "wechat":
         for key in ("msg_signature", "timestamp", "nonce"):
@@ -114,7 +114,7 @@ async def notification_callback(channel: str, request: Request) -> Response:
     )
     logger.info(t("notification.callback.handled").format(detail=describe_outcome(outcome)))
     # 企微成功时必须回**明文 `success`**（不带信封、不是 JSON）：企微按"响应体是否
-    # 等于 success"判定受理，回 JSON 会被当成失败并触发重投；失败路径仍回 JSON 状态码。
+    # 等于 `success`"判定受理，回 JSON 会被当成失败并触发重投；失败路径仍回 JSON 状态码。
     if channel == "wechat" and outcome.status == 200:
         return _wechat_success_response()
     return JSONResponse(status_code=outcome.status, content=outcome.payload)

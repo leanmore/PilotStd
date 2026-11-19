@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 # 每站固定探针（可按站点实际收录调整；同一探针不随机，保证可比）
 PROBES: dict[str, str] = {
-    # 2026-11-17 校准：取各站点 standard_info_cache 中最近一次 match_status=exact 的标准号
+    # 2026-11-17 校准：取各站点 standard_info_cache 中最近一次 `match_status=exact` 的标准号
     "ahbz": "NB/T 47016-2023",
     "csres": "GB/T 17395-2024",
     "cssn": "GB/T 8165-2008",
@@ -57,7 +57,7 @@ def _classify(results) -> str:
     return "found" if any(getattr(r, "is_found", lambda: False)() for r in results) else "no_result"
 
 
-# 单站探针：独立线程 + 超时，任何异常都落 error，不阻断其余站点
+# 单站探针：独立线程 + 超时，任何异常都落 `error`，不阻断其余站点
 def discover_probes() -> dict[str, str]:
     """从 standard_info_cache 的 exact 记录为 probe_pending 站点自动发现探针。"""
     try:

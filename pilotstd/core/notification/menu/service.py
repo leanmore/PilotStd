@@ -38,12 +38,12 @@ def _credentials(channel: str) -> dict[str, Any]:
         helper = CredentialHelper(db, str(Path(get_db_path()).parent))
         return helper.get_channel(SYSTEM_DEFAULT_USER_ID, channel) or {}
     except Exception as e:  # pragma: no cover - 部署环境/测试替身差异
-        # 凭证读取失败不是静默路径：用 warning 留下可观测信号，由调用方报“未配置”
+        # 凭证读取失败不是静默路径：用警告日志留下可观测信号，由调用方报“未配置”
         logger.warning("read menu credentials failed: %s", e)
         return {}
 
 
-# 客户端工厂：测试可注入 transport；未知渠道落到钉钉 unsupported 客户端
+# 客户端工厂：测试可注入 `transport`；未知渠道落到钉钉 `unsupported` 客户端
 def build_client(channel: str, cfg: Any, *, transport=_http_json) -> MenuClient:
     """按渠道构造客户端；凭据合并顺序：config 基础字段 → DB 凭证覆盖。"""
     base = _config_channel(cfg, channel)

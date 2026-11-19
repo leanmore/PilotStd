@@ -133,7 +133,7 @@ class FileIndexRepository:
                         deleted,
                     )
                 except (ValueError, OSError):
-                    # 日志输出编码失败（GBK 控制台）不影响校验结果：保留 pass（已评审）
+                    # 日志输出编码失败（GBK 控制台）不影响校验结果：保留 `pass`（已评审）
                     pass
 
         t = threading.Thread(target=_run, daemon=True)
@@ -166,7 +166,7 @@ class FileIndexRepository:
                 self._db.execute(f"DELETE FROM {FILE_INDEX_TABLE} WHERE id=?", (r["id"],))
                 deleted += 1
             except Exception as e:
-                # 删不掉就会留下脏记录，索引统计长期失真（U34 批 1 升 warning）
+                # 删不掉就会留下脏记录，索引统计长期失真（U34 批 1 升为警告级别）
                 logger.warning("file_index 删除无效记录失败: id=%s (%s)", r["id"], e)
         self._validation_complete.set()
         return deleted

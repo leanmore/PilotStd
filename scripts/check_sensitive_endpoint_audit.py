@@ -88,8 +88,8 @@ AUDIT_WRAPPERS: dict[str, str] = {
     "_audit_and_respond": "docker/api/admin_db.py — 查询审计 + 统一响应",
     # L-01 接线新增：用户增删的审计封装（add_user / delete_user 的 1 成功 + 7 失败出口共用）
     "_audit_user_management": "docker/api/users.py — 用户增删审计（成功/失败共用）",
-    # L-01 接线新增：自助注册审计（register 的 1 成功 + 6 失败出口共用；未认证路径，
-    # 显式传 user_id，成功时为新建用户 id、失败为 None）
+    # L-01 接线新增：自助注册审计（`register` 的 1 成功 + 6 失败出口共用；未认证路径，
+    # 显式传 user_id，成功时为新建用户的 `id`、失败为 None）
     "_audit_registration": "docker/api/auth_register.py — 自助注册审计（成功/失败共用）",
     # L-01 接线新增：日志批删审计（clear_logs 的 3 成功 + 1 失败出口共用）
     "_audit_log_purge": "docker/api/logs.py — 日志批删审计（成功/失败共用）",

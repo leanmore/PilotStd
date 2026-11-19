@@ -102,7 +102,7 @@ def _resolve_target_by_actor(db: Any, user_name: str, credentials_for: Any) -> t
         if str(creds.get("touser") or "").strip() == wanted:
             matched.append(candidate)
     if len(matched) != 1:
-        # 0 个 ⇒ 该企微用户没在我们的配置里登记；多个 ⇒ 两个用户填了同一个 userid（配置歧义）。
+        # 0 个 ⇒ 该企微用户没在我们的配置里登记；多个 ⇒ 两个用户填了同一个 `userid`（配置歧义）。
         # 两种情况都**不猜**：宁可这次回调不生效，也不能把动作归到错误的用户名下。
         logger.warning(
             # i18n-allow: 开发者日志（回调定位失败的原因与配置指引，不进 i18n）
@@ -289,10 +289,10 @@ def handle_callback(
         target = _resolve_target(db, channel, envelope.callback_data)
     if target is None:
         # 区分两类（阶段 3 · P5b 用户裁定）：
-        #   ① **畸形/缺失 token** ⇒ 仍与验签失败同码（401）：不给攻击者一个可枚举的探针面；
+        #   ① **畸形/缺失 `token`** ⇒ 仍与验签失败同码（401）：不给攻击者一个可枚举的探针面；
         #   ② **格式合法但记录已不存在**（日志按保留策略清理后用户点了旧按钮）⇒ **410 优雅降级**，
         #      提示"操作已失效"，而不是 500/无响应，也不是语焉不详的"签名错误"。
-        # 企微走 ①（其载荷里本就没有我们的 token，只有通道侧身份，故不存在"旧按钮"这一档）。
+        # 企微走 ①（其载荷里本就没有我们的 `token`，只有通道侧身份，故不存在"旧按钮"这一档）。
         if channel != "wechat" and _is_wellformed_token(envelope.callback_data):
             return _fail(STATUS_GONE, "notification.callback.action_expired")
         return _fail(STATUS_UNAUTHORIZED, "notification.callback.bad_signature")
@@ -301,7 +301,7 @@ def handle_callback(
     # 取该用户该渠道的**解密**密钥：密钥本身不落库，解密失败即空字典 ⇒ 验签必然失败
     creds = credentials_for(user_id, channel) or {}
     secret = str(creds.get("secret") or "")
-    # 企微是**三重组合**（token/EncodingAESKey/corpid），且签名覆盖的是密文本身 ⇒ 由 credentials 承载；
+    # 企微是**三重组合**（token/EncodingAESKey/corpid），且签名覆盖的是密文本身 ⇒ 由 `credentials` 承载；
     # 另外三家沿用 `secret`（语义与调用口径完全不变）。
     verdict = verify_callback(
         channel, headers, body, secret, now, credentials=corp_creds if channel == "wechat" else None

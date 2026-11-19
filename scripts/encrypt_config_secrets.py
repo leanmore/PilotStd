@@ -37,7 +37,7 @@ def main() -> int:
         print(f"[OK] 无明文敏感字段，无需迁移: {path}")
         return 0
 
-    # ConfigManager 加载时会检测明文并写回密文；这里再显式 save 一次，确保落盘
+    # ConfigManager 加载时会检测明文并写回密文；这里再显式调用 `save()` 一次，确保落盘
     cfg = ConfigManager(str(path))
     cfg.save()
 

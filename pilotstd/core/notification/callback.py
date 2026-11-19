@@ -39,7 +39,7 @@ ACTION_REQUIRED_ROLE = "admin"
 # 时间戳新鲜度窗口（秒）：钉钉回调规范为 1 小时
 _MAX_SKEW_SECONDS = 3600.0
 
-# 幂等窗口（秒）：覆盖渠道可能的重投（Telegram 重试 24h 内、钉钉 3 次重投）
+# 幂等窗口（秒）：覆盖渠道可能的重投（Telegram 重试 24 小时内、钉钉 3 次重投）
 _REPLAY_WINDOW_SECONDS = 86400.0
 
 # 验签失败/不支持时的对外状态码（不区分具体原因）
@@ -48,7 +48,7 @@ STATUS_UNAUTHORIZED = 401
 STATUS_FORBIDDEN = 403
 # 410：按钮对应记录已不存在（如日志按保留策略被清理）⇒ **优雅降级**，与鉴权失败区分。
 # 依据：阶段 3 · P5b 用户裁定——"未成功回填/已失效的按钮点击时应给出可读提示，
-# 而不是抛 500 或无响应"。畸形/缺失 token 仍按 401（避免变成可探测的枚举面）。
+# 而不是抛 500 或无响应"。畸形/缺失 `token` 仍按 401（避免变成可探测的枚举面）。
 STATUS_GONE = 410
 STATUS_UNSUPPORTED = 501
 
@@ -141,7 +141,7 @@ def _verify_wechat(
         return _verdict(False, "notification.callback.secret_missing", STATUS_UNAUTHORIZED)
     # 签名输入的取值位置按请求形态分派：
     # · POST（有请求体）⇒ XML 里的 <Encrypt>，取不到密文即无法验签 ⇒ 拒绝；
-    # · GET（URL 验证）⇒ 查询参数 echostr（企微把它放在查询串，由端点层搬进 headers）。
+    # · GET（URL 验证）⇒ 查询参数 `echostr`（企微把它放在查询串，由端点层搬进 `headers`）。
     try:
         signed_payload = extract_encrypt(body) if body else headers.get("echostr", "")
     except WeChatCryptoError:
@@ -199,7 +199,7 @@ def verify_callback(
     if channel == "feishu":
         if not secret:
             return _verdict(False, "notification.callback.secret_missing", STATUS_UNAUTHORIZED)
-        # 变量名与钉钉分支隔离：同名会让 mypy 跨分支串味（float + str）
+        # 变量名与钉钉分支隔离：同名会让 mypy 跨分支串味（`float` + `str`）
         lark_stamp = lowered.get("x-lark-request-timestamp", "")
         nonce = lowered.get("x-lark-request-nonce", "")
         provided = lowered.get("x-lark-signature", "")
@@ -308,7 +308,7 @@ def parse_envelope(channel: str, payload: dict, event_id: str = "", now: float |
         event = str(payload.get("Event") or "").strip().lower()
         raw_data = ""
         if msg_type == "event" and event == "click":
-            # 企微"用户点菜单/按钮"的实证形态：菜单 click 事件把我们的键放在 EventKey
+            # 企微"用户点菜单/按钮"的实证形态：菜单 `click` 事件把我们的键放在 EventKey
             raw_data = str(payload.get("EventKey") or "")
         elif msg_type == "text":
             # 用户直接给我们发消息：正文即命令（与参考实现同口径）

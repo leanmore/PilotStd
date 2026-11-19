@@ -264,7 +264,7 @@ class StandardParser:
         family = self._classify_code(info.logical_code)
         if family == "domestic":
             info.num_prefix = ""
-            # 保留 language：同一标准的中文版/英文版必须能在索引里区分（D1-3）。
+            # 保留 `language`：同一标准的中文版/英文版必须能在索引里区分（D1-3）。
         elif family == "iso_iec":
             pass  # ISO/IEC 保留语言标记
         elif family == "foreign":

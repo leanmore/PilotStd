@@ -92,7 +92,7 @@ class BaseFacade:
         download_adapters: Optional[List[BaseDownloadAdapter]] = None,
         user_id: int = 0,
     ) -> None:
-        # 通知收件人：默认 0 = **系统级**（投递给全部管理员），不再默认落 user 1。
+        # 通知收件人：默认 0 = **系统级**（投递给全部管理员），不再默认落到 user_id=1。
         # 用户主动操作（收藏/下载/提醒）必须显式传 NotificationContext(scope="user")，
         # 由调度任务与后台事件走系统广播（D5-3，2026-11-04 审计）。
         self._facade_user_id = user_id

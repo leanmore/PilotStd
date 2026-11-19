@@ -148,8 +148,8 @@ class Njbz365Adapter(BaseAdapter):
             if m:
                 return m.group(1).strip()
         except Exception as e:
-            # 本 try 同时包含 safe_get() 与正则解析：网络异常也会落到这里，
-            # 原先一律记「解析失败」会误导排障；替代标准字段不阻断主查询，故保持 debug。
+            # 本 `try` 同时包含 safe_get() 与正则解析：网络异常也会落到这里，
+            # 原先一律记「解析失败」会误导排障；替代标准字段不阻断主查询，故保持调试。
             if isinstance(e, requests.RequestException):
                 # i18n-allow: 内部运维日志
                 logger.debug("njbz365 替代标准网络请求失败: %s", e)

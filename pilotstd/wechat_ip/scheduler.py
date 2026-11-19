@@ -1,5 +1,5 @@
 # 模块：项目/_/调度器脚本
-# 覆盖率：Selenium 流程不在单元测试范围；不再整文件 pragma 排除（D-16）
+# 覆盖率：Selenium 流程不在单元测试范围；不再整文件 `pragma` 排除（D-16）
 # 详见//-文档
 """可信 IP 定时更新调度器。使用 daemon 线程定期检测 IP 变化。"""
 
@@ -144,7 +144,7 @@ def _notify(cb: Optional[Callable], title: str, body: str, status: str = "info")
         try:
             cb(title, body, status)
         except Exception as e:
-            # 通知回调失败不影响检测结果，但必须可观测（原实现静默 pass）
+            # 通知回调失败不影响检测结果，但必须可观测（原实现静默放过）
             logger.warning("wechat_ip notify callback failed: %s", e, exc_info=True)
 
 

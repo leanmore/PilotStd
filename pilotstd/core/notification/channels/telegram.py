@@ -101,7 +101,7 @@ class TelegramChannel(NotificationChannel):
 
         `reply_markup` 非空时写入请求体（Telegram 交互按钮；未携带时请求体**逐字节不变**）。
         """
-        # 变量名用 `payload_body`：**避开 except 分支里的 `body`（那是 str）**——
+        # 变量名用 `payload_body`：**避开 `except` 分支里的 `body`（那是 str）**——
         # 同名会让 mypy 报类型冲突（该文件既有的同名教训见 feishu.py 的同款注释）。
         payload_body: dict[str, object] = {
             "chat_id": self._chat_id,
@@ -121,7 +121,7 @@ class TelegramChannel(NotificationChannel):
                 timeout=10,
             )
             if resp.status_code != 200:
-                # 与 urllib 路径对齐：非 200 抛 HTTPError，统一走下方同一个错误分支
+                # 与 `urllib` 路径对齐：非 200 抛 HTTPError，统一走下方同一个错误分支
                 raise requests.HTTPError(f"HTTP {resp.status_code}", response=resp)
             data = json.loads(resp.content)
             if data.get("ok"):
@@ -133,7 +133,7 @@ class TelegramChannel(NotificationChannel):
         except requests.HTTPError as e:
             http_resp = e.response
             code = http_resp.status_code if http_resp is not None else 0
-            # 读取响应体（含说明字段）用于诊断 4xx 具体原因
+            # 读取响应体（含说明字段）用于诊断 `4xx` 具体原因
             body = ""
             try:
                 body = (http_resp.text if http_resp is not None else "")[:500]
@@ -164,7 +164,7 @@ class TelegramChannel(NotificationChannel):
             self.last_error = f"HTTP {code}: {desc}"
             logger.warning("Telegram send failed: HTTP %s, body=%s", code, body)
             # 404/401→配置错误（无效/已撤销），不应重试
-            # 429/5xx→服务端临时故障，退避重试
+            # 429/`5xx`→服务端临时故障，退避重试
             if code == 404:
                 self._log_dedup(
                     "Telegram 404 — bot token 无效或已撤销，请检查配置中的 bot_token。"

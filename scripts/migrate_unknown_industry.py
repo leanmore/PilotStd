@@ -79,7 +79,7 @@ def main() -> None:
         print("未发现误归档记录")
         return
 
-    # 从第一条记录推断库根目录（/standards）
+    # 从第一条记录推断库根目录（`/standards`）
     root = os.path.dirname(os.path.dirname(rows[0]["file_path"]))
     print(f"库根目录: {root}")
     print(f"待迁移: {len(rows)} 条")

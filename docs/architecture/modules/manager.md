@@ -275,3 +275,8 @@ StandardManager (BaseFacade)
 ## 可信 IP 配置掩码（2026-11-19）
 
 - update_config 对 cookiecloud_key/password 的 *** 掩码值跳过写入，避免 GET→PUT 覆盖真实凭据；get_config 在 CookieCloud 模式下按 key 显示“已配置 (CookieCloud)/未配置 CookieCloud Key”，不再误报“未配置密钥”。
+
+## 注释语言规范化（2026-11-19）
+
+- G-012 [LANG] 改为按词判定后，本模块注释里的英文普通词改为中文、裸标识符加反引号；
+  仅注释与 docstring 变更，AST 比对无代码变化（全仓 504 行，见 27 日志 #81）。

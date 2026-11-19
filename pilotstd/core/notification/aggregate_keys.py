@@ -85,7 +85,7 @@ def group_key(msg: NotificationMessage) -> str:
     # 以“触发者”分桶：system(0) 自成一组（即使投递给管理员），避免与 user1 的摘要混合
     owner_seg = f"u{origin}" if (origin or delivery) else ""
     if batch:
-        # 批次键也按用户隔离；owner 段放在 notify 之前，保持 events_in_group 取 parts[-1]
+        # 批次键也按用户隔离；`owner` 段放在 `notify` 之前，保持 events_in_group 取 parts[-1]
         if owner_seg:
             return f"1{_GROUP_SEP}{owner_seg}{_GROUP_SEP}{batch}{_GROUP_SEP}{notify}"
         return f"1{_GROUP_SEP}{batch}{_GROUP_SEP}{notify}"
@@ -99,7 +99,7 @@ def group_key(msg: NotificationMessage) -> str:
     # 的结果混成一条会误导用户。
     task_kind = (getattr(msg, "task_kind", "") or "").strip()
     if notify == "user_activity" or task_kind == "favorite_download":
-        # A-35：按投递用户分桶，禁止 user2 的收藏并进 user1 的 daily 聚合
+        # A-35：按投递用户分桶，禁止 user2 的收藏并进 user1 的 `daily` 聚合
         return f"2{_GROUP_SEP}daily{_GROUP_SEP}u{origin}"
     if owner_seg:
         if entity:

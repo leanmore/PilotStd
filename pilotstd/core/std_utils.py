@@ -302,7 +302,7 @@ CODE_WIDTH_TRANS = str.maketrans(
         "\u04bb": "-",
         "\u3000": " ",
         # 软连字符与零宽字符：从 PDF/网页复制时常见，肉眼不可见但会让同一标准号不等。
-        # 这里映射为空格而**不是删除**，保证 translate 前后长度不变（parser 用
+        # 这里映射为空格而**不是删除**，保证 `translate` 前后长度不变（`parser` 用
         # normalize_std_code_text 的匹配下标去切原文，长度一变就会截断标准号）。
         "\u00ad": " ",
         "\u200b": " ",
@@ -312,7 +312,7 @@ CODE_WIDTH_TRANS = str.maketrans(
     }
 )
 
-# 标准号 token 的**唯一语法定义**：公告行提取、语义解析、matcher 共用。
+# 标准号 `token` 的**唯一语法定义**：公告行提取、语义解析、`matcher` 共用。
 STD_CODE_TOKEN_PATTERN = re.compile(
     r"([A-Z][A-Z0-9]*(?:\s+[A-Z][A-Z0-9]*)*(?:/[A-Z0-9]+)*)\s*/?\s*-?\s*(\d+(?:\.\d+)*)\s*[—\-－–−һ﹣‑]\s*(\d{4})"
 )

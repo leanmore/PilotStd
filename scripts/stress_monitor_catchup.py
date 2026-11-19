@@ -106,7 +106,7 @@ def main() -> int:
     ap.add_argument("--dirs", type=int, default=62)
     args = ap.parse_args()
 
-    # 1) 造数据：先建目录，再按 divmod 均摊文件，保证标准号唯一
+    # 1) 造数据：先建目录，再按 `divmod` 均摊文件，保证标准号唯一
     tmp = Path(tempfile.mkdtemp(prefix="pilotstd-stress-"))
     inbox = tmp / "inbox"
     inbox.mkdir()
@@ -130,12 +130,12 @@ def main() -> int:
     mgr = _ArchiveMgr(db, tmp / "library")
     stats = MagicMock()
 
-    # 日志收集器：从日志文本里数 UNIQUE / locked，避免只靠异常冒泡判断
+    # 日志收集器：从日志文本里数 UNIQUE / `locked`，避免只靠异常冒泡判断
     cap = _Capture()
     logging.getLogger().addHandler(cap)
     logging.getLogger("pilotstd.monitor").setLevel(logging.DEBUG)
 
-    # 3) 固定 Monitor 配置：默认关延迟、watermark=0（首次全处理），只替换 DB 读写
+    # 3) 固定 Monitor 配置：默认关延迟、`watermark=0`（首次全处理），只替换 DB 读写
     cfg = {
         "enabled": True,
         "watch_path": str(inbox),
@@ -153,7 +153,7 @@ def main() -> int:
     scheduler_mod.get_last_processed = lambda: ""
     scheduler_mod.set_last_processed = lambda p: None
 
-    # 4) 直接跑补扫（不启动 observer：压测目标是批量主链，不是事件监听）
+    # 4) 直接跑补扫（不启动 `observer`：压测目标是批量主链，不是事件监听）
     scheduler = FileMonitorScheduler(manager=mgr)
     scheduler.handler = StandardFileHandler(callback=lambda p: None, delay_seconds=0)
     try:

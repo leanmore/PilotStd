@@ -59,7 +59,7 @@ def resolve_web_base(config: Any) -> str:
         logger.debug("web base url ignored (not absolute): %r", raw)
         return ""
     if _LOOPBACK.match(raw):
-        # 明确降级：聊天接收方在别的机器上，localhost 类地址点不开（用户明确要求不得生成）
+        # 明确降级：聊天接收方在别的机器上，`localhost` 类地址点不开（用户明确要求不得生成）
         logger.debug("web base url ignored (loopback address): %r", raw)
         return ""
     return raw.rstrip("/")

@@ -43,7 +43,7 @@ def content_or_exit(content: str | None, filepath: str, ref: str) -> str:
     return content
 
 
-# 统一记账：一次门禁里的每条 git 查询都登记成功/失败，
+# 统一记账：一次门禁里的每条 `git` 查询都登记成功/失败，
 # 由 require() 在「全军覆没」时抛错，避免调用方各自判断漏掉。
 class ChangeScope:
     """一次门禁执行内的 git 查询账本。
@@ -54,7 +54,7 @@ class ChangeScope:
     """
 
     def __init__(self, cwd: Path | str, timeout: int = 10) -> None:
-        # 固定工作目录：调用方可能在任意 cwd 下运行门禁
+        # 固定工作目录：调用方可能在任意 `cwd` 下运行门禁
         self._cwd = str(cwd)
         self._timeout = timeout
         # 成功次数与失败描述分开记，供 require()/report_partial() 使用

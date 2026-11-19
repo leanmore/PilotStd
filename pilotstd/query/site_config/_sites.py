@@ -176,7 +176,7 @@ def _create_sites_part3() -> list[SiteState]:
             search_url="https://114.251.111.103:18080/zxd/portal/stdPage",
             probe_url="https://114.251.111.103:18080/zxd/portal/stdPage",
             # 该端点是 Bootstrap-table AJAX：不带 keyword/tid/limit/offset 直接返回 400，
-            # 曾导致健康检查每小时把在线站点判为 down（2026-09-25 实测：裸 GET 400，带参 200）
+            # 曾导致健康检查每小时把在线站点判为 `down`（2026-09-25 实测：裸 GET 400，带参 200）
             probe_params={"keyword": "GB", "tid": "0", "op": "", "limit": 15, "offset": 0},
             max_requests=30,
             daily_limit=100,

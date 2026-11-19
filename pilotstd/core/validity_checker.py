@@ -424,7 +424,7 @@ class ValidityChecker:
         """
         # ──1:公告缓存表（只信“否定”，不信“肯定”，且不阻断 L2）──
         try:
-            # 1a. 优先读 matcher 已算好的结构化状态（被代替/现行/即将实施）
+            # 1a. 优先读 `matcher` 已算好的结构化状态（被代替/现行/即将实施）
             cached = normalize_status(self._cached_announcement_status(standard_number))
             if cached in ABOLISHED_STATUSES_WITH_EXPIRED:
                 info: dict[str, Optional[str]] = {

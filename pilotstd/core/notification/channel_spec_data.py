@@ -31,7 +31,7 @@ CHANNEL_SPECS: tuple[ChannelSpec, ...] = (
         # 构造顺序**必须与 `WechatChannel.__init__` 的签名一致**（`manager._init_channels` 按序位置传参）：
         # (webhook_url, corpid, agentid, corpsecret, proxy_url, touser)
         ctor=("webhook_url", "corpid", "agentid", "corpsecret", "proxy_url", "touser"),
-        # 现在两种形态都**真正实现了**（阶段 3 · Step 4 ①）：webhook 走 markdown、应用形态走模板卡片
+        # 现在两种形态都**真正实现了**（阶段 3 · Step 4 ①）：`webhook` 走 `markdown`、应用形态走模板卡片
         # ⇒ 不再有"单字段必需"；可用性由 `forms` / `status_rule` 判定。
         ctor_required=(),
         fields=(
@@ -92,7 +92,7 @@ CHANNEL_SPECS: tuple[ChannelSpec, ...] = (
             # 为什么归入应用形态：回调只对"企业自建应用"成立（群机器人 Webhook 收不到回调），
             # 而 `receiveid` 用的正是本分区既有的 `corpid` ⇒ 出站与入站**同源一份配置**。
             # 两项都在**企微管理后台 → 应用 → 接收消息**里生成；缺任一项回调即无法验签/解密。
-            # 标 optional：不填只是"不启用回调"，不应让整个应用形态显示为未配好。
+            # 标为可选：不填只是"不启用回调"，不应让整个应用形态显示为未配好。
             FieldSpec(
                 name="token",
                 type="text_password",
@@ -279,7 +279,7 @@ CHANNEL_SPECS: tuple[ChannelSpec, ...] = (
         enabled_default=False,
         hint_key="",
         # 顺序与 `FeishuChannel.__init__` 严格一致：
-        # (webhook_url, secret, app_id, app_secret, receive_id, receive_id_type)
+        # `(webhook_url, secret, app_id, app_secret, receive_id, receive_id_type)`
         ctor=("webhook_url", "secret", "app_id", "app_secret", "receive_id", "receive_id_type"),
         ctor_required=(),
         fields=(
@@ -458,5 +458,5 @@ def legacy_schema(spec: ChannelSpec, labeler: Callable[[str], str]) -> dict[str,
 # ── 前端元数据接口（`GET /api/notification/channels` 的响应体）──────────────────
 # 只暴露**前端渲染需要**的字段。以下后端专用项**刻意不出现**在负载里：
 #   `module`/`cls_name`（实现位置）、`ctor`/`ctor_required`（构造形态）、
-#   `legacy_label_key`（后端兼容形状用）。新增 spec 字段时须同时决定"是否给前端"——
+#   `legacy_label_key`（后端兼容形状用）。新增 `spec` 字段时须同时决定"是否给前端"——
 #   默认不给，确认前端要消费才加进本函数。

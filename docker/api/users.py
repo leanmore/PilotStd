@@ -213,7 +213,7 @@ def api_change_password(request: Request, body: ChangePasswordRequest, mgr=Depen
         sessions_revoked=sessions_revoked,  # L-03：真实撤销数（原先硬编码 False）
     )
 
-    # 先落库 → 后告警；告警失败只进 warnings，绝不回滚密码写入
+    # 先落库 → 后告警；告警失败只进 `warnings`，绝不回滚密码写入
     warnings: list[str] = []
     try:
         notification_mgr = mgr.notification_mgr

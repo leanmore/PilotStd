@@ -51,13 +51,13 @@ from .base import BaseDownloadAdapter
 
 logger = logging.getLogger(__name__)
 
-# 搜索页结果行：<a href="javascript:void(0)" onclick="showInfo('9075EE…');">GB/T 5310-2008</a>
+# 搜索页结果行：`<a href="javascript:void(0)" onclick="showInfo('9075EE…');">GB/T 5310-2008</a>`
 _HCNO_ROW_RE = re.compile(r"showInfo\(\s*['\"]([0-9A-Fa-f]{16,40})['\"]\s*\)\s*;[^>]*>([^<]{2,80})<")
 
 # 搜索页结果行整行（`<tr>`）：采标判定必须看**整行**——"采"标记在标准号单元格之后，
 # 不在锚点文本里（实测 2026-10-16：`<span class="label label-warning" title="该标准采用国际标准">采</span>`）
 _ROW_RE = re.compile(r"<tr[^>]*>.*?</tr>", re.IGNORECASE | re.DOTALL)
-# 采标标记：行内出现 label-warning 且该 span 文本为"采"，或标题属性写明"采用国际标准"
+# 采标标记：行内出现 label-warning 且该 `span` 文本为"采"，或标题属性写明"采用国际标准"
 # i18n-allow: 匹配 openstd 站点页面上的中文标记，翻译即失效
 _ADOPTED_RE = re.compile(r"label-warning[^>]*>\s*采|该标准采用国际标准")
 
@@ -173,7 +173,7 @@ class OpenstdDownloadAdapter(BaseDownloadAdapter):
         return task.source_site == "openstd_download"
 
     # ════════════════════════════════════════════════════════════════ 分隔
-    # hcno 解析（下载标识，与查询产出的 pid 无关）
+    # `hcno` 解析（下载标识，与查询产出的 `pid` 无关）
     # ════════════════════════════════════════════════════════════════ 分隔
 
     def _lookup_hcno(self, standard_number: str) -> tuple[str, bool]:
@@ -254,7 +254,7 @@ class OpenstdDownloadAdapter(BaseDownloadAdapter):
             logger.debug("详情页预访问失败（继续走验证码）: %s", e)
             return detail_url
         if resp.status_code == 200 and _norm_std_no(task.standard_number) not in _norm_std_no(resp.text):
-            # pid / 空 / 篡改 hcno 都会走到这里：服务端返回同一张"标准不存在"的壳页面
+            # `pid` / 空 / 篡改 `hcno` 都会走到这里：服务端返回同一张"标准不存在"的壳页面
             logger.warning(
                 "hcno 疑似无效: %s hcno=%s（详情页未出现该标准号，检查 hcno 来源是否为 openstd 搜索页）",
                 task.standard_number,
@@ -419,7 +419,7 @@ class OpenstdDownloadAdapter(BaseDownloadAdapter):
                 return None
 
             if img_resp.status_code != 200 or b"image" not in img_resp.headers.get("Content-Type", "").encode():
-                # 端点迁移/被重定向到 HTML 时，这里会第一时间暴露（而不是等到 verifyCode 报 error）
+                # 端点迁移/被重定向到 HTML 时，这里会第一时间暴露（而不是等到 verifyCode 报错）
                 logger.error(
                     "验证码图片异常: %s HTTP %s ctype=%s len=%d（端点是否已迁移？）",
                     task.standard_number,

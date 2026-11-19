@@ -97,7 +97,7 @@ class AnnouncePersistence:
         )
         params: list[Any] = []
         if unresolved_only:
-            # resolved 历史值可能为 NULL，统一按“未解决”处理
+            # `resolved` 历史值可能为 NULL，统一按“未解决”处理
             sql += " WHERE COALESCE(resolved, 0) = 0"
         sql += " ORDER BY created_at DESC, id DESC LIMIT ?"
         params.append(max(1, min(int(limit), 100)))

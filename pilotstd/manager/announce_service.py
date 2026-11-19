@@ -118,7 +118,7 @@ class AnnounceService:
         lookback_override: int | None = None
         if missed_gap:
             logger.warning("公告定时任务疑似漏跑: 距上次成功抓取约 %s 小时", missed_gap)
-            # 版本更新/停机可能超过默认 7 天回看；按实际 gap 向上取整，至少覆盖漏跑窗口。
+            # 版本更新/停机可能超过默认 7 天回看；按实际 `gap` 向上取整，至少覆盖漏跑窗口。
             lookback_override = max(1, math.ceil(missed_gap / 24))
 
         # 运行期防御：应用偏好设置表缺失时降级为全量增量检查，
@@ -169,7 +169,7 @@ class AnnounceService:
     # 胶水方法：委托至爬取/_运行器------------分隔
 
     def check_announcements(self, lookback_days: int | None = None) -> dict[str, Any]:
-        # 定时/手动共用：checkpoint 之外多回看几天，覆盖晚发布和停机漏抓。
+        # 定时/手动共用：`checkpoint` 之外多回看几天，覆盖晚发布和停机漏抓。
         lookback = 0
         if self._mgr is not None:
             try:
@@ -276,7 +276,7 @@ class AnnounceService:
                     data = _json.loads(row["result_data"])
                 except (_json.JSONDecodeError, TypeError) as e:
                     corrupt = True
-                    # 解析失败仍按原行为返回 success + 空数据，但不能再静默
+                    # 解析失败仍按原行为返回 `success` + 空数据，但不能再静默
                     logger.warning(
                         # i18n-allow: 内部运维日志
                         "公告任务结果 JSON 解析失败（task=%s），按 success 返回但 data 为空: %s",
@@ -285,7 +285,7 @@ class AnnounceService:
                     )
             result: dict[str, Any] = {"task_id": task_id, "status": "success", "data": data}
             if corrupt:
-                # 用 schema 里已有的可选 message 字段标记，避免消费方把「空 data」误读成「本来就没数据」。
+                # 用 `schema` 里已有的可选 `message` 字段标记，避免消费方把「空 `data`」误读成「本来就没数据」。
                 # i18n-allow: 内部运维日志
                 result["message"] = "结果数据损坏（invalid JSON），已返回空结果"
             return result

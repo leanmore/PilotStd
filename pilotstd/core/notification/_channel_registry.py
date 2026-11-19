@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 def build_channels(host: Any, user_id: int) -> dict[str, Any]:
     """按 user_id 从 user_credentials 构造渠道实例（不写缓存）。"""
-    # 渠道类延迟导入，避免 manager 与本模块循环依赖
+    # 渠道类延迟导入，避免 `manager` 与本模块循环依赖
     from .manager import _CHANNEL_CLASSES
 
     channels: dict[str, Any] = {}
@@ -26,7 +26,7 @@ def build_channels(host: Any, user_id: int) -> dict[str, Any]:
         creds = host._cred_helper.get_all(user_id)
     for spec in CHANNEL_SPECS:
         try:
-            # 凭证按 spec 声明的构造字段顺序取值；双形态渠道需任一形态齐全
+            # 凭证按 `spec` 声明的构造字段顺序取值；双形态渠道需任一形态齐全
             ch_cfg = creds.get(spec.name) or {}
             enabled = ch_cfg.get("enabled", True)
             if isinstance(enabled, str):
@@ -51,7 +51,7 @@ def build_channels(host: Any, user_id: int) -> dict[str, Any]:
 
 def channels_for(host: Any, user_id: int) -> dict[str, Any]:
     """返回该用户的渠道实例（按 user_id 缓存）。"""
-    # 默认用户走 _channels，兼容既有测试直接替换该字典
+    # 默认用户走 `_channels`，兼容既有测试直接替换该字典
     if user_id == host._user_id:
         return cast(dict[str, Any], host._channels)
     cached = host._channel_cache.get(user_id)
@@ -73,7 +73,7 @@ def invalidate(host: Any, user_id: int) -> None:
 
 def admin_user_ids(host: Any) -> list[int]:
     """所有管理员 id；users 表不存在时回退默认用户（兼容旧库/测试）。"""
-    # 真实空管理员列表 ⇒ 返回空（system 不发送）；仅旧库/测试缺表才回退
+    # 真实空管理员列表 ⇒ 返回空（`system` 不发送）；仅旧库/测试缺表才回退
     try:
         rows = host._db.fetchall(
             "SELECT id FROM users WHERE role=? AND id > 0 ORDER BY id", (ADMIN_ROLE,)

@@ -153,7 +153,7 @@ class AnnouncementMatcher:
         row_index = item.get("row_index", 0)
         std_code = correct_std_code(source_site, announce_no, std_name, std_code)
         # 入库唯一键口径：破折号归一（- / — / － / – / −）。否则同一标准以两种写法
-        # 各落一行，UNIQUE(source_site,pid,standard_number,language) 拦不住。
+        # 各落一行，`UNIQUE(source_site,pid,standard_number,language)` 拦不住。
         std_code = normalize_std_code(std_code)
 
         parsed = self._parse_std_code(std_code)
@@ -236,7 +236,7 @@ class AnnouncementMatcher:
             # 否则旧标准永远写不进被代替缓存、还会生成不存在的标准号（2026-11-04 审计 P0）。
             cache_year = announce_year if match_type != "replaced" else 0
             # 缓存键的代号统一用**公告解析出的规范写法**（GB/T）；索引里可能存 GBT，
-            # 若沿用索引写法会让按 standard_number 的查询（validity L1 / 前端）找不到。
+            # 若沿用索引写法会让按 standard_number 的查询（`validity` L1 / 前端）找不到。
             cache_code = (
                 str(fi_row.get("logical_code") or "")
                 if match_type == "replaced"

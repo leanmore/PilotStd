@@ -34,7 +34,7 @@ VERIFY_REASON_CODES: tuple[str, ...] = (
 )
 
 
-# 规格声明字段的**唯一读取口**：只认字面量实参（常量 / 元组 / frozenset），
+# 规格声明字段的**唯一读取口**：只认字面量实参（常量 / 元组 / `frozenset`），
 # 非字面量取值被忽略——让"把值算出来"的写法在门禁侧显形（门禁要能看见声明，而不是执行它）。
 def spec_declarations() -> dict[str, dict]:
     """从 `event_spec.py` 提取每个事件的声明字段（**AST 读源，不 import 被检对象**）。
@@ -89,7 +89,7 @@ def spec_closed_sets() -> tuple[tuple[str, ...], tuple[str, ...]]:
     return found.get("LEVEL_ORDER", ()), found.get("AGGREGATION_VALUES", ())
 
 
-# 构建器函数名集合：只按 `_builders_*.py` 的 `def` 名判定函数是否存在，不 import 构建器模块
+# 构建器函数名集合：只按 `_builders_*.py` 的 `def` 名判定函数是否存在，不 `import` 构建器模块
 # （导入会拉起渠道/凭证等重依赖，门禁须保持轻量且无副作用）。
 def _builder_defs() -> dict[str, set[str]]:
     """构建器模块名 → 该模块内 `def` 的函数名集合（AST 读源，不 import）。"""
@@ -159,7 +159,7 @@ def spec_field_problems(
 
     # ── 声明式可验证性（2026-10-06 · P6/P7 甲案）────────────────────────────
     # **设计口径（用户裁定）**：防漂移门禁必须是"声明式"（注册时必填字段）而非"过程式"
-    # （每次跑一遍全量插桩）。`verify` 无默认值 ⇒ 漏填在 import 期即 TypeError（第一道）；
+    # （每次跑一遍全量插桩）。`verify` 无默认值 ⇒ 漏填在 `import` 期即 TypeError（第一道）；
     # 此处为第二道：取值落**闭集**、非 `e2e` 必带**机器可读枚举理由**（避免自由文本漂移），
     # 且 `e2e` 不得带理由（防止用理由掩盖真实分类）。
     # **不要求 42/42 运行时覆盖**：极难触发的环境相关事件（凭证轮换/库损坏类告警）显式声明即可。

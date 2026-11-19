@@ -34,7 +34,7 @@ from ..manager import get_manager_dep
 from .notification_deps import _get_user_id
 
 logger = logging.getLogger(__name__)
-# tags 由聚合模块 `notification.py` 在 include_router 时注入——
+# `tags` 由聚合模块 `notification.py` 在 include_router 时注入——
 # 若此处也声明，同一路由会带上两个同名标签（OpenAPI 不再与拆分前一致）。
 router = APIRouter()
 
@@ -282,7 +282,7 @@ def update_config(
     nmgr = mgr.notification_mgr
     user_id_int = int(user_id)
     # 防御式取来源地址：测试替身（MagicMock）的属性访问会返回 Mock，
-    # 直接放进审计 detail 会让 json.dumps 崩溃；只用于审计展示，取不到就留空。
+    # 直接放进审计 `detail` 会让 json.dumps 崩溃；只用于审计展示，取不到就留空。
     from_ip = client_ip(request)
     warnings: list[str] = []
 
@@ -303,7 +303,7 @@ def update_config(
         body, nmgr._cred_helper, user_id_int
     )
 
-    # enabled / rules 的变更判定同样前置：幂等保存（值未变）不应产生告警与审计噪声
+    # `enabled` / `rules` 的变更判定同样前置：幂等保存（值未变）不应产生告警与审计噪声
     enabled_changed = "enabled" in body and bool(body["enabled"]) != bool(
         mgr.cfg.get("notification.enabled", False)
     )

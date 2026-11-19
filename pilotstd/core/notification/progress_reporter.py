@@ -19,7 +19,7 @@ from typing import Any, Callable
 
 logger = logging.getLogger(__name__)
 
-# 时长阈值（秒）：默认 5 分钟；调度器每分钟 tick 一次，因此实际间隔 5~6 分钟。
+# 时长阈值（秒）：默认 5 分钟；调度器每分钟 `tick` 一次，因此实际间隔 5~6 分钟。
 # 上限 10 分钟、下限 5 分钟为用户约定，超出范围一律夹紧，避免配置写错导致刷屏或永不汇报。
 DEFAULT_INTERVAL_SECONDS = 300
 MIN_INTERVAL_SECONDS = 300
@@ -56,7 +56,7 @@ def _percent(completed: Any, total: Any, fallback: Any = 0) -> int:
             return max(0, min(100, round(completed_i * 100 / total_i)))
         return max(0, min(100, int(fallback or 0)))
     except (TypeError, ValueError):
-        # 计数/百分比是外部数据：解析失败按 0 处理，但记 warning 避免静默
+        # 计数/百分比是外部数据：解析失败按 0 处理，但记警告避免静默
         logger.warning("task progress: percent parse failed (completed=%r total=%r)", completed, total)
         return 0
 
@@ -93,7 +93,7 @@ class TaskProgressReporter:
 
     def tick(self) -> None:
         """扫描一次运行中实体；由调度器每分钟调用。"""
-        # 两类实体分开 try：一类查询失败不应拖垮另一类汇报
+        # 两类实体分开 `try`：一类查询失败不应拖垮另一类汇报
         now = self._clock()
         try:
             self._tick_tasks(now)
@@ -106,7 +106,7 @@ class TaskProgressReporter:
 
     def _tick_tasks(self, now: float) -> None:
         rows = self._task_rows() or []
-        # alive 用于清理"已结束/已取消"任务的计时状态，防止内存随历史任务增长
+        # `alive` 用于清理"已结束/已取消"任务的计时状态，防止内存随历史任务增长
         alive = {str(row.get("task_id") or "") for row in rows}
         for row in rows:
             task_id = str(row.get("task_id") or "")

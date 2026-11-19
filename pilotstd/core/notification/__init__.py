@@ -15,7 +15,7 @@ from .events import (
 logger = logging.getLogger(__name__)
 
 # 系统级通知钩子：由容器层（docker/app.py）在启动时注入 NotificationManager 的 send_event。
-# 供 core 内**拿不到 manager 引用**的模块（如公告熔断器）发系统通知，避免 core → docker 反向依赖。
+# 供 `core` 内**拿不到 `manager` 引用**的模块（如公告熔断器）发系统通知，避免 `core` → `docker` 反向依赖。
 _system_notifier: Callable[[str, dict[str, Any]], None] | None = None
 
 

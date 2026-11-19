@@ -12,7 +12,7 @@ from pilotstd.core.time_utils import iso_now
 
 logger = logging.getLogger(__name__)
 
-# 可信 IP cookie 的加密密钥**不设可用默认值**：默认值一旦进 git 就等于公开密钥。
+# 可信 IP `cookie` 的加密密钥**不设可用默认值**：默认值一旦进 `git` 就等于公开密钥。
 # 取值顺序：环境变量 > config 的 wechat_ip.encrypt_secret > 抛错（拒绝静默降级）。
 _ENV_SECRET = "WECHAT_IP_ENCRYPT_SECRET"
 _CFG_SECRET_KEY = "wechat_ip.encrypt_secret"

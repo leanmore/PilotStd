@@ -247,7 +247,7 @@ class Njz365SessionManager:
                 logger.error("njbz365 会话请求失败: %s", e)
                 return None
             except ValueError as e:
-                # 原为「无日志 return None」：与上面两个分支口径不一致，站点改版会完全不可见。
+                # 原为「无日志 `return None`」：与上面两个分支口径不一致，站点改版会完全不可见。
                 # i18n-allow: 内部运维日志
                 logger.error("njbz365 会话响应 JSON 解析失败: %s", e)
                 return None

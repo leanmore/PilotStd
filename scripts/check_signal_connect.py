@@ -138,7 +138,7 @@ def find_emits(file_path: Path) -> list[tuple[str, int, str]]:
 
         # 说明：`self.X.emit` 作为**回调值**传递（无括号调用），
         # 如 `_stage(self.scan_progress.emit, ...)` / `callback=self.done.emit`。
-        # 原正则只认 `emit(`，会把这 7 个真实 emit 点误报为“缺失 emit”。
+        # 原正则只认 `emit(`，会把这 7 个真实 `emit` 点误报为“缺失 `emit`”。
         for m in re.finditer(r"self\.(\w+)\.emit\b(?!\s*\()", stripped):
             sig = m.group(1)
             if sig not in PYQT_BUILTIN_SIGNALS:

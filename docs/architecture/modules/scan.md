@@ -77,3 +77,8 @@ pilotstd/scan/
 > **2026-11-09 watcher 事件失败可见化（U-3/U-4 批 2b）**：`FileWatchHandler._handle_new_or_modified`
 > 的兜底 `except` 由 `debug` 升 `warning`（文案带路径）——watcher 静默失败会让新文件不进索引、
 > 归档链少文件且无人知晓；`OSError`（文件被锁/删除）分支仍保持 `debug`（属预期瞬态）。
+
+## 注释语言规范化（2026-11-19）
+
+- G-012 [LANG] 改为按词判定后，本模块注释里的英文普通词改为中文、裸标识符加反引号；
+  仅注释与 docstring 变更，AST 比对无代码变化（全仓 504 行，见 27 日志 #81）。

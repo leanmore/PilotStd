@@ -24,7 +24,7 @@
 import ssl
 import threading
 
-# 进程级单例 + 锁：证书包加载昂贵（本机实测 ≈1.3s），加锁保证并发首次调用也只加载一次
+# 进程级单例 + 锁：证书包加载昂贵（本机实测 ≈1.3 秒），加锁保证并发首次调用也只加载一次
 _CONTEXT: ssl.SSLContext | None = None
 _LOCK = threading.Lock()
 

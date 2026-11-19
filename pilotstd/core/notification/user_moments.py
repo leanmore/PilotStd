@@ -29,7 +29,7 @@ class UserMoment:
 
 def _load_moments() -> tuple[UserMoment, ...]:
     """从包内 JSON 读时刻清单（数据文件缺失即抛错，避免静默退化成空清单）。"""
-    # 与模块同目录：`data/` 目录名被仓库 .gitignore 忽略，放同目录才能随代码一起入库
+    # 与模块同目录：`data/` 目录名被仓库 `.gitignore` 忽略，放同目录才能随代码一起入库
     path = Path(__file__).with_name("user_moments_data.json")
     payload = json.loads(path.read_text(encoding="utf-8"))
     return tuple(
@@ -51,7 +51,7 @@ DECLARED_EVENTS_WITHOUT_MOMENT: tuple[str, ...] = (
     "standard_first_registered",
     "normalize_complete",
     "download_started",
-    # 阶段 4 · P6 · 4c（用户裁决 Q10）：`desktop_toast` 是**平台层事件**（L2 桌面协调层
+    # 阶段 4 · P6 · `4c`（用户裁决 Q10）：`desktop_toast` 是**平台层事件**（L2 桌面协调层
     # 直构消息投递，不经 `send_event`），它不是"用户交办的一件事"，故**不归属任何用户时刻**。
     # 这里按"显式声明例外"的口径登记（而非放宽断言）：本行与测试同批改动才生效。
     "desktop_toast",

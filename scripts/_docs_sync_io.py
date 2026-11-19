@@ -19,7 +19,7 @@ STATUS_FILE = PROJECT_ROOT / "STATUS.md"
 VERSION_FILE = PROJECT_ROOT / "pilotstd/__init__.py"
 
 
-# 判定：pilotstd/ 下是否有 .py 新增/删除/重命名——需同步「模块与功能清单」文档。
+# 判定：pilotstd/ 下是否有 `.py` 新增/删除/重命名——需同步「模块与功能清单」文档。
 def _has_new_or_deleted_pyfiles(staged_tuples):
     """pilotstd/ 下 .py 文件新增/删除/重命名"""
     for status, filepath in staged_tuples:
@@ -29,7 +29,7 @@ def _has_new_or_deleted_pyfiles(staged_tuples):
     return False
 
 
-# 判定：diff 中是否出现新的 *Handler 类或移除 *Mixin——架构模式变化需同步架构文档。
+# 判定：`diff` 中是否出现新的 *Handler 类或移除 *Mixin——架构模式变化需同步架构文档。
 def _has_handler_or_mixin_change(_tuples, diff_text):
     """diff 中出现新的 *Handler 类或移除了 *Mixin"""
     return bool(re.search(r"^[+-].*class \w+(Handler|Mixin)\b", diff_text, re.MULTILINE))
@@ -74,7 +74,7 @@ def _is_feat_or_fix_commit(commit_msg):
     return bool(re.match(r"^(feat|fix)(\(.+\))?:", fl))
 
 
-# 执行 git 命令并返回标准输出；失败返回 None（调用方必须区分「正常空输出」与「取不到」）。
+# 执行 `git` 命令并返回标准输出；失败返回 None（调用方必须区分「正常空输出」与「取不到」）。
 def _run_git(args):
     """运行 git 命令，返回 stdout（去除末尾换行）；**执行失败 / 非零退出 → 返回 None**。
 

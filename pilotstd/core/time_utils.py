@@ -21,7 +21,7 @@ _UTC = timezone.utc
 
 def local_tz() -> timezone | ZoneInfo:
     """解析 TZ 环境变量；非法/缺失时回退系统本地时区，最终回退 UTC。"""
-    # 优先使用显式 TZ（容器 compose 固定 Asia/Shanghai）
+    # 优先使用显式 TZ（容器 `compose` 固定 Asia/Shanghai）
     name = os.environ.get("TZ", "").strip()
     zone: tzinfo | None = None
     if name:

@@ -361,7 +361,7 @@ def _build_archive_abandoned_message(data: dict) -> NotificationMessage:
 # 为什么在构建器侧翻译而不是渲染层：`error_type` 是**取值**（not_found/parse/…），
 # 渲染层只负责把"字段名"翻译成列名（`renderer._LIST_FIELD_KEYS`）；取值不翻译就会把
 # 内部枚举直接暴露给用户（渠道降级/G-040 场景同样要求中文可见文案）。
-# 枚举口径（B1 裁定）：not_found / parse / network / timeout / unknown。
+# 枚举口径（B1 裁定）：`not_found` / `parse` / `network` / `timeout` / `unknown`。
 _ERROR_TYPE_KEYS: dict[str, str] = {
     "not_found": "notification.error_type.not_found",
     "parse": "notification.error_type.parse",
@@ -413,7 +413,7 @@ def build_failed_items_block(data: dict) -> "ListBlock | None":
                 "count": str(count),
             }
         )
-    # total = **失败条数总和**（不是组数）：供"共 M 条失败"的口径；行数为组数（见 docstring）
+    # `total` = **失败条数总和**（不是组数）：供"共 M 条失败"的口径；行数为组数（见 docstring）
     return ListBlock(title=t("notification.failed_items.title"), items=rows, total=len(items))
 
 

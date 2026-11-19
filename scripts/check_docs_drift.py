@@ -57,7 +57,7 @@ TABLE_TOKEN_RE = re.compile(r"`([a-z][a-z0-9_]{3,})`")
 # 每条捕获的数字顺序必须与 expected() 返回顺序一致；声明被删/改到匹配不上也算失败
 # （否则“删掉数字”就能绕过门禁）。只收口径明确、可机器判定的数字，不做全文数字猜测。
 COUNT_CLAIMS: tuple[dict, ...] = (
-    # 每条必须写 reason（P2-07 扩围规则，2026-11-14）：白名单不能"看到红就加一条"。
+    # 每条必须写 `reason`（P2-07 扩围规则，2026-11-14）：白名单不能"看到红就加一条"。
     {
         "doc": "docs/onboarding/03-architecture.md",
         "pattern": r"\*\*(\d+) 个 router 模块、(\d+) 个唯一 `/api` 路径\*\*",
@@ -157,7 +157,7 @@ def load_facts() -> dict:
         config_keys |= set(SYSTEM_KEYS) | set(USER_KEYS)
         config_keys |= {f"{p}x" for p in SYSTEM_PREFIXES + USER_PREFIXES}
     except (ImportError, AttributeError) as e:
-        # 可选依赖不可用时少收一批配置键 → 留痕，否则 drift 会静默少报
+        # 可选依赖不可用时少收一批配置键 → 留痕，否则漂移会静默少报
         print(f"[WARN] 配置键来源不可用，跳过该检查项: {e}", file=sys.stderr)
     config_namespaces = {k.split(".", 1)[0] for k in config_keys if "." in k}
 
@@ -169,7 +169,7 @@ def load_facts() -> dict:
 
     statuses = {s.value for s in Status}
     i18n_keys = _i18n_keys()
-    # P2-07 数字声明的代码事实：路由模块数、迁移模块数、route×method 对数
+    # P2-07 数字声明的代码事实：路由模块数、迁移模块数、`route`×`method` 对数
     api_dir = ROOT / "docker" / "api"
     router_modules = sum(
         1 for p in api_dir.glob("*.py") if "APIRouter(" in p.read_text(encoding="utf-8")

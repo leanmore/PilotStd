@@ -16,11 +16,11 @@ from .blocks import NotificationBlock
 from .channel_spec import CHANNEL_NAMES
 from .specs import ActionSpec, AttachmentSpec
 
-# ── channel_message_ids 的键白名单（**闭集**，阶段 1c 钉死）─────────────────────
+# ── channel_message_ids 的键白名单（**闭集**，阶段 `1c` 钉死）─────────────────────
 # 语义约定（阶段 3 的"消息编辑"直接依赖它，故现在就钉死，避免届时被塞入任意键）：
 #   1. 键必须取自本元组；
-#   2. 值是**该渠道返回的消息 ID**（字符串）；拿不到 ID 的渠道**不出现**在此 dict；
-#   3. **未投递的渠道不出现在 dict 中** —— 用"键缺席"表达"没有 ID"，
+#   2. 值是**该渠道返回的消息 ID**（字符串）；拿不到 ID 的渠道**不出现**在此 `dict`；
+#   3. **未投递的渠道不出现在 `dict` 中** —— 用"键缺席"表达"没有 ID"，
 #      **不是** `{"wechat": None}`（值恒为 str，读取方不必处理 None）；
 #   4. 桌面与 Web **不计入**：桌面 `QSystemTrayIcon.showMessage` 无消息句柄、
 #      Web 无后端推送通道（见 01-现状盘点.md §1.3 的能力实测）；
@@ -48,19 +48,19 @@ class NotificationMessage:
     elapsed_ms: int = 0  # 单条耗时（毫秒），聚合时汇总为总耗时
     changed_at: str = ""  # 状态变更时间（ISO 格式），聚合消息中显示
 
-    # ── 通知身份与生命周期（阶段 1a，2026-10-02）─────────────────────────────
+    # ── 通知身份与生命周期（阶段 `1a`，2026-10-02）─────────────────────────────
     # 默认值即"现状语义"，故追加这些字段对既有 13 个字段与全部调用点零行为变更。
     # 设计背景见 docs/plans/notification-redesign/02-目标架构.md §2.2。
     message_id: str = ""  # 通知消息稳定 ID（uuid4().hex[:16]）；回调据此定位消息
     correlation_id: str = ""  # 同一次业务运行的关联键（同一批次的多条通知可归组）
-    # 投递态：pending / sent / failed / suppressed / edited。
+    # 投递态：`pending` / `sent` / `failed` / `suppressed` / `edited`。
     # **刻意不复用 `status`**——后者是业务结果态（success/failure），两者语义不同。
     delivery_status: str = "pending"
-    # 回执态：none / delivered / read / acted。渠道契约当前只有 send()->bool，故默认 none。
+    # 回执态：`none` / `delivered` / `read` / `acted`。渠道契约当前只有 send()->bool，故默认 `none`。
     ack_status: str = "none"
 
-    # ── 任务视角（阶段 1b，2026-10-02）───────────────────────────────────────
-    # 与 1a 同款约定：默认值即"现状语义"，故追加这些字段对既有 17 个字段与全部调用点零行为变更。
+    # ── 任务视角（阶段 `1b`，2026-10-02）───────────────────────────────────────
+    # 与 `1a` 同款约定：默认值即"现状语义"，故追加这些字段对既有 17 个字段与全部调用点零行为变更。
     task_id: str = ""  # 关联 Task 实体（投影自 task_queue.task_id）；进度型通知的原地更新锚点
     # 通知事件（三层模型中的 10 类之一，如 task_progress/task_result/task_failure/user_activity）。
     # **类别清单以 pilotstd/core/notification/event_spec.py 为准**（本字段取值必须属于
@@ -69,12 +69,12 @@ class NotificationMessage:
     notify_event: str = ""
     # 失败明细（B1，2026-10-05）：一次批量导入/汇总的**逐条**失败清单。
     # 4 列固定口径（见 08-聚合设计.md 与 B1 裁定）：standard_number / standard_name（空 ⇒ '-'）/
-    # error_type（枚举键：not_found / parse / network / timeout / unknown）/ error_message（截断 ≤120 字符）。
+    # error_type（枚举键：`not_found`/`parse`/`network`/`timeout`/`unknown`）/ error_message（截断 ≤120 字符）。
     # 默认空列表 = "现状语义"（无明细）⇒ 对既有字段与全部调用点**零行为变更**；
     # 落库列 notification_log.failed_items（TEXT 存 JSON，迁移 v67；检索仍走 correlation_id/message_id）。
     failed_items: list[dict[str, str]] = field(default_factory=list)
     content_type: str = ""  # 主内容类型（text/field_list/status_change/list/task_progress/action_prompt）
-    # 任务种类（业务域名词，阶段 2.5a 落地）。值域见 `mapping.TASK_KINDS`。
+    # 任务种类（业务域名词，阶段 `2.5a` 落地）。值域见 `mapping.TASK_KINDS`。
     # **双 SSOT 约定**：本字段是**通知视角**的"用户交办的是哪类事"；
     # `task_queue.task_type`（`pilotstd/task/models.py::TaskType`）是**执行队列视角**的
     # "哪个任务在跑"——两者不同轴（实测交集仅 scan/query/organize），
@@ -83,28 +83,28 @@ class NotificationMessage:
     task_kind: str = ""
     # 事件归属用户（A-21 第三步）：0=系统任务；不读全局 manager._user_id
     user_id: int = 0
-    # 投递使用的渠道 owner：system 时为各 admin；user/admin 时同 user_id
+    # 投递使用的渠道 `owner`：`system` 时为各 admin；user/admin 时同 user_id
     delivery_user_id: int = 0
     # 任务上下文快照（Task/TaskItem/TaskProgress 的扁平投影）。
     # **契约**：写入端一律经 `_json_codec.dumps` 转 JSON 字符串入库（SQLite 无原生 JSON 类型）；
-    # 读取端经 `loads_dict` 还原为 dict，非 dict / 非法 JSON / None 一律回退 `{}`
+    # 读取端经 `loads_dict` 还原为 `dict`，非 `dict` / 非法 JSON / None 一律回退 `{}`
     # （故 **None 与 {} 在读回后不可区分**，见 06 方案 §2.2 与 tests/test_notification_stage1b_fields.py）。
-    # 用 default_factory 而非字面量 `{}`，避免所有实例共享同一个可变 dict。
+    # 用 default_factory 而非字面量 `{}`，避免所有实例共享同一个可变 `dict`。
     task_context: dict[str, Any] = field(default_factory=dict)
 
-    # ── 交互能力（阶段 1c，2026-10-02）───────────────────────────────────────
+    # ── 交互能力（阶段 `1c`，2026-10-02）───────────────────────────────────────
     # 与 1a/1b 同款约定：默认值即"现状语义"，故追加这些字段对既有 21 个字段与全部调用点零行为变更。
-    # actions / attachments 是**规格对象列表**（强类型，见 specs.py）；落库/入队前经
+    # `actions` / `attachments` 是**规格对象列表**（强类型，见 specs.py）；落库/入队前经
     # specs.specs_to_jsonable 转字典列表，再交 _json_codec.dumps 序列化。
     actions: list[ActionSpec] = field(default_factory=list)  # 按钮的唯一数据源；空 = 无交互
-    # 回调载荷（**字符串**，不是 dict）：渠道对回调数据有长度限制，统一约束 <= 64 字节，
+    # 回调载荷（**字符串**，不是 `dict`）：渠道对回调数据有长度限制，统一约束 <= 64 字节，
     # 格式 `v1|<message_id:16>|<action:12>|<arg:32>`（见 02-目标架构.md §2.4）。
     # 服务端解析后**必须重新鉴权**，绝不信任其中的身份信息。
     callback_data: str = ""
     attachments: list[AttachmentSpec] = field(default_factory=list)  # 附件（阶段 1c 只承载，不发送）
     # 渠道名 → 该渠道返回的消息 ID。**键白名单见本模块 CHANNEL_KEY_WHITELIST**；
     # 未投递/拿不到 ID 的渠道**键缺席**（不是 None 值）。消息编辑的唯一凭据：
-    # 某渠道不在 dict 中即表示"该渠道不可编辑"（阶段 3 据此不生成编辑计划）。
+    # 某渠道不在 `dict` 中即表示"该渠道不可编辑"（阶段 3 据此不生成编辑计划）。
     channel_message_ids: dict[str, str] = field(default_factory=dict)
 
 

@@ -134,7 +134,7 @@ def main(argv: list[str] | None = None) -> int:
     meta = baseline.get("_meta") or {}
     tolerance = args.tolerance if args.tolerance is not None else float(meta.get("tolerance_pp", 0.5))
 
-    # 三档结果：failures 阻断；warns 只提醒收紧基线；notes 记录不影响判定的情况
+    # 三档结果：`failures` 阻断；`warns` 只提醒收紧基线；`notes` 记录不影响判定的情况
     summary = load_summary(summary_path)
     failures, warns, notes = check(summary, baseline, tolerance)
 

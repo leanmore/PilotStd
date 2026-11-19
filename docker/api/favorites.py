@@ -369,7 +369,7 @@ def remove_favorite(
 
 
 # 下载队列表的"取最新一条"子查询：同一 favorite_id 存在多行时只取最后尝试的那条
-# （ORDER BY last_attempt 倒序、id 倒序兜底，保证取值确定）；用的是
+# （ORDER BY last_attempt 倒序、`id` 倒序兜底，保证取值确定）；用的是
 # favorite_downloads 上 UNIQUE(favorite_id, record_id) 的索引，不做全表窗口排序。
 _LATEST_DOWNLOAD_JOIN = (
     " LEFT JOIN favorite_downloads fd ON fd.id = ("

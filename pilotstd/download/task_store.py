@@ -1,6 +1,6 @@
 """下载任务持久化：落 task_queue，服务重启后重建待重试任务。"""
 
-# 设计：复用通用 task_queue，不新增下载专属表；task_type=download 区分。
+# 设计：复用通用 task_queue，不新增下载专属表；`task_type=download` 区分。
 # 任务状态与错误留在同一行，UI/运维可直接查；重试次数放在 result_json。
 
 from __future__ import annotations
@@ -84,7 +84,7 @@ class DownloadTaskStore:
                 continue
             retry_count = int(data.get("retry_count", 0) or 0)
             max_retries = int(data.get("max_retries", default_max_retries) or default_max_retries)
-            # 达到上限保持 failed，避免重启后无限重试
+            # 达到上限保持 `failed`，避免重启后无限重试
             if retry_count >= max_retries:
                 continue
             recovered.append(

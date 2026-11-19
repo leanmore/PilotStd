@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 _ORPHANED_WORKERS: list[Any] = []
 
 # 保活不等于无限容忍：累计超时次数 + 每个滞留线程的起始时刻，
-# 达到阈值把告警升级为 error，避免"永不退出"的线程被静默放过。
+# 达到阈值把告警升级为 `error` 级别，避免"永不退出"的线程被静默放过。
 _ORPHAN_TIMEOUT_TOTAL = 0
 _ORPHAN_WARN_THRESHOLD = 3
 _ORPHAN_SINCE: dict[int, float] = {}
@@ -72,7 +72,7 @@ def is_qt_alive(obj: Any) -> bool:
     try:
         return not bool(isdeleted(obj))
     except (TypeError, RuntimeError):
-        # TypeError: 不是 sip 包装对象；RuntimeError: 包装对象已失效
+        # TypeError: 不是 `sip` 包装对象；RuntimeError: 包装对象已失效
         return True
 
 
@@ -156,7 +156,7 @@ def stop_worker_gracefully(worker: Any, signals: Iterable[Any] = (), timeout_ms:
             # （启动窗口实测可达数十毫秒）。② 若直接返回，调用方紧接着丢弃引用，QThread
             # 就会在运行中被析构 → Qt qFatal → 进程 SIGABRT（CI test-gui-coverage 连续
             # 两次 134 崩溃即此形态）。故用 isFinished() 区分：**未结束的一律保活**（线程
-            # 真正 finished 后由 _forget_orphan 自动释放，不会泄漏）。
+            # 真正 `finished` 后由 _forget_orphan 自动释放，不会泄漏）。
             if not _thread_finished(worker):
                 _keep_alive_until_finished(worker)
             return True

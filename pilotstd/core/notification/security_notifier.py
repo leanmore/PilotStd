@@ -31,7 +31,7 @@ from .channel import NotificationMessage
 logger = logging.getLogger(__name__)
 
 # 告警投递总超时（秒）：并发发送，整体封顶，避免阻塞用户配置流程。
-# 单渠道共享此预算——上游 webhook 不可用时最坏等待 5s 而非 N×10s。
+# 单渠道共享此预算——上游 `webhook` 不可用时最坏等待 5 秒而非 N×10 秒。
 NOTIFY_TOTAL_TIMEOUT_SECONDS = 5.0
 
 # 紧急降级开关：环境变量（非配置文件）。凭证变更端点本身能写配置，
@@ -96,7 +96,7 @@ def _channel_instance(channel: str, creds: dict[str, str]) -> Any | None:
     if channel == "feishu":
         from .channels.feishu import FeishuChannel
 
-        # FeishuChannel 只接 webhook_url（不接受 secret，与钉钉不同）
+        # FeishuChannel 只接 webhook_url（不接受 `secret`，与钉钉不同）
         return FeishuChannel(url)
     if channel == "wechat":
         from .channels.wechat import WechatChannel
@@ -175,9 +175,9 @@ def notify_security_event(
 
     # 事件名以字面量传给 send_event，且内联完整归一化键集：
     # ① 满足 tests/test_notification_e2e.py 的"每个事件都有触发点 + 字段双向一致"静态契约
-    #    （该测试用正则读 send_event 的内联 dict 字面量，间接传参无法被识别）；
+    #    （该测试用正则读 send_event 的内联字典字面量，间接传参无法被识别）；
     # ② 经 NotificationManager.send_event 仍写入 notification_log 审计轨迹与 WS 广播，
-    #    代价是绕过聚合器（bypass_aggregation=True）——静音时段对 warning 级仍会压制，
+    #    代价是绕过聚合器（bypass_aggregation=True）——静音时段对警告级仍会压制，
     #    故真正的安全投递由下方直连临时渠道完成，这里仅是留痕。
     if notification_mgr is not None:
         try:

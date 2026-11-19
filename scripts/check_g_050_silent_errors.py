@@ -32,9 +32,9 @@ BASELINE = ROOT / "scripts" / "silent_errors_baseline.json"
 # 扫描范围：与 G-010 / G-038 同口径的生产代码目录 + scripts/（U34 E2-batch2）
 # scripts/ 里是门禁/检查器本身——它们吞错会直接制造「假绿」，比业务代码更需要棘轮
 SCAN_DIRS = ("pilotstd", "docker", "scripts")
-# templates 是 Jinja2 脚手架（含 {{ }}），不是运行时代码，整体排除
+# `templates` 是 Jinja2 脚手架（含 {{ }}），不是运行时代码，整体排除
 EXCLUDE_PARTS = {"templates", "__pycache__"}
-# scripts/archive/：历史探针/一次性脚本，不参与生产（E2 triage 的 C 类 7 条）
+# scripts/archive/：历史探针/一次性脚本，不参与生产（E2 分诊的 C 类 7 条）
 EXCLUDE_PREFIXES = ("scripts/archive/",)
 # 日志器接收者识别（U34-E1 #3）：不再只认 Name("logger")
 _LOGGER_NAMES = {"logger", "log", "logging"}
@@ -88,11 +88,11 @@ def _is_logger_debug_call(node: ast.AST) -> bool:
 
 
 def _iter_handler_scope(handler: ast.ExceptHandler):
-    """遍历 handler「自己」的语句树，剪掉两种不该算给它的节点（U34-E1 #1/#E8）。
+    """遍历 `handler`「自己」的语句树，剪掉两种不该算给它的节点（U34-E1 #1/#E8）。
 
-    - **内层 `ExceptHandler`**：内层会被单独遍历一次，外层再算就是重复（伞形 handler）；
+    - **内层 `ExceptHandler`**：内层会被单独遍历一次，外层再算就是重复（伞形 `handler`）；
     - **`FunctionDef`/`AsyncFunctionDef`/`Lambda`**：函数体在被调用时才执行，不属于该
-      handler 的执行路径；不剪会把内层函数的 debug 记到外层 handler 头上。
+      `handler` 的执行路径；不剪会把内层函数的调试日志记到外层 `handler` 头上。
     """
     stack = list(handler.body)
     while stack:

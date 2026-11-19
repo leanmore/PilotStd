@@ -174,3 +174,8 @@ Handler Handler  Handler    (worker)   Handler
 > 导出内容会缺整棵子树，用户却以为导出完整；返回值/递归结构不变。
 > 同批 `ui/core/handlers/download_flow_engine.parse_download_csv` 的 CSV 解析失败也由无日志升 `warning`
 > （该路径未进 DOC_SYNC_MAP，记录于此便于追溯）。
+
+## 注释语言规范化（2026-11-19）
+
+- G-012 [LANG] 改为按词判定后，本模块注释里的英文普通词改为中文、裸标识符加反引号；
+  仅注释与 docstring 变更，AST 比对无代码变化（全仓 504 行，见 27 日志 #81）。

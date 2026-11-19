@@ -204,9 +204,9 @@ class Database:
             raise DatabaseError("无法获取迁移锁，另一个进程可能正在进行迁移")
 
         try:
-            # 非空库迁移前创建完整备份。判定「非空」不能只看 current：没有
-            # _schema_version 的旧库 current=0 但已有业务表，同样必须先有回滚点。
-            # 备份失败一律中止——绝不在无备份的情况下改 schema。
+            # 非空库迁移前创建完整备份。判定「非空」不能只看 `current`：没有
+            # _schema_version 的旧库 `current=0` 但已有业务表，同样必须先有回滚点。
+            # 备份失败一律中止——绝不在无备份的情况下改表结构。
             if current > 0 or self._has_user_tables():
                 backup_path = os.path.join(
                     os.path.dirname(self._db_path),
@@ -221,7 +221,7 @@ class Database:
             # 迁移前引导：v23 的 ALTER 假设 standard_info_cache 已存在（它实际是惰性建表），
             # v37 的防御性加列与 v35 建表重复。这里先把表补到 v23 期望的前序状态、
             # 再把 v35 建出的 NULL user_id 列移除（v37 会重新加回），使两条迁移走“正常路径”，
-            # 而不是靠 except 吞掉 OperationalError（2026-11-05 空白库日志实测）。
+            # 而不是靠 `except` 吞掉 OperationalError（2026-11-05 空白库日志实测）。
             self._bootstrap_legacy_schema()
 
             if current > 0:

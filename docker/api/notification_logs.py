@@ -20,7 +20,7 @@ from ..auth import get_current_role, require_role
 from .notification_deps import _get_notification_mgr, _get_user_id
 
 logger = logging.getLogger(__name__)
-# tags 由聚合模块 `notification.py` 在 include_router 时注入——
+# `tags` 由聚合模块 `notification.py` 在 include_router 时注入——
 # 若此处也声明，同一路由会带上两个同名标签（OpenAPI 不再与拆分前一致）。
 router = APIRouter()
 
@@ -161,7 +161,7 @@ def get_logs(
         end_date=end_date,
         is_read=is_read,
         user_id=filter_user,
-        # 管理员默认看“自己 + 系统通知”；all=true 才是所有用户
+        # 管理员默认看“自己 + 系统通知”；`all=true` 才是所有用户
         include_system=bool(role == "admin" and not all and user_id is None),
     )
     return {

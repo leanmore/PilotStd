@@ -120,7 +120,7 @@ def _process_record(rec: dict, today: date, db: Database, notification_mgr: Any,
                     "remind_type": remind_type,
                 },
                 # 提醒是「某个用户的收藏到期」，必须按该用户投递；否则日志记 0、
-                # 消息发到 manager 默认用户（1）——多用户下就是错投。
+                # 消息发到 `manager` 默认用户（1）——多用户下就是错投。
                 context=NotificationContext(scope="user", user_id=uid) if uid > 0 else None,
             )
             stats["sent"] += 1

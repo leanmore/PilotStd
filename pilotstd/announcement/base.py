@@ -29,7 +29,7 @@ class BaseAnnounceCrawler(ABC):
         # 熔断状态以标准类型为键写入适配器状态表，与状态接口读取口径一致
         self._cb = CircuitBreaker(lambda: self.standard_type)  # 组合，非继承
         self._http = _http
-        # 详情抓取失败的公告发布日期：用于 checkpoint 回退（不跨过失败项）
+        # 详情抓取失败的公告发布日期：用于 `checkpoint` 回退（不跨过失败项）
         self._failed_notice_dates: list[str] = []
         self._failed_lock = threading.Lock()
 
@@ -218,7 +218,7 @@ class BaseAnnounceCrawler(ABC):
             return self._finalize_items(html_items, attachment_url)
 
         # 混合：网页有数据+有附件。附件可能比网页首屏更完整（DB 2014 第4号：
-        # 网页 52 行、.doc 附件 223 行），因此附件解析更多时以附件为准。
+        # 网页 52 行、`.doc` 附件 223 行），因此附件解析更多时以附件为准。
         if html_items and attachment_url:
             att_bytes = self._download_attachment(attachment_url)
             if att_bytes:
@@ -372,7 +372,7 @@ class BaseAnnounceCrawler(ABC):
             else:
                 declared = int(raw_std_count) if raw_std_count else len(parsed)
                 # 附件比列表声明的行数更完整时，以解析到的实际行数为准
-                # （DB 2014年第4号：列表写215，.doc 附件实有223行）
+                # （DB 2014年第4号：列表写215，`.doc` 附件实有223行）
                 if item.get("_attachment_primary") and len(parsed) > declared:
                     declared = len(parsed)
                 item["standard_count"] = declared

@@ -31,8 +31,8 @@ from ._topic_index import _LEGACY_TOPIC_KEYWORDS, _TOPIC_BY_EVENT
 # 缓冲窗口：0.3 秒内同类通知合并为一条
 # 设计意图（专项确认，不变更）：这是**桌面托盘气泡**的分组窗口，与服务端聚合器的
 # `DEFAULT_WINDOW_SECONDS = 5.0s` 分属两条独立链路（见模块 docstring）。语义不同——
-# 桌面要"两条 toast 几乎同时出现就并一条"，0.3s 足够；服务端要"5 秒内的事件合成
-# 摘要后投递到 webhook"，需要更长。故本值不进 config，也不与 5.0s 对齐。
+# 桌面要"两条 toast 几乎同时出现就并一条"，0.3 秒足够；服务端要"5 秒内的事件合成
+# 摘要后投递到 `webhook`"，需要更长。故本值不进 config，也不与 5.0 秒对齐。
 _BUFFER_WINDOW = 0.3  # 秒
 # 计数窗口：30 秒内累计警告/错误数达阈值则触发暂停
 _COUNT_WINDOW = 30  # 秒
@@ -247,7 +247,7 @@ class NotificationAggregator:
         patterns: list[tuple[re.Pattern[str], str]] = []
         # 冲突检测：同一标题字面若被推导出**不同主题**，说明事件→主题映射有问题
         # （重复标题本身无害，仅当主题不一致时才是缺陷）。构建时即告警，
-        # 不依赖测试——否则未来新增标题可能被 setdefault 静默忽略。
+        # 不依赖测试——否则未来新增标题可能被 `setdefault` 静默忽略。
         conflicts: dict[str, set[str]] = {}
         base = os.path.join(os.path.dirname(__file__), "..", "i18n")
         for lang in ("zh_CN", "zh_TW", "en"):
@@ -267,7 +267,7 @@ class NotificationAggregator:
                 topic = _TOPIC_BY_EVENT.get(owner or "")
                 if not topic:
                     continue
-                # 同一标题可能被多个事件共用（实测 1 例，同属 announce）——
+                # 同一标题可能被多个事件共用（实测 1 例，同属 `announce`）——
                 # 保留先登记者，但若推导出的主题**不一致**则记入冲突并告警。
                 # 索引键做空白折叠，与 `_extract_topic` 的查找侧保持一致。
                 key_text = value
@@ -445,7 +445,7 @@ class NotificationAggregator:
                 QTimer.singleShot(0, lambda: self._on_show(safe_title, safe_body, msg.level))
                 return
         except ImportError as e:
-            # 无 PyQt6（服务端/headless）时直接调用，属预期回退
+            # 无 PyQt6（服务端/无头模式）时直接调用，属预期回退
             logger.debug("PyQt6 unavailable for desktop toast, showing directly: %s", e)
 
         self._on_show(safe_title, safe_body, msg.level)

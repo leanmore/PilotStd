@@ -114,7 +114,7 @@ def _prune_old_backups(backup_dir: str, keep: int = _BACKUP_KEEP) -> list[str]:
         entries = [f for f in os.listdir(backup_dir) if f.endswith(".bak")]
     except OSError as e:
         # 目录不可读/不存在时无法裁剪：备份只增不减会最终撑满磁盘，
-        # 属可观测性问题，不能静默 return []（P2-10 批 1）。
+        # 属可观测性问题，不能静默返回空列表（P2-10 批 1）。
         logger.warning("backup dir unreadable, skip retention prune: %s (%s)", backup_dir, e)
         return []
 
@@ -246,7 +246,7 @@ def _cleanup_retention():
     db = _get_db()
     try:
         # audit_logs.timestamp 由 SQLite CURRENT_TIMESTAMP 写入（UTC）；pipeline_runs.created_at
-        # 由 Python datetime.now() 写入（本地时区）——两者不能共用一个 now 基准（2026-11-04 审计）。
+        # 由 Python datetime.now() 写入（本地时区）——两者不能共用一个 `now` 基准（2026-11-04 审计）。
         audit_deleted = db.execute(
             "DELETE FROM audit_logs WHERE datetime(timestamp) < datetime('now', ?)",
             (f"-{audit_days} days",),

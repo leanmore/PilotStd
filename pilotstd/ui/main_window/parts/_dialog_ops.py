@@ -109,7 +109,7 @@ def _register_task(self, label: str, total: int, completed: int, failed: int = 0
     try:
         from ....task.models import TaskType
 
-        # 与任务中心展示侧的 5 类业务名对齐（W1 §3.3 指出写入方原先只映射 4 类、缺 expire）
+        # 与任务中心展示侧的 5 类业务名对齐（W1 §3.3 指出写入方原先只映射 4 类、缺 `expire`）
         type_map = {
             "扫描": TaskType.SCAN,
             "查询": TaskType.QUERY,

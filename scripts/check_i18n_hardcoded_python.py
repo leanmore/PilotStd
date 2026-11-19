@@ -63,7 +63,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 # （`.secrets.baseline` / `web/pnpm-lock.yaml` 等同为结构化数据文件）。
 DEFAULT_BASELINE = PROJECT_ROOT / "scripts" / "i18n_hardcoded_python_baseline.json"
 
-# 扫描目标：Python 生产代码。语言包本体（pilotstd/i18n/*.json）不是 .py，自然不计。
+# 扫描目标：Python 生产代码。语言包本体（pilotstd/i18n/ 下的 JSON 文件）不是 Python 脚本，自然不计。
 SCAN_DIRS = ("pilotstd", "docker")
 
 # 目录级排除（任意层级）：测试/cache/构建产物

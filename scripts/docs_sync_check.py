@@ -240,7 +240,7 @@ def _get_staged_files():
     return result
 
 
-# ─── 变更来源解析（2026-09-27 T-16：原实现只读暂存区，CI 全新检出时恒为空 → 门禁空转且恒 exit 0） ───
+# ─── 变更来源解析（2026-09-27 T-16：原实现只读暂存区，CI 全新检出时恒为空 → 门禁空转且恒以退出码 0 结束） ───
 
 _USAGE = """\
 用法: python scripts/docs_sync_check.py [--range A..B] [--base <ref>] [--strict] [--strict-block]
@@ -321,11 +321,11 @@ def _resolve_change_source(opts):
     绝不以"无变更"静默通过；`--range` 为调用方硬指定（受控验证用），不做非空过滤。
     """
     # R11-3：严格模式（CI 告警期/阻断期）下要求候选范围确实含变更文件；非严格模式（本地辅助，
-    # 可能调用 claude 改写文档）保持“暂存区优先”的旧行为，避免把历史提交误当成本次变更。
+    # 可能调用 `claude` 改写文档）保持“暂存区优先”的旧行为，避免把历史提交误当成本次变更。
     require_changes = bool(opts["strict"])
     explicit = []
     if opts["range"]:
-        # 硬指定：尊重调用方意图，即使该范围 diff 为空（受控验证依赖此语义）
+        # 硬指定：尊重调用方意图，即使该范围的 `diff` 为空（受控验证依赖此语义）
         explicit.append((opts["range"], "--range 指定", True))
     env_range = os.environ.get("DOCS_SYNC_RANGE", "").strip()
     if env_range:
@@ -333,7 +333,7 @@ def _resolve_change_source(opts):
     base = (opts["base"] or os.environ.get("BASE_BRANCH", "")).strip()
     if base:
         explicit.append((f"origin/{base}...HEAD", f"BASE_BRANCH={base}", False))
-    # 有效但 diff 为空的候选只留作兜底（用于说明"确实无变更"），不立即返回
+    # 有效但 `diff` 为空的候选只留作兜底（用于说明"确实无变更"），不立即返回
     empty_fallback = None
     for rng, why, hard in explicit:
         if not _range_is_valid(rng):
@@ -432,7 +432,7 @@ def main():
     auto_fix = os.environ.get("AUTO_FIX_DOCS", "true").strip().lower() in ("true", "1", "yes")
     claude_timeout = int(os.environ.get("CLAUDE_TIMEOUT", "120"))
     if opts["strict"]:
-        # 严格模式 = 只判定、不改文档（CI 离线前提：禁止调用 claude 改写入库文档）
+        # 严格模式 = 只判定、不改文档（CI 离线前提：禁止调用 `claude` 改写入库文档）
         auto_fix = False
     print(f"  自动修复: {'开启' if auto_fix else '关闭'}")
     print(f"  claude 超时: {claude_timeout}s")

@@ -156,7 +156,7 @@ NON_OVERRIDABLE_STATUSES: Final[frozenset[str]] = frozenset(
     {Status.WITHDRAWN.value, Status.WITHDRAWN_NORMALIZED.value, Status.VOIDED.value, Status.PENDING.value}
 )
 
-#: 对外 API 的合法状态取值（原 `docker/api/standards.py:17`；类型保持 tuple）
+#: 对外 API 的合法状态取值（原 `docker/api/standards.py:17`；类型保持 `tuple`）
 API_VALID_STATUSES: Final[tuple[str, ...]] = (
     Status.ACTIVE.value,
     Status.WITHDRAWN_NORMALIZED.value,

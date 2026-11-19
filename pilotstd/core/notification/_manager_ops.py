@@ -46,15 +46,15 @@ class NotificationOps:
         """宿主数据库连接（调用期读取，保持拆分前各方法体逐字节不变）。"""
         return self._mgr._db
 
-    # 写发送日志：刻意静默失败——日志落库不该反向影响通知投递本身，故只记 warning；
-    # aggregated_count / link / icon 三列用于还原“这条代表合并了多少条事件”。
-    # 阶段 1a 追加的 4 列（message_id / correlation_id / delivery_status / ack_status）、
-    # 1b 的 4 列（task_id / notify_event / content_type / task_context）、
-    # 1c 的 4 列（actions / callback_data / attachments / channel_message_ids）
+    # 写发送日志：刻意静默失败——日志落库不该反向影响通知投递本身，故只记警告级日志；
+    # `aggregated_count` / `link` / `icon` 三列用于还原“这条代表合并了多少条事件”。
+    # 阶段 `1a` 追加的 4 列（message_id / correlation_id / delivery_status / ack_status）、
+    # `1b` 的 4 列（task_id / notify_event / content_type / task_context）、
+    # `1c` 的 4 列（`actions` / callback_data / `attachments` / channel_message_ids）
     # 取 NotificationMessage 对应字段——故旧 11 列的取值与语义完全不变。
     # **非标量字段一律经 _json_codec 转换（唯一转换点）**：task_context /
-    # channel_message_ids 走 dumps（dict），actions / attachments 先经
-    # specs.specs_to_jsonable 转字典列表再 dumps（**不能**直接 dumps 规格对象）。
+    # channel_message_ids 走 `dumps`（字典），`actions` / `attachments` 先经
+    # `specs.specs_to_jsonable` 转字典列表再 `dumps`（**不能**直接 `dumps` 规格对象）。
     def log(
         self,
         event_type: str,
@@ -105,7 +105,7 @@ class NotificationOps:
                     msg.callback_data,  # 纯字符串，无需编解码
                     _json_codec.dumps(specs_to_jsonable(msg.attachments)),
                     _json_codec.dumps(msg.channel_message_ids),
-                    # 阶段 2.5a：task_kind 是标量字符串，直接落库（不经 _json_codec）
+                    # 阶段 `2.5a`：task_kind 是标量字符串，直接落库（不经 _json_codec）
                     msg.task_kind,
                     # 通知聚合 B1-2：失败明细（list[dict[str,str]]）走 JSON 文本列（先例见 task_context 等）
                     _json_codec.dumps(msg.failed_items),
@@ -154,8 +154,8 @@ class NotificationOps:
                 f"UPDATE notification_log SET {', '.join(sets)} WHERE id = ?", tuple(params)
             )
             # **校验命中行数**：`log_id` 为 None/不存在时 SQLite 不报错但 0 行受影响，
-            # 若只看"没抛异常"就会把"没写进去"当成功（实测教训：`manager._log` 曾丢掉返回 id，
-            # 本校验会把该 bug 当场暴露，而不是等到状态列读出来不对才发现）。
+            # 若只看"没抛异常"就会把"没写进去"当成功（实测教训：`manager._log` 曾丢掉返回 `id`，
+            # 本校验会把该缺陷当场暴露，而不是等到状态列读出来不对才发现）。
             affected = int(getattr(cur, "rowcount", 0) or 0)
             if affected <= 0:
                 logger.warning("notification log update affected 0 rows (id=%s)", log_id)
@@ -195,7 +195,7 @@ class NotificationOps:
         return tiered.build_context(context, elapsed_ms)
 
     # 分页查询：筛选条件按需拼接（列名是固定字面量、值一律走参数占位符），
-    # total 与 items 共用同一个 WHERE，避免“筛选后条数对不上”的经典分页缺陷。
+    # `total` 与 `items` 共用同一个 WHERE，避免“筛选后条数对不上”的经典分页缺陷。
     def get_logs(
         self,
         page: int = 1,
@@ -309,7 +309,7 @@ class NotificationOps:
             "items": safe[start : start + size],
         }
 
-    # ids 为空表示“全部标记已读”，此时返回 0——调用方据此区分“按条计数”与“全量操作”。
+    # `ids` 为空表示“全部标记已读”，此时返回 0——调用方据此区分“按条计数”与“全量操作”。
     def mark_logs_read(
         self, ids: list[int] | None = None, user_id: int | None = None, include_system: bool = False
     ) -> int:
@@ -328,7 +328,7 @@ class NotificationOps:
                     db.execute("UPDATE notification_log SET is_read = 1 WHERE id = ?", (i,))
                     updated += 1
             # 旧行为（无 user_id）返回“请求条数”，保持既有调用方/测试契约；
-            # 有 user_id 时返回真实受影响行数，避免把别人的 id 也计入。
+            # 有 user_id 时返回真实受影响行数，避免把别人的 `id` 也计入。
             return updated if user_id is not None else len(ids)
         _log_scope.mark_all(db, user_id, include_system)
         return 0

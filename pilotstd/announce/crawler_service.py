@@ -150,9 +150,9 @@ class AnnounceCrawler:
         if not items:
             raise ValueError("reparse produced no records")
 
-        # 先**原地 upsert** 再清理旧行：直接 DELETE 会撞 `user_favorites.record_id` 等外键
-        # （2026-11-03 线上 reparse 30 号实测 FOREIGN KEY constraint failed）。
-        # upsert 命中唯一键时保留 row id，收藏引用不会断。
+        # 先**原地 `upsert`** 再清理旧行：直接 DELETE 会撞 `user_favorites.record_id` 等外键
+        # （2026-11-03 线上 `reparse` 30 号实测 `FOREIGN KEY constraint failed`）。
+        # `upsert` 命中唯一键时保留 `rowid`，收藏引用不会断。
         cutoff = iso_now()
         self.engine.matcher.match_and_update(
             items,
@@ -162,8 +162,8 @@ class AnnounceCrawler:
         )
 
         # 清理两类旧行：①本次未解析出来的（源站删条目 / PID 变更残留）；
-        # ②**本次未写入**的旧版本行（fetched_at < cutoff）——历史解析缺 language 等字段时
-        # 会产生“同号不同键”的残留，重复行会让 reconcile 永久对不上（2026-11-04 线上 8 号实测）。
+        # ②**本次未写入**的旧版本行（fetched_at < `cutoff`）——历史解析缺 `language` 等字段时
+        # 会产生“同号不同键”的残留，重复行会让 `reconcile` 永久对不上（2026-11-04 线上 8 号实测）。
         # 被收藏、下载记录或提醒引用的行**保留**并告警——删掉会让用户收藏变成悬空外键。
         from pilotstd.announcement.parser import normalize_std_code
 
@@ -264,7 +264,7 @@ class AnnounceCrawler:
                 force=bool(result.get("checkpoint_force")),
             )
             # P1-03：该站点本轮成功 → 把历史未解决失败标记为已解决，
-            # 让“是否恢复”在读取侧可见，而不是永远 unresolved。
+            # 让“是否恢复”在读取侧可见，而不是永远处于 `unresolved` 状态。
             self._persistence.resolve_site_failures(adapter.source_site)
 
         # 本次抓取窗口内新增公告的分类统计（供通知载荷使用）

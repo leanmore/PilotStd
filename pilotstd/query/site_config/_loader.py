@@ -58,7 +58,7 @@ def _on_config_invalidated(path: str) -> None:
     """配置写盘后的显式失效回调：清空站点缓存，使下次读取合并最新覆盖值。
 
     #31-P1（R14-3b）：GUI 设置页/Web API 写盘 → `ConfigManager.save()` 发布失效通知 →
-    本回调清缓存 → 热路径下次取站点配置即刷新。**不做 TTL 静默缓存**（避免掩盖 bug）。
+    本回调清缓存 → 热路径下次取站点配置即刷新。**不做 TTL 静默缓存**（避免掩盖缺陷）。
     """
     global _site_config_cache
     _site_config_cache = None

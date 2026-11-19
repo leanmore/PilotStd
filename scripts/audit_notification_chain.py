@@ -188,7 +188,7 @@ def _render_text(report: dict) -> None:
 def main() -> int:
     args = _parse_args()
 
-    # 模块过滤：无 --module 时全量审计；关键词表未命中时按原词做子串匹配
+    # 模块过滤：无 `--module` 时全量审计；关键词表未命中时按原词做子串匹配
     module = (args.module or "").strip().lower()
     keywords = MODULE_KEYWORDS.get(module, (module,)) if module else None
 
@@ -206,7 +206,7 @@ def main() -> int:
     problems = _collect_problems(builders, exceptions)
     report = _build_report(module, events, builders, call_sites, exceptions, problems)
 
-    # 输出分流：--json 供其他工具解析，默认人类可读文本
+    # 输出分流：`--json` 供其他工具解析，默认人类可读文本
     if args.json:
         text = json.dumps(report, ensure_ascii=False, indent=2)
         if args.output:
@@ -217,10 +217,10 @@ def main() -> int:
     else:
         _render_text(report)
 
-    # 退出码：默认与 --strict 均以"发现问题即阻断"为准。
+    # 退出码：默认与 `--strict` 均以"发现问题即阻断"为准。
     #   本仓库修复 A-1/A-2/A-3 后问题数已归零，**不存在需要设基线的存量问题**，
-    #   故 --strict 不改变判定（它只是为 CI 显式声明"不接受任何发现"这一意图，
-    #   与 G-045 的 --strict 语义对齐）。若未来出现无法立即修复的发现，不得引入
+    #   故 `--strict` 不改变判定（它只是为 CI 显式声明"不接受任何发现"这一意图，
+    #   与 G-045 的 `--strict` 语义对齐）。若未来出现无法立即修复的发现，不得引入
     #   静默基线（P-104 门禁不绕过），而应修复或显式登记。
     _ = args.strict  # 显式声明：当前不影响判定，保留为 CI 意图声明
     return 1 if problems else 0

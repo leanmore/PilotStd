@@ -168,7 +168,7 @@ class WeChatCrypto:
         decryptor = Cipher(algorithms.AES(self._key), modes.CBC(self._iv)).decryptor()
         plain = _unpad(decryptor.update(raw) + decryptor.finalize())
 
-        # 布局：random(16) + len(4, 大端) + msg + receiveid
+        # 布局：random(16) + len(4, 大端) + msg + `receiveid`
         if len(plain) < _IV_SIZE + _LENGTH_FIELD_SIZE:
             logger.warning("wechat crypto: decrypted payload too short (%d bytes)", len(plain))
             raise WeChatCryptoError("decrypted payload too short")
@@ -213,7 +213,7 @@ class WeChatCrypto:
         被动回复（加密 XML 响应）也需要它。见模块 docstring。
         """
         msg = message.encode("utf-8")
-        # 布局固定：random(16) + 长度(4) + msg + receiveid；随机前缀每次不同（语义等价于 IV）
+        # 布局固定：random(16) + 长度(4) + msg + `receiveid`；随机前缀每次不同（语义等价于 IV）
         body = os.urandom(_IV_SIZE) + struct.pack(">I", len(msg)) + msg + self._receive_id.encode("utf-8")
         encryptor = Cipher(algorithms.AES(self._key), modes.CBC(self._iv)).encryptor()
         cipher = encryptor.update(_pad(body)) + encryptor.finalize()
@@ -281,7 +281,7 @@ def parse_plain_xml(xml_text: str) -> dict[str, str]:
     except ET.ParseError as e:
         logger.warning("wechat crypto: decrypted message is not valid xml: %s", e)
         return {}
-    # 去 CDATA 由 ElementTree 自动完成（CDATA 会被并入 text）
+    # 去 CDATA 由 ElementTree 自动完成（CDATA 会被并入 `text`）
     result: dict[str, str] = {}
     for child in root:
         if child.text and str(child.text).strip():

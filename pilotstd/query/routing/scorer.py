@@ -107,7 +107,7 @@ def get_profile(adapter_name: str) -> dict:
                 profile.setdefault("rate_limit", {}).update(user_overrides["rate_limit"])
     except Exception:
         # 站点配置覆盖是可选配置：缺失或非法就用默认权重，属预期路径。
-        # 用户可见结果不变，故保持 debug（升级会在每次评分时刷 warning）。
+        # 用户可见结果不变，故保持调试级（升级会在每次评分时刷警告）。
         logger.debug("读取站点配置覆盖失败: %s", adapter_name, exc_info=True)
 
     return profile

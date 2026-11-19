@@ -43,7 +43,7 @@ FOCUSED = (
     "tests/test_notification_desktop_toast.py",
 )
 
-# 记录时跳过的帧：通知包内部（插桩点自身）、本工具、pytest 与标准库
+# 记录时跳过的帧：通知包内部（插桩点自身）、本工具、`pytest` 与标准库
 _SKIP = ("/pilotstd/core/notification/", "/audit_notification_trigger_map.py", "/_pytest/", "/unittest/",
          "/site-packages/")
 

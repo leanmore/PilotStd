@@ -66,7 +66,7 @@ def is_test_file(path: str) -> bool:
     if normalized.startswith('tests/') or '/tests/' in normalized:
         return True
     # 前端测试：web/src/**/*.test.ts（A-19/B5）。此前只认 tests/，导致前端修复
-    # 带 .test.ts 也被判定“无测试变更”，只能改用 chore 提交（语义失真）。
+    # 带 .test.ts 也被判定“无测试变更”，只能改用 `chore` 提交（语义失真）。
     return bool(re.search(r'(^|/)web/src/.*\.test\.(ts|tsx|js|jsx)$', normalized))
 
 # 输入输出调用检测正则（比集合成员检查更精确）
@@ -330,7 +330,7 @@ def is_business_file(filepath: str) -> bool:
 
 # 判据：**tests/ 下任一测试变更**（不再按路径精确映射）。
 # 为什么不精确映射：实测近 60 次提交里 `tests/<父目录>/test_<文件名>.py` 命中 **0/16**
-# （docker 0/60），文件名启发式仅 3/16——本仓库测试按"功能"命名而非按模块命名
+# （`docker` 0/60），文件名启发式仅 3/16——本仓库测试按"功能"命名而非按模块命名
 # （如 test_channels_retry_foundation.py 一次覆盖 5 个渠道文件），精确映射必然常红。
 # 粗判据下 14/16 通过，剩余 2 例是"改了公开 API 却完全没动测试"的真阳性。
 # 体检 D-6，2026-10-17。
@@ -461,7 +461,7 @@ def _load_pair(biz_file: str, old_ref: str, new_ref: Optional[str], warnings: li
             return None
     new_content = content_or_exit(get_content_at(biz_file, new_ref), biz_file, new_ref)
     if not new_content:
-        # head 侧为空 = 文件被删除；ast.parse("") 返回 None，无法参与比对，至少留痕。
+        # `head` 侧为空 = 文件被删除；ast.parse("") 返回 None，无法参与比对，至少留痕。
         warnings.append(f"[TEST-WARN] {biz_file} 在 {new_ref} 中不存在（疑删除），未做 AST 比对")
         return None
     return old_content, new_content

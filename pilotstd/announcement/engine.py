@@ -119,7 +119,7 @@ class AnnounceEngine:
             else []
         )
         if failed_dates:
-            # 失败项不能被 checkpoint 跨过：退到最早失败日期的前一天，下一轮重试
+            # 失败项不能被 `checkpoint` 跨过：退到最早失败日期的前一天，下一轮重试
             earliest = min(d for d in failed_dates if d)
             try:
                 safe_date = (date.fromisoformat(earliest) - timedelta(days=1)).isoformat()

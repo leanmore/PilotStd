@@ -257,7 +257,7 @@ class FeishuChannel(NotificationChannel):
             return False
         try:
             # 分段（P2，2026-10-05）：飞书卡片超长时必须**按元素切成多张卡片**——
-            # 卡片是 `elements[]` 数组，若把 markdown 字符串从中间切开，`**加粗**` 之类标记会跨段断裂；
+            # 卡片是 `elements[]` 数组，若把 `markdown` 字符串从中间切开，`**加粗**` 之类标记会跨段断裂；
             # 按元素装填既保持卡片结构合法，又能用「续 N/M」明确告知还有后续。
             # 未超限时 `_split_card` 原样返回单张（零行为变更）。
             card = self._renderer.render(message)
@@ -348,7 +348,7 @@ class FeishuChannel(NotificationChannel):
         （飞书限流码未取证，用基座 `looks_rate_limited` 关键词兜底）。
         """
         try:
-            # 变量名避开 except 分支里的 `body`（那是 str，同名会让 mypy 报类型冲突）
+            # 变量名避开 `except` 分支里的 `body`（那是 str，同名会让 mypy 报类型冲突）
             request_body: dict[str, Any] = {
                 "msg_type": "interactive",
                 "card": card,

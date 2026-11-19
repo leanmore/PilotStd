@@ -18,7 +18,7 @@ class NotificationContext:
     user_id: int | None = None
 
     def __post_init__(self) -> None:
-        # user/admin 必须带真实用户 id；system 不允许伪装成某个用户
+        # `user`/`admin` 必须带真实用户 ID；`system` 不允许伪装成某个用户
         if self.scope in ("user", "admin") and self.user_id is None:
             raise ValueError(f"scope={self.scope} requires user_id")
         if self.scope == "system" and self.user_id is not None:

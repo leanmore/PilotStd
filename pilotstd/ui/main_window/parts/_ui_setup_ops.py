@@ -62,7 +62,7 @@ class _TrayEventBridge(QObject):
     # 类属性给默认值，`__init__` 里再赋一次实例属性——G-011 只认 `self.x = …` 形式的定义。
     throttle = True
 
-    # 载荷：(event_type, title, message, level)
+    # 载荷：`(event_type, title, message, level)`
     # 两个命名约束：① **不能**叫 `event`——会遮蔽 `QObject.event(QEvent)` 虚函数，
     # PyQt 抛 "native Qt signal is not callable"；② 后缀须落在门禁 G-011 认可的信号后缀
     # （`_changed` / `_ready` / `_occurred`）内，否则被当作"引用未定义的属性"。

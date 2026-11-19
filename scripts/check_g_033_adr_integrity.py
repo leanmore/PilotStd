@@ -130,7 +130,7 @@ def validate_adr(adr_dir: Path | None = None) -> bool:
     `adr_dir` 仅供受控测试注入临时目录；生产调用不传，走模块级 `ADR_DIR`。
     """
     target = ADR_DIR if adr_dir is None else adr_dir
-    # 编号唯一性先行：不依赖本次 git diff，避免"无架构变更→跳过"把重号捂过去
+    # 编号唯一性先行：不依赖本次 `git diff`，避免"无架构变更→跳过"把重号捂过去
     duplicates = find_duplicate_adr_numbers(target)
     if duplicates:
         print("❌ G-033: ADR 编号唯一性校验失败（R-001：编号不得复用）")

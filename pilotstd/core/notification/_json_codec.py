@@ -1,7 +1,7 @@
 # 模块：项目/核心//_脚本
 """通知字段的 JSON 编解码——非标量字段入库/出库的唯一通道。
 
-## 为什么需要它（阶段 1b 引入）
+## 为什么需要它（阶段 `1b` 引入）
 
 `NotificationMessage` 自 1b 起含非标量字段 `task_context: dict`，而它的两个落库点
 都是 **TEXT**：
@@ -52,7 +52,7 @@ def dumps(value: Any) -> str:
     if value is None:
         return _EMPTY_SLOT
     # 空容器统一走空槽：既省存储，也避免库中出现无意义的 "{}" / "[]"
-    # （阶段 1c 的 actions/attachments 在多数通知里都是空列表）
+    # （阶段 `1c` 的 actions/attachments 在多数通知里都是空列表）
     if isinstance(value, (dict, list)) and not value:
         return _EMPTY_SLOT
     try:

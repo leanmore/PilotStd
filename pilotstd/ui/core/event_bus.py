@@ -53,7 +53,7 @@ class EventBus(QObject):
         self._subscribers: dict[str, list[Callable[..., Any]]] = {}
         self._weak_subscribers: dict[str, list[weakref.ref[Any]]] = {}
         # 世代号：reset() 每次 +1。publish 时把当前世代号随事件入队，deliver 时丢弃陈旧世代
-        # ——这样「reset 前排队的 deliver」不会误触 reset 之后新注册的回调（状态隔离不依赖销毁对象）。
+        # ——这样「`reset` 前排队的 deliver」不会误触 `reset` 之后新注册的回调（状态隔离不依赖销毁对象）。
         self._generation = 0
 
     @classmethod

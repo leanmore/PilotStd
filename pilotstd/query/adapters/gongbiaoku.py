@@ -34,7 +34,7 @@ class GongBiaoKuAdapter(BaseAdapter):
 
     BASE_URL = "https://www.gongbiaoku.com"
 
-    # 默认校验的站点复用进程级共享 SSL context（见 _shared_ssl），避免各自重新加载证书包
+    # 默认校验的站点复用进程级共享的 SSL 上下文（见 _shared_ssl），避免各自重新加载证书包
     def __init__(self, client: httpx.Client | None = None):
         self._log_window_start = 0.0
         self._log_count = 0

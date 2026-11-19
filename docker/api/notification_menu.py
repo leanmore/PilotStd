@@ -63,7 +63,7 @@ def get_menu_status(request: Request) -> MenuStatusResponse:
 @require_role("admin")
 def sync_menu(request: Request, channel: str = Query(..., min_length=1)) -> MenuSyncResponse:
     """按渠道同步菜单；相同配置重复调用不写渠道接口。"""
-    # 读取配置 → 幂等 diff → 渠道写入；结果只暴露状态/错误码，不回传凭据
+    # 读取配置 → 幂等 `diff` → 渠道写入；结果只暴露状态/错误码，不回传凭据
     result = sync_channel(channel, ConfigManager())
     try:
         write_audit(

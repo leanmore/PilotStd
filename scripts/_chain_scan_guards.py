@@ -37,7 +37,7 @@ def _missing_null_guards(func: ast.FunctionDef, used_fields: set[str]) -> list[s
       3. `or` 兜底：`v = data.get("f") or []`（含推导式内：`[str(d) for d in (data.get("f") or [])]`）
       4. 类型强转：`bool(data.get("f"))` / `str(...)` / `int(...)`
       5. 经 `.format(f=<兜底表达式>)` 传入
-      6. **作为 `NotificationMessage(...)` 的字段传入** —— 该 dataclass 的多数字段声明为
+      6. **作为 `NotificationMessage(...)` 的字段传入** —— 该 `dataclass` 的多数字段声明为
          `str | None = None` 等可空类型（见 pilotstd/core/notification/channel.py），
          `None` 是**合法值**而非缺陷（例：`standard_number=data.get("standard_number")`）。
          把它报为"缺守卫"是误报——实测残留 2 项全属此类。
@@ -60,17 +60,17 @@ def _missing_null_guards(func: ast.FunctionDef, used_fields: set[str]) -> list[s
         if _is_data_get(node) and len(node.args) > 1:  # type: ignore[attr-defined]
             guarded.add(str(node.args[0].value))  # type: ignore[attr-defined]
 
-        # 形态 2：if data.get("f"): / if data.get("f") is None: / if not data.get("f"):
+        # 形态 2：`if data.get("f"):` / `if data.get("f") is None:` / `if not data.get("f"):`
         if isinstance(node, ast.If):
             guarded |= _fields_in_test(node.test)
 
-        # 形态 3/4：v = <or 兜底 / 类型强转 / 推导式> 包裹的 data.get
+        # 形态 3/4：`v = <or 兜底 / 类型强转 / 推导式>` 包裹的 `data.get`
         if isinstance(node, ast.Assign) and len(node.targets) == 1:
             field = _field_of_guarded_value(node.value)
             if field:
                 guarded.add(field)
 
-        # 形态 3b：v = data["f"] —— **裸下标读取本身也算守卫**
+        # 形态 `3b`：`v = data["f"]` —— **裸下标读取本身也算守卫**
         #   理由：键存在性由触发方契约保证（e2e 的 builder_keys 双向校验），
         #   且实测所有下标读取都位于 `if data.get(...)` / `or []` 等保护之内。
         #   若把它单独报为"缺守卫"，是"过粗"的另一面（本次修 A-2 时踩到）。
@@ -90,7 +90,7 @@ def _missing_null_guards(func: ast.FunctionDef, used_fields: set[str]) -> list[s
                 if _field_of_guarded_value(kw.value) == kw.arg or not _is_bare_data_read(kw.value):
                     guarded.add(kw.arg)
 
-        # 形态 6：作为消息 dataclass 构造的字段传入 —— None 是这些 dataclass 的合法值
+        # 形态 6：作为消息 `dataclass` 构造的字段传入 —— None 是这些 `dataclass` 的合法值
         #   NotificationMessage / ListBlock / TextBlock / KeyValueBlock / StatusChangeBlock
         #   的字段多声明为 `str | None = None` 等可空类型（见 channel.py / blocks.py），
         #   故 `field=data.get("field")` 是合法用法而非缺守卫。
@@ -146,13 +146,13 @@ def _field_of_guarded_value(value: ast.expr) -> str | None:
       - `data.get("f", DEFAULT)` 有默认值
       - `data["f"]` 下标（被上述任一形态包裹时）
     """
-    # or 兜底：data.get("f") or []
+    # `or` 兜底：`data.get("f") or []`
     if isinstance(value, ast.BoolOp) and isinstance(value.op, ast.Or):
         for operand in value.values:
             if _is_data_get(operand):
                 return str(operand.args[0].value)  # type: ignore[attr-defined]
-    # 推导式 / 切片：守卫可在 elt（如 `[x for x in (data.get("f") or [])]`）或
-    # 生成器的 iter（如 `[str(d) for d in (data.get("f") or [])]`）内。
+    # 推导式 / 切片：守卫可在 `elt`（如 `[x for x in (data.get("f") or [])]`）或
+    # 生成器的 `iter`（如 `[str(d) for d in (data.get("f") or [])]`）内。
     # 注意：`[:5]` 之类的切片会再包一层 ast.Subscript，故须先剥掉。
     if isinstance(value, ast.Subscript) and isinstance(value.value, (ast.ListComp, ast.SetComp, ast.GeneratorExp)):
         value = value.value
@@ -166,7 +166,7 @@ def _field_of_guarded_value(value: ast.expr) -> str | None:
                 return found
     # 类型强转：bool(...) / str(...) / int(...) 包裹 data.get / data[...]
     # 强转本身就是守卫（None → False / "None" → "None" 等都在可控范围），
-    # 故只要内层是 data 读取（**无论有无默认值**）即视为已守卫。
+    # 故只要内层是 `data` 读取（**无论有无默认值**）即视为已守卫。
     if isinstance(value, ast.Call) and isinstance(value.func, ast.Name):
         if value.func.id in {"bool", "str", "int", "float", "list", "dict"} and value.args:
             inner = value.args[0]
@@ -178,7 +178,7 @@ def _field_of_guarded_value(value: ast.expr) -> str | None:
             return _field_of_guarded_value(inner)
     # 下标读取：**只在被上述任一形态包裹时**才算守卫（由上面的 BoolOp / 推导式 /
     # 强转分支递归到达此处）；裸 `data["f"]` 直接调用本函数时返回 None——
-    # 它的"守卫"由 _missing_null_guards 的形态 3b 单独认定。
+    # 它的"守卫"由 _missing_null_guards 的形态 `3b` 单独认定。
     if isinstance(value, ast.Subscript) and _subscript_field(value) is not None:
         return None
     if _is_data_get(value) and len(value.args) > 1:  # type: ignore[attr-defined]

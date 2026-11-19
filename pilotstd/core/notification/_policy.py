@@ -187,7 +187,7 @@ class NotificationPolicyHelper:
                     (_json.dumps(events, ensure_ascii=False), existing["id"]),
                 )
             if event_classes is not None:
-                # 类别层单独可写（与 events 互不覆盖）⇒ 前端双层配置各自保存，互不干扰
+                # 类别层单独可写（与 `events` 互不覆盖）⇒ 前端双层配置各自保存，互不干扰
                 self._db.execute(
                     'UPDATE "notification_policy" SET "event_classes"=?, "updated_at"=CURRENT_TIMESTAMP'
                     ' WHERE "id"=?',

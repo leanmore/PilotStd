@@ -15,7 +15,7 @@ from pilotstd.i18n import t
 from .notification_deps import _get_notification_mgr, _get_user_id
 
 logger = logging.getLogger(__name__)
-# tags 由聚合模块 `notification.py` 在 include_router 时注入——
+# `tags` 由聚合模块 `notification.py` 在 include_router 时注入——
 # 若此处也声明，同一路由会带上两个同名标签（OpenAPI 不再与拆分前一致）。
 router = APIRouter()
 

@@ -18,5 +18,5 @@ __all__ = [
 
 # 适配器统一从 `adapters/registry.py` 导出（A-33，2026-11-14）：
 # 原 20 个 `_get_*_adapter` 懒加载函数已删除——生产 0 调用、唯一消费者是
-# `tests/test_query_init.py` 自己锁自己，且会绕过 registry 的单一真相源。
-# 新增适配器请登记 `ALL_ADAPTERS`，不要在本模块再加同类 getter。
+# `tests/test_query_init.py` 自己锁自己，且会绕过 `registry` 的单一真相源。
+# 新增适配器请登记 `ALL_ADAPTERS`，不要在本模块再加同类 `getter`。

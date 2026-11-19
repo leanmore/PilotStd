@@ -203,7 +203,7 @@ def _build_fallback_message(event_type: str, data: dict) -> NotificationMessage:
         TextBlock(text=t("notification.fallback.body.event_type").format(t=data.get("event_type", "unknown")))
     ]
     if data:
-        # 不直接 str(data)：未知事件的原始 dict 会把内部键名泄露到用户通知
+        # 不直接 str(data)：未知事件的原始 `dict` 会把内部键名泄露到用户通知
         blocks.append(TextBlock(text=t("notification.fallback.body.details_omitted")))
     return NotificationMessage(
         title=t("notification.fallback.title"),

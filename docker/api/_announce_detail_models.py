@@ -20,7 +20,7 @@ class AnnouncementRecordPageItem(BaseModel):
     source_site: str
 
 
-# 公告记录分页：total/page/page_size 与 items
+# 公告记录分页：total/page/page_size 与 `items`
 class AnnouncementRecordsPageResponse(BaseModel):
     """分页记录响应：当前页条目、总数、页码、每页条数与是否还有更多。"""
 

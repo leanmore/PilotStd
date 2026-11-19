@@ -61,7 +61,7 @@ def _build_scan_complete_message(data: dict) -> NotificationMessage:
         else "notification.scan.scan_complete.title.clean"
     )
     return NotificationMessage(
-        # clean 变体无占位符，format 会静默忽略多余关键字参数，故统一调用
+        # `clean` 变体无占位符，`format` 会静默忽略多余关键字参数，故统一调用
         title=t(title_key).format(failed=failed),
         blocks=blocks,
         level="warning" if failed > 0 else "info",

@@ -65,7 +65,7 @@ class FieldSpec:
     divider_key: str = ""
     # 形态归属（阶段 3 · Step 2）：同一渠道可能有两种接入形态（如企微"群机器人 / 自建应用"、
     # 钉钉"webhook / 企业应用"）。空串表示"与形态无关的通用字段"（如 proxy_url）。
-    # **为什么不是靠 divider_key 判断**：divider 只是展示用的分隔文案，前端无法据此做
+    # **为什么不是靠 divider_key 判断**：`divider` 只是展示用的分隔文案，前端无法据此做
     # "分区展示 + 互斥校验"（那是行为，不是文案）。
     form: str = ""
 
@@ -124,7 +124,7 @@ class ChannelSpec:
     fields: tuple[FieldSpec, ...]
     status_rule: StatusRule
     # 形态声明（阶段 3 · Step 2）：供前端"按形态分区展示 + 互斥校验 + 参数提示"。
-    # 单形态渠道（如 telegram）留空 ⇒ 前端按"无分区"渲染，行为与改造前一致。
+    # 单形态渠道（如 `telegram`）留空 ⇒ 前端按"无分区"渲染，行为与改造前一致。
     forms: tuple[FormSpec, ...] = ()
 
 

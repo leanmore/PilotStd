@@ -23,7 +23,7 @@ from _docs_sync_io import (
 TRIGGER_RULES = [
     {
         "name": "模块结构变化",
-        # 原 target `docs/archive/specs/模块与功能清单.md` 已于 2026-08-19 归档并明确「不再维护」，
+        # 原目标 `docs/archive/specs/模块与功能清单.md` 已于 2026-08-19 归档并明确「不再维护」，
         # 指向它等于要求更新一份死文档；模块结构的活文档是 docs/architecture.md（U34-CI-fix-2 审计）。
         "match_fn": _has_new_or_deleted_pyfiles,
         "targets": [("docs/architecture.md", "claude", False)],
@@ -32,7 +32,7 @@ TRIGGER_RULES = [
         "name": "架构模式变化（Handler/Mixin）",
         "match_fn": lambda t, d: _has_handler_or_mixin_change(t, d),
         "targets": [
-            # 原 `docs/architecture/architecture.md` 在仓库中不存在（断链，且 blocking=True 会在触发时直接红）；
+            # 原 `docs/architecture/architecture.md` 在仓库中不存在（断链，且 `blocking=True` 会在触发时直接红）；
             # 架构活文档为 docs/architecture.md（U34-CI-fix-2 审计）。
             ("docs/architecture.md", "claude", True),
             # 2026-09-27：旧簿 architecture/technical-debt-registry.md 已废止归档，
@@ -42,7 +42,7 @@ TRIGGER_RULES = [
     },
     {
         "name": "测试文件数大幅变化",
-        # 原 target `docs/development.md` 已迁移成 12 行占位文件（内容并入 07-dev-workflow / testing-baseline /
+        # 原目标 `docs/development.md` 已迁移成 12 行占位文件（内容并入 07-dev-workflow / testing-baseline /
         # ci-lessons），指向它只会要求改一份空壳；测试基线的活文档是 docs/testing/testing-baseline.md。
         "match_fn": _test_files_changed_significantly,
         "targets": [("docs/testing/testing-baseline.md", "claude", True)],
@@ -59,14 +59,14 @@ TRIGGER_RULES = [
     },
     {
         "name": "CI/CD 工作流变更",
-        # 原 target `docs/development.md` 为占位文件；CI 经验的活文档是 docs/ci-lessons.md。
+        # 原目标 `docs/development.md` 为占位文件；CI 经验的活文档是 docs/ci-lessons.md。
         "match_fn": _has_workflow_changes,
         "targets": [("docs/ci-lessons.md", "claude", True)],
     },
     {
         "name": "feat:/fix: 提交",
         "match_fn": lambda t, d, m: _is_feat_or_fix_commit(m),
-        # CHANGELOG 由 CI version 作业在测试通过后自动追加（ci.yml 版本步骤），
+        # CHANGELOG 由 CI 的 `version` 作业在测试通过后自动追加（ci.yml 版本步骤），
         # 不可能与 feat/fix 同批提交；故 in_repo=False：只提示，不参与 strict-block 阻断。
         "targets": [("CHANGELOG.md", "claude", False)],
     },
@@ -83,10 +83,10 @@ def _match_trigger_rules(staged_files, diff_text, commit_msg):
         fn = rule["match_fn"]
         n = fn.__code__.co_argcount
         try:
-            # T-16 修复（2026-09-27）：原实现用字典字面量做 arity 分派
+            # T-16 修复（2026-09-27）：原实现用字典字面量按 `arity` 分派
             # （`{3: fn(a,b,c), 2: fn(a,b), 1: fn(a)}.get(n)`）——Python 会**先求值全部三个调用**，
-            # 于是每个规则都因参数个数不符抛 TypeError 被 except 吞掉 → **8 条规则全部从未触发过**。
-            # 改为按 arity 只调用一次。
+            # 于是每个规则都因参数个数不符抛 TypeError 被 `except` 吞掉 → **8 条规则全部从未触发过**。
+            # 改为按 `arity` 只调用一次。
             if n >= 3:
                 matched = fn(staged_files, diff_text, commit_msg)
             elif n == 2:

@@ -302,7 +302,7 @@ async def lifespan(app: FastAPI):
     _cron_mgr = _get_mgr()
 
     # 启动对账：修复“文件已移动、file_index 未更新”的悬空路径，清理过期目录孤儿
-    # （kill -9 演练实测存在 1 条悬空 + 1 个孤儿；失败不阻断启动）
+    # （`kill -9` 演练实测存在 1 条悬空 + 1 个孤儿；失败不阻断启动）
     try:
         from pilotstd.core.archive_reconcile import reconcile_archive
 
@@ -319,7 +319,7 @@ async def lifespan(app: FastAPI):
     # v49: 将旧 user_settings JSON 数据自动迁移到 user_preferences KV 表
     _migrate_user_settings_to_preferences(_cron_mgr.db)
 
-    # 注入系统通知钩子：core 内无 manager 引用的模块（公告熔断器等）据此发系统通知（D4-4）
+    # 注入系统通知钩子：`core` 内无 `manager` 引用的模块（公告熔断器等）据此发系统通知（D4-4）
     from pilotstd.core.notification import set_system_notifier
 
     set_system_notifier(lambda event_type, data: _cron_mgr.notification_mgr.send_event(event_type, data))

@@ -87,7 +87,7 @@ class RulesPage(QWidget):
                 parsed = json.loads(raw)
             except json.JSONDecodeError as e:
                 # 静默返回 [] 会让用户以为“规则丢了”，随后一次保存就把坏串覆盖成空表
-                # ⇒ 配置损坏必须留 warning（P2-10 批 4）；日志用英文避免新增 i18n 硬编码
+                # ⇒ 配置损坏必须留警告日志（P2-10 批 4）；日志用英文避免新增 i18n 硬编码
                 logger.warning("site rules JSON parse failed, showing empty list: %s", e)
                 return []
             return parsed if isinstance(parsed, list) else []

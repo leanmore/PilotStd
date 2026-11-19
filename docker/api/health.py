@@ -12,7 +12,7 @@ from pydantic import BaseModel
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-# 允许的私有网络段（RFC1918 + loopback）
+# 允许的私有网络段（RFC1918 + 回环地址）
 _PRIVATE_NETWORKS = [
     ipaddress.ip_network("127.0.0.0/8"),
     ipaddress.ip_network("10.0.0.0/8"),

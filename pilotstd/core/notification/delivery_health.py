@@ -13,7 +13,7 @@
 #   2. **告警去重**：同一（渠道 + 原因）在冷却期内只告警一次，避免风暴。
 #   3. **不回环**：告警自身的投递结果**不再计入健康度**（否则告警失败又会触发新告警）。
 #   4. **线程安全**：`send_event` 可能被多个线程（调度器 + API）并发调用。
-#   5. **内存态**：部署为单进程 uvicorn（`docker/entrypoint.sh` 无 `--workers`），
+#   5. **内存态**：部署为单进程 `uvicorn`（`docker/entrypoint.sh` 无 `--workers`），
 #      故用进程内状态；重启后计数归零——对"连续失败"语义可接受（重试即重建）。
 
 from __future__ import annotations
@@ -67,7 +67,7 @@ class NotificationDeliveryHealth:
         self._cooldown = float(alert_cooldown_seconds)
         self._lock = threading.Lock()
         self._states: dict = {}
-        # 时间源可替换（测试注入假时钟，避免 sleep）
+        # 时间源可替换（测试注入假时钟，避免 `sleep`）
         self._now = time.monotonic
 
     # ── 记录 ────────────────────────────────────────────────────────────────

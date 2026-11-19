@@ -76,7 +76,7 @@ class Call:
         return normalize_frontend(self.path)
 
 
-# 后端路径：保留源码写法（例如 /query 就是 /query），不能统一补 /api 前缀。
+# 后端路径：保留源码写法（例如 `/query` 就是 `/query`），不能统一补 `/api` 前缀。
 def normalize_backend(path: str) -> str:
     """后端路径按源码原样归一（`/query` 就是 `/query`，不能补 `/api`）。"""
     text = path.split("?", 1)[0].strip()
@@ -84,7 +84,7 @@ def normalize_backend(path: str) -> str:
     return text.rstrip("/") or "/"
 
 
-# 前端调用：axios 实例 baseURL 为 /api，路径要先补前缀再与后端比对。
+# 前端调用：`axios` 实例 baseURL 为 `/api`，路径要先补前缀再与后端比对。
 def normalize_frontend(path: str) -> str:
     """前端 `http` 的 baseURL 是 `/api`，调用路径需要补前缀后再比对。"""
     text = path.split("?", 1)[0].strip()
@@ -234,7 +234,7 @@ def parse_backend(public_prefixes: tuple[str, ...]) -> list[Route]:
     return routes
 
 
-# 中间件白名单：从源码常量读取，避免 import 触发鉴权模块的副作用。
+# 中间件白名单：从源码常量读取，避免 `import` 触发鉴权模块的副作用。
 def parse_user_write_allowlist() -> tuple[set[str], tuple[str, ...]]:
     """从中间件源码常量读取普通用户可写白名单（避免 import 副作用）。"""
     exact: set[str] = set()
@@ -411,7 +411,7 @@ def render_markdown(report: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
-# 命令行入口：--strict 时只要有死调用就返回 1，便于后续接入 CI。
+# 命令行入口：`--strict` 时只要有死调用就返回 1，便于后续接入 CI。
 def main(argv: list[str] | None = None) -> int:
     """命令行入口：输出矩阵，--strict 时死调用返回非零。"""
     parser = argparse.ArgumentParser(description="API × 前端 × 权限矩阵审计")

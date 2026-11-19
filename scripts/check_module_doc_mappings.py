@@ -124,7 +124,7 @@ def resolve_range(opts: dict) -> tuple[str | None, str]:
     绝不落成"无变更文件"的静默空转；`--range` 为调用方硬指定，不做非空过滤。
     """
     # R11-3：严格模式（CI 告警期/阻断期）下要求候选范围确实含变更文件；非严格模式（本地辅助，
-    # 可能调用 claude 改写文档）保持“暂存区优先”的旧行为，避免把历史提交误当成本次变更。
+    # 可能调用 `claude` 改写文档）保持“暂存区优先”的旧行为，避免把历史提交误当成本次变更。
     require_changes = bool(opts["strict"])
     candidates: list[tuple[str, str, bool]] = []
     if opts["range"]:

@@ -94,7 +94,7 @@ def check_file(file_path: Path) -> list[str]:
         tree = ast.parse(source)
     except SyntaxError as e:
         # 解析失败**作为该文件的违规项上报**，而不是让整个门禁崩掉：
-        # 崩掉时 exit=1 但不指出问题文件，等于把"这一份文件有问题"伪装成"全库门禁失败"。
+        # 崩掉时退出码为 1 但不指出问题文件，等于把"这一份文件有问题"伪装成"全库门禁失败"。
         return [f"  {_rel(file_path)}: 无法解析（SyntaxError: {e.msg} @ 行 {e.lineno}）"]
 
     if not isinstance(tree, ast.Module):

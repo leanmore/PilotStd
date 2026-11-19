@@ -29,8 +29,8 @@ BUILDERS_PATTERN = re.compile(r"_builders.*\.py$")
 # 需要扫描的调用点目录（事件触发方）
 CALL_SITE_DIRS = [ROOT / "pilotstd", ROOT / "docker"]
 
-# 事件名前缀 → 模块关键词（--module 过滤）
-# 消息 dataclass 构造名：其字段普遍可空（见 channel.py / blocks.py），
+# 事件名前缀 → 模块关键词（`--module` 过滤）
+# 消息 `dataclass` 构造名：其字段普遍可空（见 channel.py / blocks.py），
 # 故 `field=data.get("field")` 传入 None 属合法用法，不计为"缺空值守卫"。
 _MESSAGE_CLASSES = frozenset(
     {"NotificationMessage", "ListBlock", "TextBlock", "KeyValueBlock", "StatusChangeBlock"}

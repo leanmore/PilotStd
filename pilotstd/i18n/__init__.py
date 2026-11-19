@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 SUPPORTED_LANGUAGES: tuple[str, ...] = ("zh_CN", "zh_TW", "en")
 DEFAULT_LANGUAGE = "zh_CN"
 
-# 当前语言：ContextVar 提供 thread-local + async 安全的语义。
+# 当前语言：ContextVar 提供 thread-local + 异步安全的语义。
 # 默认值即 DEFAULT_LANGUAGE，故 get_language() **永不返回 None**（防御性兜底）。
 _lang_var: ContextVar[str] = ContextVar("pilotstd_i18n_lang", default=DEFAULT_LANGUAGE)
 

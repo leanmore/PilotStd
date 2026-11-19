@@ -68,7 +68,7 @@ def main() -> int:
     返回 0 表示全部通过，1 表示存在违规（供 pre-commit hook 阻断提交）。
     """
     all_errors: list[str] = []
-    # 遍历每个扫描目录下的 .py 文件，聚合所有违规
+    # 遍历每个扫描目录下的 `.py` 文件，聚合所有违规
     for scan_dir in SCAN_DIRS:
         d = Path(scan_dir)
         if not d.exists():

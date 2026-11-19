@@ -18,7 +18,7 @@ class PipelineRunStore:
     def __init__(self, db: Database) -> None:
         self._db = db
         self._ensure_table()
-        # D-2：阶段切换即时回调（由 app 注入进度汇报器；None 表示未接线）
+        # D-2：阶段切换即时回调（由 `app` 注入进度汇报器；None 表示未接线）
         self.on_step_changed: Callable[[str, str], None] | None = None
 
     def _ensure_table(self) -> None:
@@ -73,7 +73,7 @@ class PipelineRunStore:
             "step_results=?, error_message=?, updated_at=? WHERE run_id=?",
             (step, status, progress, json.dumps(merged, ensure_ascii=False), error, now, run_id),
         )
-        # 阶段真正变化才回调（首次创建时 previous 为空也会触发一次，便于“开始即报”）
+        # 阶段真正变化才回调（首次创建时 `previous` 为空也会触发一次，便于“开始即报”）
         if previous_step != step and self.on_step_changed is not None:
             try:
                 self.on_step_changed(run_id, step)

@@ -63,7 +63,7 @@ EVENT_DOWNLOAD_STARTED = "download_started"
 EVENT_DOWNLOAD_COMPLETE = "download_complete"
 # 收藏告终汇总：**仅在实际发生放弃时**发送一次（P0 修复）。
 # 背景：`abandoned` 是终态，系统**永远不会再自动重试**；
-# 而原先该状态被并进 `batch_download_complete` 的 failed 计数里，
+# 而原先该状态被并进 `batch_download_complete` 的 `failed` 计数里，
 # 用户看不出"哪些已经彻底放弃、需要人工介入"。本事件承担该告终语义：
 # 含总数 + 原因分类 + 操作建议。
 EVENT_FAVORITE_ABANDONED_SUMMARY = "favorite_abandoned_summary"
@@ -80,7 +80,7 @@ EVENT_SECURITY_PASSWORD_CHANGED = "security_password_changed"
 EVENT_SECURITY_TOKEN_REFRESHED = "security_token_refreshed"
 EVENT_SECURITY_LOGIN_FAILED = "security_login_failed"
 
-# ── 平台层事件（阶段 4 · P6 · 4c）──
+# ── 平台层事件（阶段 4 · P6 · `4c`）──
 # `desktop_toast` 是 **L2 桌面协调层**向 L1 聚合器投递时使用的标签（唯一产出点
 # `pilotstd/core/notification_aggregator.py` 的 `push(event_type="desktop_toast", ...)`）。
 # 它此前**未登记进本清单**（G-045 盲区，旧处置＝方案 B"显式声明未覆盖"）；
@@ -135,7 +135,7 @@ ALL_EVENTS: list[EventDef] = [
     EventDef(EVENT_SECURITY_LOGIN_FAILED),
     # D-2（2026-10-18）：长任务周期进度汇报（所有任务共用）
     EventDef("task_progress"),
-    # 平台层（阶段 4 · P6 · 4c）：桌面弹层回显，登记以消除 G-045 盲区
+    # 平台层（阶段 4 · P6 · `4c`）：桌面弹层回显，登记以消除 G-045 盲区
     EventDef(EVENT_DESKTOP_TOAST),
     # Q11（2026-10-24）：一键处理管道级终局汇总
     EventDef(EVENT_AUTO_PIPELINE_SUMMARY),

@@ -68,11 +68,11 @@ from .renderer_telegram import (  # noqa: E402
 )
 
 # `link_actions()` / `action_label()` 已迁至 `renderer_links.py`（四渠道渲染器共用；
-# 留在本文件会越过 G-010 的 500 有效行上限）。此处经顶部 import 复用其实现。
+# 留在本文件会越过 G-010 的 500 有效行上限）。此处经顶部导入复用其实现。
 
 
 # ListBlock.items 的字段名 → i18n 键（渲染期取 t()：字段名是**数据键**，
-# 直接当展示文本会让中文用户看到 number / name 这类英文键名）。
+# 直接当展示文本会让中文用户看到 `number` / `name` 这类英文键名）。
 # 未登记的字段走 _field_label 的兜底，绝不回退成原始键名。
 
 
@@ -80,10 +80,10 @@ from .renderer_telegram import (  # noqa: E402
 
 # 各渠道「单条消息」上限（上限值, 计数口径）；来源与口径逐条写在注释里——
 # **不写成字符串**：G-047（Python 侧 i18n 硬编码检查）只拦"新增中文字面量"，说明性文字放注释即可。
-#   · telegram 4096 字符 —— Telegram Bot API 官方：sendMessage.text 0-4096 字符（转义后仍是同一字符串）；
-#   · wecom 2048 字节 —— 企业微信应用消息文本的官方口径是**字节**，故本仓按 UTF-8 字节数计；
-#   · feishu 4096 字符 —— **未验证**：飞书按 UTF-16 单元计数、官方数字本轮未取到 ⇒ 取保守值；
-#   · dingtalk 4000 字符 —— **未验证**：仅有社区口径，官方 API 条款本轮未取到 ⇒ 取保守值。
+#   · `telegram` 4096 字符 —— Telegram Bot API 官方：sendMessage.text 0-4096 字符（转义后仍是同一字符串）；
+#   · `wecom` 2048 字节 —— 企业微信应用消息文本的官方口径是**字节**，故本仓按 UTF-8 字节数计；
+#   · `feishu` 4096 字符 —— **未验证**：飞书按 UTF-16 单元计数、官方数字本轮未取到 ⇒ 取保守值；
+#   · `dingtalk` 4000 字符 —— **未验证**：仅有社区口径，官方 API 条款本轮未取到 ⇒ 取保守值。
 
 # 分段后追加的「续 N/M」标记模板（第 2 段起）；i18n 键见 notification.segment.continued
 
@@ -339,7 +339,7 @@ class DingTalkCardRenderer(BlockRenderer):
                 parts.append(rendered)
         content = "\n\n".join(parts) if parts else (message.body or "")
         # 阶段 3 · Step 1：卡片按钮由**租户模板**定义（我方模板契约只有 title/content/level）
-        # ⇒ 站内入口以 **Markdown 链接**写进 content（无需租户改模板即可用）。
+        # ⇒ 站内入口以 **Markdown 链接**写进 `content`（无需租户改模板即可用）。
         links = link_actions(message)
         if links:
             rendered = " | ".join(

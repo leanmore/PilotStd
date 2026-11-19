@@ -16,7 +16,7 @@
 现有实现把这层压在 `event_type` 一个字段里，导致"分类维度是系统模块而不是用户意图"
 （见 01-现状盘点.md §1.2 的关键观察）。
 
-## 阶段 2a 的边界（**重要**）
+## 阶段 `2a` 的边界（**重要**）
 
 - **本批不接入 `send_event`**：`mapping.py` 是纯新增模块，2a 交付后没有任何生产代码调用它。
   接入与字段回填属阶段 2b（见 06-阶段0-1实施方案.md §3.2）。
@@ -83,10 +83,10 @@ CONTENT_TYPES: tuple[str, ...] = (
 )
 
 # ── 任务种类（业务域名词，非定时任务名）────────────────────────────────────────
-# **消费时点（2026-10-02 裁决；2026-10-02 阶段 2.5a 起已落地）**：
+# **消费时点（2026-10-02 裁决；2026-10-02 阶段 `2.5a` 起已落地）**：
 # `task_kind` 的消费点是**阶段 2.5 的聚合键切换**（`notify_event × correlation_id × target_id`）
 # 与阶段 3 的回调。**2b-接入期间**曾刻意保持"算而不落"（回填消息/落库/进白名单均无），
-# 并由当时的 `TestTaskKindAntiCorrosion` 锁定；**2.5a 已按裁决翻转闸门**——
+# 并由当时的 `TestTaskKindAntiCorrosion` 锁定；**`2.5a` 已按裁决翻转闸门**——
 # 现在它是消息字段 + 队列白名单成员 + `notification_log.task_kind` 列，
 # 由 `tests/test_notification_stage2b_wiring.py::TestTaskKindPersisted` 锁定。
 #
@@ -96,7 +96,7 @@ CONTENT_TYPES: tuple[str, ...] = (
 # auto_health_check / auto_scan / date_reminder / notification_cleanup /
 # release_suppressed / validity_check），与本元组的**业务域**名词不同轴：
 # 前者是"哪个 cron 在跑"，后者是"用户交办的是哪类事"（一个任务名可产出多个 task_kind 的通知，
-# 如 auto_scan 产出 scan 类；一个 task_kind 也可被多个任务写，如 organize 由扫描/整理两条路写）。
+# 如 auto_scan 产出 `scan` 类；一个 task_kind 也可被多个任务写，如 `organize` 由扫描/整理两条路写）。
 # 故本元组是**新词表**，不是既有表的别名——"复用既有词表"的表述在此更正。
 TASK_KINDS: tuple[str, ...] = (
     "announce_fetch",
@@ -142,7 +142,7 @@ class NotificationProjection:
     notify_event: str = ""  # 空 = 未映射（未知事件），接入方应回退原有行为
     content_type: str = ""
     task_kind: str = ""
-    # ── 以下字段阶段 2a 恒为空，属"接口留门" ──────────────────────────────
+    # ── 以下字段阶段 `2a` 恒为空，属"接口留门" ──────────────────────────────
     correlation_id: str = ""  # 同一次业务运行的关联键（建议 f"{task_kind}:{started_at[:19]}"）
     task_context: dict[str, Any] = field(default_factory=dict)  # 任务上下文快照
 
@@ -165,7 +165,7 @@ EVENT_MAPPINGS: dict[str, EventMapping] = {
 }
 
 
-# ── 单向翻译：task_kind → task_type（阶段 2.5a）────────────────────────────────
+# ── 单向翻译：task_kind → task_type（阶段 `2.5a`）────────────────────────────────
 # **双 SSOT 约定**（用户 2026-10-02 裁决）：
 #   * `task_kind` 是**通知视角**的 SSOT —— 回答"用户交办的是哪类事"，值域见 TASK_KINDS；
 #     其数据源就是本模块（`mapping.py`）。
@@ -231,5 +231,5 @@ def project(event_type: str, data: Mapping[str, Any]) -> NotificationProjection:
         notify_event=notify_event,
         content_type=mapping.content_type,
         task_kind=mapping.task_kind,
-        # correlation_id / task_context 需运行期上下文，阶段 2b 填充
+        # correlation_id / task_context 需运行期上下文，阶段 `2b` 填充
     )

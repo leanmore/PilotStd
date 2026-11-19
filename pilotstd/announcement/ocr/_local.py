@@ -1,4 +1,4 @@
-# 模块：本地 OCR provider（CPU，RapidOCR/ONNX）
+# 模块：本地 OCR 提供方（CPU，RapidOCR/ONNX）
 """可选本地 OCR：扫描版 PDF 在没有文本层时使用，避免依赖云端密钥/配额。"""
 
 from __future__ import annotations
@@ -82,7 +82,7 @@ class LocalOcrProvider(BaseOcrProvider):
 
     def _get_engine(self):
         if self._engine is None:
-            # onnxruntime/BLAS 在 import 前读取线程数；默认限制为 1，避免抢占宿主机
+            # onnxruntime/BLAS 在导入前读取线程数；默认限制为 1，避免抢占宿主机
             os.environ.setdefault("OMP_NUM_THREADS", "1")
             os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
             os.environ.setdefault("MKL_NUM_THREADS", "1")

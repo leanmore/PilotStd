@@ -133,7 +133,7 @@ class CleanupHandler:
                 except OSError:
                     continue
         except OSError as e:
-            # 用户主动点“清理空目录”却失败 ⇒ 不能只在 debug 里留痕，
+            # 用户主动点“清理空目录”却失败 ⇒ 不能只在调试里留痕，
             # 否则界面只会显示“没有可清理目录”，看着像正常结果（P2-10 批 4）
             logger.warning("scan cleanup dir tree failed (%s): %s", path, e)
 

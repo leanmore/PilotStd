@@ -27,13 +27,13 @@ DOC_SYNC_MAP: list[tuple[str, str, str]] = [
     ("pilotstd/ui/main_window/", "docs/architecture/modules/ui.md", "block"),
     ("pilotstd/manager/", "docs/architecture/modules/manager.md", "block"),
     # 2026-09-25 补齐长期缺口（技术债 #13/#14）：core.md 自述"G-031 映射 pilotstd/core/"
-    # 却一直不在表里（改 core 文件不触发同步，文档可静默过期）；announcement-pipeline.md
-    # 是 AGENTS.md §8.2 指定的 announcement 回写目标，同样一直未落地。
+    # 却一直不在表里（改 `core` 文件不触发同步，文档可静默过期）；announcement-pipeline.md
+    # 是 AGENTS.md §8.2 指定的 `announcement` 回写目标，同样一直未落地。
     ("pilotstd/core/", "docs/architecture/modules/core.md", "block"),
     ("pilotstd/announcement/", "docs/reference/announcement-pipeline.md", "block"),
     # 2026-09-26 补齐缺口（技术债 #24）：pilotstd/download/ 此前不在表里，改下载适配器
     # 不触发任何文档同步（#21 的三处流程变化只写进了代码 docstring）。承载该目录事实的
-    # 文档是新建的 download-pipeline.md（hcno 权威来源 / 端点族 / 步骤链 / 历史事故）。
+    # 文档是新建的 download-pipeline.md（`hcno` 权威来源 / 端点族 / 步骤链 / 历史事故）。
     ("pilotstd/download/", "docs/reference/download-pipeline.md", "block"),
     ("scripts/", "docs/governance/gates.md", "block"),
     (".github/workflows/", "docs/governance/gates.md", "block"),

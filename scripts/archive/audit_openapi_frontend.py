@@ -23,7 +23,7 @@ PAIRS = {
     "AnnouncementDetailResponse": "AnnouncementDetail",
     "UserListResponse": "UserListResponse",
 }
-# 说明：嵌套对象用花括号配对解析，正则只用于定位 interface 起点。
+# 说明：嵌套对象用花括号配对解析，正则只用于定位 `interface` 起点。
 INTERFACE_RE = re.compile(r"export\s+interface\s+(\w+)\s*\{(.*?)\}", re.S)
 FIELD_RE = re.compile(r"^\s*(\w+)\??\s*:", re.M)
 
@@ -107,7 +107,7 @@ def main() -> int:
         else:
             lines.append(f"- `{api_name}` ↔ `{ts_name}`：一致（{len(api_fields)} 字段）")
 
-    # 前端调用 vs OpenAPI 路径
+    # 前端调用与 OpenAPI 路径的对比
     from scripts.audit_api_matrix import normalize_frontend, parse_frontend
 
     api_paths = {

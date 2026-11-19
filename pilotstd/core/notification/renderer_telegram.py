@@ -46,11 +46,11 @@ class TelegramRenderer(BlockRenderer):
         actions = list(getattr(message, "actions", []) or [])
         token = str(getattr(message, "callback_data", "") or "")
         row: list[dict[str, str]] = []
-        # ① 链接型动作（站内入口）：TG 原生 URL 按钮，无需 token
+        # ① 链接型动作（站内入口）：TG 原生 URL 按钮，无需 `token`
         for spec in link_actions(message):
             args = getattr(spec, "args", None) or {}
             row.append({"text": _action_label(spec), "url": str(args.get("url") or "")})
-        # ② 回调型动作（阶段 3）：需要签名 token；**无 token 一律跳过**（fail-safe）
+        # ② 回调型动作（阶段 3）：需要签名 `token`；**无 `token` 一律跳过**（fail-safe）
         for spec in actions if token else []:
             action = str(getattr(spec, "action", "") or "")
             if action not in SUPPORTED_ACTIONS:

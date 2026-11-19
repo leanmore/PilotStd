@@ -21,7 +21,7 @@ import re
 import sys
 from pathlib import Path
 
-# 2026-11-08（W1-U1）：修正「只认 @property」造成的误报。
+# 2026-11-08（W1-U1）：修正「只认 `@property`」造成的误报。
 # BaseFacade 已用 `_CORE_PROXY_WHITELIST` + `__getattr__/__setattr__` 做属性代理，
 # 只看装饰器会把 11 个白名单属性全部误报为缺失；下面用 AST 解析白名单，
 # 且仅在类确实实现代理方法时才把命中项计为“已代理”。

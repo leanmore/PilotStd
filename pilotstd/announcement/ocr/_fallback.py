@@ -31,7 +31,7 @@ class FallbackOcrProvider(BaseOcrProvider):
         text = self._run(self._primary, pdf_bytes)
         if text.strip():
             return OcrResult(text=text)
-        # 主 provider 空文本（无文本层/配额/网络失败）时才调用备 provider
+        # 主 `provider` 空文本（无文本层/配额/网络失败）时才调用备用 `provider`
         text = self._run(self._fallback, pdf_bytes)
         if not text.strip():
             return OcrResult(error="both OCR providers returned empty", error_type="ocr_empty")
@@ -44,7 +44,7 @@ class FallbackOcrProvider(BaseOcrProvider):
                 return provider.recognize_pdf(pdf_bytes, page_num=1) or ""
             if isinstance(provider, LocalOcrProvider):
                 return self._run_local(provider, pdf_bytes)
-            # 直接云 provider（单 provider 旧模式）逐页调用
+            # 直接云 `provider`（单 `provider` 旧模式）逐页调用
             return self._run_pages(provider, pdf_bytes)
         except Exception as exc:
             logger.warning("OCR provider %s failed: %s", provider.name, exc)

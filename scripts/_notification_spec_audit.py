@@ -21,7 +21,7 @@ from pathlib import Path
 from _frontend_channel_scan import FRONTEND_FILES, scan, structural_keys
 
 # B 类检查项数（用于覆盖摘要的"检查项"计数）
-# 2026-10-05（阶段 4 · P6 · 4d 脚本侧）：4 → 5，新增 **B5 类别层一致性**
+# 2026-10-05（阶段 4 · P6 · `4d` 脚本侧）：4 → 5，新增 **B5 类别层一致性**
 B_RULE_COUNT = 5
 # B3 的扫描范围（后端三个落点：渠道构造、配置接口、路由装配）
 # 2026-10-03 步 C 拆分后，API 侧的渠道字面量落点由 notification.py 迁至 notification_config.py，
@@ -31,7 +31,7 @@ BACKEND_SCAN_FILES: tuple[str, ...] = (
     "docker/api/notification.py",
     "docker/api/notification_config.py",
 )
-# B4 存量基线：C3（前端 schema 驱动改造）已落地，前端不再硬编码渠道键 ⇒ **基线归零**。
+# B4 存量基线：C3（前端 `schema` 驱动改造）已落地，前端不再硬编码渠道键 ⇒ **基线归零**。
 # 此前（C1..C2）为 26 行、缓阻断；归零后本项为**全阻断**：任何新增硬编码当场红灯。
 FRONTEND_LITERAL_BASELINE = 0
 # 允许的控件形态闭集（与 channel_spec.FIELD_TYPES 同源，由 AST 读取校验）

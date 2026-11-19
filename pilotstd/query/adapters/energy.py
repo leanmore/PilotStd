@@ -125,7 +125,7 @@ class EnergyAdapter(BaseAdapter):
                     if all_rows:
                         logger.warning("energy 第%d页请求失败，返回已获取的%d条", page + 1, len(all_rows))
                     # 无「all_rows 为空」的分支：第 0 页无数据时下方 `if not rows: break` 已退出，
-                    # 能进到 page>=1 必然 all_rows 非空 ⇒ 原 debug 分支不可达，已删除（见 U34-C E4）。
+                    # 能进到 page>=1 必然 all_rows 非空 ⇒ 原 `debug` 分支不可达，已删除（见 U34-C E4）。
                 break
 
             try:

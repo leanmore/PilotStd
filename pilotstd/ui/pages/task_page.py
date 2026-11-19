@@ -26,7 +26,7 @@ from ...task.models import TaskInfo, TaskStatus, TaskType
 from ...task.queue import TaskQueue
 
 # 业务名（用户语言）：TaskType → i18n 键。
-# desktop 写入方（`_dialog_ops._register_task`）目前只映射 4 类（无 expire），但本表覆盖
+# `desktop` 写入方（`_dialog_ops._register_task`）目前只映射 4 类（无 `expire`），但本表覆盖
 # 全部 5 类——否则新增写入方时会出现"未知类型"。
 _BUSINESS_KEYS: dict[TaskType, str] = {
     TaskType.SCAN: "task_scan",

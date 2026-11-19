@@ -34,7 +34,7 @@ class AdapterManager:
                     (name,),
                 )
             except Exception as e:
-                # 健康读取失败会让状态误报 normal，必须留痕
+                # 健康读取失败会让状态误报 `normal`，必须留痕
                 logger.warning("adapter health read failed for %s: %s", name, e)
 
         remaining = 0
@@ -53,7 +53,7 @@ class AdapterManager:
                     if frozen_dt.timestamp() > time.time():
                         h_status = "frozen"
                 except (ValueError, TypeError, OSError) as e:
-                    # 解析不了 frozen_until 无法判定冻结态，保守保持 normal 但必须留痕
+                    # 解析不了 frozen_until 无法判定冻结态，保守保持 `normal` 但必须留痕
                     logger.warning("invalid frozen_until for %s: %s", name, e)
             if h_status == "normal" and health.get("fail_streak", 0) > 0:
                 h_status = "degraded"

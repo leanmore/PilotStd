@@ -17,9 +17,9 @@ if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-# ruff + noqa 扫描范围（与 check_all.sh --deep 的 ruff 一致）
+# ruff + noqa 扫描范围（与 `check_all.sh --deep` 的 ruff 一致）
 SCAN_TARGETS = ["pilotstd/", "docker/", "tests/", "scripts/"]
-# mypy 扫描范围（与 check_all.sh --deep 的 mypy 一致，不含 tests/scripts/）
+# mypy 扫描范围（与 `check_all.sh --deep` 的 mypy 一致，不含 tests/scripts/）
 MYPY_TARGETS = ["pilotstd/", "docker/"]
 MYPY_FLAGS = ["--follow-imports=skip", "--ignore-missing-imports"]
 

@@ -16,7 +16,7 @@ from pilotstd import ADMIN_ROLE
 from pilotstd.core.audit import write_audit
 from pilotstd.i18n import t
 
-# ── 再导出：状态/常量/中间件迁至 auth_state / auth_middleware，保持既有 import 路径可用 ──
+# ── 再导出：状态/常量/中间件迁至 auth_state / auth_middleware，保持既有导入路径可用 ──
 from .auth_middleware import AuthMiddleware as AuthMiddleware
 from .auth_middleware import _start_session_cleanup as _start_session_cleanup
 from .auth_state import API_RATE_LIMIT as API_RATE_LIMIT
@@ -126,7 +126,7 @@ def _resolve_identity(request: Request | None) -> tuple[str, str]:
         current_role = payload.get("role", "user")
         subject = payload.get("sub", "unknown")
     except JWTError as e:
-        # 无效/过期 cookie 属预期，按匿名处理；不记录 token 本身
+        # 无效/过期 `cookie` 属预期，按匿名处理；不记录 `token` 本身
         logging.getLogger(__name__).debug("jwt cookie invalid, treated as anonymous: %s", e)
     return current_role, subject
 
@@ -216,7 +216,7 @@ LOGIN_FAILURE_ALERT_THRESHOLD = 5
 
 
 # 锁定拒绝（429）的审计留痕去重：IP -> 上次留痕时刻（墙钟 time.time()）。
-# 与 _api_rate_limit 同模式（进程内 dict + 锁 + 按访问修剪）。
+# 与 _api_rate_limit 同模式（进程内字典 + 锁 + 按访问修剪）。
 _lockout_audited_at: dict[str, float] = {}
 _lockout_audit_lock = threading.Lock()
 
@@ -250,7 +250,7 @@ def _audit_lockout_once(client_ip_addr: str, failures: int, now: float) -> None:
         for ip in stale:
             del _lockout_audited_at[ip]
         _lockout_audited_at[client_ip_addr] = now
-    # 函数内 import：与 _notify_login_failure（本文件）对 write_audit 的既有处理一致；
+    # 函数内导入：与 _notify_login_failure（本文件）对 write_audit 的既有处理一致；
     # 已核实无循环导入风险（pilotstd/core/audit.py 仅导入 pilotstd.core.*）。
     from pilotstd.core.audit import write_audit
 
@@ -354,7 +354,7 @@ def login(
     cutoff = now - LOCKOUT_SECONDS
 
     # 超限检查（持久化到数据库查询，进程重启后仍有效）
-    # failures 单次查询后复用：两次调用既重复 DB 查询，又可能因并发导致
+    # `failures` 单次查询后复用：两次调用既重复 DB 查询，又可能因并发导致
     # "审计记录的 failures 与触发判定的值不一致"（极端情况低于阈值）。
     failures = count_recent_failures(client_ip, cutoff)
     if failures >= MAX_ATTEMPTS:

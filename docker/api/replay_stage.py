@@ -78,7 +78,7 @@ def _under(path: str, root: str) -> bool:
     return path == root or path.startswith(root.rstrip("/") + "/")
 
 
-# 目标只允许两个测试前缀：__replay_*（投放）与 _quarantine（隔离）
+# 目标只允许两个测试前缀：__replay_*（投放）与 `_quarantine`（隔离）
 def _dst_allowed(dst: str) -> bool:
     """目标必须落在测试前缀内。"""
     dst = _norm(dst)
@@ -87,7 +87,7 @@ def _dst_allowed(dst: str) -> bool:
     return any(dst.startswith(prefix) for prefix in _DST_PREFIXES)
 
 
-# 单条校验：源必须在 /inbox 或 /standards，目标必须在测试前缀，且不能原地移动
+# 单条校验：源必须在 `/inbox` 或 `/standards`，目标必须在测试前缀，且不能原地移动
 def validate_item(source: str, target: str) -> tuple[str, str]:
     """校验并返回 (src_real, dst_real)；越界直接抛 ValueError。"""
     src = _norm(os.path.realpath(source))
@@ -101,7 +101,7 @@ def validate_item(source: str, target: str) -> tuple[str, str]:
     return src, dst
 
 
-# 执行层只做 copy/move；不提供删除，set_mtime 用当前时间覆盖（epoch 秒）
+# 执行层只做 copy/move；不提供删除，set_mtime 用当前时间覆盖（Unix 时间戳秒）
 def stage_one(action: str, source: str, target: str, set_mtime: bool) -> None:
     """执行单条 copy/move（调用方已完成路径校验）。"""
     parent = os.path.dirname(target)
@@ -125,7 +125,7 @@ def replay_stage(request: Request, body: StageRequest):
     if len(body.items) > _MAX_ITEMS:
         raise HTTPException(400, f"单次最多 {_MAX_ITEMS} 条")  # i18n-allow: 管理端点错误
 
-    # 逐条执行：单条失败只记 error，不中断整批（返回里逐条可见）
+    # 逐条执行：单条失败只记错误，不中断整批（返回里逐条可见）
     results: list[StageResultItem] = []
     ok = failed = 0
     for item in body.items:

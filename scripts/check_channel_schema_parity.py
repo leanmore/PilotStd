@@ -26,7 +26,7 @@ def _classes():
 
 
 def collect_mismatches(specs=None, classes=None) -> list[str]:
-    # 逐渠道比对 spec 派生 schema 与渠道自述 schema，返回问题清单
+    # 逐渠道比对 `spec` 派生 `schema` 与渠道自述 `schema`，返回问题清单
     specs = specs if specs is not None else CHANNEL_SPECS
     classes = classes if classes is not None else _classes()
     problems: list[str] = []
@@ -56,7 +56,7 @@ def collect_mismatches(specs=None, classes=None) -> list[str]:
 
 
 def spec_field_password(spec, key: str) -> bool:
-    # 从 spec 字段里取 password 标记，作为 secret 的期望值
+    # 从 `spec` 字段里取 `password` 标记，作为 `secret` 的期望值
     for field in spec.fields:
         if field.name == key:
             return bool(field.password)

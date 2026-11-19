@@ -62,7 +62,7 @@ _warned_bad_key: str = ""
 
 # 聚合窗口默认值——与 config 的 `notification.aggregate_*` 默认值同口径：
 # defaults.py 声明 aggregate_window_seconds=5 / aggregate_max_events=50，
-# manager 启用聚合时会显式传入这两个值，故本处默认仅在直接构造聚合器
+# `manager` 启用聚合时会显式传入这两个值，故本处默认仅在直接构造聚合器
 # （测试、独立调用）时生效。两侧若不一致，会让"直接构造"的行为与生产行为分叉。
 DEFAULT_WINDOW_SECONDS = 5.0  # 首次延时：默认 5 秒（对应 aggregate_window_seconds）
 MAX_WINDOW_SECONDS = 300.0  # 最大窗口：5 分钟后强制发送（硬上限，无对应配置键）
@@ -71,15 +71,15 @@ DEFAULT_BATCH_SIZE = 50  # 对应 aggregate_max_events
 # 分组键中「事件类型」与「关联实体」的分隔符。
 # 用 US（Unit Separator，U+001F）而非普通字符：事件类型与 target_id 均来自业务
 # 标识（标准号、任务名），任何可见字符都可能在 target_id 中出现，用不可见控制字符
-# 才能保证 split 结果确定。
+# 才能保证 `split` 结果确定。
 
 
 
 # 续期阈值（时序专项），随窗口缩放而非固定值：
 # - `_TIMER_SLEEP_RATIO`：剩余时间超过 `窗口 × 该比例` 才值得再开一轮定时器。
-#   固定阈值不可用——相对 `MAX_WINDOW_SECONDS` 很小的窗口（如测试用 0.05s）下，
-#   固定 0.1s 会大于窗口本身，导致提前强制发送、失去精度意义。
-# - `_MAX_TIMER_SLEEP_CAP`：比例阈值的上限，避免大窗口（生产 5s）下最后一轮过长。
+#   固定阈值不可用——相对 `MAX_WINDOW_SECONDS` 很小的窗口（如测试用 0.05 秒）下，
+#   固定 0.1 秒会大于窗口本身，导致提前强制发送、失去精度意义。
+# - `_MAX_TIMER_SLEEP_CAP`：比例阈值的上限，避免大窗口（生产 5 秒）下最后一轮过长。
 _MIN_TIMER_SLEEP = 0.001
 _TIMER_SLEEP_RATIO = 0.1
 _MAX_TIMER_SLEEP_CAP = 0.05
@@ -127,8 +127,8 @@ class NotificationAggregator:
         self._timers: dict[str, threading.Timer | None] = {}
         self._window_start: dict[str, float] = {}
         # 关闭标记：shutdown() 后到达的定时器回调必须直接返回。
-        # 否则解释器/pytest 捕获关闭后回调仍会 logger.debug → 线程内
-        # ValueError: I/O operation on closed file（P2-10 exit-1 根因）。
+        # 否则解释器/`pytest` 捕获关闭后回调仍会 logger.debug → 线程内
+        # `ValueError: I/O operation on closed file`（P2-10 exit-1 根因）。
         self._closed = False
         # 事件特定格式化回调：_→(,)→
         self._formatters: dict[str, Callable[..., str]] = {}
@@ -316,7 +316,7 @@ class NotificationAggregator:
         发送一律在**锁外**执行：网络 IO 耗时不得阻塞其它分组的入队与回调。
         """
         if self._closed:
-            # shutdown 后仍可能有一个"已启动但未拿到锁"的回调：直接丢弃，
+            # `shutdown` 后仍可能有一个"已启动但未拿到锁"的回调：直接丢弃，
             # 不在捕获/日志流关闭后继续续期（P2-10 exit-1）。
             return
         force_entries: list[_Entry] | None = None
@@ -366,7 +366,7 @@ class NotificationAggregator:
         使下一次 `enqueue` 重新起算窗口（消息仍在 `_buffers` 中，不会丢失）。
         """
         if self._closed:
-            # 持锁方已关闭：不再新建定时器/写续期日志（回调可能晚于 shutdown 到达）
+            # 持锁方已关闭：不再新建定时器/写续期日志（回调可能晚于 `shutdown` 到达）
             return
         try:
             timer = threading.Timer(max(delay, _MIN_TIMER_SLEEP), self._on_timer, args=(group,))
@@ -422,7 +422,7 @@ class NotificationAggregator:
         # 与需求②（时间窗内合并但不得丢信息）双双落空（现状取证见 08-聚合设计.md §七 K-2）。
         # 为什么不会产生 N 个标题：标题来自 NotificationMessage.title 字段并在渲染层单独渲染
         # （见 renderer.py 的标题渲染），blocks 只承载正文块 ⇒ 全量拼接不会重复标题。
-        # 来源可追溯：顺序＝entries 的到达序（块与其来源消息的对应由该顺序隐含表达；
+        # 来源可追溯：顺序＝`entries` 的到达序（块与其来源消息的对应由该顺序隐含表达；
         # 如需显式溯源标注，属后续增强，见 08-聚合设计.md §E8）。
         merged_blocks = [blk for entry_msg, _ch, _ts in entries for blk in (entry_msg.blocks or [])]
 
@@ -435,8 +435,8 @@ class NotificationAggregator:
 
         # 3. 构造合并消息：结构块始终保留，正文作为摘要
         #
-        # 阶段 1a（2026-10-02）：显式搬运通知身份字段。
-        # 本构造是**重造**消息（不是就地修改），未列出的字段会取 dataclass 默认值——
+        # 阶段 `1a`（2026-10-02）：显式搬运通知身份字段。
+        # 本构造是**重造**消息（不是就地修改），未列出的字段会取 `dataclass` 默认值——
         # 即：聚合后的消息若忘了搬运，message_id/correlation_id 会**永远为空**，
         # 而单条直发路径正常，属"只在聚合时静默丢身份"的隐性缺陷。故新字段必须显式搬运。
         merged = NotificationMessage(
@@ -458,7 +458,7 @@ class NotificationAggregator:
             # 投递态/回执态**重置**而非沿用：这条是新消息、尚未投递，沿用会让日志谎报状态
             delivery_status="pending",
             ack_status="none",
-            # 阶段 1b：任务视角。task_id / notify_event / content_type 与 1a 同款，
+            # 阶段 `1b`：任务视角。task_id / notify_event / content_type 与 `1a` 同款，
             # 取首条——三者在本分组内是**不变量**：分组键是 event_type × target_id，
             # 而 notify_event/content_type 由 event_type 派生、task_id 由同一实体派生。
             task_id=first_msg.task_id,
@@ -469,14 +469,14 @@ class NotificationAggregator:
             # 那是一套无实际收益的复杂度；若组内上下文确实不同，那说明分组键选错了。
             # 用 dict(...) 浅拷贝：first_msg 可能在窗口期内被调用方继续复用/修改。
             task_context=dict(first_msg.task_context),
-            # 阶段 1c：交互能力。
-            # actions / attachments 取**首条深拷贝**——聚合后是摘要，用户点进原消息再操作；
-            # 多条各带 retry 会变成混乱的多按钮组。深拷贝（而非浅拷贝）的理由：
-            # 元素是 ActionSpec/AttachmentSpec，其 args 是可变 dict，浅拷贝仍会共享它
-            # ——后续修改原消息的 args 会污染合并消息。
+            # 阶段 `1c`：交互能力。
+            # `actions` / `attachments` 取**首条深拷贝**——聚合后是摘要，用户点进原消息再操作；
+            # 多条各带 `retry` 会变成混乱的多按钮组。深拷贝（而非浅拷贝）的理由：
+            # 元素是 ActionSpec/AttachmentSpec，其 `args` 是可变字典，浅拷贝仍会共享它
+            # ——后续修改原消息的 `args` 会污染合并消息。
             actions=deepcopy(first_msg.actions),
             attachments=deepcopy(first_msg.attachments),
-            # channel_message_ids / callback_data **重置**：与 1a 的
+            # channel_message_ids / callback_data **重置**：与 `1a` 的
             # delivery_status/ack_status 同理——这条是新消息、尚未投递，
             # 既没有渠道消息 ID，也没有可用的回调载荷；沿用会让阶段 3 对着
             # 一个不属于本消息的 ID 去编辑消息。

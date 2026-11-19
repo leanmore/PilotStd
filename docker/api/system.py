@@ -113,7 +113,7 @@ class SystemResourcesUnavailable(BaseModel):
     error: str
 
 
-# 资源端点两种成功形态：正常采集 / psutil 缺失
+# 资源端点两种成功形态：正常采集 / `psutil` 缺失
 SystemResourcesPayload = SystemResourcesResponse | SystemResourcesUnavailable
 
 

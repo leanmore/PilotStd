@@ -118,7 +118,7 @@ def _check_key(
         if variant and variant in scrubbed:
             errors.append(f"命中禁用词「{variant}」— 术语 {term_id}")
 
-    # 检测 3：aliases 命中（仅提示）
+    # 检测 3：`aliases` 命中（仅提示）
     # **按语境豁免**：术语表某条可用 `alias_exempt_keys` 声明"该别名在这些键的语境下本就是规范用法"
     # （如「消息」在『这是一条测试消息』中指单条内容、「保存」在『保存配置』中指配置写入）
     # ⇒ 仅跳过**本提示**；检测 1（禁用词）与检测 2（登记键三语严格相等）**照旧生效**，故不削弱门禁。

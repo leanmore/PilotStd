@@ -267,7 +267,7 @@ def get_settings(request: Request, mgr=Depends(get_manager_dep)):
     }
 
 
-# 定时任务表：`tasks.*` 里**用户可管**的任务（enabled + cron），与
+# 定时任务表：`tasks.*` 里**用户可管**的任务（`enabled` + `cron`），与
 # docker/scheduler.py 的 start_scheduler() 注册表对应。漏一个就会出现"设置页改了
 # 却不生效"（技术债 #20：auto_archive_retry 曾长期缺席，改配置只落盘不重排、
 # 必须重启容器，且设置页里根本没有该任务）。

@@ -141,7 +141,7 @@ class _WindowLifecycleMixin(_MixinBase):
             w = getattr(self, attr, None)
             if w is None:
                 continue
-            # DriveEnumerator 没有 stop()：helper 会跳过缺失的停止方法，
+            # DriveEnumerator 没有 stop()：`helper` 会跳过缺失的停止方法，
             # 但一定先断开 drives_ready，避免迟到信号访问已析构的文件树
             stop_worker_gracefully(w, signals=(getattr(w, "drives_ready", None),))
 

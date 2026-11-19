@@ -14,7 +14,7 @@ class DriveEnumerator(QThread):
     def run(self) -> None:
         """在后台线程中枚举驱动器，将结果通过信号发回主线程。
 
-        技术债 #17a：网络盘（映射盘/断线盘）会让 `absolutePath()` 长时间阻塞，
+        技术债 `#17a`：网络盘（映射盘/断线盘）会让 `absolutePath()` 长时间阻塞，
         故逐个盘符之间设中断检查点；收到停止请求即放弃本次枚举（不发信号）。
         """
         drives = QDir.drives()

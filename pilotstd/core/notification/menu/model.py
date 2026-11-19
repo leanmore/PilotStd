@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 
 # 渠道闭集；新增渠道必须同时补 clients/limits/tests
 CHANNELS = ("wechat", "feishu", "telegram", "dingtalk")
-# 菜单项类型闭集（group 只用于二级分组的父项）
+# 菜单项类型闭集（`group` 只用于二级分组的父项）
 SUPPORTED_TYPES = frozenset({"view", "click", "command", "group"})
 MAX_TOP = 3
 MAX_CHILDREN = 5

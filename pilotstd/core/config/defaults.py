@@ -75,11 +75,11 @@ FACTORY_DEFAULTS = {
     "notification.channels.dingtalk.card_template_id": "",
     "notification.channels.dingtalk.open_conversation_id": "",
     "notification.channels.telegram.enabled": False,
-    # B2b-3：TG 接收模式（long_poll=应用主动拉取，默认；webhook=走回调端点）
+    # B2b-3：TG 接收模式（long_poll=应用主动拉取，默认；`webhook`=走回调端点）
     "notification.channels.telegram.receive_mode": "long_poll",
     "notification.channels.telegram.bot_token": "",
     "notification.channels.telegram.chat_id": "",
-    # A-27：渠道菜单（默认关闭；items 为空，启用前必须显式配置）
+    # A-27：渠道菜单（默认关闭；`items` 为空，启用前必须显式配置）
     "notification.menus.wechat.enabled": False,
     "notification.menus.wechat.items": [],
     "notification.menus.feishu.enabled": False,
@@ -113,7 +113,7 @@ FACTORY_DEFAULTS = {
     # 生产实测：32 天内 629 条发送失败（54.8%），其中连续 7 天每天失败 25~151 条，
     # 全程无人知晓——而这正是"收藏集中失败"的窗口。
     "notification.delivery_health_enabled": True,
-    # 连败阈值：渠道彻底不通（如 token 失效、网络断）时最先触发
+    # 连败阈值：渠道彻底不通（如 `token` 失效、网络断）时最先触发
     "notification.delivery_health_consecutive_threshold": 5,
     # 失败率阈值：渠道"在丢消息"（如限流）时触发；须先攒够样本数以免冷启动误报
     "notification.delivery_health_rate_threshold": 0.5,
@@ -149,7 +149,7 @@ FACTORY_DEFAULTS = {
     "audit.retention_days": 180,
     "pipeline.retention_days": 90,
     # 有副作用的动作（搬「过期作废」/替代标准入下载队列）默认开启：
-    # 只有 L2（适配器实时查询）结论 + 本开关为 true 才执行，L1/L3 一律只记录；
+    # 只有 L2（适配器实时查询）结论 + 本开关为真才执行，L1/L3 一律只记录；
     # 被代替标准在新标准实施日前处于并行期，先标记/通知，不搬文件。
     "validity.auto_move_expired": True,
     # ── 已废弃字段（兼容旧前端）──

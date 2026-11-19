@@ -681,3 +681,8 @@ pilotstd/core/
 - 2026-11-19：A-45 dry-run——`notification.dry_run=true` 时 `send_event` 只写日志不投递。
 
 - 2026-11-19：dry-run 仅显式 	rue 生效（测试替身 MagicMock 不触发）。
+
+## 注释语言规范化（2026-11-19）
+
+- G-012 [LANG] 改为按词判定后，本模块注释里的英文普通词改为中文、裸标识符加反引号；
+  仅注释与 docstring 变更，AST 比对无代码变化（全仓 504 行，见 27 日志 #81）。

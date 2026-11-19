@@ -84,7 +84,7 @@ def _get_display_name(adapter_name: str) -> str:
                 logger.warning("DISPLAY_NAME 超长 (%d>%d): %s=%r", len(dn), _MAX_DISPLAY_NAME_LEN, adapter_name, dn)
             return dn
     except Exception as e:
-        # 回退到适配器名是预期行为，但要留下原因（原实现静默 pass）
+        # 回退到适配器名是预期行为，但要留下原因（原实现静默放过）
         logger.debug("resolve DISPLAY_NAME failed for %s: %s", adapter_name, e)
     return adapter_name
 

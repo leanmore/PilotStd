@@ -313,21 +313,21 @@ def _reuse_existing_file(
 
 
 def _archive_inbox_file(mgr: Any, inbox_path: Path, standard_number: str) -> str | None:
-    """把 inbox 里的下载件交给归档器（搬入标准库 + 写 file_index）；返回错误说明，正常返回 None。
+    """把 `inbox` 里的下载件交给归档器（搬入标准库 + 写 file_index）；返回错误说明，正常返回 None。
 
-    技术债 #29：原先这里只「等」别的机制去登记索引，但事实上**没有任何调度会归档 inbox**——
-    `auto_scan` 只 UPDATE `standards` 表（根本不碰 inbox）；monitor 的 `_on_file` 只调
-    `scan_directory`（仅解析文件名、不搬文件、不写 `file_index`，却照计 success 计数）。
+    技术债 #29：原先这里只「等」别的机制去登记索引，但事实上**没有任何调度会归档 `inbox`**——
+    `auto_scan` 只 UPDATE `standards` 表（根本不碰 `inbox`）；`monitor` 的 `_on_file` 只调
+    `scan_directory`（仅解析文件名、不搬文件、不写 `file_index`，却照计 `success` 计数）。
     因此下载 100% 成功也必然在窗口末尾判「归档超时」。这里由链路自己补齐归档这一环：
-    解析文件名 → 交给 `archive_standards`（organizer 负责移动文件并 upsert `file_index`）。
+    解析文件名 → 交给 `archive_standards`（`organizer` 负责移动文件并 `upsert` `file_index`）。
     """
-    # 必须用**规范标准号**解析，不能用 inbox 文件名：`_safe_filename` 会把 `GB/T` 转义成
+    # 必须用**规范标准号**解析，不能用 `inbox` 文件名：`_safe_filename` 会把 `GB/T` 转义成
     # `GB_T`（非法文件名字符替换），据文件名解析会得到 logical_code="GB" 而规范口径是
     # "GB/T" → 归档器按前者写索引、链路按后者查 → 永远查不到（实测：'GB_T 5613-2026_x.pdf' → logical_code='GB'）
     parsed = mgr.parse_standard_number(standard_number)
     if parsed is None:
         return f"标准号无法解析: {standard_number}"
-    # organizer 依据 source_path 定位待归档文件（与 scan_directory 的约定一致）
+    # `organizer` 依据 source_path 定位待归档文件（与 scan_directory 的约定一致）
     parsed.source_path = str(inbox_path)
     parsed.raw_filename = inbox_path.name  # 归档日志/命名用（与归档 API 口径一致）
     try:
@@ -418,7 +418,7 @@ def download_to_inbox(favorite_id: int, user_id: int, record_id: int, notify: bo
             (str(inbox_path), favorite_id),
         )
 
-        # 归档：链路自己把 inbox 文件交归档器登记（不再依赖周期机制，见技术债 #29）
+        # 归档：链路自己把 `inbox` 文件交归档器登记（不再依赖周期机制，见技术债 #29）
         archive_error = _archive_inbox_file(mgr, inbox_path, standard_number)
 
         if _wait_for_archive_registration(db, favorite_id, standard_number, user_id, notify):

@@ -149,7 +149,7 @@ def check_file(file_path: Path, scan_root: Path) -> tuple[int, int, list[tuple[i
                 invalid += 1
                 violations.append((node.lineno, stmt, f"目标模块不存在: {abs_module}", guarded))
         else:
-            # from . import x 形式：逐名校验子模块或包内定义
+            # `from . import x` 形式：逐名校验子模块或包内定义
             missing = [n.name for n in node.names if not _name_exists(abs_module, n.name, scan_root)]
             if missing:
                 invalid += 1

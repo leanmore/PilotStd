@@ -50,7 +50,7 @@ class CacheRepository:
             (standard_number, source_site),
         )
         if row:
-            # CacheManager 已将数据源版本变化标记为 stale；stale 不能再当命中，
+            # CacheManager 已将数据源版本变化标记为 `stale`；`stale` 不能再当命中，
             # 否则事件驱动失效对查询链路完全无效（2026-11-07 审计）。
             if row.get("data_state") == "stale":
                 logger.debug("查询缓存 stale，跳过: %s @%s", standard_number, source_site)  # i18n-allow: 内部缓存日志
@@ -66,7 +66,7 @@ class CacheRepository:
             (standard_number,),
         )
         if ann_row:
-            # P0-02：公告回退也必须校验新鲜度。matcher 写入的 expires_at 目前为
+            # P0-02：公告回退也必须校验新鲜度。`matcher` 写入的 expires_at 目前为
             # NULL，因此以 cached_at + active_ttl 为兜底，避免旧公告被永久当命中。
             if not self._announcement_cache_fresh(ann_row):
                 logger.debug("公告缓存过期/失效，跳过: %s", standard_number)  # i18n-allow: 内部缓存日志

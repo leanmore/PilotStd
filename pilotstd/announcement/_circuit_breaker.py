@@ -178,7 +178,7 @@ class CircuitBreaker:
             self.freeze_count,
             duration // 60,
         )
-        # 熔断必须对外可见：走系统通知钩子（容器层注入 manager），无钩子时静默降级（D4-4）。
+        # 熔断必须对外可见：走系统通知钩子（容器层注入 `manager`），无钩子时静默降级（D4-4）。
         from pilotstd.core.notification import notify_system
 
         notify_system(

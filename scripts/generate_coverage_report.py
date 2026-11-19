@@ -10,7 +10,7 @@ import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from pathlib import Path
 
-# 阈值与 G-034 门禁共用同一解析（体检 B-1：报告里的 "≥80%" 曾与 pyproject 的 51 矛盾）
+# 阈值与 G-034 门禁共用同一解析（体检 B-1：报告里的 "≥80%" 曾与 `pyproject.toml` 的 51 矛盾）
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _coverage_threshold import resolve_threshold  # noqa: E402
 

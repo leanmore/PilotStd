@@ -50,7 +50,7 @@ def _loads_result_json(raw: Any) -> dict[str, Any]:
     try:
         data = json.loads(raw)
     except (TypeError, ValueError):
-        # 非法 JSON（含半截写入）——记 debug 即可：这是**数据质量问题**，不是运行故障。
+        # 非法 JSON（含半截写入）——记调试即可：这是**数据质量问题**，不是运行故障。
         # 日志文案用 ASCII：G-047（Python 侧 i18n 硬编码）把"新增中文字面量"计为新违规，
         # 而这是给开发者看的诊断、不是用户可见文案 ⇒ 不进 i18n 资源。
         logger.debug("task_queue.result_json is not valid JSON; falling back to empty dict")

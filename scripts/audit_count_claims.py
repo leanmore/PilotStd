@@ -40,7 +40,7 @@ EXEMPT_PATH = ROOT / "scripts" / "count_claims_exempt.json"
 # 每一类的"机械核对方式"（扩类时必须写清楚，否则标准会漂）：
 # - router 模块数：`scripts/check_docs_drift.py::load_facts()["router_modules"]`（扫描 docker/api 的 router 文件）
 # - 唯一 API 路径数：同 `load_facts()["routes"]`（去重后的 `/api/...` 路径集合）
-# - route×method 对数：同 `load_facts()["route_method_pairs"]`（由 audit_api_matrix 统计）
+# - `route`×`method` 对数：同 `load_facts()["route_method_pairs"]`（由 audit_api_matrix 统计）
 # - 迁移可解析表数：同 `load_facts()["tables"]`（从迁移源码解析 CREATE TABLE）
 # - 迁移模块数：同 `load_facts()["migration_modules"]`（`_migrate*.py` 计数）
 # 只有"同一份代码事实能推出唯一数字"的类型才允许登记；靠人判断的（如"渠道数"）先不扩。
@@ -66,7 +66,7 @@ def collect_changed_docs(since: str, root: Path | None = None) -> list[str] | No
             timeout=120,
         )
     except (OSError, subprocess.SubprocessError) as exc:
-        # 非 git 环境 / 超时：交给调用方降级为 WARN，不在这里抛——门禁不能因环境差异误红
+        # 非 `git` 环境 / 超时：交给调用方降级为 WARN，不在这里抛——门禁不能因环境差异误红
         logger.warning("git log 不可用，跳过计数声明审计: %s", exc)
         return None
     if proc.returncode != 0:
@@ -163,7 +163,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     root = Path(args.root).resolve()
-    # 拿不到 git 历史时返回 None：CLI 降级 WARN，不阻断浅克隆/打包环境
+    # 拿不到 `git` 历史时返回 None：CLI 降级 WARN，不阻断浅克隆/打包环境
     changed = collect_changed_docs(args.since, root)
     if changed is None:
         # 严格模式（CI）下不允许降级：浅克隆会让门禁恒绿但一篇都不查，和"没接门禁"等价

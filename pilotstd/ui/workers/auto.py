@@ -47,7 +47,7 @@ class AutoWorker(QThread):
         _t_start = _time.monotonic()
         report: dict = {}
         try:
-            # #17a：四个阶段共用同一组检查点——任一阶段收到停止请求即在下一个回调处中止整条管线
+            # `#17a`：四个阶段共用同一组检查点——任一阶段收到停止请求即在下一个回调处中止整条管线
             def _stage(emit: Any, *args: Any) -> None:
                 """阶段回调包装：先检查停止请求，再转发信号。"""
                 check_stop(self)
@@ -76,7 +76,7 @@ class AutoWorker(QThread):
             self.finished_signal.emit(report)
 
     def _emit_scan_batch(self, batch_rows: list[Any]) -> None:
-        """扫描批次回调（#17a 契约）：停止请求时抛 WorkerAborted 终止管线。
+        """扫描批次回调（`#17a` 契约）：停止请求时抛 WorkerAborted 终止管线。
 
         旧实现是"停止后静默不发射"——那不会终止底层 `auto_run_stream`，
         四个阶段会照跑（撤回该行为的原因见 `_common.check_stop` 注释）。

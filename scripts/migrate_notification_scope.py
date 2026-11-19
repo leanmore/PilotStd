@@ -30,7 +30,7 @@ QUIET_KEYS = (
 
 
 def plan(config: dict) -> list[dict]:
-    # 逐键判定归属并给出动作：system 保留、rules 已在策略表、静音迁偏好
+    # 逐键判定归属并给出动作：`system` 保留、`rules` 已在策略表、静音迁偏好
     """生成待迁移项；同时标出系统级键（只报告，不移动）。"""
     rows = []
     for key in sorted(config):
@@ -93,7 +93,7 @@ def apply(config: dict, db_path: Path) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    # 入口：默认 dry-run；--apply 备份后写入；--reset 只删标记
+    # 入口：默认 dry-run；`--apply` 备份后写入；`--reset` 只删标记
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", default="config/config.json")
     ap.add_argument("--db", default="data/pilotstd.db")
@@ -119,7 +119,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"[FAIL] config read/parse failed: {exc}")
         return 1
 
-    # 回滚：先导出全部 notification* 偏好，再删迁移写入的键与标记
+    # 回滚：先导出全部 `notification*` 偏好，再删迁移写入的键与标记
     if args.rollback:
         stamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
         target = Path(args.backup_dir) / f"a28_rollback_{stamp}"

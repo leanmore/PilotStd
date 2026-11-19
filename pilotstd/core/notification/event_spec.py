@@ -42,7 +42,7 @@ from .events import ALL_EVENTS
 # 级别的**唯一排序口径**（设计 06 §三 2 遗留项 1，2026-10-05 落地）。
 # 为什么用严重度序而非字母序：级别是给人看、给策略判定的语义标签，字母序
 # （error/info/warning）会误导读者，也与端到端契约的斜杠连接字面值（"info/warning/error"）不同序。
-# 为什么允许"跳级"：`("info", "error")` 是真实业务事实（该事件不产生 warning）⇒
+# 为什么允许"跳级"：`("info", "error")` 是真实业务事实（该事件不产生 `warning` 级别）⇒
 # 校验只要求**保序**，不要求连续覆盖——统一的是**顺序口径**，不是**值集合**。
 # 校验位置：`tests/test_notification_e2e.py` 的 D4 契约测试类（该文件是计划内的规格消费方；
 # 新建独立测试文件会被 `test_event_spec.py` 的"接入白名单"守卫正确拦截）。
@@ -84,7 +84,7 @@ class EventSpec:
     subscribable: bool
     aggregation: str
     # ── 声明式可验证性（2026-10-06 · P6/P7 甲案；**注册时必填**）────────────────
-    # `verify` 为**必填**（无默认值 ⇒ 漏填在 import 期直接 TypeError，属"声明式"门禁，零过程式负担）：
+    # `verify` 为**必填**（无默认值 ⇒ 漏填在导入期直接 TypeError，属"声明式"门禁，零过程式负担）：
     #   · "e2e"            —— 由 e2e/集成链路驱动，可由 `scripts/audit_notification_trigger_map.py` 运行时校验；
     #   · "manual:<理由>"  —— 环境相关、极难在正常运行中触发（如凭证轮换、库损坏类告警），需人工/场景验证；
     #   · "ui_only:<理由>" —— 仅桌面 UI 触发。

@@ -17,11 +17,11 @@ from __future__ import annotations
 
 import re
 
-# URL：保留 scheme://host/path，查询串与 fragment 一律折叠为 `?…`
+# URL：保留 scheme://host/path，查询串与 URL 片段一律折叠为 `?…`
 _URL_WITH_QUERY = re.compile(r"(https?://[^\s?#]+)[?#][^\s]*", re.IGNORECASE)
 # Windows 绝对路径：`C:\a\b\file.ext` ⇒ 只留末段
 _WIN_PATH = re.compile(r"[A-Za-z]:\\[^\s]*")
-# POSIX 绝对路径：`/a/b/file.ext` ⇒ 只留末段（避免误伤 URL：URL 已在上面折叠且 path 已被保留）
+# POSIX 绝对路径：`/a/b/file.ext` ⇒ 只留末段（避免误伤 URL：URL 已在上面折叠且路径已被保留）
 _POSIX_PATH = re.compile(r"(?<![\w:/])/(?:[^\s/]+/)+[^\s/]*")
 # 令牌样长串：≥24 位的字母数字下划线连字符，或 ≥32 位十六进制
 _LONG_TOKEN = re.compile(r"[A-Za-z0-9_\-]{24,}")

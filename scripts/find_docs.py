@@ -51,7 +51,7 @@ def search(root: Path, query: str, limit: int = 8) -> list[dict]:
         heading_text = "\n".join(headings).lower()
         body = text.lower()
 
-        # 权重：路径 > 标题 > 正文；onboarding 文档额外加权，优先给新人入口
+        # 权重：路径 > 标题 > 正文；`onboarding` 文档额外加权，优先给新人入口
         score = 6 if "onboarding/" in name else 0
         hits: list[str] = []
         for term in lowered:
