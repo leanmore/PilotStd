@@ -673,6 +673,8 @@ pilotstd/core/
 ## 时效性变更详情补旧状态（2026-11-19）
 
 - _record_change 接收 old_status，reason 输出“旧 → 新”，避免只显示“— 现行”。
+- 缺旧值时用 `Status.UNKNOWN.value`，不得写死“未知”字面量——`#32-B` 收敛守卫
+  （`tests/unit/core/test_status_convergence.py`）会扫出裸状态字面量并红灯。
 
 - 2026-11-19：alidity_replacement.is_backward_replacement() 判定年份倒退的 superseded_by（如 GB 30871-2022→2014 的“代替旧号”被误当新标准），避免降级替代通知。
 

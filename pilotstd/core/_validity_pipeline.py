@@ -99,7 +99,7 @@ def _record_change(
     detail = {
         "standard": std_no,
         "name": _std_name(db, std_no),
-        "reason": f"{old_status or '未知'} → {new_status}",
+        "reason": f"{old_status or Status.UNKNOWN.value} → {new_status}",
         "new_standard": result.get("new_standard", ""),
         "new_standard_name": result.get("new_standard_name", ""),
     }

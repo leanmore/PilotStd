@@ -738,7 +738,11 @@ class TestProcessValidityBatch(unittest.TestCase):
         self.assertEqual(changed, 1)
         self.assertEqual(changed_list, ["GB/T 1"])
         self.assertEqual(change_detail[0]["standard"], "GB/T 1")
-        self.assertEqual(change_detail[0]["reason"], Status.WITHDRAWN_NORMALIZED.value)
+        # 契约（U-1）：变更原因展示“旧 → 新”，不再是单一新状态
+        self.assertEqual(
+            change_detail[0]["reason"],
+            f"{Status.ACTIVE.value} → {Status.WITHDRAWN_NORMALIZED.value}",
+        )
 
     def test_status_unchanged(self):
         mock_checker = MagicMock()
