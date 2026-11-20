@@ -10,15 +10,18 @@
 |---|---|---|---|
 | G-01 | csres 日志把 not-found 写成“找到 评分=100” | 已闭合 | 2026-11-18 v0.195.2 复跑 GB 50016-2014：日志 状态=未找到、stats.found=0、结果行 未找到匹配结果；csres_state_text + 	est_csres_state.py 锁定 |
 | G-02 | 61 条重查可信度 | 已闭合 | 2026-11-17 23:04 低峰重跑（298s）：found=3、not_found=58；SHB 日志 	ried=gongbiaoku→hbba→ahbz→njbz365（4 站真查），NB 单站为能力模型配置 |
-| G-03 | 健康检查探针 11 站 probe_pending | 已修复（自动发现，待部署） | 每次运行前从 standard_info_cache 的 exact 记录补齐探针；剩余无缓存站点仍标 probe_pending；单测 	est_discover_probes_fills_pending |
+| G-03 | 健康检查探针 11 站 probe_pending | 已修复（已随 v0.196.1 部署，待生产复跑） | 每次运行前从 standard_info_cache 的 exact 记录补齐探针；剩余无缓存站点仍标 probe_pending；单测 	est_discover_probes_fills_pending |
 | G-04 | 健康检查生产首轮 | 已闭合 | 2026-11-17 23:04 POST /api/adapters/health/run：found=3/no_result=7/error=0/probe_pending=11；日志 dapter_health site=... 可见 |
 | G-05 | 30 个 62 批副本（/app/data/_quarantine/__replay_b62） | 已闭合 | 均为 standards 副本；保留隔离区（持久卷、不监控）；28 条对应 pending 已标 copy_quarantined，无悬空 |
 | G-06 | 28 条空分类 pending 回填 | 已闭合 | 已回填 `chain_exhausted` + `reason=copy_quarantined`；manifest/rollback 见 `C:\Temp\pending28_*` |
 | G-07 | `health_probe.json` 轮转/上限 | 已闭合 | 单文件每次覆盖写，不增长；无需轮转（2026-11-17 确认） |
 | G-08 | v0.192.1 审计 patch 是否含在 v0.194.1 | 已闭合 | `git merge-base --is-ancestor 2986acde 5e43c66b` 通过 |
-| G-09 | Web 通知铃铛把渠道副本当独立消息 | 已修复（真实 UI 验证通过；生产待部署复验） | Playwright（dev 构建 + 生产 API）2 条渠道行 → 铃铛只显示 1 条；`useNotification` 按内容+分钟去重 |
-| G-10 | Web 铃铛“标记已读”后弹层偏左 | 已修复（真实 UI 验证通过；生产待部署复验） | 根因非“未重排”，而是 `topbar-right v-show=isHovered` 在鼠标移入弹层后隐藏铃铛，锚点变 0；已让 Popover 打开期间保持顶栏显示；Playwright 实测点击前后 delta 8px（弹层右缘距铃铛右缘 3.5px） |
+| G-09 | Web 通知铃铛把渠道副本当独立消息 | 已闭合 | 2026-11-20 生产 v0.196.3 端到端：接口精确 `sent_at` 统计 100 条→同分钟双渠道重复 81 组→去重后 45 条；铃铛实际渲染 10 条，与“接口按同键去重后的前 10”逐条一致（10/10） |
+| G-10 | Web 铃铛“标记已读”后弹层偏左 | 已闭合 | 2026-11-20 生产 v0.196.3 Playwright：鼠标移入弹层（原触发路径）后铃铛盒与打开前完全一致（x=1119.97,y=14.5），弹层右缘与铃铛右缘差 **0px**，无左跳；`bee0add4` 另修掉 `.topbar.collapsed` 在弹层打开时仍收缩造成的 8/10px 位移 |
 | G-11 | CI `test-backend` 红（状态字面量守卫 + 过期断言） | 已闭合 | `_validity_pipeline.py:102` 用裸 `'未知'` 字面量、`test_status_changed` 未随 `4003372e` 同步 reason 契约；改为 `Status.UNKNOWN.value` + 新断言；受影响 4 文件 159 例、全量 6371 passed（CI 等价命令 EXIT=0）；见 `27` #80 |
+| G-12 | G-012 `[LANG]` 注释语言警告 1511 条长期挂着 | 已闭合 | 规则改按词判定（工具指令/反引号/文件名/代码标识符豁免）1511→504，504 行分 6 批改写（叙事词译中文、裸标识符加反引号）→0；200 个改动 `.py` 做 AST 归一化比对，除检查器外 198 个文件 AST 完全一致；见 `27` #81、`gates.md` v2.55 |
+| G-13 | 通知日志 `level` 假闭合（铃铛告警着色不生效） | 已闭合 | `NotificationLogItem` 漏声明 `level`，FastAPI 按 response_model 过滤；修复 `d9a29db1` 后**生产 v0.196.3 实证**：`GET /api/notification/logs` 返回 level，100 条 info 68 / warning 32；见 `27` #83 |
+| G-14 | 配置多实例整文件覆盖写（IP 失败重复通知根因） | 已修复（待部署） | `save()` 写整份快照，长任务收尾覆盖他方键；新增 `update()/update_many()` 并改造 `docker/scheduler`、`_validity_pipeline._finalize_validity_round`；`test_manager_update.py` 4 例。**其余 40+ 处 `ConfigManager()`+`save()` 未扫**，见 `27` #86 |
 
 ## 二、之前悬着未闭合
 
@@ -54,6 +57,8 @@ ailed 归一（3）、终态词表 completed/cancelled/failed、result_json 防�
 | G-04 | 健康检查生产首轮 | 已闭合 | 2026-11-17 23:04 POST /api/adapters/health/run：found=3/no_result=7/error=0/probe_pending=11；日志 dapter_health site=... 可见 |
 | G-01 | csres 日志把 not-found 写成“找到 评分=100” | 已闭合 | 2026-11-18 v0.195.2 复跑 GB 50016-2014：日志 状态=未找到、stats.found=0、结果行 未找到匹配结果；csres_state_text + 	est_csres_state.py 锁定 |
 | AC-6 触发链路 | 真实触发验证 | 需第二真实 admin 或 dry-run 渠道 |
+| R-3 U-1/U-3 | 有效性“旧 → 新”与 U-3 保存链路真实操作复验 | 需生产写窗口（跑一次时效检查 / 保存一次 CookieCloud 配置） |
+| superseded_by 迁移 | 49,306 行方向纠正 | 需授权 + 备份 + 维护窗口，方案见 `docs/analysis/superseded-by-migration-plan.md` |
 
 ## 六、已闭合（累计）
 
