@@ -841,6 +841,13 @@ class TestProcessValidityBatch(unittest.TestCase):
 
 
 class TestFinalizeValidityRound(unittest.TestCase):
+
+    def _pending(self):
+        """取 update_many 提交的键值（多次调用合并；无调用返回 {}）。"""
+        merged = {}
+        for call in self.mock_config.update_many.call_args_list:
+            merged.update(call[0][0])
+        return merged
     """覆盖 _finalize_validity_round 所有分支。"""
 
     def setUp(self):
@@ -861,7 +868,7 @@ class TestFinalizeValidityRound(unittest.TestCase):
             update_counters=False,
         )
         self.mock_config.set.assert_not_called()
-        self.mock_config.save.assert_not_called()
+        self.mock_config.update_many.assert_not_called()
 
     def test_adapter_raises(self):
         self.mock_adapter.get_all_status.side_effect = RuntimeError("boom")
@@ -878,7 +885,7 @@ class TestFinalizeValidityRound(unittest.TestCase):
             None,
             update_counters=True,
         )
-        self.mock_config.save.assert_called_once()
+        self.mock_config.update_many.assert_called_once()
 
     def test_round_not_complete(self):
         """已检查数 < 总数 → 不设置 round_completed。"""
@@ -895,10 +902,7 @@ class TestFinalizeValidityRound(unittest.TestCase):
             None,
             update_counters=True,
         )
-        completed_calls = [
-            c for c in self.mock_config.set.call_args_list if c[0][0] == "validity.round_completed" and c[0][1] is True
-        ]
-        self.assertEqual(len(completed_calls), 0)
+        self.assertNotIn("validity.round_completed", self._pending())
 
     def test_round_complete(self):
         """已检查数 >= 总数 → round_completed=True + round_count 递增。"""
@@ -922,9 +926,7 @@ class TestFinalizeValidityRound(unittest.TestCase):
             self.mock_notif,
             update_counters=True,
         )
-        completed_calls = [c for c in self.mock_config.set.call_args_list if c[0][0] == "validity.round_completed"]
-        self.assertEqual(len(completed_calls), 1)
-        self.assertTrue(completed_calls[0][0][1])
+        self.assertTrue(self._pending().get("validity.round_completed"))
 
     def test_round_complete_with_notification(self):
         """轮次完成 → 发送 validity_round_summary。"""
@@ -959,7 +961,7 @@ class TestFinalizeValidityRound(unittest.TestCase):
         self.assertEqual(call_args[1]["total_changes"], 2)
 
     def test_db_total_fetch_fails(self):
-        """查询总数抛异常 → 捕获，仍执行 save。"""
+        """查询总数抛异常 → 捕获，仍把已统计的量记账写盘。"""
         self.mock_config.get.return_value = 0
         self.mock_db.fetchone.side_effect = RuntimeError("db error")
 
@@ -973,10 +975,10 @@ class TestFinalizeValidityRound(unittest.TestCase):
             None,
             update_counters=True,
         )
-        self.mock_config.save.assert_called_once()
+        self.mock_config.update_many.assert_called_once()
 
     def test_round_complete_notification_raises(self):
-        """轮次完成通知抛异常 → 捕获，不影响 save。"""
+        """轮次完成通知抛异常 → 捕获，不影响记账写盘。"""
         self.mock_config.get.side_effect = lambda key, default=0: {
             "validity.checked_count": 0,
             "validity.round_count": 0,
@@ -997,7 +999,7 @@ class TestFinalizeValidityRound(unittest.TestCase):
             self.mock_notif,
             update_counters=True,
         )
-        self.mock_config.save.assert_called_once()
+        self.mock_config.update_many.assert_called_once()
 
     def test_no_adapter_mgr(self):
         self.mock_config.get.return_value = 0
@@ -1030,8 +1032,7 @@ class TestFinalizeValidityRound(unittest.TestCase):
             None,
             update_counters=True,
         )
-        completed_calls = [c for c in self.mock_config.set.call_args_list if c[0][0] == "validity.round_completed"]
-        self.assertEqual(len(completed_calls), 0)
+        self.assertNotIn("validity.round_completed", self._pending())
 
     def test_total_fetchone_returns_none(self):
         """fetchone 返回 None → total=0，不触发轮次完成。"""
@@ -1048,8 +1049,7 @@ class TestFinalizeValidityRound(unittest.TestCase):
             None,
             update_counters=True,
         )
-        completed_calls = [c for c in self.mock_config.set.call_args_list if c[0][0] == "validity.round_completed"]
-        self.assertEqual(len(completed_calls), 0)
+        self.assertNotIn("validity.round_completed", self._pending())
 
 
 # ════════════════════════════════════════════════════════════════════

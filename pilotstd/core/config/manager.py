@@ -140,6 +140,29 @@ class ConfigManager:
             self._data = {}
         self._load()
 
+    def update(self, key: str, value: Any) -> None:
+        """只更新指定键：写盘前先重读磁盘，避免用陈旧快照整文件覆盖他方写入。
+
+        `save()` 写的是**整个内存快照**，所以在“长任务开始处构造实例、结束处 save”的写法里，
+        这期间别的实例写入的键会被整文件覆盖掉（2026-11-20 生产事故：
+        `docker/scheduler` 的时效任务结束时 save，冲掉了 `wechat_ip.last_fail_key`，
+        于是同一 IP 的 Cookie 失败每个周期都重新通知一次）。
+
+        本方法把“读盘 → 改一个键 → 写盘”压在一起，把覆盖窗口从“整个任务时长”缩到毫秒级。
+        只用于**单键**更新；需要批量改多个键时用 `update_many()`。
+        """
+        self.update_many({key: value})
+
+    def update_many(self, values: dict[str, Any]) -> None:
+        """批量安全写入：读盘一次 → 应用多个键 → 写盘一次（供长任务收尾记账）。
+
+        与 `update()` 同一动机：避免“长任务开始时的快照”覆盖掉期间别处写入的键。
+        """
+        self.reload()
+        for key, value in values.items():
+            self.set(key, value)
+        self.save()
+
     def populate_defaults(self, defaults: dict[str, Any]) -> None:
         """将工厂默认值中尚未设置的键填充到当前配置（不覆盖已有值）。"""
         # 仅在键值为时才填充，保留用户已有的自定义值

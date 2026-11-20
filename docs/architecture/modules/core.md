@@ -686,3 +686,15 @@ pilotstd/core/
 
 - G-012 [LANG] 改为按词判定后，本模块注释里的英文普通词改为中文、裸标识符加反引号；
   仅注释与 docstring 变更，AST 比对无代码变化（全仓 504 行，见 27 日志 #81）。
+
+## 配置单键安全写 update() / update_many()（2026-11-20）
+
+- `ConfigManager.save()` 写的是**整个内存快照**；因此“长任务开始处构造实例、结束处 save”的写法，
+  会把这期间其他实例写入的键整文件覆盖掉。
+- 新增 `update(key, value)` / `update_many({...})`：**先 `reload()` 读盘，再改键，再写盘**，
+  把覆盖窗口从“整个任务时长”压到毫秒级。只用于少量键的收尾记账。
+- 已改造的调用点：`docker/scheduler._check_validity_schedule`（`validity.first_execution` / `next_run`）、
+  `core/_validity_pipeline._finalize_validity_round`（`checked_count` / `round_count` / `round_completed`）。
+- 事故来源：`wechat_ip.last_fail_key` 被时效任务收尾时的整文件覆盖冲掉，导致同一 IP 的 Cookie 失败
+  每个周期重复通知（2026-11-20 生产实证，每 5~6 小时一条且无“已更新”通知）。
+- 约束：批量改多个键仍应构造新实例后 `save()`；不要把 `update()` 用在需要原子改多键的场景。

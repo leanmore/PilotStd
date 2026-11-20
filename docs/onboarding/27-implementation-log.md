@@ -982,3 +982,12 @@ ecursive 覆盖子目录。A-44 闭合。
   - 复现（`ci.tmp/probe_config_race.py`）：同一配置文件建两个 `ConfigManager` 实例，A 写入 `wechat_ip.last_fail_key` 并 save，B 随后只写 `last_check_at` 并 save ⇒ **A 的键被整文件覆盖丢失**（读回 `None`）。
   - 生产侧对应物：`docker/scheduler.py` 有 5 处 `ConfigManager()`（201/243/414/509/552），每个都是构造时的快照；任一实例 save 都会用旧快照整文件覆盖，`wechat_ip.last_fail_key` 因此活不过下一个保存点 ⇒ 每次失败都“看起来第一次”，通知拦不住。
   - 修复方向（下批做，需设计）：进程内统一 `get_shared_config()`（该函数已存在但**全仓零使用**），或 `save()` 改为与磁盘内容合并；两者都要配“双实例不互相覆盖”的回归测试。**不要**用“再加一个去重键”绕过——根因是写盘模型，不是键不够。
+
+### 86. 配置多实例覆盖写：根因与单键安全写入口（2026-11-20）
+
+- **现象**：生产每 5~6 小时一条同内容“IP 更新失败 / 无法获取企业微信 Cookie 状态: 失败”，且**从无“可信 IP 已更新”**（说明成功分支没跑过，`scheduler.py:83` 清空不是原因）。
+- **复现**（`ci.tmp/probe_config_race.py`）：同一文件两个 `ConfigManager` 实例，A 写 `wechat_ip.last_fail_key` 并 save，B 只写 `last_check_at` 并 save ⇒ A 的键被整文件覆盖（读回 `None`）。
+- **生产对应物**：`docker/scheduler._check_validity_schedule` 在 :509 构造快照 → 跑完整轮时效检查（可达数分钟）→ :542 用旧快照 save，冲掉期间写入的键；`core/_validity_pipeline._finalize_validity_round` 同型（实例在 `run_validity_check` 开头构造，收尾时整快照写盘）。
+- **修复**：`ConfigManager` 新增 `update(key, value)` / `update_many(values)` —— 先 `reload()` 读盘、再改键、再写盘；两处调用点改为单键/批量安全写（`validity.first_execution`、`validity.next_run`、`checked_count`、`round_count`、`round_completed`）。
+- **验证**：`tests/unit/core/config/test_manager_update.py` 4 例（他方写入保留、批量记账保留、同键覆盖）；`tests/test_validity_checker_full.py` 80 例；`-k scheduler or validity` 366 例。
+- **遗留**：全仓仍有 40+ 处 `ConfigManager()` + `save()`；本次只改“长任务持有快照”的两处。其余是否同型风险，下批用同一判据（实例存活期间是否有他方写入）扫一遍，别逐处猜。

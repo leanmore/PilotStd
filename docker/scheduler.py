@@ -512,8 +512,9 @@ def _check_validity_schedule(notification_mgr=None, adapter_mgr=None, query_engi
     # 记录首次执行时间（如果未设置）
     first_execution = config.get("validity.first_execution")
     if first_execution is None:
-        config.set("validity.first_execution", now_utc.isoformat())
-        config.save()
+        # 单键写入用 update()：本实例是任务开始时的快照，直接 save() 会整文件覆盖
+        # 期间其他实例写入的键（2026-11-20：冲掉 wechat_ip.last_fail_key 致失败重复通知）
+        config.update("validity.first_execution", now_utc.isoformat())
 
     if notification_mgr is None or adapter_mgr is None or query_engine is None:
         try:
@@ -538,8 +539,8 @@ def _check_validity_schedule(notification_mgr=None, adapter_mgr=None, query_engi
     if next_job:
         next_fire = next_job.next_run_time
         if next_fire:
-            config.set("validity.next_run", next_fire.isoformat())
-    config.save()
+            # 同上：任务可能跑了几分钟，必须用 update() 重读后再写，不能 save() 旧快照
+            config.update("validity.next_run", next_fire.isoformat())
     logger.info("validity 检查完成，下次执行时间: %s", config.get("validity.next_run"))  # i18n-allow: 内部调度日志
 
 

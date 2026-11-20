@@ -257,13 +257,15 @@ def _finalize_validity_round(
         except Exception as e:
             logger.warning("获取适配器状态失败: %s", e)
 
+    # 收尾记账先攒起来，最后一次性安全写入（避免用整轮任务开始时的快照覆盖他方键）
+    pending: dict[str, Any] = {}
     if update_counters:
         current_count = config.get("validity.checked_count", 0)
         # 失败样本不计入“已检查”：否则超时/适配器异常也会推进轮次（D3-5）。
         failed_standards = {str(f.get("standard", "")) for f in failed_list}
         success_count = max(0, len(candidates) - len(failed_standards))
         new_count = current_count + success_count
-        config.set("validity.checked_count", new_count)
+        pending["validity.checked_count"] = new_count
         try:
             # 只统计**格式合法**的标准号：历史库里存在 ` 11120-2011` 这类缺代号的脏行，
             # 它们永远无法被解析检查，计入分母会让 round_completed 永远不成立。
@@ -273,11 +275,11 @@ def _finalize_validity_round(
             )
             total = total_row["cnt"] if total_row else 0
             if total > 0 and new_count >= total:
-                config.set("validity.round_completed", True)
+                pending["validity.round_completed"] = True
                 # 轮次计数递增
                 round_count = config.get("validity.round_count", 0)
                 new_round = round_count + 1
-                config.set("validity.round_count", new_round)
+                pending["validity.round_count"] = new_round
                 if notification_mgr:
                     try:
                         changes = db.fetchall(
@@ -305,7 +307,10 @@ def _finalize_validity_round(
         except Exception as e:
             # 周期记账失败不阻断已完成的本轮检查，但必须可观测
             logger.warning("validity round bookkeeping failed: %s", e)
-        config.save()
+    if pending:
+        # 单键安全写：本实例是整轮任务开始时的快照，直接 save() 会整文件覆盖
+        # 期间其他实例写入的键（2026-11-20：冲掉 wechat_ip.last_fail_key 致失败重复通知）
+        config.update_many(pending)
     return adapters_status
 
 
