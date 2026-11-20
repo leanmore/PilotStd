@@ -1138,3 +1138,21 @@ ecursive 覆盖子目录。A-44 闭合。
   - 7 例测试（3×5 合法、超限、未知渠道、钉钉、飞书缺 chat_id、飞书带 chat_id、停用空配置）。
 - **V-17（G-012 注释语言）**：全仓 `check_g_012_comment_density` 从「0 阻断 + 3 警告」清到 **0 阻断 + 0 警告**
   （`organize.py` / `config/defaults.py` / `file_utils.py` 三处裸英文词改中文），`1511 → 0` 正式收口。
+
+### 97. 更正与查证（2026-11-21）：G-26 误判、U-1 根因、A-46 文件、迁移方向
+
+- **G-26 更正（我上一轮查错了）**：上一轮用 `SELECT site, match_status ...` 查 `standard_info_cache`，这两列在表里
+  **都不存在**，查询报错被我当成“0 行”，于是写了“整表为空”。实测：**939 行**（`source=network` 全部），
+  列名是 `standard_number/source_site/result_json/...`；`result_json` 里 939 行都含 `"match_status": "exact"`。
+  真正原因：11 个 `probe_pending` 站点里，**只有 njbz365 在缓存里有数据（157 行）且它已被固定探针覆盖**，
+  其余 9~10 个站点在缓存里**一条都没有** → 探针自动发现无料可用。属“这些适配器从未返回结果”，不是探针机制坏了。
+- **U-1 旧值来源**：`_apply_validity_result` 的旧值取 `SELECT status FROM standard_validity WHERE standard_number=?`
+  （`_validity_pipeline.py:193-194`），**不是** `last_status`。实测 824 行 validity：`未知 740`、`现行 66`、`即将实施 16`、
+  `废止/作废 各 1`；740 条「未知」的 `last_changed_at` 全为空、`check_count` 为 1~2（检查跑过）。
+  结论：旧值不是“读不到”，而是**这批标准的检查结论本身就是「未知」**（查询没命中来源），所以显示「未知 → 现行」。
+  显示层修（空→未知）只是文案兜底，根因在覆盖：这些标准在查询源里查不到，检查器只能给未知。
+- **A-46 33 条 file_missing**：样例路径全在 `/inbox/...`（不在 `/standards`），用 `/api/files` 逐条核对**文件确实不存在**；
+  这 33 条是历史遗留的 `/inbox` 路径，文件已被整理/移动，属**陈旧 pending**，不是扫描匹配失效。
+- **superseded_by 方向**：抽样 4,000 行，方向倒退 **3,695（92%）**、已是正向 1、无法判年 304；
+  再看这 33 个「目标旧标准行」的已有值，**没有一条是正向**（也是旧的/乱的）→ 迁移规则可采用「仅当目标行为空才写」，
+  已有值的 23 条需先清洗，不适合直接覆盖。

@@ -33,11 +33,14 @@
 | G-23 | 设置页「界面语言」下拉消失（界面 Tab 整块不渲染） | 已修复（待部署） | `87b36f0b` 改成 v-bind="tabProps" 时 localeOptions 仍传 computed ref 未取 `.value`，PrimeVue Select 报 findIndex 崩溃；修 `localeOptions.value` + 源码级回归断言；dev 实测下拉存在且显示“简体中文”；见 `27` #94 |
 | G-24 | U-3 掩码回写保存链路（生产验证） | 已闭合 | 2026-11-20 GET→PUT(掩码)→GET：cookie_source/status/url/enabled 均未变，PUT 返回 ok；真实密钥由后端跳过逻辑保证；见 `27` #95 |
 | G-25 | G-03 探针自动发现（生产复跑） | 已执行（未改善） | `health/run` 3.8s：found 6 / no_result 4 / error 0 / probe_pending 11，与复跑前一致；根因转为 G-26（无 exact 缓存）；见 `27` #95 |
-| G-26 | `standard_info_cache` 整表为空，探针无缓存可补 | 待做 | 2026-11-20 实测 0 行；导致 11 站永远 probe_pending、离线查询/名称解析也少一层来源；需查缓存写入与淘汰链；见 `27` #95 |
+| G-26 | 探针自动发现无料（原判“缓存表为空”系误判） | 已查清（非缺陷） | 缓存实为 939 行、全部 exact；11 个 pending 里仅 njbz365 有缓存且已被固定探针覆盖，其余站点缓存 0 条 → 属适配器从未返回结果；更正见 `27` #97 |
 | G-27 | A-46 重扫 33 条 file_missing（生产重扫） | 待做 | `scan-and-index`：indexed 0 / skipped 825 / failed 0，file_missing 仍 33 条；不是窗口问题，需查扫描匹配逻辑；见 `27` #95 |
 | G-28 | superseded_by 方向迁移（演练完成，待定规则） | 待做 | 备份：API 备份 + 列级备份表 232,668 行；非空 32,432 行；100 条样本中仅 33 条可安全交换（67 条目标行已有值，直接写会覆盖）→ 需先定“仅空才写/追加/保留较新”；33 条应用+回滚双向验证通过；见 `27` #95 |
 | G-29 | A-27 菜单无配置写入口（只能手改 config.json） | 已修复（待部署） | 新增 `PUT /api/notification/menu/config`：结构校验、钉钉拒启用、飞书要求 chat_id、写后清 last_synced；7 例测试；见 `27` #96 |
 | G-30 | V-17 注释语言警告未清零（剩 3 条） | 已闭合 | `check_g_012_comment_density` 全仓 0 阻断 0 警告（1511 → 0）；见 `27` #96 |
+| G-31 | U-1 旧状态显示「未知」的根因 | 已查清（非显示层） | `_validity_pipeline.py:193` 旧值取 validity.status；740 条检查后仍为「未知」且 last_changed_at 空（check_count 1~2）→ 检查结论本身未知（查询未命中来源）；见 `27` #97 |
+| G-32 | A-46 33 条 file_missing | 已查清（陈旧 pending） | 路径全在 `/inbox` 且文件确实不存在；文件早被整理/移动，不是扫描失效；清理或重挂需单独授权；见 `27` #97 |
+| G-33 | superseded_by 迁移规则（数据实证） | 已查清，待决策 | 抽样 4,000 行：方向倒退 3,695（92%）；33 个目标行已有值无一条正向 → 规则宜“仅写空值 + 先清洗已有乱值”；见 `27` #97 |
 
 ## 二、之前悬着未闭合
 
