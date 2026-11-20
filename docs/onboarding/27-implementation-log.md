@@ -1094,3 +1094,16 @@ ecursive 覆盖子目录。A-44 闭合。
 - **注意**：`attachment_path` 字段只在解析结果字典里，`announcement_record` 表**没有这一列**（此前误以为“字段恒空”，
   实际是压根没落库）；归档的验收口径是**磁盘文件**，不是 DB 字段。
 - 验证：`tests/test_api_archive_stats.py` 2 例（计数/字节/样例、目录不存在）。
+
+### 94. 设置页「界面语言」下拉消失（computed ref 未解包，2026-11-20）
+
+- **现象**：设置 → 界面，只剩“界面语言”标签，右侧下拉框不见了（截图）。同一 Tab 的登录页背景图等也可能整块不渲染。
+- **取证**：Playwright 打开 `/settings?tab=ui`，页面报
+  `TypeError: this.visibleOptions.findIndex is not a function`，Tab 内容区为空。
+- **根因**：2026-07-01 `87b36f0b` 把逐项 prop 改成 `v-bind="tabProps"` 时，同一行里 `selectedLocale` 取了 `.value`，
+  但 `localeOptions` 仍是 **computed ref**；`v-bind` 不会深解包，PrimeVue `Select` 拿到 Ref 后把 `options` 当数组用，
+  `visibleOptions.findIndex` 直接崩，整个 Tab 渲染中断。
+- **修复**：`SettingsView.vue` 的 `tabProps` 里改成 `localeOptions: localeOptions.value`，并加注释说明“不能传 ref”。
+- **验证**：dev 环境 Playwright 复查——`#lang-select` 存在、宽 200、可见，标签显示“简体中文”，无 pageerror；
+  `SettingsView.test.ts` 新增源码级回归断言（该行必须取 `.value`），9 例通过；前端四件套绿。
+- **同类排查**：同一 `tabProps` 里 `sections: systemSections.value` 已解包、`selectedLocale.value` 已解包，只有这一处漏。

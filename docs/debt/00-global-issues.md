@@ -30,6 +30,7 @@
 | G-20 | 四主题配色不统一（`--primary` 兼任文字色与按钮底色） | 已修复（待部署） | 拆 `--primary-fill`/`--primary-fill-hover`；四主题统一：强调 ≥4.5、白字 ≥4.5、hover 恒更深、文字梯度 12/9/7/4.5、透明度同族一致、描边可分辨；`theme-spec.test.ts` 30 例锁定，四件套绿；见 `27` #91 |
 | G-21 | 公告列表固定 LIMIT 100，历史公告“看不到”被误判为没抓到 | 已修复（待部署） | 端点改服务端分页（page/page_size + total），去掉硬编码 LIMIT；前端改用 totalRecords 驱动；生产 DB 实证 GB 2022 年 2,850 行存在；新增 `scripts/backfill_announce_archive.py` 补抓历史原文/附件；见 `27` #92 |
 | G-22 | 归档是否真的落盘无法核对（`/api/files` 看不到 data 目录） | 已修复（待部署） | 新增只读 `GET /api/system/archive-stats`（admin）：按来源统计 HTML/附件数量、体积与样例；2 例单测；历史补抓进行中（945 条、断点续跑）；见 `27` #93 |
+| G-23 | 设置页「界面语言」下拉消失（界面 Tab 整块不渲染） | 已修复（待部署） | `87b36f0b` 改成 v-bind="tabProps" 时 localeOptions 仍传 computed ref 未取 `.value`，PrimeVue Select 报 findIndex 崩溃；修 `localeOptions.value` + 源码级回归断言；dev 实测下拉存在且显示“简体中文”；见 `27` #94 |
 
 ## 二、之前悬着未闭合
 

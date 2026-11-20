@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { shallowMount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
@@ -137,6 +139,15 @@ describe('SettingsView', () => {
     expect(english.find('h1').text()).toBe('Settings')
     expect(english.html()).toContain('Apply')
     expect(english.html()).toContain('OK')
+  })
+
+  it('界面 Tab 的 props 必须解包 computed ref（localeOptions.value）', () => {
+    // 历史 bug（2026-07-01 87b36f0b）：v-bind="tabProps" 里 localeOptions 是 computed ref
+    // 且没取 .value，PrimeVue Select 拿到 Ref 后 visibleOptions.findIndex 报错，
+    // 整个界面 Tab 渲染中断（“界面语言”只剩标签、没有下拉框）。
+    // 这里锁源码形态：该行必须取 .value；后续重构若又漏解包会在这里红。
+    const src = readFileSync(resolve(__dirname, 'SettingsView.vue'), 'utf8')
+    expect(src).toMatch(/localeOptions:\s*localeOptions\.value/)
   })
 })
 

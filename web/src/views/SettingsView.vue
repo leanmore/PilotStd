@@ -229,7 +229,10 @@ provide('settingsCanWrite', currentTabCanWrite)
     }
     switch (key) {
       case 'ui':
-        return { ...base, selectedLocale: selectedLocale.value, localeOptions, onUploadBg: uploadBg }
+        // localeOptions 是 computed ref，v-bind 不会深解包：必须取 .value，
+        // 否则 PrimeVue Select 拿到 Ref 后 `visibleOptions.findIndex` 报错，整个界面 Tab 渲染中断
+        // （2026-07-01 87b36f0b 改成 v-bind="tabProps" 时漏解包，2026-11-20 修）。
+        return { ...base, selectedLocale: selectedLocale.value, localeOptions: localeOptions.value, onUploadBg: uploadBg }
       case 'system':
         return { ...base, sections: systemSections.value }
       default:
