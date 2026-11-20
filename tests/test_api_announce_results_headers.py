@@ -58,3 +58,30 @@ def test_header_without_records_is_listed(client: TestClient, db) -> None:
     assert resp.status_code == 200
     codes = {x["announce_no"] for x in resp.json()["results"]}
     assert codes == {"2025年第99号", "2025年第100号"}
+
+
+def test_results_are_paginated_with_total(client: TestClient, db) -> None:
+    """2026-11-20：列表改为服务端分页——此前固定 LIMIT 100，公告多的来源看不到历史。"""
+    for year in range(2010, 2026):  # 16 条，足够翻两页
+        _record(db, f"{year}年第1号")
+
+    first = client.get("/api/announce/results", params={"page": 1, "page_size": 10}).json()
+    second = client.get("/api/announce/results", params={"page": 2, "page_size": 10}).json()
+
+    assert first["total"] == 16
+    assert first["page"] == 1 and first["page_size"] == 10
+    assert len(first["results"]) == 10
+    assert len(second["results"]) == 6
+    # 两页不重叠，且按公告年份倒序（2025 在最前，2010 在最后）
+    assert {x["announce_no"] for x in first["results"]} & {x["announce_no"] for x in second["results"]} == set()
+    assert first["results"][0]["announce_no"].startswith("2025")
+    assert second["results"][-1]["announce_no"].startswith("2010")
+
+
+def test_results_default_page_size_is_50(client: TestClient, db) -> None:
+    for i in range(60):
+        _record(db, f"2025年第{i + 1}号")
+    body = client.get("/api/announce/results").json()
+    assert body["page_size"] == 50
+    assert body["total"] == 60
+    assert len(body["results"]) == 50

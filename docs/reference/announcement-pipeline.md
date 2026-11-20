@@ -245,3 +245,14 @@ GB/DB/HB 公告头完整；详情记录缺口为 DB 9月第8号 18 条、HB 9月
 - 定时任务读 `app_preferences.announce_since_date` 做**一次性**回填后清空；
   Web 端存的 `announce_since_date` 走 `user_preferences` 表，两者不是同一张表（已知差异，见 `27` #89）。
 
+## 列表分页（2026-11-20 起）
+
+- `GET /api/announce/results` 支持 `page`（默认 1）/`page_size`（默认 50，上限 200），返回 `total/page/page_size`；
+  原实现固定 `LIMIT 100`，公告多的来源（GB 551 条）只能看到最近 100 条。
+- 前端公告页用服务端分页：翻页/改每页条数都重新请求；统计卡片仍是全量统计。
+
+## 历史原文/附件补抓
+
+- `scripts/backfill_announce_archive.py`：遍历 `announcements` 表，逐条 `reparse` 触发重抓，使归档逻辑补写历史文件；
+- 先 `--dry-run` 看数量，再 `--limit 20` 小批试，最后全量；断点续跑、可随时 Ctrl-C；
+- 仅调用 admin 接口，不改库结构。

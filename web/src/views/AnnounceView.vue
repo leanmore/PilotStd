@@ -95,8 +95,10 @@ async function load() {
   try {
     const sourceSite = `announcement_${activeTab.value}`
     // 日期是“抓取起点”，不是列表展示日期：列表不按它过滤，只按来源 Tab 展示
-    const data = await getAnnounceResults(sourceSite, '', '/announce')
+    // 列表走服务端分页（后端原固定 LIMIT 100，公告多的来源会看不到历史）
+    const data = await getAnnounceResults(sourceSite, '', '/announce', page.value + 1, rows.value)
     results.value = data.results || []
+    totalRecords.value = data.total ?? results.value.length
     loadStats()
     loadFailures()
   } catch {
@@ -125,11 +127,10 @@ onMounted(load)
 
 const page = ref(Number(getItem('announce_page')) || 0)
 const rows = ref(Number(getItem('announce_rows')) || 25)
+// 服务端分页：total 来自接口，列表只放当前页
+const totalRecords = ref(0)
 
-const paginatedResults = computed(() => {
-  const start = page.value * rows.value
-  return results.value.slice(start, start + rows.value)
-})
+const paginatedResults = computed(() => results.value)
 
 function onPage(e: any) {
   page.value = e.page
@@ -140,6 +141,8 @@ function onPage(e: any) {
     page.value = 0
     setItem('announce_rows', String(next))
   }
+  // 服务端分页：翻页/改每页条数都要重新取数
+  load()
 }
 </script>
 
@@ -187,7 +190,7 @@ function onPage(e: any) {
         </div>
       </template>
     </DataView>
-    <Paginator :rows="rows" :rowsPerPageOptions="ANNOUNCE_PAGE_SIZES" :totalRecords="results.length" @page="onPage" class="mt-2" />
+    <Paginator :rows="rows" :rowsPerPageOptions="ANNOUNCE_PAGE_SIZES" :totalRecords="totalRecords" @page="onPage" class="mt-2" />
     <LogBar class="mt-3" />
   </template>
   <div v-else class="empty-state mt-4">

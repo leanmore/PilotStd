@@ -576,6 +576,11 @@ B1（声明类 vs 实现类）已覆盖同一语义、且每次 CI 都在跑；�
 > 前端 `http.*` 调用，输出“写操作缺显式 admin 装饰器 / 前端调用 admin-only 接口 /
 > 死调用 / 页面缺 `meta.permission`”矩阵（`--md` / `--json`）。仅供阶段审计使用，**不参与门禁模式**。
 >
+
+> **数据补抓脚本（非门禁，2026-11-20）**：scripts/backfill_announce_archive.py —— 遍历 nnouncements 表，
+> 逐条 POST /api/announcements/{no}/reparse 触发重抓，让公告归档逻辑补写历史 HTML/附件到 data/announcements/；
+> 断点续跑（%TEMP%/pilotstd_archive_backfill.json）、默认 1.5s/条、失败不中断。不参与任何门禁模式。
+
 > **压测脚本（非门禁，2026-11-13）**：`scripts/stress_monitor_catchup.py` —— 本地 825 文件
 > 启动补扫压测（真 parse/搬文件/写 `file_index`，查询/下载用确定命中替代），输出批次数、
 > 成功/失败/解析失败、UNIQUE/locked、空目录清理。**不参与门禁模式**，仅 P3-16 取证用。

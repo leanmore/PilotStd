@@ -1067,3 +1067,19 @@ ecursive 覆盖子目录。A-44 闭合。
 - **验证**：`web/src/config/theme-spec.test.ts` 30 例（四主题 × 7 条契约 + 族内透明度一致 + dangerBg 派生一致性）；
   已有 `a11y-contrast.test.ts` 7 例；前端四件套（type-check/lint/test/build）全绿。
 - **观察**：green 主题文字色整体压深后，界面观感偏“深绿”，如需更轻可在不破坏契约的前提下微调（阈值写死在测试里，改值会被拦）。
+
+### 92. 公告列表只显示最近 100 条（LIMIT 100）+ 历史补抓脚本（2026-11-20）
+
+- **现象**：用户把抓取起点设为 2022-01-01 点“立即抓取”，列表仍只到 2024 年第 22 号，怀疑没抓到。
+- **取证**：直接查生产 DB——`announcement_record` 里 GB 有 **2,850 行**日期为 2022 年，`2022年第5~9号` 都在；
+  抓取本身没问题。真正原因在 `docker/api/announce.py::_build_announce_results_query` 末尾的 **`LIMIT 100`**：
+  三个来源都恰好返回 100 条（hb/db 每年 12 条，100 条正好覆盖 2018–2026；GB 公告多，100 条只到 2024-09）。
+- **修复**：列表改服务端分页——端点接 `page/page_size`（默认 1/50，上限 200），去掉硬编码 LIMIT，响应加 `total/page/page_size`；
+  前端 `getAnnounceResults(source, from, routeTag, page, pageSize)`，`AnnounceView` 用 `totalRecords` 驱动 Paginator，翻页/改每页条数都重新取数。
+- **验证**：`tests/test_api_announce_results_headers.py` 新增 2 例（两页不重叠 + total 正确、默认 50）；
+  `AnnounceView.test.ts` 11 例（含服务端分页参数断言）。
+- **历史补抓**：新增 `scripts/backfill_announce_archive.py`——遍历 `announcements` 表 945 条公告，逐条调
+  `POST /api/announcements/{no}/reparse?source=...` 重新抓取，让新归档逻辑把历史 HTML/附件落盘；
+  断点续跑（状态在 `%TEMP%/pilotstd_archive_backfill.json`）、默认 1.5s/条、失败不中断。
+  用法：`python scripts/backfill_announce_archive.py --dry-run` → `--limit 20` → 全量。
+  **必须先部署含归档代码的版本**，否则重抓也不会写文件。

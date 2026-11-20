@@ -135,8 +135,8 @@ describe('AnnounceView', () => {
     await new Promise(r => setTimeout(r, 10))
     await wrapper.vm.$nextTick()
 
-    // 列表请求不传 from_date：日期只用于“立即抓取”的起点
-    expect(getAnnounceResultsMock).toHaveBeenCalledWith('announcement_gb', '', '/announce')
+    // 列表请求不传 from_date：日期只用于“立即抓取”的起点；列表走服务端分页（page=1, rows=25）
+    expect(getAnnounceResultsMock).toHaveBeenCalledWith('announcement_gb', '', '/announce', 1, 25)
 
     const before = getAnnounceResultsMock.mock.calls.length
     const refresh = wrapper.findAll('button').find((b) => b.text().includes('刷新列表'))

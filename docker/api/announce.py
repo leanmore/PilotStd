@@ -77,9 +77,14 @@ class AnnounceResultItem(BaseModel):
 
 
 class AnnounceResultsResponse(BaseModel):
-    """公告列表响应：合并公告头与记录后的去重结果集。"""
+    """公告列表响应：合并公告头与记录后的去重结果集（2026-11-20 起服务端分页）。"""
 
     results: list[AnnounceResultItem]
+    # 2026-11-20：此前固定 LIMIT 100，GB 有 551 条公告时列表只能看到最近两年；
+    # 现改为服务端分页并返回总数，前端按页取。
+    total: int = 0
+    page: int = 1
+    page_size: int = 50
 
 
 class AnnounceOcrStatusResponse(BaseModel):
@@ -378,7 +383,7 @@ def _build_announce_results_query(source_site: str, from_date: str, to_date: str
         " CAST(substr(f_announce_no, 1, 4) AS INTEGER) DESC,"
         " CAST(substr(f_announce_no, instr(f_announce_no, '第')+1,"
         " instr(f_announce_no, '号')-instr(f_announce_no, '第')-1) AS INTEGER) DESC,"
-        " f_publish_date DESC LIMIT 100"
+        " f_publish_date DESC"
     )
     return query, params
 
@@ -388,11 +393,21 @@ def get_announce_results(
     source_site: str = "",
     from_date: str = "",
     to_date: str = "",
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
     mgr=Depends(get_manager_dep),
 ):
-    """获取最新公告列表。公告头与记录合并：零记录公告也必须显示（否则漏抓公告在列表里消失）。"""
+    """获取公告列表（服务端分页）。
+
+    公告头与记录合并：零记录公告也必须显示（否则漏抓公告在列表里消失）。
+    2026-11-20 起支持 `page/page_size` 并返回 `total`——原实现固定 LIMIT 100，
+    公告多的来源（如 GB 共 551 条）只能看到最近 100 条，用户会误以为“没抓到历史”。
+    """
     query, params = _build_announce_results_query(source_site, from_date, to_date)
-    rows = mgr.db.fetchall(query, params)
+    total_row = mgr.db.fetchone(f"SELECT COUNT(*) AS c FROM ({query}) AS t", params)
+    total = int(total_row["c"]) if total_row else 0
+    offset = (page - 1) * page_size
+    rows = mgr.db.fetchall(f"{query} LIMIT ? OFFSET ?", [*params, page_size, offset])
 
     results = []
     for row in rows:
@@ -408,7 +423,7 @@ def get_announce_results(
             }
         )
 
-    return {"results": results}
+    return {"results": results, "total": total, "page": page, "page_size": page_size}
 
 
 @router.get("/api/announce/ocr-status", response_model=AnnounceOcrStatusResponse, response_model_exclude_none=True)

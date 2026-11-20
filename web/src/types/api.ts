@@ -123,6 +123,10 @@ export interface AnnounceItem {
 /** 公告响应包装 */
 export interface AnnounceResponse {
   results: AnnounceItem[]
+  /** 服务端分页元信息（2026-11-20 起；旧响应无此字段时按 results.length 兜底） */
+  total?: number
+  page?: number
+  page_size?: number
 }
 
 // ── Phase 3: 公告详情 ──────────────────────────────────

@@ -9,8 +9,17 @@ import type {
   AnnouncementRecord,
 } from '../types/api'
 
-export const getAnnounceResults = async (sourceSite?: string, fromDate?: string, routeTag?: RouteTag): Promise<AnnounceResponse> =>
-  (await http.get('/announce/results', { params: { source_site: sourceSite || '', from_date: fromDate || '' }, routeTag })).data
+export const getAnnounceResults = async (
+  sourceSite?: string,
+  fromDate?: string,
+  routeTag?: RouteTag,
+  page = 1,
+  pageSize = 50,
+): Promise<AnnounceResponse> =>
+  (await http.get('/announce/results', {
+    params: { source_site: sourceSite || '', from_date: fromDate || '', page, page_size: pageSize },
+    routeTag,
+  })).data
 
 export const postAnnounceCheck = async (sinceDate?: string, types?: string): Promise<SuccessResponse> =>
   (await http.post('/announce/check', null, { params: { ...(sinceDate ? { since_date: sinceDate } : {}), ...(types ? { types } : {}) } })).data
