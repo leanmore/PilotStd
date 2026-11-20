@@ -39,6 +39,9 @@ class NotificationLogItem(BaseModel):
     body: str
     standard_number: str | None = None
     status: str
+    # 业务级别（info/warning/error）：安全告警、任务失败即使投递成功也要着色，
+    # 必须在响应模型里声明，否则 FastAPI 会按 response_model 过滤掉该字段
+    level: str
     error_msg: str | None = None
     sent_at: str
     is_read: int

@@ -24,9 +24,10 @@ export interface NotificationMessage {
   title: string
   body: string
   /**
-   * 后端 `GET /api/notification/logs` **不返回** level 字段（该端点显式只构造 10 个字段），
-   * 故映射层统一填 'info'。取值域与后端 `NotificationMessage.level` 对齐（info/warning/error）——
-   * 原声明写的是 'warn'，与后端 'warning' 不符，本次一并纠正。
+   * 业务级别（info/warning/error），决定铃铛条目的着色。
+   * 2026-11-20 起后端 `GET /api/notification/logs` 真的返回该字段（此前响应模型漏声明，
+   * 字段被 FastAPI 过滤掉，映射层只能恒填 'info' ⇒ 告警着色形同虚设）。
+   * 字段缺失时仍回退 'info'，兼容旧后端/测试夹具。
    */
   level: 'info' | 'warning' | 'error'
   sent_at: string
@@ -59,7 +60,7 @@ let visibilityBound = false
  *
  * 两处必须显式映射（否则角标算错 / 类型不符）：
  * 1. `is_read` 后端是 0/1 数字，前端按布尔使用 → `Boolean()`
- * 2. 后端不返回 `level` → 填 'info'（见 interface 注释）
+ * 2. `level` 缺失时回退 'info'（后端已返回该字段，回退只为兼容旧响应/夹具）
  */
 function normalize(item: NotificationLogItem): NotificationMessage {
   return {

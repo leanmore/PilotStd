@@ -952,3 +952,16 @@ ecursive 覆盖子目录。A-44 闭合。
 - **修复**：新增 `is_comment_only(path, range)`——取范围左端基线内容与工作区内容各建 AST，docstring 文本归一化为 `<DOC>` 后比较，相同即从“需测试同步”集合剔除。基线取不到（新增文件/git 不可用/读失败）或任一侧语法错误，一律按真变更（宁可多要求一次测试）。
 - **验证**：`G029_RANGE=aceaf82c..87ab358f` 由 FAIL 转 PASS；`tests/test_check_g_029_comment_only.py` 5 例（注释/docstring 跳过、代码变更仍红、新文件与缺基线按真变更）。
 - **顺手修复**：该脚本缺 `sys.stdout.reconfigure(encoding="utf-8")`，Windows GBK 控制台在打印 ❌ 明细时 `UnicodeEncodeError`——失败原因不可见等于盲区，已按其余 20 个门禁同口径补齐。
+
+### 83. R-3 只读复验：通知级别“假闭合”与修复（2026-11-20）
+
+- **部署确认**：生产 v0.196.1（`286a4ed2`）；`git merge-base --is-ancestor` 逐项核对，U-1/U-3（`4003372e`/`4d9e3b7d`/`05113127`/`5d3d7aa5`/`63613598`）、G-03（`0e2ff79b`）、铃铛两项与 V-17 批全部在内。
+- **只读复验**（登录后仅 GET，无写操作）：
+  - `GET /api/system/version` → `0.196.1` / `v0.196.1`；
+  - `GET /api/notification/logs`（100 条）→ 响应字段里**没有 `level`**；
+  - `GET /api/wechat-ip/config` → `cookiecloud_key`/`cookiecloud_password` 返回 `***`（掩码生效），并已带 `cookie_status`/`cookie_source`（U-3 状态文案所需字段）；
+  - 通知正文可见 `现行 → 新标准：GB 30871-2014`（`standard_status_changed` 侧的新标准格式）。
+- **假闭合（R-3 抓到的第一例）**：`63613598` 声称“日志暴露业务级别并告警着色”，但 `NotificationLogItem` 未声明 `level`，FastAPI 按 response_model 序列化时把该字段丢掉 ⇒ 前端映射恒为 `info`，铃铛的 `warning`/`error` 着色形同虚设。更糟的是前端用例当时断言“后端不返回 level”，把缺陷锁成了契约。
+- **修复**：响应模型补 `level: str`；前端 `useNotification` 注释与用例同步（保留缺失回退 + 新增“有值则透传”）；后端补 2 例（模型声明、序列化保留取值）。
+- **验证**：`tests/test_notification_level_mapping.py` 3 例；`-k notification_log` 33 例；web vitest `useNotification.test.ts` 14 例。
+- **仍待真实验证**：`_record_change` 的“旧 → 新”reason 要真实跑一次时效检查才会出现在通知里（本次 100 条日志无此类记录）；G-09 去重、G-10 弹层位置需要真实 UI（Playwright + 临时用户）。

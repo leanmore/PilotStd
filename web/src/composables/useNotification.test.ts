@@ -106,12 +106,26 @@ describe('useNotification', () => {
     w.unmount()
   })
 
-  it('level 后端不返回时填 info（防后人误以为后端会返回）', async () => {
+  it('后端未返回 level 时回退 info（兼容旧响应/夹具）', async () => {
     const w = mountComposable()
     await flush()
     expect(w.vm.messages.every((m: { level: string }) => m.level === 'info')).toBe(true)
-    // 后端响应体确实没有 level 字段——这条断言锁住"缺省来自映射层"这一事实
+    // 夹具本身没有 level 字段——锁住"缺省来自映射层"这一事实
     expect(Object.prototype.hasOwnProperty.call(LOG_ITEMS[0], 'level')).toBe(false)
+    w.unmount()
+  })
+
+  it('后端返回 level 时透传（铃铛按此着色，2026-11-20 修：响应模型漏声明导致恒 info）', async () => {
+    mocks.getNotificationLogs.mockResolvedValue({
+      items: [
+        { ...LOG_ITEMS[0], id: 1, event_type: 'security_alert', level: 'warning' },
+        { ...LOG_ITEMS[0], id: 2, event_type: 'task_failure', level: 'error' },
+      ],
+    })
+    const w = mountComposable()
+    await flush()
+    expect(w.vm.messages[0].level).toBe('warning')
+    expect(w.vm.messages[1].level).toBe('error')
     w.unmount()
   })
 
