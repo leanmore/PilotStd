@@ -994,3 +994,18 @@ ecursive 覆盖子目录。A-44 闭合。
   - ① “同一函数内既 `ConfigManager()` 又 `save()`”只有 1 处：`notification_aggregator._save_pause_state`（毫秒级，安全）；
   - ② “保存**入参** config”共 7 处，其中真正跨长任务的是 `wechat_ip/scheduler.run_check`（检测 IP → 取 Cookie → 浏览器更新，可达数分钟），**已一并改为 `update()`/`update_many()`**；其余 `menu/service.sync_channel`、`config/migrate.import_rules` 均短事务。
   - 结论：同类风险已收口，不存在“还有 40+ 处待扫”——先前那句是未核实的估计。
+
+### 87. 深色主题按钮文字不可读：遍历实测 111 个按钮，修 3 类（2026-11-20）
+
+- **方法**：Playwright 遍历 15 个路由（登录后），对每个按钮类元素计算 WCAG 对比度——有效背景按祖先 `background-color` 逐层 alpha 合成，小字阈值 4.5、大字 3.0。脚本 `ci.tmp/contrast_scan.js`。
+- **结果**：111 个按钮中 **32 个低于 AA**，归为 3 类：
+  1. `p-button-danger p-button-outlined`（2 个：/task“停止任务”、/notification-logs“清理日志”）**1.36:1**——`.p-button.p-button-danger` 强制 `background: var(--danger)`，深色主题 `--danger` 是 #f87171（浅红），而 Aura 的 outlined 变体把文字也压成 #ef4444，两段红几乎同亮度，正是截图那种“深底看不见字”；
+  2. `.floating-workspace-btn`（悬浮工作台按钮，每个页面 1 个，共 15 处渲染）**2.98:1**——白字 on 深色 `--primary` #818cf8；
+  3. `.collapse-toggle`（侧栏“收起”，每页 1 个，15 处）**4.04:1**——13px 小字 `--text-secondary` #94a3b8 on `--surface` #334155，差 0.46 不达 AA。
+- **修复**：
+  1. 新增 `html .p-button.p-button-danger.p-button-outlined`：透明底 + 描边 `var(--danger)` + 文字 `var(--danger-text)`（深色 #f87171≈7.6:1、浅色 #991b1b≈8.3:1），hover 用 `--danger-bg`；
+  2. 悬浮按钮底色改 `--primary-hover`（深色 #6366f1≈4.4:1、浅色 #4f46e5≈7.4:1），hover 改用 `brightness()` 提亮；该按钮可视内容只有图标（文案在 `aria-label`），适用 WCAG 1.4.11 的 3:1 而非 4.5；
+  3. 收起按钮文字改 `--text-bright`（深色 #e2e8f0≈9:1、浅色 #334155≈9:1）。
+- **验证**：同一扫描器指向本地 dev（vite 代理生产 API）复扫：**107 个按钮、0 个低于 AA**；两个 danger outlined 按钮实测 `color rgb(248,113,113)` + `background rgba(0,0,0,0)`；前端四件套（type-check/lint/test/build）全绿。
+- **口径**：只覆盖“按钮类元素”；正文/链接/输入框未纳入，后续可扩扫描选择器。
+- **回归测试**：`web/src/a11y-contrast.test.ts` 7 例——用 `themes.ts` 的真实令牌算 WCAG，锁住三处配色决定（outlined danger 文字、悬浮按钮底色、收起按钮文字），并断言 `style.css` 里 outlined 透明底规则未被删。

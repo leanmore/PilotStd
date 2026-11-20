@@ -186,7 +186,9 @@ nav::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
   padding: 10px;
   background: none;
   border: 1px solid var(--border);
-  color: var(--text-secondary);
+  /* fix(a11y): 深色主题 --text-secondary(#94a3b8) on --surface(#334155) 仅 4.04:1（13px 小字不达 AA 4.5）；
+     改用 --text-bright（深色 #e2e8f0≈9:1、浅色 #334155≈9:1） */
+  color: var(--text-bright);
   cursor: pointer;
   border-radius: var(--radius);
   font-size: 13px;

@@ -22,6 +22,7 @@
 | G-12 | G-012 `[LANG]` 注释语言警告 1511 条长期挂着 | 已闭合 | 规则改按词判定（工具指令/反引号/文件名/代码标识符豁免）1511→504，504 行分 6 批改写（叙事词译中文、裸标识符加反引号）→0；200 个改动 `.py` 做 AST 归一化比对，除检查器外 198 个文件 AST 完全一致；见 `27` #81、`gates.md` v2.55 |
 | G-13 | 通知日志 `level` 假闭合（铃铛告警着色不生效） | 已闭合 | `NotificationLogItem` 漏声明 `level`，FastAPI 按 response_model 过滤；修复 `d9a29db1` 后**生产 v0.196.3 实证**：`GET /api/notification/logs` 返回 level，100 条 info 68 / warning 32；见 `27` #83 |
 | G-14 | 配置多实例整文件覆盖写（IP 失败重复通知根因） | 已修复（待部署） | `save()` 写整份快照，长任务收尾覆盖他方键；新增 `update()/update_many()` 并改造 `docker/scheduler`、`_validity_pipeline._finalize_validity_round`；`test_manager_update.py` 4 例；AST 扫描确认“同函数构造+save”仅 1 处（毫秒级）、保存入参的 7 处中跨长任务的 `wechat_ip/scheduler.run_check` 也已改造，同类风险收口；全量后端 6391 passed；见 `27` #86 |
+| G-15 | 深色主题按钮文字对比度不足（3 类共 32 处） | 已修复（待部署） | Playwright 遍历 15 路由、111 个按钮实测：outlined danger 1.36:1（截图那类）、悬浮工作台 2.98:1、侧栏收起 4.04:1；三处 CSS 修正后 dev 复扫 107 个按钮 0 个低于 AA；见 `27` #87 |
 
 ## 二、之前悬着未闭合
 

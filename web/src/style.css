@@ -359,6 +359,19 @@ html .p-button.p-button-warn {
   filter: brightness(1.1);
 }
 
+/* fix(a11y): outlined danger 按钮 —— 2026-11-20 生产实测 1.36:1（深色主题 #f87171 底 + #ef4444 字，
+   两段红几乎同亮度，就是"深底下看不见字"的那个按钮：任务页"停止任务"、通知日志页"清理日志"）。
+   描边样式本就不该有实心底；文字用 --danger-text（浅色主题 #991b1b≈8.3:1、深色主题 #f87171≈7.7:1）。 */
+html .p-button.p-button-danger.p-button-outlined {
+  background: transparent;
+  border: 1px solid var(--danger);
+  color: var(--danger-text);
+}
+html .p-button.p-button-danger.p-button-outlined:hover {
+  background: var(--danger-bg);
+  filter: none;
+}
+
 /* RETAINED: secondary 按钮覆盖（html 前缀对抗 Aura token）
    Reason: Aura --p-button-secondary-color 为 text.muted(#64748b) on surface.100(#f1f5f9)，
    浅色主题实测 4.34:1 不达标；html 前缀提高特异性强制 --text-secondary（light 5.44/green 4.89:1 ✅），
