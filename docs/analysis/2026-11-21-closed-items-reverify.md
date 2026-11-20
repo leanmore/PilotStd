@@ -52,10 +52,10 @@
 - 已实测：`pending_lookup` 中 `reason='copy_quarantined'` 恰好 **28 行**（status=pending），且 `file_path` 均非空 —— 与“28 条对应 pending 已标 copy_quarantined、无悬空”一致。
 - 无法实测：`/app/data/_quarantine/__replay_b62` 下的 **30 个副本**。`GET /api/files` 只接受 `/standards`、`/inbox`（`path=/data`、`path=../data/...` 均 400），与 G-22 记录的盲区相同。
 - 影响：条目主体（隔离区保留、28 条标记）可复核；“30 个副本”这一数量无法在生产侧复验，只能沿用 2026-11-17 的人工核对。
-- 建议：仿照 G-22 的 `/api/system/archive-stats`，增加只读 `GET /api/system/quarantine-stats`（admin，返回目录、文件数、总字节、样例），或把 `_quarantine` 文件数并入 `/api/system/health`；这样 G-05 及后续隔离区类条目都能自证。
+- 建议：仿照 G-22 的归档统计接口，再补一个只读的“隔离区统计”接口（admin，返回目录、文件数、总字节、样例），或把隔离区文件数并入现有健康检查响应；这样 G-05 及后续隔离区类条目都能自证。
 
 ## 附：本次未能“写操作复现”的部分（已在判定中体现）
 
-- A-44 未对生产 monitor 做真实 stop→start（不在授权写操作内），用 12 例集成/单测覆盖；A-45 未把生产 `notification.dry_run` 置 true 做真实抑制投递（PUT 通知配置未授权），用“显式 true 才跳过”的单测覆盖。
+- A-44 未对生产 monitor 做真实 stop→start（不在授权写操作内），用 12 例集成/单测覆盖；A-45 未在生产打开通知的“试运行/抑制投递”开关（改通知配置未获授权），用“显式 true 才跳过”的单测覆盖。
 - G-04 的 23:04 首轮数字由保留日志逐条还原；当前 `/api/adapters/health` 已被 2026-11-20 的 G-25 复跑覆盖为 6/4/0/11，二者不是同一轮。
 - G-02 的 `found=3 / not_found=58` 未落到 `query_metrics`（只有 chain_exhausted=57 / no_result=219），批次 61 条本身可自证。
