@@ -67,6 +67,15 @@ class _Cfg:
     def save(self):
         self.saved = True
 
+    def update(self, key, value):
+        """单键安全写（2026-11-20 起生产代码用它做收尾记账）。"""
+        self.values[key] = value
+        self.saved = True
+
+    def update_many(self, values):
+        self.values.update(values)
+        self.saved = True
+
 
 def test_checked_count_excludes_failures():
     cfg = _Cfg({"validity.checked_count": 10})
