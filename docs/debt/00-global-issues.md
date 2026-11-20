@@ -70,9 +70,9 @@ ailed 归一（3）、终态词表 completed/cancelled/failed、result_json 防�
 | T-40 | V6 wechat 真发未取证 | 等触发 | 触发：需要取证真实企微发送 |
 | T-42 | 渠道限流未逐家实现 | 已闭合 | channels/base.py 已实现：码优先（wechat 45009、feishu 99991400）、429/5xx 重试、Retry-After、关键词兜底；	ests/test_notification_rate_limit.py 3 例通过 |
 | A-22 | Windows 15 个共享事件托盘验收 | 等触发 | 触发：Windows 实机有人使用 |
-| A-27 | 自定义菜单（企微/飞书/TG/钉钉） | 等触发 | 触发：菜单需求排期 |
+| A-27 | 自定义菜单（企微/飞书/TG/钉钉） | 等触发 | **代码已落地** `8dc5393a`（v0.196.1 起在线）：企微/飞书 create+delete 真实接口、Telegram setMyCommands、钉钉显式 `unsupported`；21 例单测。剩余触发条件改为：各平台后台权限下的真实联调 |
 | A-43 | SQLite 表数机械核对 | 已闭合 | 2026-11-19 生产表数与迁移链一致；check_schema_consistency.py 汇总 0 处不一致，文档未声明固定表数 |
 | A-40 | 旧数据归属 | 已闭合（部分记录） | 452+67 行订正；queue 例外；残余 0 |
-| D-2/D-3 | 通知阶段 2 启动 / 主题判定观察 | 等触发 | 触发：业务排期/设计改进 |
+| D-2/D-3 | 通知阶段 2 启动 / 主题判定观察 | 等触发 | **D-3 已落地**：`topic_of()` 事件键优先、关键词兜底，`tests/test_notification_topic_event_first.py` 3 例锁定；D-2 仍等业务排期 |
 | V-16 | TaskManager 失败分支覆盖 | 已闭合 | 	ests/test_core_task_manager.py：
 ailed 归一（3）、终态词表 completed/cancelled/failed、result_json 防御、两种 result 形状均覆盖；TaskManager 为只读门面，执行失败落库在任务运行时 |

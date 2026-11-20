@@ -31,9 +31,11 @@
    - 最新 run `44432226468`（HEAD `8228fa78`）：`test-backend` 的 `Run backend tests` 失败；
    - GitHub 日志返回 `BlobNotFound`，本地 `pytest tests -x -q` 未定位到失败点（跑到日志输出但退出 1）；
    - 已按指示暂停该单项；**升级后第一步是复现/定位，不能带红交付**。
-2. **A-27 四家自定义菜单：全做（未开始）**
-   - 企微（应用菜单 API）、飞书（机器人菜单/事件）、Telegram（setMyCommands/菜单按钮）、钉钉（工作台/机器人菜单）各自规范、层级、样式；
-   - 需要新增各渠道 menu adapter + API + 配置 + 测试，工作量大，尚未落代码。
+2. **A-27 自定义菜单：代码已落地（`8dc5393a`，2026-11-08，v0.196.1 起在线）** — 交接单此处“未落代码”是错的
+   - 企微（`qyapi.weixin.qq.com` 应用菜单，create/delete）、飞书（`open.feishu.cn/open-apis`，create/delete）、Telegram（`api.telegram.org` setMyCommands）均为**真实接口**；
+   - 钉钉按平台能力**显式不支持**（机器人无持久菜单 API）：`DingtalkMenuClient.supports_menu()=False`，返回 `code=unsupported` 供调用方降级；
+   - 代码：`pilotstd/core/notification/menu/`（model/config/clients/service）+ `docker/api/notification_menu.py`；测试 `tests/test_notification_menu.py`、`tests/test_notification_menu_api.py` 共 21 例通过；
+   - **仍待**：各平台后台权限下的真实联调（创建/删除/回读），目前只有单测与接口形态验证。
 3. **G-012 `[LANG]` 语言警告：已清到 0（2026-11-19，见 `27` #81）**
    - 编号澄清：交接单把这条记作“V-17”，但 `04-watch.md` 的 V-17 实为“注释密度对新脚本反复红”，是另一件事；本条只处理语言警告，V-17 本身仍在观察。
    - 路径：先补规则盲点（`# i18n-allow:` 未算工具指令，1511→1402）→ 改按词判定（代码标识符不再误报，1402→504）→ 504 行分 6 批改写（叙事词译中文、裸标识符加反引号）→ 0。
@@ -52,8 +54,9 @@
 6. **A-46 33 文件：不重开**
    - 结论：33 条 `file_missing` 原件在 `/standards` 未索引，30 份副本在 `/app/data/_quarantine/__replay_b62`；
    - 缺的是“重扫 /standards 并写 file_index”的生产写窗口，不是新线索；不重开，等维护窗口。
-7. **D-3 事件键 vs 关键词**
-   - 结论：**事件键优先，关键词仅兜底**；事件键可枚举、可测试，关键词易误判；落地前需在 `topic_index` 明确优先级并补测试。
+7. **D-3 事件键 vs 关键词：已落地（不是待办）**
+   - `NotificationAggregator.topic_of()` 已实现“事件键优先、标题索引/关键词兜底”（W3 + D-3 2026-10-18）；
+   - 契约由 `tests/test_notification_topic_event_first.py` 3 例锁定（事件键命中即返回、未登记事件回退标题、无事件键等价 `_extract_topic`），实测通过。
 8. **D-2 阶段 2：分析已完成，等定实现**
    - 见 `docs/analysis/notification-stage2.md`：统一语义层存在，渠道渲染分散；建议先做“渠道能力声明+统一 renderer”和“delivery/business 状态分离”。
 
