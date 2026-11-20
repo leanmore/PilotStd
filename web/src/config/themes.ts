@@ -19,8 +19,10 @@ export interface ThemeConfig {
     text: string
     textBright: string
     textHeading: string
-    primary: string
-    primaryHover: string
+    primary: string           // 强调色：文字/图标/描边（要求对 surface ≥4.5:1）
+    primaryHover: string      // 强调色 hover（文字场景）
+    primaryFill: string       // 主按钮底色（白字 ≥4.5:1，四主题统一口径）
+    primaryFillHover: string  // 主按钮 hover 底色（比 fill 更深，白字仍 ≥4.5:1）
     primaryBg: string
     primaryBorder: string
     success: string
@@ -72,8 +74,10 @@ export const THEMES: Record<string, ThemeConfig> = {
       text: '#475569',
       textBright: '#334155',
       textHeading: '#0f172a',
-      primary: '#6366f1',
+      primary: '#5c5ef2',
       primaryHover: '#4f46e5',
+      primaryFill: '#4f46e5',
+      primaryFillHover: '#4338ca',
       primaryBg: 'rgba(99, 102, 241, 0.1)',
       primaryBorder: 'rgba(99, 102, 241, 0.3)',
       success: '#22c55e',
@@ -121,6 +125,8 @@ export const THEMES: Record<string, ThemeConfig> = {
       textHeading: '#f1f5f9',
       primary: '#818cf8',
       primaryHover: '#6366f1',
+      primaryFill: '#5b5ef0',
+      primaryFillHover: '#4f46e5',
       primaryBg: 'rgba(129, 140, 248, 0.15)',
       primaryBorder: 'rgba(129, 140, 248, 0.35)',
       success: '#4ade80',
@@ -163,11 +169,13 @@ export const THEMES: Record<string, ThemeConfig> = {
       borderLight: '#dcfce7',
       textDim: '#445264',       // fix(theme): --text-dim 重设计 v2（批次5-E组）——ΔL*(sec→dim)=11.9≥10、on bg #e8f5e9 ≈ 7.08:1 ✅（原 #5f6f82 与 textSecondary 亮度倒挂）
       textSecondary: '#3d7a52',   // on #f6fbf7 ≈ 4.88:1 ✅
-      text: '#166534',
-      textBright: '#15803d',
-      textHeading: '#14532d',
-      primary: '#22c55e',
-      primaryHover: '#16a34a',
+      text: '#14532d',
+      textBright: '#064e3b',
+      textHeading: '#052e16',
+      primary: '#15803d',
+      primaryHover: '#166534',
+      primaryFill: '#15803d',
+      primaryFillHover: '#166534',
       primaryBg: 'rgba(34, 197, 94, 0.1)',
       primaryBorder: 'rgba(34, 197, 94, 0.3)',
       success: '#16a34a',
@@ -189,8 +197,8 @@ export const THEMES: Record<string, ThemeConfig> = {
       shadow: '0 4px 8px -4px rgba(0, 0, 0, 0.12), 0 2px 4px -2px rgba(0, 0, 0, 0.08)',
       shadowMd: '0 8px 16px -6px rgba(0, 0, 0, 0.15), 0 4px 8px -4px rgba(0, 0, 0, 0.1)',
       shadowLg: '0 16px 32px -12px rgba(0, 0, 0, 0.18)',
-      disabledBg: '#bbf7d0',
-      disabledText: '#86efac',
+      disabledBg: '#dcfce7',
+      disabledText: '#4d7c5f',
       mpCardBg: 'rgba(246, 251, 247, 0.85)',
       mpCardBorder: '1px solid rgba(0, 0, 0, 0.06)',
       mpCardDarkBg: 'rgba(15, 23, 42, 0.85)',
@@ -206,7 +214,7 @@ export const THEMES: Record<string, ThemeConfig> = {
       bg: '#0c1222',
       surface: '#151e32',
       surfaceRaised: '#1e293b',
-      border: '#1e293b',
+      border: '#334155',
       borderLight: '#1e293b',
       textDim: '#a3afc2',       // fix(theme): --text-dim 重设计（on surface-raised ≈ 4.65:1）
       textSecondary: '#94a3b8',   // 浅色辅助文字 on 深蓝底
@@ -215,6 +223,8 @@ export const THEMES: Record<string, ThemeConfig> = {
       textHeading: '#f1f5f9',
       primary: '#0ea5e9',
       primaryHover: '#0284c7',
+      primaryFill: '#0369a1',
+      primaryFillHover: '#075985',
       primaryBg: 'rgba(14, 165, 233, 0.15)',
       primaryBorder: 'rgba(14, 165, 233, 0.35)',
       success: '#4ade80',
@@ -277,6 +287,8 @@ export function applyThemeToDom(theme: ThemeConfig): void {
     '--text-heading': c.textHeading,
     '--primary': c.primary,
     '--primary-hover': c.primaryHover,
+    '--primary-fill': c.primaryFill,
+    '--primary-fill-hover': c.primaryFillHover,
     '--primary-bg': c.primaryBg,
     '--primary-border': c.primaryBorder,
     '--success': c.success,

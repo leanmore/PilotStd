@@ -8,6 +8,7 @@ import os
 import threading
 from typing import Any, Callable, Optional
 
+from .browser import DEFAULT_CACHE_DIR as _default_cache_dir
 from .browser import BrowserError, WechatIPUpdater
 from .cookie_mgr import decrypt_cookie, encrypt_cookie, fetch_cookiecloud, mask_cookie
 from .detector import detect_ip as do_detect_ip
@@ -71,7 +72,7 @@ def run_check(config: Any, notify_cb: Optional[Callable] = None) -> dict:
     mode = config.get("wechat_ip.update_mode", "append")
     engine = config.get("wechat_ip.engine", "auto")
     headless = config.get("wechat_ip.headless", True)
-    cache_dir = config.get("wechat_ip.cache_dir", "/app/browser_cache")
+    cache_dir = config.get("wechat_ip.cache_dir", "") or _default_cache_dir
 
     try:
         updater = WechatIPUpdater(headless=headless, cache_dir=cache_dir, engine=engine)

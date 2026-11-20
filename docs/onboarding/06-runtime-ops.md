@@ -283,3 +283,9 @@ python main.py --cli announce --since 2026-01-01
 6. 生产环境为什么不能直接 UPDATE？
 
 参考答案见 [`10-assessment.md`](10-assessment.md)。
+
+
+> **挂载 `./browser_cache:/app/browser_cache`（2026-11-20 复核）**：仍需要——它存的是企业微信
+> 浏览器的**登录态 profile**（`wechat_ip.cache_dir` 默认指向此处，`browser.py` 用它作 `user_data_dir`）。
+> 删掉挂载后每次重建容器都要重新扫码登录，可信 IP 自动更新会失败。内核缓存是另一个变量
+> （`CLOAKBROWSER_CACHE_DIR=/app/data/cloakbrowser`，随 data 卷持久化），两者不要混。

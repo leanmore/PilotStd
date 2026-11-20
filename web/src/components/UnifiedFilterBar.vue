@@ -79,7 +79,7 @@ const handleToggle = (key: string, value: boolean) => {
 }
 
 .filter-item.active {
-  background: var(--primary);
+  background: var(--primary-fill);
 }
 
 .filter-item.active .item-label {

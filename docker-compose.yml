@@ -26,7 +26,9 @@ services:
       - ./standards:/standards
       - ./.env:/app/.env
       - ./output:/app/output   # 容器内生成的文件可通过此目录在宿主机访问
-      - ./browser_cache:/app/browser_cache  # 企业微信浏览器 profile（登录态）
+      # 企业微信浏览器【登录态 profile】（wechat_ip.cache_dir 默认指向此处）；
+  # 删掉本挂载 ⇒ 每次重建容器都要重新扫码登录，IP 自动更新会失败。
+  - ./browser_cache:/app/browser_cache
       # ═══════════════════════════════════════════════════════════════
       # 🔑 Fernet Key / 配置持久化（2026-08-20 修复）
       #    ⚠️ IMPORTANT: Code reads from /app/data/.fernet_key (NOT /app/config/)

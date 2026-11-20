@@ -140,7 +140,7 @@ async function debug() {
 }
 .debug-btn {
   padding: 8px 16px; border: none; border-radius: var(--radius);
-  background: var(--primary); color: #fff; cursor: pointer; font-size: 13px; font-weight: 600;
+  background: var(--primary-fill); color: #fff; cursor: pointer; font-size: 13px; font-weight: 600;
 }
 .debug-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .simulate-toggle { margin-top: 8px; }

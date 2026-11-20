@@ -1009,3 +1009,61 @@ ecursive 覆盖子目录。A-44 闭合。
 - **验证**：同一扫描器指向本地 dev（vite 代理生产 API）复扫：**107 个按钮、0 个低于 AA**；两个 danger outlined 按钮实测 `color rgb(248,113,113)` + `background rgba(0,0,0,0)`；前端四件套（type-check/lint/test/build）全绿。
 - **口径**：只覆盖“按钮类元素”；正文/链接/输入框未纳入，后续可扩扫描选择器。
 - **回归测试**：`web/src/a11y-contrast.test.ts` 7 例——用 `themes.ts` 的真实令牌算 WCAG，锁住三处配色决定（outlined danger 文字、悬浮按钮底色、收起按钮文字），并断言 `style.css` 里 outlined 透明底规则未被删。
+
+### 88. Inbox 空目录自动清理“假生效”：垃圾目录漏清 + 只清一层 + 空祖先残留（2026-11-20）
+
+- **现象**：monitor 归档后 `_cleanup_empty_dirs` 看似在跑，但 Inbox 里仍留下：①只含 `Thumbs.db`/`~$` 锁文件的目录；②多层嵌套空目录只删最内层；③文件位于深层目录时，`source_root` 之上的空祖先目录永久残留（不再有文件事件触发它们被清理）。
+- **根因**（实测，非推断）：
+  - `pilotstd/monitor/scheduler.py:32`（旧实现）只用 `os.rmdir`，未复用 `file_utils` 的“系统垃圾文件也算空”口径，垃圾目录必然 `rmdir` 失败被 `except OSError: continue` 静默跳过；且只清 `start_dir` 子树，不向上收祖先。
+  - `pilotstd/core/file_utils.py:311`（旧实现）用 `os.walk(topdown=False)` 的 `dirnames` 快照判断 `not dirnames`：子目录在遍历中被删后，父目录的快照仍含该子目录名 ⇒ 父目录被误判为非空，多层空目录只删最内层（复现：`root/a/b/c` 全空 → 只删 `c`，返回 1，`a/b` 残留）。
+- **修复**：
+  - `file_utils` 新增 `is_junk_file(name)` 与 `remove_dir_if_empty(dirpath)`：每次 `scandir` 重新判断、非空即保留，仅垃圾文件时先删垃圾再 `rmdir`；`remove_empty_dirs` 改为自底向上调用它（不再依赖 `dirnames` 快照）。
+  - `scheduler._cleanup_empty_dirs` 改为调用同一 helper：`start_dir` 子树清完后沿 `dirname` 向上收空祖先，遇非空即停、到 `watch_root` 即止（不删 `watch_root`；路径不在其内仍直接返回 0）。
+- **验证**（先红后绿）：先写 6 例失败测试（4 个 monitor + 2 个 file_utils）确认缺陷存在。`tests/test_monitor_cleanup.py` 新增 8 例：深层嵌套、仅 `Thumbs.db`/`~$`、非空目录与其中垃圾保留、空祖先、祖先遇非空即停、根目录触发、`watch_root` 垃圾不动、`_on_file` 用户路径集成；`tests/test_file_utils.py` 新增 3 例：3 层嵌套、垃圾目录递归、非空保留。`python -m pytest tests/test_monitor_cleanup.py tests/test_file_utils.py -q` → **52 passed**；monitor 相关 9 个套件（含 e2e/catchup/u38）→ **120 passed**。
+- **回滚**：还原上述两个函数与新增测试；无 schema/配置/数据变更。
+- **同类隐患（本轮未改，超出允许改动范围）**：`docker/api/organize.py:95 clean_empty_dirs` 逐层只删叶子、父层仍被判非空（与本次修掉的“只清一层”同型）；`pilotstd/ui/core/handlers/_cleanup.py:117` 是另一套手工扫描/确认流程。另：`remove_empty_dirs` 在非测试代码中无调用方，monitor 实际走 `_cleanup_empty_dirs`，两条路径现已同口径。
+- **关联**：08#2（D-02）、26 D-02、ISSUE_LEDGER P1-09；实际文件是 `pilotstd/monitor/scheduler.py`（仓库不存在 `pilotstd/scan/scheduler.py`）。
+
+
+### 89. 公告「起始日期」语义纠偏：默认今天 → 最近 7 天（2026-11-20）
+
+- **语义结论（问题 1）**：`since_date` 是**抓取起点（含当日）**，不是结果后置过滤。`pilotstd/announcement/base.py:112` `_fetch_list` 按 `sortName=NOTICE_DATE&sortOrder=desc`（`:121-126`）从最新往前分页，`:146-147` 遇到 `row["NOTICE_DATE"] < since_date` 的第一条就 `return`（提前终止）；空串 `:146` 短路 ⇒ 不限起点（全量历史）。`crawler_service.check_filtered`（`pilotstd/announce/crawler_service.py:287-309`）原样透传，**不读也不写** checkpoint（与 `docs/reference/announcement-pipeline.md:53-54` 一致：手动 `since_date` 是「历史漏抓恢复方式」）。
+- **缺陷（问题 2）**：旧版 `AnnounceView.vue::defaultSince()` 直接返回 `new Date()` = 今天 ⇒ 手动「立即抓取」只覆盖当天；当天无新公告时 `count=0`、界面无变化，且漏掉前几天晚发布/漏抓的公告——这就是用户感知到的「日期选了没用/抓不到历史」。因 `check_filtered` 不走 checkpoint，默认今天既非增量也非补抓。**判定：bug（默认值 + 文案双重误导）**。
+- **修复**：默认改「最近 7 天」（`AnnounceView.vue:22-38`，对齐后端 `announcement.lookback_days` 默认值 7，见 `pilotstd/core/config/defaults.py:48`），日期选择器加 `showClear`（清空=不限起点=全量历史补抓）、`placeholder` 与可见提示「起始日期（含当日）：只抓该日期及以后发布的公告；清空=全量历史补抓」（`AnnounceView.vue:154-155`、三语 `since_placeholder`/`since_hint`）。`check()` 起点为空时不再带 `since_date`（`:111`）。**后端抓取行为零变更**，只纠正注释失真：`docker/api/announce.py:170-178/255-262/267-271/311` 四处「仅抓取该日期之后」→「含当日」。
+- **定时一次性回填（问题 3）：设计意图成立，但接线是缺陷**。`pilotstd/manager/announce_service.py:147-152` 读到 `app_preferences.announce_since_date` 就按该日期补抓一轮并清空——读后即清是一次性回填的**有意设计**（否则每个周期都重抓同一段历史）。但 Web 端 `usePreferencesStore().set('announce_since_date', …)` 写的是 `user_preferences`（`PUT /api/user/preferences/{key}` → `settings_manager.UserPreferenceManager`/`user_service.save_preference`），**不是** `app_preferences`；全仓 `app_preferences` 写入方只有 v20/v58 迁移默认值与**零调用**的 `save_user_preference`（`announce_service.py:114`）⇒ 该通道在生产等价死代码，UI 日期从未进入定时任务。本次**不接线**（接上会让「选个日期」静默触发隔夜重复重抓，且多用户语义不明），只在代码注释 `announce_service.py:89-100` 与本文记录；顺手把清空 `UPDATE` 改 upsert（`announce_service.py:102-112`）——行缺失时 `UPDATE` 影响 0 行会静默失效，导致每周期重复回填。
+- **观察项（未修，超范围）**：① `_sync_wait_check`（`docker/api/announce.py:267`）虽接收 `since_date`/`types`，但 `AnnounceTaskRunner.trigger` → `check_all` 只用 checkpoint，参数被丢弃（该路径已 DEPRECATED，改注释说明）；② `since_date` 无格式校验，传 `2024/1/1` 之类会因字符串比较「恒早于起点」→ 静默 0 条。
+- **测试**：`tests/announce/test_crawler_service.py::TestCheckFiltered` +3（空值=全量且不读 checkpoint、等于今天原样透传、早于 checkpoint 仍透传=补抓不被裁剪）；新增 `tests/test_announce_backfill_pref.py` 4 例（一次性回填+清空、第二轮回 checkpoint、无偏好走增量、缺行清空 upsert）；`web/src/views/AnnounceView.test.ts` +4（默认最近 7 天、清空后不带 `since_date`、提示语文案、localStorage 沿用手选日期）。
+- **验证**：`python -m pytest tests/announce tests/test_announce_lookback.py tests/test_announce_fetch_notification.py tests/test_api_announcement_write_endpoints.py tests/test_migrate_v58.py -q` → 68 passed；`pnpm.cmd run type-check` → exit 0；`pnpm.cmd vitest run src/views/AnnounceView.test.ts` → 11 passed。
+- **回滚**：前端 `SINCE_DEFAULT_DAYS/defaultSince/formatDate` + `showClear/placeholder/.since-hint` + 三语 `since_*` 键；后端 `_clear_user_since_date` 的 upsert。无 schema 变更、无数据迁移，回滚不影响已入库数据。
+
+### 90. 公告原文/附件归档：目录只建不写（2026-11-20）
+
+- **现象**：`data/announcements/{gb,hb,db}` 目录存在但永远为空——抓到的详情 HTML 只进了 DB 的 `announcements.raw_data`，附件下载后只在内存里解析、从不落盘；连带 `_finalize_items` 里 `attachment_path` 一直是空串（字段建了没人填）。
+- **修复**：新增 `pilotstd/announcement/_raw_archive.py`
+  - `archive_html(std_type, announce_no, html)` → `{data_dir}/announcements/{std_type}/{公告号}.html`
+  - `archive_attachment(std_type, announce_no, url, data)` → 同目录，扩展名取白名单（`.pdf/.doc/.docx/...`），未知则 `.bin`
+  - 文件名安全化（保留中日韩/字母数字/`._-`，其余压 `_`，限长 80），杜绝 `../` 越级
+  - 开关 `announcement.save_raw_files`（默认开）、目录 `announcement.raw_dir`（默认空 ⇒ data 卷内）
+  - **归档失败只告警**，不影响解析（原文是证据链，不是业务数据）
+- **接线**：`base._process_one_detail` 落 HTML；`base._parse_items(..., announce_no=)` 落附件并把路径写进 `attachment_path`（同时覆盖 `reparse_from_source` 路径，它复用 `_process_one_detail`）。
+- **验证**：`tests/unit/announcement/test_raw_archive.py` 6 例（写入、后缀白名单、未知后缀、越级文件名、关闭开关、写盘失败不抛）；`-k announce` 637 例通过。
+- **观察**：归档随抓取增长，磁盘占用需定期看；如需关闭在设置里置 `announcement.save_raw_files=false`（只保留 DB 正文）。
+
+### 91. 四主题配色统一：拆开「强调色」与「按钮底色」（2026-11-20）
+
+- **根因**：`--primary` 一个 token 同时当**强调文字/图标**和**主按钮底色**用。两种用途对亮度的要求相反——
+  文字要“对 surface 够亮/够深”，按钮底色要“白字够深”。四主题只能各挑一边，于是出现 light 强调色 4.47（差 0.03 不达标）、
+  dark 主按钮白字 4.47、green 文字梯度整体偏低（bright 4.79）这类“各调各的”。
+- **规范 v2**：
+  1. `--primary` 只做强调色（文字/图标/描边），对 surface ≥ 4.5:1；
+  2. 新增 `--primary-fill` / `--primary-fill-hover`：主按钮与选中态底色，白字 ≥ 4.5:1，且 **hover 恒比 fill 更深**（四主题同向）；
+  3. 文字梯度统一为 heading ≥ 12、bright ≥ 9、text ≥ 7、secondary ≥ 4.5、dim ≥ 4.5（对 raised）；
+  4. 语义 `-text` 对 surface ≥ 4.5；背景透明度同族一致（primaryBg 0.08~0.16、语义 bg 0.10~0.18、描边 0.28~0.40）；
+  5. 边框必须与 surface 可分辨 ≥1.15:1。
+- **改值**：light 强调 `#6366f1→#5c5ef2`（4.47→4.84）、fill `#4f46e5`/hover `#4338ca`；dark fill `#6366f1→#5b5ef0`（白字 4.47→4.88）、hover `#4f46e5`；
+  green 强调 `#22c55e→#15803d`、文字梯度 `#14532d/#064e3b/#052e16`（8.7/4.79→8.7/9.28）、禁用 `#86efac→#4d7c5f`；blue 描边 `#1e293b→#334155`（原与 raised 同色，描边不可见）。
+- **接线**：14 处“白字主按钮/选中态”底色改用 `--primary-fill`（`.p-button-primary`、分页高亮、下拉选中、悬浮工作台按钮、步骤指示器、加载更多等），
+  `style.css :root` 补静态默认值，`applyThemeToDom` 注入新变量。
+- **验证**：`web/src/config/theme-spec.test.ts` 30 例（四主题 × 7 条契约 + 族内透明度一致 + dangerBg 派生一致性）；
+  已有 `a11y-contrast.test.ts` 7 例；前端四件套（type-check/lint/test/build）全绿。
+- **观察**：green 主题文字色整体压深后，界面观感偏“深绿”，如需更轻可在不破坏契约的前提下微调（阈值写死在测试里，改值会被拦）。

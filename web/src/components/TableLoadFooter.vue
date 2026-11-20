@@ -64,7 +64,7 @@ defineEmits<{
   transition: all 0.2s;
 }
 .load-all-btn:hover {
-  background: var(--primary);
+  background: var(--primary-fill);
   color: #fff;
 }
 .partial-text {

@@ -27,8 +27,11 @@
   --text-heading: #0f172a;
 
   /* 品牌主色 — Indigo */
-  --primary: #6366f1;
+  --primary: #5c5ef2;
   --primary-hover: #4f46e5;
+  /* 主按钮/选中态底色：与 --primary（强调文字）分开，保证白字恒 ≥4.5:1（四主题同口径） */
+  --primary-fill: #4f46e5;
+  --primary-fill-hover: #4338ca;
   --primary-bg: rgba(99, 102, 241, 0.1);
   --primary-border: rgba(99, 102, 241, 0.3);
 
@@ -276,7 +279,7 @@ body .p-card {
 }
 
 .p-datatable .p-paginator .p-paginator-page.p-highlight {
-  background: var(--primary);
+  background: var(--primary-fill);
   color: #fff;
 }
 
@@ -310,15 +313,15 @@ body .p-card {
 }
 
 .p-button.p-button-primary {
-  background: var(--primary);
-  border-color: var(--primary);
+  background: var(--primary-fill);
+  border-color: var(--primary-fill);
   color: #fff;
   box-shadow: var(--button-primary-shadow);
 }
 
 .p-button.p-button-primary:hover {
-  background: var(--primary-hover);
-  border-color: var(--primary-hover);
+  background: var(--primary-fill-hover);
+  border-color: var(--primary-fill-hover);
   box-shadow: var(--button-primary-shadow);
 }
 
@@ -577,7 +580,7 @@ html .p-button.p-button-secondary {
 /* 已选中项 — PrimeVue 4 用 data-p-selected 属性标记选中态 */
 .p-select-overlay .p-select-option[data-p-selected="true"],
 .p-dropdown-panel .p-dropdown-item[data-p-selected="true"] {
-  background: var(--primary);
+  background: var(--primary-fill);
   color: #fff;
   font-weight: 600;
 }

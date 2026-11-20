@@ -336,7 +336,7 @@ const {
   border-radius: 50%;
   /* fix(a11y): 深色主题 --primary 是 #818cf8（浅靛），白字只有 2.98:1；改用 --primary-hover
      （浅色 #4f46e5≈7.4:1、深色 #6366f1≈4.8:1）。悬停靠滤镜提亮，不再换底色。 */
-  background: var(--primary-hover);
+  background: var(--primary-fill);
   color: #ffffff;
   font-size: 22px;
   display: flex;
@@ -350,7 +350,8 @@ const {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 .floating-workspace-btn:hover {
-  filter: brightness(1.12);
+  background: var(--primary-fill-hover);
+  filter: brightness(1.02);
   transform: scale(1.08);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
 }

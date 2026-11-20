@@ -515,7 +515,7 @@ function stepSeverity(s: string) {
   flex-shrink: 0;
 }
 .step.done .step-indicator { background: var(--success, #10b981); color: #fff; }
-.step.running .step-indicator { background: var(--primary); color: #fff; }
+.step.running .step-indicator { background: var(--primary-fill); color: #fff; }
 .step.fail .step-indicator { background: var(--danger, #ef4444); color: #fff; }
 
 .step-info { flex: 1; min-width: 0; }
