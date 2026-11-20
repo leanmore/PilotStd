@@ -91,3 +91,25 @@
 | 钉钉 | `DingtalkMenuClient`（显式 unsupported） | 同上 | 不适用（无持久菜单） |
 
 > 真实渠道 API 验证需要老板提供企微/飞书/Telegram 凭据与一个测试群/chat_id；本地只做 fake transport 单测，未联网调用生产 API。
+
+## `PUT /api/notification/menu/config`（2026-11-21 新增）
+
+写某渠道菜单配置；只有本接口能改 `notification.menus.*`（此前只能手改 config.json）。
+
+请求体：
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `channel` | string | 是 | `wechat` / `feishu` / `telegram` / `dingtalk` |
+| `enabled` | bool | 否 | 是否启用；启用后才会被 `sync` 下发 |
+| `items` | array | 否 | 菜单项；`group` 才允许 `children`；一级 ≤3、二级 ≤5 |
+| `chat_id` | string | 飞书启用时必填 | 群菜单挂在群上 |
+
+错误码：
+
+- 400 `unknown channel`：渠道不在这四家；
+- 400 `dingtalk has no server-side menu API`：钉钉机器人无服务端持久菜单；
+- 400 `feishu menu requires chat_id`：飞书启用必须给群标识；
+- 400 其它：来自菜单校验（超限/重复 id/order 不连续/view 带子项）。
+
+保存成功后 `last_synced` 被清空，下一次 `POST /api/notification/menu/sync?channel=...` 会真正下发。

@@ -327,7 +327,7 @@ def remove_dir_if_empty(dirpath: str) -> bool:
     except OSError as exc:
         scan_error = exc
     if scan_error is not None:
-        # 目录不可读/已被并发删除：只记 debug（调用方按“未删掉”处理），不打扰日志
+        # 目录不可读或已被并发删除：只记调试日志（调用方按“未删掉”处理），不打扰正式日志
         logger.debug("scan dir failed (%s): %s", dirpath, scan_error)
         return False
     junk_entries = []

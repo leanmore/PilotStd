@@ -93,7 +93,7 @@ def clean_empty_dirs(request: Request, path: str = "/standards", mgr=Depends(get
     removed = 0
     # 自底向上遍历：子目录先处理，父目录再判断（此时子目录已被删）
     # 2026-11-20：改用 remove_dir_if_empty —— 只含 Thumbs.db/desktop.ini/~$ 锁文件的目录
-    # 以前被判“非空”永远清不掉；现在与 monitor 的空目录清理同口径。safe_path 自身不删。
+    # 以前被判“非空”永远清不掉；现在与监控模块的空目录清理同口径。安全路径函数自身不删。
     from pilotstd.core.file_utils import remove_dir_if_empty
 
     for root, dirs, _files in os.walk(safe_path, topdown=False):

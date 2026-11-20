@@ -1125,3 +1125,16 @@ ecursive 覆盖子目录。A-44 闭合。
   - 从 3,000 条候选中取 100 条「单值且年份倒退」，其中**仅 33 条可安全演练**——另外 67 条的目标旧标准行**本身已有 superseded_by**，
     直接写会覆盖既有信息 → **迁移规则必须先定**（仅空才写 / 追加 / 保留较新者）。
   - 33 条应用 + 按备份表回滚，样例 `GB/Z 31477-2026 → GB/Z 31477-2015` 双向验证通过；演练后库已回滚到演练前状态。
+
+### 96. A-27 补配置写入口 + V-17 清零（2026-11-21）
+
+- **A-27 真实缺口**：菜单客户端（企微/飞书/Telegram/钉钉）与 `POST .../menu/sync` 都已在线，`GET .../menu/status`
+  在生产显示 `wechat supported=true enabled=false`、`telegram supported=true enabled=false`、`feishu supported=false`
+  （缺 `chat_id`）——**菜单配置没有任何写入口**，`notification.menus.*` 只能手改 config.json，所以“四家全做”卡在没配置路径。
+- **本批补齐**：新增 `PUT /api/notification/menu/config`（admin）：
+  - 复用 `menu_from_config`/`validate` 校验（一级 ≤3、二级 ≤5、Telegram ≤3 命令、group 才可有子项、order 连续）；
+  - 钉钉启用直接 400（平台无服务端菜单 API，见 02-accepted #9）；飞书启用必须给 `chat_id`；
+  - 落 `notification.menus.<channel>.enabled/items/(chat_id)`，并把 `last_synced` 置空，保证下次 sync 真下发；写审计。
+  - 7 例测试（3×5 合法、超限、未知渠道、钉钉、飞书缺 chat_id、飞书带 chat_id、停用空配置）。
+- **V-17（G-012 注释语言）**：全仓 `check_g_012_comment_density` 从「0 阻断 + 3 警告」清到 **0 阻断 + 0 警告**
+  （`organize.py` / `config/defaults.py` / `file_utils.py` 三处裸英文词改中文），`1511 → 0` 正式收口。

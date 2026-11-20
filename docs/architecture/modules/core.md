@@ -712,3 +712,7 @@ pilotstd/core/
   `remove_empty_dirs()` 改为自底向上逐层调用它（修掉“只清一层”）。
 - `monitor/scheduler._cleanup_empty_dirs` 与 `docker/api/clean-empty` 都复用该 helper，含垃圾文件的目录不再漏清；见 `27` #88。
 
+## 注释语言警告清零（V-17 收口，2026-11-21）
+
+- config/defaults.py、ile_utils.py 内三处注释里的裸英文词改为中文表述，check_g_012_comment_density 全仓 0 阻断 0 警告。
+

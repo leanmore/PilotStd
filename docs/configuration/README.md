@@ -104,6 +104,7 @@ interval_days = (total_weeks * 7) / execution_count
 - `items`：菜单项数组；每项 `id`/`label_key`/`type`（`view`/`click`/`command`/`group`）/`order`/`url`/`command`/`key`/`children`。
 - 上限：企微、飞书 3 个一级 + 每级 5 个二级；Telegram 3 个命令；钉钉机器人不支持（`enabled` 保持 false）。
 - 飞书额外需要 `notification.menus.feishu.chat_id`（群菜单挂在群上）。
+- 配置写入：`PUT /api/notification/menu/config`（2026-11-21 新增，admin）；钉钉启用会被拒绝、飞书启用必须带 `chat_id`。
 - 同步后写入 `last_synced` 快照用于幂等；管理入口 `POST /api/notification/menu/sync?channel=...`（admin）。
 - 详细 API 字段/错误码：`docs/reference/notification-menu-apis.md`。
 

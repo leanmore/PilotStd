@@ -48,7 +48,7 @@ FACTORY_DEFAULTS = {
     "announcement.lookback_days": 7,
     # 超过该小时数未成功抓取 → 判定为漏跑并在完成通知中告警。
     "announcement.missed_after_hours": 36,
-    # 公告原文/附件落盘（2026-11-20 补）：默认开，存到 {data_dir}/announcements/{gb,hb,db}/
+    # 公告原文与附件落盘（2026-11-20 补）：默认开启，存到数据目录下的公告子目录（按标准类型分）
     # 目录可用 announcement.raw_dir 覆盖（空 = 默认路径）；关闭后只保留 DB 里的正文。
     "announcement.save_raw_files": True,
     "announcement.raw_dir": "",
