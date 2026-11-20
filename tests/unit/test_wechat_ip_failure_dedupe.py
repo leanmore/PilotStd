@@ -3,11 +3,25 @@ from pilotstd.wechat_ip import scheduler as s
 
 
 class _Cfg:
+    """最小配置替身：含 `update/update_many`（生产代码 2026-11-20 起用它们做单键安全写）。"""
+
     def __init__(self):
         self._d = {"wechat_ip.last_ip": "1.1.1.1"}
-    def get(self, k, d=None): return self._d.get(k, d)
-    def set(self, k, v): self._d[k] = v
-    def save(self): pass
+
+    def get(self, k, d=None):
+        return self._d.get(k, d)
+
+    def set(self, k, v):
+        self._d[k] = v
+
+    def save(self):
+        pass
+
+    def update(self, k, v):
+        self._d[k] = v
+
+    def update_many(self, values):
+        self._d.update(values)
 
 
 def test_same_cookie_failure_notified_once(monkeypatch):

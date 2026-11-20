@@ -55,8 +55,9 @@ def run_check(config: Any, notify_cb: Optional[Callable] = None) -> dict:
         fail_key = f"cookie|{ip}"
         if config.get("wechat_ip.last_fail_key", "") != fail_key:
             _notify(notify_cb, "IP 更新失败", "无法获取企业微信 Cookie", status="failed")
-            config.set("wechat_ip.last_fail_key", fail_key)
-            config.save()
+            # 单键安全写：本函数持有的是调用方传入的实例，可能早于其他写入点构造，
+            # 直接 save() 会整文件覆盖（2026-11-20 修复）
+            config.update("wechat_ip.last_fail_key", fail_key)
         return result
 
     # 4. 获取应用列表
@@ -79,9 +80,8 @@ def run_check(config: Any, notify_cb: Optional[Callable] = None) -> dict:
         result["updated"] = ok
 
         if ok:
-            config.set("wechat_ip.last_ip", ip)
-            config.set("wechat_ip.last_fail_key", "")
-            config.save()
+            # 浏览器更新可能跑几分钟，收尾必须重读再写，不能 save() 整份旧快照
+            config.update_many({"wechat_ip.last_ip": ip, "wechat_ip.last_fail_key": ""})
             _notify(notify_cb, "可信 IP 已更新", f"公网 IP 已变更为 {ip}", status="ok")
         else:
             _notify(notify_cb, "IP 更新部分失败", f"失败: {', '.join(failed[:3])}", status="failed")
@@ -115,8 +115,7 @@ def _get_cookie(config: Any) -> Optional[str]:
                 if not secret:
                     logger.warning("wechat_ip: encrypt secret missing, cookie not cached")
                     return cookie
-                config.set("wechat_ip.encrypted_cookie", encrypt_cookie(cookie, secret))
-                config.save()
+                config.update("wechat_ip.encrypted_cookie", encrypt_cookie(cookie, secret))
                 return cookie
 
     encrypted = config.get("wechat_ip.encrypted_cookie", "")

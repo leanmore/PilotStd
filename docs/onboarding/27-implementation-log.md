@@ -990,4 +990,7 @@ ecursive 覆盖子目录。A-44 闭合。
 - **生产对应物**：`docker/scheduler._check_validity_schedule` 在 :509 构造快照 → 跑完整轮时效检查（可达数分钟）→ :542 用旧快照 save，冲掉期间写入的键；`core/_validity_pipeline._finalize_validity_round` 同型（实例在 `run_validity_check` 开头构造，收尾时整快照写盘）。
 - **修复**：`ConfigManager` 新增 `update(key, value)` / `update_many(values)` —— 先 `reload()` 读盘、再改键、再写盘；两处调用点改为单键/批量安全写（`validity.first_execution`、`validity.next_run`、`checked_count`、`round_count`、`round_completed`）。
 - **验证**：`tests/unit/core/config/test_manager_update.py` 4 例（他方写入保留、批量记账保留、同键覆盖）；`tests/test_validity_checker_full.py` 80 例；`-k scheduler or validity` 366 例。
-- **遗留**：全仓仍有 40+ 处 `ConfigManager()` + `save()`；本次只改“长任务持有快照”的两处。其余是否同型风险，下批用同一判据（实例存活期间是否有他方写入）扫一遍，别逐处猜。
+- **全仓 AST 扫描（同批做，不靠猜）**：
+  - ① “同一函数内既 `ConfigManager()` 又 `save()`”只有 1 处：`notification_aggregator._save_pause_state`（毫秒级，安全）；
+  - ② “保存**入参** config”共 7 处，其中真正跨长任务的是 `wechat_ip/scheduler.run_check`（检测 IP → 取 Cookie → 浏览器更新，可达数分钟），**已一并改为 `update()`/`update_many()`**；其余 `menu/service.sync_channel`、`config/migrate.import_rules` 均短事务。
+  - 结论：同类风险已收口，不存在“还有 40+ 处待扫”——先前那句是未核实的估计。
