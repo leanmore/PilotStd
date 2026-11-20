@@ -40,9 +40,11 @@
 4. **superseded_by 迁移：方案已出，未执行**
    - 约 49,306 行；方向纠正、回滚、备份、锁影响见 `docs/analysis/superseded-by-migration-plan.md`；
    - 等授权 + 维护窗口，未跑任何写库。
-5. **R-3 真实操作重验（未完成）**
-   - 生产已升 v0.195.5；需逐项真实 UI 复验（铃铛、通知内容、设置保存等），产出“真闭合/假闭合”表；
-   - 注意：`b6357ba9` 顶栏修复是否已包含在 v0.195.5 需按版本核对。
+5. **R-3 真实操作重验（进行中，2026-11-20 首批已做）**
+   - 生产已部署 **v0.196.1（`286a4ed2`）**，已确认含 U-1/U-3/G-03/铃铛/V-17 全部提交。
+   - 已做（只读，登录后仅 GET，见 `27` #83）：`/api/system/version`=0.196.1；`/api/wechat-ip/config` 掩码 `***` 生效且带 `cookie_status`/`cookie_source`；通知正文出现 `现行 → 新标准：GB 30871-2014`。
+   - **抓到假闭合 1 例**：`63613598` 的“铃铛告警着色”没生效——`NotificationLogItem` 漏声明 `level`，FastAPI 过滤后前端恒 `info`。已修（`d9a29db1`，CI 全绿），**需下次部署才生效**。
+   - 仍待真实操作：G-09 铃铛去重、G-10 弹层位置（Playwright + 临时用户）；U-1 `_record_change` 的“旧 → 新”需真实跑一次时效检查（要写库窗口）。
 6. **A-46 33 文件：不重开**
    - 结论：33 条 `file_missing` 原件在 `/standards` 未索引，30 份副本在 `/app/data/_quarantine/__replay_b62`；
    - 缺的是“重扫 /standards 并写 file_index”的生产写窗口，不是新线索；不重开，等维护窗口。
