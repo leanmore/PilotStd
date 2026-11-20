@@ -245,6 +245,45 @@ class TestRemoveEmptyDirs(unittest.TestCase):
         removed = remove_empty_dirs(self.tmpdir)
         self.assertGreaterEqual(removed, 1)
 
+    def test_removes_deeply_nested_empty_dirs(self):
+        """3 层嵌套空目录要逐层收掉，而不是只删最内层。"""
+        from pilotstd.core.file_utils import remove_empty_dirs
+
+        os.makedirs(os.path.join(self.tmpdir, "a", "b", "c"))
+        removed = remove_empty_dirs(self.tmpdir)
+
+        self.assertEqual(removed, 3)
+        self.assertFalse(os.path.exists(os.path.join(self.tmpdir, "a")))
+        self.assertTrue(os.path.isdir(self.tmpdir))
+
+    def test_removes_junk_only_dirs_recursively(self):
+        """仅含 Thumbs.db / ~$ 锁文件的目录视为空，删垃圾后再删目录。"""
+        from pilotstd.core.file_utils import remove_empty_dirs
+
+        leaf = os.path.join(self.tmpdir, "a", "b")
+        os.makedirs(leaf)
+        for path in (os.path.join(leaf, "Thumbs.db"), os.path.join(self.tmpdir, "a", "~$lock.docx")):
+            with open(path, "wb") as f:
+                f.write(b"junk")
+
+        removed = remove_empty_dirs(self.tmpdir)
+
+        self.assertEqual(removed, 2)
+        self.assertFalse(os.path.exists(os.path.join(self.tmpdir, "a")))
+
+    def test_keeps_non_empty_dirs(self):
+        from pilotstd.core.file_utils import remove_empty_dirs
+
+        keep = os.path.join(self.tmpdir, "keep")
+        os.makedirs(keep)
+        with open(os.path.join(keep, "real.pdf"), "wb") as f:
+            f.write(b"%PDF-1.4")
+
+        removed = remove_empty_dirs(self.tmpdir)
+
+        self.assertEqual(removed, 0)
+        self.assertTrue(os.path.exists(os.path.join(keep, "real.pdf")))
+
 
 @pytest.mark.skipif(sys.platform != "win32", reason="文件移动权限行为在 Linux 下不同")
 class TestSafeMove(unittest.TestCase):

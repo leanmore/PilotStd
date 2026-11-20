@@ -169,16 +169,31 @@ class TestAPIEndpoints(unittest.TestCase):
         self.assertEqual(r.status_code, 404)
 
     @patch("docker.api.organize._validate_path")
-    @patch("docker.api.organize.os.walk")
-    @patch("docker.api.organize.os.listdir")
-    @patch("docker.api.organize.os.rmdir")
-    def test_clean_empty_removes_dirs(self, mock_rmdir, mock_listdir, mock_walk, mock_validate):
-        mock_validate.return_value = "/standards"
-        mock_walk.return_value = [("/standards/empty", ["sub"], [])]
-        mock_listdir.return_value = []
-        r = self.client.post("/api/clean-empty", params={"path": "/standards"})
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.json()["cleaned"], 1)
+    def test_clean_empty_removes_dirs(self, mock_validate):
+        """空目录（含仅垃圾文件的目录）被清掉，非空目录保留（2026-11-20 与 monitor 同口径）。"""
+        import shutil
+        import tempfile
+
+        tmp = tempfile.mkdtemp(prefix="clean_empty_")
+        try:
+            os.makedirs(os.path.join(tmp, "empty", "sub"))
+            os.makedirs(os.path.join(tmp, "keep"))
+            with open(os.path.join(tmp, "keep", "a.pdf"), "w", encoding="utf-8") as fh:
+                fh.write("x")
+            os.makedirs(os.path.join(tmp, "junk"))
+            with open(os.path.join(tmp, "junk", "Thumbs.db"), "w", encoding="utf-8") as fh:
+                fh.write("x")
+            mock_validate.return_value = tmp
+
+            r = self.client.post("/api/clean-empty", params={"path": tmp})
+            self.assertEqual(r.status_code, 200)
+            # empty/sub + empty + junk（只含 Thumbs.db）= 3
+            self.assertEqual(r.json()["cleaned"], 3)
+            self.assertFalse(os.path.exists(os.path.join(tmp, "empty")))
+            self.assertFalse(os.path.exists(os.path.join(tmp, "junk")))
+            self.assertTrue(os.path.exists(os.path.join(tmp, "keep", "a.pdf")))
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
 
     # ── Settings ──
 

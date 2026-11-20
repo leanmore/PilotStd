@@ -308,6 +308,58 @@ def strip_long_path(path: str) -> str:
 _JUNK_FILES = frozenset({"Thumbs.db", "sync.ffs_db", "desktop.ini"})
 
 
+def is_junk_file(name: str) -> bool:
+    """是否为可随空目录一起清理的系统垃圾文件（Thumbs.db、desktop.ini、~$ 锁文件等）。"""
+    return name in _JUNK_FILES or name.startswith("~$")
+
+
+def remove_dir_if_empty(dirpath: str) -> bool:
+    """目录只含系统垃圾文件时，先删垃圾再删目录，返回是否删掉了目录。
+
+    不递归；每次重新 `scandir`（自底向上遍历时 `os.walk` 的 `dirnames` 是
+    进入子目录前的快照，用它判断会把“刚删空的父目录”误判为非空）。
+    非空目录原样保留，含其中的垃圾文件。
+    """
+    scan_error: OSError | None = None
+    entries: list[os.DirEntry[str]] = []
+    try:
+        entries = list(os.scandir(dirpath))
+    except OSError as exc:
+        scan_error = exc
+    if scan_error is not None:
+        # 目录不可读/已被并发删除：只记 debug（调用方按“未删掉”处理），不打扰日志
+        logger.debug("scan dir failed (%s): %s", dirpath, scan_error)
+        return False
+    junk_entries = []
+    for entry in entries:
+        try:
+            junk = entry.is_file(follow_symlinks=False) and is_junk_file(entry.name)
+        except OSError:
+            junk = False
+        if not junk:
+            return False
+        junk_entries.append(entry)
+    for entry in junk_entries:
+        junk_error: OSError | None = None
+        try:
+            os.remove(entry.path)
+        except OSError as exc:
+            junk_error = exc
+        if junk_error is not None:
+            logger.debug("remove junk file failed (%s): %s", entry.name, junk_error)
+            return False
+    rmdir_error: OSError | None = None
+    try:
+        os.rmdir(dirpath)
+    except OSError as exc:
+        rmdir_error = exc
+    if rmdir_error is not None:
+        # 非空/被占用：保留目录并记录，不静默改变调用方语义
+        logger.debug("rmdir failed (%s): %s", dirpath, rmdir_error)
+        return False
+    return True
+
+
 def remove_empty_dirs(root: str) -> int:
     """自底向上删除所有空子目录，返回删除数量。不删除 root 本身。
     含系统垃圾文件（Thumbs.db/~$锁文件等）的目录也视为空目录处理。
@@ -316,23 +368,11 @@ def remove_empty_dirs(root: str) -> int:
     if os.name == "nt" and not root.startswith("\\\\?\\"):
         root = "\\\\?\\" + os.path.abspath(root)
     deleted = 0
-    for dirpath, dirnames, filenames in os.walk(root, topdown=False):
+    for dirpath, _dirnames, _filenames in os.walk(root, topdown=False):
         if dirpath == root:
             continue
-        # 过滤系统垃圾，仅余有效文件才判断是否为空
-        real_files = [f for f in filenames if f not in _JUNK_FILES and not f.startswith("~$")]
-        if not real_files and not dirnames:
-            # 先删除目录中的系统垃圾文件，再删目录
-            for f in filenames:
-                try:
-                    os.remove(os.path.join(dirpath, f))
-                except OSError as e:
-                    logger.debug("remove junk file failed (%s): %s", f, e)
-            try:
-                os.rmdir(dirpath)
-                deleted += 1
-            except OSError as e:
-                logger.debug("rmdir failed (%s): %s", dirpath, e)
+        if remove_dir_if_empty(dirpath):
+            deleted += 1
     return deleted
 
 

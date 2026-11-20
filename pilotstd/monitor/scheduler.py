@@ -30,9 +30,12 @@ def _log_trace_id() -> str:
 
 
 def _cleanup_empty_dirs(watch_root: str, start_dir: str) -> int:
-    """删除 start_dir 下（含自身）的空目录，但绝不删除 watch_root 本身。
+    """删除 start_dir 下（含自身）的空目录，并向上收掉因此变空的祖先，但绝不删 watch_root。
 
-    只做 `os.rmdir`：目录非空会失败，因此不会误删还有文件的目录。
+    “空目录”含仅剩系统垃圾文件（Thumbs.db、~$ 锁文件等）的目录，判定与
+    `file_utils.remove_dir_if_empty` 同口径：非空目录保留，不会误删还有文件的目录。
+    文件在深层目录时，归档只搬走该目录内的文件，start 之上的空祖先也要一路收掉，
+    否则它们永远不会再产生文件事件、永久留在 Inbox。
     返回删除数量；路径不在 watch_root 内时直接返回 0（测试/注入场景安全）。
     """
     try:
@@ -44,17 +47,23 @@ def _cleanup_empty_dirs(watch_root: str, start_dir: str) -> int:
         logger.warning("清理空目录路径校验失败，跳过: %s (%s)", start_dir, exc)  # i18n-allow: 内部运维日志
         return 0
 
+    from pilotstd.core.file_utils import remove_dir_if_empty  # noqa: PLC0415
+
     removed = 0
     for dirpath, _dirnames, _filenames in os.walk(start, topdown=False):
         # 永不删除 watch_root 本身；`start`==`root` 时仍要清理它下面的空子目录。
         if os.path.realpath(dirpath) == root:
             continue
-        try:
-            os.rmdir(dirpath)
+        if remove_dir_if_empty(dirpath):
             removed += 1
-        except OSError:
-            # 非空 / 无权限：保留，不阻断归档；非空是正常情况，不刷日志
-            continue
+    if start != root:
+        # 只收到 watch_root 为止（不含）；遇到第一个非空祖先即停，避免多扫整棵树
+        parent = os.path.dirname(start)
+        while parent and parent != root:
+            if not remove_dir_if_empty(parent):
+                break
+            removed += 1
+            parent = os.path.dirname(parent)
     if removed:
         logger.info("[MONITOR] 清理空目录: %d 个", removed)  # i18n-allow: 内部运维日志
     return removed

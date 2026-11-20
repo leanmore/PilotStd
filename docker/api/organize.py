@@ -91,17 +91,15 @@ def clean_empty_dirs(request: Request, path: str = "/standards", mgr=Depends(get
         return JSONResponse({"error": "路径不在允许的目录范围内"}, status_code=400)
 
     removed = 0
-    # 自底向上遍历（=），确保子目录先被清空
+    # 自底向上遍历：子目录先处理，父目录再判断（此时子目录已被删）
+    # 2026-11-20：改用 remove_dir_if_empty —— 只含 Thumbs.db/desktop.ini/~$ 锁文件的目录
+    # 以前被判“非空”永远清不掉；现在与 monitor 的空目录清理同口径。safe_path 自身不删。
+    from pilotstd.core.file_utils import remove_dir_if_empty
+
     for root, dirs, _files in os.walk(safe_path, topdown=False):
         for d in dirs:
-            dpath = os.path.join(root, d)
-            try:
-                # 仅删除空目录，非空目录跳过
-                if not os.listdir(dpath):
-                    os.rmdir(dpath)
-                    removed += 1
-            except OSError as e:
-                logger.debug("rmdir empty dir failed (%s): %s", dpath, e)
+            if remove_dir_if_empty(os.path.join(root, d)):
+                removed += 1
     write_audit(
         action="CLEAN_EMPTY_DIRS",
         resource="POST /api/clean-empty",
