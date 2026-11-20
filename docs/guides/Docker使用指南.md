@@ -401,3 +401,19 @@ Docker 镜像已内置 CloakBrowser 依赖（定制 Chromium，不需要原版 C
 3. 预装失败只告警，不阻止主服务启动；首次使用时会再次报错并通知。
 4. 不要删除 `./data/cloakbrowser`，否则下次启动会重新下载。
 5. Key 申请步骤见 [`CloakBrowser-Key申请教程.md`](CloakBrowser-Key申请教程.md)。
+
+## 八、挂载目录说明（2026-11-20 复核）
+
+| 宿主机目录 | 容器路径 | 用途 | 能否删除 |
+|---|---|---|---|
+| ./data | /app/data | SQLite、配置、.fernet_key、OCR 模型、**公告原文/附件归档**（data/announcements/{gb,hb,db}/） | 不能 |
+| ./inbox | /inbox | 监控输入目录（新文件丢这里） | 不能 |
+| ./browser_cache | /app/browser_cache | **企业微信浏览器登录态 profile**（wechat_ip.cache_dir 默认指向） | 不用可信 IP 更新时可删；删后每次重建容器都要重新扫码登录 |
+
+说明：
+
+- CLOAKBROWSER_CACHE_DIR=/app/data/cloakbrowser 是 CloakBrowser **内核缓存**，与上面的登录态 profile 不是一回事；
+- 公告原文/附件默认开（nnouncement.save_raw_files=true），写在 data 卷内的 nnouncements/ 下，无需额外挂载；
+  关掉只保留 DB 里的正文（nnouncements.raw_data）；
+- 测试产物（web/coverage*/、web/test-results/）不入仓，跑完测试可整目录删除。
+

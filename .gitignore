@@ -26,7 +26,9 @@ htmlcov/
 # ===== Node / Frontend =====
 node_modules/
 web/dist/
-web/coverage/
+web/coverage*/
+web/test-results/
+web/playwright-report/
 web/.nuxt/
 web/.output/
 .npm
