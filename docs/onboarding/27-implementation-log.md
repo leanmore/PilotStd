@@ -1107,3 +1107,21 @@ ecursive 覆盖子目录。A-44 闭合。
 - **验证**：dev 环境 Playwright 复查——`#lang-select` 存在、宽 200、可见，标签显示“简体中文”，无 pageerror；
   `SettingsView.test.ts` 新增源码级回归断言（该行必须取 `.value`），9 例通过；前端四件套绿。
 - **同类排查**：同一 `tabProps` 里 `sections: systemSections.value` 已解包、`selectedLocale.value` 已解包，只有这一处漏。
+
+### 95. 生产验证四连：U-3 / G-03 / A-46 / superseded_by 演练（2026-11-20）
+
+- **U-3 保存链路（已授权，已执行）**：GET 配置（key/password 掩码 `***`）→ 原样 PUT 回写 → 再 GET：
+  `cookie_source`、`cookie_status`、`cookiecloud_url`、`enabled` 全部未变，PUT 返回 `{"ok":true}`。
+  说明掩码回写不会把状态/来源打坏；真实密钥未被覆盖由后端跳过逻辑 + `test_masked_secret_not_overwritten` 保证。
+- **G-03 探针复跑（已授权，已执行）**：`POST /api/adapters/health/run` 3.8s；
+  `found 6 / no_result 4 / error 0 / probe_pending 11`，与复跑前一致。**11 站仍 pending，原因不是没跑**：
+  查 `standard_info_cache` 整表 **0 行**，没有 exact 缓存可补 → `discover_probes()` 无数据可用。
+  这是新问题（缓存写入/TTL 链），已登记 G-26。
+- **A-46 重扫（已授权，已执行）**：`POST /api/scan-and-index` 15.2s，`indexed=0 / skipped=825 / failed=0`；
+  `pending_lookup` 里 `file_missing` 仍 **33 条**未变。结论：不是“缺重扫窗口”，是扫描/匹配逻辑对这批文件无效，需再查。
+- **superseded_by 演练（已授权演练，未全量）**：
+  - 备份：`POST /api/backup/create` 成功；列级备份表 `announcement_record_bak_20261120`（232,668 行）。
+  - 非空行实测 **32,432**（方案文档写的 49,306 是旧数）。
+  - 从 3,000 条候选中取 100 条「单值且年份倒退」，其中**仅 33 条可安全演练**——另外 67 条的目标旧标准行**本身已有 superseded_by**，
+    直接写会覆盖既有信息 → **迁移规则必须先定**（仅空才写 / 追加 / 保留较新者）。
+  - 33 条应用 + 按备份表回滚，样例 `GB/Z 31477-2026 → GB/Z 31477-2015` 双向验证通过；演练后库已回滚到演练前状态。

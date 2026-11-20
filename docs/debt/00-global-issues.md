@@ -31,6 +31,11 @@
 | G-21 | 公告列表固定 LIMIT 100，历史公告“看不到”被误判为没抓到 | 已修复（待部署） | 端点改服务端分页（page/page_size + total），去掉硬编码 LIMIT；前端改用 totalRecords 驱动；生产 DB 实证 GB 2022 年 2,850 行存在；新增 `scripts/backfill_announce_archive.py` 补抓历史原文/附件；见 `27` #92 |
 | G-22 | 归档是否真的落盘无法核对（`/api/files` 看不到 data 目录） | 已修复（待部署） | 新增只读 `GET /api/system/archive-stats`（admin）：按来源统计 HTML/附件数量、体积与样例；2 例单测；历史补抓进行中（945 条、断点续跑）；见 `27` #93 |
 | G-23 | 设置页「界面语言」下拉消失（界面 Tab 整块不渲染） | 已修复（待部署） | `87b36f0b` 改成 v-bind="tabProps" 时 localeOptions 仍传 computed ref 未取 `.value`，PrimeVue Select 报 findIndex 崩溃；修 `localeOptions.value` + 源码级回归断言；dev 实测下拉存在且显示“简体中文”；见 `27` #94 |
+| G-24 | U-3 掩码回写保存链路（生产验证） | 已闭合 | 2026-11-20 GET→PUT(掩码)→GET：cookie_source/status/url/enabled 均未变，PUT 返回 ok；真实密钥由后端跳过逻辑保证；见 `27` #95 |
+| G-25 | G-03 探针自动发现（生产复跑） | 已执行（未改善） | `health/run` 3.8s：found 6 / no_result 4 / error 0 / probe_pending 11，与复跑前一致；根因转为 G-26（无 exact 缓存）；见 `27` #95 |
+| G-26 | `standard_info_cache` 整表为空，探针无缓存可补 | 待做 | 2026-11-20 实测 0 行；导致 11 站永远 probe_pending、离线查询/名称解析也少一层来源；需查缓存写入与淘汰链；见 `27` #95 |
+| G-27 | A-46 重扫 33 条 file_missing（生产重扫） | 待做 | `scan-and-index`：indexed 0 / skipped 825 / failed 0，file_missing 仍 33 条；不是窗口问题，需查扫描匹配逻辑；见 `27` #95 |
+| G-28 | superseded_by 方向迁移（演练完成，待定规则） | 待做 | 备份：API 备份 + 列级备份表 232,668 行；非空 32,432 行；100 条样本中仅 33 条可安全交换（67 条目标行已有值，直接写会覆盖）→ 需先定“仅空才写/追加/保留较新”；33 条应用+回滚双向验证通过；见 `27` #95 |
 
 ## 二、之前悬着未闭合
 
