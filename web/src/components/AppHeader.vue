@@ -54,7 +54,7 @@ onUnmounted(() => {
 <template>
   <header
     class="topbar"
-    :class="{ collapsed: !isHovered, hidden: isScrollHidden }"
+    :class="{ collapsed: !isHovered && !notificationOpen, hidden: isScrollHidden }"
     @mouseenter="isHovered = true"
     @mouseleave="isHovered = false"
   >

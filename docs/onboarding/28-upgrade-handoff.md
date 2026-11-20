@@ -44,7 +44,10 @@
    - 生产已部署 **v0.196.1（`286a4ed2`）**，已确认含 U-1/U-3/G-03/铃铛/V-17 全部提交。
    - 已做（只读，登录后仅 GET，见 `27` #83）：`/api/system/version`=0.196.1；`/api/wechat-ip/config` 掩码 `***` 生效且带 `cookie_status`/`cookie_source`；通知正文出现 `现行 → 新标准：GB 30871-2014`。
    - **抓到假闭合 1 例**：`63613598` 的“铃铛告警着色”没生效——`NotificationLogItem` 漏声明 `level`，FastAPI 过滤后前端恒 `info`。已修（`d9a29db1`，CI 全绿），**需下次部署才生效**。
-   - 仍待真实操作：G-09 铃铛去重、G-10 弹层位置（Playwright + 临时用户）；U-1 `_record_change` 的“旧 → 新”需真实跑一次时效检查（要写库窗口）。
+   - **G-10 已真闭合**（Playwright 生产复验：弹层右缘距铃铛 8px，无左跳、铃铛盒不塌）；顺带修掉 `.topbar.collapsed` 在弹层打开时仍收缩造成的 8/10px 锚点位移（`AppHeader` 判据加 `!notificationOpen`，待部署）。
+   - **G-09 未触发**：铃铛 10 条无同分钟重复样本，去重规则没走到，**不能算闭合**；需构造样本再验。
+   - 观察项：3 条同内容“IP 更新失败”（5/10/16 小时前）与 `last_fail_key` 去重口径不符，待查。
+   - 仍待真实操作：U-1 `_record_change` 的“旧 → 新”需真实跑一次时效检查（要写库窗口）。
 6. **A-46 33 文件：不重开**
    - 结论：33 条 `file_missing` 原件在 `/standards` 未索引，30 份副本在 `/app/data/_quarantine/__replay_b62`；
    - 缺的是“重扫 /standards 并写 file_index”的生产写窗口，不是新线索；不重开，等维护窗口。

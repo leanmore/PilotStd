@@ -965,3 +965,11 @@ ecursive 覆盖子目录。A-44 闭合。
 - **修复**：响应模型补 `level: str`；前端 `useNotification` 注释与用例同步（保留缺失回退 + 新增“有值则透传”）；后端补 2 例（模型声明、序列化保留取值）。
 - **验证**：`tests/test_notification_level_mapping.py` 3 例；`-k notification_log` 33 例；web vitest `useNotification.test.ts` 14 例。
 - **仍待真实验证**：`_record_change` 的“旧 → 新”reason 要真实跑一次时效检查才会出现在通知里（本次 100 条日志无此类记录）；G-09 去重、G-10 弹层位置需要真实 UI（Playwright + 临时用户）。
+
+### 84. R-3 真实 UI 复验：铃铛去重与弹层位置（2026-11-20）
+
+- **方法**：Playwright（headless chromium）登录生产 `192.168.1.18:9028`（v0.196.1），只做读操作——hover 顶栏让铃铛出现 → 打开弹层 → 把鼠标移入弹层（G-10 的原始触发路径）→ 量盒/截图；未点“全部标记已读”（避免写生产）。脚本 `ci.tmp/r3_bell.js`，截图 `ci.tmp/r3-bell.png`。
+- **G-10 弹层偏左：真闭合**。弹层 `x=771.97`、右缘 `1154.97`，距铃铛右缘 8px；铃铛盒始终 35×30 未被隐藏，历史上“弹层跳到 x≈11.5、左跳 612px”未复现。
+- **顺带发现并修掉 8px 锚点位移**：弹层打开后鼠标离开顶栏 ⇒ `.topbar.collapsed` 生效（`height` 60→40、`padding` 24→16），锚点被带走 8/10px，弹层仍停在旧坐标。修：`AppHeader` 的 collapsed 条件改为 `!isHovered && !notificationOpen`（与 v-show 同一判据），`AppHeader.test.ts` 补断言：弹层打开期间 header 不得带 `collapsed`。**该修复待部署验证**。
+- **G-09 铃铛去重：未触发，不算已验证**。铃铛 10 条按 (标题, 正文, 分钟) 分组后同分钟重复 0 组；当前生产没有“同事件同分钟双渠道”样本，去重规则没被走到。要真闭合需构造样本（单测或临时双渠道投递），不能凭“看起来没重复”判闭合。
+- **观察项（未修）**：铃铛里有 3 条同内容“IP 更新失败 / 无法获取企业微信 Cookie 状态: 失败”（5、10、16 小时前）。`wechat_ip/scheduler.py:54-59` 的 `last_fail_key=f"cookie|{ip}"` 去重理论上只该发一次；实际每 5~6 小时一条，怀疑另有 `_notify` 路径未走去重，或 `last_fail_key` 未持久化。留待下批查。

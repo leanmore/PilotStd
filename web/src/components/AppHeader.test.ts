@@ -33,9 +33,13 @@ describe('AppHeader 顶栏显示条件', () => {
     bell.vm.$emit('popover-show')
     await wrapper.find('header').trigger('mouseleave')
     expect(right.attributes('style') || '').not.toContain('display: none')
+    // 顶栏也不能切到 collapsed（height 60→40、padding 24→16 会把铃铛锚点带走 8/10px，
+    // 弹层还停在旧坐标 ⇒ 视觉上“弹层偏左”）。2026-11-20 生产复验实测 8px 位移后补的断言
+    expect(wrapper.find('header').classes()).not.toContain('collapsed')
 
     bell.vm.$emit('popover-hide')
     await wrapper.vm.$nextTick()
     expect(right.attributes('style') || '').toContain('display: none')
+    expect(wrapper.find('header').classes()).toContain('collapsed')
   })
 })
