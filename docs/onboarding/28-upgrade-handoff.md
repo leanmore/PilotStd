@@ -43,10 +43,11 @@
 5. **R-3 真实操作重验（进行中，2026-11-20 首批已做）**
    - 生产已部署 **v0.196.1（`286a4ed2`）**，已确认含 U-1/U-3/G-03/铃铛/V-17 全部提交。
    - 已做（只读，登录后仅 GET，见 `27` #83）：`/api/system/version`=0.196.1；`/api/wechat-ip/config` 掩码 `***` 生效且带 `cookie_status`/`cookie_source`；通知正文出现 `现行 → 新标准：GB 30871-2014`。
-   - **抓到假闭合 1 例**：`63613598` 的“铃铛告警着色”没生效——`NotificationLogItem` 漏声明 `level`，FastAPI 过滤后前端恒 `info`。已修（`d9a29db1`，CI 全绿），**需下次部署才生效**。
+   - **抓到假闭合 1 例并已修**：`63613598` 的“铃铛告警着色”没生效——`NotificationLogItem` 漏声明 `level`，FastAPI 过滤后前端恒 `info`。修复 `d9a29db1`；**2026-11-20 生产 v0.196.3 已实证**：`GET /api/notification/logs` 返回 `level`，100 条里 info 68 / warning 32。
    - **G-10 已真闭合**（Playwright 生产复验：弹层右缘距铃铛 8px，无左跳、铃铛盒不塌）；顺带修掉 `.topbar.collapsed` 在弹层打开时仍收缩造成的 8/10px 锚点位移（`AppHeader` 判据加 `!notificationOpen`，待部署）。
-   - **G-09 未触发**：铃铛 10 条无同分钟重复样本，去重规则没走到，**不能算闭合**；需构造样本再验。
-   - 观察项：3 条同内容“IP 更新失败”（5/10/16 小时前）与 `last_fail_key` 去重口径不符，待查。
+   - **G-09 已真闭合**（生产 v0.196.3）：日志里 telegram/wechat 同分钟成对（100 条 → 去重 45），铃铛只渲染去重后 10 条，与接口去重结果 10/10 对齐。
+   - **顶栏锚点位移已归零**（`bee0add4` 部署后实测 0px）。
+   - **IP 失败重复通知：根因已定位**——`docker/scheduler.py` 5 处 `ConfigManager()` 各持快照、save 整文件覆盖，`wechat_ip.last_fail_key` 被冲掉；复现脚本 `ci.tmp/probe_config_race.py`。修复需统一共享实例或改合并写，属写盘模型改动，下批单独立项。
    - 仍待真实操作：U-1 `_record_change` 的“旧 → 新”需真实跑一次时效检查（要写库窗口）。
 6. **A-46 33 文件：不重开**
    - 结论：33 条 `file_missing` 原件在 `/standards` 未索引，30 份副本在 `/app/data/_quarantine/__replay_b62`；
@@ -89,3 +90,22 @@
    → 因此 R-3 逐项复验里，U-1/U-3 在部署前一定表现为“未修好”，属未上线而非假闭合。
 3. 交接所述“本地 pytest 未定位失败”有两个干扰因素：GitHub job 日志 404（只能走 annotations），以及 `2>&1 | Tee-Object` 管道让全绿运行也返回 exit 1。判定退出码用 `*> 文件` 再读 `$LASTEXITCODE`。
 4. 本次修复未改生产、未动数据；生产仍为 v0.195.5，等待部署窗口。
+
+## 七、暂停记录（2026-11-20 18:07，补执行 13:55 的暂停指令）
+
+> 指令：北京时间 13:55 暂停所有作业。排程到点时本会话已离线，18:07 上线后补执行。
+
+- **作业状态**：后台作业 0 个（`job_list` 为空）；子代理 6 个均为 inactive（昨日语言批次的产物），无运行中任务。
+- **代码状态**：HEAD `2402c29c`，工作区干净，与 `origin/main` 同步；未提交任何东西（本文件本次改动按指令保留在工作区）。
+- **生产状态**：已部署 **v0.196.3**（`2402c29c`，镜像 `ghcr.io/leanmore/pilotstd:v0.196.3`），包含今天的 `d9a29db1`（通知日志 level）与 `bee0add4`（顶栏 collapsed 判据）。
+- **今日闭环**：
+  - 通知日志 `level` 假闭合 → 已修并**生产实证**（100 条：info 68 / warning 32）；
+  - G-10 弹层偏左 → Playwright 生产复验真闭合（弹层右缘距铃铛 8px，无左跳）；
+  - 顶栏 collapsed 造成的 8/10px 锚点位移 → 已修（待用真实 UI 复核一次）；
+  - CI `2402c29c` 全绿。
+- **下一步（复工按此顺序）**：
+  1. 用 Playwright 复核 `bee0add4` 后锚点位移是否归零（预期 0~2px）；
+  2. G-09 去重：构造“同事件同分钟双渠道”样本再验，别用“看着没重复”判闭合；
+  3. IP 失败重复通知：查 `wechat_ip/scheduler.py:83` 成功分支清空 `last_fail_key`、以及 `last_fail_key`/`last_ip` 跨重启持久化；
+  4. U-1 `_record_change` 的“旧 → 新”：需真实跑一次时效检查（写库窗口）；
+  5. `superseded_by` 迁移（等授权+备份窗口）、A-46 重扫（等窗口）。
