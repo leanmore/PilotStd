@@ -1083,3 +1083,14 @@ ecursive 覆盖子目录。A-44 闭合。
   断点续跑（状态在 `%TEMP%/pilotstd_archive_backfill.json`）、默认 1.5s/条、失败不中断。
   用法：`python scripts/backfill_announce_archive.py --dry-run` → `--limit 20` → 全量。
   **必须先部署含归档代码的版本**，否则重抓也不会写文件。
+
+### 93. 公告归档统计端点 + 历史补抓实况（2026-11-20）
+
+- **新增** `GET /api/system/archive-stats`（admin，只读）：返回归档根目录、是否存在、HTML/附件分来源计数、
+  总体积与前 10 个样例文件名。用途是核对补抓是否真的落盘——`/api/files` 只允许 standards/inbox，
+  看不到 `data/announcements`，没有这个端点就只能靠登主机查目录。
+- **补抓实况**：`scripts/backfill_announce_archive.py` 已在生产（v0.197.1）跑起来，945 条历史公告逐条 `reparse`；
+  断点状态写 `%TEMP%/pilotstd_archive_backfill.json`，实测约 10s/条（详情+附件+解析），全量预计数小时，可随时中断续跑。
+- **注意**：`attachment_path` 字段只在解析结果字典里，`announcement_record` 表**没有这一列**（此前误以为“字段恒空”，
+  实际是压根没落库）；归档的验收口径是**磁盘文件**，不是 DB 字段。
+- 验证：`tests/test_api_archive_stats.py` 2 例（计数/字节/样例、目录不存在）。

@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import subprocess
+from contextlib import suppress
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -15,6 +16,18 @@ from ..auth import require_role
 from ..manager import get_manager_dep
 
 router = APIRouter(prefix="/api/system", tags=["system"])
+
+class ArchiveStatsResponse(BaseModel):
+    """公告归档目录统计（只读）：按来源统计 HTML/附件数量与总体积。"""
+
+    root: str
+    exists: bool
+    total_files: int
+    total_bytes: int
+    by_type: dict[str, dict[str, int]]
+    samples: list[str]
+
+
 logger = logging.getLogger(__name__)
 
 # 镜像仓库地址常量
@@ -374,3 +387,63 @@ def system_resources(request: Request):
         }
     except ImportError:
         return {"error": "psutil 未安装"}
+
+def _archive_root() -> str:
+    """归档根目录：配置 `announcement.raw_dir` 优先，否则 `{data_dir}/announcements`。"""
+    from pilotstd.core.config import ConfigManager, get_data_dir
+
+    try:
+        configured = str(ConfigManager().get("announcement.raw_dir", "") or "")
+    except Exception:  # noqa: BLE001 — 配置读不到就用默认路径
+        configured = ""
+    return configured or os.path.join(get_data_dir(), "announcements")
+
+
+def _scan_archive(root: str) -> ArchiveStatsResponse:
+    """扫描归档根目录并汇总（纯函数，便于测试）。只读，不创建目录。"""
+    by_type: dict[str, dict[str, int]] = {}
+    total_files = 0
+    total_bytes = 0
+    samples: list[str] = []
+    exists = os.path.isdir(root)
+    if exists:
+        for type_dir in sorted(os.listdir(root)):
+            full = os.path.join(root, type_dir)
+            if not os.path.isdir(full):
+                continue
+            html = 0
+            other = 0
+            size = 0
+            for name in os.listdir(full):
+                path = os.path.join(full, name)
+                if not os.path.isfile(path):
+                    continue
+                other_file = not name.lower().endswith(".html")
+                html += 0 if other_file else 1
+                other += 1 if other_file else 0
+                # 并发删除/权限问题会让单文件读大小失败；不影响统计，直接跳过
+                with suppress(OSError):
+                    size += os.path.getsize(path)
+                if len(samples) < 10:
+                    samples.append(f"{type_dir}/{name}")
+            by_type[type_dir] = {"html": html, "attachments": other, "bytes": size}
+            total_files += html + other
+            total_bytes += size
+    return ArchiveStatsResponse(
+        root=root,
+        exists=exists,
+        total_files=total_files,
+        total_bytes=total_bytes,
+        by_type=by_type,
+        samples=samples,
+    )
+
+
+@router.get("/archive-stats", response_model=ArchiveStatsResponse)
+@require_role("admin")
+def archive_stats(request: Request) -> ArchiveStatsResponse:
+    """统计 `data/announcements` 下落盘的原文件（HTML/附件），用于核对补抓结果。
+
+    只读：不创建目录、不修改文件；目录不存在时返回 `exists=false`。
+    """
+    return _scan_archive(_archive_root())
