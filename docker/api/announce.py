@@ -170,7 +170,13 @@ class AnnounceStatsResponse(BaseModel):
 def check_announce(since_date: str = "", mgr=None, types: list[str] | None = None) -> dict:
     """抓取最新公告。通过 StandardManager 统一入口。
     mgr 参数：路由通过 Depends 注入，调度器调用时传 None 走 _get_mgr() 降级。
-    types 参数：限定抓取的公告类型列表，如 ['gb', 'hb']，None 表示全部。"""
+    types 参数：限定抓取的公告类型列表，如 ['gb', 'hb']，None 表示全部。
+
+    since_date 语义 = **抓取起点（含当日）**，不是结果后置过滤：适配器从最新公告
+    往前分页，遇到早于该日期的第一条记录即停止分页（`pilotstd/announcement/base.py
+    ::_fetch_list`）。空串 / 不传 = 不限起点（全量历史）。本路径读 checkpoint 为 0，
+    也不写 checkpoint（见 `docs/reference/announcement-pipeline.md` §增量 checkpoint）。
+    """
     if mgr is None:
         mgr = _get_mgr()
     check_start = iso_now()
@@ -249,7 +255,9 @@ def check_announce(since_date: str = "", mgr=None, types: list[str] | None = Non
 def check_announce_scheduled(mgr=None) -> dict:
     """定时自动抓取公告（从 fetch_checkpoint 增量抓取，不复用 check_announce）。
     与 check_announce 的关键区别：since_date 来自 fetch_checkpoint 表，
-    而非用户输入。避免每次定时任务都拉取全量历史数据。"""
+    而非用户输入。避免每次定时任务都拉取全量历史数据。
+    例外：`app_preferences.announce_since_date` 非空时，先按该日期做**一次性回填**
+    再清空（`AnnounceService.check_announce_scheduled`）。"""
     if mgr is None:
         mgr = _get_mgr()
     result: dict = mgr._announce_svc.check_announce_scheduled()
@@ -257,7 +265,11 @@ def check_announce_scheduled(mgr=None) -> dict:
 
 
 def _sync_wait_check(since_date: str = "", mgr=None, types: list[str] | None = None, timeout: int = 60) -> dict:
-    """sync=true 兼容模式：通过 AnnounceService 创建异步任务后同步等待。"""
+    """sync=true 兼容模式：通过 AnnounceService 创建异步任务后同步等待。
+
+    ⚠️ 仅保留签名兼容：`AnnounceTaskRunner.trigger` 走 `check_all`（checkpoint 增量），
+    **不消费 since_date / types**。要按日期补抓请用非 sync 的 `/api/announce/check`。
+    """
     import time as _time
 
     # 委托创建抓取任务
@@ -296,7 +308,8 @@ def api_check_announce(
     """抓取最新公告。
     - sync=False（默认）：后台异步执行，不阻塞请求线程，返回 msg
     - sync=True：同步执行，返回实际抓取的 count 和 failures 数
-    since_date 可选，仅抓取该日期之后的公告（格式 YYYY-MM-DD）。
+    since_date 可选，**抓取起点（含当日）**：只抓该日期及以后发布的公告（格式 YYYY-MM-DD）；
+    不传/空串 = 不限起点（全量历史补抓）。
     types 可选，逗号分隔的公告类型（gb,hb,db），不传则抓取全部。
     """
     type_list = [t.strip() for t in types.split(",") if t.strip()] if types else None

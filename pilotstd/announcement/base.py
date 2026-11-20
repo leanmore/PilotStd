@@ -196,8 +196,14 @@ class BaseAnnounceCrawler(ABC):
 
     # ── 公共解析入口（页面结构路由）──
 
-    def _parse_items(self, raw_detail: str, ocr_provider: Any = None) -> list[dict[str, Any]]:
-        """子类可重写。默认实现：HTML 表格优先，无数据时回退附件。"""
+    def _parse_items(
+        self, raw_detail: str, ocr_provider: Any = None, announce_no: str = ""
+    ) -> list[dict[str, Any]]:
+        """子类可重写。默认实现：HTML 表格优先，无数据时回退附件。
+
+        `announce_no` 仅用于附件归档命名（2026-11-20 起附件落盘到 data/announcements）。
+        """
+        from ._raw_archive import archive_attachment
         from .parser import find_attachment_url, parse_announcement_detail
 
         html_items, meta = parse_announcement_detail(raw_detail, None, "", ocr_provider=ocr_provider)
@@ -211,10 +217,11 @@ class BaseAnnounceCrawler(ABC):
         if not html_items and attachment_url:
             att_bytes = self._download_attachment(attachment_url)
             if att_bytes:
+                att_path = archive_attachment(self.standard_type, announce_no, attachment_url, att_bytes)
                 att_items, _meta = parse_announcement_detail(
                     raw_detail, att_bytes, attachment_url, ocr_provider=ocr_provider
                 )
-                return self._finalize_items(att_items, attachment_url, "附件解析")
+                return self._finalize_items(att_items, attachment_url, "附件解析", att_path or "")
             return self._finalize_items(html_items, attachment_url)
 
         # 混合：网页有数据+有附件。附件可能比网页首屏更完整（DB 2014 第4号：
@@ -222,23 +229,27 @@ class BaseAnnounceCrawler(ABC):
         if html_items and attachment_url:
             att_bytes = self._download_attachment(attachment_url)
             if att_bytes:
+                att_path = archive_attachment(self.standard_type, announce_no, attachment_url, att_bytes)
                 att_items, _meta = parse_announcement_detail(
                     raw_detail, att_bytes, attachment_url, ocr_provider=ocr_provider
                 )
                 if len(att_items) > len(html_items):
-                    return self._finalize_items(att_items, attachment_url, "附件解析")
+                    return self._finalize_items(att_items, attachment_url, "附件解析", att_path or "")
             return self._finalize_items(html_items, attachment_url)
 
         return self._finalize_items(html_items, attachment_url)
 
     @staticmethod
     def _finalize_items(
-        items: list[dict[str, Any]], attachment_url: str, source_type: str = "网页解析"
+        items: list[dict[str, Any]],
+        attachment_url: str,
+        source_type: str = "网页解析",
+        attachment_path: str = "",
     ) -> list[dict[str, Any]]:
         """为每条标准补默认字段。"""
         for item in items:
             item.setdefault("attachment_url", attachment_url)
-            item.setdefault("attachment_path", "")
+            item.setdefault("attachment_path", attachment_path)
             item.setdefault("source_type", source_type)
         return items
 
@@ -340,8 +351,12 @@ class BaseAnnounceCrawler(ABC):
             self.source_site,
             raw,
         )
+        # 原文落盘（2026-11-20 补）：此前只写 DB，data/announcements 目录一直是空的
+        from ._raw_archive import archive_html
+
+        archive_html(self.standard_type, ann.get("code", "") or ann.get("pid", ""), raw)
         parsed = self._parse_amendment(ann) if self._is_amendment(ann) else self._parse_items(
-            raw, ocr_provider=ocr_provider
+            raw, ocr_provider=ocr_provider, announce_no=ann.get("code", "") or ann.get("pid", "")
         )
         if not self._is_amendment(ann):
             self._warn_if_count_mismatch(ann, len(parsed))

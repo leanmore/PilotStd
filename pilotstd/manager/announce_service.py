@@ -87,14 +87,28 @@ class AnnounceService:
     # -- 用户偏好 ------------------------------------------- 分隔
 
     def _get_user_since_date(self) -> str:
+        """读取「待一次性回填」的起始日期（`app_preferences.announce_since_date`）。
+
+        注意：Web 端日期选择器写的是 `user_preferences`（`PUT /api/user/preferences
+        /announce_since_date`，按用户存）而不是本表；本表的写入方只有迁移默认值与
+        `save_user_preference`。因此线上这条回填通道当前不会被 UI 触发，
+        手动抓取（`check_announcements_filtered`）才是日期生效的实际路径。
+        """
         row = self._file_index._db.fetchone(
             "SELECT value FROM app_preferences WHERE key='announce_since_date'"
         )
         return row["value"] if row and row["value"] else ""
 
     def _clear_user_since_date(self) -> None:
+        """清空一次性回填偏好。
+
+        用 upsert 而不是 `UPDATE`：行缺失时 `UPDATE` 影响 0 行会静默失败，
+        导致每个定时周期都重复回填同一个日期。
+        """
         self._file_index._db.execute(
-            "UPDATE app_preferences SET value='' WHERE key='announce_since_date'"
+            "INSERT OR REPLACE INTO app_preferences (key, value, updated_at) "
+            "VALUES ('announce_since_date', '', ?)",
+            (iso_now(),),
         )
 
     def save_user_preference(self, key: str, value: str) -> None:
@@ -128,6 +142,8 @@ class AnnounceService:
         except Exception as e:
             logger.warning("获取 announce_since_date 失败，降级为全量增量检查: %s", e)
             user_since = ""
+        # 一次性回填（设计意图）：读到用户日期 → 按该日期补抓一轮 → 立即清空，
+        # 避免每个定时周期都从很久以前重抓。抓取抛异常时不清空，下一轮自动重试。
         if user_since:
             logger.info("backfill fetch from user date: %s", user_since)
             result = self.check_announcements_filtered(since_date=user_since)
@@ -187,7 +203,10 @@ class AnnounceService:
         progress_callback: Any = None,
         types: list[str] | None = None,
     ) -> dict[str, Any]:
-        """筛选式公告检查 — 委托至 crawler.check_filtered。"""
+        """筛选式公告检查 — 委托至 crawler.check_filtered。
+
+        `since_date` = 抓取起点（含当日）；空串 = 不限起点（全量历史）。
+        """
         return self.crawler.check_filtered(types=types, since_date=since_date)
 
     def trigger_fetch(self, adapter_name: str = "") -> dict[str, Any]:

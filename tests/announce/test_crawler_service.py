@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import sqlite3
+from datetime import date
 from unittest.mock import MagicMock
 
 import pytest
@@ -200,3 +201,46 @@ class TestCheckFiltered:
 
         assert set(result.keys()) == {"gb", "hb"}
         assert crawler._engine.check_one.call_count == 2
+
+    # ── since_date 是「抓取起点（含当日）」，不是结果后置过滤 ──
+    # 适配器侧的下界终止（遇到早于起点的记录即停）由
+    # `pilotstd/announcement/base.py::_fetch_list` 实现，用例见
+    # tests/test_announcement_base_full.py::test_date_filtering_stops_early。
+    # 这里锁定 crawler 层的契约：原样透传、不读不写 checkpoint。
+
+    def test_since_date_empty_means_full_history_not_checkpoint(self, crawler, mock_persistence):
+        """空起点 = 全量历史：原样传 ""，不回退 checkpoint。"""
+        adapter = _mock_adapter("gb", "samr_gb", "GB")
+        _patch_engine(crawler, [adapter], {"matched": 0, "updated": 0})
+        mock_persistence.get_checkpoint.return_value = "2026-11-01"
+
+        crawler.check_filtered(since_date="")
+
+        crawler._engine.check_one.assert_called_once_with("gb", since_date="", ocr_provider=None)
+        mock_persistence.get_checkpoint.assert_not_called()
+        mock_persistence.write_checkpoint.assert_not_called()
+
+    def test_since_date_today_passes_through_without_clamp(self, crawler, mock_persistence):
+        """起点 = 今天：原样透传（只覆盖当天），不与 checkpoint 取 min/max。"""
+        adapter = _mock_adapter("gb", "samr_gb", "GB")
+        _patch_engine(crawler, [adapter], {"matched": 0, "updated": 0})
+        mock_persistence.get_checkpoint.return_value = "2024-01-01"
+        today = date.today().isoformat()
+
+        crawler.check_filtered(since_date=today)
+
+        crawler._engine.check_one.assert_called_once_with("gb", since_date=today, ocr_provider=None)
+        mock_persistence.get_checkpoint.assert_not_called()
+
+    def test_since_date_earlier_than_checkpoint_is_backfill(self, crawler, mock_persistence):
+        """起点早于 checkpoint：仍原样透传 ⇒ 历史补抓不会被更新的 checkpoint 裁掉。"""
+        adapter = _mock_adapter("gb", "samr_gb", "GB")
+        _patch_engine(crawler, [adapter], {"matched": 0, "updated": 0})
+        mock_persistence.get_checkpoint.return_value = "2026-11-01"
+
+        crawler.check_filtered(since_date="2024-01-01")
+
+        crawler._engine.check_one.assert_called_once_with(
+            "gb", since_date="2024-01-01", ocr_provider=None
+        )
+        mock_persistence.get_checkpoint.assert_not_called()

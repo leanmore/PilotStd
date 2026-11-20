@@ -19,10 +19,28 @@ import LogBar from '@/components/LogBar.vue'
 const router = useRouter()
 const { t } = useI18n()
 
-// 起始日期默认今天
-function defaultSince(): Date {
+// 起始日期 = 「抓取起点（含当日）」，不是列表过滤条件。
+// 后端 `pilotstd/announcement/base.py::_fetch_list` 从最新公告往前分页，遇到
+// 早于起点的记录即停止 ⇒ 起点越晚，抓到的历史越少。默认不能取「今天」：
+// 当天没有新公告时抓取数恒为 0，且会漏掉前几天晚发布/漏抓的公告。
+// 默认取最近 7 天，与后端 `announcement.lookback_days` 默认值一致；清空 = 不限起点（全量历史补抓）。
+const SINCE_DEFAULT_DAYS = 7
+
+function defaultSince(): Date | null {
   const saved = getItem('announce_since')
-  return saved ? new Date(saved) : new Date()
+  if (saved) {
+    const d = new Date(saved)
+    if (!Number.isNaN(d.getTime())) return d
+  }
+  const d = new Date()
+  d.setDate(d.getDate() - SINCE_DEFAULT_DAYS)
+  return d
+}
+
+// YYYY-MM-DD（本地时区），空值返回空串（后端约定空串 = 不限起点）
+function formatDate(d: Date | null): string {
+  if (!d) return ''
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 const activeTab = ref<'gb'|'hb'|'db'>(getItem('announce_tab') as any || 'gb')
@@ -64,10 +82,10 @@ async function loadStats() {
   try { statsData.value = (await http.get('/announce/stats', { routeTag: '/announce' })).data } catch { /* ignore */ }
 }
 const loading = ref(false)
-const sinceDate = ref<Date>(defaultSince())
+const sinceDate = ref<Date | null>(defaultSince())
 watch(sinceDate, (v) => {
-  setItem('announce_since', v.toISOString())
-  const ds = `${v.getFullYear()}-${String(v.getMonth()+1).padStart(2,'0')}-${String(v.getDate()).padStart(2,'0')}`
+  setItem('announce_since', v ? v.toISOString() : '')
+  const ds = formatDate(v)
   usePreferencesStore().set('announce_since_date', ds).catch((e) => console.warn('保存抓取起点失败，回落到默认日期', e)) // i18n-allow: 开发者日志：偏好保存失败不影响列表
 })
 const error = ref('')
@@ -89,9 +107,8 @@ async function load() {
 async function check() {
   loading.value = true; error.value = ''
   try {
-    const sinceStr = sinceDate.value
-      ? `${sinceDate.value.getFullYear()}-${String(sinceDate.value.getMonth()+1).padStart(2,'0')}-${String(sinceDate.value.getDate()).padStart(2,'0')}`
-      : undefined
+    // 起点为空 ⇒ 不带 since_date ⇒ 后端不限起点（全量历史补抓）
+    const sinceStr = formatDate(sinceDate.value) || undefined
     // 收集已启用的适配器类型
     const enabledTypes = (Object.keys(adapterEnabled) as ('gb'|'hb'|'db')[])
       .filter(k => adapterEnabled[k])
@@ -134,7 +151,8 @@ function onPage(e: any) {
       :fetch-enabled="adapterEnabled"
       @update:fetch-enabled="(key, val) => { const k = key as 'gb'|'hb'|'db'; adapterEnabled[k] = val }"
     />
-    <AppCalendar v-model="sinceDate" dateFormat="yy-mm-dd" showIcon style="width:160px" />
+    <AppCalendar v-model="sinceDate" dateFormat="yy-mm-dd" showIcon showClear :placeholder="t('announce.view.since_placeholder')" style="width:160px" />
+    <span class="since-hint">{{ t('announce.view.since_hint') }}</span>
     <Button :label="t('announce.view.refresh_list')" icon="pi pi-sync" severity="secondary" outlined size="small" @click="check" />
     <Button :label="t('announce.view.fetch_now')" icon="pi pi-cloud-download" :loading="loading" @click="check" size="small" />
   </div>
@@ -182,6 +200,8 @@ function onPage(e: any) {
 <style scoped>
 .header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .err-msg { color: var(--danger, #e74c3c); font-size: 12px; margin: 4px 0; }
+/* 说明「起始日期」是抓取起点（含当日），不是列表过滤；用 --text 保证四主题对比度 */
+.since-hint { font-size: 12px; color: var(--text); }
 
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
 .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; text-align: center; }

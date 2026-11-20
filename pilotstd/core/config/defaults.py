@@ -48,6 +48,10 @@ FACTORY_DEFAULTS = {
     "announcement.lookback_days": 7,
     # 超过该小时数未成功抓取 → 判定为漏跑并在完成通知中告警。
     "announcement.missed_after_hours": 36,
+    # 公告原文/附件落盘（2026-11-20 补）：默认开，存到 {data_dir}/announcements/{gb,hb,db}/
+    # 目录可用 announcement.raw_dir 覆盖（空 = 默认路径）；关闭后只保留 DB 里的正文。
+    "announcement.save_raw_files": True,
+    "announcement.raw_dir": "",
     "ocr.provider": "",
     "ocr.baidu_api_key": "",
     "ocr.baidu_secret_key": "",

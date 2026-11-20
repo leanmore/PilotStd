@@ -280,3 +280,10 @@ StandardManager (BaseFacade)
 
 - G-012 [LANG] 改为按词判定后，本模块注释里的英文普通词改为中文、裸标识符加反引号；
   仅注释与 docstring 变更，AST 比对无代码变化（全仓 504 行，见 27 日志 #81）。
+
+## 公告起始日期偏好（2026-11-20）
+
+- nnounce_service._get_user_since_date() 读 pp_preferences.announce_since_date，定时任务只用它做**一次性**回填并清空；
+- 清空改为 upsert（原 UPDATE 在行缺失时静默无效，会导致每周期重复回填）；
+- 注意：Web 端存的 nnounce_since_date 走 user_preferences 表，与定时任务读的 pp_preferences 不是同一张表（已知差异，未接线，见 27 #89）。
+

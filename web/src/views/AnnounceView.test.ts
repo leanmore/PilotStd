@@ -3,9 +3,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
 import PrimeVue from 'primevue/config'
+import { createPinia } from 'pinia'
 import AnnounceView from './AnnounceView.vue'
 import zhCN from '@/locales/zh-CN.json'
 import en from '@/locales/en.json'
+import { setItem } from '@/lib/storage'
 
 const { getAnnounceResultsMock, postAnnounceCheckMock, getAnnounceFetchFailuresMock } = vi.hoisted(() => ({
   getAnnounceResultsMock: vi.fn(),
@@ -37,7 +39,7 @@ function mountView(locale: 'zh-CN' | 'en' = 'zh-CN') {
   const i18n = createI18n({ legacy: false, locale, messages: { 'zh-CN': zhCN, en } })
   return mount(AnnounceView, {
     global: {
-      plugins: [PrimeVue, i18n],
+      plugins: [PrimeVue, i18n, createPinia()],
       stubs: {
         Calendar: { template: '<input class="calendar-stub" />', props: ['modelValue', 'locale', 'dateFormat', 'showIcon'] },
         Paginator: { template: '<div class="paginator-stub" />', props: ['rows', 'totalRecords'] },
@@ -45,6 +47,21 @@ function mountView(locale: 'zh-CN' | 'en' = 'zh-CN') {
       },
     },
   })
+}
+
+// 公告抓取起点（含当日）：默认不得是“今天”，否则只覆盖当天（#89）
+function localDateMinusDays(days: number): string {
+  const d = new Date()
+  d.setDate(d.getDate() - days)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
+async function clickFetch(wrapper: ReturnType<typeof mountView>) {
+  const btn = wrapper.findAll('button').find((b) => b.text().includes('立即抓取'))
+  expect(btn).toBeTruthy()
+  await btn!.trigger('click')
+  await new Promise(r => setTimeout(r, 10))
 }
 
 describe('AnnounceView', () => {
@@ -147,5 +164,46 @@ describe('AnnounceView', () => {
     const english = mountView('en')
     await new Promise(r => setTimeout(r, 10))
     expect(english.text()).toContain('Fetch Now')
+  })
+
+  it('默认起始日期是最近 7 天，不是今天（否则只抓当天、漏历史）', async () => {
+    const wrapper = mountView()
+    await new Promise(r => setTimeout(r, 10))
+
+    await clickFetch(wrapper)
+
+    expect(postAnnounceCheckMock.mock.calls[0][0]).toBe(localDateMinusDays(7))
+    expect(postAnnounceCheckMock.mock.calls[0][0]).not.toBe(localDateMinusDays(0))
+  })
+
+  it('清空起始日期后不带 since_date（= 不限起点，全量历史补抓）', async () => {
+    const wrapper = mountView()
+    await new Promise(r => setTimeout(r, 10))
+
+    wrapper.findComponent({ name: 'AppCalendar' }).vm.$emit('update:modelValue', null)
+    await new Promise(r => setTimeout(r, 10))
+
+    await clickFetch(wrapper)
+
+    expect(postAnnounceCheckMock.mock.calls[0][0]).toBeUndefined()
+  })
+
+  it('界面文案说明起始日期语义（含当日 + 清空=全量）', async () => {
+    const wrapper = mountView()
+    await new Promise(r => setTimeout(r, 10))
+
+    expect(wrapper.find('.since-hint').exists()).toBe(true)
+    expect(wrapper.find('.since-hint').text()).toContain('含当日')
+    expect(wrapper.find('.since-hint').text()).toContain('清空')
+  })
+
+  it('沿用手选过的起始日期（localStorage 持久化）', async () => {
+    setItem('announce_since', new Date('2024-03-05T00:00:00').toISOString())
+    const wrapper = mountView()
+    await new Promise(r => setTimeout(r, 10))
+
+    await clickFetch(wrapper)
+
+    expect(postAnnounceCheckMock.mock.calls[0][0]).toBe('2024-03-05')
   })
 })

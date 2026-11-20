@@ -228,3 +228,20 @@ GB/DB/HB 公告头完整；详情记录缺口为 DB 9月第8号 18 条、HB 9月
 
 > **2026-11-19 注释语言规范化（G-012 [LANG] 收口）**：本目录注释里的英文普通词改为中文、
 > 裸小写标识符加反引号；仅注释与 docstring 变更，AST 归一化比对无代码变化（全仓 504 行，见 27 #81）。
+
+
+## 原文与附件落盘（2026-11-20 起）
+
+- 抓取到详情后，原始 HTML 写 `{data_dir}/announcements/{gb|hb|db}/{公告号}.html`；
+  附件字节写同目录 `{公告号}{.pdf|.doc|...}`（未知后缀 `.bin`），路径同时写进记录的 `attachment_path`。
+- 开关 `announcement.save_raw_files`（默认开）、目录 `announcement.raw_dir`（默认空 ⇒ data 卷内）。
+- 归档失败只记 WARNING，不阻断解析；DB 里的 `announcements.raw_data`（正文）仍然是主查询口径。
+
+## 起始日期（`since_date`）语义
+
+- 它是**抓取起点（含当日）**：列表按发布日期倒序翻页，遇到早于 `since_date` 的第一条即停止翻页，
+  不是“抓完再过滤”。空串 = 翻完全部历史。
+- Web 公告页默认「最近 7 天」（对齐 `announcement.lookback_days`）；清空日期 = 全量历史补抓，较慢。
+- 定时任务读 `app_preferences.announce_since_date` 做**一次性**回填后清空；
+  Web 端存的 `announce_since_date` 走 `user_preferences` 表，两者不是同一张表（已知差异，见 `27` #89）。
+

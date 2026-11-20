@@ -57,6 +57,8 @@
         "breakdown": "国标 {gb} · 行标 {hb} · 地标 {db}"
       },
       "refresh_list": "刷新列表",
+      "since_placeholder": "起始日期",
+      "since_hint": "起始日期（含当日）：只抓该日期及以后发布的公告；清空=全量历史补抓",
       "fetch_failures": "抓取失败：{n} 条未解决 / 共 {total} 条"
     },
     "detail": {

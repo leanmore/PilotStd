@@ -57,6 +57,8 @@
         "breakdown": "GB {gb} · HB {hb} · DB {db}"
       },
       "refresh_list": "Refresh List",
+      "since_placeholder": "Start date",
+      "since_hint": "Start date (inclusive): only fetch announcements published on/after it; clear = full-history backfill",
       "fetch_failures": "Fetch failures: {n} unresolved / {total} total"
     },
     "detail": {

@@ -285,7 +285,15 @@ class AnnounceCrawler:
         }
 
     def check_filtered(self, types: list[str] | None = None, since_date: str = "") -> dict[str, Any]:
-        """带类型过滤的公告检查。types 如 ['gb', 'hb']，None 表示全部。"""
+        """带类型过滤的公告检查。types 如 ['gb', 'hb']，None 表示全部。
+
+        `since_date` = **抓取起点（含当日）**：适配器从最新公告往前分页，遇到早于该
+        日期的第一条记录就停止分页（`AnnounceEngine.check_one` →
+        `BaseAnnounceCrawler.fetch_announcements` → `_fetch_list`），不是结果后置过滤。
+        - 空串：不限起点，抓全量历史；
+        - 等于今天：只覆盖当天（当天无新公告时结果为 0，且不覆盖历史）；
+        - 早于 checkpoint：允许，用于历史漏抓补抓（本路径**不读也不写** checkpoint）。
+        """
         engine = self.engine
         ocr = self._get_ocr_provider()
 

@@ -698,3 +698,17 @@ pilotstd/core/
 - 事故来源：`wechat_ip.last_fail_key` 被时效任务收尾时的整文件覆盖冲掉，导致同一 IP 的 Cookie 失败
   每个周期重复通知（2026-11-20 生产实证，每 5~6 小时一条且无“已更新”通知）。
 - 约束：批量改多个键仍应构造新实例后 `save()`；不要把 `update()` 用在需要原子改多键的场景。
+
+## 公告原文/附件归档配置（2026-11-20）
+
+- 新增 `announcement.save_raw_files`（默认 true）/ `announcement.raw_dir`（默认空 ⇒ `{data_dir}/announcements`）；
+  由 `pilotstd/announcement/_raw_archive.py` 消费，抓取详情后落 HTML 与附件，失败只告警。
+- 动因：此前目录只建不写、`attachment_path` 恒为空；见 `27` #90。
+
+
+## 空目录清理统一口径（2026-11-20）
+
+- `core/file_utils.remove_dir_if_empty(dirpath)`：仅当目录空或只剩系统垃圾文件（Thumbs.db/desktop.ini/~$）时删除，返回是否删除；
+  `remove_empty_dirs()` 改为自底向上逐层调用它（修掉“只清一层”）。
+- `monitor/scheduler._cleanup_empty_dirs` 与 `docker/api/clean-empty` 都复用该 helper，含垃圾文件的目录不再漏清；见 `27` #88。
+
