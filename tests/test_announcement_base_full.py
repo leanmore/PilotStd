@@ -920,6 +920,29 @@ class TestAmendmentAnnouncement(unittest.TestCase):
     def test_normal_announcement_is_not_amendment(self):
         self.assertFalse(self.crawler._is_amendment({"title": "关于批准发布国家标准的公告"}))
 
+    def test_fullwidth_separators_are_normalized(self):
+        """标题用全角 `／`、`－`（如 GB／T 27967－2011）时也必须能提取。"""
+        ann = {
+            "title": "关于批准发布GB／T 27967－2011《公路交通气象预报格式》国家标准第1号修改单的公告",
+            "code": "2013年第12号",
+            "notice_date": "2013-11-15",
+        }
+        items = self.crawler._parse_amendment(ann)
+        self.assertEqual(len(items), 1)
+        self.assertEqual(items[0]["std_code"], "GB/T 27967-2011")
+
+    def test_multi_amendment_title_still_extracts_first(self):
+        """「…第1号修改单等3项国家标准修改单」被批量计数规则排除，但标题提取仍应给出条目。"""
+        ann = {
+            "title": "关于批准发布GB/T 18739-2008《地理标志产品 宣纸》第1号修改单等3项国家标准修改单的公告",
+            "code": "2014年第12号",
+            "notice_date": "2014-06-20",
+        }
+        # 分类上仍按清单公告处理（不改既有语义），但标题提取必须可用
+        items = self.crawler._parse_amendment(ann)
+        self.assertEqual(len(items), 1)
+        self.assertEqual(items[0]["std_code"], "GB/T 18739-2008")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -5,6 +5,7 @@ import concurrent.futures
 import logging
 import re
 import threading
+import unicodedata
 from abc import ABC, abstractmethod
 from typing import Any, Callable, Optional, cast
 
@@ -269,10 +270,15 @@ class BaseAnnounceCrawler(ABC):
         return True
 
     def _parse_amendment(self, ann: dict[str, Any]) -> list[dict[str, Any]]:
-        """从修改单公告标题提取被修改标准，不解析附件里的修改内容表格。"""
-        title = str(ann.get("title", "") or "")
+        """从修改单公告标题提取被修改标准，不解析附件里的修改内容表格。
+
+        标题里可能用全角分隔符（`GB／T 27967－2011`），先按 NFKC 归一化再匹配，
+        否则正则只认半角 `/`，整份公告会解析成 0 条。
+        """
+        raw_title = str(ann.get("title", "") or "")
+        title = unicodedata.normalize("NFKC", raw_title)
         code_match = re.search(
-            r"GB\s*(?:/\s*[TZ])?\s*\d+(?:\.\d+)*\s*[—\-－–−]\s*\d{4}",
+            r"GB\s*(?:/\s*[TZ])?\s*\d+(?:\.\d+)*\s*[-–—]\s*\d{4}",
             title,
             re.IGNORECASE,
         )
@@ -287,7 +293,7 @@ class BaseAnnounceCrawler(ABC):
         code = re.sub(r"\s*[—－–−]\s*", "-", code)
         code = re.sub(r"\s+", " ", code).strip()
         name_match = re.search(r"《([^》]+)》", title)
-        name = name_match.group(1) if name_match else title
+        name = name_match.group(1).strip() if name_match else title
         return [
             {
                 "std_code": code,
@@ -355,10 +361,14 @@ class BaseAnnounceCrawler(ABC):
         from ._raw_archive import archive_html
 
         archive_html(self.standard_type, ann.get("code", "") or ann.get("pid", ""), raw)
-        parsed = self._parse_amendment(ann) if self._is_amendment(ann) else self._parse_items(
+        is_amendment = self._is_amendment(ann)
+        parsed = self._parse_amendment(ann) if is_amendment else self._parse_items(
             raw, ocr_provider=ocr_provider, announce_no=ann.get("code", "") or ann.get("pid", "")
         )
-        if not self._is_amendment(ann):
+        # 回退：标题是修改单、但被判成清单公告又解析不出条目（`…等3项…修改单` 这类混合措辞）
+        if not parsed and not is_amendment and "修改单" in str(ann.get("title", "") or ""):
+            parsed = self._parse_amendment(ann)
+        if not is_amendment:
             self._warn_if_count_mismatch(ann, len(parsed))
         if not parsed:
             logger.warning(
@@ -420,7 +430,7 @@ class BaseAnnounceCrawler(ABC):
                 _elapsed = __import__("time").monotonic() - _ann_t0
                 _pct = int(completed[0] / total * 100) if total > 0 else 0
                 logger.info(
-                    "公告进度: pid=%s (%d/%d %d%%) 已耗时 %.0fs",
+                    "公告进度: pid=%s (%d/%d %d%%) 已耗时 %.0fs",  # i18n-allow: 内部进度日志
                     pid,
                     completed[0],
                     total,

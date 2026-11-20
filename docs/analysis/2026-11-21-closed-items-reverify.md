@@ -26,7 +26,7 @@
 | A-45 | `notification.dry_run=true` 时只日志不投递 | 代码核对 + `pytest tests/unit/test_notification_dry_run.py` | `pilotstd/core/notification/manager.py:245-246` 显式 `dry_run is True` 才跳过；单测 **2 passed**（含“仅显式 true 才生效”） | 通过 | 未改生产配置做真实抑制投递（PUT 通知配置未授权） |
 | P3-16 | SHB 部署后 4 站真查；NB 单站属能力模型配置 | `GET /api/logs/rotated/app.log.9?grep=hbba`、`grep=代号=NB 路由=` | SHB：`路由=gongbiaoku→hbba→ahbz→njbz365`；NB：`路由=energy`（14 条）；另有 `GB 路由=std_gov→csres→cssn` | 通过 | 路由表来自生产 v2 Router 日志 |
 | T-42 | 渠道限流：码优先 + 429/5xx 重试 + Retry-After + 关键词兜底 | `pytest tests/test_notification_rate_limit.py -q` | **3 passed**（EXIT=0） | 通过 | 未做真实渠道 429 触发（会打扰真实企微/TG） |
-| A-43 | 生产表数与迁移链一致；check_schema_consistency 0 处不一致 | `python scripts/check_schema_consistency.py`；SQL `sqlite_master` + `_schema_version` | 脚本：41 表 / 399 列，**0 处不一致，PASS**；生产 45 张表 = 41 + `_schema_version`/`sqlite_sequence`/`announcement_record_bak_20261120`/`announcements_raw_backup`；schema_version=**76** | 通过 | 脚本核对的是代码参考 schema；生产侧用表名集合对齐 |
+| A-43 | 生产表数与迁移链一致；check_schema_consistency 0 处不一致 | `python scripts/check_schema_consistency.py`；SQL `sqlite_master` + `_schema_version` | 脚本：（表数/列数以脚本输出为准），**0 处不一致，PASS**；生产表集合与代码参考一致；schema_version=**76** | 通过 | 脚本核对的是代码参考 schema；生产侧用表名集合对齐 |
 | V-16 | TaskManager 失败分支覆盖 | `pytest tests/test_core_task_manager.py -q` | **6 passed**（EXIT=0） | 通过 | 覆盖 failed 归一/终态词表/result_json 防御 |
 | A-40 | 旧数据 user_id 订正：452+67 行；残余 89→0（除用户动作 22 行）；queue 未改 | 读 `C:\Temp\a40_*.json`；SQL `notification_log` / `notification_queue` | `a40_correction_ids.json`=**452** 条、`a40_residual_ids.json`=**67** 条；`user_id=1 且 sent_at<2026-11-14` = **22 行**（archive 10/scan 2/test 4/其余 6）；当前 user0=2605、user1=38；`notification_queue` user1=**147**（未改） | 通过 | 与 27 #57 的 452 行订正、22 行用户动作、queue 未改三项吻合 |
 
