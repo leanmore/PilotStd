@@ -23,7 +23,7 @@
 | G-13 | 通知日志 `level` 假闭合（铃铛告警着色不生效） | 已闭合 | `NotificationLogItem` 漏声明 `level`，FastAPI 按 response_model 过滤；修复 `d9a29db1` 后**生产 v0.196.3 实证**：`GET /api/notification/logs` 返回 level，100 条 info 68 / warning 32；见 `27` #83 |
 | G-14 | 配置多实例整文件覆盖写（IP 失败重复通知根因） | 已修复（待部署） | `save()` 写整份快照，长任务收尾覆盖他方键；新增 `update()/update_many()` 并改造 `docker/scheduler`、`_validity_pipeline._finalize_validity_round`；`test_manager_update.py` 4 例；AST 扫描确认“同函数构造+save”仅 1 处（毫秒级）、保存入参的 7 处中跨长任务的 `wechat_ip/scheduler.run_check` 也已改造，同类风险收口；全量后端 6391 passed；见 `27` #86 |
 | G-15 | 深色主题按钮文字对比度不足（3 类共 32 处） | 已修复（待部署） | Playwright 遍历 15 路由、111 个按钮实测：outlined danger 1.36:1（截图那类）、悬浮工作台 2.98:1、侧栏收起 4.04:1；三处 CSS 修正后 dev 复扫 107 个按钮 0 个低于 AA；见 `27` #87 |
-| G-16 | 公告原文/附件不落盘，data/announcements 只建不写 | 已修复（待部署） | 新增 `_raw_archive`：HTML → `announcements/{gb,hb,db}/公告号.html`、附件按后缀落盘并写 `attachment_path`；失败只告警；6 例单测 + `-k announce` 637 例；见 `27` #90 |
+| G-16 | 公告原文/附件不落盘，data/announcements 只建不写 | 已闭合（2026-11-20 补抓完成） | 归档代码 + scripts/backfill_announce_archive.py；生产补抓 877 个唯一公告、成功 933 次、失败 7 条（见 27 #95）；归档代码自 v0.197.0 起随镜像生效，补抓在 v0.197.1 上完成 |
 | G-17 | Inbox 空目录自动清理“假生效” | 已修复（待部署） | 三缺陷：只含 Thumbs.db 的目录清不掉、`remove_empty_dirs` 只清一层、`start==watch_root` 直接 return 且空祖先残留；改为 `remove_dir_if_empty` + 向上收空祖先；52 例 + monitor 120 例；见 `27` #88 |
 | G-18 | 公告抓取起始日期默认「今天」导致漏抓 | 已修复（待部署） | 语义本身正确（起点含当日、提前终止翻页），错在默认值：改「最近 7 天」+ 可清空为全量 + 三语提示；后端 16 例、前端 11 例；见 `27` #89 |
 | G-19 | `/api/clean-empty` 与空目录清理不同口径（垃圾文件目录漏清） | 已修复（待部署） | 改用 `remove_dir_if_empty`，与 monitor 同口径；`test_clean_empty_removes_dirs` 改为真实目录用例（空/垃圾/非空三类）；见 `27` #88 |
