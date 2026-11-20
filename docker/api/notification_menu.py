@@ -124,7 +124,7 @@ def put_menu_config(request: Request, body: MenuConfigUpdate) -> MenuConfigRespo
     cfg.set(f"notification.menus.{channel}.items", body.items)
     if channel == "feishu":
         cfg.set("notification.menus.feishu.chat_id", (body.chat_id or "").strip())
-    # 配置变化后清掉同步快照，让下一次 sync 真正下发
+    # 配置变化后清掉同步快照，让下一次 `sync` 真正下发
     cfg.set(f"notification.menus.{channel}.last_synced", None)
     cfg.save()
     try:
