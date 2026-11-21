@@ -1196,3 +1196,25 @@ ecursive 覆盖子目录。A-44 闭合。
 - **修复**：新增 `GET /api/system/quarantine-stats`（admin，只读），复用归档统计的通用扫描
   `_scan_tree(root, primary_ext)`；返回目录、是否存在、文件数、总字节、按子目录分布与样例。
 - **测试**：`tests/test_api_archive_stats.py` 增 2 例（PDF 计主类型/非 PDF 计附件、目录不存在），共 4 例通过。
+
+### 102. A-27 飞书群发现 + U-1 根因修复 + 迁移前提查证（2026-11-21）
+
+- **A-27 四渠道现状**（代码层已全写，真实下发等生产机器）：
+  | 渠道 | 菜单能力 | 实现 | 缺口 |
+  |---|---|---|---|
+  | 企微 | 3 一级 + 5 二级 | `WecomMenuClient` get/create/delete | 需部署后 `PUT menu/config` + `sync` |
+  | 飞书 | 群菜单（3+5） | `FeishuMenuClient` get/create/delete | **本批补 `list_chats()`**，chat_id 可自动发现 |
+  | Telegram | 3 命令 | `TelegramCommandClient` setMyCommands | 需部署后配置命令并 sync |
+  | 钉钉 | 无服务端菜单 API | `DingtalkMenuClient` 显式 unsupported | 平台限制（02-accepted #9），非实现缺口 |
+  新增 `GET /api/notification/menu/chats?channel=feishu`（admin，只读）：列出机器人所在群（chat_id+名称），
+  供 `PUT /api/notification/menu/config` 自动填 chat_id。测试 4 例（客户端 2 + 端点 3，共 24 例菜单类通过）。
+- **U-1 根因（回答“为什么旧状态为空”）**：不是读库失败。`update_status` 只在**状态变化**时写 `last_status`，
+  而首次入库（`register_new_standard` 与首次检查 INSERT）从不初始化它 → 生产 740/824 行 `last_status` 恒 NULL，
+  界面“上一状态”永远空。**属入库/更新路径缺初始化**。
+  修复：① 登记入库即写 `last_status=未知`；② 首次检查 INSERT 写 `last_status=本次状态`；
+  ③ 未变化分支对历史遗留 NULL 做一次性回填。新增 `tests/test_validity_last_status.py` 4 例。
+- **迁移前提查证（`--check-existing`）**：原规则“只清倒退、空位补反向”是否存在误伤，取决于目标行已有值方向。
+  脚本新增只读模式，输出「目标行总数 / 方向正确 / 本身倒退 / 无法判年 / 为空」。
+  本地两个库（`data/pilotstd.db` 与其备份）`announcement_record` 均为 0 行，无法离线取样；
+  生产不可达期间以既有实测为准：4,000 行样本中方向倒退 3,695（92%），33 个目标行已有值**方向正确 0 条**。
+  规则安全性由构造保证：只清 `year(sup) < year(std)`，方向正确的值不在清理集合内（单测 `test_check_existing_*` 锁定）。

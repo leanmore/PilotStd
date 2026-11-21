@@ -716,3 +716,8 @@ pilotstd/core/
 
 - config/defaults.py、ile_utils.py 内三处注释里的裸英文词改为中文表述，check_g_012_comment_density 全仓 0 阻断 0 警告。
 
+## 时效性 last_status 初始化（U-1，2026-11-21）
+
+- `ValidityChecker.register_new_standard` 入库即写 `last_status=未知`；
+- `update_status` 首次检查 INSERT 写 `last_status=本次状态`；未变化分支对历史 NULL 一次性回填。
+- 动因：此前只在“状态变化”时写该列，导致 740/824 行恒空、界面“上一状态”永远为空。

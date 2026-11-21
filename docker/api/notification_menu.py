@@ -17,7 +17,7 @@ from pydantic import BaseModel
 from pilotstd.core.audit import write_audit
 from pilotstd.core.config import ConfigManager
 from pilotstd.core.notification.menu.config import menu_from_config
-from pilotstd.core.notification.menu.service import MENU_CHANNELS, menu_status, sync_channel
+from pilotstd.core.notification.menu.service import MENU_CHANNELS, build_client, menu_status, sync_channel
 
 from ..auth import require_role
 
@@ -40,6 +40,20 @@ class MenuStatusResponse(BaseModel):
     """四渠道状态响应。"""
 
     channels: list[MenuStatusItem]
+
+
+class MenuChatItem(BaseModel):
+    """可选会话：飞书群的 chat_id 与名称。"""
+
+    chat_id: str
+    name: str = ""
+
+
+class MenuChatsResponse(BaseModel):
+    """会话列表响应。"""
+
+    channel: str
+    chats: list[MenuChatItem]
 
 
 class MenuConfigUpdate(BaseModel):
@@ -136,3 +150,19 @@ def put_menu_config(request: Request, body: MenuConfigUpdate) -> MenuConfigRespo
     except Exception as e:  # 审计失败不改变保存结果，但必须可观测
         logger.error("notification menu config audit failed: %s", e, exc_info=True)
     return MenuConfigResponse(ok=True, channel=channel, enabled=body.enabled, items=len(menu.items))
+
+# 会话发现：飞书群菜单必须先有 chat_id，这里一次性列出机器人所在群
+@router.get("/api/notification/menu/chats", response_model=MenuChatsResponse)
+@require_role("admin")
+def get_menu_chats(request: Request, channel: str = Query("feishu", min_length=1)) -> MenuChatsResponse:
+    """列出可挂菜单的会话（目前仅飞书群）；只读，不创建/修改菜单。"""
+    channel = (channel or "").strip()
+    if channel not in MENU_CHANNELS:
+        raise HTTPException(status_code=400, detail=f"unknown channel: {channel}")
+    if channel != "feishu":
+        raise HTTPException(status_code=400, detail="only feishu supports chat menus")
+    client = build_client(channel, ConfigManager())
+    if not client.supports_menu():
+        raise HTTPException(status_code=400, detail="feishu credentials are not configured")
+    chats = client.list_chats()
+    return MenuChatsResponse(channel=channel, chats=[MenuChatItem(**c) for c in chats])

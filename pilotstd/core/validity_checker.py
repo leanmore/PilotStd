@@ -55,12 +55,23 @@ class ValidityChecker:
         now = datetime.now(timezone.utc).isoformat()
         # 单条 INSERT OR IGNORE：并发首次登记不会撞 standard_number 唯一键，
         # 也不会在 SELECT 与 INSERT 之间被另一个线程抢先插入。
+        # last_status 同步初始化为“未知”：否则登记后到第一次检查前，界面的“上一状态”恒为空（U-1）
         cursor = self._db.execute(
             f"INSERT OR IGNORE INTO {_TABLE} "
-            "(standard_number, status, next_check_at, created_at, updated_at) "
-            "SELECT ?, ?, ?, ?, ? WHERE NOT EXISTS "
+            "(standard_number, status, last_status, last_status_updated_at, "
+            "next_check_at, created_at, updated_at) "
+            "SELECT ?, ?, ?, ?, ?, ?, ? WHERE NOT EXISTS "
             f"(SELECT 1 FROM {_TABLE} WHERE standard_number = ?)",
-            (standard_number, Status.UNKNOWN.value, now, now, now, standard_number),
+            (
+                standard_number,
+                Status.UNKNOWN.value,
+                Status.UNKNOWN.value,
+                now,
+                now,
+                now,
+                now,
+                standard_number,
+            ),
         )
         if not getattr(cursor, "rowcount", 0):
             return
@@ -139,16 +150,13 @@ class ValidityChecker:
             except Exception as e:
                 logger.warning("过期移出通知发送失败: %s, error=%s", standard_number, e)  # i18n-allow: 内部日志
         if not row:
-            self._db.execute(
-                f"INSERT INTO {_TABLE} (standard_number, status, last_checked_at, "
-                "next_check_at, last_changed_at, check_count, created_at, updated_at) "
-                "VALUES (?, ?, ?, ?, ?, 1, ?, ?)",
-                (standard_number, new_status, now_iso, next_check, now_iso, now_iso, now_iso),
-            )
+            self._insert_first_observation(standard_number, new_status, now_iso, next_check)
             return
         if not status_changed:
+            # 历史遗留行：last_status 为空时补写当前状态（一次性回填，之后不再改动）
             self._db.execute(
                 f"UPDATE {_TABLE} SET last_checked_at=?, next_check_at=?, "
+                "last_status=COALESCE(NULLIF(last_status, ''), status), "
                 "check_count=check_count+1, updated_at=? WHERE standard_number=?",
                 (now_iso, next_check, now_iso, standard_number),
             )
@@ -171,6 +179,16 @@ class ValidityChecker:
                 evidence,
                 standard_number,
             )
+
+
+    def _insert_first_observation(self, standard_number: str, new_status: str, now_iso: str, next_check: str) -> None:
+        """首次观测入库：`last_status` 一并初始化为本次状态（U-1 根因：否则该列恒空）。"""
+        self._db.execute(
+            f"INSERT INTO {_TABLE} (standard_number, status, last_status, last_status_updated_at, "
+            "last_checked_at, next_check_at, last_changed_at, check_count, created_at, updated_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)",
+            (standard_number, new_status, new_status, now_iso, now_iso, next_check, now_iso, now_iso, now_iso),
+        )
 
     @staticmethod
     def _parallel_period_active(new_standard: str, implementation_date: str) -> bool:

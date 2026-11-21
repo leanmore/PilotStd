@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, Callable
@@ -19,6 +20,8 @@ from urllib.request import Request, urlopen
 from pilotstd.i18n import t
 
 from .model import Menu, MenuItem
+
+logger = logging.getLogger(__name__)
 
 Transport = Callable[[str, str, dict[str, Any] | None, dict[str, str] | None], dict[str, Any]]
 
@@ -83,6 +86,10 @@ class MenuClient(ABC):
 
     @abstractmethod
     def delete_menu(self) -> MenuResult: ...
+
+    def list_chats(self) -> list[dict[str, str]]:
+        """列出可挂菜单的会话（飞书群）；其它渠道无此概念，默认返回空。"""
+        return []
 
 
 # 企微菜单错误码（官方文档 + 发送侧已取证口径）
@@ -234,6 +241,36 @@ class FeishuMenuClient(MenuClient):
             raise MenuHTTPError(str(data.get("msg") or "tenant token failed"))
         self._token = str(data["tenant_access_token"])
         return self._token
+
+    def list_chats(self) -> list[dict[str, str]]:
+        """拉取机器人所在群（chat_id + 名称），用于自动填 `notification.menus.feishu.chat_id`。"""
+        # 凭证不全时直接返回空：避免拿空凭证去换令票再被平台拒绝
+        if not self.supports_menu():
+            return []
+        try:
+            token = self._access_token()
+        except MenuHTTPError as exc:
+            logger.warning("feishu chat list: token failed: %s", exc)
+            return []
+        try:
+            data = self._transport(
+                "GET",
+                f"{self._BASE}/im/v1/chats?page_size=50",
+                None,
+                {"Authorization": f"Bearer {token}"},
+            )
+        except MenuHTTPError as exc:
+            logger.warning("feishu chat list: request failed: %s", exc)
+            return []
+        if int(data.get("code", -1)) != 0:
+            logger.warning("feishu chat list: api code=%s msg=%s", data.get("code"), data.get("msg"))
+            return []
+        items = ((data.get("data") or {}).get("items")) or []
+        return [
+            {"chat_id": str(it.get("chat_id") or ""), "name": str(it.get("name") or "")}
+            for it in items
+            if it.get("chat_id")
+        ]
 
     def _url(self) -> str:
         return f"{self._BASE}/im/v1/chats/{self._chat_id}/menu_tree"

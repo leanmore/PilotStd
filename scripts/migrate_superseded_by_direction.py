@@ -127,6 +127,50 @@ def _ensure_backup(conn: sqlite3.Connection) -> str:
     return name
 
 
+def check_existing(conn: sqlite3.Connection) -> dict[str, object]:
+    """统计“目标旧标准行自身已有 superseded_by”的方向分布。
+
+    回答的是迁移前提：如果目标行里本来就有“指向更新标准”的正确值，规则“只清倒退”会不会误伤？
+    结论由数据决定：
+    - forward：已有值指向更晚年份 → 正确方向，**不会被本迁移清掉**（只清 year(sup) < year(std)）；
+    - backward：已有值本身也倒退 → 会被清掉，属预期；
+    - unknown：判不出年份 → 保持不动。
+    """
+    targets = {
+        str(r["superseded_by"])
+        for r in conn.execute(
+            "SELECT superseded_by FROM announcement_record "
+            "WHERE superseded_by IS NOT NULL AND superseded_by != ''"
+        )
+    }
+    stats = {"targets": 0, "forward": 0, "backward": 0, "unknown": 0, "empty": 0}
+    if not targets:
+        return stats
+    marks = ",".join("?" for _ in targets)
+    rows = list(
+        conn.execute(
+            f"SELECT standard_number, superseded_by FROM announcement_record "
+            f"WHERE standard_number IN ({marks})",
+            list(targets),
+        )
+    )
+    stats["targets"] = len(rows)
+    for r in rows:
+        existing = (r["superseded_by"] or "").strip()
+        if not existing:
+            stats["empty"] += 1
+            continue
+        y_self = parse_year(r["standard_number"])
+        y_new = parse_year(existing)
+        if not y_self or not y_new:
+            stats["unknown"] += 1
+        elif y_new > y_self:
+            stats["forward"] += 1
+        else:
+            stats["backward"] += 1
+    return stats
+
+
 def collect_plans(conn: sqlite3.Connection, limit: int) -> list[RowPlan]:
     """扫描待处理行并生成计划；`limit=0` 表示不限。"""
     sql = (
@@ -206,6 +250,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--apply", action="store_true", help="真正写库（默认只演练）")
     ap.add_argument("--json", default="", help="把计划写到 JSON（--apply 时作为回滚依据）")
     ap.add_argument("--rollback", default="", help="按之前的 JSON 计划回滚")
+    ap.add_argument("--check-existing", action="store_true", help="只统计目标行已有值的方向分布")
     args = ap.parse_args(argv)
 
     db_path = Path(args.db)
@@ -213,6 +258,15 @@ def main(argv: list[str] | None = None) -> int:
         print(f"数据库不存在: {db_path}", file=sys.stderr)
         return 2
     conn = _connect(db_path)
+
+    if args.check_existing:
+        stats = check_existing(conn)
+        print(
+            "目标旧标准行统计：总数 {targets}｜方向正确 {forward}｜本身倒退 {backward}｜"
+            "无法判年 {unknown}｜为空 {empty}".format(**stats)
+        )
+        print("说明：方向正确的值不会被本迁移清掉（只清 year(sup) < year(std)）。")
+        return 0
 
     if args.rollback:
         if not args.apply:

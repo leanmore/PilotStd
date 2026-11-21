@@ -577,7 +577,7 @@ B1（声明类 vs 实现类）已覆盖同一语义、且每次 CI 都在跑；�
 > 死调用 / 页面缺 `meta.permission`”矩阵（`--md` / `--json`）。仅供阶段审计使用，**不参与门禁模式**。
 >
 
-> **迁移脚本（非门禁，2026-11-21）**：`scripts/migrate_superseded_by_direction.py` —— 纠正 `announcement_record.superseded_by` 方向（默认演练；`--apply` 前建列级备份表；支持 `--rollback`）。全量执行需窗口与授权。
+> **迁移脚本（非门禁，2026-11-21）**：`scripts/migrate_superseded_by_direction.py` —— 纠正 `announcement_record.superseded_by` 方向（默认演练；`--check-existing` 先统计目标行已有值方向；`--apply` 前建列级备份表；支持 `--rollback`）。全量执行需窗口与授权。
 
 > **数据补抓脚本（非门禁，2026-11-20）**：scripts/backfill_announce_archive.py —— 遍历 nnouncements 表，
 > 逐条 POST /api/announcements/{no}/reparse 触发重抓，让公告归档逻辑补写历史 HTML/附件到 data/announcements/；

@@ -113,3 +113,14 @@
 - 400 其它：来自菜单校验（超限/重复 id/order 不连续/view 带子项）。
 
 保存成功后 `last_synced` 被清空，下一次 `POST /api/notification/menu/sync?channel=...` 会真正下发。
+
+## `GET /api/notification/menu/chats`（2026-11-21 新增）
+
+列出可挂菜单的会话（目前仅飞书群），用于给 `PUT /api/notification/menu/config` 填 `chat_id`。
+
+| 参数 | 说明 |
+|---|---|
+| `channel` | 目前只接受 `feishu`；其它渠道 400 |
+
+响应 `{"channel": "feishu", "chats": [{"chat_id": "oc_xxx", "name": "群名"}]}`。
+凭证未配置时 400（`feishu credentials are not configured`），不发起网络请求。

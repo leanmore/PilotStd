@@ -88,6 +88,29 @@ def test_apply_only_fills_empty_targets(tmp_path):
     assert rows[5] == "GB 2-2025"                        # 正向不动
 
 
+def test_check_existing_reports_direction_mix(tmp_path):
+    """--check-existing 的前提结论：正确方向的值不会被计为“将清理”。"""
+    conn = _temp_db()
+    conn.execute(
+        "INSERT INTO announcement_record (id, standard_number, superseded_by) "
+        "VALUES (6, 'GB 9-2010', 'GB 9-2020')"
+    )
+    conn.execute(
+        "INSERT INTO announcement_record (id, standard_number, superseded_by) "
+        "VALUES (7, 'GB 9-2020', 'GB 9-2030')"
+    )
+    conn.commit()
+    stats = m.check_existing(conn)
+    assert stats["targets"] >= 1
+    assert stats["forward"] >= 1        # GB 9-2010 -> GB 9-2020 方向正确
+    assert stats["backward"] >= 1       # 目标行里也有倒退值（GB 8840-2009 -> GB 8840-1990）
+    assert stats["empty"] >= 1          # GB 6000-1999 原本为空
+
+    plans = m.collect_plans(conn, 0)
+    cleared = {v for p in plans for v in p.dropped}
+    assert "GB 9-2020" not in cleared   # 正确方向的值不在清理集合里（无误伤）
+
+
 def test_json_plan_rollback_restores(tmp_path):
     conn = _temp_db()
     plan_file = tmp_path / "plan.json"
