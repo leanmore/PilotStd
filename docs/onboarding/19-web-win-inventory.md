@@ -10,7 +10,7 @@
 
 ### 1. 规模
 
-- `docker/api/`：**44 个 router 模块、132 个唯一 `/api` 路径**；
+- `docker/api/`：**44 个 router 模块、133 个唯一 `/api` 路径**；
 - `web/src/views/`：**21 个视图**；
 - `web/src/api/`：15 个 API 模块。
 
