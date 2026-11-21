@@ -32,11 +32,50 @@ gate = _load()
 DOCS_ONLY = ["docs/index.md"]
 
 
-def test_fix_message_without_test_change_blocks() -> None:
-    """提交消息含 fix 且没改测试 ⇒ 规则 0 阻断。"""
-    result = gate.run_check(changed_files=DOCS_ONLY, commit_msg="fix(gate): x\n", bugfix_only=True)
+def test_fix_message_without_test_change_blocks_for_code() -> None:
+    """含代码改动 + fix 消息 + 没改测试 ⇒ 规则 0 仍阻断（豁免只给纯文档）。"""
+    result = gate.run_check(
+        changed_files=["scripts/check_g_013_test_coverage.py"],
+        commit_msg="fix(gate): x\n",
+        bugfix_only=True,
+    )
     assert result["passed"] is False
     assert any("[TEST-BLOCK]" in e for e in result["errors"])
+
+
+def test_docs_only_fix_message_is_exempt() -> None:
+    """① 纯文档 + 文件名/正文含 fix ⇒ 放行（2026-11-21 豁免）。"""
+    result = gate.run_check(changed_files=DOCS_ONLY, commit_msg="fix(docs): 修 26 号档案引用\n", bugfix_only=True)
+    assert result["passed"] is True
+    assert result["errors"] == []
+    assert gate.is_docs_only(DOCS_ONLY) is True
+
+
+def test_code_path_not_exempt() -> None:
+    """② 含任一代码/脚本/配置路径 ⇒ 不豁免。"""
+    for path in ("scripts/check_g_013_test_coverage.py", "docker/api/pending.py", "config/x.json", "web/src/a.vue"):
+        assert gate.is_docs_only([path]) is False, path
+    result = gate.run_check(
+        changed_files=["docker/api/pending.py"],
+        commit_msg="fix(api): 修边界\n",
+        bugfix_only=True,
+    )
+    assert result["passed"] is False
+    assert any("[TEST-BLOCK]" in e for e in result["errors"])
+
+
+def test_mixed_paths_not_exempt() -> None:
+    """③ 文档 + 代码混合 ⇒ 不豁免。"""
+    mixed = [*DOCS_ONLY, "scripts/check_g_013_test_coverage.py"]
+    assert gate.is_docs_only(mixed) is False
+    result = gate.run_check(changed_files=mixed, commit_msg="fix(gate): 文档与门禁同改\n", bugfix_only=True)
+    assert result["passed"] is False
+    assert any("[TEST-BLOCK]" in e for e in result["errors"])
+
+
+def test_empty_change_list_not_exempt() -> None:
+    """空改动列表不豁免（拿不到范围时不能默认放行）。"""
+    assert gate.is_docs_only([]) is False
 
 
 def test_fix_message_with_test_change_passes() -> None:
