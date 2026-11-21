@@ -1366,3 +1366,11 @@ ecursive 覆盖子目录。A-44 闭合。
 - **测试发现（登记 A-53）**：`disabledBg` / `disabledText` 在四主题都有值，但 `applyThemeToDom` 未映射、
   `style.css` 也无声明 → **死键**。按 P2 约束（不得为过测试改值）只登记，不接线。
 - **结果**：`design-tokens.test.ts` 9 例通过（原 6 例 + 新增 4 例 - 合并重复 1 例）。
+
+补充记录（裁决条件②）：
+1. **PrimeVue 4.5.5 的 ProgressSpinner 无 size/height prop**：其 `@primeuix/styles` 里 `.p-progressspinner{width:100px;height:100px}`
+   为字面量，`dt` 仅覆盖 `color.one..four`；故采用官方 `pt`（passthrough）注入 `var(--size-20)`，**作用域为该组件实例**。
+2. **不泄漏**：同页只有这一个 spinner；`AnnounceDetail.vue`、`LegacyRedirect.vue` 的 spinner 未加任何覆盖，保持默认尺寸。
+3. **验收方式**：未新增渲染断言（仓库无该组件的渲染测试），尺寸正确性靠构建通过 + 视觉/人工验证；
+   构建期已验证 `pt` 绑定被正确编译（`pnpm build` 通过）。
+4. **回退 TODO**：若后续 PrimeVue 提供 size prop，改回组件属性并删 `pt`，不新开债号（挂在 A-51 关闭说明）。
