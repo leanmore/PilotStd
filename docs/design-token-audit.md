@@ -1351,6 +1351,10 @@
 
 **备选：`web/src/views/DownloadQueue.vue`**（9 条，全 A、零 TODO）—— 适合验证"纯机械替换不改视觉"。
 
+**试点执行记录（2026-11-21，commit `cdee6c46`）**：`NotificationBell.vue` 的 A 类 **17 条已全部替换**，B 类 1 条（`height: 8px` 状态圆点）按约定只加 `TODO: [Design Debt]` 不替换；C 类未动。四件套全绿（test 421 passed 与试前一致）。**注意：§4 生成区块仍是阶段二审计快照**（该文件仍列 18 条），全量替换完成后统一重跑 `scripts/audit_design_tokens.py` 刷新；试点后的实际状态为 A=0 / B=1 / 0 处颜色字面量。
+
+**试点发现的既有缺口**：状态圆点色 `--warning` 在浅色底上仅 2.15:1（green 主题 2.05:1），低于非文本对比度 3:1；该值替换前就是同色字面量 `#f59e0b`，**非本次引入**，登记为 DT-12。
+
 **不建议做试点**：`views/settings/shared.css`（68 条，含 5 条 B 与跨 Tab 共享语义）、`components/NotificationConfig.vue`（66 条）、`style.css`（44 条，其中 93 处 PrimeVue 覆盖属 RETAINED 白名单，误改会破坏 a11y 修复）。
 
 ---
@@ -1370,6 +1374,7 @@
 | DT-09 | **RETAINED 白名单进基线**：93 处 PrimeVue 覆盖 + 日期选择器/表格表头属已批准例外 | C 类 | 阶段六写入 G-055 基线 |
 | DT-10 | **PrimeVue 组件作用域 token 限制**：`--p-datatable-*` 等不在 `:root`，根注入无效 | 已在 `RETAINED_CSS_OVERRIDES` 记录 | 升级 PrimeVue 时重新评估 |
 | DT-11 | **死 fallback 清理**：28 处 `var(--已定义令牌, 字面量)` 的 fallback 已无意义（如 `var(--border-light, #ccc)`） | C 类，不影响视觉 | 可随阶段五顺手清，需单独 commit |
+| DT-12 | **`--warning` 状态圆点对浅色底不足 3:1**：light 2.15 / green 2.05（dark 8.76 / blue 9.95 通过）。试点 `NotificationBell.vue` 的 `.item-dot` 逐主题实测；替换前为同色字面量 `#f59e0b`，非试点引入 | 既有取值 | 需调 `--warning` 或新增 `--warning-indicator` 语义令牌；属独立决策，不在令牌替换批次内 |
 
 ---
 
