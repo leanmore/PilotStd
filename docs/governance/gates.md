@@ -118,6 +118,7 @@
 - **阻断条件**：目标文档存在但未同步更新 → 阻断；目标文档不存在 → 按模式处理，`block` 同样阻断、`warn` 仅告警（当前 12 条均为 `block`，且 12 个目标文档均已存在）
 - **执行方式**：`python scripts/check_g_031_docs_sync.py`
 - **文档检索工具**（2026-11-07）：`scripts/find_docs.py` 是只读检索工具，不是门禁；它用于任务开始前按关键词找文档。按本表 `scripts/` → 本文件的映射，新增该脚本时同步登记本条；检索结果仍需人工打开原文确认，不能替代 G-031/G-037/G-052。
+- **令牌审计工具**（2026-11-21）：`scripts/audit_design_tokens.py` 是只读审计工具，**不是门禁**；扫描 `web/src` 下 `.vue`/`.css` 的硬编码视觉字面量，按 A/B/C/D 四类归档，并刷新 `docs/design-token-audit.md` 的生成区块（`<!-- AUDIT:BEGIN -->`…）。按本表 `scripts/` → 本文件的映射，新增该脚本时同步登记本条；它的**阻断形态**是 G-055（棘轮门禁，只拦新增），二者共用同一套分类函数。
 
 > **v2.27**：变更文件范围不可知时 exit 2（而非静默 PASS）；干净仓库（git 正常返回空）仍 PASS。
 
@@ -653,6 +654,7 @@ B1（声明类 vs 实现类）已覆盖同一语义、且每次 CI 都在跑；�
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
+| v2.60 | 2026-11-21 | **登记设计令牌审计工具（非门禁）**：新增 `scripts/audit_design_tokens.py`（只读，扫描 `web/src` 下 .vue/.css 的硬编码视觉字面量，A/B/C/D 分类，刷新 `docs/design-token-audit.md` 的生成区块）。按 G-031 的 `scripts/` → 本文件映射同步登记；其阻断形态为**待建的 G-055**（棘轮门禁，只拦新增，与审计工具共用分类函数）。同批交付 `docs/design-token-audit.md`（A 979 / B 115 / C 628 / D 0）。 |
 | v2.56 | 2026-11-19 | **G-029 识别「仅注释变更」，不再误判缺测试**：G-029 要求 `pilotstd/ui/` 变更必须同步 `tests/gui/`｜`tests/test_ui*`，但注释/docstring 变更不改变语义，强制补测试只能产物化无意义用例。新增 `is_comment_only(path, range)`：取范围左端基线内容与工作区内容各建 AST，docstring 文本归一化为占位符后比较，两侧相同即剔除；基线取不到（新增文件/git 不可用/读失败）或语法错误一律按真变更处理。同批补 `sys.stdout.reconfigure(encoding="utf-8")`（Windows GBK 控制台打印 ❌ 明细会 UnicodeEncodeError）。起因：V-17 注释规范化批的 15 个 `pilotstd/ui/` 纯注释文件被判红。测试 `tests/test_check_g_029_comment_only.py`（5 例） |
 | v2.55 | 2026-11-19 | **G-012 `[LANG]` 改为按词判定（V-17 收口，1511 → 0）**。原规则「注释里出现任意英文字母即警告」，对中文注释引用标识符 100% 误报——全仓 1511 条里绝大多数是 `PILOTSTD_API_TOKEN`、`aggregate_keys.py`、`task_id` 这类查证入口。改为：先剔除工具指令（新增 `i18n-allow`，与 `noqa` 同类）、行内代码（反引号）、引号字符串、文件名形态；剩余英文片段只拦**英文普通词**（warning/debug/def/import/dict 等），形如代码标识符的（含 `_` `.` `/` 括号连字符、数字，或含大写字母）放过。口径延续 v1.13 裁定「能中文化的一律中文，用作查证入口的标识符不意译」，区别是标识符**不再需要逐条登记白名单**。实测：1511 → 504（规则收口）→ 0（504 行分 6 批改写：叙事词译中文，裸标识符加反引号）；`--fix` 仍禁止使用（其实现是删光英文字母，见 v1.13）。 |
 | v2.53 | 2026-11-15 | **P2-11 数据修复脚本扩展（非门禁）**：`scripts/repair_validity_keys_v2.py` 新增 `--source validity`（用 `standard_validity` 内部同号/同年 canonical，不再依赖已清空的 `file_index`）；同批修复 validity 键登记根因（`build_standard_number` + `register_new_standard` 守卫），生产 apply 待窗口 |
