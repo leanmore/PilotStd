@@ -1249,3 +1249,29 @@ ecursive 覆盖子目录。A-44 闭合。
   是**纯 event_type 映射**——`security_alert → warning`、`task_failure → error`、其余 `info`，
   与投递 `status` 无关、无时间窗聚合。因此“100 条里 info/warning 数”只随**最新 100 条的内容**变化；
   声称 68/32、实测 66/34 属窗口内容变化（新增日志构成不同），统计逻辑无偏差，不改。
+
+### 105. 追问回复：零渠道行为 / G-13 更正 / U-1 回填方式 / A-46 本地可查性（2026-11-21）
+
+- **零渠道用户（D-2 缺口①的真实边界）**：改投递回退之前，策略表无行 + rules 为空 ⇒ 返回 `[]`
+  ⇒ `_dispatcher` 只记 `logger.info` 就 return，**DB 不落任何行** ⇒ 站内完全看不到，等于静默丢弃。
+  上一批回退到“已启用渠道”只解决了“配了渠道但策略表没行”的用户，**零渠道用户仍 0/44**。
+  本批补强：零渠道时写一行 `channel='none'`、`status='skipped'` 的记录（可用
+  `notification.record_unconfigured_events` 关闭），前端把 `none` 显示为「未配置渠道」
+  ⇒ 至少“丢了什么”在站内可查。测试：后端 2 例 + 前端 1 例。
+  仍未做（记为缺口 G-45）：首次登录引导配置渠道（前端提示），需要产品文案与交互设计。
+- **G-13 更正**：上一批我写“68/32→66/34 属窗口内容变化（新增 2 条 info）”，**这句自相矛盾**——
+  若新增 2 条 info，应为 70/32 而不是 66/34。正确说法：100 条窗口内 info 净减 2、warning 净增 2，
+  要定论必须拿到两个时点的 `event_type × level` 分布；当前生产不可达，**结论降级为“待核实”**。
+  核实 SQL：`SELECT event_type, COUNT(*) c FROM notification_log GROUP BY event_type ORDER BY c DESC;`
+  再按 `ORDER BY id DESC LIMIT 100` 取窗口分布对比。判定标准：若窗口内 warning 类（`security_alert`、
+  `task_failure`）行数确为 34，则 66/34 正确、口径无偏差；若 event_type 分布与 68/32 相同，则是统计口径问题，需修。
+- **U-1 历史回填方式**：**是代码自动触发，不是独立脚本**。`ValidityChecker.update_status()` 的“状态未变化”
+  分支里带 `last_status=COALESCE(NULLIF(last_status,''), status)`，因此某标准**下一次被检查时**才会回填；
+  没有一次性全表脚本、也未在生产跑过（需要一次 validity 检查，属生产写操作）。
+  明天验证口径：跑一轮检查后 `SELECT COUNT(*) FROM standard_validity WHERE last_status IS NULL` 应从 740 降到“未被检查过的行数”。
+- **A-46 本地可查性**：**缺数据，不缺环境**。本地 `data/pilotstd.db` 与 `data/backups/*.bak` 的
+  `announcement_record` / `file_index` 均为 0 行，仓库里也没有 `/standards` 目录（`standards/` 不存在），
+  无法复现“825 跳过、33 找不到”。已确认的事实是：那 33 条的 `file_path` 全在 `/inbox/...`，
+  且 `/api/files` 逐条核对文件**确实不存在** ⇒ 属陈旧 pending，不是匹配算法失效。
+  若要在本地复现匹配逻辑，需要一份 `/standards` 目录 + 对应 `file_index` 快照（生产数据）；
+  代码层可以补“路径不存在 → 记 file_missing”的单测（构造临时目录），这不依赖生产。

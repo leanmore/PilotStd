@@ -935,7 +935,8 @@
       "wechat": "企業微信",
       "telegram": "Telegram",
       "feishu": "飛書",
-      "dingtalk": "釘釘"
+      "dingtalk": "釘釘",
+      "none": "未設定渠道"
     },
     "settings": {
       "config_title": "通知設定",

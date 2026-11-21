@@ -171,7 +171,10 @@ export function useNotificationLogs() {
   /** 渠道显示名：按 spec 的 label_key 解析，未知渠道原样回显（保持既有行为） */
   function channelLabel(v: string): string {
     const spec = channelSpecs.value.find((s) => s.name === v)
-    return spec && te(spec.label_key) ? t(spec.label_key) : v
+    if (spec && te(spec.label_key)) return t(spec.label_key)
+    // 零渠道用户的事件以 channel='none' 落库（D-2 缺口①补强），给它一个可读名
+    if (v === 'none') return te('notification.channel.none') ? t('notification.channel.none') : 'none'
+    return v
   }
 
   // 渠道清单来自后端声明——新增渠道时本页自动跟随（此前漏过 dingtalk，见 C1 报告）

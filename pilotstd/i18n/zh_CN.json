@@ -885,5 +885,7 @@
   "notification.auto.auto_pipeline_summary.body.organize_moved": "归档完成",
   "notification.renderer.detail": "详情",
   "notification.renderer.level.warning": "⚠️ 警告",
-  "notification.renderer.level.error": "❌ 错误"
+  "notification.renderer.level.error": "❌ 错误",
+  "notification.manager.skipped_no_channel": "未配置任何通知渠道，事件未投递（站内可见）",
+  "notification.channel.none": "未配置渠道"
 }

@@ -728,3 +728,9 @@ pilotstd/core/
 - 链接：构建期 `_links.absolutize_message_link()` 用 `notification.web_base_url` 把 `/standards/xxx` 变绝对地址；
   未配置/回环则清空（宁可不给链接，也不给坏链）。
 - 级别：`renderer_base.level_prefix()` 只在 warning/error 加前缀，基类 `render()` 与飞书/钉钉卡片统一使用。
+
+## 零渠道事件可见性（D-2 缺口①补强，2026-11-21）
+
+- `_dispatcher.send_event` 在目标渠道为空时不再只打日志：写一行 `channel='none'`、`status='skipped'`
+  的记录（`notification.record_unconfigured_events` 可关闭），Web 端把 `none` 显示为“未配置渠道”。
+- 目的：新装用户零渠道时，“丢了哪些事件”在站内可查；首次登录引导配置渠道另见 G-45。

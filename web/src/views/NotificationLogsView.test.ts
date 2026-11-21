@@ -119,6 +119,26 @@ describe('NotificationLogsView', () => {
     expect(wrapper.find('.empty').text()).toBe('暂无通知记录')
   })
 
+  it('renders zero-channel rows with a readable label', async () => {
+    // D-2 缺口①补强：零渠道用户的事件以 channel='none' 落库，页面必须显示“未配置渠道”，
+    // 否则用户看到的是裸的 none，等于把“没配渠道”这件事藏起来。
+    mockGetLogs.mockResolvedValueOnce({
+      items: [
+        { id: 9, event_type: 'download_failed', channel: 'none', title: '未投递', body: 'no channel', standard_number: null, status: 'skipped', error_msg: '未配置任何通知渠道', sent_at: '2026-11-21T12:00:00', is_read: false },
+      ],
+      total: 1,
+      page: 1,
+      page_size: 20,
+    })
+    const wrapper = mountComponent()
+    await nextTick()
+    await nextTick()
+    await nextTick()
+    const rows = wrapper.findAll('tbody tr')
+    expect(rows.length).toBe(1)
+    expect(rows[0].text()).toContain('未配置渠道')
+  })
+
   it('renders log rows when API returns data', async () => {
     mockGetLogs.mockResolvedValueOnce({
       items: [

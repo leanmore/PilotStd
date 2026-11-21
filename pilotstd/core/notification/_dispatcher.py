@@ -109,6 +109,20 @@ def send_event(
     if target_channels is None:
         target_channels = host._policy.get_channels_for_event(delivery, event_type, event_data)
     if not target_channels:
+        # 零渠道（含新装未配置）：不能只打日志——否则事件在站内完全不可见，等于静默丢弃。
+        # 写一行“无渠道”的跳过记录，让“丢了什么”可查；可用配置关闭。
+        if host._cfg.get("notification.record_unconfigured_events", True):
+            msg = host._build_message(event_type, event_data)
+            msg.user_id = log_user_id
+            msg.delivery_user_id = delivery
+            host._log(
+                event_type,
+                "none",
+                msg,
+                "skipped",
+                t("notification.manager.skipped_no_channel"),
+                iso_now(),
+            )
         logger.info(t("notification.manager.skip_no_channels").format(event=event_type))
         return
     if _suppress_nochange(host, event_type, event_data):

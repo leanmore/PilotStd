@@ -881,5 +881,7 @@
   "notification.auto.auto_pipeline_summary.body.organize_moved": "Archived",
   "notification.renderer.detail": "Details",
   "notification.renderer.level.warning": "⚠️ Warning",
-  "notification.renderer.level.error": "❌ Error"
+  "notification.renderer.level.error": "❌ Error",
+  "notification.manager.skipped_no_channel": "No notification channel configured; event not delivered (visible in app)",
+  "notification.channel.none": "No channel"
 }

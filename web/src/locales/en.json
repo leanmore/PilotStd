@@ -935,7 +935,8 @@
       "wechat": "WeCom",
       "telegram": "Telegram",
       "feishu": "Feishu",
-      "dingtalk": "DingTalk"
+      "dingtalk": "DingTalk",
+      "none": "No channel"
     },
     "settings": {
       "config_title": "Notification Settings",
