@@ -464,3 +464,60 @@ python scripts/audit_design_tokens.py           # 刷新本文件 §4（默认�
 **全量后的门禁输入**：**B=115**（113 条带 `TODO: [Design Debt]` + 2 条内联白名单）+ **C=628**；全树 TODO 文本 114 处（113 B + 1 旧圆角别名）。G-055 的棘轮基线按此生成，只含 C 类分组、B 类 TODO 项与 2 条内联白名单；A 类为 0 表示"任何新增可映射硬编码当场红灯"。三处口径（本节 / §0 / 基线文件 `scripts/design_token_baseline.json`）必须一致。
 
 **修复的守护测试**：`web/src/styles/design-tokens.test.ts`（6 例）—— ① `var()` 无未定义引用；② `style.css` 默认层与 `themes.ts` light 一致；③ 无失效文档引用；④ 令牌文件无颜色字面量；⑤ 不覆盖旧 `--radius-*`；⑥ 关键尺度令牌齐备。反向验证已做：注入 `var(--definitely-undefined)` 与 `--ds-bad: #ff00ff` 均报错，恢复后 6 passed。
+
+---
+
+## 12. 交付四要素（2026-11-21 收口）
+
+### 12.1 变更摘要
+
+分支 `chore/design-tokens` → `main`（PR #9，draft）。**截至 7-2 提交：16 个提交 / 82 files / +6712 −801**；7-3 追加本附录后总数为 17 个提交（数字锚定到 7-2，避免『本附录自身也计入』的自指矛盾）。
+
+| 类别 | 文件数 | 内容 |
+|---|---|---|
+| `web/src` | 61 | 令牌层 63 令牌 + 979 条 A 类替换 + D1–D5 修复 |
+| `docs` | 13 | 审计报告、治理登记、08/26/27 回写、债务台账、CI 教训 |
+| `scripts` | 4 | 审计工具、G-055 门禁、基线（611 条目）、`check_all.sh` 接线 |
+| `tests` | 2 | 令牌守护 6 例 + CI 配置回归 3 例 + 门禁受控 9 例 |
+| `.github` | 2 | `ci.yml` G-029 范围、`deep-gate.yml` 补 pytest |
+
+阶段产物：① 主题无关尺度层（无颜色字面量）；② D1 未定义变量 11 名/26 处清零、D2 默认层漂移修正、D4/D5 文档与引用清理；③ 审计 1722 命中（A 979 / B 115 / C 628 / D 0）；④ 全量替换 A 类 979 条（试点 + 5 批，每批独立提交与四件套）；⑤ G-055 棘轮门禁 + 基线；⑥ PR 路径两处既有 CI 缺陷修复。
+
+### 12.2 验收证据
+
+| 证据 | 结果 |
+|---|---|
+| 每批四件套 | type-check 0 / lint 0 errors（304 warnings 未增）/ vitest **421 passed** / build 0 |
+| 本地门禁 | `check_all.sh --fast --guards --local` exit 0；`--ci`（CI 严格模式复刻）exit 0 |
+| 审计可复现 | `audit_design_tokens.py --check` → A=0 / B=115 / C=628 / D=0；报告重跑幂等 |
+| 门禁反证 | 真实仓库注入 hex / 固定像素 / 内联 height 均 exit 1；受控测试 9 例；空范围 G-029 非 0 退出 |
+| **PR #9 CI（`bc061a9f`）** | CI/CD run [44894805257](https://github.com/leanmore/PilotStd/actions/runs/44894805257) **success**（10 jobs，3 skipped 属非 main）；Deep Gate run [44894805295](https://github.com/leanmore/PilotStd/actions/runs/44894805295) **success** |
+| 关键步骤级 | `G-055`（test-frontend step 8）success ；`G-029`（repo-compliance step 7）success ；`Run GUI unit tests` success ；`deep-gate-check` success |
+
+### 12.3 回滚说明
+
+**文档类提交按逆序**（先撤本 §12 交付摘要 → 再撤 7-1 的 08/26/27 与债务台账回写 → 最后撤 7-2 能力矩阵时间戳）——§12 引用了 7-1 定义的 A-50/A-51/A-52、V-19，先撤 7-1 会让引用悬空；**代码类提交按粒度独立回滚**，互不依赖：
+
+```bash
+git revert 5f52a4d9   # 只撤 08/26/27 + 债务台账回写
+git revert 34a2b1c1   # 只撤能力矩阵时间戳
+git revert bc061a9f   # 只撤 PR 路径 CI 配置修复（会退回 G-029 在 PR 下误报）
+git revert 00097f12   # 只撤 G-055（删基线后门禁 exit 2，不会静默通过）
+git revert b48c7e77   # 只撤 style.css 批；其余 4 批同理
+git revert 53b7d3ee   # 只撤 D1–D5（会让 var() 失去定义，不建议单独回滚）
+```
+
+- **令牌文件（`2bc21202`）与缺陷修复（`53b7d3ee`）是其余替换的前提**，单独回滚它们会让 979 处 `var()` 失去定义；
+- 回滚任意替换批次后，对应文件恢复字面量，视觉等价（A 类映射均为同值）。
+
+### 12.4 遗留清单
+
+| 编号 | 内容 | 状态 |
+|---|---|---|
+| **DT-12 / A-50** | `--warning` 状态圆点对浅色底 2.15:1（green 2.05），低于非文本 3:1；替换前即同值字面量 | 登记不修；触发条件＝状态点被要求可感知 / 无障碍专项 |
+| **A-51** | 2 条内联高度（`PendingView:90` 20px、`SystemResources:49` 24px）在 G-055 白名单内 | 待模板重构；禁止为过门禁单独加 class |
+| **A-52** | B 类 115 条无令牌硬编码（113 TODO + 2 内联），受棘轮按基线次数保护 | 按类补令牌后批量替换 |
+| **V-19** | `no-literal` 177 条口径收紧风险（收紧会产生大量 `[STALE]`） | 观察；一次涌现 >20 行需先重生成基线并人工评审 |
+| **D2 结构性遗留** | 令牌"双层真相"仍在：测试只锁 light 主题与默认层一致，**其余三主题默认值无校验** | 未修（结构性，需另行设计） |
+| **G-013 误报** | 提交信息里出现文件名 `26` 号档案时，`\bfix\b` 命中文件名片段，把纯文档提交判成"缺陷修复提交" | 待评估。**本次未改门禁、未使用 `--no-verify`**，仅调整提交信息措辞（把文件名改称"26 号档案"），门禁判定逻辑保持原样 |
+
