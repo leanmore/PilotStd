@@ -14,7 +14,7 @@
 | **当前状态（全量替换后）** | 命中 **743** 条：**A 0** / B 115 / C 628 / D 0 |
 | 阶段二审计快照（替换前） | 命中 1722 条：A 979 / B 115 / C 628 / D 0（不含已令牌化声明 859 条、与视觉无关的声明 1095 条） |
 | A 精确映射 | **979 条已全部替换**（试点 17 + 5-1 118 + 5-2 204 + 5-3 272 + 5-4 333 + 5-5 35），见 §7 |
-| B 近似映射 | **115 条保持字面量**：113 条已加 `TODO: [Design Debt]`，2 条内联 `style` 无法插 CSS 注释（登记待人工） |
+| B 近似映射 | **115 条保持字面量** = **113 条带 `TODO: [Design Debt]`**（5 批 112 + 试点 1）+ **2 条内联白名单**（`PendingView:90 height:20px`、`SystemResources:49 height:24px`，HTML 属性无法插 CSS 注释）。全树 TODO 文本共 **114 处** = 113（B 行）+ 1（旧圆角别名 `10px → var(--radius)`，对应一条已替换的 A 行） |
 | C 排除 | **628** 条 —— 令牌定义、`var()` fallback、PrimeVue 覆盖白名单、SVG 图表、布局尺寸等（理由见 §4.2） |
 | D 缺陷 | **0** 条 —— 修复前为 11 个未定义变量 / 26 处引用（D1），已清零并由测试守护 |
 | 涉及文件 | 60 / 66（`styles/design-tokens.css` 与 `theme.css` 无命中） |
@@ -461,6 +461,6 @@ python scripts/audit_design_tokens.py --check   # 输出 A/B/C/D 计数，不写
 python scripts/audit_design_tokens.py           # 刷新本文件 §4（默认全量，不截断）
 ```
 
-**全量后的门禁输入**：B=115（其中 113 条带 `TODO: [Design Debt]`、2 条内联样式待人工）+ C=628。G-055 的棘轮基线按此生成，只含 C 类例外与 B 类 TODO 项，A 类为 0 表示"任何新增可映射硬编码当场红灯"。
+**全量后的门禁输入**：**B=115**（113 条带 `TODO: [Design Debt]` + 2 条内联白名单）+ **C=628**；全树 TODO 文本 114 处（113 B + 1 旧圆角别名）。G-055 的棘轮基线按此生成，只含 C 类分组、B 类 TODO 项与 2 条内联白名单；A 类为 0 表示"任何新增可映射硬编码当场红灯"。三处口径（本节 / §0 / 基线文件 `scripts/design_token_baseline.json`）必须一致。
 
 **修复的守护测试**：`web/src/styles/design-tokens.test.ts`（6 例）—— ① `var()` 无未定义引用；② `style.css` 默认层与 `themes.ts` light 一致；③ 无失效文档引用；④ 令牌文件无颜色字面量；⑤ 不覆盖旧 `--radius-*`；⑥ 关键尺度令牌齐备。反向验证已做：注入 `var(--definitely-undefined)` 与 `--ds-bad: #ff00ff` 均报错，恢复后 6 passed。
