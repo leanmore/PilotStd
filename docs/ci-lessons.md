@@ -414,3 +414,45 @@ CI 的 NODE_VERSION 从浮动 22 固定到 22.23.4，修复 2026-10-21 Node.js �
 - **反证**：除 9 例受控测试外，在真实仓库临时注入 `#123456`、`font-size: 15px`、
   内联 `height: 21px` 均 exit 1，逐次还原后 exit 0。**只跑单测不做真实反证**，
   无法证明门禁真的接在这棵树上（同 2026-10-17 的"门禁脚本存在但无人调用"教训）。
+
+---
+
+## 2026-11-21：PR 路径暴露的两处既有 CI 配置缺陷（G-029 范围 / deep-gate 缺 pytest）
+
+> 背景：本仓以直推 `main` 为主，PR 路径长期无人走。首个真实 PR（#9）把两处潜伏缺陷同时暴露。
+
+### 缺陷 A：G-029 在 `pull_request` 事件下必然误报"0 变更文件"
+
+- **现象**：PR run `44893174320` 的 `repo-compliance` 红在 `G-029`，日志
+  `G029_RANGE: ..2ceeef1… → [G-029] FAIL: 显式范围内 0 个变更文件`。
+- **根因**：`ci.yml` 的 `G029_RANGE` 用 `${{ github.event.before }}..${{ github.sha }}`。
+  `before` **是 push 载荷字段**，PR 事件下展开为空串 → 范围变 `..<sha>` → 0 文件；
+  而 G-029 自 v2.06 起对"显式范围 0 文件"**拒绝静默通过**（见 gates.md v2.06 D-7），于是必然 FAIL。
+- **修复**：按事件回落 —— push 保持 `before..sha`；PR 取 `pull_request.base.sha..pull_request.head.sha`：
+  `G029_RANGE: ${{ github.event.before || github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha || github.sha }}`
+- **影响面**：仅 G-029 一个步骤的范围取值；push 行为不变。
+- **同类字段盘点（未改，均已各自容错）**：`COMPLIANCE_RANGE`（PR 下曾实测通过）、
+  `DOCS_SYNC_RANGE`（非法范围会回退 `origin/<base>...HEAD`）、
+  `GOVERNANCE_DOCS_RANGE`（已写 `pull_request.base.sha || event.before`）、
+  `EVENT_BEFORE`（run 脚本内 `git rev-parse` 校验后回退）。
+
+### 缺陷 B：deep-gate 未安装 pytest，`--deep` 的自测自查必然失败
+
+- **现象**：PR 的 `Deep Gate` run `44893174379`（该 workflow **首次运行**）红在
+  `Run Deep Gate Gate (--deep)`：`python: No module named pytest`。
+- **根因**：`deep-gate.yml` 只装 `docker/requirements-docker.txt` + `ruff vulture mypy`；
+  而 `check_all.sh --deep` 会无条件执行 `run_gate_selftests`，其中调用
+  `python -m pytest tests/test_check_i18n_hardcoded*.py -q`。
+- **修复**：安装行补 `pytest`（已核对调用参数：无 `-n`/`--timeout`，故不需要 xdist/timeout 插件）。
+- **影响面**：仅 PR 的 deep-gate job；不改任何判定逻辑与自测内容。
+
+### 教训
+
+1. **"只在 pull_request 触发"的配置必须真跑一次**：本仓 G-029 表达式与 deep-gate 依赖都是
+   写下来就没人走过，直到首个 PR 才同时爆雷。新增 workflow 或改触发条件时，应主动用一个
+   draft PR 冒烟。
+2. **事件上下文字段要按事件分开写**：`github.event.before`（push）、
+   `github.event.pull_request.base.sha`（PR）互不存在；用 `||` 回落比写两个分支步骤更省事。
+3. **门禁脚本的"拒绝静默通过"设计是对的**：正是它把空范围从"假绿"变成"显式红"，
+   才让这次缺陷被看见，而不是被当作通过。
+

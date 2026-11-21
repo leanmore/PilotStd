@@ -906,9 +906,11 @@ jobs:
           BASE_BRANCH: ${{ github.event.pull_request.base.ref || 'main' }}
           # 体检 D-7（2026-10-17）：直推 main 时 origin/main 已被推进到本次 tip，
           # `origin/main..HEAD` 恒空 ⇒ 原步骤打印"无变更文件 PASS"（假绿）。
-          # 与 T-27 同手法：显式传本次推送范围；右端必须用 github.sha（push 载荷无 event.sha）。
-          # before 全零（新分支）时脚本自行回退，不会误 FAIL。
-          G029_RANGE: ${{ github.event.before }}..${{ github.sha }}
+          # 与 T-27 同手法：显式传本次范围；右端必须用 github.sha（push 载荷无 event.sha）。
+          # 2026-11-21 修正（PR 路径）：`github.event.before` **只存在于 push 事件**，PR 下展开为空串
+          #   ⇒ 范围退化成 `..<sha>` → 脚本判"显式范围 0 变更文件"并拒绝静默通过（run 44893174320 实证）。
+          #   现按事件回落：push 用 before..sha；PR 用 base.sha..head.sha（= 本 PR 的改动）。
+          G029_RANGE: ${{ github.event.before || github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha || github.sha }}
         run: python scripts/check_g_029_test_coverage.py
 
       - name: B — API response_model 全覆盖

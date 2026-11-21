@@ -32,7 +32,10 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r docker/requirements-docker.txt
-          pip install ruff vulture mypy
+          # pytest：`check_all.sh --deep` 会无条件跑 run_gate_selftests（G-040/G-047 受控测试），
+          # 该步骤调用 `python -m pytest ... -q`（无 -n/--timeout，不需要额外插件）。
+          # 2026-11-21 修正：此前未装 pytest，导致 --deep 在 argparse 阶段即失败（run 44893174379）。
+          pip install ruff vulture mypy pytest
 
       # 职责边界说明:
       # 本 job 只做门禁检查：--deep（Ruff/Mypy/Vulture/G-038）+ 治理守护
