@@ -7,6 +7,7 @@ import os
 from datetime import datetime, timedelta
 from typing import Any
 
+from pilotstd.core.file_index import _is_mass_delete_anomaly
 from pilotstd.core.time_utils import iso_now
 
 from ..models import ParsedStdInfo
@@ -31,21 +32,31 @@ def resolve_reason(record: dict[str, Any], exists: bool) -> str:
     return str(record.get("reason") or "")
 
 
-def mark_missing_files(db: Any, limit: int = 0) -> dict[str, int]:
+def mark_missing_files(db: Any, limit: int = 0, protect: bool = True) -> dict[str, Any]:
     """把“有路径但文件已不存在”的 pending 行标成 `file_missing`（幂等，只改 reason）。
 
-    返回统计：`checked` / `missing` / `updated`。不删除任何行、不移动文件。
+    返回统计：`checked` / `missing` / `updated` / `skipped`。不删除任何行、不移动文件。
+    `protect=True` 时命中**挂载异常**判据就整轮跳过（`skipped=True`）——避免根目录没挂上时
+    把整表 pending 误标成文件缺失（复用 `file_index._is_mass_delete_anomaly` 的同一条判据）。
     """
     sql = "SELECT id, file_path, reason FROM pending_lookup WHERE status = 'pending'"
     if limit:
         sql += f" LIMIT {int(limit)}"
     rows = db.fetchall(sql)
-    stats = {"checked": len(rows), "missing": 0, "updated": 0}
-    for r in rows:
-        path = str(r["file_path"] or "").strip()
-        if not path or os.path.exists(path):
-            continue
-        stats["missing"] += 1
+    stats: dict[str, Any] = {"checked": len(rows), "missing": 0, "updated": 0, "skipped": False}
+    paths = [(r, str(r["file_path"] or "").strip()) for r in rows]
+    missing_rows = [(r, p) for r, p in paths if p and not os.path.exists(p)]
+    stats["missing"] = len(missing_rows)
+    if protect and missing_rows and _is_mass_delete_anomaly(len(rows), len(missing_rows)):
+        # 挂载/根目录异常：整轮跳过，只留可观测告警，绝不批量改标记
+        logger.warning(
+            "pending 缺失判定跳过：%d/%d 条路径不存在（疑似挂载/根目录未就绪），本轮不标记",
+            len(missing_rows),
+            len(rows),
+        )
+        stats["skipped"] = True
+        return stats
+    for r, _path in missing_rows:
         if str(r["reason"] or "") != "file_missing":
             db.execute("UPDATE pending_lookup SET reason = 'file_missing' WHERE id = ?", (r["id"],))
             stats["updated"] += 1
@@ -273,7 +284,7 @@ class PendingService:
             else:
                 result = QueryResult(
                     standard_number=std_num,
-                    error_message="本地数据库未找到",
+                    error_message="本地数据库未找到",  # i18n-allow: 既有用户可见文案，本批未改
                     source_site="local_db",
                 )
             results.append((i, result))

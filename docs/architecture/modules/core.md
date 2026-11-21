@@ -746,3 +746,6 @@ pilotstd/core/
   `channel_capabilities()` 为单一来源矩阵（企微 mention、飞书/TG buttons、钉钉全 False、四家无图）。
 - 菜单工厂：`menu.service.MENU_CLIENT_FACTORIES` 注册表替代 if/elif，未知渠道仍返回钉钉 unsupported。
 - pending 判定：`pending_service.resolve_reason/mark_missing_files` 识别“有路径但文件不存在 → file_missing”。
+
+- 配置键 `pending.mark_missing_enabled`（默认 true）与 `pending.mark_missing_cron`（默认 `30 3 * * *`）
+  控制 A-46 的 pending 缺失标记定时任务；挂载保护判据复用 `file_index._is_mass_delete_anomaly`。

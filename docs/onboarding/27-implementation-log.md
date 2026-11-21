@@ -1296,3 +1296,15 @@ ecursive 覆盖子目录。A-44 闭合。
 - **菜单写死分支**：`menu/service.build_client` 的 if/elif 链改为 `MENU_CLIENT_FACTORIES` 注册表
   （四个工厂函数），加渠道只需登记一次；未知渠道仍落钉钉 unsupported 客户端（行为不变）。
   测试：同文件断言注册表键与 `MENU_CHANNELS` 一致、四渠道解析到预期类。
+
+### 107. mark_missing_files 入口：定时（带挂载保护）+ 手动端点（2026-11-21）
+
+- **定时任务** `pending_missing_check`：默认每天 03:30 UTC（`pending.mark_missing_cron`），
+  可用 `pending.mark_missing_enabled=false` 关闭；挂在调度器启动注册处，与 validity/health 等并列。
+- **挂载保护**：复用 `file_index._is_mass_delete_anomaly`（≥50 行且缺失比例 ≥90% ⇒ 疑似挂载/根目录未就绪）。
+  命中时整轮跳过、`skipped=true`、只留 WARNING，**一条都不改**——避免一次根目录异常把整表 pending 误标。
+- **手动端点** `POST /api/pending/mark-missing`（admin）：只读扫描 + 改 reason，不删行、不移文件；
+  返回 `checked/missing/updated/skipped`。不做前端按钮（按需 curl 调用）。
+- **测试**：`tests/test_pending_mark_missing_entry.py` 5 例——挂载保护跳过（100 行全缺失）、
+  小批量标记 + 幂等（第二次 updated=0）、`protect=False` 可关闭、非 admin 403、admin 返回统计。
+- 配置键：`pending.mark_missing_enabled`（默认 true）、`pending.mark_missing_cron`（默认 `30 3 * * *`）。

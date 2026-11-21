@@ -442,6 +442,8 @@ def start_scheduler():
     _add_interval_job("release_suppressed", 300)
     # D-2：长任务周期进度汇报（每分钟扫描；实际按 5~10 分钟节流）
     _add_interval_job("task_progress_report", 60)
+    # pending 缺失标记（A-46）：默认每天 03:30 UTC，可关；带挂载保护
+    _add_cron_job("pending_missing_check", cfg.get("pending.mark_missing_cron", "30 3 * * *"))
     # 选中文件检查队列：每分钟消费一次；启动后立即补跑
     _add_interval_job("validity_queue_drain", 60)
 
@@ -546,6 +548,35 @@ def _check_validity_schedule(notification_mgr=None, adapter_mgr=None, query_engi
 
 # 注册时效性检查任务执行函数
 register_job_func(_VALIDITY_JOB_ID, _check_validity_schedule)
+
+def _check_pending_missing() -> None:
+    """定时任务：标记“路径已不存在”的 pending 行（带挂载保护，不删行）。
+
+    跳过条件与 `file_index.validate_paths` 同一条判据（≥50 行且缺失 ≥90%），
+    避免 /standards 未挂载时把整表 pending 误标成文件缺失。
+    """
+    from pilotstd.manager.pending_service import mark_missing_files
+
+    try:
+        from .manager import get_manager
+
+        stats = mark_missing_files(get_manager().db)
+    except Exception as exc:  # noqa: BLE001 - 定时任务失败不拖垮调度器
+        logger.warning("pending 缺失标记任务失败: %s", exc)  # i18n-allow: 内部运维日志
+        return
+    if stats.get("skipped"):
+        logger.warning(
+            "pending 缺失标记已跳过（疑似挂载异常）：缺失 %d/%d",  # i18n-allow: 运维日志
+            stats.get("missing"),
+            stats.get("checked"),
+        )
+        return
+    if stats.get("updated"):
+        logger.info("pending 缺失标记完成: 更新 %d 条", stats["updated"])  # i18n-allow: 内部运维日志
+
+
+register_job_func("pending_missing_check", _check_pending_missing)
+
 
 
 def _get_validity_cron_kwargs():

@@ -294,3 +294,6 @@ StandardManager (BaseFacade)
 - `pending_service.mark_missing_files(db, limit)`：幂等扫描 pending 行，只把 reason 改成 `file_missing`，
   不删行、不移动文件；默认不接任何定时任务或 API，调用点后续单独评审。
 - 背景：生产 33 条 `file_missing` 的路径全在 `/inbox` 且文件已不存在；此前代码里没有任何写入点。
+
+- 入口：定时任务 `pending_missing_check`（每日 03:30 UTC）与 `POST /api/pending/mark-missing`（admin）都调用
+  `mark_missing_files()`；命中挂载异常（≥50 行且缺失 ≥90%）时整轮跳过并返回 `skipped=true`。

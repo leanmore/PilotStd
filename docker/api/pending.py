@@ -23,6 +23,15 @@ router = APIRouter(tags=["pending"])
 # ════════════════════════════════════════════════════════════════ 分隔
 
 
+class PendingMarkMissingResponse(BaseModel):
+    """缺失标记结果：检查数 / 缺失数 / 更新数 / 是否因挂载异常跳过。"""
+
+    checked: int
+    missing: int
+    updated: int
+    skipped: bool
+
+
 class PendingRequeryItem(BaseModel):
     """重新查询结果条目：标准号、名称、状态、状态键、来源与匹配状态。"""
 
@@ -98,3 +107,21 @@ def requery_pending(request: Request, numbers: list[str] = Body(), site: str = "
             for r in results
         ]
     }
+
+@router.post("/api/pending/mark-missing", response_model=PendingMarkMissingResponse)
+@require_role("admin")
+def mark_pending_missing(request: Request, db=Depends(get_db)) -> PendingMarkMissingResponse:
+    """把“有路径但文件已不存在”的待确认行标成 `file_missing`（幂等，不删行、不移文件）。
+
+    挂载保护：缺失行数 ≥50 且占比 ≥90% 视为 `/standards` 未挂载，整轮跳过并返回 `skipped=true`，
+    避免一次根目录异常把整表 pending 误标成文件缺失（与 `file_index.validate_paths` 同一判据）。
+    """
+    from pilotstd.manager.pending_service import mark_missing_files
+
+    stats = mark_missing_files(db)
+    return PendingMarkMissingResponse(
+        checked=int(stats.get("checked", 0)),
+        missing=int(stats.get("missing", 0)),
+        updated=int(stats.get("updated", 0)),
+        skipped=bool(stats.get("skipped")),
+    )
