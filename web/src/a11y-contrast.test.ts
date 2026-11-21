@@ -63,3 +63,16 @@ describe('CSS 落地（防规则被删）', () => {
     expect(block).toContain('var(--danger-text)')
   })
 })
+
+/**
+ * A-50 回归：--warning 作为文字（LogBar 日志行，背景是 --bg）要 ≥4.5:1；
+ * 作为状态圆点（NotificationBell）属非文本 UI，≥3:1（被 4.5 覆盖）。
+ * 改回 #f59e0b 会在这里红（light 1.96 / green 1.91）。
+ */
+describe('状态色 --warning 可读性（四主题）', () => {
+  for (const id of ['light', 'dark', 'green', 'blue']) {
+    it(`${id} 主题：warning on bg ≥ 4.5:1`, () => {
+      expect(contrast(THEMES[id].colors.warning, THEMES[id].colors.bg)).toBeGreaterThanOrEqual(4.5)
+    })
+  }
+})

@@ -1332,3 +1332,14 @@ ecursive 覆盖子目录。A-44 闭合。
 
 **遗留**：DT-12（`--warning` 圆点 2.15/2.05）、2 条内联白名单、B 类 115 总账、`no-literal` 177 口径风险
 （分别见 `docs/debt/03-open.md` A-50/A-51/A-52 与 `04-watch.md` V-19）。
+
+### 109. A-50 状态色 `--warning` 对比度修复（2026-11-21）
+
+- **取证**（`ci.tmp/a50_contrast.py`，WCAG 2.x）：现值 `#f59e0b` 在 light-bg 1.96、light-surface 2.15、
+  green-bg 1.91、green-surface 2.05 —— LogBar 的 `log-warn` 是**正文文字且背景为 `--bg`**，需 4.5:1；
+  NotificationBell 的 `.item-dot` 是非文本 UI，需 3:1。
+- **候选实测**：`#b45309` green-bg 4.46（差 0.04 不达标）；`#ad4f08` light-bg 4.92 / green-bg 4.79 / light-surface 5.39 → **选定**。
+- **改动**：`themes.ts` light/green 的 `warning` 与 `warningBg`（色相跟随、alpha 0.12 不变）；`style.css` 默认层同步两值
+  （D2 教训：两处必须一致）；dark/blue 不动，复测 8.31 / 8.69。
+- **测试**：`a11y-contrast.test.ts` 增「四主题 warning on bg ≥ 4.5」4 例；该文件 11 例、theme-spec 30 例通过。
+- **视觉影响**：状态色变深（非品牌色）；影响 `NotificationBell` 圆点、`LogBar` 文字、`.mp-badge-warning`，已登记 §12.4.1。
