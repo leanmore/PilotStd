@@ -175,13 +175,14 @@ def selector_before(text: str, pos: int) -> str:
     return text[prev + 1: brace].strip()
 
 
-def load_token_values() -> dict[str, str]:
+def load_token_values(root: Path = WEB_SRC) -> dict[str, str]:
     """收集仓库内已定义的令牌名（CSS 声明 + themes.ts 注入 + setProperty）。
 
     三处来源缺一不可：只读 CSS 会把 --button-primary-shadow 之类运行时注入的令牌误报成 D 类。
+    root 可换：G-055 门禁与受控测试用临时树跑同一套分类，避免两份实现漂移。
     """
     defined: set[str] = set()
-    for path in WEB_SRC.rglob("*"):
+    for path in root.rglob("*"):
         if path.suffix not in SCAN_EXT | {".ts"} or path.name.endswith(".test.ts"):
             continue
         text = path.read_text(encoding="utf-8", errors="replace")
@@ -191,10 +192,10 @@ def load_token_values() -> dict[str, str]:
     return {name: "" for name in defined}
 
 
-def load_token_literals() -> dict[str, str]:
+def load_token_literals(root: Path = WEB_SRC) -> dict[str, str]:
     """令牌名 → 取值（style.css :root + design-tokens.css），用于精确值匹配。"""
     values: dict[str, str] = {}
-    for path in (STYLE_CSS, TOKENS_CSS):
+    for path in (root / "style.css", root / "styles" / "design-tokens.css"):
         if not path.exists():
             continue
         text = path.read_text(encoding="utf-8", errors="replace")
@@ -391,17 +392,17 @@ def classify(file: str, prop: str, value: str, selector: str,
 
 
 # ── 扫描 ────────────────────────────────────────────────────────────
-def scan() -> tuple[list[Finding], Counter[str]]:
-    literals = load_token_literals()
-    defined = load_token_values()
+def scan(root: Path = WEB_SRC) -> tuple[list[Finding], Counter[str]]:
+    literals = load_token_literals(root)
+    defined = load_token_values(root)
     findings: list[Finding] = []
     skipped: Counter[str] = Counter()
 
     # 排序是为了让报告行序稳定：同一棵树重跑生成区块应当逐字节一致，便于差异复核
-    for path in sorted(WEB_SRC.rglob("*")):
+    for path in sorted(root.rglob("*")):
         if path.suffix not in SCAN_EXT or not path.is_file():
             continue
-        rel = path.relative_to(WEB_SRC).as_posix()
+        rel = path.relative_to(root).as_posix()
         for start_line, region in css_regions(path):
             clean = blank_comments(region)
             for m in DECL_RE.finditer(clean):

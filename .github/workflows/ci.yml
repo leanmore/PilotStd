@@ -490,6 +490,9 @@ jobs:
           cd web
           pnpm run lint
 
+      - name: G-055 — 设计令牌门禁（只拦新增硬编码，棘轮）
+        run: python scripts/check_design_tokens.py
+
       - name: PrimeVue icon import check
         run: bash scripts/check-primevue-icons.sh
 
