@@ -439,8 +439,7 @@ onMounted(() => {
 }
 .tab-bar button.active {
   background: linear-gradient(135deg, var(--primary), var(--primary-hover));
-  /* TODO: [Design Debt] #ffffff 无精确令牌，暂不替换，待定令牌后统一处理 */
-  color: #ffffff;
+  color: var(--text-on-primary);
   font-weight: var(--font-weight-semibold);
   /* TODO: [Design Debt] 0 2px 8px rgba(99, 102, 241, 0.25) 无精确令牌，暂不替换，待定令牌后统一处理 */
   box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);

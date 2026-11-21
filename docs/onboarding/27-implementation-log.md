@@ -1393,3 +1393,15 @@ ecursive 覆盖子目录。A-44 闭合。
 - overlay：196 处 / 20 个 alpha 取值，集中 ≈0.06·0.12·0.30·0.85；统一 4 档有可见视觉变化 → **维持现状**，登记 **V-20**。
 - 阴影：47 处声明 / 20 个不同值，其中 33 处已用令牌、**仅 14 处原生** → 只映射到既有层级，不新拆。
 - 裁决落地：布局单位**分批**收紧（先 `100%` 33 条，再 `vh/fr/fit-content` 9 条），134 条非视觉值维持观察。
+
+### 114. P5-1：`--text-on-primary` 令牌 + 主色底白字替换（2026-11-21）
+
+- **新增令牌**：`ThemeConfig.textOnPrimary`（四主题均 `#ffffff`）→ `applyThemeToDom` 映射 `--text-on-primary`；
+  `style.css` 默认层同步（D2 口径：两层必须一致）。
+- **替换 6 处**（背景确为 `--primary-fill` / primary 渐变者）：`RouteDebugPanel`、`TableLoadFooter`、
+  `UnifiedFilterBar`、`AppLayout`、`SettingsView`、`TaskView`（`.step.running`）；同时删除其上方已过期的
+  “无精确令牌”TODO。
+- **未替换（语义不符）**：`HomeView`（danger 底）、`TaskView` 的 success/danger 步骤、`RegisterView`
+  登录页深色渐变上的白字 —— 它们不在 `on-primary` 语义内，保持字面量并留在 A-52 观察。
+- **测试**：`a11y-contrast.test.ts` 增「四主题 on-primary on primaryFill ≥ 4.5」4 例（该文件 15 例）。
+- **数字**：G-055 `B 113→107`、总命中 740→734；基线/审计 §0·§11/A-52 三处同步；STALE=0。

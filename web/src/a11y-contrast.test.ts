@@ -76,3 +76,16 @@ describe('状态色 --warning 可读性（四主题）', () => {
     })
   }
 })
+
+/**
+ * P5-1：`--text-on-primary` 必须与 `--primary-fill` 达到 4.5:1（白字在主色按钮/选中态上）。
+ * 四主题逐一校验——任何主题把该令牌改暗或把 fill 改亮，这里会红。
+ */
+describe('主色底文字 --text-on-primary（四主题）', () => {
+  for (const id of ['light', 'dark', 'green', 'blue']) {
+    it(`${id} 主题：on-primary on primaryFill ≥ 4.5:1`, () => {
+      const c = THEMES[id].colors
+      expect(contrast(c.textOnPrimary, c.primaryFill)).toBeGreaterThanOrEqual(4.5)
+    })
+  }
+})

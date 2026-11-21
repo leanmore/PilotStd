@@ -65,8 +65,7 @@ defineEmits<{
 }
 .load-all-btn:hover {
   background: var(--primary-fill);
-  /* TODO: [Design Debt] #fff 无精确令牌，暂不替换，待定令牌后统一处理 */
-  color: #fff;
+  color: var(--text-on-primary);
 }
 .partial-text {
   /* TODO: [Design Debt] #ca8a04 无精确令牌，暂不替换，待定令牌后统一处理 */
