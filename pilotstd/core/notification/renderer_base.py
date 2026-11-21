@@ -142,6 +142,26 @@ def _find_cut(text: str, budget: int, unit: str) -> int:
     pos = window.rfind("\n")
     return pos + 1 if pos > 0 else max(budget, 1)
 
+_LEVEL_PREFIX_KEYS = {
+    "warning": "notification.renderer.level.warning",
+    "error": "notification.renderer.level.error",
+}
+
+
+def level_prefix(level: str) -> str:
+    """级别前缀（warning/error 才有；info 保持空白，避免所有消息都加噪声）。"""
+    key = _LEVEL_PREFIX_KEYS.get((level or "").strip().lower())
+    return t(key) if key else ""
+
+
+def detail_link_line(message: NotificationMessage) -> str:
+    """详情链接行（`message.link` 非空时）；渲染层统一追加，避免四渠道各写一套。"""
+    link = str(getattr(message, "link", "") or "").strip()
+    if not link:
+        return ""
+    return f"{t('notification.renderer.detail')}：{link}"
+
+
 class BlockRenderer:
     """Block 渲染器基类——将结构化 Block 列表渲染为纯文本。
 
@@ -181,6 +201,14 @@ class BlockRenderer:
         text = text.strip()
         if not text:
             text = message.title or _fallback_text()
+        # D-2 缺口③：级别前缀（warning/error）——企微/Telegram/桌面此前完全看不出紧急度
+        # D-2 缺口②：详情链接——此前四渠道都不渲染 message.link
+        prefix = level_prefix(getattr(message, "level", ""))
+        link_line = detail_link_line(message)
+        if prefix:
+            text = f"{prefix}\n{text}"
+        if link_line:
+            text = f"{text}\n\n{link_line}"
         return text
 
     def _render_plain_text(self, message: NotificationMessage) -> str:

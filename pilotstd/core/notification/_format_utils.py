@@ -146,8 +146,9 @@ def do_test_send(
                 agentid = override.get("agentid") or creds.get("agentid") or ""
                 corpsecret = override.get("corpsecret") or creds.get("corpsecret") or ""
                 if corpid and agentid and corpsecret:
-                    # 应用消息模式 — 需特殊初始化
-                    ch = cls(corpid, agentid, corpsecret)
+                    # 应用消息模式：构造签名是 (webhook_url, corpid, agentid, corpsecret, ...)，
+                    # 这里必须用关键字传参——位置传会把三个值整体错位一位（2026-11-21 修）
+                    ch = cls(corpid=corpid, agentid=agentid, corpsecret=corpsecret)
                 else:
                     url = override.get("webhook_url") or creds.get("webhook_url") or ""
                     if not url:

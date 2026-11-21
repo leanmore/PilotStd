@@ -721,3 +721,10 @@ pilotstd/core/
 - `ValidityChecker.register_new_standard` 入库即写 `last_status=未知`；
 - `update_status` 首次检查 INSERT 写 `last_status=本次状态`；未变化分支对历史 NULL 一次性回填。
 - 动因：此前只在“状态变化”时写该列，导致 740/824 行恒空、界面“上一状态”永远为空。
+
+## 通知投递回退与链接/级别渲染（D-2 阶段 1，2026-11-21）
+
+- 策略解析：策略表无行 + `notification.rules.*` 为空 → 回退“已启用渠道”（不再直接返回空）。
+- 链接：构建期 `_links.absolutize_message_link()` 用 `notification.web_base_url` 把 `/standards/xxx` 变绝对地址；
+  未配置/回环则清空（宁可不给链接，也不给坏链）。
+- 级别：`renderer_base.level_prefix()` 只在 warning/error 加前缀，基类 `render()` 与飞书/钉钉卡片统一使用。

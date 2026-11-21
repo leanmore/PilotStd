@@ -18,7 +18,7 @@ from .blocks import (
     TextBlock,
 )
 from .channel import NotificationMessage
-from .renderer_base import CHANNEL_TEXT_LIMITS
+from .renderer_base import CHANNEL_TEXT_LIMITS, detail_link_line, level_prefix
 from .renderer_links import action_label as _action_label
 from .renderer_links import link_actions
 
@@ -47,7 +47,8 @@ __all__ = [
     "split_for_channel",
 ]
 
-from .renderer_base import (  # noqa: E402
+from .renderer_base import (  # noqa: F401  (detail_link_line/level_prefix 供卡片渲染器使用)
+  # noqa: E402
     _LIST_FIELD_KEYS,
     _SEGMENT_SUFFIX_KEY,
     BlockRenderer,
@@ -227,9 +228,15 @@ class FeishuCardRenderer(BlockRenderer):
             ]
             elements.append({"tag": "action", "actions": buttons})
 
+        # D-2 缺口②③：卡片里补齐级别前缀与详情链接（飞书此前只有颜色区分级别、无链接）
+        link_line = detail_link_line(message)
+        if link_line:
+            elements.append({"tag": "markdown", "content": link_line})
+        title = message.title or ""
+        prefix = level_prefix(getattr(message, "level", ""))
         return {
             "header": {
-                "title": {"tag": "plain_text", "content": message.title or ""},
+                "title": {"tag": "plain_text", "content": f"{prefix} {title}".strip()},
                 "template": color,
             },
             "elements": elements,
@@ -347,6 +354,13 @@ class DingTalkCardRenderer(BlockRenderer):
                 for spec in links
             )
             content = f"{content}\n\n{rendered}" if content else rendered
+        # D-2 缺口②③：钉钉卡片正文补级别前缀与详情链接（level 字段仅模板可见，正文此前无提示）
+        prefix = level_prefix(getattr(message, "level", ""))
+        link_line = detail_link_line(message)
+        if prefix:
+            content = f"{prefix}\n{content}" if content else prefix
+        if link_line:
+            content = f"{content}\n\n{link_line}" if content else link_line
         return {
             "cardParamMap": {
                 "title": message.title or "",

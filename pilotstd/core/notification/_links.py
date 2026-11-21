@@ -27,11 +27,12 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any
+from typing import Any, Protocol, TypeVar
 
 logger = logging.getLogger(__name__)
 
 # 配置键：站内页面的对外基址（公网域名或内网可达域名）
+# 配置键：站内页面的对外基址
 CONFIG_KEY = "notification.web_base_url"
 
 # 站内「通知日志」页路径（前端路由；与 web/src 的页面一致）
@@ -112,3 +113,36 @@ def _hint_text() -> str:
     from pilotstd.i18n import t
 
     return t("notification.link.web_hint")
+
+T = TypeVar("T", bound="_LinkMessage")
+
+
+class _LinkMessage(Protocol):
+    """只要求 `link` 字段的消息协议（避免 `_links` 反向依赖 `channel`）。"""
+
+    link: "str | None"
+
+
+def absolute_link(base: str, link: str) -> str:
+    """把站内相对路径补成绝对地址；已是绝对地址原样返回；无基址则返回空串。
+
+    渲染层只管展示：`message.link` 在构建期就应变成可点地址（否则聊天客户端里
+    相对路径等于坏链），这里做纯函数转换，便于单测。
+    """
+    value = (link or "").strip()
+    if not value:
+        return ""
+    if value.lower().startswith(("http://", "https://")):
+        return value
+    if not base:
+        return ""
+    return f"{base.rstrip('/')}/{value.lstrip('/')}"
+
+def absolutize_message_link(message: T, config: Any) -> T:
+    """构建期把 `message.link` 补成绝对地址；不可用则清空（宁可不给，也不给坏链）。"""
+    link = str(getattr(message, "link", "") or "").strip()
+    if not link:
+        return message
+    base = resolve_web_base(config)
+    message.link = absolute_link(base, link) or None
+    return message

@@ -1218,3 +1218,22 @@ ecursive 覆盖子目录。A-44 闭合。
   本地两个库（`data/pilotstd.db` 与其备份）`announcement_record` 均为 0 行，无法离线取样；
   生产不可达期间以既有实测为准：4,000 行样本中方向倒退 3,695（92%），33 个目标行已有值**方向正确 0 条**。
   规则安全性由构造保证：只清 `year(sup) < year(std)`，方向正确的值不在清理集合内（单测 `test_check_existing_*` 锁定）。
+
+### 103. D-2 阶段 1 三缺口落地 + 企微构造参数错位（2026-11-21）
+
+- **缺口①（28 个事件无出厂渠道）**：不改 44 条事件声明，改**投递回退**——
+  `NotificationPolicyHelper.get_channels_for_event` 在“策略表无行 + config 规则为空”时，
+  回退到**当前已启用的渠道**（`notification.channels.<ch>.enabled`）。
+  效果：用户配了哪个渠道就收得到全部事件，新装用户不再只收 16/44；未配置渠道不会被尝试。
+  测试：`tests/test_notification_policy_fallback.py` 6 例（含“显式规则优先”）。
+- **缺口②（message.link 四渠道不渲染）**：构建期用 `_links.absolutize_message_link()` 把
+  `/standards/xxx` 拼成 `notification.web_base_url` 下的绝对地址（未配置/回环则清空，不给坏链）；
+  渲染层新增 `detail_link_line()`，基类 `render()` 统一追加，飞书/钉钉卡片各自追加。
+- **缺口③（级别跨渠道不可见）**：新增 `level_prefix()`（warning/error 才加），
+  在基类 `render()`、飞书卡片标题、钉钉卡片正文统一体现；info 不加噪声。
+- **企微测试连接参数错位**：`_format_utils.do_test_send` 里 `cls(corpid, agentid, corpsecret)` 与
+  `WechatChannel(webhook_url, corpid, agentid, corpsecret, ...)` 六参数签名错位一位，
+  应用形态测试连接实际拿 webhook_url=corpid、corpid=agentid…；改为关键字传参，
+  新增 `tests/test_notification_wechat_test_connection.py` 锁定。
+- 补充：i18n 三语新增 `notification.renderer.detail` / `level.warning` / `level.error`；
+  `manager.py` 因 G-049 体积上限，把链接绝对化下沉到 `_links`（有效行回落至上限内）。

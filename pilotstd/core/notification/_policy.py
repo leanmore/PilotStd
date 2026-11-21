@@ -123,13 +123,20 @@ class NotificationPolicyHelper:
                 exc_info=True,
             )
 
-        # 回退：从配置脚本读取旧版规则
+        # 回退 1：从配置脚本读取旧版规则
         rules = self._cfg.get(f"notification.rules.{event_type}")
-        if not rules:
-            return []
-        if isinstance(rules, str):
-            return [c.strip() for c in rules.split(",") if c.strip()]
-        return cast(list[str], rules)
+        if rules:
+            if isinstance(rules, str):
+                return [c.strip() for c in rules.split(",") if c.strip()]
+            return cast(list[str], rules)
+        # 回退 2：没有任何规则时，投给“已启用的渠道”。
+        # 动机（D-2 阶段 1 缺口①）：44 个事件里 28 个出厂无默认渠道，新装用户配好渠道后
+        # 这些事件仍一条都收不到；这里让“配了哪个渠道就收哪个渠道”，不发未配置渠道。
+        return [
+            ch
+            for ch in ("wechat", "telegram", "dingtalk", "feishu")
+            if self._cfg.get(f"notification.channels.{ch}.enabled")
+        ]
 
     def get_policies(self, user_id: int) -> list[dict[str, Any]]:
         """返回某用户的全部策略（**两层原样返回**，由调用方/前端决定如何呈现）。
