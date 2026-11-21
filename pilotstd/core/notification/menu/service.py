@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable, TypeAlias
 
 from pilotstd.core.config import get_db_path
 from pilotstd.core.db import Database
@@ -43,29 +43,55 @@ def _credentials(channel: str) -> dict[str, Any]:
         return {}
 
 
+# 客户端工厂注册表（**单一来源**）：新增渠道只在这里加一项，不再改 if/elif
+def _wecom_factory(base: dict[str, Any], cfg: Any, transport: Any) -> MenuClient:
+    """企微自建应用菜单客户端（corpid + corpsecret + agentid）。"""
+    return WecomMenuClient(
+        str(base.get("corpid") or ""),
+        str(base.get("corpsecret") or ""),
+        str(base.get("agentid") or ""),
+        transport=transport,
+        proxy_url=str(base.get("proxy_url") or ""),
+    )
+
+
+def _feishu_factory(base: dict[str, Any], cfg: Any, transport: Any) -> MenuClient:
+    """飞书群菜单客户端（app_id + app_secret + chat_id）。"""
+    return FeishuMenuClient(
+        str(base.get("app_id") or ""),
+        str(base.get("app_secret") or ""),
+        str(cfg.get("notification.menus.feishu.chat_id") or ""),
+        transport=transport,
+    )
+
+
+def _telegram_factory(base: dict[str, Any], cfg: Any, transport: Any) -> MenuClient:
+    """Telegram 命令列表客户端（bot_token）。"""
+    return TelegramCommandClient(str(base.get("bot_token") or ""), transport=transport)
+
+
+def _dingtalk_factory(base: dict[str, Any], cfg: Any, transport: Any) -> MenuClient:
+    """钉钉：平台无服务端菜单接口，固定返回显式 unsupported 客户端。"""
+    return DingtalkMenuClient()
+
+
+Factory: TypeAlias = Callable[[dict[str, Any], Any, Any], MenuClient]
+
+MENU_CLIENT_FACTORIES: dict[str, Factory] = {
+    "wechat": _wecom_factory,
+    "feishu": _feishu_factory,
+    "telegram": _telegram_factory,
+    "dingtalk": _dingtalk_factory,
+}
+
+
 # 客户端工厂：测试可注入 `transport`；未知渠道落到钉钉 `unsupported` 客户端
 def build_client(channel: str, cfg: Any, *, transport=_http_json) -> MenuClient:
     """按渠道构造客户端；凭据合并顺序：config 基础字段 → DB 凭证覆盖。"""
     base = _config_channel(cfg, channel)
     base.update(_credentials(channel))
-    if channel == "wechat":
-        return WecomMenuClient(
-            str(base.get("corpid") or ""),
-            str(base.get("corpsecret") or ""),
-            str(base.get("agentid") or ""),
-            transport=transport,
-            proxy_url=str(base.get("proxy_url") or ""),
-        )
-    if channel == "feishu":
-        return FeishuMenuClient(
-            str(base.get("app_id") or ""),
-            str(base.get("app_secret") or ""),
-            str(cfg.get("notification.menus.feishu.chat_id") or ""),
-            transport=transport,
-        )
-    if channel == "telegram":
-        return TelegramCommandClient(str(base.get("bot_token") or ""), transport=transport)
-    return DingtalkMenuClient()
+    factory = MENU_CLIENT_FACTORIES.get(str(channel or "").strip(), _dingtalk_factory)
+    return factory(base, cfg, transport)
 
 
 # 同步：先读线上菜单，只有 last_synced 与期望不同才调用写接口

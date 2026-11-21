@@ -15,7 +15,7 @@
  * **副作用归属**：本函数内的两处 `setTimeout`（保存成功提示 2s 复位、渠道测试结果 4s 清理）随逻辑
  * 一并迁入，语义与拆分前**完全一致**（拆分前亦未在卸载时清理，本批不做行为改动）。
  */
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUserPreferences } from '@/composables/useUserPreferences'
 import {
@@ -66,6 +66,11 @@ export function useNotificationConfig() {
   /** 类别层清单（10 类 `notify_event`）+ 事件→类别映射：与渠道元数据同源下发（进 spec_hash ⇒ 层变即缓存失效） */
   const NOTIFY_EVENTS = ref<string[]>([])
   const EVENT_CLASS_MAP = ref<Record<string, string>>({})
+  /** 零渠道引导（G-45）：所有渠道都没启用时提示“事件只记录不推送，去下面配一个”
+   *  spec 未加载（首次请求未回来）时不算“零渠道”，避免闪一下误报 */
+  const noChannelConfigured = computed(
+    () => specs.value.length > 0 && specs.value.every((s) => !(channels.value[s.name]?.enabled ?? false)),
+  )
   /** 策略层加载状态：区分"策略 API 失败"与"策略为空"（用户裁定：吞错必须可见，且两者不可混淆） */
   const policyLoadFailed = ref(false)
   /** 保存时策略层写入失败的渠道名（非空 ⇒ UI 明确提示"未落库"，不谎报已保存） */
@@ -459,6 +464,7 @@ export function useNotificationConfig() {
     enabled,
     specs,
     channels,
+    noChannelConfigured,
     specHash,
     NOTIFY_EVENTS,
     EVENT_CLASS_MAP,

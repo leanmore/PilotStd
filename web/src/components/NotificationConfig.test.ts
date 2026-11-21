@@ -135,6 +135,33 @@ describe('NotificationConfig', () => {
     expect(wrapper.html()).toContain('启用通知')
   })
 
+  it('零渠道时显示配置引导（G-45）', async () => {
+    // 所有渠道都未启用 ⇒ 事件只进通知日志、不会推送，必须给出去哪配的引导
+    getNotificationConfigMock.mockResolvedValue({
+      enabled: true,
+      channels: {
+        wechat: { enabled: false, webhook_url: '' },
+        telegram: { enabled: false, bot_token: '', chat_id: '' },
+        feishu: { enabled: false, webhook_url: '' },
+        dingtalk: { enabled: false, webhook_url: '' },
+      },
+      rules: {},
+    })
+    const wrapper = mountConfig()
+    await new Promise(r => setTimeout(r, 30))
+    await wrapper.vm.$nextTick()
+    const guide = wrapper.find('.no-channel-guide')
+    expect(guide.exists()).toBe(true)
+    expect(guide.text()).toContain('还没有配置任何通知渠道')
+  })
+
+  it('有渠道启用时不显示引导', async () => {
+    const wrapper = mountConfig()
+    await new Promise(r => setTimeout(r, 30))
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('.no-channel-guide').exists()).toBe(false)
+  })
+
   it('静音时段显示以服务端 config 为准（覆盖本地偏好）', async () => {
     getNotificationConfigMock.mockResolvedValue({
       enabled: true,

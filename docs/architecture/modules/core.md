@@ -739,3 +739,10 @@ pilotstd/core/
 - 开关 `notification.record_unconfigured_events`（默认 true）：false 时恢复“只打日志、不落库”的旧行为。
 - 兼容：测试替身没有 `_cfg` 属性时按“记录”处理，避免替身差异造成行为分叉（`test_notification_visibility` 已锁定语义边界）。
 - `status='skipped'` 的两个来源：① 全局关闭投递但记录（真实渠道）；② 零渠道用户事件（`channel='none'`）。
+
+## 本地收尾四项（2026-11-21）
+
+- 能力声明：`interaction.ChannelCapabilities` 增 `supports_image/supports_mention/supports_buttons`，
+  `channel_capabilities()` 为单一来源矩阵（企微 mention、飞书/TG buttons、钉钉全 False、四家无图）。
+- 菜单工厂：`menu.service.MENU_CLIENT_FACTORIES` 注册表替代 if/elif，未知渠道仍返回钉钉 unsupported。
+- pending 判定：`pending_service.resolve_reason/mark_missing_files` 识别“有路径但文件不存在 → file_missing”。

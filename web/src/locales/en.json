@@ -1048,7 +1048,9 @@
         "start": "Start time",
         "end": "End time"
       },
-      "advanced_other": "Other (unclassified)"
+      "advanced_other": "Other (unclassified)",
+      "no_channel_title": "No notification channel configured yet",
+      "no_channel_hint": "Events are still recorded in Notification Logs but not delivered. Enable a channel below and fill in its credentials."
     },
     "event": {
       "auto_pipeline_summary": "One-click Pipeline Complete",

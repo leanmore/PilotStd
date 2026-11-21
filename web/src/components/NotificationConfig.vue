@@ -20,6 +20,7 @@ const {
   enabled,
   specs,
   channels,
+  noChannelConfigured,
   NOTIFY_EVENTS,
   policyLoadFailed,
   policySaveFailures,
@@ -53,6 +54,11 @@ defineExpose({ saveConfig })
 
 <template>
   <div>
+    <!-- G-45：零渠道引导——事件仍会记录，但没有任何渠道可推送，必须明确告诉用户去哪配 -->
+    <Message v-if="noChannelConfigured" severity="warn" :closable="false" class="no-channel-guide">
+      <strong>{{ t('notification.config.no_channel_title') }}</strong>
+      <div class="no-channel-hint">{{ t('notification.config.no_channel_hint') }}</div>
+    </Message>
     <Message v-if="errMsg" severity="error" :closable="false">{{ errMsg }}</Message>
     <!-- 吞错可见化（用户裁定）：**策略 API 失败** 与 **策略为空** 是两件事，文案必须区分、不得混为一谈 -->
     <Message v-if="policyLoadFailed" severity="warn" :closable="false">

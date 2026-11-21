@@ -29,6 +29,10 @@ class ChannelCapabilities:
     supports_edit: bool = False
     edit_anchor: str = ""
     note_key: str = ""
+    # 内容能力（2026-11-21 补，D-2 模块化缺口）：上层按能力判断，不按渠道名写死
+    supports_image: bool = False
+    supports_mention: bool = False
+    supports_buttons: bool = False
 
 
 @dataclass(frozen=True)
@@ -42,3 +46,38 @@ class MessageHandle:
     channel: str
     anchor: str
     value: str
+
+# 渠道内容能力矩阵（**单一来源**）：新增渠道时在此登记，上层不写 if/elif
+_CHANNEL_CAPABILITIES: dict[str, ChannelCapabilities] = {
+    "wechat": ChannelCapabilities(
+        supports_callback=True,
+        supports_edit=False,
+        note_key="notification.capability.note.wechat",
+        supports_mention=True,
+    ),
+    "feishu": ChannelCapabilities(
+        supports_callback=True,
+        supports_edit=True,
+        edit_anchor=ANCHOR_MESSAGE_ID,
+        note_key="notification.capability.note.feishu",
+        supports_buttons=True,
+    ),
+    "telegram": ChannelCapabilities(
+        supports_callback=True,
+        supports_edit=True,
+        edit_anchor=ANCHOR_MESSAGE_ID,
+        note_key="notification.capability.note.telegram",
+        supports_buttons=True,
+    ),
+    "dingtalk": ChannelCapabilities(
+        supports_callback=False,
+        supports_edit=False,
+        edit_anchor=ANCHOR_OUT_TRACK_ID,
+        note_key="notification.capability.note.dingtalk",
+    ),
+}
+
+
+def channel_capabilities(channel: str) -> ChannelCapabilities:
+    """按渠道取能力声明；未知渠道返回“全不支持”（不抛异常，便于上层降级）。"""
+    return _CHANNEL_CAPABILITIES.get((channel or "").strip(), ChannelCapabilities())

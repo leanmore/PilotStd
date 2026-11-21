@@ -3,6 +3,7 @@
 
 import json
 import logging
+import os
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -13,6 +14,42 @@ from ..query.models import QueryResult
 from ..query.search_strategy import MATCH_SCORE
 
 logger = logging.getLogger(__name__)
+
+
+def resolve_reason(record: dict[str, Any], exists: bool) -> str:
+    """判定一条 pending 记录的 reason（纯函数，便于用临时目录测试）。
+
+    - `file_path` 为空 → `no_file`（从未有过文件，与“有路径但文件没了”区分）；
+    - 有路径但文件不存在 → `file_missing`；
+    - 文件存在 → 保留原 reason（不覆盖业务语义）。
+    """
+    path = str(record.get("file_path") or "").strip()
+    if not path:
+        return "no_file"
+    if not exists:
+        return "file_missing"
+    return str(record.get("reason") or "")
+
+
+def mark_missing_files(db: Any, limit: int = 0) -> dict[str, int]:
+    """把“有路径但文件已不存在”的 pending 行标成 `file_missing`（幂等，只改 reason）。
+
+    返回统计：`checked` / `missing` / `updated`。不删除任何行、不移动文件。
+    """
+    sql = "SELECT id, file_path, reason FROM pending_lookup WHERE status = 'pending'"
+    if limit:
+        sql += f" LIMIT {int(limit)}"
+    rows = db.fetchall(sql)
+    stats = {"checked": len(rows), "missing": 0, "updated": 0}
+    for r in rows:
+        path = str(r["file_path"] or "").strip()
+        if not path or os.path.exists(path):
+            continue
+        stats["missing"] += 1
+        if str(r["reason"] or "") != "file_missing":
+            db.execute("UPDATE pending_lookup SET reason = 'file_missing' WHERE id = ?", (r["id"],))
+            stats["updated"] += 1
+    return stats
 
 
 class PendingService:

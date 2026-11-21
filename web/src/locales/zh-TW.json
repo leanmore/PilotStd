@@ -1048,7 +1048,9 @@
         "start": "開始時間",
         "end": "結束時間"
       },
-      "advanced_other": "其他（未分類）"
+      "advanced_other": "其他（未分類）",
+      "no_channel_title": "還沒有設定任何通知渠道",
+      "no_channel_hint": "事件仍會記錄到「通知日誌」，但不會推送。請在下方各渠道啟用一個並填好憑證。"
     },
     "event": {
       "auto_pipeline_summary": "一鍵處理完成",

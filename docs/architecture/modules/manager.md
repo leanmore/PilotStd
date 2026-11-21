@@ -287,3 +287,10 @@ StandardManager (BaseFacade)
 - 清空改为 upsert（原 UPDATE 在行缺失时静默无效，会导致每周期重复回填）；
 - 注意：Web 端存的 nnounce_since_date 走 user_preferences 表，与定时任务读的 pp_preferences 不是同一张表（已知差异，未接线，见 27 #89）。
 
+## 待确认清单的“文件缺失”判定（A-46，2026-11-21）
+
+- `pending_service.resolve_reason(record, exists)`：空路径 → `no_file`；有路径但不存在 → `file_missing`；
+  存在则保留原 reason（纯函数，便于用临时目录测试）。
+- `pending_service.mark_missing_files(db, limit)`：幂等扫描 pending 行，只把 reason 改成 `file_missing`，
+  不删行、不移动文件；默认不接任何定时任务或 API，调用点后续单独评审。
+- 背景：生产 33 条 `file_missing` 的路径全在 `/inbox` 且文件已不存在；此前代码里没有任何写入点。

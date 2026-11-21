@@ -1275,3 +1275,24 @@ ecursive 覆盖子目录。A-44 闭合。
   且 `/api/files` 逐条核对文件**确实不存在** ⇒ 属陈旧 pending，不是匹配算法失效。
   若要在本地复现匹配逻辑，需要一份 `/standards` 目录 + 对应 `file_index` 快照（生产数据）；
   代码层可以补“路径不存在 → 记 file_missing”的单测（构造临时目录），这不依赖生产。
+
+### 106. 本地收尾四项：G-45 引导 / A-46 判定 / 能力矩阵 / 菜单注册表（2026-11-21）
+
+- **G-45 首次配置引导**：通知设置页在“所有渠道都未启用”时显示醒目提示——
+  「还没有配置任何通知渠道，事件仍会记录到通知日志但不会推送，请在下方启用一个」。
+  数据源是已加载的渠道 spec + 各渠道 `enabled`；spec 未加载时不算零渠道（不闪误报）。
+  测试：`NotificationConfig.test.ts` 增 2 例（零渠道显示 / 有渠道不显示），共 19 例通过。
+- **A-46 本地判定（不依赖生产）**：新增
+  `pending_service.resolve_reason(record, exists)` 与 `mark_missing_files(db, limit)`——
+  有路径但文件不存在 → `file_missing`（幂等，只改 reason，不删行、不移动文件）。
+  此前代码里**没有任何地方写 `file_missing`**（该值只存在于历史数据），这是缺口。
+  测试：`tests/test_pending_file_missing.py` 2 例，用临时目录构造“存在/不存在/空路径”三种情况。
+  默认不接定时任务或 API，调用点后续单独评审。
+- **能力声明（D-2 模块化缺口）**：`ChannelCapabilities` 增 `supports_image` / `supports_mention` / `supports_buttons`，
+  并新增 `channel_capabilities(channel)` 单一来源矩阵（按各渠道渲染器实际能力声明，不按渠道名猜）：
+  企微 `mention=True`（`touser=@all`）、飞书/Telegram `buttons=True`（卡片 action / inline_keyboard）、
+  钉钉全 False、四家 `image=False`（通知链路不发图）。
+  测试：`tests/test_notification_channel_capabilities.py` 4 例（含未知渠道全 False）。
+- **菜单写死分支**：`menu/service.build_client` 的 if/elif 链改为 `MENU_CLIENT_FACTORIES` 注册表
+  （四个工厂函数），加渠道只需登记一次；未知渠道仍落钉钉 unsupported 客户端（行为不变）。
+  测试：同文件断言注册表键与 `MENU_CHANNELS` 一致、四渠道解析到预期类。
