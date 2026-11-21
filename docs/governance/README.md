@@ -198,3 +198,5 @@ A: `--required-only` 参数仅检查 `required` 级别能力。CI 也仅对 `req
 > **2026-11-08**：`PROJECT_GOVERNANCE.md` 已归档至 `docs/.local/archive/2026-11-08/docs/governance/`，其原则与流程已并入本文件。
 > **2026-11-08**：通知系统设计 9 份原文已归档至 `docs/.local/archive/2026-11-08/docs/plans/`，导航见 `docs/architecture/notification-system.md`；`gates.md` 中的引用已改指归档区。
 
+> v2.62（2026-11-21）：G-013 规则 0 增加“纯文档提交”豁免（`is_docs_only`；改动非空且全在 `docs/` 或 `*.md` 才放行），
+> 规则实现拆到 `scripts/check_g_013_bugfix_rule.py`（守 G-010）；10 例回归，`ci-lessons.md` 同批登记。

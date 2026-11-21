@@ -23,6 +23,12 @@ from typing import Dict, List, Optional
 
 # U34：变更范围获取失败必须 FAIL（旧行为是把「拿不到」当成「没有变更」→ 假绿）
 from _gate_git import ChangeScope, ChangeSetUnavailable, content_or_exit  # noqa: E402
+from check_g_013_bugfix_rule import (  # noqa: F401  (再导出，保持既有测试与调用方可用)
+    BUGFIX_PATTERN,
+    _check_bugfix_rule,
+    is_docs_only,
+    is_test_file,
+)
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -52,34 +58,7 @@ AST_PARSE_TIMEOUT_SEC = 3.0
 # 私有函数升级为阻断的阈值：函数体行数超过此值
 PRIVATE_FUNC_BODY_LINE_THRESHOLD = 50
 
-# 缺陷修复关键字正则
-BUGFIX_PATTERN = re.compile(r'\b(fix|bugfix|hotfix|bug)\b', re.IGNORECASE)
 
-
-def is_test_file(path: str) -> bool:
-    """判断路径是否位于 `tests/`（规则 0 的"带测试"判据）。
-
-    原实现用 `'test' in path.lower()`，把 `scripts/check_g_013_test_coverage.py`
-    这类**文件名含 test 的生产脚本**当成测试变更 ⇒ 规则 0 被架空（2026-10-17 实测）。
-    """
-    normalized = path.replace('\\', '/').lower()
-    if normalized.startswith('tests/') or '/tests/' in normalized:
-        return True
-    # 前端测试：web/src/**/*.test.ts（A-19/B5）。此前只认 tests/，导致前端修复
-    # 带 .test.ts 也被判定“无测试变更”，只能改用 `chore` 提交（语义失真）。
-    return bool(re.search(r'(^|/)web/src/.*\.test\.(ts|tsx|js|jsx)$', normalized))
-
-# 输入输出调用检测正则（比集合成员检查更精确）
-IO_PATTERN = re.compile(
-    r'\b(open|connect|execute|fetchall|fetchone|'
-    r'requests\.get|requests\.post|requests\.put|requests\.delete|'
-    r'httpx|aiohttp|urllib|socket)\b'
-)
-
-
-# ============================================================================ 分隔
-# 抽象语法树工具函数
-# ============================================================================ 分隔
 
 def _hash_node(node: ast.AST) -> str:
     """
@@ -429,24 +408,17 @@ def _should_upgrade_private_to_block(info: dict) -> bool:
     return False
 
 
+# 输入输出调用检测正则（比集合成员检查更精确）
+IO_PATTERN = re.compile(
+    r"\b(open|connect|execute|fetchall|fetchone|"
+    r"requests\.get|requests\.post|requests\.put|requests\.delete|"
+    r"httpx|aiohttp|urllib|socket)\b"
+)
+
+
 # ============================================================================ 分隔
 # 主检查逻辑
 # ============================================================================ 分隔
-
-def _check_bugfix_rule(changed_files: List[str], commit_msg: str) -> tuple[bool, List[str]]:
-    """规则 0：`fix`/`bugfix`/`hotfix` 提交必须带 `tests/` 下的变更。
-
-    返回 ``(is_bugfix, errors)``。单独成函数是为了让 `run_check()` 守住 G-010 的
-    80 有效行上限（2026-10-17 接线 commit-msg 后实测 84 行被拦）。
-    """
-    is_bugfix = bool(BUGFIX_PATTERN.search(commit_msg))
-    has_test_change = any(is_test_file(f) for f in changed_files)
-    if is_bugfix and not has_test_change:
-        return is_bugfix, [
-            "[TEST-BLOCK] Bug 修复必须伴随测试用例的新增或修改 "
-            "(commit message 包含 fix/bugfix/hotfix，但未检测到测试文件变更)"
-        ]
-    return is_bugfix, []
 
 
 def _load_pair(biz_file: str, old_ref: str, new_ref: Optional[str], warnings: list) -> Optional[tuple]:
