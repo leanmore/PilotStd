@@ -46,7 +46,7 @@ onUnmounted(() => {
       ]" :key="item.t">
         <template #content>
           <h3>{{ item.t }}</h3>
-          <ProgressBar :value="item.p" :show-value="true" style="height: 24px" />
+          <ProgressBar :value="item.p" :show-value="true" :dt="{ height: 'var(--size-24)' }" />
           <p class="detail">{{ item.d }}</p>
         </template>
       </Card>

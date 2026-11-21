@@ -87,7 +87,10 @@ onMounted(() => { ensure() })
     <div class="card-header">{{ t('pending.select_sites') }}</div>
 
     <div v-if="adaptersLoading" class="flex align-items-center gap-2 py-3">
-      <ProgressSpinner style="width:20px;height:20px" strokeWidth="4" />
+      <ProgressSpinner
+        strokeWidth="4"
+        :pt="{ root: { style: { width: 'var(--size-20)', height: 'var(--size-20)' } } }"
+      />
       <span class="text-dim">{{ t('pending.sites_loading') }}</span>
     </div>
 
