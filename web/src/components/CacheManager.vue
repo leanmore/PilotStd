@@ -98,7 +98,7 @@ onMounted(loadStats)
       <div v-for="tbl in ['standard_info_cache', 'standard_validity', 'announcement_record']" :key="tbl" class="table-row">
         <span class="tbl-name">{{ tbl }}</span>
         <Tag severity="info" :value="t('settings.cache.rows', { n: tableRows(tbl) })" />
-        <span v-if="(stats.tables[tbl] || {}).stale" style="font-size:11px;color:var(--warn);margin-left:4px">
+        <span v-if="(stats.tables[tbl] || {}).stale" style="font-size:11px;color:var(--warning);margin-left:4px">
           {{ t('settings.cache.stale_rows', { n: (stats.tables[tbl] || {}).stale }) }}
         </span>
       </div>

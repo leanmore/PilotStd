@@ -62,7 +62,7 @@ const runCheck = async () => {
           </DataTable>
         </div>
 
-        <div v-else-if="!running" class="text-center p-4" style="color: var(--text-color-secondary)">
+        <div v-else-if="!running" class="text-center p-4" style="color: var(--text-secondary)">
           {{ t('quality.empty_hint') }}
         </div>
       </template>
@@ -76,7 +76,7 @@ const runCheck = async () => {
 .flex { display: flex; }
 .gap-3 { gap: 12px; }
 .align-items-center { align-items: center; }
-.text-sm { font-size: 13px; color: var(--text-color-secondary); }
+.text-sm { font-size: 13px; color: var(--text-secondary); }
 .text-center { text-align: center; }
 .p-4 { padding: 24px; }
 h4 { margin: 12px 0 8px; font-size: 15px; }

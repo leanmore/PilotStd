@@ -356,7 +356,7 @@ onMounted(() => { loadSites() })
   padding: 4px 0;
 }
 .site-field :deep(.edit-input) {
-  border-color: var(--primary-color) !important;
+  border-color: var(--primary) !important;
 }
 .site-status {
   display: flex;

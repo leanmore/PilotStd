@@ -84,5 +84,5 @@ onMounted(() => fetchStatus('/scheduler'))
   display: flex; justify-content: space-between; align-items: center;
   margin-bottom: 16px; gap: 12px; flex-wrap: wrap;
 }
-.text-sm { font-size: 13px; color: var(--text-color-secondary); }
+.text-sm { font-size: 13px; color: var(--text-secondary); }
 </style>

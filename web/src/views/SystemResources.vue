@@ -59,5 +59,5 @@ onUnmounted(() => {
 .page-title { margin: 0 0 20px; font-size: 20px; font-weight: 600; color: var(--text-heading); }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
 h3 { margin: 0 0 12px; font-size: 15px; }
-.detail { margin-top: 8px; font-size: 13px; color: var(--text-color-secondary); }
+.detail { margin-top: 8px; font-size: 13px; color: var(--text-secondary); }
 </style>

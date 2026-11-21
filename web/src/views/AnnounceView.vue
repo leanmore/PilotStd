@@ -221,5 +221,5 @@ function onPage(e: any) {
 .stat-sub { font-size: 11px; color: var(--text-dim); margin-top: 6px; line-height: 1.5; }
 .border-bottom { border-bottom: 1px solid var(--border-light, #e5e7eb); }
 .announce-row { cursor: pointer; transition: background 0.15s; }
-.announce-row:hover { background: var(--surface-hover, #f3f4f6); }
+.announce-row:hover { background: var(--selected); }
 </style>

@@ -363,7 +363,7 @@ const {
   -webkit-text-stroke: 0.6px currentColor;
 }
 .floating-workspace-btn:focus-visible {
-  outline: 2px solid var(--primary-color);
+  outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
 

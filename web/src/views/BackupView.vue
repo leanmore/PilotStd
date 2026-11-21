@@ -92,5 +92,5 @@ onMounted(() => { if (isAdmin.value) fetchBackups('/backup') })
 .flex { display: flex; }
 .gap-3 { gap: 12px; }
 .align-items-center { align-items: center; }
-.text-sm { font-size: 13px; color: var(--text-color-secondary); }
+.text-sm { font-size: 13px; color: var(--text-secondary); }
 </style>

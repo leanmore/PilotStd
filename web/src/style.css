@@ -5,10 +5,13 @@
    设计令牌 — 默认主题（经典白）
    ═══════════════════════════════════════════ */
 :root {
-  /* 背景层级 */
-  --bg: #f8fafc;
+  /* 背景层级
+     fix(theme): 与运行层对齐——themes.ts 的 light 主题为 bg=#f1f5f9 / surfaceRaised=#f8fafc，
+     本处原值（bg=#f8fafc / raised=#f1f5f9）与之两两互换，导致首屏（JS 注入前）画布与抬升面层级颠倒。
+     以 themes.ts（四主题运行层，可切换的唯一真相）为准修正。 */
+  --bg: #f1f5f9;
   --surface: #ffffff;
-  --surface-raised: #f1f5f9;
+  --surface-raised: #f8fafc;
 
   /* 边框 */
   --border: #e2e8f0;
@@ -232,7 +235,7 @@ body .p-card {
    Reason: Aura 组件作用域 token（--p-datatable-header-cell-color 等）为解析后直接值 #334155，
    root 级 --p-content-color 注入无法覆盖（P1 实证）；--text-dim 作表头色浅色主题 2.4-2.6:1 不达标，
    改用 --text 后 ≈7:1（浅色深字/深色浅字自适应），保留加粗+大写维持表头层级。
-   See: docs/investigations/aura-token-sync-feasibility.md §P1 - component-scope direct values */
+   See: docs/technical-debt.md（Tech-Debt #8；原始调研报告已归档至 docs/.local/archive/2026-10-24/，未入库）*/
 .p-datatable .p-datatable-thead>tr>th {
   background: var(--surface-raised);
   color: var(--text);
@@ -334,7 +337,7 @@ body .p-card {
    Reason: Aura 默认 success/warning 按钮为 emerald-500(#10b981)/orange-500(#f97316) + 白字，
    实测 2.54/2.8:1 不达标；映射表未含 success/warning 变体（做减法），保留固定 #16a34a/#ea580c + #000
    （6.4/5.8:1 ✅）。注：warn 实测为 orange-500，深色变体取 orange-600。
-   See: docs/investigations/aura-token-sync-feasibility.md §P1 - button scope */
+   See: docs/technical-debt.md（Tech-Debt #8；原始调研报告已归档至 docs/.local/archive/2026-10-24/，未入库） */
 html .p-button.p-button-success {
   background-color: #16a34a;
   border-color: #16a34a;
@@ -379,7 +382,7 @@ html .p-button.p-button-danger.p-button-outlined:hover {
    Reason: Aura --p-button-secondary-color 为 text.muted(#64748b) on surface.100(#f1f5f9)，
    浅色主题实测 4.34:1 不达标；html 前缀提高特异性强制 --text-secondary（light 5.44/green 4.89:1 ✅），
    且原规则被 Aura token 覆盖从未生效（阶段 A 实证）。映射表未含 secondary 变体（做减法）。
-   See: docs/investigations/aura-token-sync-feasibility.md §P1 - button scope */
+   See: docs/technical-debt.md（Tech-Debt #8；原始调研报告已归档至 docs/.local/archive/2026-10-24/，未入库） */
 html .p-button.p-button-secondary {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -807,7 +810,7 @@ html .p-button.p-button-secondary {
       保留 #047857+白字（5.48:1 ✅）。
    2. 边框/分隔线——用户验收明确要求"面板边框清晰可见"（B+ 方案验收项），#cbd5e1 增强边界感
       （默认 --p-content-border-color #e2e8f0 过浅）。
-   See: docs/investigations/aura-token-sync-feasibility.md §P1 - component-scope direct values
+   See: docs/technical-debt.md（Tech-Debt #8；原始调研报告已归档至 docs/.local/archive/2026-10-24/，未入库）
    ═══════════════════════════════════════════════════════════════ */
 
 /* 1. 选中日：emerald-700 底 + 白字（≈5.48:1 ✅；Aura 默认 emerald-500 白字实测仅 2.54:1） */

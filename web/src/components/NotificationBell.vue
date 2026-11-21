@@ -159,7 +159,7 @@ const goToLogs = () => {
 .notification-dropdown {
   display: flex;
   flex-direction: column;
-  background: var(--surface-card, #fff);
+  background: var(--surface);
   border-radius: 8px;
   /* 固定宽度：标记全部已读时按钮显隐不能改变弹层宽度，否则 PrimeVue 会重算位置并“跳”到左边 */
   width: 360px;
@@ -194,18 +194,18 @@ const goToLogs = () => {
   align-items: flex-start;
   padding: 10px 16px;
   cursor: pointer;
-  border-bottom: 1px solid var(--surface-border, #eee);
+  border-bottom: 1px solid var(--border);
   transition: background 0.2s;
 }
 
 .notification-item:hover {
-  background: var(--surface-hover, #f0f7ff);
+  background: var(--selected);
 }
 
 .notification-item.warning .item-dot { background: #f59e0b; }
 .notification-item.error .item-dot { background: #ef4444; }
 .notification-item.unread {
-  background: var(--primary-50, #eff6ff);
+  background: var(--primary-bg);
 }
 
 .notification-item.read {
@@ -216,7 +216,7 @@ const goToLogs = () => {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--primary-color, #3b82f6);
+  background: var(--primary);
   margin-right: 12px;
   margin-top: 6px;
   flex-shrink: 0;
@@ -230,12 +230,12 @@ const goToLogs = () => {
 .item-title {
   font-weight: 500;
   font-size: 14px;
-  color: var(--text-color, #333);
+  color: var(--text);
 }
 
 .item-body {
   font-size: 13px;
-  color: var(--text-color-secondary, #666);
+  color: var(--text-secondary);
   margin-top: 2px;
   /* 标准号+名称较长：最多两行，悬停看完整正文 */
   display: -webkit-box;
@@ -247,14 +247,14 @@ const goToLogs = () => {
 
 .item-time {
   font-size: 12px;
-  color: var(--text-color-secondary, #999);
+  color: var(--text-secondary);
   margin-top: 4px;
 }
 
 .empty-state {
   padding: 40px 20px;
   text-align: center;
-  color: var(--text-color-secondary, #999);
+  color: var(--text-secondary);
 }
 
 .dropdown-footer {

@@ -258,7 +258,7 @@ const {
 }
 
 .p-button-text.p-button-rounded:focus-visible {
-  outline: 2px solid var(--primary-color);
+  outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
 

@@ -257,9 +257,9 @@ onMounted(() => {
 .page-title { margin: 0 0 20px; font-size: 20px; font-weight: 600; color: var(--text-heading); }
 .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px; }
 .stat-card { text-align: center; }
-.stat-card.active { border-left: 4px solid var(--green-500, #22c55e); }
-.stat-card.inactive { border-left: 4px solid var(--red-500, #ef4444); }
-.stat-card.unknown { border-left: 4px solid var(--gray-400, #9ca3af); }
+.stat-card.active { border-left: 4px solid var(--success); }
+.stat-card.inactive { border-left: 4px solid var(--danger); }
+.stat-card.unknown { border-left: 4px solid var(--text-dim); }
 .stat-num { font-size: 28px; font-weight: 700; }
 .stat-label { font-size: 13px; color: var(--text-dim); margin-top: 4px; }
 .section { margin-bottom: 16px; }
