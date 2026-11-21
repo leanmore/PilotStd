@@ -1353,3 +1353,16 @@ ecursive 覆盖子目录。A-44 闭合。
 - 新增两个尺度令牌 `--size-20` / `--size-24`（放在 `:root` 内，非颜色；首版误放在右括号外导致 lightningcss 报
   “Invalid token in pseudo element”，已修正）。
 - 结果：G-055 当前命中 0 次、基线仍记 3 条 → 输出 `[STALE]`（非阻断）。基线更新按规矩**单独提交 + 人工确认**，本提交不动基线。
+
+### 111. P2（D2 结构性）：默认层与运行层校验扩到全量映射（2026-11-21）
+
+- **问题**：`design-tokens.test.ts` 只校验 `:root` 与 light 的 4 个变量（bg/surface/surface-raised/border），
+  其余三主题无校验，新增颜色键漏接线不会被发现。
+- **做法**（纯测试，未改任何令牌值）：
+  1. 从 `applyThemeToDom` 源码解析 `'--var': c.prop` 映射（单一真相来源），断言映射内每个 prop 在**四主题**都存在；
+  2. 每主题每个映射值非空；颜色型值（`#`/`rgb` 开头）形态校验，`focusRing` 这类阴影串不套颜色正则；
+  3. `:root` 默认层与 light 主题**全量**逐项比对（支持 `var()` 别名解析，如 `--accent: var(--primary)`）；
+  4. 覆盖断言改为“除已登记死键外不漏接线”。
+- **测试发现（登记 A-53）**：`disabledBg` / `disabledText` 在四主题都有值，但 `applyThemeToDom` 未映射、
+  `style.css` 也无声明 → **死键**。按 P2 约束（不得为过测试改值）只登记，不接线。
+- **结果**：`design-tokens.test.ts` 9 例通过（原 6 例 + 新增 4 例 - 合并重复 1 例）。

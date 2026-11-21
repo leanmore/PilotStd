@@ -37,6 +37,7 @@
 | **A-50** | **DT-12：状态色 `--warning` 对比度不足**（light 1.96/2.15、green 1.91/2.05；LogBar `log-warn` 是正文且背景为 `--bg`，需 4.5:1；圆点需 3:1） | **已修**（2026-11-21，`27` #109）：light/green `#f59e0b → #ad4f08`（light-bg 4.92 / green-bg 4.79），dark/blue 复测 8.31/8.69 不动；`themes.ts` 与 `style.css` 同批同步；`a11y-contrast.test.ts` 增四主题断言 | 已关闭（A-50 关闭，DT-12 同步关闭；未新开债号） | — |
 | **A-51** | **2 条内联 `style` 高度无令牌**：`PendingView.vue:90 height:20px`、`SystemResources.vue:49 height:24px`（HTML 属性里插 `/* */` 会让样式失效，现入 G-055 基线 `inline-whitelist`） | 未修（2026-11-21 登记） | 模板重构时改为 class + 尺寸/间距令牌，改完同步收敛 G-055 基线（删对应白名单条目，需人工提交） | 触发：该两页有模板重构需求时；**禁止为过门禁单独新增 class** |
 | **A-52** | **B 类 115 条无令牌硬编码总账**（113 条带 `TODO: [Design Debt]` + 2 条内联）：on-primary 前景、overlay 半透明底、阴影组合值、布局/控件尺寸等，现由 G-055 棘轮按基线次数保护 | 未修（存量受棘轮保护，明细见 `docs/design-token-audit.md` §4 / §11，本表不重复）；全量替换后现状：A=0 / C=628 / D=0（B 类即本条 115 条） | 按类补语义令牌（先过四主题对比度）再批量替换，每类单独提交并同步收敛基线 | 触发：新增同类样式且确需令牌时；无触发则维持基线 |
+| **A-53** | **`disabledBg` / `disabledText` 是死键**：`ThemeConfig` 有声明（light/dark/green/blue 各一套），但 `applyThemeToDom` 未映射、`style.css` 也无 `--disabled-bg/--disabled-text` 声明，全仓无消费者 | 已登记（P2 全量映射测试发现） | 二选一：接线成 `--disabled-bg/--disabled-text` 并在 `.p-button:disabled` 等消费；或删键（需同步 ThemeConfig 与四主题） | 触发：做禁用态无障碍/一致性专项时；**P2 约束禁止为过测试改值，故本轮只登记** |
 
 > **A-27 子项（2026-11-08，实现完成后的部署/后续待办）**
 > - **A-27.1 真实渠道 API 验证（部署时）**：企微需 `corpid`/`corpsecret`/`agentid`；飞书需 `app_id`/`secret` + 测试群 `chat_id`；Telegram 需 bot token。代码已实现，单测覆盖 fake transport，**真实 API 未调用**。**阻塞部署验证**。
