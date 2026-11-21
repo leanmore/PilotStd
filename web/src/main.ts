@@ -1,3 +1,5 @@
+// 设计令牌（主题无关尺度层）必须先于 style.css 声明，见 styles/design-tokens.css 头部说明
+import './styles/design-tokens.css'
 import './style.css'
 import './theme.css'
 import 'primeicons/primeicons.css'
