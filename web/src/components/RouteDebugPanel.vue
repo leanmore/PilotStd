@@ -141,7 +141,7 @@ async function debug() {
 .debug-btn {
   padding: var(--space-8) var(--space-16); border: none; border-radius: var(--radius);
   /* TODO: [Design Debt] #fff 无精确令牌，暂不替换，待定令牌后统一处理 */
-  background: var(--primary-fill); color: #fff; cursor: pointer; font-size: var(--font-size-13); font-weight: var(--font-weight-semibold);
+  background: var(--primary-fill); color: var(--text-on-primary); cursor: pointer; font-size: var(--font-size-13); font-weight: var(--font-weight-semibold);
 }
 .debug-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .simulate-toggle { margin-top: var(--space-8); }

@@ -83,8 +83,7 @@ const handleToggle = (key: string, value: boolean) => {
 }
 
 .filter-item.active .item-label {
-  /* TODO: [Design Debt] #fff 无精确令牌，暂不替换，待定令牌后统一处理 */
-  color: #fff;
+  color: var(--text-on-primary);
 }
 
 .item-label {

@@ -30,6 +30,7 @@ export interface ThemeConfig {
     danger: string
     dangerBg: string
     warning: string
+  textOnPrimary: string
     warningBg: string
     info: string
     infoBg: string
@@ -87,6 +88,7 @@ export const THEMES: Record<string, ThemeConfig> = {
       dangerBg: 'rgba(239, 68, 68, 0.12)',
       dangerText: '#991b1b',    // 深红 ≈ 7.2:1
       warning: '#ad4f08',
+    textOnPrimary: '#ffffff',
       warningBg: 'rgba(173, 79, 8, 0.12)',
       warnText: '#92400e',      // 深橙 ≈ 6.7:1
       info: '#3b82f6',
@@ -136,6 +138,7 @@ export const THEMES: Record<string, ThemeConfig> = {
       dangerBg: 'rgba(248, 113, 113, 0.15)',
       dangerText: '#f87171',
       warning: '#fbbf24',
+    textOnPrimary: '#ffffff',
       warningBg: 'rgba(251, 191, 36, 0.15)',
       warnText: '#fbbf24',
       info: '#60a5fa',
@@ -185,6 +188,7 @@ export const THEMES: Record<string, ThemeConfig> = {
       dangerBg: 'rgba(239, 68, 68, 0.12)',
       dangerText: '#991b1b',
       warning: '#ad4f08',
+    textOnPrimary: '#ffffff',
       warningBg: 'rgba(173, 79, 8, 0.12)',
       warnText: '#92400e',
       info: '#3b82f6',
@@ -234,6 +238,7 @@ export const THEMES: Record<string, ThemeConfig> = {
       dangerBg: 'rgba(248, 113, 113, 0.15)',
       dangerText: '#f87171',
       warning: '#fbbf24',
+    textOnPrimary: '#ffffff',
       warningBg: 'rgba(251, 191, 36, 0.15)',
       warnText: '#fbbf24',
       info: '#60a5fa',
@@ -298,6 +303,7 @@ export function applyThemeToDom(theme: ThemeConfig): void {
     '--danger-bg': c.dangerBg,
     '--danger-text': c.dangerText,
     '--warning': c.warning,
+    '--text-on-primary': c.textOnPrimary,
     '--warning-bg': c.warningBg,
     '--warn-text': c.warnText,
     '--info': c.info,
