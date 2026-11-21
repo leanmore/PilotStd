@@ -734,3 +734,8 @@ pilotstd/core/
 - `_dispatcher.send_event` 在目标渠道为空时不再只打日志：写一行 `channel='none'`、`status='skipped'`
   的记录（`notification.record_unconfigured_events` 可关闭），Web 端把 `none` 显示为“未配置渠道”。
 - 目的：新装用户零渠道时，“丢了哪些事件”在站内可查；首次登录引导配置渠道另见 G-45。
+## 零渠道可见性：配置与兼容（2026-11-21）
+
+- 开关 `notification.record_unconfigured_events`（默认 true）：false 时恢复“只打日志、不落库”的旧行为。
+- 兼容：测试替身没有 `_cfg` 属性时按“记录”处理，避免替身差异造成行为分叉（`test_notification_visibility` 已锁定语义边界）。
+- `status='skipped'` 的两个来源：① 全局关闭投递但记录（真实渠道）；② 零渠道用户事件（`channel='none'`）。

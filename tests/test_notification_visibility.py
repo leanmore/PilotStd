@@ -79,15 +79,19 @@ def test_disabled_without_subscribers_writes_nothing(monkeypatch):
     assert host.logs == []
 
 
-def test_enabled_path_never_writes_skipped(monkeypatch):
-    """启用投递时不会出现 skipped 行（该状态专属于"关闭投递但记录"）。
+def test_enabled_path_writes_skipped_only_for_zero_channel(monkeypatch):
+    """启用投递时不因“关闭投递”写 skipped；但**零渠道**要留一行可见记录。
 
-    启用路径的逐项行为由既有链路用例覆盖（tests/test_notification_manager.py 等），
-    本用例只锁"阶段 D 不改变启用路径的日志语义"。
+    语义边界（2026-11-21 明确）：`status='skipped'` 有两个来源——
+    ① 全局关闭投递但记录（`_log_skipped`，channel 为真实渠道）；
+    ② 零渠道用户事件（本批新增，channel='none'），否则事件在站内完全不可见。
+    本用例锁②：有且只有一行、channel='none'、且**没有真正发送**。
     """
     monkeypatch.delenv("NOTIFY_RECORD_WHEN_DISABLED", raising=False)
-    host = _Host(enabled=True, channels=())  # 无订阅 ⇒ 走既有"无渠道"分支，不落 skipped
+    host = _Host(enabled=True, channels=())
     send_event(host, "scan_complete", {"total": 3})
 
     assert host.channel.sent == 0
-    assert all(row[2] != "skipped" for row in host.logs)
+    skipped = [row for row in host.logs if row[2] == "skipped"]
+    assert len(skipped) == 1
+    assert skipped[0][1] == "none"

@@ -111,7 +111,8 @@ def send_event(
     if not target_channels:
         # 零渠道（含新装未配置）：不能只打日志——否则事件在站内完全不可见，等于静默丢弃。
         # 写一行“无渠道”的跳过记录，让“丢了什么”可查；可用配置关闭。
-        if host._cfg.get("notification.record_unconfigured_events", True):
+        cfg = getattr(host, "_cfg", None)
+        if cfg is None or cfg.get("notification.record_unconfigured_events", True):
             msg = host._build_message(event_type, event_data)
             msg.user_id = log_user_id
             msg.delivery_user_id = delivery

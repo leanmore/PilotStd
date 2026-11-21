@@ -105,6 +105,8 @@ FACTORY_DEFAULTS = {
     # 服务端聚合（同类消息合并，防通知刷屏）
     # B3：Docker 侧分档节流（长阶段同主题 60 秒一条；关闭即回退为不节流）
     "notification.tiered_throttle": True,
+    # 零渠道用户的事件写一行“未配置渠道”的跳过记录（站内可见），见 27 #105；关闭后恢复“只打日志”的旧行为
+    "notification.record_unconfigured_events": True,
     "notification.aggregate_enabled": True,
     # 无变化任务默认仍通知；仅当用户显式开启 suppress_nochange 时才静默。
     "notification.suppress_nochange": False,
