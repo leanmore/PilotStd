@@ -49,6 +49,8 @@
 | G-39 | 28 个事件无出厂渠道，新装用户只收 16/44 | 已修复（待部署） | 策略表无行且无 config 规则时回退“已启用渠道”；6 例测试；见 `27` #103 |
 | G-40 | message.link 四渠道不渲染 + 级别只有飞书/钉钉可见 | 已修复（待部署） | 构建期绝对化链接；`detail_link_line()`/`level_prefix()` 在基类与两张卡片统一追加；7 例测试；见 `27` #103 |
 | G-41 | 企微应用形态测试连接构造参数错位 | 已修复（待部署） | `do_test_send` 改关键字传参；1 例测试锁定入参；见 `27` #103 |
+| G-42 | 批次 found/not_found 不落表 | 已修复（待部署） | `record_result_metrics()` 写入 query_metrics；3 例测试；见 `27` #104 |
+| G-43 | 通知日志 info/warning 计数口径是否偏差 | 已闭合（无偏差） | level 为纯 event_type 映射（security_alert→warning、task_failure→error、其余 info），与投递状态无关；68/32→66/34 属窗口内容变化；见 `27` #104 |
 
 ## 二、之前悬着未闭合
 

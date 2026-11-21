@@ -1237,3 +1237,15 @@ ecursive 覆盖子目录。A-44 闭合。
   新增 `tests/test_notification_wechat_test_connection.py` 锁定。
 - 补充：i18n 三语新增 `notification.renderer.detail` / `level.warning` / `level.error`；
   `manager.py` 因 G-049 体积上限，把链接绝对化下沉到 `_links`（有效行回落至上限内）。
+
+### 104. G-02 批次结果落表 + G-13 级别口径确认（2026-11-21）
+
+- **G-02**：`query_batch_parsed` 此前只把 `validate_failed` 写进 `query_metrics`，
+  `found`/`not_found` 从未落表（所以“61 条重查 found=3/not_found=58”只能从日志还原）。
+  新增 `record_result_metrics(metrics, results, total)`：按 `QueryResult.is_found()` 计 found，
+  `not_found = total - found`（total 用入参，防止分桶丢项被算成 0 漏命中），在 `finally` 持久化前写入。
+  测试：`tests/test_batch_result_metrics.py` 3 例。
+- **G-13 口径确认（不是统计偏差）**：`docker/api/notification_logs.py:122` 的 `_business_level()`
+  是**纯 event_type 映射**——`security_alert → warning`、`task_failure → error`、其余 `info`，
+  与投递 `status` 无关、无时间窗聚合。因此“100 条里 info/warning 数”只随**最新 100 条的内容**变化；
+  声称 68/32、实测 66/34 属窗口内容变化（新增日志构成不同），统计逻辑无偏差，不改。

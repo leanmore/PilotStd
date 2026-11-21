@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 import os
 import time
-from typing import TYPE_CHECKING, Callable, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Callable, List, Optional, Tuple
 
 from ..models import QueryResult
 from ._batch_dispatcher import BatchDispatcher, _DispatchContext
@@ -25,6 +25,17 @@ if TYPE_CHECKING:
     from ._single import SingleQueryHandler
 
 logger = logging.getLogger(__name__)
+
+
+def record_result_metrics(metrics: Any, results: list[Any], total: int) -> None:
+    """把本批 found/not_found 写入 `query_metrics`（G-02：此前只有 validate_failed 落表）。
+
+    `found` 以 `QueryResult.is_found()` 为准（与 health_probe/日志统计同口径），
+    `not_found = 总数 - found`；总数以入参 `total` 为准（防止分桶丢项时算少）。
+    """
+    found = sum(1 for r in results if getattr(r, "is_found", lambda: False)())
+    metrics.set("found", found)
+    metrics.set("not_found", max(0, int(total) - found))
 
 
 class BatchHandler:
@@ -155,7 +166,9 @@ class BatchHandler:
             # csres 后台结果可能在 `overflow` 之后才落定；`overflow` 会对未命中项写 pending，
             # 故收尾前必须再合并一次，否则“日志评分=100 而 stats.found=0”（2026-11-17 复现）
             self._collect_csres_results(state)
-            return self._finalize_batch(state, parsed_list, n, temp_cooldown_skips)  # type: ignore[no-any-return]
+            results = self._finalize_batch(state, parsed_list, n, temp_cooldown_skips)
+            record_result_metrics(metrics, results, n)
+            return results  # type: ignore[no-any-return]
         finally:
             try:
                 from pilotstd.scan.parser._result_builder import get_validate_fail_count
