@@ -36,7 +36,7 @@
 | **A-46** | **33 个隔离文件丢失**（`file_missing`，含 `HJ 536-2009`）：误移到未挂载 `/data`，v0.191.1 重启丢失；清单 `C:\Temp\move_quarantine_manifest.json` / `a1_missing.json` | 定触发 | 触发：发现公告记录/下载链可重新获取对应标准 | 修法：重取后走归档并核销 pending；在此之前 pending 保持 `file_missing`，不伪装关闭 |
 | **A-50** | **DT-12：状态圆点 `--warning` 对浅色底不足 3:1**（light 2.15 / green 2.05；dark 8.76 / blue 9.95 通过）。来源：`NotificationBell.vue` 试点逐主题核算，见 `docs/design-token-audit.md` §8 | 未修（2026-11-21 登记；替换前即同值字面量 `#f59e0b`，非替换引入） | 二选一：① 调整 `--warning` 取值；② 新增 `--warning-indicator` 语义令牌。两者都要过四主题对比度契约 + `theme-spec.test.ts`，且会波及所有 `--warning` 消费者 | 触发：状态点被要求可感知 / 做无障碍专项时；**禁止借令牌替换批次顺手改** |
 | **A-51** | **2 条内联 `style` 高度无令牌**：`PendingView.vue:90 height:20px`、`SystemResources.vue:49 height:24px`（HTML 属性里插 `/* */` 会让样式失效，现入 G-055 基线 `inline-whitelist`） | 未修（2026-11-21 登记） | 模板重构时改为 class + 尺寸/间距令牌，改完同步收敛 G-055 基线（删对应白名单条目，需人工提交） | 触发：该两页有模板重构需求时；**禁止为过门禁单独新增 class** |
-| **A-52** | **B 类 115 条无令牌硬编码总账**（113 条带 `TODO: [Design Debt]` + 2 条内联）：on-primary 前景、overlay 半透明底、阴影组合值、布局/控件尺寸等，现由 G-055 棘轮按基线次数保护 | 未修（存量受棘轮保护，明细见 `docs/design-token-audit.md` §4 / §11，本表不重复） | 按类补语义令牌（先过四主题对比度）再批量替换，每类单独提交并同步收敛基线 | 触发：新增同类样式且确需令牌时；无触发则维持基线 |
+| **A-52** | **B 类 115 条无令牌硬编码总账**（113 条带 `TODO: [Design Debt]` + 2 条内联）：on-primary 前景、overlay 半透明底、阴影组合值、布局/控件尺寸等，现由 G-055 棘轮按基线次数保护 | 未修（存量受棘轮保护，明细见 `docs/design-token-audit.md` §4 / §11，本表不重复）；全量替换后现状：A=0 / C=628 / D=0（B 类即本条 115 条） | 按类补语义令牌（先过四主题对比度）再批量替换，每类单独提交并同步收敛基线 | 触发：新增同类样式且确需令牌时；无触发则维持基线 |
 
 > **A-27 子项（2026-11-08，实现完成后的部署/后续待办）**
 > - **A-27.1 真实渠道 API 验证（部署时）**：企微需 `corpid`/`corpsecret`/`agentid`；飞书需 `app_id`/`secret` + 测试群 `chat_id`；Telegram 需 bot token。代码已实现，单测覆盖 fake transport，**真实 API 未调用**。**阻塞部署验证**。
