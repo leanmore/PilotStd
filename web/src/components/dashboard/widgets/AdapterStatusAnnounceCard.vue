@@ -133,61 +133,67 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .announce-root {
-  height: 100%; box-sizing: border-box; padding: 14px;
+  height: 100%; box-sizing: border-box; padding: var(--space-14);
   background: linear-gradient(135deg, var(--surface), var(--surface-raised));
   border: 1px solid var(--border); border-radius: var(--radius-lg);
-  display: flex; flex-direction: column; gap: 10px;
+  display: flex; flex-direction: column; gap: var(--space-10);
 }
 
 /* Header */
 .header { display: flex; align-items: center; justify-content: space-between; }
-.header-left { display: flex; align-items: center; gap: 10px; }
+.header-left { display: flex; align-items: center; gap: var(--space-10); }
 .header-icon {
-  width: 34px; height: 34px; border-radius: var(--radius-sm); background: rgba(99,102,241,0.12);
-  display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 16px;
+  width: 34px; height: var(--icon-tile-md); border-radius: var(--radius-sm); background: var(--primary-bg);
+  display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: var(--font-size-16);
 }
-.header-title { font-size: 13px; font-weight: 700; color: var(--text-heading); }
-.header-sub { font-size: 10px; color: var(--text-dim); }
+.header-title { font-size: var(--font-size-13); font-weight: var(--font-weight-bold); color: var(--text-heading); }
+.header-sub { font-size: var(--font-size-10); color: var(--text-dim); }
 
 /* 列表 */
-.list { flex: 1; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; }
+.list { flex: 1; display: flex; flex-direction: column; gap: var(--space-6); overflow-y: auto; }
 .row {
-  display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+  display: flex; align-items: center; gap: var(--space-10); padding: var(--space-10) var(--space-12);
   background: var(--surface); border: 1px solid var(--border-light); border-radius: var(--radius);
   transition: all var(--transition);
 }
 .row:hover { border-color: var(--primary-border); background: var(--primary-bg); }
+/* TODO: [Design Debt] rgba(239,68,68,0.04) 无精确令牌，暂不替换，待定令牌后统一处理 */
+/* TODO: [Design Debt] rgba(239,68,68,0.25) 无精确令牌，暂不替换，待定令牌后统一处理 */
 .row.frozen { border-color: rgba(239,68,68,0.25); background: rgba(239,68,68,0.04); }
+/* TODO: [Design Debt] rgba(245,158,11,0.04) 无精确令牌，暂不替换，待定令牌后统一处理 */
+/* TODO: [Design Debt] rgba(245,158,11,0.25) 无精确令牌，暂不替换，待定令牌后统一处理 */
 .row.cooldown { border-color: rgba(245,158,11,0.25); background: rgba(245,158,11,0.04); }
 
 .row-icon {
+  /* TODO: [Design Debt] 36px 无精确令牌，暂不替换，待定令牌后统一处理 */
   width: 36px; height: 36px; border-radius: var(--radius-sm);
   display: flex; align-items: center; justify-content: center;
-  font-size: 11px; font-weight: 800; font-family: var(--mono); flex-shrink: 0;
+  font-size: var(--font-size-11); font-weight: var(--font-weight-extrabold); font-family: var(--mono); flex-shrink: 0;
 }
-.icon-ok { background: rgba(99,102,241,0.1); color: var(--primary); }
-.icon-frozen { background: rgba(239,68,68,0.12); color: var(--danger); }
-.icon-cooldown { background: rgba(245,158,11,0.12); color: var(--warning); }
+.icon-ok { background: var(--primary-bg); color: var(--primary); }
+.icon-frozen { background: var(--danger-bg); color: var(--danger); }
+.icon-cooldown { background: var(--warning-bg); color: var(--warning); }
 
 .row-info { flex: 1; min-width: 0; }
-.row-name { font-size: 12px; font-weight: 600; color: var(--text-heading); display: block; }
-.row-code { font-size: 10px; color: var(--text-dim); font-family: var(--mono); }
+.row-name { font-size: var(--font-size-12); font-weight: var(--font-weight-semibold); color: var(--text-heading); display: block; }
+.row-code { font-size: var(--font-size-10); color: var(--text-dim); font-family: var(--mono); }
 
 /* 健康检查指示 */
-.row-health { display: flex; align-items: center; gap: 4px; font-size: 9px; color: var(--text-dim); margin-top: 2px; }
+.row-health { display: flex; align-items: center; gap: var(--space-4); font-size: var(--font-size-9); color: var(--text-dim); margin-top: var(--space-2); }
+/* TODO: [Design Debt] 6px 无精确令牌，暂不替换，待定令牌后统一处理 */
 .health-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 .health-up { background: var(--success); }
 .health-down { background: var(--danger); }
 .health-none { background: var(--border-light, #ccc); }
 .health-time { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-.row-status { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
-.status-text-ok { font-size: 11px; color: var(--success); font-weight: 500; }
-.status-text-err { font-size: 11px; color: var(--danger); font-weight: 500; }
-.status-text-warn { font-size: 11px; color: var(--warning); font-weight: 500; }
+.row-status { display: flex; align-items: center; gap: var(--space-6); flex-shrink: 0; }
+.status-text-ok { font-size: var(--font-size-11); color: var(--success); font-weight: var(--font-weight-medium); }
+.status-text-err { font-size: var(--font-size-11); color: var(--danger); font-weight: var(--font-weight-medium); }
+.status-text-warn { font-size: var(--font-size-11); color: var(--warning); font-weight: var(--font-weight-medium); }
 
-.row-warn { color: var(--warning); font-size: 13px; cursor: help; flex-shrink: 0; }
+.row-warn { color: var(--warning); font-size: var(--font-size-13); cursor: help; flex-shrink: 0; }
 
-.empty { color: var(--text-dim); font-size: 12px; text-align: center; padding: 20px 0; }
-.err { color: var(--danger); font-size: 12px; }
+.empty { color: var(--text-dim); font-size: var(--font-size-12); text-align: center; padding: var(--space-20) 0; }
+.err { color: var(--danger); font-size: var(--font-size-12); }
 </style>

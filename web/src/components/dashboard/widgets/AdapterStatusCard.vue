@@ -119,7 +119,7 @@ onBeforeUnmount(() => {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-xs);
-  padding: 20px;
+  padding: var(--space-20);
   display: flex;
   flex-direction: column;
   transition: all var(--transition);
@@ -132,11 +132,11 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   color: var(--text-heading);
-  font-size: 15px;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
+  font-size: var(--font-size-15);
+  margin-bottom: var(--space-16);
+  padding-bottom: var(--space-12);
   border-bottom: 2px solid var(--border);
 }
 
@@ -144,22 +144,22 @@ onBeforeUnmount(() => {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  font-size: 13px;
+  font-size: var(--font-size-13);
 }
 .adapter-table th {
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--text-dim);
-  font-size: 11px;
+  font-size: var(--font-size-11);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  padding: 8px 10px;
+  padding: var(--space-8) var(--space-10);
   background: var(--surface-raised);
   border-bottom: 2px solid var(--border);
 }
 .adapter-table th:first-child { border-radius: var(--radius-sm) 0 0 0; }
 .adapter-table th:last-child { border-radius: 0 var(--radius-sm) 0 0; }
 .adapter-table td {
-  padding: 10px;
+  padding: var(--space-10);
   border-bottom: 1px solid var(--border-light);
   color: var(--text);
 }
@@ -173,20 +173,20 @@ onBeforeUnmount(() => {
 
 .empty {
   color: var(--text-dim);
-  font-size: 13px;
-  padding: 24px 0;
+  font-size: var(--font-size-13);
+  padding: var(--space-24) 0;
   text-align: center;
 }
 .err-msg {
   color: var(--danger);
-  font-size: 12px;
-  margin: 4px 0;
+  font-size: var(--font-size-12);
+  margin: var(--space-4) 0;
 }
 
 /* 响应式 */
 @media (max-width: 767px) {
-  .adapter-widget { padding: 16px; }
-  .adapter-table { font-size: 12px; }
-  .adapter-table th, .adapter-table td { padding: 6px 8px; }
+  .adapter-widget { padding: var(--space-16); }
+  .adapter-table { font-size: var(--font-size-12); }
+  .adapter-table th, .adapter-table td { padding: var(--space-6) var(--space-8); }
 }
 </style>

@@ -131,30 +131,32 @@ const isLoading = (a: QuickAction): boolean =>
 
 <style scoped>
 .root {
-  height: 100%; box-sizing: border-box; padding: 14px;
+  height: 100%; box-sizing: border-box; padding: var(--space-14);
   background: linear-gradient(135deg, var(--surface), var(--surface-raised));
   border: 1px solid var(--border); border-radius: var(--radius-lg);
-  display: flex; flex-direction: column; gap: 10px;
+  display: flex; flex-direction: column; gap: var(--space-10);
 }
 .header { display: flex; align-items: center; justify-content: space-between; }
-.header-left { display: flex; align-items: center; gap: 10px; }
+.header-left { display: flex; align-items: center; gap: var(--space-10); }
 .header-icon {
-  width: 34px; height: 34px; border-radius: var(--radius-sm); background: rgba(139,92,246,0.12);
-  display: flex; align-items: center; justify-content: center; color: #8b5cf6; font-size: 16px;
+  /* TODO: [Design Debt] rgba(139,92,246,0.12) 无精确令牌，暂不替换，待定令牌后统一处理 */
+  width: 34px; height: var(--icon-tile-md); border-radius: var(--radius-sm); background: rgba(139,92,246,0.12);
+  /* TODO: [Design Debt] #8b5cf6 无精确令牌，暂不替换，待定令牌后统一处理 */
+  display: flex; align-items: center; justify-content: center; color: #8b5cf6; font-size: var(--font-size-16);
 }
-.header-title { font-size: 13px; font-weight: 700; color: var(--text-heading); }
+.header-title { font-size: var(--font-size-13); font-weight: var(--font-weight-bold); color: var(--text-heading); }
 
-.grid { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.grid { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-8); }
 .btn {
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-8);
   background: var(--surface); border: 1px solid var(--border-light); border-radius: var(--radius);
   cursor: pointer; transition: all var(--transition); user-select: none;
 }
 .btn:hover { border-color: var(--primary-border); background: var(--primary-bg); transform: translateY(-1px); }
 .btn:active { transform: scale(0.97); }
 .btn.disabled { opacity: 0.5; pointer-events: none; }
-.icon { font-size: 22px; }
-.label { font-size: 11px; font-weight: 600; color: var(--text-heading); }
-.scan-msg { font-size: 11px; color: var(--success); text-align: center; margin-top: 4px; }
+.icon { font-size: var(--font-size-22); }
+.label { font-size: var(--font-size-11); font-weight: var(--font-weight-semibold); color: var(--text-heading); }
+.scan-msg { font-size: var(--font-size-11); color: var(--success); text-align: center; margin-top: var(--space-4); }
 .scan-msg.error { color: var(--danger); }
 </style>

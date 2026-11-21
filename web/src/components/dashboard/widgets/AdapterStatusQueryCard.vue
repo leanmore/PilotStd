@@ -122,43 +122,49 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .query-root {
-  height: 100%; box-sizing: border-box; padding: 14px;
+  height: 100%; box-sizing: border-box; padding: var(--space-14);
   background: linear-gradient(135deg, var(--surface), var(--surface-raised));
   border: 1px solid var(--border); border-radius: var(--radius-lg);
-  display: flex; flex-direction: column; gap: 10px;
+  display: flex; flex-direction: column; gap: var(--space-10);
 }
 
 /* Header */
 .header { display: flex; align-items: center; justify-content: space-between; }
-.header-left { display: flex; align-items: center; gap: 10px; }
+.header-left { display: flex; align-items: center; gap: var(--space-10); }
 .header-icon {
-  width: 34px; height: 34px; border-radius: var(--radius-sm); background: rgba(59,130,246,0.12);
-  display: flex; align-items: center; justify-content: center; color: var(--info); font-size: 16px;
+  width: 34px; height: var(--icon-tile-md); border-radius: var(--radius-sm); background: var(--info-bg);
+  display: flex; align-items: center; justify-content: center; color: var(--info); font-size: var(--font-size-16);
 }
-.header-title { font-size: 13px; font-weight: 700; color: var(--text-heading); }
-.header-sub { font-size: 10px; color: var(--text-dim); }
+.header-title { font-size: var(--font-size-13); font-weight: var(--font-weight-bold); color: var(--text-heading); }
+.header-sub { font-size: var(--font-size-10); color: var(--text-dim); }
 
 /* 网格 */
 .grid {
   flex: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-  gap: 8px; align-content: start; overflow-y: auto;
+  gap: var(--space-8); align-content: start; overflow-y: auto;
 }
 .cell {
-  position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px;
-  padding: 14px 10px 12px; background: var(--surface); border: 1px solid var(--border-light);
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: var(--space-4);
+  padding: var(--space-14) var(--space-10) var(--space-12); background: var(--surface); border: 1px solid var(--border-light);
   border-radius: var(--radius); transition: all var(--transition); overflow: hidden;
 }
+/* TODO: [Design Debt] rgba(59,130,246,0.04) 无精确令牌，暂不替换，待定令牌后统一处理 */
+/* TODO: [Design Debt] rgba(59,130,246,0.3) 无精确令牌，暂不替换，待定令牌后统一处理 */
 .cell:hover { border-color: rgba(59,130,246,0.3); background: rgba(59,130,246,0.04); }
+/* TODO: [Design Debt] rgba(239,68,68,0.03) 无精确令牌，暂不替换，待定令牌后统一处理 */
+/* TODO: [Design Debt] rgba(239,68,68,0.2) 无精确令牌，暂不替换，待定令牌后统一处理 */
 .cell.frozen { border-color: rgba(239,68,68,0.2); background: rgba(239,68,68,0.03); }
+/* TODO: [Design Debt] rgba(245,158,11,0.03) 无精确令牌，暂不替换，待定令牌后统一处理 */
+/* TODO: [Design Debt] rgba(245,158,11,0.2) 无精确令牌，暂不替换，待定令牌后统一处理 */
 .cell.cooldown { border-color: rgba(245,158,11,0.2); background: rgba(245,158,11,0.03); }
 
 .cell-dot { position: absolute; top: 6px; right: 6px; }
 .cell-name {
-  font-size: 12px; font-weight: 700; color: var(--text-heading); font-family: var(--mono);
-  text-align: center; margin-top: 4px; word-break: break-all;
+  font-size: var(--font-size-12); font-weight: var(--font-weight-bold); color: var(--text-heading); font-family: var(--mono);
+  text-align: center; margin-top: var(--space-4); word-break: break-all;
 }
 .cell-cn {
-  font-size: 10px; color: var(--text-dim); text-align: center; word-break: keep-all; line-height: 1.3;
+  font-size: var(--font-size-10); color: var(--text-dim); text-align: center; word-break: keep-all; line-height: var(--line-height-compact);
 }
 
 .cell-bar { width: 100%; height: 3px; background: var(--border-light); border-radius: 2px; overflow: hidden; }
@@ -169,9 +175,10 @@ onBeforeUnmount(() => {
 
 /* 健康检查指示 */
 .cell-health {
-  display: flex; align-items: center; justify-content: center; gap: 4px;
-  font-size: 9px; color: var(--text-dim); width: 100%; overflow: hidden;
+  display: flex; align-items: center; justify-content: center; gap: var(--space-4);
+  font-size: var(--font-size-9); color: var(--text-dim); width: 100%; overflow: hidden;
 }
+/* TODO: [Design Debt] 6px 无精确令牌，暂不替换，待定令牌后统一处理 */
 .health-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 .health-up { background: var(--success); }
 .health-down { background: var(--danger); }
@@ -179,13 +186,15 @@ onBeforeUnmount(() => {
 .health-time { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .cell-overlay {
+  /* TODO: [Design Debt] rgba(239,68,68,0.85) 无精确令牌，暂不替换，待定令牌后统一处理 */
   position: absolute; inset: 0; background: rgba(239,68,68,0.85);
   display: flex; align-items: center; justify-content: center;
-  color: #fff; font-size: 13px; font-weight: 700; font-family: var(--mono);
+  /* TODO: [Design Debt] #fff 无精确令牌，暂不替换，待定令牌后统一处理 */
+  color: #fff; font-size: var(--font-size-13); font-weight: var(--font-weight-bold); font-family: var(--mono);
   opacity: 0; transition: opacity 0.2s;
 }
 .cell:hover .cell-overlay { opacity: 1; }
 
-.empty { color: var(--text-dim); font-size: 12px; text-align: center; padding: 20px 0; }
-.err { color: var(--danger); font-size: 12px; }
+.empty { color: var(--text-dim); font-size: var(--font-size-12); text-align: center; padding: var(--space-20) 0; }
+.err { color: var(--danger); font-size: var(--font-size-12); }
 </style>

@@ -119,19 +119,19 @@ onMounted(async () => {
 
 <style scoped>
 .root {
-  height: 100%; box-sizing: border-box; padding: 14px;
+  height: 100%; box-sizing: border-box; padding: var(--space-14);
   background: linear-gradient(135deg, var(--surface), var(--surface-raised));
   border: 1px solid var(--border); border-radius: var(--radius-lg);
-  display: flex; flex-direction: column; gap: 10px;
+  display: flex; flex-direction: column; gap: var(--space-10);
 }
 .header { display: flex; align-items: center; justify-content: space-between; }
-.header-left { display: flex; align-items: center; gap: 10px; }
+.header-left { display: flex; align-items: center; gap: var(--space-10); }
 .header-icon {
-  width: 34px; height: 34px; border-radius: var(--radius-sm); background: rgba(245,158,11,0.12);
-  display: flex; align-items: center; justify-content: center; color: var(--warning); font-size: 16px;
+  width: 34px; height: var(--icon-tile-md); border-radius: var(--radius-sm); background: var(--warning-bg);
+  display: flex; align-items: center; justify-content: center; color: var(--warning); font-size: var(--font-size-16);
 }
-.header-title { font-size: 13px; font-weight: 700; color: var(--text-heading); }
-.header-sub { font-size: 10px; color: var(--text-dim); }
+.header-title { font-size: var(--font-size-13); font-weight: var(--font-weight-bold); color: var(--text-heading); }
+.header-sub { font-size: var(--font-size-10); color: var(--text-dim); }
 
 /* Tabs 容器 */
 .tabs-root {
@@ -144,7 +144,7 @@ onMounted(async () => {
 
 /* Tab 数量徽标 */
 .tab-badge {
-  margin-left: 6px;
+  margin-left: var(--space-6);
 }
 
 /* 公告列表 */
@@ -152,11 +152,11 @@ onMounted(async () => {
   flex: 1;
   overflow-y: auto;
   min-height: 0;
-  padding-top: 4px;
+  padding-top: var(--space-4);
 }
 
 .announce-item {
-  padding: 6px 0;
+  padding: var(--space-6) 0;
   border-bottom: 1px solid var(--border-light);
   cursor: pointer;
 }
@@ -167,8 +167,8 @@ onMounted(async () => {
 
 .title-text {
   display: block;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-medium);
   color: var(--text-bright);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -176,22 +176,22 @@ onMounted(async () => {
 }
 
 .date {
-  font-size: 11px;
+  font-size: var(--font-size-11);
   color: var(--text-dim);
-  margin-top: 1px;
+  margin-top: var(--space-1);
 }
 
 .empty {
-  color: var(--text-dim); font-size: 12px; text-align: center;
-  padding: 30px 0; flex: 1;
+  color: var(--text-dim); font-size: var(--font-size-12); text-align: center;
+  padding: var(--space-30) 0; flex: 1;
   display: flex; align-items: center; justify-content: center;
 }
 
 .empty-state {
-  padding: 12px 0;
+  padding: var(--space-12) 0;
   text-align: center;
   color: var(--text-dim);
-  font-size: 12px;
+  font-size: var(--font-size-12);
 }
 
 /* Tab 切换过渡动画 */
