@@ -244,6 +244,7 @@ const {
   /* TODO: [Design Debt] 1px solid rgba(226, 232, 240, 0.5) 无精确令牌，暂不替换，待定令牌后统一处理 */
   border-top: 1px solid rgba(226, 232, 240, 0.5);
   /* TODO: [Design Debt] 0 -2px 16px rgba(0, 0, 0, 0.06) 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] 原生阴影与既有 --shadow-* 层级不匹配（半径/扩散/透明度不同），待统一评估（A-52） */
   box-shadow: 0 -2px 16px rgba(0, 0, 0, 0.06);
   z-index: 100;
 }
@@ -357,6 +358,7 @@ const {
   align-items: center;
   justify-content: center;
   /* TODO: [Design Debt] 0 4px 12px rgba(0, 0, 0, 0.15) 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] 原生阴影与既有 --shadow-* 层级不匹配（半径/扩散/透明度不同），待统一评估（A-52） */
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   backdrop-filter: blur(4px);
   cursor: pointer;
@@ -369,6 +371,7 @@ const {
   filter: brightness(1.02);
   transform: scale(1.08);
   /* TODO: [Design Debt] 0 6px 16px rgba(0, 0, 0, 0.2) 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] 原生阴影与既有 --shadow-* 层级不匹配（半径/扩散/透明度不同），待统一评估（A-52） */
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
 }
 .floating-workspace-btn i { line-height: var(--line-height-none); }
