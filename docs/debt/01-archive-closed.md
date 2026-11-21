@@ -1683,3 +1683,20 @@ GUI 设置页 (ui/core/handlers/_settings*.py)          Web API (docker/api/sett
 | 编号 | 条目 | 结论 | 证据 |
 |---|---|---|---|
 | V-4 | T-36 空库跑迁移链固定打印 3 条 `OperationalError` | **已不可复现，销账（2026-11-14）**：按原文探针复跑，空库建库至 `schema_version=76`，**0 条 ERROR/OperationalError 日志** | 探针：临时目录新建 `Database(path)`，root logger 捕获全部 ERROR 级与含 `OperationalError` 的记录 → `error_records=0`；三条旧告警（`no such table: _schema_version`、`no such table: standard_info_cache`、`duplicate column name: user_id`）均未再出现，推断由后续迁移的防御性检查（先查 `sqlite_master`/列存在）消除 |
+
+---
+
+## 2026-11-21 设计令牌治理：D1–D5 同步修复（不占债号）
+
+> 依 `docs/technical-debt.md` §〇 规则 5「已闭环的修复不套债务编号」：本轮 D1–D5 属审计**新发现并当轮修复**，记录于此，不占 T-/A- 号。
+
+| 编号 | 问题 | 结论 | 证据 |
+|---|---|---|---|
+| D1 | 11 个**未定义** CSS 变量 / 26 处引用（`--text-color-secondary` 12 处、`--primary-color` 4 处等），导致深色主题下 `NotificationBell` 恒浅色、2 处键盘焦点轮廓整条声明失效 | **已修（`53b7d3ee`）** | 全部改指已定义语义令牌并删死 fallback；复扫 `var()` 未定义引用 = **0**；`web/src/styles/design-tokens.test.ts` 锁定 |
+| D2 | `style.css` 默认层 `--bg` / `--surface-raised` 与 `themes.ts` light **两两互换**（37 项比对中唯一 2 处不一致），首屏层级颠倒 | **已修（`53b7d3ee`）** | 以 `themes.ts` 为准修正并原位注明理由；测试「默认层与 light 一致」锁定；`theme-spec.test.ts` 30 例未改仍绿 |
+| D3 | `--warn` 拼写错误（`CacheManager.vue:101`），过期标记永不变色 | **已修（`53b7d3ee`）** | 正名为 `--warning` |
+| D4 | 5 处引用不存在的 `docs/investigations/aura-token-sync-feasibility.md` | **已修（`53b7d3ee`）** | 改指 `docs/technical-debt.md` 的 Tech-Debt #8，并注明原始调研已归档至 `docs/.local/archive/2026-10-24/`（不入库）；测试「无失效文档引用」锁定 |
+| D5 | `docs/reference/ui-components.md:44` 用字面量 `#a0aec0` 描述返回按钮色，与同文档「禁止硬编码 hex」自相矛盾 | **已修（`53b7d3ee`）** | 改为令牌 `--text-secondary` |
+
+**背景**：以上 5 条由阶段二审计（`docs/design-token-audit.md`）发现，审计前无人登记；D1/D2 属"无声缺陷"（无报错、无日志，仅肉眼可见主题异常）。
+

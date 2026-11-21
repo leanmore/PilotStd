@@ -1308,3 +1308,27 @@ ecursive 覆盖子目录。A-44 闭合。
 - **测试**：`tests/test_pending_mark_missing_entry.py` 5 例——挂载保护跳过（100 行全缺失）、
   小批量标记 + 幂等（第二次 updated=0）、`protect=False` 可关闭、非 admin 403、admin 返回统计。
 - 配置键：`pending.mark_missing_enabled`（默认 true）、`pending.mark_missing_cron`（默认 `30 3 * * *`）。
+
+### 108. 设计令牌治理：审计 → 缺陷修复 → 全量替换 → G-055 门禁（2026-11-21）
+
+> 全链路 14 个提交（本地未合并），PR #9 draft，CI/CD + Deep Gate 双绿。
+
+| 阶段 | 改动 | 提交 |
+|---|---|---|
+| 令牌层 | 新增 `web/src/styles/design-tokens.css`（63 令牌，无颜色字面量）+ `main.ts` 接线 | `2bc21202` |
+| 缺陷修复 | D1 未定义变量 11 名/26 处清零、D2 默认层漂移、D4 失效引用、D5 文档字面量 + 6 例回归测试 | `53b7d3ee` |
+| 审计 | `scripts/audit_design_tokens.py` + `docs/design-token-audit.md`（A 979 / B 115 / C 628 / D 0） | `6fd9cb04` |
+| 试点 | `NotificationBell.vue` A 17 条 + 1 条 TODO | `cdee6c46` |
+| 全量替换 | settings 118 / dashboard 204 / views 272 / components 333 / style.css 35，**共 979 条 A 类** | `e0fdd780` `fd9b5c69` `231cd5cc` `9d0ec26b` `b48c7e77` |
+| 文档刷新 | 报告按替换后代码重跑（A 0 / B 115 / C 628 / D 0），补试点与全量记录 | `10585bd1` `075387ee` `b64741be` |
+| 门禁 | **G-055** 棘轮：A=0；B/C 不得超过基线次数；基线 611 条目/18 组；接入 `check_all.sh --fast` + CI | `00097f12` |
+| CI 修复 | PR 路径两处既有缺陷：G-029 范围表达式、deep-gate 缺 pytest（+3 例回归守卫） | `bc061a9f` |
+
+**验证**：每批四件套（type-check 0 / lint 0 errors·304 warn / vitest 421 passed / build 0）；
+`check_all.sh --fast --guards --local` 与 `--ci` 均 exit 0；PR #9 的 CI/CD（10 success/3 skipped）
+与 Deep Gate 均 success，G-055、G-029、GUI 步骤级 success。
+
+**回滚**：**文档类提交（7-1/7-3）必须逆序**（先撤 §12 交付摘要 → 再撤本文件与债务台账回写 → 最后撤能力矩阵时间戳）——§12 引用了本批定义的 A-50/A-51/A-52 与 V-19，先撤本批会让引用悬空；代码类提交按粒度独立回滚。令牌文件（`2bc21202`）与缺陷修复（`53b7d3ee`）是其余替换的前提，单独回滚它们会让 `var()` 失去定义；删基线后 G-055 以 exit 2 报"基线缺失"，不会静默通过。
+
+**遗留**：DT-12（`--warning` 圆点 2.15/2.05）、2 条内联白名单、B 类 115 总账、`no-literal` 177 口径风险
+（分别见 `docs/debt/03-open.md` A-50/A-51/A-52 与 `04-watch.md` V-19）。

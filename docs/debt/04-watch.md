@@ -33,6 +33,7 @@
 | **V-16** | `src/components/TaskManager.vue` 分支覆盖仅 **27.9%**（行 51.85%），失败/重试分支无测试 | `观察中`（2026-11-14 起，P2-08 调查产出） | 随其**下次功能变更**（或 SettingsTabSystem 改动）时补失败分支用例；不在 TaskView 链路，故不进 P2-08 第二批 | `npx vitest run --coverage --coverage.include=src/components/TaskManager.vue --coverage.reporter=json-summary` 看 lines/branches；分支回到 ≥60% 即摘除 |
 | **V-17** | G-012 注释密度对**新建脚本**反复红（2026-11-14 两次：0.9%、2.0%），被迫为过门禁补低价值注释 | `观察中`（2026-11-14 起） | 下次改 G-012 时评估：① 新文件是否给一轮过渡期；② 是否改按"公共函数是否有 docstring"而非"行注释密度"；在此之前新脚本按现规则补 3~5 行有效注释 | `python scripts/check_g_012_comment_density.py` 看是否再有新脚本因 DENSITY 红；若同类红第 3 次出现即提规则修改 |
 | **V-18** | **`query_metrics` 无法区分 `chain_exhausted` 原因**：冷却/配额/无结果三类计数器在 0 时不落库，`query_metrics` 只剩 `chain_exhausted` 总数（2026-11-13 批量实测仅有 3 个键），归因只能靠日志 | `观察中`（2026-11-15 起，P3-16 实测暴露） | 修 P3-16 时一起改：空链/配额耗尽/无结果分别落 `quota_exhausted`/`no_result` 键（0 也可落或至少记 1 条聚合行），让指标能独立归因；当前先靠 `[NG] tried=`、`[LO]`、`[QUOTA]` 日志行 | 下次 P3-16 相关批次后查 `query_metrics` 是否能区分三类；若仍只有 `chain_exhausted` 总数则升级为待修 |
+| **V-19** | **G-055 的 `no-literal` 177 条口径收紧风险**：`0/auto/none/transparent` 等现按策略排除并计入基线（分组 `no-literal`）；若收紧"可映射"定义（例如把 `0` 也当作应走 `--space-0`），会一次性产生大量 `[STALE]` 噪音，掩盖真实清理 | 观察中（2026-11-21 起） | 触发：有人提出把 `0`/`auto`/`none` 纳入令牌管辖，或改动 `scripts/check_design_tokens.py` 的 C 组映射 | 复核：`python scripts/check_design_tokens.py` 的 `[STALE]` 行数；一次涌现 >20 行即说明口径已变，应先重生成基线（`--suggest-baseline`）并人工评审，不得脚本自动改 |
 
 ## 三、R15 观察期（2026-10-01 起约一周，**2026-10-16 补收口**）
 
