@@ -58,17 +58,17 @@ const handleToggle = (key: string, value: boolean) => {
   align-items: center;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 4px;
-  gap: 2px;
+  border-radius: var(--ds-radius-pill);
+  padding: var(--space-4);
+  gap: var(--space-2);
 }
 
 .filter-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 14px;
-  border-radius: 999px;
+  gap: var(--space-8);
+  padding: var(--space-6) var(--space-14);
+  border-radius: var(--ds-radius-pill);
   cursor: pointer;
   transition: background-color 0.2s ease;
   user-select: none;
@@ -83,11 +83,12 @@ const handleToggle = (key: string, value: boolean) => {
 }
 
 .filter-item.active .item-label {
+  /* TODO: [Design Debt] #fff 无精确令牌，暂不替换，待定令牌后统一处理 */
   color: #fff;
 }
 
 .item-label {
-  font-size: 13px;
+  font-size: var(--font-size-13);
   color: var(--text-dim);
   white-space: nowrap;
 }

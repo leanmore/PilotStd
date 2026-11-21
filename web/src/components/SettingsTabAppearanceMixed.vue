@@ -62,7 +62,7 @@ function handleLocaleChange(val: string) {
     <div class="form-grid">
       <!-- 1. login_bg 上传区块 -->
       <label for="login-bg-input">{{ t('settings.appearance.login_bg') }}</label>
-      <div style="display:flex;gap:8px">
+      <div style="display:flex;gap:var(--space-8)">
         <input
           id="login-bg-input"
           :value="getp('appearance.login_bg')"
@@ -75,7 +75,7 @@ function handleLocaleChange(val: string) {
         </label>
       </div>
       <span v-if="fileError" class="field-error" style="grid-column:2">{{ fileError }}</span>
-      <span class="text-dim" style="font-size:11px;grid-column:2">{{ t('settings.appearance.upload_hint') }}</span>
+      <span class="text-dim" style="font-size:var(--font-size-11);grid-column:2">{{ t('settings.appearance.upload_hint') }}</span>
 
       <!-- 2. 主题（分组标题 + Pinia store 管理） -->
       <div class="fieldset-gap" style="grid-column: 1 / -1" />
@@ -121,7 +121,7 @@ function handleLocaleChange(val: string) {
 
 <style scoped>
 @import '@/views/settings/shared.css';
-.field-error { color: var(--danger, #e53e3e); font-size: 11px; }
+.field-error { color: var(--danger, #e53e3e); font-size: var(--font-size-11); }
 /* 修复浅色主题下选项文字对比度不足的问题 */
 .theme-option span {
   color: var(--text) !important;

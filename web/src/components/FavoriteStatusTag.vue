@@ -62,7 +62,7 @@ const { t } = useI18n()
 
 .fav-status-error {
   font-size: 0.72rem;
-  line-height: 1.25;
+  line-height: var(--line-height-snug);
   color: var(--text-dim);
   word-break: break-all;
 }
