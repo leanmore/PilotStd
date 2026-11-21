@@ -399,8 +399,8 @@ def _archive_root() -> str:
     return configured or os.path.join(get_data_dir(), "announcements")
 
 
-def _scan_archive(root: str) -> ArchiveStatsResponse:
-    """扫描归档根目录并汇总（纯函数，便于测试）。只读，不创建目录。"""
+def _scan_tree(root: str, *, primary_ext: str = ".html") -> ArchiveStatsResponse:
+    """扫描某个数据目录并按一级子目录汇总（纯函数，便于测试）。只读，不创建目录。"""
     by_type: dict[str, dict[str, int]] = {}
     total_files = 0
     total_bytes = 0
@@ -418,7 +418,7 @@ def _scan_archive(root: str) -> ArchiveStatsResponse:
                 path = os.path.join(full, name)
                 if not os.path.isfile(path):
                     continue
-                other_file = not name.lower().endswith(".html")
+                other_file = not name.lower().endswith(primary_ext)
                 html += 0 if other_file else 1
                 other += 1 if other_file else 0
                 # 并发删除/权限问题会让单文件读大小失败；不影响统计，直接跳过
@@ -446,4 +446,21 @@ def archive_stats(request: Request) -> ArchiveStatsResponse:
 
     只读：不创建目录、不修改文件；目录不存在时返回 `exists=false`。
     """
-    return _scan_archive(_archive_root())
+    return _scan_tree(_archive_root())
+
+def _quarantine_root() -> str:
+    """隔离区根目录：`{data_dir}/_quarantine`（整理失败/重复文件的落点）。"""
+    from pilotstd.core.config import get_data_dir
+
+    return os.path.join(get_data_dir(), "_quarantine")
+
+
+@router.get("/quarantine-stats", response_model=ArchiveStatsResponse)
+@require_role("admin")
+def quarantine_stats(request: Request) -> ArchiveStatsResponse:
+    """统计隔离区落盘情况（只读）。
+
+    为什么要这个端点：`/api/files` 只允许 standards/inbox 两个根，隔离区看不到，
+    「文案说有 30 个物理副本」这类结论无法在生产上自证（21 项重验里 G-05 因此判“无法复现”）。
+    """
+    return _scan_tree(_quarantine_root(), primary_ext=".pdf")

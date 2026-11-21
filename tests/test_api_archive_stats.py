@@ -18,7 +18,7 @@ def test_counts_html_and_attachments(tmp_path, monkeypatch):
     _write(tmp_path / "gb" / "2022年第1号.pdf", b"PDF")
     _write(tmp_path / "hb" / "2023年第2号.html", b"<html/>")
 
-    stats = system._scan_archive(system._archive_root())
+    stats = system._scan_tree(system._archive_root())
 
     assert stats.exists is True
     assert stats.total_files == 3
@@ -31,7 +31,26 @@ def test_counts_html_and_attachments(tmp_path, monkeypatch):
 
 def test_missing_dir_reports_not_exists(tmp_path, monkeypatch):
     monkeypatch.setattr(system, "_archive_root", lambda: str(tmp_path / "nope"))
-    stats = system._scan_archive(system._archive_root())
+    stats = system._scan_tree(system._archive_root())
     assert stats.exists is False
     assert stats.total_files == 0
     assert stats.by_type == {}
+
+
+def test_quarantine_counts_pdf_as_primary(tmp_path, monkeypatch):
+    """隔离区里 PDF 是主类型（整理失败的文件），非 PDF 计入 attachments。"""
+    monkeypatch.setattr(system, "_quarantine_root", lambda: str(tmp_path / "_quarantine"))
+    _write(tmp_path / "_quarantine" / "__replay_b62" / "a.pdf", b"%PDF")
+    _write(tmp_path / "_quarantine" / "__replay_b62" / "b.docx", b"DOCX")
+    stats = system._scan_tree(system._quarantine_root(), primary_ext=".pdf")
+    assert stats.exists is True
+    assert stats.total_files == 2
+    assert stats.by_type["__replay_b62"]["html"] == 1      # 主类型计数（这里就是 pdf）
+    assert stats.by_type["__replay_b62"]["attachments"] == 1
+
+
+def test_quarantine_missing_dir(tmp_path, monkeypatch):
+    monkeypatch.setattr(system, "_quarantine_root", lambda: str(tmp_path / "none"))
+    stats = system._scan_tree(system._quarantine_root(), primary_ext=".pdf")
+    assert stats.exists is False
+    assert stats.total_files == 0
