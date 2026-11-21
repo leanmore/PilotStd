@@ -1343,3 +1343,13 @@ ecursive 覆盖子目录。A-44 闭合。
   （D2 教训：两处必须一致）；dark/blue 不动，复测 8.31 / 8.69。
 - **测试**：`a11y-contrast.test.ts` 增「四主题 warning on bg ≥ 4.5」4 例；该文件 11 例、theme-spec 30 例通过。
 - **视觉影响**：状态色变深（非品牌色）；影响 `NotificationBell` 圆点、`LogBar` 文字、`.mp-badge-warning`，已登记 §12.4.1。
+
+### 110. A-51 内联高度改组件属性（2026-11-21）
+
+- `SystemResources.vue:49`：ProgressBar 原生支持 `dt`（`dt('progressbar.height')`）→ `:dt="{ height: 'var(--size-24)' }"`。
+- `PendingView.vue:90`：ProgressSpinner 在 PrimeVue **4.5.5 没有 size/height prop**（样式里 width/height 是字面量 100px，
+  `dt` 只覆盖四种颜色）→ 只能经 **`pt`（passthrough 组件属性）** 注入：`:pt="{ root: { style: { width: 'var(--size-20)', height: 'var(--size-20)' } } }"`。
+  未新增 class、未改模板结构（只替换属性）。
+- 新增两个尺度令牌 `--size-20` / `--size-24`（放在 `:root` 内，非颜色；首版误放在右括号外导致 lightningcss 报
+  “Invalid token in pseudo element”，已修正）。
+- 结果：G-055 当前命中 0 次、基线仍记 3 条 → 输出 `[STALE]`（非阻断）。基线更新按规矩**单独提交 + 人工确认**，本提交不动基线。
