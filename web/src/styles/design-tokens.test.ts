@@ -72,19 +72,86 @@ describe('令牌引用完整性（D1）', () => {
   })
 })
 
-describe('默认令牌层与运行层一致（D2）', () => {
-  it('style.css 的 :root 默认值与 themes.ts light 主题一一对应', () => {
+describe('默认令牌层与运行层一致（D2，2026-11-21 扩到全量映射）', () => {
+  /** 从 `applyThemeToDom` 源码解析 `'--var': c.prop` 映射（单一真相来源） */
+  function cssVarMapping(): Array<[string, string]> {
+    const src = readFileSync(resolve(SRC, 'config/themes.ts'), 'utf8')
+    const pairs: Array<[string, string]> = []
+    for (const m of src.matchAll(/'(--[a-zA-Z0-9_-]+)'\s*:\s*c\.([a-zA-Z0-9_]+)/g)) {
+      pairs.push([m[1], m[2]])
+    }
+    return pairs
+  }
+
+  function rootVars(): Map<string, string> {
     const css = readFileSync(resolve(SRC, 'style.css'), 'utf8')
     const rootBlock = css.slice(css.indexOf(':root'), css.indexOf('}', css.indexOf(':root')))
-    const readVar = (name: string): string => {
-      const m = rootBlock.match(new RegExp(`${name}\\s*:\\s*([^;]+);`))
-      return m ? m[1].replace(/\s/g, '').toLowerCase() : ''
+    const out = new Map<string, string>()
+    for (const m of rootBlock.matchAll(/(--[a-zA-Z0-9_-]+)\s*:\s*([^;]+);/g)) {
+      out.set(m[1], m[2].replace(/\s/g, '').toLowerCase())
     }
-    const light = THEMES.light.colors
-    expect(readVar('--bg')).toBe(light.bg.toLowerCase())
-    expect(readVar('--surface')).toBe(light.surface.toLowerCase())
-    expect(readVar('--surface-raised')).toBe(light.surfaceRaised.toLowerCase())
-    expect(readVar('--border')).toBe(light.border.toLowerCase())
+    // 解析别名（--accent: var(--primary)）：最多展开 3 层，避免环
+    const resolveAlias = (v: string, depth = 0): string => {
+      const alias = v.match(/^var\((--[a-zA-Z0-9_-]+)\)$/)
+      if (!alias || depth >= 3) return v
+      const target = out.get(alias[1])
+      return target === undefined ? v : resolveAlias(target, depth + 1)
+    }
+    for (const [k, v] of out) out.set(k, resolveAlias(v))
+    return out
+  }
+
+  const COLOR_RE = /^(#[0-9a-f]{3,8}|rgba?\([^)]*\))$/i
+
+  // 已知未接线的颜色键（不是漂移，是“声明了但没人消费”的死键）：
+  // disabledBg/disabledText 在 ThemeConfig 里有声明，applyThemeToDom 与 style.css 都没接线。
+  // 本批不改值（P2 约束），登记为技术债，见 docs/debt/03-open.md A-53。
+  const UNWIRED_KEYS = new Set(['disabledBg', 'disabledText'])
+
+  it('映射表覆盖 themes.ts 的颜色键（除已登记死键外不漏接线）', () => {
+    const mapped = new Set(cssVarMapping().map(([, prop]) => prop))
+    const missing = Object.keys(THEMES.light.colors).filter((k) => !mapped.has(k) && !UNWIRED_KEYS.has(k))
+    expect(missing, `未接入 CSS 变量的颜色键: ${missing.join(', ')}`).toEqual([])
+  })
+
+  it('映射表里的每个 prop 在四主题都存在（防重命名漏改）', () => {
+    for (const [cssVar, prop] of cssVarMapping()) {
+      for (const id of ['light', 'dark', 'green', 'blue']) {
+        expect(prop in (THEMES[id].colors as Record<string, unknown>), `${id}.${prop} (${cssVar})`).toBe(true)
+      }
+    }
+  })
+
+  it('四个主题的每个映射值都是非空合法颜色（含 dark/green/blue）', () => {
+    const pairs = cssVarMapping()
+    expect(pairs.length).toBeGreaterThan(20)
+    for (const id of ['light', 'dark', 'green', 'blue']) {
+      const colors = THEMES[id].colors as unknown as Record<string, string>
+      for (const [cssVar, prop] of pairs) {
+        const value = colors[prop]
+        expect(typeof value, `${id}.${prop}`).toBe('string')
+        expect(value.length, `${id}.${prop} 为空`).toBeGreaterThan(0)
+        // 只有“颜色型”值才做形态校验；focusRing 是 box-shadow 串，不套颜色正则
+        if (value.startsWith('#') || value.startsWith('rgb')) {
+          expect(COLOR_RE.test(value), `${id}.${prop}=${value} 不是合法颜色`).toBe(true)
+        }
+        expect(value, `${cssVar} 在 ${id} 未接线`).toBeTruthy()
+      }
+    }
+  })
+
+  it('style.css 的 :root 默认值与 light 主题全量一致（不止 4 个）', () => {
+    const root = rootVars()
+    const light = THEMES.light.colors as unknown as Record<string, string>
+    const mismatched: string[] = []
+    for (const [cssVar, prop] of cssVarMapping()) {
+      const expected = (light[prop] || '').replace(/\s/g, '').toLowerCase()
+      const actual = root.get(cssVar)
+      // 默认层未声明的变量（由 JS 专供的主题令牌）跳过——它们不属于“默认层”
+      if (actual === undefined) continue
+      if (actual !== expected) mismatched.push(`${cssVar}: CSS=${actual} vs light=${expected}`)
+    }
+    expect(mismatched, `默认层与 light 漂移:\n${mismatched.join('\n')}`).toEqual([])
   })
 })
 

@@ -86,8 +86,8 @@ export const THEMES: Record<string, ThemeConfig> = {
       danger: '#ef4444',
       dangerBg: 'rgba(239, 68, 68, 0.12)',
       dangerText: '#991b1b',    // 深红 ≈ 7.2:1
-      warning: '#f59e0b',
-      warningBg: 'rgba(245, 158, 11, 0.12)',
+      warning: '#ad4f08',
+      warningBg: 'rgba(173, 79, 8, 0.12)',
       warnText: '#92400e',      // 深橙 ≈ 6.7:1
       info: '#3b82f6',
       infoBg: 'rgba(59, 130, 246, 0.12)',
@@ -184,8 +184,8 @@ export const THEMES: Record<string, ThemeConfig> = {
       danger: '#ef4444',
       dangerBg: 'rgba(239, 68, 68, 0.12)',
       dangerText: '#991b1b',
-      warning: '#f59e0b',
-      warningBg: 'rgba(245, 158, 11, 0.12)',
+      warning: '#ad4f08',
+      warningBg: 'rgba(173, 79, 8, 0.12)',
       warnText: '#92400e',
       info: '#3b82f6',
       infoBg: 'rgba(59, 130, 246, 0.12)',

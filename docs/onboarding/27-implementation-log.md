@@ -1332,3 +1332,45 @@ ecursive 覆盖子目录。A-44 闭合。
 
 **遗留**：DT-12（`--warning` 圆点 2.15/2.05）、2 条内联白名单、B 类 115 总账、`no-literal` 177 口径风险
 （分别见 `docs/debt/03-open.md` A-50/A-51/A-52 与 `04-watch.md` V-19）。
+
+### 109. A-50 状态色 `--warning` 对比度修复（2026-11-21）
+
+- **取证**（`ci.tmp/a50_contrast.py`，WCAG 2.x）：现值 `#f59e0b` 在 light-bg 1.96、light-surface 2.15、
+  green-bg 1.91、green-surface 2.05 —— LogBar 的 `log-warn` 是**正文文字且背景为 `--bg`**，需 4.5:1；
+  NotificationBell 的 `.item-dot` 是非文本 UI，需 3:1。
+- **候选实测**：`#b45309` green-bg 4.46（差 0.04 不达标）；`#ad4f08` light-bg 4.92 / green-bg 4.79 / light-surface 5.39 → **选定**。
+- **改动**：`themes.ts` light/green 的 `warning` 与 `warningBg`（色相跟随、alpha 0.12 不变）；`style.css` 默认层同步两值
+  （D2 教训：两处必须一致）；dark/blue 不动，复测 8.31 / 8.69。
+- **测试**：`a11y-contrast.test.ts` 增「四主题 warning on bg ≥ 4.5」4 例；该文件 11 例、theme-spec 30 例通过。
+- **视觉影响**：状态色变深（非品牌色）；影响 `NotificationBell` 圆点、`LogBar` 文字、`.mp-badge-warning`，已登记 §12.4.1。
+
+### 110. A-51 内联高度改组件属性（2026-11-21）
+
+- `SystemResources.vue:49`：ProgressBar 原生支持 `dt`（`dt('progressbar.height')`）→ `:dt="{ height: 'var(--size-24)' }"`。
+- `PendingView.vue:90`：ProgressSpinner 在 PrimeVue **4.5.5 没有 size/height prop**（样式里 width/height 是字面量 100px，
+  `dt` 只覆盖四种颜色）→ 只能经 **`pt`（passthrough 组件属性）** 注入：`:pt="{ root: { style: { width: 'var(--size-20)', height: 'var(--size-20)' } } }"`。
+  未新增 class、未改模板结构（只替换属性）。
+- 新增两个尺度令牌 `--size-20` / `--size-24`（放在 `:root` 内，非颜色；首版误放在右括号外导致 lightningcss 报
+  “Invalid token in pseudo element”，已修正）。
+- 结果：G-055 当前命中 0 次、基线仍记 3 条 → 输出 `[STALE]`（非阻断）。基线更新按规矩**单独提交 + 人工确认**，本提交不动基线。
+
+### 111. P2（D2 结构性）：默认层与运行层校验扩到全量映射（2026-11-21）
+
+- **问题**：`design-tokens.test.ts` 只校验 `:root` 与 light 的 4 个变量（bg/surface/surface-raised/border），
+  其余三主题无校验，新增颜色键漏接线不会被发现。
+- **做法**（纯测试，未改任何令牌值）：
+  1. 从 `applyThemeToDom` 源码解析 `'--var': c.prop` 映射（单一真相来源），断言映射内每个 prop 在**四主题**都存在；
+  2. 每主题每个映射值非空；颜色型值（`#`/`rgb` 开头）形态校验，`focusRing` 这类阴影串不套颜色正则；
+  3. `:root` 默认层与 light 主题**全量**逐项比对（支持 `var()` 别名解析，如 `--accent: var(--primary)`）；
+  4. 覆盖断言改为“除已登记死键外不漏接线”。
+- **测试发现（登记 A-53）**：`disabledBg` / `disabledText` 在四主题都有值，但 `applyThemeToDom` 未映射、
+  `style.css` 也无声明 → **死键**。按 P2 约束（不得为过测试改值）只登记，不接线。
+- **结果**：`design-tokens.test.ts` 9 例通过（原 6 例 + 新增 4 例 - 合并重复 1 例）。
+
+补充记录（裁决条件②）：
+1. **PrimeVue 4.5.5 的 ProgressSpinner 无 size/height prop**：其 `@primeuix/styles` 里 `.p-progressspinner{width:100px;height:100px}`
+   为字面量，`dt` 仅覆盖 `color.one..four`；故采用官方 `pt`（passthrough）注入 `var(--size-20)`，**作用域为该组件实例**。
+2. **不泄漏**：同页只有这一个 spinner；`AnnounceDetail.vue`、`LegacyRedirect.vue` 的 spinner 未加任何覆盖，保持默认尺寸。
+3. **验收方式**：未新增渲染断言（仓库无该组件的渲染测试），尺寸正确性靠构建通过 + 视觉/人工验证；
+   构建期已验证 `pt` 绑定被正确编译（`pnpm build` 通过）。
+4. **回退 TODO**：若后续 PrimeVue 提供 size prop，改回组件属性并删 `pt`，不新开债号（挂在 A-51 关闭说明）。
