@@ -11,15 +11,16 @@
 
 | 结论 | 数值 / 判断 |
 |---|---|
-| 命中总数 | **1722** 条（不含已令牌化声明 859 条、与视觉无关的声明 1095 条） |
-| A 精确映射 | **979** 条 —— 值直接命中已定义令牌，可机械替换 |
-| B 近似映射 | **115** 条 —— 无精确令牌，替换前必须人工确认并在行上方加 `/* TODO: [Design Debt] ... */` |
+| **当前状态（全量替换后）** | 命中 **743** 条：**A 0** / B 115 / C 628 / D 0 |
+| 阶段二审计快照（替换前） | 命中 1722 条：A 979 / B 115 / C 628 / D 0（不含已令牌化声明 859 条、与视觉无关的声明 1095 条） |
+| A 精确映射 | **979 条已全部替换**（试点 17 + 5-1 118 + 5-2 204 + 5-3 272 + 5-4 333 + 5-5 35），见 §7 |
+| B 近似映射 | **115 条保持字面量**：113 条已加 `TODO: [Design Debt]`，2 条内联 `style` 无法插 CSS 注释（登记待人工） |
 | C 排除 | **628** 条 —— 令牌定义、`var()` fallback、PrimeVue 覆盖白名单、SVG 图表、布局尺寸等（理由见 §4.2） |
 | D 缺陷 | **0** 条 —— 修复前为 11 个未定义变量 / 26 处引用（D1），已清零并由测试守护 |
 | 涉及文件 | 60 / 66（`styles/design-tokens.css` 与 `theme.css` 无命中） |
-| 试点组件 | **`components/NotificationBell.vue`**（18 条：A 17 / B 1） |
+| 试点组件 | **`components/NotificationBell.vue`**（18 条：A 17 已替换 / B 1 留 TODO） |
 
-**核心判断**：本仓的颜色令牌层已经存在且质量不低（四主题 + a11y 契约测试），真正缺的是**与主题无关的尺度层**（间距/字号/字重/行高/圆角/尺寸）和**引用完整性门禁**。因此本报告的主战场是尺度类硬编码——A 类 979 条按属性分布为：`font-size` 309、`gap` 180、`margin` 175、`padding` 168、`font-weight` 110，五项合计 942（96%），颜色类仅占 33 条。
+**核心判断**：本仓的颜色令牌层已经存在且质量不低（四主题 + a11y 契约测试），真正缺的是**与主题无关的尺度层**（间距/字号/字重/行高/圆角/尺寸）和**引用完整性门禁**。因此本报告的主战场是尺度类硬编码——阶段二的 A 类 979 条按属性分布为：`font-size` 309、`gap` 180、`margin` 175、`padding` 168、`font-weight` 110，五项合计 942（96%），颜色类仅占 33 条。**全量替换完成后，剩余的 115 条 B 类才是真正的"无令牌可映射"项**，它们构成 G-055 门禁基线的主体。
 
 ---
 
@@ -75,1104 +76,125 @@
 <!-- AUDIT:BEGIN -->
 ### 4.1 可替换明细（A 精确映射 / B 近似映射）
 
-共 **1094** 条（A 979 / B 115）。
+共 **115** 条（A 0 / B 115）。
 
 | 文件路径 | 行号 | 当前硬编码值 | 样式属性 | 建议令牌 | 匹配置信度 | 备注 |
 |---|---|---|---|---|---|---|
-| components/AppHeader.vue | 106 | 60px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| components/AppHeader.vue | 107 | 0 24px | padding | 0 var(--space-24) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/AppHeader.vue | 108 | rgba(255, 255, 255, 0.8) | background | （无） | 低 | 无对应语义令牌 |
-| components/AppHeader.vue | 112 | 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 12px -4px rgba(0, 0, 0, 0.08) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
-| components/AppHeader.vue | 122 | rgba(30, 41, 59, 0.85) | background | （无） | 低 | 无对应语义令牌 |
-| components/AppHeader.vue | 128 | 16px | gap | var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/AppHeader.vue | 134 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/AppHeader.vue | 138 | 18px | font-size | --font-size-18 | 高 | 实测档位 1:1 |
-| components/AppHeader.vue | 139 | 800 | font-weight | --font-weight-extrabold | 高 |  |
-| components/AppHeader.vue | 148 | 14px | font-size | --font-size-14 | 高 | 实测档位 1:1 |
-| components/AppHeader.vue | 149 | 500 | font-weight | --font-weight-medium | 高 |  |
-| components/AppHeader.vue | 151 | 16px | padding-left | var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/AppHeader.vue | 158 | 6px | gap | var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/AppHeader.vue | 159 | 8px 14px | padding | var(--space-8) var(--space-14) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/AppHeader.vue | 165 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| components/AppHeader.vue | 166 | 500 | font-weight | --font-weight-medium | 高 |  |
-| components/AppHeader.vue | 191 | 16px | font-size | --font-size-16 | 高 | 实测档位 1:1 |
-| components/AppHeader.vue | 206 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/AppHeader.vue | 207 | 6px 12px | padding | var(--space-6) var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/AppHeader.vue | 208 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| components/AppHeader.vue | 209 | 500 | font-weight | --font-weight-medium | 高 |  |
-| components/AppHeader.vue | 215 | 14px | font-size | --font-size-14 | 高 | 实测档位 1:1 |
-| components/AppHeader.vue | 219 | 0 16px | padding | 0 var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/AppHeader.vue | 225 | 56px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| components/AppHeader.vue | 226 | 0 12px | padding | 0 var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/AppHeader.vue | 228 | 16px | font-size | --font-size-16 | 高 | 实测档位 1:1 |
-| components/AppHeader.vue | 229 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| components/AppHeader.vue | 229 | 12px | padding-left | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/AppHeader.vue | 230 | 6px 10px | padding | var(--space-6) var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/AppHeader.vue | 231 | 15px | font-size | --font-size-15 | 高 | 实测档位 1:1 |
-| components/AppHeader.vue | 236 | 10px 14px | padding | var(--space-10) var(--space-14) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/AppHeader.vue | 241 | 40px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| components/AppHeader.vue | 242 | 0 16px | padding | 0 var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/AppHeader.vue | 245 | 15px | font-size | --font-size-15 | 高 | 实测档位 1:1 |
-| components/AppLayout.vue | 189 | 72px | padding-bottom | （无） | 中 | 含混合单位/calc，需人工确认 |
-| components/AppLayout.vue | 207 | 0 auto | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
-| components/AppLayout.vue | 208 | 32px 36px | padding | （无） | 中 | 含混合单位/calc，需人工确认 |
-| components/AppLayout.vue | 218 | 20px 16px | padding | var(--space-20) var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/AppLayout.vue | 232 | 68px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| components/AppLayout.vue | 233 | 0 8px | padding | 0 var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/AppLayout.vue | 234 | env(safe-area-inset-bottom) | padding-bottom | （无） | 中 | 含混合单位/calc，需人工确认 |
-| components/AppLayout.vue | 235 | rgba(255, 255, 255, 0.9) | background | （无） | 低 | 无对应语义令牌 |
-| components/AppLayout.vue | 238 | 1px solid rgba(226, 232, 240, 0.5) | border-top | （无） | 低 | 无对应语义令牌 |
-| components/AppLayout.vue | 239 | 0 -2px 16px rgba(0, 0, 0, 0.06) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
-| components/AppLayout.vue | 245 | rgba(15, 23, 42, 0.9) | background | （无） | 低 | 无对应语义令牌 |
-| components/AppLayout.vue | 246 | rgba(51, 65, 85, 0.5) | border-top-color | （无） | 低 | 无对应语义令牌 |
-| components/AppLayout.vue | 253 | 3px | gap | var(--space-3) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/AppLayout.vue | 254 | 8px 4px | padding | var(--space-8) var(--space-4) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/AppLayout.vue | 256 | 10px | font-size | --font-size-10 | 高 | 实测档位 1:1 |
-| components/AppLayout.vue | 257 | 500 | font-weight | --font-weight-medium | 高 |  |
-| components/AppLayout.vue | 273 | 0 0 3px 3px | border-radius | （无） | 中 | 非令牌圆角档位 |
-| components/AppLayout.vue | 277 | 18px | font-size | --font-size-18 | 高 | 实测档位 1:1 |
-| components/AppLayout.vue | 287 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| components/AppLayout.vue | 298 | 24px 20px | padding | var(--space-24) var(--space-20) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/AppLayout.vue | 303 | 16px 12px | padding | var(--space-16) var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/AppLayout.vue | 306 | 64px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| components/AppLayout.vue | 307 | 6px 2px | padding | var(--space-6) var(--space-2) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/AppLayout.vue | 308 | 17px | font-size | --font-size-17 | 高 | 实测档位 1:1 |
-| components/AppLayout.vue | 309 | 9px | font-size | --font-size-9 | 高 | 实测档位 1:1 |
-| components/AppLayout.vue | 316 | 20px | font-size | --font-size-20 | 高 | 实测档位 1:1 |
-| components/AppLayout.vue | 321 | 10px 4px | padding | var(--space-10) var(--space-4) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/AppLayout.vue | 334 | 56px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| components/AppLayout.vue | 340 | #ffffff | color | （无） | 低 | 无对应语义令牌 |
-| components/AppLayout.vue | 341 | 22px | font-size | --font-size-22 | 高 | 实测档位 1:1 |
-| components/AppLayout.vue | 345 | 0 4px 12px rgba(0, 0, 0, 0.15) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
-| components/AppLayout.vue | 356 | 0 6px 16px rgba(0, 0, 0, 0.2) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
-| components/AppLayout.vue | 358 | 1 | line-height | --line-height-none | 高 |  |
-| components/AppLayout.vue | 362 | 700 | font-weight | --font-weight-bold | 高 |  |
-| components/AppLayout.vue | 380 | 6px | padding | var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/AppLayout.vue | 386 | 10px | gap | var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/AppLayout.vue | 388 | 10px 14px | padding | var(--space-10) var(--space-14) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/AppLayout.vue | 393 | 14px | font-size | --font-size-14 | 高 | 实测档位 1:1 |
-| components/AppLayout.vue | 401 | 16px | font-size | --font-size-16 | 高 | 实测档位 1:1 |
-| components/AppLayout.vue | 408 | 4px 6px | margin | var(--space-4) var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/AppSidebar.vue | 77 | 2px 0 8px rgba(0, 0, 0, 0.03) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
-| components/AppSidebar.vue | 85 | 12px | gap | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/AppSidebar.vue | 86 | 20px 20px 16px | padding | var(--space-20) var(--space-20) var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/AppSidebar.vue | 91 | 20px 0 | padding | var(--space-20) 0 | 高 | 8pt 网格外的档位已按实测保留 |
-| components/AppSidebar.vue | 94 | 22px | font-size | --font-size-22 | 高 | 实测档位 1:1 |
-| components/AppSidebar.vue | 99 | 17px | font-size | --font-size-17 | 高 | 实测档位 1:1 |
-| components/AppSidebar.vue | 100 | 800 | font-weight | --font-weight-extrabold | 高 |  |
-| components/AppSidebar.vue | 109 | 12px 12px | padding | var(--space-12) var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/AppSidebar.vue | 117 | 12px 8px | padding | var(--space-12) var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/AppSidebar.vue | 122 | 12px | gap | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/AppSidebar.vue | 123 | 10px 14px | padding | var(--space-10) var(--space-14) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/AppSidebar.vue | 127 | 14px | font-size | --font-size-14 | 高 | 实测档位 1:1 |
-| components/AppSidebar.vue | 128 | 500 | font-weight | --font-weight-medium | 高 |  |
-| components/AppSidebar.vue | 129 | 4px | margin-bottom | var(--space-4) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/AppSidebar.vue | 143 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| components/AppSidebar.vue | 144 | 0 2px 8px rgba(99, 102, 241, 0.08) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
-| components/AppSidebar.vue | 154 | 24px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| components/AppSidebar.vue | 156 | 0 4px 4px 0 | border-radius | （无） | 中 | 非令牌圆角档位 |
-| components/AppSidebar.vue | 157 | 2px 0 8px rgba(99, 102, 241, 0.3) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
-| components/AppSidebar.vue | 162 | 17px | font-size | --font-size-17 | 高 | 实测档位 1:1 |
-| components/AppSidebar.vue | 174 | 12px | padding | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/AppSidebar.vue | 179 | 12px 8px | padding | var(--space-12) var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/AppSidebar.vue | 184 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/AppSidebar.vue | 186 | 10px | padding | var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/AppSidebar.vue | 194 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| components/AppSidebar.vue | 195 | 500 | font-weight | --font-weight-medium | 高 |  |
-| components/AppSidebar.vue | 203 | 15px | font-size | --font-size-15 | 高 | 实测档位 1:1 |
-| components/AppSidebar.vue | 208 | 12px 14px | padding | var(--space-12) var(--space-14) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/AppSidebar.vue | 209 | 12px | padding | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/CacheManager.vue | 88 | 6px | gap | var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/CacheManager.vue | 88 | 4px | margin-top | var(--space-4) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/CacheManager.vue | 101 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| components/CacheManager.vue | 101 | 4px | margin-left | var(--space-4) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/CacheManager.vue | 109 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| components/CacheManager.vue | 109 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| components/CacheManager.vue | 109 | 8px | margin-bottom | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/CacheManager.vue | 110 | 12px | gap | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/CacheManager.vue | 111 | 4px | gap | var(--space-4) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/CacheManager.vue | 111 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| components/CacheManager.vue | 120 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/CacheManager.vue | 127 | 20px | gap | var(--space-20) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/CacheManager.vue | 127 | 16px | margin-bottom | var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/CacheManager.vue | 129 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| components/CacheManager.vue | 130 | 14px | font-size | --font-size-14 | 高 | 实测档位 1:1 |
-| components/CacheManager.vue | 130 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| components/CacheManager.vue | 130 | 2px 0 4px | margin | var(--space-2) 0 var(--space-4) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/CacheManager.vue | 131 | 16px | margin-bottom | var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/CacheManager.vue | 131 | 10px 14px | padding | var(--space-10) var(--space-14) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/CacheManager.vue | 132 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/CacheManager.vue | 132 | 4px 0 | padding | var(--space-4) 0 | 高 | 8pt 网格外的档位已按实测保留 |
-| components/CacheManager.vue | 134 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/CacheManager.vue | 135 | 12px | padding-top | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/CacheManager.vue | 136 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/CacheManager.vue | 136 | 12px | margin-top | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/DynamicSettingField.vue | 214 | 14px | font-size | --font-size-14 | 高 | 实测档位 1:1 |
-| components/DynamicSettingField.vue | 215 | 500 | font-weight | --font-weight-medium | 高 |  |
-| components/DynamicSettingField.vue | 223 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| components/DynamicSettingField.vue | 229 | 7px 10px | padding | var(--space-7) var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/DynamicSettingField.vue | 234 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| components/FavoriteStatusTag.vue | 65 | 1.25 | line-height | --line-height-snug | 高 |  |
-| components/FileMonitor.vue | 160 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| components/FileMonitor.vue | 162 | 6px | gap | var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/FileMonitor.vue | 171 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/FileMonitor.vue | 187 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/FileMonitor.vue | 191 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/FileMonitor.vue | 208 | 12px | margin-top | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/FileMonitor.vue | 216 | 16px | gap | var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/FileMonitor.vue | 216 | 12px 16px | padding | var(--space-12) var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/FileMonitor.vue | 216 | 16px | margin-bottom | var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/FileMonitor.vue | 217 | 4px | gap | var(--space-4) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/FileMonitor.vue | 218 | 10px | font-size | --font-size-10 | 高 | 实测档位 1:1 |
-| components/FileMonitor.vue | 219 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/FileMonitor.vue | 219 | 1px 6px | padding | var(--space-1) var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/FileMonitor.vue | 220 | 18px | padding | var(--space-18) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/FileMonitor.vue | 221 | 12px | margin-bottom | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/FileMonitor.vue | 222 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/FileMonitor.vue | 222 | 6px | margin-bottom | var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/FileMonitor.vue | 223 | 16px | gap | var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/FileMonitor.vue | 223 | 12px | margin-bottom | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/LogBar.vue | 183 | 12px | margin-top | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/LogBar.vue | 186 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| components/LogBar.vue | 194 | 6px 12px | padding | var(--space-6) var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/LogBar.vue | 199 | 500 | font-weight | --font-weight-medium | 高 |  |
-| components/LogBar.vue | 200 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/LogBar.vue | 202 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| components/LogBar.vue | 205 | 6px 12px | padding | var(--space-6) var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/LogBar.vue | 209 | 1.5 | line-height | --line-height-normal | 高 |  |
-| components/LogBar.vue | 214 | 12px | padding | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/LogBar.vue | 224 | 8px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| components/LogBar.vue | 231 | rgba(99, 102, 241, 0.3) | background | --primary-border | 中 | 按值精确匹配 |
-| components/LogBar.vue | 241 | #555 | background | （无） | 低 | 无对应语义令牌 |
-| components/LogBar.vue | 246 | 4px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| components/NotificationBell.vue | 163 | 8px | border-radius | --ds-radius-md | 高 |  |
-| components/NotificationBell.vue | 173 | 12px 16px | padding | var(--space-12) var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationBell.vue | 177 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| components/NotificationBell.vue | 178 | 14px | font-size | --font-size-14 | 高 | 实测档位 1:1 |
-| components/NotificationBell.vue | 195 | 10px 16px | padding | var(--space-10) var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationBell.vue | 205 | #f59e0b | background | --warning | 高 |  |
-| components/NotificationBell.vue | 206 | #ef4444 | background | --danger | 高 |  |
-| components/NotificationBell.vue | 217 | 8px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| components/NotificationBell.vue | 220 | 12px | margin-right | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationBell.vue | 221 | 6px | margin-top | var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationBell.vue | 231 | 500 | font-weight | --font-weight-medium | 高 |  |
-| components/NotificationBell.vue | 232 | 14px | font-size | --font-size-14 | 高 | 实测档位 1:1 |
-| components/NotificationBell.vue | 237 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| components/NotificationBell.vue | 239 | 2px | margin-top | var(--space-2) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationBell.vue | 249 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/NotificationBell.vue | 251 | 4px | margin-top | var(--space-4) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationBell.vue | 255 | 40px 20px | padding | var(--space-40) var(--space-20) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationBell.vue | 261 | 8px 16px | padding | var(--space-8) var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationConfig.vue | 72 | 16px | margin-bottom | var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationConfig.vue | 72 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationConfig.vue | 73 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationConfig.vue | 75 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| components/NotificationConfig.vue | 82 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationConfig.vue | 83 | 16px | font-size | --font-size-16 | 高 | 实测档位 1:1 |
-| components/NotificationConfig.vue | 86 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationConfig.vue | 96 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| components/NotificationConfig.vue | 96 | 0 0 10px | margin | 0 0 var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationConfig.vue | 127 | 8px | margin-top | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationConfig.vue | 128 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/NotificationConfig.vue | 145 | 8px | margin-top | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationConfig.vue | 151 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationConfig.vue | 151 | 10px | margin-top | var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationConfig.vue | 153 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/NotificationConfig.vue | 163 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| components/NotificationConfig.vue | 163 | 4px 0 0 | margin | var(--space-4) 0 0 | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationConfig.vue | 170 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/NotificationConfig.vue | 198 | 16px | margin-top | var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationConfig.vue | 200 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationConfig.vue | 201 | 16px | font-size | --font-size-16 | 高 | 实测档位 1:1 |
-| components/NotificationConfig.vue | 204 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationConfig.vue | 212 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/NotificationConfig.vue | 212 | 8px | margin-left | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationConfig.vue | 216 | 8px | margin-top | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationConfig.vue | 219 | 16px | margin-left | var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationConfig.vue | 228 | 12px | gap | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationConfig.vue | 238 | 14px 18px | padding | var(--space-14) var(--space-18) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationConfig.vue | 244 | 14px | font-size | --font-size-14 | 高 | 实测档位 1:1 |
-| components/NotificationConfig.vue | 244 | 700 | font-weight | --font-weight-bold | 高 |  |
-| components/NotificationConfig.vue | 247 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| components/NotificationConfig.vue | 248 | 2px | padding | var(--space-2) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationConfig.vue | 251 | 16px 18px | padding | var(--space-16) var(--space-18) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationConfig.vue | 257 | 8px | margin-bottom | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationConfig.vue | 258 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/NotificationConfig.vue | 258 | 4px | margin-bottom | var(--space-4) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationConfig.vue | 259 | 10px | font-size | --font-size-10 | 高 | 实测档位 1:1 |
-| components/NotificationConfig.vue | 260 | 10px | font-size | --font-size-10 | 高 | 实测档位 1:1 |
-| components/NotificationConfig.vue | 261 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| components/NotificationConfig.vue | 261 | 8px | padding-top | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationConfig.vue | 261 | 8px 0 6px | margin | var(--space-8) 0 var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationConfig.vue | 263 | 8px | padding-top | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationConfig.vue | 263 | 10px 0 6px | margin | var(--space-10) 0 var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationConfig.vue | 264 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/NotificationConfig.vue | 264 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| components/NotificationConfig.vue | 265 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| components/NotificationConfig.vue | 265 | 2px | margin-top | var(--space-2) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationConfig.vue | 265 | 1.5 | line-height | --line-height-normal | 高 |  |
-| components/NotificationConfig.vue | 268 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/NotificationConfig.vue | 268 | 6px | margin-top | var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationConfig.vue | 269 | 10px | margin-top | var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationConfig.vue | 269 | 8px | padding-top | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationConfig.vue | 270 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/NotificationConfig.vue | 270 | 4px | margin-bottom | var(--space-4) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationConfig.vue | 271 | 4px | gap | var(--space-4) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationConfig.vue | 271 | 12px | margin-right | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationConfig.vue | 271 | 4px | margin-top | var(--space-4) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationConfig.vue | 272 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/NotificationConfig.vue | 273 | 10px | margin-top | var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationConfig.vue | 274 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/NotificationConfig.vue | 274 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| components/NotificationConfig.vue | 274 | 6px 0 2px | margin | var(--space-6) 0 var(--space-2) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationConfig.vue | 277 | 4px 8px | gap | var(--space-4) var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationConfig.vue | 277 | 6px | margin-top | var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationConfig.vue | 280 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/NotificationConfig.vue | 282 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| components/RouteDebugPanel.vue | 126 | 16px | padding | var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/RouteDebugPanel.vue | 132 | 12px | margin-bottom | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/RouteDebugPanel.vue | 133 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/RouteDebugPanel.vue | 134 | 14px | font-size | --font-size-14 | 高 | 实测档位 1:1 |
-| components/RouteDebugPanel.vue | 134 | 700 | font-weight | --font-weight-bold | 高 |  |
-| components/RouteDebugPanel.vue | 135 | 12px | margin-bottom | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/RouteDebugPanel.vue | 136 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/RouteDebugPanel.vue | 138 | 8px 12px | padding | var(--space-8) var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/RouteDebugPanel.vue | 139 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| components/RouteDebugPanel.vue | 142 | 8px 16px | padding | var(--space-8) var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/RouteDebugPanel.vue | 143 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| components/RouteDebugPanel.vue | 143 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| components/RouteDebugPanel.vue | 143 | #fff | color | （无） | 低 | 无对应语义令牌 |
-| components/RouteDebugPanel.vue | 146 | 8px | margin-top | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/RouteDebugPanel.vue | 147 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| components/RouteDebugPanel.vue | 149 | 4px | margin-top | var(--space-4) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/RouteDebugPanel.vue | 149 | 6px 8px | padding | var(--space-6) var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/RouteDebugPanel.vue | 151 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/RouteDebugPanel.vue | 153 | 8px | padding | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/RouteDebugPanel.vue | 153 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/RouteDebugPanel.vue | 153 | 8px | margin-bottom | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/RouteDebugPanel.vue | 156 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/RouteDebugPanel.vue | 157 | 8px 12px | padding | var(--space-8) var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/RouteDebugPanel.vue | 157 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| components/RouteDebugPanel.vue | 157 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| components/RouteDebugPanel.vue | 160 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/RouteDebugPanel.vue | 161 | 8px 12px | padding | var(--space-8) var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/RouteDebugPanel.vue | 161 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/RouteDebugPanel.vue | 165 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| components/RouteDebugPanel.vue | 166 | 700 | font-weight | --font-weight-bold | 高 |  |
-| components/RouteDebugPanel.vue | 168 | 4px | gap | var(--space-4) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/RouteDebugPanel.vue | 170 | 1px 6px | padding | var(--space-1) var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/RouteDebugPanel.vue | 170 | 10px | border-radius | --radius | 高 | 旧令牌 |
-| components/RouteDebugPanel.vue | 170 | 10px | font-size | --font-size-10 | 高 | 实测档位 1:1 |
-| components/SettingsTabAppearanceMixed.vue | 65 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/SettingsTabAppearanceMixed.vue | 78 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| components/SettingsTabAppearanceMixed.vue | 124 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| components/TableLoadFooter.vue | 44 | 12px 16px | padding | var(--space-12) var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/TableLoadFooter.vue | 46 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| components/TableLoadFooter.vue | 54 | 10px | gap | var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/TableLoadFooter.vue | 57 | 4px 12px | padding | var(--space-4) var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/TableLoadFooter.vue | 61 | 4px | border-radius | --ds-radius-xs | 高 |  |
-| components/TableLoadFooter.vue | 63 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/TableLoadFooter.vue | 68 | #fff | color | （无） | 低 | 无对应语义令牌 |
-| components/TableLoadFooter.vue | 71 | #ca8a04 | color | （无） | 低 | 无对应语义令牌 |
-| components/TableLoadFooter.vue | 74 | 20px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| components/TaskManager.vue | 145 | 8px | margin-bottom | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/TaskManager.vue | 155 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/TaskManager.vue | 160 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| components/TaskManager.vue | 175 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/TaskManager.vue | 179 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/TaskManager.vue | 182 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| components/TaskManager.vue | 186 | 4px | gap | var(--space-4) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/TaskManager.vue | 196 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| components/TaskManager.vue | 204 | 8px | margin-top | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/TaskManager.vue | 204 | 8px | padding | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/TaskManager.vue | 204 | 4px | border-radius | --ds-radius-xs | 高 |  |
-| components/TaskManager.vue | 206 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| components/TaskManager.vue | 206 | 4px 0 | margin | var(--space-4) 0 | 高 | 8pt 网格外的档位已按实测保留 |
-| components/TaskManager.vue | 216 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/TaskManager.vue | 220 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| components/TaskManager.vue | 236 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| components/TaskManager.vue | 240 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| components/TaskManager.vue | 241 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| components/TaskManager.vue | 250 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/TaskManager.vue | 251 | 6px 14px | padding | var(--space-6) var(--space-14) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/TaskManager.vue | 251 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/TaskManager.vue | 253 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| components/UnifiedFilterBar.vue | 61 | 999px | border-radius | --ds-radius-pill | 高 |  |
-| components/UnifiedFilterBar.vue | 62 | 4px | padding | var(--space-4) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/UnifiedFilterBar.vue | 63 | 2px | gap | var(--space-2) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/UnifiedFilterBar.vue | 69 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/UnifiedFilterBar.vue | 70 | 6px 14px | padding | var(--space-6) var(--space-14) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/UnifiedFilterBar.vue | 71 | 999px | border-radius | --ds-radius-pill | 高 |  |
-| components/UnifiedFilterBar.vue | 86 | #fff | color | （无） | 低 | 无对应语义令牌 |
-| components/UnifiedFilterBar.vue | 90 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| components/ValidityConfig.vue | 381 | 24px | margin-top | var(--space-24) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/ValidityConfig.vue | 440 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| components/ValidityConfig.vue | 440 | 14px | font-size | --font-size-14 | 高 | 实测档位 1:1 |
-| components/ValidityConfig.vue | 440 | 12px | margin-bottom | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/ValidityConfig.vue | 440 | 8px | padding-bottom | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/ValidityConfig.vue | 441 | 16px 20px | gap | var(--space-16) var(--space-20) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/ValidityConfig.vue | 441 | 14px | margin-bottom | var(--space-14) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/ValidityConfig.vue | 442 | 6px | gap | var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/ValidityConfig.vue | 443 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/ValidityConfig.vue | 443 | 500 | font-weight | --font-weight-medium | 高 |  |
-| components/ValidityConfig.vue | 444 | 36px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| components/AppHeader.vue | 107 | 60px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| components/AppHeader.vue | 110 | rgba(255, 255, 255, 0.8) | background | （无） | 低 | 无对应语义令牌 |
+| components/AppHeader.vue | 115 | 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 12px -4px rgba(0, 0, 0, 0.08) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
+| components/AppHeader.vue | 126 | rgba(30, 41, 59, 0.85) | background | （无） | 低 | 无对应语义令牌 |
+| components/AppHeader.vue | 230 | 56px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| components/AppHeader.vue | 247 | 40px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| components/AppLayout.vue | 190 | 72px | padding-bottom | （无） | 中 | 含混合单位/calc，需人工确认 |
+| components/AppLayout.vue | 209 | 0 auto | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
+| components/AppLayout.vue | 211 | 32px 36px | padding | （无） | 中 | 含混合单位/calc，需人工确认 |
+| components/AppLayout.vue | 236 | 68px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| components/AppLayout.vue | 239 | env(safe-area-inset-bottom) | padding-bottom | （无） | 中 | 含混合单位/calc，需人工确认 |
+| components/AppLayout.vue | 241 | rgba(255, 255, 255, 0.9) | background | （无） | 低 | 无对应语义令牌 |
+| components/AppLayout.vue | 245 | 1px solid rgba(226, 232, 240, 0.5) | border-top | （无） | 低 | 无对应语义令牌 |
+| components/AppLayout.vue | 247 | 0 -2px 16px rgba(0, 0, 0, 0.06) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
+| components/AppLayout.vue | 254 | rgba(15, 23, 42, 0.9) | background | （无） | 低 | 无对应语义令牌 |
+| components/AppLayout.vue | 256 | rgba(51, 65, 85, 0.5) | border-top-color | （无） | 低 | 无对应语义令牌 |
+| components/AppLayout.vue | 284 | 0 0 3px 3px | border-radius | （无） | 中 | 非令牌圆角档位 |
+| components/AppLayout.vue | 318 | 64px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| components/AppLayout.vue | 347 | 56px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| components/AppLayout.vue | 354 | #ffffff | color | （无） | 低 | 无对应语义令牌 |
+| components/AppLayout.vue | 360 | 0 4px 12px rgba(0, 0, 0, 0.15) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
+| components/AppLayout.vue | 372 | 0 6px 16px rgba(0, 0, 0, 0.2) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
+| components/AppSidebar.vue | 78 | 2px 0 8px rgba(0, 0, 0, 0.03) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
+| components/AppSidebar.vue | 146 | 0 2px 8px rgba(99, 102, 241, 0.08) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
+| components/AppSidebar.vue | 157 | 24px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| components/AppSidebar.vue | 160 | 0 4px 4px 0 | border-radius | （无） | 中 | 非令牌圆角档位 |
+| components/AppSidebar.vue | 162 | 2px 0 8px rgba(99, 102, 241, 0.3) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
+| components/LogBar.vue | 225 | 8px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| components/LogBar.vue | 243 | #555 | background | （无） | 低 | 无对应语义令牌 |
+| components/LogBar.vue | 249 | 4px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| components/NotificationBell.vue | 218 | 8px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| components/RouteDebugPanel.vue | 144 | #fff | color | （无） | 低 | 无对应语义令牌 |
+| components/TableLoadFooter.vue | 69 | #fff | color | （无） | 低 | 无对应语义令牌 |
+| components/TableLoadFooter.vue | 73 | #ca8a04 | color | （无） | 低 | 无对应语义令牌 |
+| components/TableLoadFooter.vue | 77 | 20px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| components/UnifiedFilterBar.vue | 87 | #fff | color | （无） | 低 | 无对应语义令牌 |
 | components/ValidityConfig.vue | 445 | 36px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| components/ValidityConfig.vue | 446 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| components/ValidityConfig.vue | 446 | 2px | margin-top | var(--space-2) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/ValidityConfig.vue | 450 | 24px | gap | var(--space-24) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/ValidityConfig.vue | 450 | 12px 16px | padding | var(--space-12) var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/ValidityConfig.vue | 452 | 14px | margin-bottom | var(--space-14) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/ValidityConfig.vue | 454 | 4px | gap | var(--space-4) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/ValidityConfig.vue | 454 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| components/ValidityConfig.vue | 456 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| components/ValidityConfig.vue | 458 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/ValidityConfig.vue | 458 | 400 | font-weight | --font-weight-regular | 高 |  |
-| components/ValidityConfig.vue | 460 | 10px | gap | var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/ValidityConfig.vue | 460 | 8px | margin-bottom | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/ValidityConfig.vue | 461 | 10px | gap | var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/ValidityConfig.vue | 461 | 12px | margin-bottom | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/ValidityConfig.vue | 462 | 4px | gap | var(--space-4) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/ValidityConfig.vue | 463 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| components/ValidityConfig.vue | 463 | 500 | font-weight | --font-weight-medium | 高 |  |
-| components/ValidityConfig.vue | 464 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/ValidityConfig.vue | 465 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/ValidityConfig.vue | 465 | 8px | margin-bottom | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/ValidityConfig.vue | 466 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/ValidityConfig.vue | 467 | 7px 8px | padding | var(--space-7) var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/ValidityConfig.vue | 468 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| components/ValidityConfig.vue | 468 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| components/ValidityConfig.vue | 469 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| components/ValidityConfig.vue | 469 | 16px 0 | padding | var(--space-16) 0 | 高 | 8pt 网格外的档位已按实测保留 |
-| components/ValidityConfig.vue | 470 | 2px | gap | var(--space-2) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/ValidityConfig.vue | 470 | 10px | margin-top | var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/ValidityConfig.vue | 471 | 10px | gap | var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/ValidityConfig.vue | 471 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| components/ValidityConfig.vue | 476 | bold | font-weight | （无） | 低 | 非常规字重 |
-| components/WechatTrustIP.vue | 157 | 12px | gap | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/WechatTrustIP.vue | 157 | 16px | margin-bottom | var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/WechatTrustIP.vue | 158 | 10px | gap | var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/WechatTrustIP.vue | 160 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| components/WechatTrustIP.vue | 160 | 14px | font-size | --font-size-14 | 高 | 实测档位 1:1 |
-| components/WechatTrustIP.vue | 164 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/WechatTrustIP.vue | 179 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| components/WechatTrustIP.vue | 191 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/WechatTrustIP.vue | 212 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/WechatTrustIP.vue | 220 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/WechatTrustIP.vue | 272 | 20px | gap | var(--space-20) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/WechatTrustIP.vue | 272 | 12px 16px | padding | var(--space-12) var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/WechatTrustIP.vue | 272 | 16px | margin-bottom | var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/WechatTrustIP.vue | 273 | 4px | gap | var(--space-4) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/WechatTrustIP.vue | 274 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| components/WechatTrustIP.vue | 275 | 14px | gap | var(--space-14) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/WechatTrustIP.vue | 277 | 12px | margin-bottom | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/WechatTrustIP.vue | 278 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/WechatTrustIP.vue | 278 | 4px | margin-bottom | var(--space-4) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/WechatTrustIP.vue | 278 | 500 | font-weight | --font-weight-medium | 高 |  |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 136 | 14px | padding | var(--space-14) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 139 | 10px | gap | var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 144 | 10px | gap | var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 146 | 34px | height | --icon-tile-md | 中 | 图标方块尺寸 |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 146 | rgba(99,102,241,0.12) | background | --primary-bg | 高 |  |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 147 | 16px | font-size | --font-size-16 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 149 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 149 | 700 | font-weight | --font-weight-bold | 高 |  |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 150 | 10px | font-size | --font-size-10 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 153 | 6px | gap | var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 155 | 10px | gap | var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 155 | 10px 12px | padding | var(--space-10) var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 160 | rgba(239,68,68,0.25) | border-color | （无） | 低 | 无对应语义令牌 |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 160 | rgba(239,68,68,0.04) | background | （无） | 低 | 无对应语义令牌 |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 161 | rgba(245,158,11,0.25) | border-color | （无） | 低 | 无对应语义令牌 |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 161 | rgba(245,158,11,0.04) | background | （无） | 低 | 无对应语义令牌 |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 164 | 36px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 166 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 166 | 800 | font-weight | --font-weight-extrabold | 高 |  |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 168 | rgba(99,102,241,0.1) | background | --primary-bg | 高 |  |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 169 | rgba(239,68,68,0.12) | background | --danger-bg | 高 |  |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 170 | rgba(245,158,11,0.12) | background | --warning-bg | 高 |  |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 173 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 173 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 174 | 10px | font-size | --font-size-10 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 177 | 4px | gap | var(--space-4) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 177 | 9px | font-size | --font-size-9 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 177 | 2px | margin-top | var(--space-2) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 178 | 6px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 184 | 6px | gap | var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 185 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 185 | 500 | font-weight | --font-weight-medium | 高 |  |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 186 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 186 | 500 | font-weight | --font-weight-medium | 高 |  |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 187 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 187 | 500 | font-weight | --font-weight-medium | 高 |  |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 189 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 191 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 191 | 20px 0 | padding | var(--space-20) 0 | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 192 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/AdapterStatusCard.vue | 122 | 20px | padding | var(--space-20) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/AdapterStatusCard.vue | 135 | 700 | font-weight | --font-weight-bold | 高 |  |
-| components/dashboard/widgets/AdapterStatusCard.vue | 137 | 15px | font-size | --font-size-15 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/AdapterStatusCard.vue | 138 | 16px | margin-bottom | var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/AdapterStatusCard.vue | 139 | 12px | padding-bottom | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/AdapterStatusCard.vue | 147 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/AdapterStatusCard.vue | 150 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| components/dashboard/widgets/AdapterStatusCard.vue | 152 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/AdapterStatusCard.vue | 155 | 8px 10px | padding | var(--space-8) var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/AdapterStatusCard.vue | 162 | 10px | padding | var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/AdapterStatusCard.vue | 176 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/AdapterStatusCard.vue | 177 | 24px 0 | padding | var(--space-24) 0 | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/AdapterStatusCard.vue | 182 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/AdapterStatusCard.vue | 183 | 4px 0 | margin | var(--space-4) 0 | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/AdapterStatusCard.vue | 188 | 16px | padding | var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/AdapterStatusCard.vue | 189 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/AdapterStatusCard.vue | 190 | 6px 8px | padding | var(--space-6) var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 125 | 14px | padding | var(--space-14) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 128 | 10px | gap | var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 133 | 10px | gap | var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 135 | 34px | height | --icon-tile-md | 中 | 图标方块尺寸 |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 135 | rgba(59,130,246,0.12) | background | --info-bg | 高 |  |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 136 | 16px | font-size | --font-size-16 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 138 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 138 | 700 | font-weight | --font-weight-bold | 高 |  |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 139 | 10px | font-size | --font-size-10 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 144 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 147 | 4px | gap | var(--space-4) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 148 | 14px 10px 12px | padding | var(--space-14) var(--space-10) var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 151 | rgba(59,130,246,0.3) | border-color | （无） | 低 | 无对应语义令牌 |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 151 | rgba(59,130,246,0.04) | background | （无） | 低 | 无对应语义令牌 |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 152 | rgba(239,68,68,0.2) | border-color | （无） | 低 | 无对应语义令牌 |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 152 | rgba(239,68,68,0.03) | background | （无） | 低 | 无对应语义令牌 |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 153 | rgba(245,158,11,0.2) | border-color | （无） | 低 | 无对应语义令牌 |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 153 | rgba(245,158,11,0.03) | background | （无） | 低 | 无对应语义令牌 |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 157 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 157 | 700 | font-weight | --font-weight-bold | 高 |  |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 158 | 4px | margin-top | var(--space-4) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 161 | 10px | font-size | --font-size-10 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 161 | 1.3 | line-height | --line-height-compact | 高 |  |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 172 | 4px | gap | var(--space-4) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 173 | 9px | font-size | --font-size-9 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 175 | 6px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 182 | rgba(239,68,68,0.85) | background | （无） | 低 | 无对应语义令牌 |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 184 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 184 | 700 | font-weight | --font-weight-bold | 高 |  |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 184 | #fff | color | （无） | 低 | 无对应语义令牌 |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 189 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 189 | 20px 0 | padding | var(--space-20) 0 | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 190 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/PendingItemsCard.vue | 37 | 24px | font-size | --font-size-24 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/PendingItemsCard.vue | 37 | 8px | margin-bottom | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/PendingItemsCard.vue | 57 | 14px | padding | var(--space-14) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/PendingItemsCard.vue | 60 | 10px | gap | var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/PendingItemsCard.vue | 63 | 10px | gap | var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/PendingItemsCard.vue | 65 | 34px | height | --icon-tile-md | 中 | 图标方块尺寸 |
-| components/dashboard/widgets/PendingItemsCard.vue | 65 | rgba(239,68,68,0.12) | background | --danger-bg | 高 |  |
-| components/dashboard/widgets/PendingItemsCard.vue | 66 | 16px | font-size | --font-size-16 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/PendingItemsCard.vue | 68 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/PendingItemsCard.vue | 68 | 700 | font-weight | --font-weight-bold | 高 |  |
-| components/dashboard/widgets/PendingItemsCard.vue | 69 | 10px | font-size | --font-size-10 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/PendingItemsCard.vue | 71 | 6px | gap | var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/PendingItemsCard.vue | 73 | 10px | gap | var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/PendingItemsCard.vue | 73 | 10px 12px | padding | var(--space-10) var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/PendingItemsCard.vue | 79 | 2px 6px | padding | var(--space-2) var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/PendingItemsCard.vue | 79 | 4px | border-radius | --ds-radius-xs | 高 |  |
-| components/dashboard/widgets/PendingItemsCard.vue | 79 | 9px | font-size | --font-size-9 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/PendingItemsCard.vue | 79 | 700 | font-weight | --font-weight-bold | 高 |  |
-| components/dashboard/widgets/PendingItemsCard.vue | 80 | rgba(245,158,11,0.12) | background | --warning-bg | 高 |  |
-| components/dashboard/widgets/PendingItemsCard.vue | 83 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/PendingItemsCard.vue | 83 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| components/dashboard/widgets/PendingItemsCard.vue | 85 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/PendingItemsCard.vue | 85 | 2px | margin-top | var(--space-2) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/PendingItemsCard.vue | 88 | 10px | font-size | --font-size-10 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/PendingItemsCard.vue | 89 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/PendingItemsCard.vue | 89 | 4px | padding-top | var(--space-4) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/PendingItemsCard.vue | 90 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/PendingItemsCard.vue | 90 | 30px 0 | padding | var(--space-30) 0 | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/PlaceholderWidget.vue | 23 | 20px | padding | var(--space-20) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/PlaceholderWidget.vue | 26 | 700 | font-weight | --font-weight-bold | 高 |  |
-| components/dashboard/widgets/PlaceholderWidget.vue | 26 | 15px | font-size | --font-size-15 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/PlaceholderWidget.vue | 26 | 8px | margin-bottom | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/PlaceholderWidget.vue | 27 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/QuickActionsCard.vue | 134 | 14px | padding | var(--space-14) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/QuickActionsCard.vue | 137 | 10px | gap | var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/QuickActionsCard.vue | 140 | 10px | gap | var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/QuickActionsCard.vue | 142 | 34px | height | --icon-tile-md | 中 | 图标方块尺寸 |
-| components/dashboard/widgets/QuickActionsCard.vue | 142 | rgba(139,92,246,0.12) | background | （无） | 低 | 无对应语义令牌 |
-| components/dashboard/widgets/QuickActionsCard.vue | 143 | 16px | font-size | --font-size-16 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/QuickActionsCard.vue | 143 | #8b5cf6 | color | （无） | 低 | 无对应语义令牌 |
-| components/dashboard/widgets/QuickActionsCard.vue | 145 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/QuickActionsCard.vue | 145 | 700 | font-weight | --font-weight-bold | 高 |  |
-| components/dashboard/widgets/QuickActionsCard.vue | 147 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/QuickActionsCard.vue | 149 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/QuickActionsCard.vue | 156 | 22px | font-size | --font-size-22 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/QuickActionsCard.vue | 157 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/QuickActionsCard.vue | 157 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| components/dashboard/widgets/QuickActionsCard.vue | 158 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/QuickActionsCard.vue | 158 | 4px | margin-top | var(--space-4) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/RecentAnnounceCard.vue | 122 | 14px | padding | var(--space-14) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/RecentAnnounceCard.vue | 125 | 10px | gap | var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/RecentAnnounceCard.vue | 128 | 10px | gap | var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/RecentAnnounceCard.vue | 130 | 34px | height | --icon-tile-md | 中 | 图标方块尺寸 |
-| components/dashboard/widgets/RecentAnnounceCard.vue | 130 | rgba(245,158,11,0.12) | background | --warning-bg | 高 |  |
-| components/dashboard/widgets/RecentAnnounceCard.vue | 131 | 16px | font-size | --font-size-16 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/RecentAnnounceCard.vue | 133 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/RecentAnnounceCard.vue | 133 | 700 | font-weight | --font-weight-bold | 高 |  |
-| components/dashboard/widgets/RecentAnnounceCard.vue | 134 | 10px | font-size | --font-size-10 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/RecentAnnounceCard.vue | 147 | 6px | margin-left | var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/RecentAnnounceCard.vue | 155 | 4px | padding-top | var(--space-4) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/RecentAnnounceCard.vue | 159 | 6px 0 | padding | var(--space-6) 0 | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/RecentAnnounceCard.vue | 170 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/RecentAnnounceCard.vue | 171 | 500 | font-weight | --font-weight-medium | 高 |  |
-| components/dashboard/widgets/RecentAnnounceCard.vue | 179 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/RecentAnnounceCard.vue | 181 | 1px | margin-top | var(--space-1) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/RecentAnnounceCard.vue | 185 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/RecentAnnounceCard.vue | 186 | 30px 0 | padding | var(--space-30) 0 | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/RecentAnnounceCard.vue | 191 | 12px 0 | padding | var(--space-12) 0 | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/RecentAnnounceCard.vue | 194 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/StatsCard.vue | 74 | 10px | gap | var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/StatsCard.vue | 75 | 14px | padding | var(--space-14) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/StatsCard.vue | 82 | linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.08)) | background | （无） | 低 | 无对应语义令牌 |
-| components/dashboard/widgets/StatsCard.vue | 83 | 1px solid rgba(99,102,241,0.25) | border | （无） | 低 | 无对应语义令牌 |
-| components/dashboard/widgets/StatsCard.vue | 93 | 100px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| components/dashboard/widgets/StatsCard.vue | 94 | rgba(99,102,241,0.2) | background | --primary-border | 高 |  |
-| components/dashboard/widgets/StatsCard.vue | 100 | 6px | gap | var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/StatsCard.vue | 102 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/StatsCard.vue | 102 | 500 | font-weight | --font-weight-medium | 高 |  |
-| components/dashboard/widgets/StatsCard.vue | 103 | 42px | font-size | --font-size-42 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/StatsCard.vue | 103 | 800 | font-weight | --font-weight-extrabold | 高 |  |
-| components/dashboard/widgets/StatsCard.vue | 103 | 1 | line-height | --line-height-none | 高 |  |
-| components/dashboard/widgets/StatsCard.vue | 104 | 2px | margin-top | var(--space-2) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/StatsCard.vue | 110 | 6px | gap | var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/StatsCard.vue | 113 | 10px | gap | var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/StatsCard.vue | 114 | 8px 12px | padding | var(--space-8) var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/StatsCard.vue | 120 | 32px | height | --icon-tile-sm | 中 | 图标方块尺寸 |
-| components/dashboard/widgets/StatsCard.vue | 121 | 14px | font-size | --font-size-14 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/StatsCard.vue | 123 | rgba(245,158,11,0.12) | background | --warning-bg | 高 |  |
-| components/dashboard/widgets/StatsCard.vue | 124 | rgba(59,130,246,0.12) | background | --info-bg | 高 |  |
-| components/dashboard/widgets/StatsCard.vue | 125 | rgba(239,68,68,0.12) | background | --danger-bg | 高 |  |
-| components/dashboard/widgets/StatsCard.vue | 126 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/StatsCard.vue | 127 | 18px | font-size | --font-size-18 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/StatsCard.vue | 127 | 700 | font-weight | --font-weight-bold | 高 |  |
-| components/dashboard/widgets/SystemInfoCard.vue | 73 | 14px | padding | var(--space-14) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/SystemInfoCard.vue | 76 | 12px | gap | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/SystemInfoCard.vue | 78 | 10px | gap | var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/SystemInfoCard.vue | 80 | 34px | height | --icon-tile-md | 中 | 图标方块尺寸 |
-| components/dashboard/widgets/SystemInfoCard.vue | 80 | rgba(34,197,94,0.12) | background | --success-bg | 高 |  |
-| components/dashboard/widgets/SystemInfoCard.vue | 81 | 16px | font-size | --font-size-16 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/SystemInfoCard.vue | 83 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/SystemInfoCard.vue | 83 | 700 | font-weight | --font-weight-bold | 高 |  |
-| components/dashboard/widgets/SystemInfoCard.vue | 85 | 16px | gap | var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/SystemInfoCard.vue | 86 | 10px 0 | padding | var(--space-10) 0 | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/SystemInfoCard.vue | 87 | 10px | font-size | --font-size-10 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/SystemInfoCard.vue | 87 | 4px | margin-bottom | var(--space-4) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/SystemInfoCard.vue | 88 | 28px | font-size | --font-size-28 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/SystemInfoCard.vue | 88 | 800 | font-weight | --font-weight-extrabold | 高 |  |
-| components/dashboard/widgets/SystemInfoCard.vue | 90 | 10px | gap | var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/SystemInfoCard.vue | 91 | 10px | gap | var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/SystemInfoCard.vue | 92 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/SystemInfoCard.vue | 93 | 6px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| components/dashboard/widgets/SystemInfoCard.vue | 97 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/SystemInfoCard.vue | 97 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| components/dashboard/widgets/SystemInfoCard.vue | 101 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/SystemLogCard.vue | 90 | 14px | padding | var(--space-14) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/SystemLogCard.vue | 93 | 10px | gap | var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/SystemLogCard.vue | 96 | 10px | gap | var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/SystemLogCard.vue | 98 | 34px | height | --icon-tile-md | 中 | 图标方块尺寸 |
-| components/dashboard/widgets/SystemLogCard.vue | 98 | rgba(34,197,94,0.12) | background | --success-bg | 高 |  |
-| components/dashboard/widgets/SystemLogCard.vue | 99 | 16px | font-size | --font-size-16 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/SystemLogCard.vue | 101 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/SystemLogCard.vue | 101 | 700 | font-weight | --font-weight-bold | 高 |  |
-| components/dashboard/widgets/SystemLogCard.vue | 102 | 10px | font-size | --font-size-10 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/SystemLogCard.vue | 103 | 6px | gap | var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/SystemLogCard.vue | 105 | 10px | font-size | --font-size-10 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/SystemLogCard.vue | 106 | 2px 8px | padding | var(--space-2) var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/SystemLogCard.vue | 113 | rgba(0,0,0,0.08) | background | （无） | 低 | 无对应语义令牌 |
-| components/dashboard/widgets/SystemLogCard.vue | 114 | 8px 10px | padding | var(--space-8) var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/SystemLogCard.vue | 114 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/SystemLogCard.vue | 114 | 1.7 | line-height | --line-height-relaxed | 高 |  |
-| components/dashboard/widgets/SystemLogCard.vue | 116 | 20px 0 | padding | var(--space-20) 0 | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/SystemLogCard.vue | 117 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/SystemLogCard.vue | 118 | 10px | font-size | --font-size-10 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/SystemLogCard.vue | 118 | 3px | margin-top | var(--space-3) | 高 | 8pt 网格外的档位已按实测保留 |
-| components/dashboard/widgets/SystemLogCard.vue | 119 | 10px | font-size | --font-size-10 | 高 | 实测档位 1:1 |
-| components/dashboard/widgets/SystemLogCard.vue | 125 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| style.css | 125 | rgba(99, 102, 241, 0.2) | border-color | （无） | 低 | 无对应语义令牌 |
-| style.css | 127 | 4px | gap | var(--space-4) | 高 | 8pt 网格外的档位已按实测保留 |
-| style.css | 128 | 2px 10px | padding | var(--space-2) var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| style.css | 128 | 999px | border-radius | --ds-radius-pill | 高 |  |
-| style.css | 128 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| style.css | 128 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| style.css | 130 | rgba(34,197,94,0.12) | background | --success-bg | 高 |  |
-| style.css | 131 | rgba(239,68,68,0.12) | background | --danger-bg | 高 |  |
-| style.css | 132 | rgba(245,158,11,0.12) | background | --warning-bg | 高 |  |
-| style.css | 134 | 10px 14px | padding | var(--space-10) var(--space-14) | 高 | 8pt 网格外的档位已按实测保留 |
-| style.css | 138 | rgba(99, 102, 241, 0.04) | background | （无） | 低 | 无对应语义令牌 |
-| style.css | 140 | 0 0 4px rgba(34,197,94,0.4) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
-| style.css | 141 | 0 0 14px rgba(34,197,94,0.7) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
-| style.css | 143 | 8px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| style.css | 144 | 8px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| style.css | 145 | 8px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| style.css | 161 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| style.css | 168 | 22px | font-size | --font-size-22 | 高 | 实测档位 1:1 |
-| style.css | 172 | 17px | font-size | --font-size-17 | 高 | 实测档位 1:1 |
-| style.css | 176 | 15px | font-size | --font-size-15 | 高 | 实测档位 1:1 |
-| style.css | 180 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| style.css | 640 | 20px | padding | var(--space-20) | 高 | 8pt 网格外的档位已按实测保留 |
-| style.css | 650 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| style.css | 652 | 14px | font-size | --font-size-14 | 高 | 实测档位 1:1 |
-| style.css | 653 | 14px | margin-bottom | var(--space-14) | 高 | 8pt 网格外的档位已按实测保留 |
-| style.css | 654 | 12px | padding-bottom | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| style.css | 665 | 8px | margin-top | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| style.css | 669 | 16px | margin-top | var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| style.css | 673 | 24px | margin-top | var(--space-24) | 高 | 8pt 网格外的档位已按实测保留 |
-| style.css | 677 | 8px | margin-bottom | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| style.css | 681 | 16px | margin-bottom | var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| style.css | 685 | 16px | margin-left | var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| style.css | 698 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| style.css | 703 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| style.css | 704 | 4px | margin-top | var(--space-4) | 高 | 8pt 网格外的档位已按实测保留 |
-| style.css | 713 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| style.css | 717 | 12px | gap | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| style.css | 726 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| style.css | 727 | 4px 8px | padding | var(--space-4) var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| style.css | 729 | 500 | font-weight | --font-weight-medium | 高 |  |
-| style.css | 749 | 0 2px 2px 0 | border-radius | （无） | 中 | 非令牌圆角档位 |
-| style.css | 772 | 8px | margin-top | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| style.css | 776 | 18px | font-size | --font-size-18 | 高 | 实测档位 1:1 |
-| style.css | 789 | 6px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| views/AnnounceDetail.vue | 254 | 0 auto | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
-| views/AnnounceDetail.vue | 267 | 22px | font-size | --font-size-22 | 高 | 实测档位 1:1 |
-| views/AnnounceDetail.vue | 268 | bold | font-weight | （无） | 低 | 非常规字重 |
-| views/AnnounceDetail.vue | 270 | 1.8 | line-height | --line-height-loose | 高 |  |
-| views/AnnounceDetail.vue | 271 | 0.5rem 0 | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
-| views/AnnounceDetail.vue | 276 | 0 auto | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
-| views/AnnounceDetail.vue | 284 | 1.8 | line-height | --line-height-loose | 高 |  |
-| views/AnnounceDetail.vue | 290 | 0.5em 0 | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
-| views/AnnounceDetail.vue | 296 | 700 | font-weight | --font-weight-bold | 高 |  |
-| views/AnnounceDetail.vue | 303 | 16px | font-size | --font-size-16 | 高 | 实测档位 1:1 |
-| views/AnnounceDetail.vue | 307 | 1.8 | line-height | --line-height-loose | 高 |  |
-| views/AnnounceDetail.vue | 308 | 0.25em 0 | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
-| views/AnnounceDetail.vue | 313 | 16px | font-size | --font-size-16 | 高 | 实测档位 1:1 |
-| views/AnnounceDetail.vue | 317 | 1.8 | line-height | --line-height-loose | 高 |  |
-| views/AnnounceDetail.vue | 318 | 0.25em 0 | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
-| views/AnnounceDetail.vue | 323 | 16px | font-size | --font-size-16 | 高 | 实测档位 1:1 |
-| views/AnnounceDetail.vue | 327 | 1.8 | line-height | --line-height-loose | 高 |  |
-| views/AnnounceDetail.vue | 328 | 0.25em 0 | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
-| views/AnnounceDetail.vue | 339 | 0.25rem 0.5rem | padding | （无） | 中 | 含混合单位/calc，需人工确认 |
-| views/AnnounceDetail.vue | 345 | 10px | gap | var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/AnnounceView.vue | 183 | 12px | gap | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/AnnounceView.vue | 183 | 6px 0 | padding | var(--space-6) 0 | 高 | 8pt 网格外的档位已按实测保留 |
-| views/AnnounceView.vue | 187 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| views/AnnounceView.vue | 188 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| views/AnnounceView.vue | 197 | 40px 0 | padding | var(--space-40) 0 | 高 | 8pt 网格外的档位已按实测保留 |
-| views/AnnounceView.vue | 204 | 12px | gap | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/AnnounceView.vue | 205 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| views/AnnounceView.vue | 205 | 4px 0 | margin | var(--space-4) 0 | 高 | 8pt 网格外的档位已按实测保留 |
-| views/AnnounceView.vue | 207 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| views/AnnounceView.vue | 209 | 12px | gap | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/AnnounceView.vue | 210 | 14px 16px | padding | var(--space-14) var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/AnnounceView.vue | 211 | 10px 14px | padding | var(--space-10) var(--space-14) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/AnnounceView.vue | 212 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| views/AnnounceView.vue | 212 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| views/AnnounceView.vue | 213 | 8px 0 0 | margin | var(--space-8) 0 0 | 高 | 8pt 网格外的档位已按实测保留 |
-| views/AnnounceView.vue | 214 | 10px | gap | var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/AnnounceView.vue | 214 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| views/AnnounceView.vue | 214 | 4px 0 | padding | var(--space-4) 0 | 高 | 8pt 网格外的档位已按实测保留 |
-| views/AnnounceView.vue | 219 | 28px | font-size | --font-size-28 | 高 | 实测档位 1:1 |
-| views/AnnounceView.vue | 219 | 700 | font-weight | --font-weight-bold | 高 |  |
-| views/AnnounceView.vue | 220 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| views/AnnounceView.vue | 220 | 4px | margin-top | var(--space-4) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/AnnounceView.vue | 221 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| views/AnnounceView.vue | 221 | 6px | margin-top | var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/AnnounceView.vue | 221 | 1.5 | line-height | --line-height-normal | 高 |  |
-| views/BackupView.vue | 91 | 0 0 20px | margin | 0 0 var(--space-20) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/BackupView.vue | 91 | 20px | font-size | --font-size-20 | 高 | 实测档位 1:1 |
-| views/BackupView.vue | 91 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| views/BackupView.vue | 93 | 12px | gap | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/BackupView.vue | 95 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| views/DownloadImport.vue | 209 | 0 auto | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
-| views/DownloadQueue.vue | 66 | 0 0 20px | margin | 0 0 var(--space-20) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/DownloadQueue.vue | 66 | 20px | font-size | --font-size-20 | 高 | 实测档位 1:1 |
-| views/DownloadQueue.vue | 66 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| views/DownloadQueue.vue | 67 | 12px | margin-bottom | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/DownloadQueue.vue | 68 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| views/DownloadQueue.vue | 69 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| views/DownloadQueue.vue | 70 | 8px 12px | padding | var(--space-8) var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/DownloadQueue.vue | 71 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| views/DownloadQueue.vue | 72 | 32px 0 | padding | var(--space-32) 0 | 高 | 8pt 网格外的档位已按实测保留 |
-| views/FavoritesView.vue | 181 | 0 auto | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
-| views/ForbiddenView.vue | 27 | 12vh auto 0 | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
-| views/ForbiddenView.vue | 29 | 32px | padding | var(--space-32) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/ForbiddenView.vue | 32 | 72px | font-size | --font-size-72 | 高 | 实测档位 1:1 |
-| views/ForbiddenView.vue | 33 | 700 | font-weight | --font-weight-bold | 高 |  |
-| views/ForbiddenView.vue | 35 | 1 | line-height | --line-height-none | 高 |  |
-| views/ForbiddenView.vue | 38 | 16px 0 8px | margin | var(--space-16) 0 var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/ForbiddenView.vue | 42 | 24px | margin-bottom | var(--space-24) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/HomeView.vue | 75 | 16px | padding | var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/HomeView.vue | 81 | 14px | font-size | --font-size-14 | 高 | 实测档位 1:1 |
-| views/HomeView.vue | 81 | 22px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| views/HomeView.vue | 81 | rgba(239,68,68,0.85) | background | （无） | 低 | 无对应语义令牌 |
-| views/HomeView.vue | 81 | #fff | color | （无） | 低 | 无对应语义令牌 |
-| views/LoginView.vue | 59 | 8px | margin-top | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/LoginView.vue | 60 | 8px | margin-top | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/LoginView.vue | 68 | linear-gradient(135deg, #667eea 0%, #764ba2 100%) | background | （无） | 低 | 无对应语义令牌 |
-| views/LoginView.vue | 69 | 44px 36px | padding | （无） | 中 | 含混合单位/calc，需人工确认 |
-| views/LoginView.vue | 70 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/LoginView.vue | 70 | 4px | margin-bottom | var(--space-4) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/LoginView.vue | 71 | 22px | font-size | --font-size-22 | 高 | 实测档位 1:1 |
-| views/LoginView.vue | 72 | 20px | font-size | --font-size-20 | 高 | 实测档位 1:1 |
-| views/LoginView.vue | 72 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| views/LoginView.vue | 73 | 10px 14px | padding | var(--space-10) var(--space-14) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/LoginView.vue | 73 | 14px | font-size | --font-size-14 | 高 | 实测档位 1:1 |
-| views/LoginView.vue | 73 | 12px | margin-top | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/LoginView.vue | 75 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| views/LoginView.vue | 75 | 8px | margin-top | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/NotificationLogsView.vue | 88 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/NotificationLogsView.vue | 155 | 6px 0 0 | margin | var(--space-6) 0 0 | 高 | 8pt 网格外的档位已按实测保留 |
-| views/NotificationLogsView.vue | 156 | 6px | margin-top | var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/NotificationLogsView.vue | 157 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| views/NotificationLogsView.vue | 157 | 0 0 6px | margin | 0 0 var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/NotificationLogsView.vue | 179 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| views/NotificationLogsView.vue | 180 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/NotificationLogsView.vue | 180 | 6px | margin-top | var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/NotificationLogsView.vue | 182 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| views/NotificationLogsView.vue | 199 | 0 0 12px | margin | 0 0 var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/NotificationLogsView.vue | 200 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/NotificationLogsView.vue | 207 | 8px | padding | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/NotificationLogsView.vue | 211 | 12px | margin-top | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/NotificationLogsView.vue | 211 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| views/NotificationLogsView.vue | 223 | 0 0 20px | margin | 0 0 var(--space-20) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/NotificationLogsView.vue | 223 | 20px | font-size | --font-size-20 | 高 | 实测档位 1:1 |
-| views/NotificationLogsView.vue | 223 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| views/NotificationLogsView.vue | 224 | 16px | margin-bottom | var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/NotificationLogsView.vue | 227 | 14px | gap | var(--space-14) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/NotificationLogsView.vue | 228 | 6px | gap | var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/NotificationLogsView.vue | 229 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| views/NotificationLogsView.vue | 229 | 500 | font-weight | --font-weight-medium | 高 |  |
-| views/NotificationLogsView.vue | 230 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/NotificationLogsView.vue | 230 | 1px | padding-bottom | var(--space-1) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/NotificationLogsView.vue | 235 | 400px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| views/NotificationLogsView.vue | 247 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| views/NotificationLogsView.vue | 249 | 10px 12px | padding | var(--space-10) var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/NotificationLogsView.vue | 250 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| views/NotificationLogsView.vue | 250 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| views/NotificationLogsView.vue | 252 | 14px | font-size | --font-size-14 | 高 | 实测档位 1:1 |
-| views/NotificationLogsView.vue | 252 | 32px 0 | padding | var(--space-32) 0 | 高 | 8pt 网格外的档位已按实测保留 |
-| views/NotificationLogsView.vue | 260 | 8px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| views/NotificationLogsView.vue | 267 | rgba(99, 102, 241, 0.2) | background | --primary-border | 高 |  |
-| views/NotificationLogsView.vue | 282 | 4px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| views/NotificationLogsView.vue | 286 | 4px | gap | var(--space-4) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/NotificationLogsView.vue | 286 | 16px | margin-top | var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/NotificationLogsView.vue | 289 | 12px | gap | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/NotificationLogsView.vue | 290 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| views/NotificationLogsView.vue | 292 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| views/NotificationLogsView.vue | 294 | 4px 0 0 | margin | var(--space-4) 0 0 | 高 | 8pt 网格外的档位已按实测保留 |
-| views/NotificationLogsView.vue | 294 | 10px | padding | var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/NotificationLogsView.vue | 294 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| views/OrganizeView.vue | 171 | 12px | gap | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/OrganizeView.vue | 171 | 6px 0 | padding | var(--space-6) 0 | 高 | 8pt 网格外的档位已按实测保留 |
-| views/OrganizeView.vue | 182 | 500 | font-weight | --font-weight-medium | 高 |  |
-| views/OrganizeView.vue | 183 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| views/OrganizeView.vue | 184 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| views/OrganizeView.vue | 197 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/OrganizeView.vue | 198 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| views/OrganizeView.vue | 198 | 9px 13px | padding | （无） | 中 | 含混合单位/calc，需人工确认 |
-| views/OrganizeView.vue | 200 | 4px | gap | var(--space-4) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/OrganizeView.vue | 200 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| views/OrganizeView.vue | 201 | 2px 6px | padding | var(--space-2) var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/OrganizeView.vue | 201 | 4px | border-radius | --ds-radius-xs | 高 |  |
-| views/OrganizeView.vue | 203 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| views/OrganizeView.vue | 205 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| views/OrganizeView.vue | 208 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| views/OrganizeView.vue | 208 | 6px | margin-top | var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/OrganizeView.vue | 209 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| views/OrganizeView.vue | 209 | 6px | margin-top | var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/OrganizeView.vue | 210 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/OrganizeView.vue | 211 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/OrganizeView.vue | 212 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| views/OrganizeView.vue | 212 | 500 | font-weight | --font-weight-medium | 高 |  |
-| views/OrganizeView.vue | 213 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| views/OrganizeView.vue | 214 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/OrganizeView.vue | 214 | 6px 12px | padding | var(--space-6) var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/OrganizeView.vue | 215 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| views/PendingView.vue | 79 | 12px | gap | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
+| components/ValidityConfig.vue | 447 | 36px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| components/ValidityConfig.vue | 479 | bold | font-weight | （无） | 低 | 非常规字重 |
+| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 162 | rgba(239,68,68,0.25) | border-color | （无） | 低 | 无对应语义令牌 |
+| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 162 | rgba(239,68,68,0.04) | background | （无） | 低 | 无对应语义令牌 |
+| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 165 | rgba(245,158,11,0.25) | border-color | （无） | 低 | 无对应语义令牌 |
+| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 165 | rgba(245,158,11,0.04) | background | （无） | 低 | 无对应语义令牌 |
+| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 169 | 36px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 184 | 6px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| components/dashboard/widgets/AdapterStatusQueryCard.vue | 153 | rgba(59,130,246,0.3) | border-color | （无） | 低 | 无对应语义令牌 |
+| components/dashboard/widgets/AdapterStatusQueryCard.vue | 153 | rgba(59,130,246,0.04) | background | （无） | 低 | 无对应语义令牌 |
+| components/dashboard/widgets/AdapterStatusQueryCard.vue | 156 | rgba(239,68,68,0.2) | border-color | （无） | 低 | 无对应语义令牌 |
+| components/dashboard/widgets/AdapterStatusQueryCard.vue | 156 | rgba(239,68,68,0.03) | background | （无） | 低 | 无对应语义令牌 |
+| components/dashboard/widgets/AdapterStatusQueryCard.vue | 159 | rgba(245,158,11,0.2) | border-color | （无） | 低 | 无对应语义令牌 |
+| components/dashboard/widgets/AdapterStatusQueryCard.vue | 159 | rgba(245,158,11,0.03) | background | （无） | 低 | 无对应语义令牌 |
+| components/dashboard/widgets/AdapterStatusQueryCard.vue | 182 | 6px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| components/dashboard/widgets/AdapterStatusQueryCard.vue | 190 | rgba(239,68,68,0.85) | background | （无） | 低 | 无对应语义令牌 |
+| components/dashboard/widgets/AdapterStatusQueryCard.vue | 193 | #fff | color | （无） | 低 | 无对应语义令牌 |
+| components/dashboard/widgets/QuickActionsCard.vue | 143 | rgba(139,92,246,0.12) | background | （无） | 低 | 无对应语义令牌 |
+| components/dashboard/widgets/QuickActionsCard.vue | 145 | #8b5cf6 | color | （无） | 低 | 无对应语义令牌 |
+| components/dashboard/widgets/StatsCard.vue | 83 | linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.08)) | background | （无） | 低 | 无对应语义令牌 |
+| components/dashboard/widgets/StatsCard.vue | 85 | 1px solid rgba(99,102,241,0.25) | border | （无） | 低 | 无对应语义令牌 |
+| components/dashboard/widgets/StatsCard.vue | 96 | 100px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| components/dashboard/widgets/SystemInfoCard.vue | 94 | 6px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| components/dashboard/widgets/SystemLogCard.vue | 114 | rgba(0,0,0,0.08) | background | （无） | 低 | 无对应语义令牌 |
+| style.css | 126 | rgba(99, 102, 241, 0.2) | border-color | （无） | 低 | 无对应语义令牌 |
+| style.css | 140 | rgba(99, 102, 241, 0.04) | background | （无） | 低 | 无对应语义令牌 |
+| style.css | 143 | 0 0 4px rgba(34,197,94,0.4) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
+| style.css | 145 | 0 0 14px rgba(34,197,94,0.7) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
+| style.css | 148 | 8px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| style.css | 150 | 8px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| style.css | 152 | 8px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| style.css | 757 | 0 2px 2px 0 | border-radius | （无） | 中 | 非令牌圆角档位 |
+| style.css | 798 | 6px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| views/AnnounceDetail.vue | 255 | 0 auto | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
+| views/AnnounceDetail.vue | 270 | bold | font-weight | （无） | 低 | 非常规字重 |
+| views/AnnounceDetail.vue | 274 | 0.5rem 0 | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
+| views/AnnounceDetail.vue | 280 | 0 auto | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
+| views/AnnounceDetail.vue | 295 | 0.5em 0 | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
+| views/AnnounceDetail.vue | 314 | 0.25em 0 | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
+| views/AnnounceDetail.vue | 325 | 0.25em 0 | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
+| views/AnnounceDetail.vue | 336 | 0.25em 0 | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
+| views/AnnounceDetail.vue | 348 | 0.25rem 0.5rem | padding | （无） | 中 | 含混合单位/calc，需人工确认 |
+| views/DownloadImport.vue | 210 | 0 auto | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
+| views/FavoritesView.vue | 182 | 0 auto | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
+| views/ForbiddenView.vue | 28 | 12vh auto 0 | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
+| views/HomeView.vue | 84 | 22px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| views/HomeView.vue | 84 | rgba(239,68,68,0.85) | background | （无） | 低 | 无对应语义令牌 |
+| views/HomeView.vue | 84 | #fff | color | （无） | 低 | 无对应语义令牌 |
+| views/LoginView.vue | 69 | linear-gradient(135deg, #667eea 0%, #764ba2 100%) | background | （无） | 低 | 无对应语义令牌 |
+| views/LoginView.vue | 71 | 44px 36px | padding | （无） | 中 | 含混合单位/calc，需人工确认 |
+| views/NotificationLogsView.vue | 236 | 400px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| views/NotificationLogsView.vue | 262 | 8px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| views/NotificationLogsView.vue | 285 | 4px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| views/OrganizeView.vue | 199 | 9px 13px | padding | （无） | 中 | 含混合单位/calc，需人工确认 |
 | views/PendingView.vue | 90 | 20px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| views/PendingView.vue | 119 | 12px | gap | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/PendingView.vue | 119 | 6px 0 | padding | var(--space-6) 0 | 高 | 8pt 网格外的档位已按实测保留 |
-| views/PendingView.vue | 122 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| views/PendingView.vue | 124 | 6px | gap | var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/PendingView.vue | 138 | 12px | gap | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/PendingView.vue | 139 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| views/PendingView.vue | 140 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| views/PendingView.vue | 140 | 6px | margin-top | var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/PendingView.vue | 143 | 10px | gap | var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/PendingView.vue | 144 | 14px | padding | var(--space-14) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/PendingView.vue | 147 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/PendingView.vue | 147 | 6px | margin-bottom | var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/PendingView.vue | 148 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| views/PendingView.vue | 148 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| views/PendingView.vue | 149 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| views/PendingView.vue | 150 | 12px | margin-top | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/QualityView.vue | 75 | 0 0 20px | margin | 0 0 var(--space-20) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/QualityView.vue | 75 | 20px | font-size | --font-size-20 | 高 | 实测档位 1:1 |
-| views/QualityView.vue | 75 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| views/QualityView.vue | 77 | 12px | gap | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/QualityView.vue | 79 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| views/QualityView.vue | 81 | 24px | padding | var(--space-24) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/QualityView.vue | 82 | 12px 0 8px | margin | var(--space-12) 0 var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/QualityView.vue | 82 | 15px | font-size | --font-size-15 | 高 | 实测档位 1:1 |
-| views/QueryHistory.vue | 65 | 0 0 20px | margin | 0 0 var(--space-20) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/QueryHistory.vue | 65 | 20px | font-size | --font-size-20 | 高 | 实测档位 1:1 |
-| views/QueryHistory.vue | 65 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| views/QueryHistory.vue | 66 | 12px | margin-bottom | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/QueryHistory.vue | 67 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| views/QueryHistory.vue | 68 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| views/QueryHistory.vue | 69 | 8px 12px | padding | var(--space-8) var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/QueryHistory.vue | 70 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| views/QueryHistory.vue | 71 | 32px 0 | padding | var(--space-32) 0 | 高 | 8pt 网格外的档位已按实测保留 |
-| views/RegisterView.vue | 51 | 8px | margin-top | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/RegisterView.vue | 52 | 8px | margin-top | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/RegisterView.vue | 54 | 16px | margin-top | var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/RegisterView.vue | 65 | linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%) | background | （无） | 低 | 无对应语义令牌 |
-| views/RegisterView.vue | 68 | 16px | border-radius | --ds-radius-xl | 高 |  |
-| views/RegisterView.vue | 68 | rgba(255,255,255,0.06) | background | （无） | 低 | 无对应语义令牌 |
-| views/RegisterView.vue | 69 | 40px | padding | var(--space-40) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/RegisterView.vue | 69 | 1px solid rgba(255,255,255,0.1) | border | （无） | 低 | 无对应语义令牌 |
-| views/RegisterView.vue | 71 | 12px | gap | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/RegisterView.vue | 71 | 8px | margin-bottom | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/RegisterView.vue | 72 | 28px | font-size | --font-size-28 | 高 | 实测档位 1:1 |
-| views/RegisterView.vue | 73 | 24px | font-size | --font-size-24 | 高 | 实测档位 1:1 |
-| views/RegisterView.vue | 73 | 700 | font-weight | --font-weight-bold | 高 |  |
-| views/RegisterView.vue | 73 | #fff | color | （无） | 低 | 无对应语义令牌 |
-| views/RegisterView.vue | 74 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| views/RegisterView.vue | 74 | 16px | margin-bottom | var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/RegisterView.vue | 74 | rgba(255,255,255,0.5) | color | （无） | 低 | 无对应语义令牌 |
-| views/RegisterView.vue | 76 | 12px | padding | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/RegisterView.vue | 76 | 8px | border-radius | --ds-radius-md | 高 |  |
-| views/RegisterView.vue | 76 | 1px solid rgba(255,255,255,0.1) | border | （无） | 低 | 无对应语义令牌 |
-| views/RegisterView.vue | 77 | 14px | font-size | --font-size-14 | 高 | 实测档位 1:1 |
-| views/RegisterView.vue | 77 | rgba(255,255,255,0.05) | background | （无） | 低 | 无对应语义令牌 |
+| views/RegisterView.vue | 66 | linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%) | background | （无） | 低 | 无对应语义令牌 |
+| views/RegisterView.vue | 70 | rgba(255,255,255,0.06) | background | （无） | 低 | 无对应语义令牌 |
+| views/RegisterView.vue | 72 | 1px solid rgba(255,255,255,0.1) | border | （无） | 低 | 无对应语义令牌 |
 | views/RegisterView.vue | 77 | #fff | color | （无） | 低 | 无对应语义令牌 |
-| views/RegisterView.vue | 80 | rgba(255,255,255,0.3) | color | （无） | 低 | 无对应语义令牌 |
-| views/RegisterView.vue | 82 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| views/RegisterView.vue | 82 | 8px | margin-top | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/SchedulerStatus.vue | 82 | 0 0 20px | margin | 0 0 var(--space-20) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/SchedulerStatus.vue | 82 | 20px | font-size | --font-size-20 | 高 | 实测档位 1:1 |
-| views/SchedulerStatus.vue | 82 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| views/SchedulerStatus.vue | 85 | 16px | margin-bottom | var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/SchedulerStatus.vue | 85 | 12px | gap | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/SchedulerStatus.vue | 87 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| views/SettingsView.vue | 379 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/SettingsView.vue | 382 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| views/SettingsView.vue | 408 | 16px | margin-top | var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/SettingsView.vue | 408 | 16px | gap | var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/SettingsView.vue | 409 | 16px | gap | var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/SettingsView.vue | 410 | 6px 10px | padding | var(--space-6) var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/SettingsView.vue | 421 | 4px | padding | var(--space-4) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/SettingsView.vue | 424 | 10px 18px | padding | var(--space-10) var(--space-18) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/SettingsView.vue | 429 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| views/SettingsView.vue | 430 | 500 | font-weight | --font-weight-medium | 高 |  |
-| views/SettingsView.vue | 442 | #ffffff | color | （无） | 低 | 无对应语义令牌 |
-| views/SettingsView.vue | 443 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| views/SettingsView.vue | 444 | 0 2px 8px rgba(99, 102, 241, 0.25) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
-| views/SettingsView.vue | 452 | 20px 24px | padding | var(--space-20) var(--space-24) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/SettingsView.vue | 456 | 24px | margin-top | var(--space-24) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/SettingsView.vue | 461 | 12px | gap | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/SettingsView.vue | 466 | 8px | margin-top | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/SettingsView.vue | 467 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| views/SettingsView.vue | 467 | 8px | margin-left | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/SettingsView.vue | 468 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| views/StandardsStatusView.vue | 257 | 0 0 20px | margin | 0 0 var(--space-20) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/StandardsStatusView.vue | 257 | 20px | font-size | --font-size-20 | 高 | 实测档位 1:1 |
-| views/StandardsStatusView.vue | 257 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| views/StandardsStatusView.vue | 258 | 16px | gap | var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/StandardsStatusView.vue | 258 | 16px | margin-bottom | var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/StandardsStatusView.vue | 263 | 28px | font-size | --font-size-28 | 高 | 实测档位 1:1 |
-| views/StandardsStatusView.vue | 263 | 700 | font-weight | --font-weight-bold | 高 |  |
-| views/StandardsStatusView.vue | 264 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| views/StandardsStatusView.vue | 264 | 4px | margin-top | var(--space-4) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/StandardsStatusView.vue | 265 | 16px | margin-bottom | var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/StandardsStatusView.vue | 266 | 12px | gap | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/StandardsStatusView.vue | 267 | 4px | gap | var(--space-4) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/StandardsStatusView.vue | 268 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| views/StandardsStatusView.vue | 268 | 500 | font-weight | --font-weight-medium | 高 |  |
-| views/StandardsStatusView.vue | 269 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/StandardsStatusView.vue | 269 | 1px | padding-bottom | var(--space-1) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/StandardsStatusView.vue | 270 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| views/StandardsStatusView.vue | 270 | 10px | margin-bottom | var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/StandardsStatusView.vue | 271 | 14px | font-size | --font-size-14 | 高 | 实测档位 1:1 |
-| views/StandardsStatusView.vue | 271 | 20px 0 | padding | var(--space-20) 0 | 高 | 8pt 网格外的档位已按实测保留 |
+| views/RegisterView.vue | 79 | rgba(255,255,255,0.5) | color | （无） | 低 | 无对应语义令牌 |
+| views/RegisterView.vue | 82 | 1px solid rgba(255,255,255,0.1) | border | （无） | 低 | 无对应语义令牌 |
+| views/RegisterView.vue | 85 | rgba(255,255,255,0.05) | background | （无） | 低 | 无对应语义令牌 |
+| views/RegisterView.vue | 85 | #fff | color | （无） | 低 | 无对应语义令牌 |
+| views/RegisterView.vue | 89 | rgba(255,255,255,0.3) | color | （无） | 低 | 无对应语义令牌 |
+| views/SettingsView.vue | 443 | #ffffff | color | （无） | 低 | 无对应语义令牌 |
+| views/SettingsView.vue | 446 | 0 2px 8px rgba(99, 102, 241, 0.25) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
 | views/SystemResources.vue | 49 | 24px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| views/SystemResources.vue | 59 | 0 0 20px | margin | 0 0 var(--space-20) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/SystemResources.vue | 59 | 20px | font-size | --font-size-20 | 高 | 实测档位 1:1 |
-| views/SystemResources.vue | 59 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| views/SystemResources.vue | 60 | 16px | gap | var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/SystemResources.vue | 61 | 0 0 12px | margin | 0 0 var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/SystemResources.vue | 61 | 15px | font-size | --font-size-15 | 高 | 实测档位 1:1 |
-| views/SystemResources.vue | 62 | 8px | margin-top | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/SystemResources.vue | 62 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| views/TaskView.vue | 480 | 20px | margin-bottom | var(--space-20) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/TaskView.vue | 481 | 12px | gap | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/TaskView.vue | 482 | 9px 13px | padding | （无） | 中 | 含混合单位/calc，需人工确认 |
-| views/TaskView.vue | 483 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| views/TaskView.vue | 485 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| views/TaskView.vue | 486 | 12px | margin-bottom | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/TaskView.vue | 487 | 16px | margin-bottom | var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/TaskView.vue | 488 | 16px | margin-top | var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/TaskView.vue | 498 | 14px | gap | var(--space-14) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/TaskView.vue | 499 | 14px 18px | padding | var(--space-14) var(--space-18) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/TaskView.vue | 506 | rgba(239,68,68,0.06) | background | （无） | 低 | 无对应语义令牌 |
-| views/TaskView.vue | 509 | 32px | height | --icon-tile-sm | 中 | 图标方块尺寸 |
-| views/TaskView.vue | 514 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| views/TaskView.vue | 514 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| views/TaskView.vue | 517 | #fff | color | （无） | 低 | 无对应语义令牌 |
-| views/TaskView.vue | 518 | #fff | color | （无） | 低 | 无对应语义令牌 |
-| views/TaskView.vue | 519 | #fff | color | （无） | 低 | 无对应语义令牌 |
-| views/TaskView.vue | 522 | 14px | font-size | --font-size-14 | 高 | 实测档位 1:1 |
-| views/TaskView.vue | 522 | 500 | font-weight | --font-weight-medium | 高 |  |
-| views/TaskView.vue | 523 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| views/TaskView.vue | 523 | 2px | margin-top | var(--space-2) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/TaskView.vue | 525 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/TaskView.vue | 527 | 12px | gap | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/TaskView.vue | 528 | 4px | gap | var(--space-4) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/TaskView.vue | 528 | 10px | padding | var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/TaskView.vue | 529 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| views/TaskView.vue | 530 | 18px | font-size | --font-size-18 | 高 | 实测档位 1:1 |
-| views/TaskView.vue | 530 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| views/TaskView.vue | 534 | 12px | margin-top | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/TaskView/TaskHistoryList.vue | 51 | 12px | gap | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/TaskView/TaskHistoryList.vue | 51 | 6px 0 | padding | var(--space-6) 0 | 高 | 8pt 网格外的档位已按实测保留 |
-| views/TaskView/TaskHistoryList.vue | 53 | 12px | gap | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/TaskView/TaskHistoryList.vue | 54 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| views/TaskView/TaskHistoryList.vue | 55 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| views/TaskView/TaskHistoryList.vue | 57 | 12px | gap | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/TaskView/TaskHistoryList.vue | 57 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| views/TaskView/TaskHistoryList.vue | 57 | 4px | margin-top | var(--space-4) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/TaskView/TaskHistoryList.vue | 63 | 6px | gap | var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/TaskView/TaskHistoryList.vue | 78 | 12px | margin-top | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/TaskView/TaskHistoryList.vue | 79 | 16px | margin-top | var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/SettingsTabCircuit.vue | 81 | 6px | gap | var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/SettingsTabCircuit.vue | 85 | 6px | gap | var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/SettingsTabCircuit.vue | 89 | 6px | gap | var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/SettingsTabNotification.vue | 26 | 24px 0 | margin | var(--space-24) 0 | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/SettingsTabNotification.vue | 27 | 12px | margin-bottom | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/SettingsTabSchedule.vue | 191 | 20px | gap | var(--space-20) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/SettingsTabSchedule.vue | 192 | 10px 0 | padding | var(--space-10) 0 | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/SettingsTabSchedule.vue | 201 | 10px | gap | var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/SettingsTabSchedule.vue | 206 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| views/settings/SettingsTabSchedule.vue | 207 | 500 | font-weight | --font-weight-medium | 高 |  |
-| views/settings/SettingsTabSchedule.vue | 213 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/SettingsTabSchedule.vue | 216 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| views/settings/SettingsTabSchedule.vue | 222 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| views/settings/SettingsTabSchedule.vue | 226 | 12px | margin-top | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/SettingsTabSites.vue | 316 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/SettingsTabSites.vue | 323 | 8px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| views/settings/SettingsTabSites.vue | 332 | 2px | margin-left | var(--space-2) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/SettingsTabSites.vue | 337 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/SettingsTabSites.vue | 338 | 8px | margin-top | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/SettingsTabSites.vue | 339 | 8px | padding-top | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/SettingsTabSites.vue | 345 | 3px | gap | var(--space-3) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/SettingsTabSites.vue | 348 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| views/settings/SettingsTabSites.vue | 349 | 500 | font-weight | --font-weight-medium | 高 |  |
-| views/settings/SettingsTabSites.vue | 353 | 14px | font-size | --font-size-14 | 高 | 实测档位 1:1 |
-| views/settings/SettingsTabSites.vue | 354 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| views/settings/SettingsTabSites.vue | 356 | 4px 0 | padding | var(--space-4) 0 | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/SettingsTabSites.vue | 363 | 16px | gap | var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/SettingsTabSites.vue | 364 | 8px | margin-top | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/SettingsTabSites.vue | 365 | 6px | padding-top | var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/SettingsTabSites.vue | 367 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| views/settings/SettingsTabToken.vue | 115 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| views/settings/SettingsTabToken.vue | 123 | 8px | margin-bottom | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/SettingsTabToken.vue | 126 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/SettingsTabToken.vue | 136 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| views/settings/SettingsTabToken.vue | 137 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| views/settings/SettingsTabToken.vue | 142 | 12px | margin-bottom | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/SettingsTabToken.vue | 142 | 1.6 | line-height | --line-height-body | 高 |  |
-| views/settings/SettingsTabToken.vue | 143 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| views/settings/SettingsTabToken.vue | 144 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/SettingsTabToken.vue | 144 | 16px | margin-top | var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/SettingsTabUsers.vue | 100 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/SettingsTabUsers.vue | 109 | 12px | gap | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/SettingsTabUsers.vue | 109 | 6px 0 | padding | var(--space-6) 0 | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/SettingsTabUsers.vue | 110 | 500 | font-weight | --font-weight-medium | 高 |  |
-| views/settings/SettingsTabUsers.vue | 111 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| views/settings/SettingsTabUsers.vue | 112 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| views/settings/SettingsTabUsers.vue | 123 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/SettingsTabUsers.vue | 131 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/SettingsTabUsers.vue | 140 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| views/settings/SettingsTabUsers.vue | 140 | 8px | margin-bottom | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/SettingsTabUsers.vue | 141 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/SettingsTabUsers.vue | 146 | 8px | gap | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/SettingsTabUsers.vue | 158 | 8px | padding | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/SettingsTabValidity.vue | 99 | 6px | gap | var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/SettingsTabValidity.vue | 103 | 6px | gap | var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/SettingsTabValidity.vue | 107 | 6px | gap | var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/shared.css | 19 | 24px | padding | var(--space-24) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/shared.css | 27 | 700 | font-weight | --font-weight-bold | 高 |  |
-| views/settings/shared.css | 29 | 15px | font-size | --font-size-15 | 高 | 实测档位 1:1 |
-| views/settings/shared.css | 30 | 18px | margin-bottom | var(--space-18) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/shared.css | 34 | 14px | padding-bottom | var(--space-14) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/shared.css | 42 | 14px 20px | gap | var(--space-14) var(--space-20) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/shared.css | 44 | 14px | font-size | --font-size-14 | 高 | 实测档位 1:1 |
-| views/settings/shared.css | 47 | 8px 0 | gap | var(--space-8) 0 | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/shared.css | 48 | 8px | margin-top | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/shared.css | 67 | 500 | font-weight | --font-weight-medium | 高 |  |
-| views/settings/shared.css | 68 | 9px | padding-top | var(--space-9) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/shared.css | 73 | 10px 14px | padding | var(--space-10) var(--space-14) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/shared.css | 78 | 14px | font-size | --font-size-14 | 高 | 实测档位 1:1 |
-| views/settings/shared.css | 93 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| views/settings/shared.css | 94 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| views/settings/shared.css | 94 | 8px | margin-left | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/shared.css | 97 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| views/settings/shared.css | 101 | 16px | margin-bottom | var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/shared.css | 102 | 8px | margin-top | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/shared.css | 108 | 12px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| views/settings/shared.css | 109 | 700 | font-weight | --font-weight-bold | 高 |  |
-| views/settings/shared.css | 109 | 14px | font-size | --font-size-14 | 高 | 实测档位 1:1 |
-| views/settings/shared.css | 124 | 6px | gap | var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/shared.css | 125 | 10px 16px | padding | var(--space-10) var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/shared.css | 131 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| views/settings/shared.css | 132 | 500 | font-weight | --font-weight-medium | 高 |  |
-| views/settings/shared.css | 143 | 20px | gap | var(--space-20) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/shared.css | 148 | 10px | gap | var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/shared.css | 150 | 8px | padding | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/shared.css | 156 | 13px | font-size | --font-size-13 | 高 | 实测档位 1:1 |
-| views/settings/shared.css | 159 | 500 | font-weight | --font-weight-medium | 高 |  |
-| views/settings/shared.css | 161 | 700 | font-weight | --font-weight-bold | 高 |  |
-| views/settings/shared.css | 162 | 4px | padding | var(--space-4) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/shared.css | 165 | 44px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| views/settings/shared.css | 182 | 12px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| views/settings/shared.css | 187 | 0 2px 4px rgba(0, 0, 0, 0.2) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
-| views/settings/shared.css | 195 | 16px | gap | var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/shared.css | 200 | 20px | padding | var(--space-20) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/shared.css | 222 | 10px | gap | var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/shared.css | 222 | 8px | margin-bottom | var(--space-8) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/shared.css | 224 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| views/settings/shared.css | 225 | 700 | font-weight | --font-weight-bold | 高 |  |
-| views/settings/shared.css | 228 | 4px 10px | padding | var(--space-4) var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/shared.css | 229 | 12px | border-radius | --ds-radius-lg | 高 |  |
-| views/settings/shared.css | 231 | 15px | font-size | --font-size-15 | 高 | 实测档位 1:1 |
-| views/settings/shared.css | 231 | 600 | font-weight | --font-weight-semibold | 高 |  |
-| views/settings/shared.css | 232 | 12px | font-size | --font-size-12 | 高 | 实测档位 1:1 |
-| views/settings/shared.css | 232 | 12px | margin-bottom | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/shared.css | 233 | 20px | gap | var(--space-20) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/shared.css | 234 | 3px | gap | var(--space-3) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/shared.css | 235 | 11px | font-size | --font-size-11 | 高 | 实测档位 1:1 |
-| views/settings/shared.css | 235 | 500 | font-weight | --font-weight-medium | 高 |  |
-| views/settings/shared.css | 236 | 16px | font-size | --font-size-16 | 高 | 实测档位 1:1 |
-| views/settings/shared.css | 236 | 700 | font-weight | --font-weight-bold | 高 |  |
-| views/settings/shared.css | 239 | 6px | padding-top | var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/shared.css | 239 | 6px | padding-bottom | var(--space-6) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/shared.css | 242 | 14px | gap | var(--space-14) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/shared.css | 245 | 16px | padding | var(--space-16) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/shared.css | 250 | 14px | font-size | --font-size-14 | 高 | 实测档位 1:1 |
-| views/settings/shared.css | 254 | inset 0 2px 4px rgba(0, 0, 0, 0.05) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
-| views/settings/shared.css | 256 | 10px | gap | var(--space-10) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/shared.css | 259 | 12px | gap | var(--space-12) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/shared.css | 277 | 16px 20px | padding | var(--space-16) var(--space-20) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/shared.css | 290 | 15px | font-size | --font-size-15 | 高 | 实测档位 1:1 |
-| views/settings/shared.css | 291 | 700 | font-weight | --font-weight-bold | 高 |  |
-| views/settings/shared.css | 297 | 14px | font-size | --font-size-14 | 高 | 实测档位 1:1 |
-| views/settings/shared.css | 300 | 4px | padding | var(--space-4) | 高 | 8pt 网格外的档位已按实测保留 |
-| views/settings/shared.css | 309 | 20px | padding | var(--space-20) | 高 | 8pt 网格外的档位已按实测保留 |
+| views/TaskView.vue | 483 | 9px 13px | padding | （无） | 中 | 含混合单位/calc，需人工确认 |
+| views/TaskView.vue | 508 | rgba(239,68,68,0.06) | background | （无） | 低 | 无对应语义令牌 |
+| views/TaskView.vue | 520 | #fff | color | （无） | 低 | 无对应语义令牌 |
+| views/TaskView.vue | 522 | #fff | color | （无） | 低 | 无对应语义令牌 |
+| views/TaskView.vue | 524 | #fff | color | （无） | 低 | 无对应语义令牌 |
+| views/settings/SettingsTabSites.vue | 324 | 8px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| views/settings/shared.css | 109 | 12px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| views/settings/shared.css | 167 | 44px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| views/settings/shared.css | 185 | 12px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| views/settings/shared.css | 191 | 0 2px 4px rgba(0, 0, 0, 0.2) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
+| views/settings/shared.css | 259 | inset 0 2px 4px rgba(0, 0, 0, 0.05) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
 
 ### 4.2 排除明细（C：不纳入替换）
 
@@ -1200,11 +222,11 @@
 
 | 指标 | 数值 |
 |---|---|
-| 涉及文件（有命中） | 60 |
-| 命中总数 | 1722 |
-| 已令牌化声明（不计入明细） | 859 |
+| 涉及文件（有命中） | 59 |
+| 命中总数 | 743 |
+| 已令牌化声明（不计入明细） | 1838 |
 | 与视觉令牌无关（布局属性等） | 1095 |
-| A 精确映射 | 979 |
+| A 精确映射 | 0 |
 | B 近似映射（需 TODO） | 115 |
 | C 排除 | 628 |
 | D 缺陷 | 0 |
@@ -1213,18 +235,15 @@
 
 | 属性 | A | B | 合计 |
 |---|---|---|---|
-| font-size | 309 | 0 | 309 |
-| gap | 180 | 0 | 180 |
-| margin | 164 | 11 | 175 |
-| padding | 161 | 7 | 168 |
-| font-weight | 108 | 2 | 110 |
-| background | 21 | 21 | 42 |
-| height | 9 | 32 | 41 |
+| height | 0 | 32 | 32 |
+| background | 0 | 21 | 21 |
 | color | 0 | 16 | 16 |
-| border-radius | 12 | 3 | 15 |
-| line-height | 15 | 0 | 15 |
 | box-shadow | 0 | 12 | 12 |
+| margin | 0 | 11 | 11 |
 | border | 0 | 11 | 11 |
+| padding | 0 | 7 | 7 |
+| border-radius | 0 | 3 | 3 |
+| font-weight | 0 | 2 | 2 |
 
 ### 4.6 无对应令牌的颜色字面量（B 类）
 
@@ -1260,16 +279,16 @@
 
 | 文件 | 条数 |
 |---|---|
-| views/settings/shared.css | 68 |
-| components/NotificationConfig.vue | 66 |
-| style.css | 44 |
-| components/ValidityConfig.vue | 43 |
-| views/NotificationLogsView.vue | 42 |
-| components/AppLayout.vue | 40 |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 40 |
-| components/AppHeader.vue | 34 |
-| components/RouteDebugPanel.vue | 34 |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 33 |
+| components/AppLayout.vue | 16 |
+| components/dashboard/widgets/AdapterStatusQueryCard.vue | 9 |
+| style.css | 9 |
+| views/AnnounceDetail.vue | 9 |
+| views/RegisterView.vue | 9 |
+| components/AppHeader.vue | 6 |
+| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 6 |
+| components/AppSidebar.vue | 5 |
+| views/TaskView.vue | 5 |
+| views/settings/shared.css | 5 |
 
 <!-- AUDIT:END -->
 
@@ -1351,7 +370,22 @@
 
 **备选：`web/src/views/DownloadQueue.vue`**（9 条，全 A、零 TODO）—— 适合验证"纯机械替换不改视觉"。
 
-**试点执行记录（2026-11-21，commit `cdee6c46`）**：`NotificationBell.vue` 的 A 类 **17 条已全部替换**，B 类 1 条（`height: 8px` 状态圆点）按约定只加 `TODO: [Design Debt]` 不替换；C 类未动。四件套全绿（test 421 passed 与试前一致）。**注意：§4 生成区块仍是阶段二审计快照**（该文件仍列 18 条），全量替换完成后统一重跑 `scripts/audit_design_tokens.py` 刷新；试点后的实际状态为 A=0 / B=1 / 0 处颜色字面量。
+**试点执行记录（2026-11-21，commit `cdee6c46`）**：`NotificationBell.vue` 的 A 类 **17 条已全部替换**，B 类 1 条（`height: 8px` 状态圆点）按约定只加 `TODO: [Design Debt]` 不替换；C 类未动。四件套全绿（test 421 passed 与试前一致）。
+
+**全量替换记录（2026-11-21，5 批独立提交）**：
+
+| 批次 | 范围 | A | B(TODO) | 提交通道 |
+|---|---|---|---|---|
+| 5-1 | `views/settings/`（8 文件） | 118 | 6 | `e0fdd780` |
+| 5-2 | `components/dashboard/`（10 文件，TaskTrendCard 全 C） | 204 | 22 | `fd9b5c69` |
+| 5-3 | `views/`（21 文件） | 272 | 37（+2 内联待人工） | `231cd5cc` |
+| 5-4 | `components/` 非 dashboard（16 文件） | 333 | 38（+1 旧圆角别名 TODO） | `9d0ec26b` |
+| 5-5 | `style.css`（1 文件） | 35 | 9 | `b48c7e77` |
+| 合计 | — | **979** | **113 TODO + 2 内联待人工** | — |
+
+- 每批独立提交、独立跑四件套（type-check / lint / test / build），测试恒为 **421 passed**；
+- 5-3 首次应用时替换器把 `margin: 0 0 20px` 错包为 `var(0 0 var(--space-20))`，被 build 拦下，回退重做后入库，**错误未进任何提交**；
+- 全量后复扫：**A=0 / B=115 / C=628 / D=0**，全树无 `var(0…` / `var(var(…)`。
 
 **试点发现的既有缺口**：状态圆点色 `--warning` 在浅色底上仅 2.15:1（green 主题 2.05:1），低于非文本对比度 3:1；该值替换前就是同色字面量 `#f59e0b`，**非本次引入**，登记为 DT-12。
 
@@ -1410,7 +444,7 @@
 
 ## 11. 验证方式
 
-**本报告生成时（阶段二）**：
+**全量替换后（2026-11-21，每批各跑一遍，结果一致）**：
 
 ```bash
 cd web
@@ -1424,7 +458,9 @@ pnpm.cmd run build        # exit 0（dist CSS 含 --space-* / --ds-radius-* / --
 
 ```bash
 python scripts/audit_design_tokens.py --check   # 输出 A/B/C/D 计数，不写文件
-python scripts/audit_design_tokens.py           # 刷新本文件 §4
+python scripts/audit_design_tokens.py           # 刷新本文件 §4（默认全量，不截断）
 ```
+
+**全量后的门禁输入**：B=115（其中 113 条带 `TODO: [Design Debt]`、2 条内联样式待人工）+ C=628。G-055 的棘轮基线按此生成，只含 C 类例外与 B 类 TODO 项，A 类为 0 表示"任何新增可映射硬编码当场红灯"。
 
 **修复的守护测试**：`web/src/styles/design-tokens.test.ts`（6 例）—— ① `var()` 无未定义引用；② `style.css` 默认层与 `themes.ts` light 一致；③ 无失效文档引用；④ 令牌文件无颜色字面量；⑤ 不覆盖旧 `--radius-*`；⑥ 关键尺度令牌齐备。反向验证已做：注入 `var(--definitely-undefined)` 与 `--ds-bad: #ff00ff` 均报错，恢复后 6 passed。
