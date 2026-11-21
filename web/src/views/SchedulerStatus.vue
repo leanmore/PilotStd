@@ -79,10 +79,10 @@ onMounted(() => fetchStatus('/scheduler'))
 
 <style scoped>
 .page { max-width: 1100px; }
-.page-title { margin: 0 0 20px; font-size: 20px; font-weight: 600; color: var(--text-heading); }
+.page-title { margin: 0 0 var(--space-20); font-size: var(--font-size-20); font-weight: var(--font-weight-semibold); color: var(--text-heading); }
 .status-header {
   display: flex; justify-content: space-between; align-items: center;
-  margin-bottom: 16px; gap: 12px; flex-wrap: wrap;
+  margin-bottom: var(--space-16); gap: var(--space-12); flex-wrap: wrap;
 }
-.text-sm { font-size: 13px; color: var(--text-secondary); }
+.text-sm { font-size: var(--font-size-13); color: var(--text-secondary); }
 </style>

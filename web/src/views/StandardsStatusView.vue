@@ -254,19 +254,19 @@ onMounted(() => {
 
 <style scoped>
 .page { max-width: 1000px; }
-.page-title { margin: 0 0 20px; font-size: 20px; font-weight: 600; color: var(--text-heading); }
-.stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px; }
+.page-title { margin: 0 0 var(--space-20); font-size: var(--font-size-20); font-weight: var(--font-weight-semibold); color: var(--text-heading); }
+.stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-16); margin-bottom: var(--space-16); }
 .stat-card { text-align: center; }
 .stat-card.active { border-left: 4px solid var(--success); }
 .stat-card.inactive { border-left: 4px solid var(--danger); }
 .stat-card.unknown { border-left: 4px solid var(--text-dim); }
-.stat-num { font-size: 28px; font-weight: 700; }
-.stat-label { font-size: 13px; color: var(--text-dim); margin-top: 4px; }
-.section { margin-bottom: 16px; }
-.filter-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
-.filter-item { display: flex; flex-direction: column; gap: 4px; min-width: 140px; }
-.filter-item label { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
-.filter-actions { display: flex; gap: 8px; align-items: flex-end; padding-bottom: 1px; }
-.table-meta { display: flex; justify-content: space-between; font-size: 13px; color: var(--text-secondary); margin-bottom: 10px; }
-.empty { color: var(--text-dim); font-size: 14px; padding: 20px 0; }
+.stat-num { font-size: var(--font-size-28); font-weight: var(--font-weight-bold); }
+.stat-label { font-size: var(--font-size-13); color: var(--text-dim); margin-top: var(--space-4); }
+.section { margin-bottom: var(--space-16); }
+.filter-row { display: flex; flex-wrap: wrap; gap: var(--space-12); align-items: flex-end; }
+.filter-item { display: flex; flex-direction: column; gap: var(--space-4); min-width: 140px; }
+.filter-item label { font-size: var(--font-size-12); font-weight: var(--font-weight-medium); color: var(--text-secondary); }
+.filter-actions { display: flex; gap: var(--space-8); align-items: flex-end; padding-bottom: var(--space-1); }
+.table-meta { display: flex; justify-content: space-between; font-size: var(--font-size-13); color: var(--text-secondary); margin-bottom: var(--space-10); }
+.empty { color: var(--text-dim); font-size: var(--font-size-14); padding: var(--space-20) 0; }
 </style>

@@ -376,10 +376,10 @@ onMounted(() => {
         :title="t('settings.ok_hint')"
       />
     </div>
-    <div style="display:flex;align-items:center;gap:8px">
+    <div style="display:flex;align-items:center;gap:var(--space-8)">
       <Tag v-if="saved" :value="t('common.saved')" severity="success" />
       <span v-if="cfgErr" class="err-msg">{{ cfgErr }}</span>
-      <span class="text-dim" style="font-size:11px">PilotStd v{{ cfg.version || '—' }}</span>
+      <span class="text-dim" style="font-size:var(--font-size-11)">PilotStd v{{ cfg.version || '—' }}</span>
     </div>
   </div>
 </template>
@@ -405,9 +405,9 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.user-settings { max-width: 520px; margin-top: 16px; display: flex; flex-direction: column; gap: 16px; }
-.row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.row select { padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); }
+.user-settings { max-width: 520px; margin-top: var(--space-16); display: flex; flex-direction: column; gap: var(--space-16); }
+.row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-16); }
+.row select { padding: var(--space-6) var(--space-10); border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); }
 /* ── 标签页导航 ── */
 .tab-bar {
   display: flex;
@@ -418,16 +418,16 @@ onMounted(() => {
   overflow: hidden;
   width: fit-content;
   box-shadow: var(--shadow-xs);
-  padding: 4px;
+  padding: var(--space-4);
 }
 .tab-bar button {
-  padding: 10px 18px;
+  padding: var(--space-10) var(--space-18);
   border: none;
   background: none;
   color: var(--text-dim);
   cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-medium);
   border-radius: var(--radius);
   transition: all var(--transition);
   white-space: nowrap;
@@ -439,8 +439,10 @@ onMounted(() => {
 }
 .tab-bar button.active {
   background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+  /* TODO: [Design Debt] #ffffff 无精确令牌，暂不替换，待定令牌后统一处理 */
   color: #ffffff;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
+  /* TODO: [Design Debt] 0 2px 8px rgba(99, 102, 241, 0.25) 无精确令牌，暂不替换，待定令牌后统一处理 */
   box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
 }
 
@@ -449,21 +451,21 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 24px;
+  padding: var(--space-20) var(--space-24);
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  margin-top: 24px;
+  margin-top: var(--space-24);
   box-shadow: var(--shadow-sm);
 }
 .footer-actions {
   display: flex;
-  gap: 12px;
+  gap: var(--space-12);
   align-items: center;
 }
 
 /* ── 工具类（父组件专用）── */
-.mt-2 { margin-top: 8px; }
-.err-msg { color: var(--danger, #e74c3c); font-size: 12px; margin-left: 8px; }
-.text-dim { color: var(--text-dim); font-size: 13px; }
+.mt-2 { margin-top: var(--space-8); }
+.err-msg { color: var(--danger, #e74c3c); font-size: var(--font-size-12); margin-left: var(--space-8); }
+.text-dim { color: var(--text-dim); font-size: var(--font-size-13); }
 </style>
