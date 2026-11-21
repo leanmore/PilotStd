@@ -131,3 +131,11 @@
 - 旧记录 "6740 passed" = **passed + subtests**（6333 + 401 ≈ 6740），属口径混淆；此后一律按四列报数。
 - 11-13 → 11-15 的差异：A-37 把网络 e2e 改为显式开启（该文件 13→2 passed、4→15 skipped）；
   A-33 删 10 例；本批新增 A-27.3 9 例、P1 5 例、file_index 保护 8 例、G-052/G-050 若干。
+
+> **2026-11-21 增量（D-2 阶段 1 / A-27 / U-1 / G-02）**：新增测试文件 5 个 ——
+> `tests/test_notification_policy_fallback.py`（6 例）、`tests/test_notification_link_level_render.py`（7 例）、
+> `tests/test_notification_wechat_test_connection.py`（1 例）、`tests/test_validity_last_status.py`（4 例）、
+> `tests/test_batch_result_metrics.py`（3 例），另有 `tests/test_notification_menu_chats.py`、`tests/test_notification_menu_config.py`、
+> `tests/test_migrate_superseded_by_direction.py`、`tests/test_api_archive_stats.py` 同期扩充。
+> 通知相关套件 `pytest -k "notification or renderer"` 实测 **1276 passed**。
+

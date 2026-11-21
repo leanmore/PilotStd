@@ -327,7 +327,7 @@ class TestDoTestSendWechat:
                 params={"corpid": "c1", "agentid": "a1", "corpsecret": "s1"},
             )
         assert result == {"ok": True, "error": ""}
-        mock_cls.assert_called_once_with("c1", "a1", "s1")
+        mock_cls.assert_called_once_with(corpid="c1", agentid="a1", corpsecret="s1")
 
     def test_webhook_mode(self):
         mgr = _make_mgr()
@@ -384,7 +384,7 @@ class TestDoTestSendWechat:
             result = do_test_send(mgr, "wechat", "hello")
         assert result == {"ok": True, "error": ""}
         # 关键断言：使用 DB 凭证，而非 config 旧值
-        mock_cls.assert_called_once_with("db_corpid", "db_agentid", "db_secret")
+        mock_cls.assert_called_once_with(corpid="db_corpid", agentid="db_agentid", corpsecret="db_secret")
 
 
 class TestDoTestSendGeneric:
