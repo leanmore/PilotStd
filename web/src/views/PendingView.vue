@@ -76,7 +76,7 @@ onMounted(() => { ensure() })
     <span v-if="importMsg" class="import-msg">{{ importMsg }}</span>
   </div>
 
-  <div class="mt-2" style="display:flex;gap:12px;align-items:flex-start">
+  <div class="mt-2" style="display:flex;gap:var(--space-12);align-items:flex-start">
     <div style="flex:1">
       <Textarea v-model="input" rows="6" :placeholder="t('pending.input_placeholder')" />
     </div>
@@ -116,12 +116,12 @@ onMounted(() => { ensure() })
     <DataView :value="paginatedResults" size="small" class="mt-3">
       <template #list="slotProps">
         <div v-for="item in slotProps.items" :key="item.standard_number" class="p-2 border-bottom">
-          <div class="flex justify-content-between align-items-center" style="display:flex;gap:12px;padding:6px 0;border-bottom:1px solid var(--border-light)">
+          <div class="flex justify-content-between align-items-center" style="display:flex;gap:var(--space-12);padding:var(--space-6) 0;border-bottom:1px solid var(--border-light)">
             <div style="flex:1;min-width:0">
               <div><strong>{{ item.standard_number }}</strong></div>
-              <div class="text-dim" style="font-size:13px;color:var(--text-dim)">{{ item.standard_name }}</div>
+              <div class="text-dim" style="font-size:var(--font-size-13);color:var(--text-dim)">{{ item.standard_name }}</div>
             </div>
-            <div class="flex" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+            <div class="flex" style="display:flex;gap:var(--space-6);flex-wrap:wrap;align-items:center">
               <Tag :value="item.status" :severity="severity(item.status_key)" />
               <Tag :value="item._site" severity="info" />
             </div>
@@ -135,19 +135,19 @@ onMounted(() => { ensure() })
 </template>
 
 <style scoped>
-.btn-row { display: flex; align-items: center; gap: 12px; }
-.import-msg { font-size: 12px; color: var(--accent, #10b981); }
-.err-msg { color: var(--danger, #e74c3c); font-size: 12px; margin-top: 6px; }
+.btn-row { display: flex; align-items: center; gap: var(--space-12); }
+.import-msg { font-size: var(--font-size-12); color: var(--accent, #10b981); }
+.err-msg { color: var(--danger, #e74c3c); font-size: var(--font-size-12); margin-top: var(--space-6); }
 
 /* 站点卡片网格 —— 与设置页站点管理一致 */
-.site-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
-.site-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; cursor: pointer; transition: all 0.15s; }
+.site-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--space-10); }
+.site-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-14); cursor: pointer; transition: all 0.15s; }
 .site-card:hover { border-color: var(--primary-border); box-shadow: var(--shadow-sm); }
 .site-card.active { border-color: var(--primary); background: var(--primary-bg); }
-.site-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-.site-name { font-size: 13px; font-weight: 600; color: var(--text-heading); }
-.site-desc { font-size: 12px; color: var(--text-dim); }
-.mt-2 { margin-top: 12px; }
+.site-head { display: flex; align-items: center; gap: var(--space-8); margin-bottom: var(--space-6); }
+.site-name { font-size: var(--font-size-13); font-weight: var(--font-weight-semibold); color: var(--text-heading); }
+.site-desc { font-size: var(--font-size-12); color: var(--text-dim); }
+.mt-2 { margin-top: var(--space-12); }
 .border-bottom { border-bottom: 1px solid var(--border-light, #e5e7eb); }
 .text-dim { color: var(--text-dim, #6b7280); }
 </style>

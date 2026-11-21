@@ -96,15 +96,15 @@ onMounted(() => { loadCircuitConfig() })
         <Message v-if="circuitErr" severity="error" :closable="false">{{ circuitErr }}</Message>
         <Message v-if="circuitSaved" severity="success" :closable="false">{{ t('settings.saved') }}</Message>
         <div class="form-grid" style="grid-template-columns:repeat(auto-fill, minmax(220px, 1fr))">
-          <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;flex-direction:column;gap:var(--space-6)">
             <label>{{ t('settings.circuit.failure_threshold') }}</label>
             <InputNumber v-model="circuitCfg.failure_threshold" :min="1" show-buttons />
           </div>
-          <div v-for="i in 4" :key="i" style="display:flex;flex-direction:column;gap:6px">
+          <div v-for="i in 4" :key="i" style="display:flex;flex-direction:column;gap:var(--space-6)">
             <label>{{ t('settings.circuit.step_duration', { step: i }) }}</label>
             <InputNumber v-model="circuitCfg.freeze_durations[i - 1]" :min="1" show-buttons />
           </div>
-          <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;flex-direction:column;gap:var(--space-6)">
             <label>{{ t('settings.circuit.reset_window') }}</label>
             <InputNumber v-model="circuitCfg.reset_window_hours" :min="1" show-buttons />
           </div>

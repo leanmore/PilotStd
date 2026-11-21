@@ -188,8 +188,8 @@ onMounted(loadTasks)
                       若为 nowrap，该 100% 基准会把同行所有项压到负剩余空间，
                       开关（.p-toggleswitch 无 flex:none 保护）被等比压缩 → 第 5 个开关比前四个窄 */
   align-items: center;
-  gap: 20px;
-  padding: 10px 0;
+  gap: var(--space-20);
+  padding: var(--space-10) 0;
   border-bottom: 1px solid var(--border-light, #e5e7eb);
 }
 .task-row:last-of-type {
@@ -198,31 +198,31 @@ onMounted(loadTasks)
 .task-toggle {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-10);
   min-width: 180px;
   flex: 0 0 auto; /* 开关组不参与收缩，保证五个开关尺寸完全一致（宽度/高度/左对齐） */
 }
 .task-toggle label {
-  font-size: 13px;
-  font-weight: 500;
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-medium);
   color: var(--text);
 }
 .task-cron {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
 }
 .task-cron label {
-  font-size: 11px;
+  font-size: var(--font-size-11);
   color: var(--text-secondary);
   white-space: nowrap;
 }
 .task-hint {
   flex-basis: 100%;
-  font-size: 11px;
+  font-size: var(--font-size-11);
   color: var(--text-secondary);
 }
 .actions-row {
-  margin-top: 12px;
+  margin-top: var(--space-12);
 }
 </style>

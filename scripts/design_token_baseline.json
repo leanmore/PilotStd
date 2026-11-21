@@ -1,0 +1,3805 @@
+{
+  "version": 1,
+  "gate": "G-055",
+  "generated_at": "2026-11-21",
+  "note": "人工确认后提交；禁止脚本自动更新。匹配键 = 文件 + 属性 + 值，计数为上限。",
+  "counts": {
+    "A": 0,
+    "B": 115,
+    "C": 628
+  },
+  "groups": [
+    {
+      "id": "b-font-weight",
+      "class": "B",
+      "reason": "B 类：非常规字重",
+      "entries": [
+        {
+          "file": "components/ValidityConfig.vue",
+          "prop": "font-weight",
+          "value": "bold",
+          "count": 1
+        },
+        {
+          "file": "views/AnnounceDetail.vue",
+          "prop": "font-weight",
+          "value": "bold",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "b-layout-size",
+      "class": "B",
+      "reason": "B 类：布局/控件尺寸，是否令牌化待定",
+      "entries": [
+        {
+          "file": "components/AppHeader.vue",
+          "prop": "height",
+          "value": "40px",
+          "count": 1
+        },
+        {
+          "file": "components/AppHeader.vue",
+          "prop": "height",
+          "value": "56px",
+          "count": 1
+        },
+        {
+          "file": "components/AppHeader.vue",
+          "prop": "height",
+          "value": "60px",
+          "count": 1
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "height",
+          "value": "56px",
+          "count": 1
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "height",
+          "value": "64px",
+          "count": 1
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "height",
+          "value": "68px",
+          "count": 1
+        },
+        {
+          "file": "components/AppSidebar.vue",
+          "prop": "height",
+          "value": "24px",
+          "count": 1
+        },
+        {
+          "file": "components/LogBar.vue",
+          "prop": "height",
+          "value": "4px",
+          "count": 1
+        },
+        {
+          "file": "components/LogBar.vue",
+          "prop": "height",
+          "value": "8px",
+          "count": 1
+        },
+        {
+          "file": "components/NotificationBell.vue",
+          "prop": "height",
+          "value": "8px",
+          "count": 1
+        },
+        {
+          "file": "components/TableLoadFooter.vue",
+          "prop": "height",
+          "value": "20px",
+          "count": 1
+        },
+        {
+          "file": "components/ValidityConfig.vue",
+          "prop": "height",
+          "value": "36px",
+          "count": 2
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusAnnounceCard.vue",
+          "prop": "height",
+          "value": "36px",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusAnnounceCard.vue",
+          "prop": "height",
+          "value": "6px",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusQueryCard.vue",
+          "prop": "height",
+          "value": "6px",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/StatsCard.vue",
+          "prop": "height",
+          "value": "100px",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/SystemInfoCard.vue",
+          "prop": "height",
+          "value": "6px",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "height",
+          "value": "6px",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "height",
+          "value": "8px",
+          "count": 3
+        },
+        {
+          "file": "views/HomeView.vue",
+          "prop": "height",
+          "value": "22px",
+          "count": 1
+        },
+        {
+          "file": "views/NotificationLogsView.vue",
+          "prop": "height",
+          "value": "400px",
+          "count": 1
+        },
+        {
+          "file": "views/NotificationLogsView.vue",
+          "prop": "height",
+          "value": "4px",
+          "count": 1
+        },
+        {
+          "file": "views/NotificationLogsView.vue",
+          "prop": "height",
+          "value": "8px",
+          "count": 1
+        },
+        {
+          "file": "views/settings/SettingsTabSites.vue",
+          "prop": "height",
+          "value": "8px",
+          "count": 1
+        },
+        {
+          "file": "views/settings/shared.css",
+          "prop": "height",
+          "value": "12px",
+          "count": 2
+        },
+        {
+          "file": "views/settings/shared.css",
+          "prop": "height",
+          "value": "44px",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "b-mixed-unit",
+      "class": "B",
+      "reason": "B 类：含混合单位，需人工确认",
+      "entries": [
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "margin",
+          "value": "0 auto",
+          "count": 1
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "padding",
+          "value": "32px 36px",
+          "count": 1
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "padding-bottom",
+          "value": "72px",
+          "count": 1
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "padding-bottom",
+          "value": "env(safe-area-inset-bottom)",
+          "count": 1
+        },
+        {
+          "file": "views/AnnounceDetail.vue",
+          "prop": "margin",
+          "value": "0 auto",
+          "count": 2
+        },
+        {
+          "file": "views/AnnounceDetail.vue",
+          "prop": "margin",
+          "value": "0.25em 0",
+          "count": 3
+        },
+        {
+          "file": "views/AnnounceDetail.vue",
+          "prop": "margin",
+          "value": "0.5em 0",
+          "count": 1
+        },
+        {
+          "file": "views/AnnounceDetail.vue",
+          "prop": "margin",
+          "value": "0.5rem 0",
+          "count": 1
+        },
+        {
+          "file": "views/AnnounceDetail.vue",
+          "prop": "padding",
+          "value": "0.25rem 0.5rem",
+          "count": 1
+        },
+        {
+          "file": "views/DownloadImport.vue",
+          "prop": "margin",
+          "value": "0 auto",
+          "count": 1
+        },
+        {
+          "file": "views/FavoritesView.vue",
+          "prop": "margin",
+          "value": "0 auto",
+          "count": 1
+        },
+        {
+          "file": "views/ForbiddenView.vue",
+          "prop": "margin",
+          "value": "12vh auto 0",
+          "count": 1
+        },
+        {
+          "file": "views/LoginView.vue",
+          "prop": "padding",
+          "value": "44px 36px",
+          "count": 1
+        },
+        {
+          "file": "views/OrganizeView.vue",
+          "prop": "padding",
+          "value": "9px 13px",
+          "count": 1
+        },
+        {
+          "file": "views/TaskView.vue",
+          "prop": "padding",
+          "value": "9px 13px",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "b-no-token",
+      "class": "B",
+      "reason": "B 类：无对应语义令牌（如需替换须先补令牌并过对比度契约）",
+      "entries": [
+        {
+          "file": "components/AppHeader.vue",
+          "prop": "background",
+          "value": "rgba(255, 255, 255, 0.8)",
+          "count": 1
+        },
+        {
+          "file": "components/AppHeader.vue",
+          "prop": "background",
+          "value": "rgba(30, 41, 59, 0.85)",
+          "count": 1
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "background",
+          "value": "rgba(15, 23, 42, 0.9)",
+          "count": 1
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "background",
+          "value": "rgba(255, 255, 255, 0.9)",
+          "count": 1
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "border-top",
+          "value": "1px solid rgba(226, 232, 240, 0.5)",
+          "count": 1
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "border-top-color",
+          "value": "rgba(51, 65, 85, 0.5)",
+          "count": 1
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "color",
+          "value": "#ffffff",
+          "count": 1
+        },
+        {
+          "file": "components/LogBar.vue",
+          "prop": "background",
+          "value": "#555",
+          "count": 1
+        },
+        {
+          "file": "components/RouteDebugPanel.vue",
+          "prop": "color",
+          "value": "#fff",
+          "count": 1
+        },
+        {
+          "file": "components/TableLoadFooter.vue",
+          "prop": "color",
+          "value": "#ca8a04",
+          "count": 1
+        },
+        {
+          "file": "components/TableLoadFooter.vue",
+          "prop": "color",
+          "value": "#fff",
+          "count": 1
+        },
+        {
+          "file": "components/UnifiedFilterBar.vue",
+          "prop": "color",
+          "value": "#fff",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusAnnounceCard.vue",
+          "prop": "background",
+          "value": "rgba(239,68,68,0.04)",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusAnnounceCard.vue",
+          "prop": "background",
+          "value": "rgba(245,158,11,0.04)",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusAnnounceCard.vue",
+          "prop": "border-color",
+          "value": "rgba(239,68,68,0.25)",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusAnnounceCard.vue",
+          "prop": "border-color",
+          "value": "rgba(245,158,11,0.25)",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusQueryCard.vue",
+          "prop": "background",
+          "value": "rgba(239,68,68,0.03)",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusQueryCard.vue",
+          "prop": "background",
+          "value": "rgba(239,68,68,0.85)",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusQueryCard.vue",
+          "prop": "background",
+          "value": "rgba(245,158,11,0.03)",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusQueryCard.vue",
+          "prop": "background",
+          "value": "rgba(59,130,246,0.04)",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusQueryCard.vue",
+          "prop": "border-color",
+          "value": "rgba(239,68,68,0.2)",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusQueryCard.vue",
+          "prop": "border-color",
+          "value": "rgba(245,158,11,0.2)",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusQueryCard.vue",
+          "prop": "border-color",
+          "value": "rgba(59,130,246,0.3)",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusQueryCard.vue",
+          "prop": "color",
+          "value": "#fff",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/QuickActionsCard.vue",
+          "prop": "background",
+          "value": "rgba(139,92,246,0.12)",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/QuickActionsCard.vue",
+          "prop": "color",
+          "value": "#8b5cf6",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/StatsCard.vue",
+          "prop": "background",
+          "value": "linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.08))",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/StatsCard.vue",
+          "prop": "border",
+          "value": "1px solid rgba(99,102,241,0.25)",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/SystemLogCard.vue",
+          "prop": "background",
+          "value": "rgba(0,0,0,0.08)",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "background",
+          "value": "rgba(99, 102, 241, 0.04)",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "border-color",
+          "value": "rgba(99, 102, 241, 0.2)",
+          "count": 1
+        },
+        {
+          "file": "views/HomeView.vue",
+          "prop": "background",
+          "value": "rgba(239,68,68,0.85)",
+          "count": 1
+        },
+        {
+          "file": "views/HomeView.vue",
+          "prop": "color",
+          "value": "#fff",
+          "count": 1
+        },
+        {
+          "file": "views/LoginView.vue",
+          "prop": "background",
+          "value": "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+          "count": 1
+        },
+        {
+          "file": "views/RegisterView.vue",
+          "prop": "background",
+          "value": "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)",
+          "count": 1
+        },
+        {
+          "file": "views/RegisterView.vue",
+          "prop": "background",
+          "value": "rgba(255,255,255,0.05)",
+          "count": 1
+        },
+        {
+          "file": "views/RegisterView.vue",
+          "prop": "background",
+          "value": "rgba(255,255,255,0.06)",
+          "count": 1
+        },
+        {
+          "file": "views/RegisterView.vue",
+          "prop": "border",
+          "value": "1px solid rgba(255,255,255,0.1)",
+          "count": 2
+        },
+        {
+          "file": "views/RegisterView.vue",
+          "prop": "color",
+          "value": "#fff",
+          "count": 2
+        },
+        {
+          "file": "views/RegisterView.vue",
+          "prop": "color",
+          "value": "rgba(255,255,255,0.3)",
+          "count": 1
+        },
+        {
+          "file": "views/RegisterView.vue",
+          "prop": "color",
+          "value": "rgba(255,255,255,0.5)",
+          "count": 1
+        },
+        {
+          "file": "views/SettingsView.vue",
+          "prop": "color",
+          "value": "#ffffff",
+          "count": 1
+        },
+        {
+          "file": "views/TaskView.vue",
+          "prop": "background",
+          "value": "rgba(239,68,68,0.06)",
+          "count": 1
+        },
+        {
+          "file": "views/TaskView.vue",
+          "prop": "color",
+          "value": "#fff",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "id": "b-radius",
+      "class": "B",
+      "reason": "B 类：非令牌圆角档位",
+      "entries": [
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "border-radius",
+          "value": "0 0 3px 3px",
+          "count": 1
+        },
+        {
+          "file": "components/AppSidebar.vue",
+          "prop": "border-radius",
+          "value": "0 4px 4px 0",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "border-radius",
+          "value": "0 2px 2px 0",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "b-shadow",
+      "class": "B",
+      "reason": "B 类：阴影组合值，无令牌",
+      "entries": [
+        {
+          "file": "components/AppHeader.vue",
+          "prop": "box-shadow",
+          "value": "0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 12px -4px rgba(0, 0, 0, 0.08)",
+          "count": 1
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "box-shadow",
+          "value": "0 -2px 16px rgba(0, 0, 0, 0.06)",
+          "count": 1
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "box-shadow",
+          "value": "0 4px 12px rgba(0, 0, 0, 0.15)",
+          "count": 1
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "box-shadow",
+          "value": "0 6px 16px rgba(0, 0, 0, 0.2)",
+          "count": 1
+        },
+        {
+          "file": "components/AppSidebar.vue",
+          "prop": "box-shadow",
+          "value": "0 2px 8px rgba(99, 102, 241, 0.08)",
+          "count": 1
+        },
+        {
+          "file": "components/AppSidebar.vue",
+          "prop": "box-shadow",
+          "value": "2px 0 8px rgba(0, 0, 0, 0.03)",
+          "count": 1
+        },
+        {
+          "file": "components/AppSidebar.vue",
+          "prop": "box-shadow",
+          "value": "2px 0 8px rgba(99, 102, 241, 0.3)",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "box-shadow",
+          "value": "0 0 14px rgba(34,197,94,0.7)",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "box-shadow",
+          "value": "0 0 4px rgba(34,197,94,0.4)",
+          "count": 1
+        },
+        {
+          "file": "views/SettingsView.vue",
+          "prop": "box-shadow",
+          "value": "0 2px 8px rgba(99, 102, 241, 0.25)",
+          "count": 1
+        },
+        {
+          "file": "views/settings/shared.css",
+          "prop": "box-shadow",
+          "value": "0 2px 4px rgba(0, 0, 0, 0.2)",
+          "count": 1
+        },
+        {
+          "file": "views/settings/shared.css",
+          "prop": "box-shadow",
+          "value": "inset 0 2px 4px rgba(0, 0, 0, 0.05)",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "calculation",
+      "class": "C",
+      "reason": "calc()/clamp()/min()/max() 计算值",
+      "entries": [
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "bottom",
+          "value": "calc(100% + 8px)",
+          "count": 1
+        },
+        {
+          "file": "components/NotificationBell.vue",
+          "prop": "max-width",
+          "value": "min(400px, calc(100vw - 32px))",
+          "count": 1
+        },
+        {
+          "file": "components/NotificationConfig.vue",
+          "prop": "grid-template-columns",
+          "value": "repeat(auto-fill, minmax(160px, 1fr))",
+          "count": 1
+        },
+        {
+          "file": "components/ValidityConfig.vue",
+          "prop": "grid-template-columns",
+          "value": "repeat(auto-fill, minmax(200px, 1fr))",
+          "count": 1
+        },
+        {
+          "file": "components/WechatTrustIP.vue",
+          "prop": "grid-template-columns",
+          "value": "repeat(auto-fill, minmax(360px, 1fr))",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusQueryCard.vue",
+          "prop": "grid-template-columns",
+          "value": "repeat(auto-fill, minmax(110px, 1fr))",
+          "count": 1
+        },
+        {
+          "file": "views/AnnounceView.vue",
+          "prop": "grid-template-columns",
+          "value": "repeat(auto-fit, minmax(140px, 1fr))",
+          "count": 1
+        },
+        {
+          "file": "views/NotificationLogsView.vue",
+          "prop": "height",
+          "value": "calc(100% - 8px)",
+          "count": 1
+        },
+        {
+          "file": "views/PendingView.vue",
+          "prop": "grid-template-columns",
+          "value": "repeat(auto-fill, minmax(200px, 1fr))",
+          "count": 1
+        },
+        {
+          "file": "views/SystemResources.vue",
+          "prop": "grid-template-columns",
+          "value": "repeat(auto-fill, minmax(260px, 1fr))",
+          "count": 1
+        },
+        {
+          "file": "views/settings/SettingsTabCircuit.vue",
+          "prop": "grid-template-columns",
+          "value": "repeat(auto-fill, minmax(220px, 1fr))",
+          "count": 1
+        },
+        {
+          "file": "views/settings/SettingsTabSites.vue",
+          "prop": "grid-template-columns",
+          "value": "repeat(auto-fill, minmax(160px, 1fr))",
+          "count": 1
+        },
+        {
+          "file": "views/settings/SettingsTabValidity.vue",
+          "prop": "grid-template-columns",
+          "value": "repeat(auto-fill, minmax(220px, 1fr))",
+          "count": 1
+        },
+        {
+          "file": "views/settings/shared.css",
+          "prop": "grid-template-columns",
+          "value": "repeat(auto-fill, minmax(280px, 1fr))",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "decorative-radius",
+      "class": "C",
+      "reason": "装饰性圆角/圆形（滚动条、进度条、圆点）",
+      "entries": [
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "border-radius",
+          "value": "50%",
+          "count": 1
+        },
+        {
+          "file": "components/AppSidebar.vue",
+          "prop": "border-radius",
+          "value": "2px",
+          "count": 1
+        },
+        {
+          "file": "components/FileMonitor.vue",
+          "prop": "border-radius",
+          "value": "3px",
+          "count": 1
+        },
+        {
+          "file": "components/LogBar.vue",
+          "prop": "border-radius",
+          "value": "2px",
+          "count": 1
+        },
+        {
+          "file": "components/NotificationBell.vue",
+          "prop": "border-radius",
+          "value": "50%",
+          "count": 1
+        },
+        {
+          "file": "components/TableLoadFooter.vue",
+          "prop": "border-radius",
+          "value": "50%",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusAnnounceCard.vue",
+          "prop": "border-radius",
+          "value": "50%",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusQueryCard.vue",
+          "prop": "border-radius",
+          "value": "2px",
+          "count": 2
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusQueryCard.vue",
+          "prop": "border-radius",
+          "value": "50%",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/StatsCard.vue",
+          "prop": "border-radius",
+          "value": "50%",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/SystemInfoCard.vue",
+          "prop": "border-radius",
+          "value": "3px",
+          "count": 2
+        },
+        {
+          "file": "style.css",
+          "prop": "border-radius",
+          "value": "3px",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "border-radius",
+          "value": "50%",
+          "count": 3
+        },
+        {
+          "file": "views/HomeView.vue",
+          "prop": "border-radius",
+          "value": "50%",
+          "count": 1
+        },
+        {
+          "file": "views/NotificationLogsView.vue",
+          "prop": "border-radius",
+          "value": "2px",
+          "count": 1
+        },
+        {
+          "file": "views/TaskView.vue",
+          "prop": "border-radius",
+          "value": "50%",
+          "count": 1
+        },
+        {
+          "file": "views/settings/SettingsTabSites.vue",
+          "prop": "border-radius",
+          "value": "50%",
+          "count": 1
+        },
+        {
+          "file": "views/settings/shared.css",
+          "prop": "border-radius",
+          "value": "50%",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "filter-effect",
+      "class": "C",
+      "reason": "滤镜效果参数（blur/drop-shadow 等）",
+      "entries": [
+        {
+          "file": "components/AppHeader.vue",
+          "prop": "backdrop-filter",
+          "value": "blur(12px)",
+          "count": 1
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "backdrop-filter",
+          "value": "blur(16px) saturate(180%)",
+          "count": 1
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "backdrop-filter",
+          "value": "blur(4px)",
+          "count": 1
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "filter",
+          "value": "brightness(1.02)",
+          "count": 1
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "filter",
+          "value": "drop-shadow(0 2px 4px rgba(99, 102, 241, 0.3))",
+          "count": 1
+        },
+        {
+          "file": "components/AppSidebar.vue",
+          "prop": "filter",
+          "value": "drop-shadow(0 2px 4px rgba(99, 102, 241, 0.3))",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/StatsCard.vue",
+          "prop": "filter",
+          "value": "blur(30px)",
+          "count": 1
+        },
+        {
+          "file": "views/RegisterView.vue",
+          "prop": "backdrop-filter",
+          "value": "blur(16px)",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "hairline",
+      "class": "C",
+      "reason": "1~3px 分隔细线高度",
+      "entries": [
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "height",
+          "value": "1px",
+          "count": 1
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "height",
+          "value": "3px",
+          "count": 1
+        },
+        {
+          "file": "components/LogBar.vue",
+          "prop": "height",
+          "value": "3px",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusQueryCard.vue",
+          "prop": "height",
+          "value": "3px",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "height",
+          "value": "3px",
+          "count": 1
+        },
+        {
+          "file": "views/AnnounceDetail.vue",
+          "prop": "height",
+          "value": "1px",
+          "count": 1
+        },
+        {
+          "file": "views/NotificationLogsView.vue",
+          "prop": "height",
+          "value": "3px",
+          "count": 1
+        },
+        {
+          "file": "views/StandardsStatusView.vue",
+          "prop": "height",
+          "value": "1px",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "inline-whitelist",
+      "class": "B",
+      "reason": "内联 style 白名单：HTML 属性无法插 CSS 注释，待后续模板重构（禁止为此新增 class）",
+      "entries": [
+        {
+          "file": "views/PendingView.vue",
+          "prop": "height",
+          "value": "20px",
+          "count": 1
+        },
+        {
+          "file": "views/SystemResources.vue",
+          "prop": "height",
+          "value": "24px",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "layout-dimension",
+      "class": "C",
+      "reason": "布局尺寸：width/百分比等，不是视觉令牌（任务包明确排除）",
+      "entries": [
+        {
+          "file": "components/AppHeader.vue",
+          "prop": "max-width",
+          "value": "1023px)",
+          "count": 1
+        },
+        {
+          "file": "components/AppHeader.vue",
+          "prop": "max-width",
+          "value": "767px)",
+          "count": 1
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "left",
+          "value": "50%",
+          "count": 1
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "max-width",
+          "value": "1023px)",
+          "count": 1
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "max-width",
+          "value": "1600px",
+          "count": 1
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "max-width",
+          "value": "374px)",
+          "count": 1
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "max-width",
+          "value": "767px)",
+          "count": 1
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "min-width",
+          "value": "200px",
+          "count": 1
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "min-width",
+          "value": "44px",
+          "count": 1
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "min-width",
+          "value": "48px",
+          "count": 1
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "min-width",
+          "value": "56px",
+          "count": 1
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "width",
+          "value": "20px",
+          "count": 1
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "width",
+          "value": "24px",
+          "count": 1
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "width",
+          "value": "56px",
+          "count": 1
+        },
+        {
+          "file": "components/AppSidebar.vue",
+          "prop": "top",
+          "value": "50%",
+          "count": 1
+        },
+        {
+          "file": "components/AppSidebar.vue",
+          "prop": "width",
+          "value": "22px",
+          "count": 1
+        },
+        {
+          "file": "components/AppSidebar.vue",
+          "prop": "width",
+          "value": "4px",
+          "count": 2
+        },
+        {
+          "file": "components/CacheManager.vue",
+          "prop": "min-width",
+          "value": "180px",
+          "count": 1
+        },
+        {
+          "file": "components/FileMonitor.vue",
+          "prop": "max-width",
+          "value": "400px",
+          "count": 1
+        },
+        {
+          "file": "components/FileMonitor.vue",
+          "prop": "width",
+          "value": "140px",
+          "count": 1
+        },
+        {
+          "file": "components/LogBar.vue",
+          "prop": "left",
+          "value": "50%",
+          "count": 1
+        },
+        {
+          "file": "components/LogBar.vue",
+          "prop": "top",
+          "value": "50%",
+          "count": 1
+        },
+        {
+          "file": "components/LogBar.vue",
+          "prop": "width",
+          "value": "40px",
+          "count": 1
+        },
+        {
+          "file": "components/NotificationBell.vue",
+          "prop": "max-height",
+          "value": "320px",
+          "count": 1
+        },
+        {
+          "file": "components/NotificationBell.vue",
+          "prop": "width",
+          "value": "360px",
+          "count": 1
+        },
+        {
+          "file": "components/NotificationBell.vue",
+          "prop": "width",
+          "value": "8px",
+          "count": 1
+        },
+        {
+          "file": "components/RouteDebugPanel.vue",
+          "prop": "max-width",
+          "value": "900px",
+          "count": 1
+        },
+        {
+          "file": "components/SettingsTabAppearanceMixed.vue",
+          "prop": "width",
+          "value": "200px",
+          "count": 1
+        },
+        {
+          "file": "components/TableLoadFooter.vue",
+          "prop": "width",
+          "value": "20px",
+          "count": 1
+        },
+        {
+          "file": "components/TaskManager.vue",
+          "prop": "min-width",
+          "value": "100px",
+          "count": 2
+        },
+        {
+          "file": "components/TaskManager.vue",
+          "prop": "min-width",
+          "value": "120px",
+          "count": 1
+        },
+        {
+          "file": "components/TaskManager.vue",
+          "prop": "min-width",
+          "value": "130px",
+          "count": 4
+        },
+        {
+          "file": "components/TaskManager.vue",
+          "prop": "min-width",
+          "value": "60px",
+          "count": 1
+        },
+        {
+          "file": "components/TaskManager.vue",
+          "prop": "min-width",
+          "value": "70px",
+          "count": 2
+        },
+        {
+          "file": "components/TaskManager.vue",
+          "prop": "min-width",
+          "value": "80px",
+          "count": 2
+        },
+        {
+          "file": "components/TaskManager.vue",
+          "prop": "min-width",
+          "value": "90px",
+          "count": 1
+        },
+        {
+          "file": "components/ValidityConfig.vue",
+          "prop": "min-width",
+          "value": "120px",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusAnnounceCard.vue",
+          "prop": "width",
+          "value": "34px",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusAnnounceCard.vue",
+          "prop": "width",
+          "value": "36px",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusAnnounceCard.vue",
+          "prop": "width",
+          "value": "6px",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusCard.vue",
+          "prop": "max-width",
+          "value": "767px)",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusQueryCard.vue",
+          "prop": "width",
+          "value": "34px",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusQueryCard.vue",
+          "prop": "width",
+          "value": "6px",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/PendingItemsCard.vue",
+          "prop": "width",
+          "value": "34px",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/QuickActionsCard.vue",
+          "prop": "width",
+          "value": "34px",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/RecentAnnounceCard.vue",
+          "prop": "width",
+          "value": "34px",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/StatsCard.vue",
+          "prop": "width",
+          "value": "100px",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/StatsCard.vue",
+          "prop": "width",
+          "value": "32px",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/SystemInfoCard.vue",
+          "prop": "min-width",
+          "value": "52px",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/SystemInfoCard.vue",
+          "prop": "width",
+          "value": "34px",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/SystemInfoCard.vue",
+          "prop": "width",
+          "value": "48px",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/SystemLogCard.vue",
+          "prop": "width",
+          "value": "34px",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "max-width",
+          "value": "768px)",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "width",
+          "value": "6px",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "width",
+          "value": "8px",
+          "count": 3
+        },
+        {
+          "file": "views/AnnounceDetail.vue",
+          "prop": "max-width",
+          "value": "1400px",
+          "count": 1
+        },
+        {
+          "file": "views/AnnounceDetail.vue",
+          "prop": "max-width",
+          "value": "800px",
+          "count": 1
+        },
+        {
+          "file": "views/AnnounceDetail.vue",
+          "prop": "min-height",
+          "value": "400px",
+          "count": 1
+        },
+        {
+          "file": "views/AnnounceView.vue",
+          "prop": "min-width",
+          "value": "130px",
+          "count": 1
+        },
+        {
+          "file": "views/AnnounceView.vue",
+          "prop": "min-width",
+          "value": "140px",
+          "count": 1
+        },
+        {
+          "file": "views/AnnounceView.vue",
+          "prop": "min-width",
+          "value": "60px",
+          "count": 1
+        },
+        {
+          "file": "views/AnnounceView.vue",
+          "prop": "min-width",
+          "value": "90px",
+          "count": 2
+        },
+        {
+          "file": "views/AnnounceView.vue",
+          "prop": "width",
+          "value": "160px",
+          "count": 1
+        },
+        {
+          "file": "views/BackupView.vue",
+          "prop": "max-width",
+          "value": "900px",
+          "count": 1
+        },
+        {
+          "file": "views/DownloadImport.vue",
+          "prop": "max-height",
+          "value": "200px",
+          "count": 1
+        },
+        {
+          "file": "views/DownloadImport.vue",
+          "prop": "max-width",
+          "value": "1000px",
+          "count": 1
+        },
+        {
+          "file": "views/DownloadImport.vue",
+          "prop": "max-width",
+          "value": "768px)",
+          "count": 1
+        },
+        {
+          "file": "views/DownloadQueue.vue",
+          "prop": "max-width",
+          "value": "900px",
+          "count": 1
+        },
+        {
+          "file": "views/FavoritesView.vue",
+          "prop": "max-width",
+          "value": "1200px",
+          "count": 1
+        },
+        {
+          "file": "views/FavoritesView.vue",
+          "prop": "min-width",
+          "value": "180px",
+          "count": 1
+        },
+        {
+          "file": "views/FavoritesView.vue",
+          "prop": "min-width",
+          "value": "220px",
+          "count": 1
+        },
+        {
+          "file": "views/FavoritesView.vue",
+          "prop": "width",
+          "value": "110px",
+          "count": 1
+        },
+        {
+          "file": "views/FavoritesView.vue",
+          "prop": "width",
+          "value": "120px",
+          "count": 1
+        },
+        {
+          "file": "views/FavoritesView.vue",
+          "prop": "width",
+          "value": "160px",
+          "count": 1
+        },
+        {
+          "file": "views/ForbiddenView.vue",
+          "prop": "max-width",
+          "value": "560px",
+          "count": 1
+        },
+        {
+          "file": "views/HomeView.vue",
+          "prop": "min-height",
+          "value": "400px",
+          "count": 1
+        },
+        {
+          "file": "views/HomeView.vue",
+          "prop": "width",
+          "value": "22px",
+          "count": 1
+        },
+        {
+          "file": "views/LegacyRedirect.vue",
+          "prop": "min-height",
+          "value": "400px",
+          "count": 1
+        },
+        {
+          "file": "views/LoginView.vue",
+          "prop": "width",
+          "value": "340px",
+          "count": 1
+        },
+        {
+          "file": "views/NotificationLogsView.vue",
+          "prop": "left",
+          "value": "50%",
+          "count": 1
+        },
+        {
+          "file": "views/NotificationLogsView.vue",
+          "prop": "max-height",
+          "value": "800px",
+          "count": 1
+        },
+        {
+          "file": "views/NotificationLogsView.vue",
+          "prop": "max-width",
+          "value": "1100px",
+          "count": 1
+        },
+        {
+          "file": "views/NotificationLogsView.vue",
+          "prop": "max-width",
+          "value": "250px",
+          "count": 1
+        },
+        {
+          "file": "views/NotificationLogsView.vue",
+          "prop": "min-height",
+          "value": "200px",
+          "count": 1
+        },
+        {
+          "file": "views/NotificationLogsView.vue",
+          "prop": "min-width",
+          "value": "140px",
+          "count": 1
+        },
+        {
+          "file": "views/NotificationLogsView.vue",
+          "prop": "min-width",
+          "value": "700px",
+          "count": 1
+        },
+        {
+          "file": "views/NotificationLogsView.vue",
+          "prop": "top",
+          "value": "50%",
+          "count": 1
+        },
+        {
+          "file": "views/NotificationLogsView.vue",
+          "prop": "width",
+          "value": "40px",
+          "count": 1
+        },
+        {
+          "file": "views/NotificationLogsView.vue",
+          "prop": "width",
+          "value": "80px",
+          "count": 1
+        },
+        {
+          "file": "views/OrganizeView.vue",
+          "prop": "min-width",
+          "value": "140px",
+          "count": 1
+        },
+        {
+          "file": "views/OrganizeView.vue",
+          "prop": "min-width",
+          "value": "200px",
+          "count": 1
+        },
+        {
+          "file": "views/OrganizeView.vue",
+          "prop": "min-width",
+          "value": "60px",
+          "count": 1
+        },
+        {
+          "file": "views/OrganizeView.vue",
+          "prop": "min-width",
+          "value": "80px",
+          "count": 1
+        },
+        {
+          "file": "views/OrganizeView.vue",
+          "prop": "width",
+          "value": "20px",
+          "count": 1
+        },
+        {
+          "file": "views/PendingView.vue",
+          "prop": "width",
+          "value": "20px",
+          "count": 1
+        },
+        {
+          "file": "views/QualityView.vue",
+          "prop": "max-width",
+          "value": "1100px",
+          "count": 1
+        },
+        {
+          "file": "views/QueryHistory.vue",
+          "prop": "max-width",
+          "value": "900px",
+          "count": 1
+        },
+        {
+          "file": "views/RegisterView.vue",
+          "prop": "width",
+          "value": "380px",
+          "count": 1
+        },
+        {
+          "file": "views/SchedulerStatus.vue",
+          "prop": "max-width",
+          "value": "1100px",
+          "count": 1
+        },
+        {
+          "file": "views/SettingsView.vue",
+          "prop": "max-width",
+          "value": "520px",
+          "count": 1
+        },
+        {
+          "file": "views/StandardsStatusView.vue",
+          "prop": "max-width",
+          "value": "1000px",
+          "count": 1
+        },
+        {
+          "file": "views/StandardsStatusView.vue",
+          "prop": "min-width",
+          "value": "140px",
+          "count": 1
+        },
+        {
+          "file": "views/SystemResources.vue",
+          "prop": "max-width",
+          "value": "900px",
+          "count": 1
+        },
+        {
+          "file": "views/TaskView.vue",
+          "prop": "min-width",
+          "value": "220px",
+          "count": 1
+        },
+        {
+          "file": "views/TaskView.vue",
+          "prop": "width",
+          "value": "32px",
+          "count": 1
+        },
+        {
+          "file": "views/settings/SettingsTabSchedule.vue",
+          "prop": "min-width",
+          "value": "180px",
+          "count": 1
+        },
+        {
+          "file": "views/settings/SettingsTabSites.vue",
+          "prop": "width",
+          "value": "8px",
+          "count": 1
+        },
+        {
+          "file": "views/settings/SettingsTabUsers.vue",
+          "prop": "min-width",
+          "value": "100px",
+          "count": 1
+        },
+        {
+          "file": "views/settings/SettingsTabUsers.vue",
+          "prop": "min-width",
+          "value": "80px",
+          "count": 1
+        },
+        {
+          "file": "views/settings/shared.css",
+          "prop": "max-height",
+          "value": "2000px",
+          "count": 1
+        },
+        {
+          "file": "views/settings/shared.css",
+          "prop": "max-width",
+          "value": "768px)",
+          "count": 1
+        },
+        {
+          "file": "views/settings/shared.css",
+          "prop": "width",
+          "value": "12px",
+          "count": 1
+        },
+        {
+          "file": "views/settings/shared.css",
+          "prop": "width",
+          "value": "4px",
+          "count": 1
+        },
+        {
+          "file": "views/settings/shared.css",
+          "prop": "width",
+          "value": "80px",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "no-literal",
+      "class": "C",
+      "reason": "0/auto/inherit/none/transparent 等无字面量值",
+      "entries": [
+        {
+          "file": "App.vue",
+          "prop": "opacity",
+          "value": "0",
+          "count": 2
+        },
+        {
+          "file": "components/AppHeader.vue",
+          "prop": "-webkit-text-fill-color",
+          "value": "transparent",
+          "count": 1
+        },
+        {
+          "file": "components/AppHeader.vue",
+          "prop": "background",
+          "value": "none",
+          "count": 1
+        },
+        {
+          "file": "components/AppHeader.vue",
+          "prop": "display",
+          "value": "none",
+          "count": 1
+        },
+        {
+          "file": "components/AppHeader.vue",
+          "prop": "flex-shrink",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "components/AppHeader.vue",
+          "prop": "inset",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "components/AppHeader.vue",
+          "prop": "opacity",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "components/AppHeader.vue",
+          "prop": "top",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "background",
+          "value": "none",
+          "count": 2
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "border",
+          "value": "none",
+          "count": 2
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "bottom",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "display",
+          "value": "none",
+          "count": 1
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "flex-shrink",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "left",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "min-height",
+          "value": "100vh",
+          "count": 1
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "opacity",
+          "value": "0",
+          "count": 2
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "overflow-y",
+          "value": "auto",
+          "count": 1
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "pointer-events",
+          "value": "none",
+          "count": 1
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "right",
+          "value": "0",
+          "count": 2
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "text-decoration",
+          "value": "none",
+          "count": 1
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "top",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "touch-action",
+          "value": "none",
+          "count": 1
+        },
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "width",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "components/AppSidebar.vue",
+          "prop": "background",
+          "value": "none",
+          "count": 1
+        },
+        {
+          "file": "components/AppSidebar.vue",
+          "prop": "background",
+          "value": "transparent",
+          "count": 1
+        },
+        {
+          "file": "components/AppSidebar.vue",
+          "prop": "flex-shrink",
+          "value": "0",
+          "count": 5
+        },
+        {
+          "file": "components/AppSidebar.vue",
+          "prop": "left",
+          "value": "0",
+          "count": 2
+        },
+        {
+          "file": "components/AppSidebar.vue",
+          "prop": "overflow-y",
+          "value": "auto",
+          "count": 1
+        },
+        {
+          "file": "components/AppSidebar.vue",
+          "prop": "text-decoration",
+          "value": "none",
+          "count": 1
+        },
+        {
+          "file": "components/AppSidebar.vue",
+          "prop": "width",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "components/DynamicSettingField.vue",
+          "prop": "width",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "components/FileMonitor.vue",
+          "prop": "flex-shrink",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "components/FileMonitor.vue",
+          "prop": "margin-left",
+          "value": "auto",
+          "count": 1
+        },
+        {
+          "file": "components/FileMonitor.vue",
+          "prop": "width",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "components/LogBar.vue",
+          "prop": "background",
+          "value": "transparent",
+          "count": 1
+        },
+        {
+          "file": "components/LogBar.vue",
+          "prop": "bottom",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "components/LogBar.vue",
+          "prop": "display",
+          "value": "none",
+          "count": 1
+        },
+        {
+          "file": "components/LogBar.vue",
+          "prop": "left",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "components/LogBar.vue",
+          "prop": "overflow",
+          "value": "auto",
+          "count": 1
+        },
+        {
+          "file": "components/LogBar.vue",
+          "prop": "right",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "components/LogBar.vue",
+          "prop": "user-select",
+          "value": "none",
+          "count": 1
+        },
+        {
+          "file": "components/NotificationBell.vue",
+          "prop": "flex-shrink",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "components/NotificationBell.vue",
+          "prop": "margin",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "components/NotificationBell.vue",
+          "prop": "min-width",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "components/NotificationBell.vue",
+          "prop": "overflow-y",
+          "value": "auto",
+          "count": 1
+        },
+        {
+          "file": "components/NotificationConfig.vue",
+          "prop": "max-height",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "components/NotificationConfig.vue",
+          "prop": "opacity",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "components/NotificationConfig.vue",
+          "prop": "padding-bottom",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "components/NotificationConfig.vue",
+          "prop": "padding-top",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "components/NotificationConfig.vue",
+          "prop": "user-select",
+          "value": "none",
+          "count": 1
+        },
+        {
+          "file": "components/NotificationConfig.vue",
+          "prop": "width",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "components/RouteDebugPanel.vue",
+          "prop": "border",
+          "value": "none",
+          "count": 1
+        },
+        {
+          "file": "components/RouteDebugPanel.vue",
+          "prop": "width",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "components/SettingsTabAppearanceMixed.vue",
+          "prop": "display",
+          "value": "none",
+          "count": 1
+        },
+        {
+          "file": "components/SettingsTabAppearanceMixed.vue",
+          "prop": "grid-column",
+          "value": "unset",
+          "count": 1
+        },
+        {
+          "file": "components/TableLoadFooter.vue",
+          "prop": "background",
+          "value": "transparent",
+          "count": 1
+        },
+        {
+          "file": "components/TaskManager.vue",
+          "prop": "background",
+          "value": "none",
+          "count": 1
+        },
+        {
+          "file": "components/TaskManager.vue",
+          "prop": "border",
+          "value": "none",
+          "count": 1
+        },
+        {
+          "file": "components/TaskManager.vue",
+          "prop": "border-right",
+          "value": "none",
+          "count": 1
+        },
+        {
+          "file": "components/TaskManager.vue",
+          "prop": "gap",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "components/TaskManager.vue",
+          "prop": "margin-left",
+          "value": "auto",
+          "count": 2
+        },
+        {
+          "file": "components/TaskManager.vue",
+          "prop": "width",
+          "value": "fit-content",
+          "count": 1
+        },
+        {
+          "file": "components/UnifiedFilterBar.vue",
+          "prop": "user-select",
+          "value": "none",
+          "count": 1
+        },
+        {
+          "file": "components/ValidityConfig.vue",
+          "prop": "width",
+          "value": "100%",
+          "count": 2
+        },
+        {
+          "file": "components/WechatTrustIP.vue",
+          "prop": "width",
+          "value": "100%",
+          "count": 7
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusAnnounceCard.vue",
+          "prop": "flex-shrink",
+          "value": "0",
+          "count": 4
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusAnnounceCard.vue",
+          "prop": "height",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusAnnounceCard.vue",
+          "prop": "min-width",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusAnnounceCard.vue",
+          "prop": "overflow-y",
+          "value": "auto",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusCard.vue",
+          "prop": "border-bottom",
+          "value": "none",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusCard.vue",
+          "prop": "border-spacing",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusCard.vue",
+          "prop": "height",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusCard.vue",
+          "prop": "width",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusQueryCard.vue",
+          "prop": "flex-shrink",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusQueryCard.vue",
+          "prop": "height",
+          "value": "100%",
+          "count": 2
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusQueryCard.vue",
+          "prop": "inset",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusQueryCard.vue",
+          "prop": "opacity",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusQueryCard.vue",
+          "prop": "overflow-y",
+          "value": "auto",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusQueryCard.vue",
+          "prop": "width",
+          "value": "100%",
+          "count": 2
+        },
+        {
+          "file": "components/dashboard/widgets/PendingItemsCard.vue",
+          "prop": "flex-shrink",
+          "value": "0",
+          "count": 2
+        },
+        {
+          "file": "components/dashboard/widgets/PendingItemsCard.vue",
+          "prop": "height",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/PendingItemsCard.vue",
+          "prop": "min-width",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/PendingItemsCard.vue",
+          "prop": "overflow-y",
+          "value": "auto",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/PlaceholderWidget.vue",
+          "prop": "height",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/QuickActionsCard.vue",
+          "prop": "height",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/QuickActionsCard.vue",
+          "prop": "pointer-events",
+          "value": "none",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/QuickActionsCard.vue",
+          "prop": "user-select",
+          "value": "none",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/RecentAnnounceCard.vue",
+          "prop": "height",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/RecentAnnounceCard.vue",
+          "prop": "min-height",
+          "value": "0",
+          "count": 2
+        },
+        {
+          "file": "components/dashboard/widgets/RecentAnnounceCard.vue",
+          "prop": "opacity",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/RecentAnnounceCard.vue",
+          "prop": "overflow-y",
+          "value": "auto",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/StatsCard.vue",
+          "prop": "grid-template-columns",
+          "value": "1fr",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/StatsCard.vue",
+          "prop": "height",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/SystemInfoCard.vue",
+          "prop": "flex-shrink",
+          "value": "0",
+          "count": 2
+        },
+        {
+          "file": "components/dashboard/widgets/SystemInfoCard.vue",
+          "prop": "height",
+          "value": "100%",
+          "count": 2
+        },
+        {
+          "file": "components/dashboard/widgets/SystemInfoCard.vue",
+          "prop": "width",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/SystemLogCard.vue",
+          "prop": "background",
+          "value": "none",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/SystemLogCard.vue",
+          "prop": "flex-shrink",
+          "value": "0",
+          "count": 2
+        },
+        {
+          "file": "components/dashboard/widgets/SystemLogCard.vue",
+          "prop": "height",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/SystemLogCard.vue",
+          "prop": "overflow-y",
+          "value": "auto",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/TaskTrendCard.vue",
+          "prop": "border-bottom",
+          "value": "none",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/TaskTrendCard.vue",
+          "prop": "height",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "background",
+          "value": "none",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "background",
+          "value": "transparent",
+          "count": 5
+        },
+        {
+          "file": "style.css",
+          "prop": "border",
+          "value": "none",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "border-bottom",
+          "value": "none",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "border-color",
+          "value": "transparent",
+          "count": 2
+        },
+        {
+          "file": "style.css",
+          "prop": "filter",
+          "value": "none",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "grid-template-columns",
+          "value": "1fr",
+          "count": 2
+        },
+        {
+          "file": "style.css",
+          "prop": "left",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "margin",
+          "value": "0",
+          "count": 2
+        },
+        {
+          "file": "style.css",
+          "prop": "outline",
+          "value": "none",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "text-decoration",
+          "value": "none",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "top",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "views/AnnounceDetail.vue",
+          "prop": "min-height",
+          "value": "100vh",
+          "count": 1
+        },
+        {
+          "file": "views/AnnounceDetail.vue",
+          "prop": "opacity",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "views/AnnounceDetail.vue",
+          "prop": "text-indent",
+          "value": "0",
+          "count": 3
+        },
+        {
+          "file": "views/AnnounceDetail.vue",
+          "prop": "width",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "views/AnnounceView.vue",
+          "prop": "flex-shrink",
+          "value": "0",
+          "count": 3
+        },
+        {
+          "file": "views/AnnounceView.vue",
+          "prop": "list-style",
+          "value": "none",
+          "count": 1
+        },
+        {
+          "file": "views/AnnounceView.vue",
+          "prop": "min-width",
+          "value": "0",
+          "count": 2
+        },
+        {
+          "file": "views/AnnounceView.vue",
+          "prop": "padding",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "views/DownloadImport.vue",
+          "prop": "overflow-y",
+          "value": "auto",
+          "count": 1
+        },
+        {
+          "file": "views/DownloadQueue.vue",
+          "prop": "width",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "views/HomeView.vue",
+          "prop": "border",
+          "value": "none",
+          "count": 1
+        },
+        {
+          "file": "views/HomeView.vue",
+          "prop": "height",
+          "value": "100%",
+          "count": 3
+        },
+        {
+          "file": "views/HomeView.vue",
+          "prop": "min-height",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "views/HomeView.vue",
+          "prop": "min-width",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "views/HomeView.vue",
+          "prop": "opacity",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "views/HomeView.vue",
+          "prop": "overflow",
+          "value": "auto",
+          "count": 1
+        },
+        {
+          "file": "views/HomeView.vue",
+          "prop": "width",
+          "value": "100%",
+          "count": 4
+        },
+        {
+          "file": "views/LoginView.vue",
+          "prop": "min-height",
+          "value": "100vh",
+          "count": 1
+        },
+        {
+          "file": "views/LoginView.vue",
+          "prop": "outline",
+          "value": "none",
+          "count": 1
+        },
+        {
+          "file": "views/LoginView.vue",
+          "prop": "width",
+          "value": "100%",
+          "count": 2
+        },
+        {
+          "file": "views/NotificationLogsView.vue",
+          "prop": "background",
+          "value": "transparent",
+          "count": 1
+        },
+        {
+          "file": "views/NotificationLogsView.vue",
+          "prop": "bottom",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "views/NotificationLogsView.vue",
+          "prop": "left",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "views/NotificationLogsView.vue",
+          "prop": "overflow-x",
+          "value": "auto",
+          "count": 1
+        },
+        {
+          "file": "views/NotificationLogsView.vue",
+          "prop": "overflow-y",
+          "value": "auto",
+          "count": 1
+        },
+        {
+          "file": "views/NotificationLogsView.vue",
+          "prop": "right",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "views/NotificationLogsView.vue",
+          "prop": "top",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "views/NotificationLogsView.vue",
+          "prop": "width",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "views/OrganizeView.vue",
+          "prop": "background",
+          "value": "none",
+          "count": 1
+        },
+        {
+          "file": "views/OrganizeView.vue",
+          "prop": "flex-shrink",
+          "value": "0",
+          "count": 4
+        },
+        {
+          "file": "views/OrganizeView.vue",
+          "prop": "min-width",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "views/OrganizeView.vue",
+          "prop": "outline",
+          "value": "none",
+          "count": 1
+        },
+        {
+          "file": "views/OrganizeView.vue",
+          "prop": "user-select",
+          "value": "none",
+          "count": 1
+        },
+        {
+          "file": "views/PendingView.vue",
+          "prop": "min-width",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "views/QueryHistory.vue",
+          "prop": "width",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "views/RegisterView.vue",
+          "prop": "margin",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "views/RegisterView.vue",
+          "prop": "min-height",
+          "value": "100vh",
+          "count": 1
+        },
+        {
+          "file": "views/RegisterView.vue",
+          "prop": "outline",
+          "value": "none",
+          "count": 1
+        },
+        {
+          "file": "views/RegisterView.vue",
+          "prop": "width",
+          "value": "100%",
+          "count": 2
+        },
+        {
+          "file": "views/SettingsView.vue",
+          "prop": "background",
+          "value": "none",
+          "count": 1
+        },
+        {
+          "file": "views/SettingsView.vue",
+          "prop": "border",
+          "value": "none",
+          "count": 1
+        },
+        {
+          "file": "views/SettingsView.vue",
+          "prop": "gap",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "views/SettingsView.vue",
+          "prop": "width",
+          "value": "fit-content",
+          "count": 1
+        },
+        {
+          "file": "views/StandardsStatusView.vue",
+          "prop": "opacity",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "views/TaskView.vue",
+          "prop": "border-bottom",
+          "value": "none",
+          "count": 1
+        },
+        {
+          "file": "views/TaskView.vue",
+          "prop": "flex-shrink",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "views/TaskView.vue",
+          "prop": "gap",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "views/TaskView.vue",
+          "prop": "min-width",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "views/TaskView.vue",
+          "prop": "outline",
+          "value": "none",
+          "count": 1
+        },
+        {
+          "file": "views/TaskView/TaskHistoryList.vue",
+          "prop": "min-width",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "views/settings/SettingsTabSchedule.vue",
+          "prop": "border-bottom",
+          "value": "none",
+          "count": 1
+        },
+        {
+          "file": "views/settings/SettingsTabSchedule.vue",
+          "prop": "flex-basis",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "views/settings/SettingsTabSites.vue",
+          "prop": "flex-shrink",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "views/settings/SettingsTabSites.vue",
+          "prop": "margin-left",
+          "value": "auto",
+          "count": 1
+        },
+        {
+          "file": "views/settings/shared.css",
+          "prop": "grid-template-columns",
+          "value": "1fr",
+          "count": 1
+        },
+        {
+          "file": "views/settings/shared.css",
+          "prop": "height",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "views/settings/shared.css",
+          "prop": "left",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "views/settings/shared.css",
+          "prop": "max-height",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "views/settings/shared.css",
+          "prop": "opacity",
+          "value": "0",
+          "count": 2
+        },
+        {
+          "file": "views/settings/shared.css",
+          "prop": "outline",
+          "value": "none",
+          "count": 1
+        },
+        {
+          "file": "views/settings/shared.css",
+          "prop": "top",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "views/settings/shared.css",
+          "prop": "user-select",
+          "value": "none",
+          "count": 1
+        },
+        {
+          "file": "views/settings/shared.css",
+          "prop": "width",
+          "value": "100%",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "primevue-retained",
+      "class": "C",
+      "reason": "PrimeVue 组件覆盖：Aura 作用域 token 不在 :root，根注入无效；均为 a11y 修复产物",
+      "entries": [
+        {
+          "file": "style.css",
+          "prop": "-webkit-text-stroke",
+          "value": "0.6px currentColor",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "background-color",
+          "value": "#047857 !important",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "background-color",
+          "value": "#16a34a",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "background-color",
+          "value": "#ea580c",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "border-bottom",
+          "value": "1px solid #cbd5e1 !important",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "border-color",
+          "value": "#16a34a",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "border-color",
+          "value": "#cbd5e1 !important",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "border-color",
+          "value": "#ea580c",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "border-radius",
+          "value": "4px",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "box-shadow",
+          "value": "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "color",
+          "value": "#000",
+          "count": 2
+        },
+        {
+          "file": "style.css",
+          "prop": "color",
+          "value": "#fff",
+          "count": 5
+        },
+        {
+          "file": "style.css",
+          "prop": "color",
+          "value": "#ffffff !important",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "content",
+          "value": "'\\2713'",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "cursor",
+          "value": "not-allowed",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "display",
+          "value": "inline-block",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "filter",
+          "value": "brightness(0.9)",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "filter",
+          "value": "brightness(1.1)",
+          "count": 2
+        },
+        {
+          "file": "style.css",
+          "prop": "font-size",
+          "value": "11px",
+          "count": 2
+        },
+        {
+          "file": "style.css",
+          "prop": "font-size",
+          "value": "12px",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "font-size",
+          "value": "13px",
+          "count": 7
+        },
+        {
+          "file": "style.css",
+          "prop": "font-size",
+          "value": "14px",
+          "count": 2
+        },
+        {
+          "file": "style.css",
+          "prop": "font-weight",
+          "value": "500",
+          "count": 6
+        },
+        {
+          "file": "style.css",
+          "prop": "font-weight",
+          "value": "600",
+          "count": 4
+        },
+        {
+          "file": "style.css",
+          "prop": "font-weight",
+          "value": "700",
+          "count": 2
+        },
+        {
+          "file": "style.css",
+          "prop": "height",
+          "value": "32px",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "height",
+          "value": "6px",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "letter-spacing",
+          "value": "0.6px",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "margin-right",
+          "value": "8px",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "min-width",
+          "value": "32px",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "opacity",
+          "value": "0.4",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "overflow",
+          "value": "hidden",
+          "count": 2
+        },
+        {
+          "file": "style.css",
+          "prop": "p-button",
+          "value": "active",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "p-button",
+          "value": "disabled",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "p-button",
+          "value": "hover",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "p-button-danger",
+          "value": "hover",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "p-button-outlined",
+          "value": "hover",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "p-button-primary",
+          "value": "active",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "p-button-primary",
+          "value": "hover",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "p-button-secondary",
+          "value": "hover",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "p-button-success",
+          "value": "hover",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "p-button-text",
+          "value": "hover",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "p-inputtext",
+          "value": ":placeholder",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "p-inputtext",
+          "value": "focus,\n.p-textarea:focus",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "p-select-option",
+          "value": "not([data-p-selected=\"true\"]):hover,\n.p-dropdown-panel .p-dropdown-item:not([data-p-selected=\"true\"]):hover",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "padding",
+          "value": "10px 14px",
+          "count": 2
+        },
+        {
+          "file": "style.css",
+          "prop": "padding",
+          "value": "10px 16px",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "padding",
+          "value": "12px 16px",
+          "count": 2
+        },
+        {
+          "file": "style.css",
+          "prop": "padding",
+          "value": "14px 18px",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "padding",
+          "value": "18px",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "padding",
+          "value": "18px 22px",
+          "count": 2
+        },
+        {
+          "file": "style.css",
+          "prop": "padding",
+          "value": "2px 8px",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "padding",
+          "value": "32px",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "padding",
+          "value": "3px 9px",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "padding",
+          "value": "8px",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "padding",
+          "value": "8px 18px",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "padding",
+          "value": "9px 13px",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "padding",
+          "value": "9px 14px",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "position",
+          "value": "relative",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "text-align",
+          "value": "center",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "text-transform",
+          "value": "uppercase",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "tr",
+          "value": "hover",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "tr",
+          "value": "nth-child(even)",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "transform",
+          "value": "translateY(1px)",
+          "count": 2
+        },
+        {
+          "file": "style.css",
+          "prop": "transition",
+          "value": "background 0.15s, color 0.15s",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "relative-unit",
+      "class": "C",
+      "reason": "相对单位：rem/em/vh/vw，与根字号/视口相关",
+      "entries": [
+        {
+          "file": "components/AppHeader.vue",
+          "prop": "letter-spacing",
+          "value": "-0.03em",
+          "count": 1
+        },
+        {
+          "file": "components/AppSidebar.vue",
+          "prop": "letter-spacing",
+          "value": "-0.03em",
+          "count": 1
+        },
+        {
+          "file": "components/CacheManager.vue",
+          "prop": "letter-spacing",
+          "value": "0.03em",
+          "count": 1
+        },
+        {
+          "file": "components/FavoriteStatusTag.vue",
+          "prop": "font-size",
+          "value": "0.72rem",
+          "count": 1
+        },
+        {
+          "file": "components/FavoriteStatusTag.vue",
+          "prop": "gap",
+          "value": "0.25rem",
+          "count": 1
+        },
+        {
+          "file": "components/FileMonitor.vue",
+          "prop": "letter-spacing",
+          "value": "0.03em",
+          "count": 1
+        },
+        {
+          "file": "components/NotificationBell.vue",
+          "prop": "min-width",
+          "value": "2.5rem",
+          "count": 1
+        },
+        {
+          "file": "components/NotificationBell.vue",
+          "prop": "width",
+          "value": "2.5rem",
+          "count": 2
+        },
+        {
+          "file": "components/ValidityConfig.vue",
+          "prop": "gap",
+          "value": "0.25rem",
+          "count": 1
+        },
+        {
+          "file": "components/ValidityConfig.vue",
+          "prop": "padding",
+          "value": "0 0.25rem",
+          "count": 1
+        },
+        {
+          "file": "components/ValidityConfig.vue",
+          "prop": "width",
+          "value": "4.5rem",
+          "count": 1
+        },
+        {
+          "file": "components/WechatTrustIP.vue",
+          "prop": "letter-spacing",
+          "value": "0.03em",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusCard.vue",
+          "prop": "letter-spacing",
+          "value": "0.05em",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/StatsCard.vue",
+          "prop": "letter-spacing",
+          "value": "0.05em",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/SystemInfoCard.vue",
+          "prop": "letter-spacing",
+          "value": "0.05em",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "letter-spacing",
+          "value": "-0.02em",
+          "count": 1
+        },
+        {
+          "file": "views/AnnounceDetail.vue",
+          "prop": "gap",
+          "value": "0.375rem",
+          "count": 1
+        },
+        {
+          "file": "views/AnnounceDetail.vue",
+          "prop": "margin-bottom",
+          "value": "0.5em",
+          "count": 1
+        },
+        {
+          "file": "views/AnnounceDetail.vue",
+          "prop": "min-width",
+          "value": "10rem",
+          "count": 2
+        },
+        {
+          "file": "views/AnnounceDetail.vue",
+          "prop": "min-width",
+          "value": "12rem",
+          "count": 1
+        },
+        {
+          "file": "views/AnnounceDetail.vue",
+          "prop": "min-width",
+          "value": "18rem",
+          "count": 1
+        },
+        {
+          "file": "views/AnnounceDetail.vue",
+          "prop": "padding",
+          "value": "1rem",
+          "count": 1
+        },
+        {
+          "file": "views/AnnounceDetail.vue",
+          "prop": "text-indent",
+          "value": "2em",
+          "count": 2
+        },
+        {
+          "file": "views/AnnounceDetail.vue",
+          "prop": "width",
+          "value": "10rem",
+          "count": 2
+        },
+        {
+          "file": "views/AnnounceDetail.vue",
+          "prop": "width",
+          "value": "4rem",
+          "count": 1
+        },
+        {
+          "file": "views/AnnounceDetail.vue",
+          "prop": "width",
+          "value": "6rem",
+          "count": 1
+        },
+        {
+          "file": "views/AnnounceDetail.vue",
+          "prop": "width",
+          "value": "8rem",
+          "count": 1
+        },
+        {
+          "file": "views/AnnounceDetail.vue",
+          "prop": "width",
+          "value": "9rem",
+          "count": 1
+        },
+        {
+          "file": "views/DownloadImport.vue",
+          "prop": "gap",
+          "value": "0.75rem",
+          "count": 1
+        },
+        {
+          "file": "views/DownloadImport.vue",
+          "prop": "gap",
+          "value": "1rem",
+          "count": 1
+        },
+        {
+          "file": "views/DownloadImport.vue",
+          "prop": "min-width",
+          "value": "10rem",
+          "count": 1
+        },
+        {
+          "file": "views/DownloadImport.vue",
+          "prop": "min-width",
+          "value": "12rem",
+          "count": 1
+        },
+        {
+          "file": "views/DownloadImport.vue",
+          "prop": "min-width",
+          "value": "14rem",
+          "count": 2
+        },
+        {
+          "file": "views/DownloadImport.vue",
+          "prop": "padding",
+          "value": "1rem",
+          "count": 1
+        },
+        {
+          "file": "views/DownloadImport.vue",
+          "prop": "width",
+          "value": "8rem",
+          "count": 1
+        },
+        {
+          "file": "views/FavoritesView.vue",
+          "prop": "gap",
+          "value": "0.5rem",
+          "count": 1
+        },
+        {
+          "file": "views/FavoritesView.vue",
+          "prop": "margin-bottom",
+          "value": "0.75rem",
+          "count": 1
+        },
+        {
+          "file": "views/FavoritesView.vue",
+          "prop": "padding",
+          "value": "1rem",
+          "count": 1
+        },
+        {
+          "file": "views/FavoritesView.vue",
+          "prop": "padding",
+          "value": "2rem",
+          "count": 1
+        },
+        {
+          "file": "views/FavoritesView.vue",
+          "prop": "width",
+          "value": "13rem",
+          "count": 1
+        },
+        {
+          "file": "views/NotificationLogsView.vue",
+          "prop": "letter-spacing",
+          "value": "0.05em",
+          "count": 1
+        },
+        {
+          "file": "views/RegisterView.vue",
+          "prop": "max-width",
+          "value": "90vw",
+          "count": 1
+        },
+        {
+          "file": "views/StandardsStatusView.vue",
+          "prop": "min-width",
+          "value": "12rem",
+          "count": 1
+        },
+        {
+          "file": "views/StandardsStatusView.vue",
+          "prop": "min-width",
+          "value": "18rem",
+          "count": 1
+        },
+        {
+          "file": "views/StandardsStatusView.vue",
+          "prop": "width",
+          "value": "10rem",
+          "count": 1
+        },
+        {
+          "file": "views/StandardsStatusView.vue",
+          "prop": "width",
+          "value": "6rem",
+          "count": 1
+        },
+        {
+          "file": "views/StandardsStatusView.vue",
+          "prop": "width",
+          "value": "8rem",
+          "count": 1
+        },
+        {
+          "file": "views/settings/shared.css",
+          "prop": "letter-spacing",
+          "value": "-0.02em",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "svg-chart",
+      "class": "C",
+      "reason": "SVG 图表：配色与数据绑定（柱高/阈值色），令牌化会与数据语义耦合",
+      "entries": [
+        {
+          "file": "components/dashboard/widgets/TaskTrendCard.vue",
+          "prop": "align-items",
+          "value": "center",
+          "count": 5
+        },
+        {
+          "file": "components/dashboard/widgets/TaskTrendCard.vue",
+          "prop": "background",
+          "value": "rgba(99,102,241,0.12)",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/TaskTrendCard.vue",
+          "prop": "box-sizing",
+          "value": "border-box",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/TaskTrendCard.vue",
+          "prop": "display",
+          "value": "flex",
+          "count": 7
+        },
+        {
+          "file": "components/dashboard/widgets/TaskTrendCard.vue",
+          "prop": "flex",
+          "value": "1",
+          "count": 2
+        },
+        {
+          "file": "components/dashboard/widgets/TaskTrendCard.vue",
+          "prop": "flex-direction",
+          "value": "column",
+          "count": 3
+        },
+        {
+          "file": "components/dashboard/widgets/TaskTrendCard.vue",
+          "prop": "font-size",
+          "value": "10px",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/TaskTrendCard.vue",
+          "prop": "font-size",
+          "value": "11px",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/TaskTrendCard.vue",
+          "prop": "font-size",
+          "value": "13px",
+          "count": 3
+        },
+        {
+          "file": "components/dashboard/widgets/TaskTrendCard.vue",
+          "prop": "font-size",
+          "value": "14px",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/TaskTrendCard.vue",
+          "prop": "font-size",
+          "value": "16px",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/TaskTrendCard.vue",
+          "prop": "font-weight",
+          "value": "600",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/TaskTrendCard.vue",
+          "prop": "font-weight",
+          "value": "700",
+          "count": 2
+        },
+        {
+          "file": "components/dashboard/widgets/TaskTrendCard.vue",
+          "prop": "gap",
+          "value": "10px",
+          "count": 3
+        },
+        {
+          "file": "components/dashboard/widgets/TaskTrendCard.vue",
+          "prop": "gap",
+          "value": "6px",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/TaskTrendCard.vue",
+          "prop": "height",
+          "value": "34px",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/TaskTrendCard.vue",
+          "prop": "justify-content",
+          "value": "center",
+          "count": 3
+        },
+        {
+          "file": "components/dashboard/widgets/TaskTrendCard.vue",
+          "prop": "justify-content",
+          "value": "space-between",
+          "count": 2
+        },
+        {
+          "file": "components/dashboard/widgets/TaskTrendCard.vue",
+          "prop": "list-item",
+          "value": "last-child",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/TaskTrendCard.vue",
+          "prop": "padding",
+          "value": "14px",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/TaskTrendCard.vue",
+          "prop": "padding",
+          "value": "4px 0",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/TaskTrendCard.vue",
+          "prop": "width",
+          "value": "34px",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "token-definition",
+      "class": "C",
+      "reason": "令牌定义块（:root）自身的非自定义属性声明",
+      "entries": [
+        {
+          "file": "style.css",
+          "prop": "-moz-osx-font-smoothing",
+          "value": "grayscale",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "-webkit-font-smoothing",
+          "value": "antialiased",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "background",
+          "value": "var(--bg)",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "color",
+          "value": "var(--text)",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "font-family",
+          "value": "var(--sans)",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "font-size",
+          "value": "14px",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "line-height",
+          "value": "1.6",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "var-fallback",
+      "class": "C",
+      "reason": "var() fallback：随令牌变化，替换会破坏降级路径",
+      "entries": [
+        {
+          "file": "components/SettingsTabAppearanceMixed.vue",
+          "prop": "color",
+          "value": "var(--danger, #e53e3e)",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusAnnounceCard.vue",
+          "prop": "background",
+          "value": "var(--border-light, #ccc)",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusQueryCard.vue",
+          "prop": "background",
+          "value": "var(--border-light, #ccc)",
+          "count": 1
+        },
+        {
+          "file": "views/AnnounceView.vue",
+          "prop": "border",
+          "value": "1px solid var(--danger, #e74c3c)",
+          "count": 1
+        },
+        {
+          "file": "views/AnnounceView.vue",
+          "prop": "border-bottom",
+          "value": "1px solid var(--border-light, #e5e7eb)",
+          "count": 1
+        },
+        {
+          "file": "views/AnnounceView.vue",
+          "prop": "border-top",
+          "value": "1px solid var(--border-light, #e5e7eb)",
+          "count": 1
+        },
+        {
+          "file": "views/AnnounceView.vue",
+          "prop": "color",
+          "value": "var(--danger, #e74c3c)",
+          "count": 2
+        },
+        {
+          "file": "views/OrganizeView.vue",
+          "prop": "border-bottom",
+          "value": "1px solid var(--border-light, #e5e7eb)",
+          "count": 1
+        },
+        {
+          "file": "views/OrganizeView.vue",
+          "prop": "color",
+          "value": "var(--danger, #e74c3c)",
+          "count": 1
+        },
+        {
+          "file": "views/PendingView.vue",
+          "prop": "border-bottom",
+          "value": "1px solid var(--border-light, #e5e7eb)",
+          "count": 1
+        },
+        {
+          "file": "views/PendingView.vue",
+          "prop": "color",
+          "value": "var(--accent, #10b981)",
+          "count": 1
+        },
+        {
+          "file": "views/PendingView.vue",
+          "prop": "color",
+          "value": "var(--danger, #e74c3c)",
+          "count": 1
+        },
+        {
+          "file": "views/PendingView.vue",
+          "prop": "color",
+          "value": "var(--text-dim, #6b7280)",
+          "count": 1
+        },
+        {
+          "file": "views/SettingsView.vue",
+          "prop": "color",
+          "value": "var(--danger, #e74c3c)",
+          "count": 1
+        },
+        {
+          "file": "views/TaskView.vue",
+          "prop": "background",
+          "value": "var(--danger, #ef4444)",
+          "count": 1
+        },
+        {
+          "file": "views/TaskView.vue",
+          "prop": "background",
+          "value": "var(--success, #10b981)",
+          "count": 1
+        },
+        {
+          "file": "views/TaskView.vue",
+          "prop": "border-bottom",
+          "value": "1px solid var(--border-light, #e5e7eb)",
+          "count": 1
+        },
+        {
+          "file": "views/TaskView.vue",
+          "prop": "color",
+          "value": "var(--text-dim, #6b7280)",
+          "count": 1
+        },
+        {
+          "file": "views/TaskView/TaskHistoryList.vue",
+          "prop": "border-bottom",
+          "value": "1px solid var(--border-light, #e5e7eb)",
+          "count": 1
+        },
+        {
+          "file": "views/TaskView/TaskHistoryList.vue",
+          "prop": "color",
+          "value": "var(--text-dim, #6b7280)",
+          "count": 1
+        },
+        {
+          "file": "views/settings/SettingsTabSchedule.vue",
+          "prop": "border-bottom",
+          "value": "1px solid var(--border-light, #e5e7eb)",
+          "count": 1
+        },
+        {
+          "file": "views/settings/SettingsTabSites.vue",
+          "prop": "background",
+          "value": "var(--border-light, #ccc)",
+          "count": 1
+        },
+        {
+          "file": "views/settings/SettingsTabSites.vue",
+          "prop": "border-top",
+          "value": "1px solid var(--border-light, #e5e7eb)",
+          "count": 2
+        },
+        {
+          "file": "views/settings/SettingsTabToken.vue",
+          "prop": "color",
+          "value": "var(--success,#22c55e)",
+          "count": 1
+        },
+        {
+          "file": "views/settings/shared.css",
+          "prop": "border-bottom",
+          "value": "1px solid var(--border-light, #e5e7eb)",
+          "count": 1
+        },
+        {
+          "file": "views/settings/shared.css",
+          "prop": "color",
+          "value": "var(--danger, #e74c3c)",
+          "count": 1
+        }
+      ]
+    }
+  ]
+}

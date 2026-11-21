@@ -142,7 +142,7 @@ function stepLabel(s: string) {
 <template>
   <div>
     <!-- 子Tab切换 -->
-    <div style="display:flex;gap:0;margin-bottom:8px;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;width:fit-content">
+    <div style="display:flex;gap:0;margin-bottom:var(--space-8);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;width:fit-content">
       <button :class="['subtab', { active: subTab === 'tasks' }]" @click="subTab = 'tasks'; loadTasks()">{{ t('task.manager.tab_tasks') }}</button>
       <button :class="['subtab', { active: subTab === 'runs' }]" @click="subTab = 'runs'; loadPipelineRuns()">{{ t('task.manager.tab_runs') }}</button>
     </div>
@@ -152,12 +152,12 @@ function stepLabel(s: string) {
     <div class="toolbar">
       <SelectButton v-model="filter" :options="statusOptions" option-label="label" option-value="value" size="small" @change="loadTasks" />
       <Button :label="t('task.manager.refresh')" icon="pi pi-refresh" size="small" severity="secondary" outlined :loading="loading" @click="loadTasks" />
-      <span style="font-size:12px;color:var(--text-dim);margin-left:auto">{{ t('task.manager.total', { n: total }) }}</span>
+      <span style="font-size:var(--font-size-12);color:var(--text-dim);margin-left:auto">{{ t('task.manager.total', { n: total }) }}</span>
     </div>
 
     <DataTable :value="tasks" striped-rows size="small" class="mt-2" paginator :rows="30" :total-records="total" @page="onPage">
       <Column field="task_id" :header="t('task.manager.col_task_id')" style="min-width:130px">
-        <template #body="{ data }"><code style="font-size:11px">{{ data.task_id.slice(0, 12) }}</code></template>
+        <template #body="{ data }"><code style="font-size:var(--font-size-11)">{{ data.task_id.slice(0, 12) }}</code></template>
       </Column>
       <Column field="task_type" :header="t('task.manager.col_type')" style="min-width:80px">
         <template #body="{ data }">
@@ -172,18 +172,18 @@ function stepLabel(s: string) {
       <Column :header="t('task.manager.col_progress')" style="min-width:120px">
         <template #body="{ data }">
           <ProgressBar :value="progress(data)" :style="{ height: '6px' }" v-if="data.total_items > 0" />
-          <span v-else style="font-size:12px;color:var(--text-dim)">--</span>
+          <span v-else style="font-size:var(--font-size-12);color:var(--text-dim)">--</span>
         </template>
       </Column>
       <Column field="queue_name" :header="t('task.manager.col_queue')" style="min-width:60px">
-        <template #body="{ data }"><span style="font-size:12px">{{ data.queue_name }}</span></template>
+        <template #body="{ data }"><span style="font-size:var(--font-size-12)">{{ data.queue_name }}</span></template>
       </Column>
       <Column field="created_at" :header="t('task.manager.col_created')" style="min-width:130px">
-        <template #body="{ data }"><span style="font-size:11px">{{ data.created_at.slice(0, 19) }}</span></template>
+        <template #body="{ data }"><span style="font-size:var(--font-size-11)">{{ data.created_at.slice(0, 19) }}</span></template>
       </Column>
       <Column :header="t('task.manager.col_action')" style="min-width:90px">
         <template #body="{ data }">
-          <div style="display:flex;gap:4px">
+          <div style="display:flex;gap:var(--space-4)">
             <Button icon="pi pi-refresh" v-if="data.status === 'failed'" size="small" text rounded severity="warn" @click="retryTask(data.task_id)" />
             <Button icon="pi pi-times" v-if="data.status === 'running'" size="small" text rounded severity="danger" @click="cancelTask(data.task_id)" />
             <Button icon="pi pi-info-circle" size="small" text rounded @click="showDetail(data)" />
@@ -193,7 +193,7 @@ function stepLabel(s: string) {
     </DataTable>
 
     <Dialog :visible="!!detailTask" :header="t('task.manager.detail_title')" :modal="true" :style="{ width: '500px' }" @hide="detailTask = null">
-      <div v-if="detailTask" style="font-size:13px">
+      <div v-if="detailTask" style="font-size:var(--font-size-13)">
         <p><strong>{{ t('task.manager.field_task_id') }}</strong> {{ detailTask.task_id }}</p>
         <p><strong>{{ t('task.manager.field_type') }}</strong> {{ detailTask.task_type }}</p>
         <p><strong>{{ t('task.manager.field_status') }}</strong> {{ statusLabel(detailTask.status) }}</p>
@@ -201,9 +201,9 @@ function stepLabel(s: string) {
         <p><strong>{{ t('task.manager.field_created') }}</strong> {{ detailTask.created_at }}</p>
         <p v-if="detailTask.started_at"><strong>{{ t('task.manager.field_started') }}</strong> {{ detailTask.started_at }}</p>
         <p v-if="detailTask.finished_at"><strong>{{ t('task.manager.field_finished') }}</strong> {{ detailTask.finished_at }}</p>
-        <div v-if="detailTask.error_log" style="margin-top:8px;padding:8px;background:var(--surface);border-radius:4px">
+        <div v-if="detailTask.error_log" style="margin-top:var(--space-8);padding:var(--space-8);background:var(--surface);border-radius:var(--ds-radius-xs)">
           <strong style="color:var(--danger)">{{ t('task.manager.field_error') }}</strong>
-          <pre style="font-size:11px;white-space:pre-wrap;margin:4px 0">{{ detailTask.error_log }}</pre>
+          <pre style="font-size:var(--font-size-11);white-space:pre-wrap;margin:var(--space-4) 0">{{ detailTask.error_log }}</pre>
         </div>
       </div>
     </Dialog>
@@ -213,11 +213,11 @@ function stepLabel(s: string) {
     <template v-if="subTab === 'runs'">
       <div class="toolbar">
         <Button :label="t('task.manager.refresh')" icon="pi pi-refresh" size="small" severity="secondary" outlined :loading="runsLoading" @click="loadPipelineRuns" />
-        <span style="font-size:12px;color:var(--text-dim);margin-left:auto">{{ t('task.manager.total', { n: runsTotal }) }}</span>
+        <span style="font-size:var(--font-size-12);color:var(--text-dim);margin-left:auto">{{ t('task.manager.total', { n: runsTotal }) }}</span>
       </div>
       <DataTable :value="runs" striped-rows size="small" class="mt-2" paginator :rows="20" :total-records="runsTotal" @page="onRunsPage">
         <Column field="run_id" header="Run ID" style="min-width:130px">
-          <template #body="{ data }"><code style="font-size:11px">{{ data.run_id.slice(0, 12) }}</code></template>
+          <template #body="{ data }"><code style="font-size:var(--font-size-11)">{{ data.run_id.slice(0, 12) }}</code></template>
         </Column>
         <Column :header="t('task.manager.col_stage')" style="min-width:80px">
           <template #body="{ data }"><Tag severity="info" :value="stepLabel(data.current_step)" /></template>
@@ -233,12 +233,12 @@ function stepLabel(s: string) {
           </template>
         </Column>
         <Column field="created_at" :header="t('task.manager.col_created')" style="min-width:130px">
-          <template #body="{ data }"><span style="font-size:11px">{{ (data.created_at || '').slice(0, 19) }}</span></template>
+          <template #body="{ data }"><span style="font-size:var(--font-size-11)">{{ (data.created_at || '').slice(0, 19) }}</span></template>
         </Column>
         <Column field="error_message" :header="t('task.manager.col_error')" style="min-width:100px">
           <template #body="{ data }">
-            <span v-if="data.error_message" style="font-size:11px;color:var(--danger)">{{ data.error_message.slice(0, 50) }}</span>
-            <span v-else style="font-size:11px;color:var(--text-dim)">--</span>
+            <span v-if="data.error_message" style="font-size:var(--font-size-11);color:var(--danger)">{{ data.error_message.slice(0, 50) }}</span>
+            <span v-else style="font-size:var(--font-size-11);color:var(--text-dim)">--</span>
           </template>
         </Column>
       </DataTable>
@@ -247,8 +247,8 @@ function stepLabel(s: string) {
 </template>
 
 <style scoped>
-.toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.subtab { padding: 6px 14px; border: none; background: none; color: var(--text-dim); cursor: pointer; font-size: 12px; border-right: 1px solid var(--border); }
+.toolbar { display: flex; align-items: center; gap: var(--space-8); flex-wrap: wrap; }
+.subtab { padding: var(--space-6) var(--space-14); border: none; background: none; color: var(--text-dim); cursor: pointer; font-size: var(--font-size-12); border-right: 1px solid var(--border); }
 .subtab:last-child { border-right: none; }
-.subtab.active { background: var(--primary-bg); color: var(--primary); font-weight: 600; }
+.subtab.active { background: var(--primary-bg); color: var(--primary); font-weight: var(--font-weight-semibold); }
 </style>

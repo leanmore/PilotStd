@@ -71,15 +71,17 @@ onMounted(async () => {
   height: 100%;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  padding: 14px;
+  gap: var(--space-10);
+  padding: var(--space-14);
   box-sizing: border-box;
 }
 
 /* ── 主指标 ── */
 .mp-stat-hero {
   position: relative;
+  /* TODO: [Design Debt] linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.08)) 无精确令牌，暂不替换，待定令牌后统一处理 */
   background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.08));
+  /* TODO: [Design Debt] 1px solid rgba(99,102,241,0.25) 无精确令牌，暂不替换，待定令牌后统一处理 */
   border: 1px solid rgba(99,102,241,0.25);
   border-radius: var(--radius-lg);
   display: flex;
@@ -90,41 +92,42 @@ onMounted(async () => {
 .mp-hero-glow {
   position: absolute;
   right: -30px; top: -30px;
+  /* TODO: [Design Debt] 100px 无精确令牌，暂不替换，待定令牌后统一处理 */
   width: 100px; height: 100px;
-  background: rgba(99,102,241,0.2);
+  background: var(--primary-border);
   border-radius: 50%;
   filter: blur(30px);
 }
 .mp-hero-content {
   position: relative; z-index: 1;
-  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  display: flex; flex-direction: column; align-items: center; gap: var(--space-6);
 }
-.mp-hero-label { font-size: 12px; color: var(--text-dim); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
-.mp-hero-value { font-size: 42px; font-weight: 800; font-family: var(--mono); color: var(--text-heading); line-height: 1; }
-.mp-hero-badge { margin-top: 2px; }
+.mp-hero-label { font-size: var(--font-size-12); color: var(--text-dim); font-weight: var(--font-weight-medium); text-transform: uppercase; letter-spacing: 0.05em; }
+.mp-hero-value { font-size: var(--font-size-42); font-weight: var(--font-weight-extrabold); font-family: var(--mono); color: var(--text-heading); line-height: var(--line-height-none); }
+.mp-hero-badge { margin-top: var(--space-2); }
 
 /* ── 副指标 ── */
 .mp-stat-minis {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 6px;
+  gap: var(--space-6);
 }
 .mp-mini-card {
-  display: flex; align-items: center; gap: 10px;
-  padding: 8px 12px;
+  display: flex; align-items: center; gap: var(--space-10);
+  padding: var(--space-8) var(--space-12);
   background: var(--surface-raised);
   border: 1px solid var(--border-light);
   border-radius: var(--radius);
 }
 .mp-mini-icon {
-  width: 32px; height: 32px; border-radius: var(--radius-sm);
-  display: flex; align-items: center; justify-content: center; font-size: 14px;
+  width: 32px; height: var(--icon-tile-sm); border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center; font-size: var(--font-size-14);
 }
-.mp-mini-warning { background: rgba(245,158,11,0.12); color: var(--warning); }
-.mp-mini-info    { background: rgba(59,130,246,0.12); color: var(--info); }
-.mp-mini-danger  { background: rgba(239,68,68,0.12); color: var(--danger); }
-.mp-mini-label { font-size: 11px; color: var(--text-dim); flex: 1; }
-.mp-mini-val { font-size: 18px; font-weight: 700; font-family: var(--mono); }
+.mp-mini-warning { background: var(--warning-bg); color: var(--warning); }
+.mp-mini-info    { background: var(--info-bg); color: var(--info); }
+.mp-mini-danger  { background: var(--danger-bg); color: var(--danger); }
+.mp-mini-label { font-size: var(--font-size-11); color: var(--text-dim); flex: 1; }
+.mp-mini-val { font-size: var(--font-size-18); font-weight: var(--font-weight-bold); font-family: var(--mono); }
 .text-warning { color: var(--warning); }
 .text-info { color: var(--info); }
 .text-dim { color: var(--text-dim); }

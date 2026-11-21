@@ -112,7 +112,7 @@ onMounted(() => { loadToken(); loadGhToken() })
         <Button :label="t('settings.token.copy')" icon="pi pi-copy" size="small" severity="secondary" @click="copyToken" />
         <Button :label="t('settings.token.refresh')" icon="pi pi-refresh" size="small" severity="warning" @click="showRefreshDlg = true" :loading="tokenLoading" />
       </div>
-      <span v-if="tokenCopied" class="text-dim" style="font-size:12px;color:var(--success,#22c55e)">{{ t('settings.token.copied') }}</span>
+      <span v-if="tokenCopied" class="text-dim" style="font-size:var(--font-size-12);color:var(--success,#22c55e)">{{ t('settings.token.copied') }}</span>
     </div>
   </div>
 
@@ -120,10 +120,10 @@ onMounted(() => { loadToken(); loadGhToken() })
   <div class="card mt-2">
     <div class="card-header">GitHub Token</div>
     <p class="text-dim mb-2">{{ t('settings.token.gh_hint') }}</p>
-    <Message v-if="!ghToken" severity="warn" :closable="false" style="margin-bottom:8px">
+    <Message v-if="!ghToken" severity="warn" :closable="false" style="margin-bottom:var(--space-8)">
       {{ t('settings.token.gh_warning') }}
     </Message>
-    <div style="display:flex;gap:8px;align-items:center">
+    <div style="display:flex;gap:var(--space-8);align-items:center">
       <input
         v-model="ghToken"
         type="password"
@@ -133,15 +133,15 @@ onMounted(() => { loadToken(); loadGhToken() })
       />
       <Button :label="t('common.save')" icon="pi pi-save" size="small" @click="saveGhToken" :loading="ghTokenSaving" />
     </div>
-    <span v-if="ghTokenSaved" style="font-size:12px;color:var(--success)">{{ t('common.saved') }}</span>
-    <span v-if="ghTokenErr" style="font-size:12px;color:var(--danger)">{{ ghTokenErr }}</span>
+    <span v-if="ghTokenSaved" style="font-size:var(--font-size-12);color:var(--success)">{{ t('common.saved') }}</span>
+    <span v-if="ghTokenErr" style="font-size:var(--font-size-12);color:var(--danger)">{{ ghTokenErr }}</span>
   </div>
 
   <!-- 刷新令牌确认弹窗 -->
   <Dialog v-model:visible="showRefreshDlg" :header="t('settings.token.refresh_title')" :modal="true" :style="{width:'440px'}">
-    <p style="margin-bottom:12px;line-height:1.6">{{ t('settings.token.refresh_warn_before') }}<strong>{{ t('settings.token.refresh_warn_strong') }}</strong>{{ t('settings.token.refresh_warn_after') }}</p>
-    <p style="color:var(--text-dim);font-size:13px">{{ t('settings.token.refresh_confirm') }}</p>
-    <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">
+    <p style="margin-bottom:var(--space-12);line-height:var(--line-height-body)">{{ t('settings.token.refresh_warn_before') }}<strong>{{ t('settings.token.refresh_warn_strong') }}</strong>{{ t('settings.token.refresh_warn_after') }}</p>
+    <p style="color:var(--text-dim);font-size:var(--font-size-13)">{{ t('settings.token.refresh_confirm') }}</p>
+    <div style="display:flex;gap:var(--space-8);margin-top:var(--space-16);justify-content:flex-end">
       <Button :label="t('common.cancel')" severity="secondary" @click="showRefreshDlg = false" />
       <Button :label="t('settings.token.refresh_ok')" severity="warning" @click="doRefreshToken" />
     </div>

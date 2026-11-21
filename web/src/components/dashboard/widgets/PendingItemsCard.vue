@@ -34,7 +34,7 @@ onMounted(async () => {
     </div>
 
     <div v-if="!items.length && !loading" class="empty">
-      <i class="pi pi-check-circle" style="font-size: 24px; color: var(--success); margin-bottom: 8px;" />
+      <i class="pi pi-check-circle" style="font-size: var(--font-size-24); color: var(--success); margin-bottom: var(--space-8);" />
       <span>{{ t('dashboard.pending.all_done') }}</span>
     </div>
 
@@ -54,38 +54,38 @@ onMounted(async () => {
 
 <style scoped>
 .root {
-  height: 100%; box-sizing: border-box; padding: 14px;
+  height: 100%; box-sizing: border-box; padding: var(--space-14);
   background: linear-gradient(135deg, var(--surface), var(--surface-raised));
   border: 1px solid var(--border); border-radius: var(--radius-lg);
-  display: flex; flex-direction: column; gap: 10px;
+  display: flex; flex-direction: column; gap: var(--space-10);
 }
 .header { display: flex; align-items: center; justify-content: space-between; }
-.header-left { display: flex; align-items: center; gap: 10px; }
+.header-left { display: flex; align-items: center; gap: var(--space-10); }
 .header-icon {
-  width: 34px; height: 34px; border-radius: var(--radius-sm); background: rgba(239,68,68,0.12);
-  display: flex; align-items: center; justify-content: center; color: var(--danger); font-size: 16px;
+  width: 34px; height: var(--icon-tile-md); border-radius: var(--radius-sm); background: var(--danger-bg);
+  display: flex; align-items: center; justify-content: center; color: var(--danger); font-size: var(--font-size-16);
 }
-.header-title { font-size: 13px; font-weight: 700; color: var(--text-heading); }
-.header-sub { font-size: 10px; color: var(--text-dim); }
+.header-title { font-size: var(--font-size-13); font-weight: var(--font-weight-bold); color: var(--text-heading); }
+.header-sub { font-size: var(--font-size-10); color: var(--text-dim); }
 
-.list { flex: 1; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; }
+.list { flex: 1; display: flex; flex-direction: column; gap: var(--space-6); overflow-y: auto; }
 .row {
-  display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+  display: flex; align-items: center; gap: var(--space-10); padding: var(--space-10) var(--space-12);
   background: var(--surface); border: 1px solid var(--border-light); border-radius: var(--radius);
   transition: all var(--transition); cursor: pointer;
 }
 .row:hover { border-color: var(--primary-border); background: var(--primary-bg); }
 .row-tag {
-  padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 700; font-family: var(--mono);
-  background: rgba(245,158,11,0.12); color: var(--warning); flex-shrink: 0;
+  padding: var(--space-2) var(--space-6); border-radius: var(--ds-radius-xs); font-size: var(--font-size-9); font-weight: var(--font-weight-bold); font-family: var(--mono);
+  background: var(--warning-bg); color: var(--warning); flex-shrink: 0;
 }
 .row-info { flex: 1; min-width: 0; }
-.row-name { font-size: 12px; font-weight: 600; color: var(--text-heading); font-family: var(--mono); display: block; }
+.row-name { font-size: var(--font-size-12); font-weight: var(--font-weight-semibold); color: var(--text-heading); font-family: var(--mono); display: block; }
 .row-date {
-  font-size: 11px; color: var(--text-dim); margin-top: 2px;
+  font-size: var(--font-size-11); color: var(--text-dim); margin-top: var(--space-2);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.row-arrow { font-size: 10px; color: var(--text-dim); flex-shrink: 0; }
-.more { font-size: 11px; color: var(--text-dim); text-align: center; padding-top: 4px; }
-.empty { color: var(--text-dim); font-size: 12px; text-align: center; padding: 30px 0; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.row-arrow { font-size: var(--font-size-10); color: var(--text-dim); flex-shrink: 0; }
+.more { font-size: var(--font-size-11); color: var(--text-dim); text-align: center; padding-top: var(--space-4); }
+.empty { color: var(--text-dim); font-size: var(--font-size-12); text-align: center; padding: var(--space-30) 0; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 </style>

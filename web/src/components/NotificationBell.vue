@@ -159,8 +159,8 @@ const goToLogs = () => {
 .notification-dropdown {
   display: flex;
   flex-direction: column;
-  background: var(--surface-card, #fff);
-  border-radius: 8px;
+  background: var(--surface);
+  border-radius: var(--ds-radius-md);
   /* 固定宽度：标记全部已读时按钮显隐不能改变弹层宽度，否则 PrimeVue 会重算位置并“跳”到左边 */
   width: 360px;
   max-width: min(400px, calc(100vw - 32px));
@@ -170,12 +170,12 @@ const goToLogs = () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
+  padding: var(--space-12) var(--space-16);
 }
 
 .header-title {
-  font-weight: 600;
-  font-size: 14px;
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-14);
 }
 
 .header-divider,
@@ -192,20 +192,20 @@ const goToLogs = () => {
 .notification-item {
   display: flex;
   align-items: flex-start;
-  padding: 10px 16px;
+  padding: var(--space-10) var(--space-16);
   cursor: pointer;
-  border-bottom: 1px solid var(--surface-border, #eee);
+  border-bottom: 1px solid var(--border);
   transition: background 0.2s;
 }
 
 .notification-item:hover {
-  background: var(--surface-hover, #f0f7ff);
+  background: var(--selected);
 }
 
-.notification-item.warning .item-dot { background: #f59e0b; }
-.notification-item.error .item-dot { background: #ef4444; }
+.notification-item.warning .item-dot { background: var(--warning); }
+.notification-item.error .item-dot { background: var(--danger); }
 .notification-item.unread {
-  background: var(--primary-50, #eff6ff);
+  background: var(--primary-bg);
 }
 
 .notification-item.read {
@@ -214,11 +214,12 @@ const goToLogs = () => {
 
 .item-dot {
   width: 8px;
+  /* TODO: [Design Debt] `height: 8px` 无对应尺寸令牌（状态圆点），暂不替换，待定令牌后统一处理 */
   height: 8px;
   border-radius: 50%;
-  background: var(--primary-color, #3b82f6);
-  margin-right: 12px;
-  margin-top: 6px;
+  background: var(--primary);
+  margin-right: var(--space-12);
+  margin-top: var(--space-6);
   flex-shrink: 0;
 }
 
@@ -228,15 +229,15 @@ const goToLogs = () => {
 }
 
 .item-title {
-  font-weight: 500;
-  font-size: 14px;
-  color: var(--text-color, #333);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-14);
+  color: var(--text);
 }
 
 .item-body {
-  font-size: 13px;
-  color: var(--text-color-secondary, #666);
-  margin-top: 2px;
+  font-size: var(--font-size-13);
+  color: var(--text-secondary);
+  margin-top: var(--space-2);
   /* 标准号+名称较长：最多两行，悬停看完整正文 */
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -246,19 +247,19 @@ const goToLogs = () => {
 }
 
 .item-time {
-  font-size: 12px;
-  color: var(--text-color-secondary, #999);
-  margin-top: 4px;
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+  margin-top: var(--space-4);
 }
 
 .empty-state {
-  padding: 40px 20px;
+  padding: var(--space-40) var(--space-20);
   text-align: center;
-  color: var(--text-color-secondary, #999);
+  color: var(--text-secondary);
 }
 
 .dropdown-footer {
-  padding: 8px 16px;
+  padding: var(--space-8) var(--space-16);
   text-align: center;
 }
 </style>

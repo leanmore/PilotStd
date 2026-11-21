@@ -56,8 +56,8 @@ onUnmounted(() => {
 
 <style scoped>
 .page { max-width: 900px; }
-.page-title { margin: 0 0 20px; font-size: 20px; font-weight: 600; color: var(--text-heading); }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
-h3 { margin: 0 0 12px; font-size: 15px; }
-.detail { margin-top: 8px; font-size: 13px; color: var(--text-color-secondary); }
+.page-title { margin: 0 0 var(--space-20); font-size: var(--font-size-20); font-weight: var(--font-weight-semibold); color: var(--text-heading); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--space-16); }
+h3 { margin: 0 0 var(--space-12); font-size: var(--font-size-15); }
+.detail { margin-top: var(--space-8); font-size: var(--font-size-13); color: var(--text-secondary); }
 </style>

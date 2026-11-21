@@ -56,8 +56,8 @@ async function submit() {
       <div class="login-brand"><span class="brand-icon">&#9678;</span><h1>PilotStd</h1></div>
       <p class="hint">{{ t('login.hint') }}</p>
       <input v-model="username" name="username" :placeholder="t('login.username')" class="login-input" @keyup.enter="submit" />
-      <input v-model="password" name="password" type="password" :placeholder="t('login.password')" class="login-input" style="margin-top:8px" @keyup.enter="submit" />
-      <Button :label="t('login.submit_spaced')" type="submit" @click="submit" severity="primary" style="width:100%;margin-top:8px" />
+      <input v-model="password" name="password" type="password" :placeholder="t('login.password')" class="login-input" style="margin-top:var(--space-8)" @keyup.enter="submit" />
+      <Button :label="t('login.submit_spaced')" type="submit" @click="submit" severity="primary" style="width:100%;margin-top:var(--space-8)" />
       <p v-if="error" class="error">{{ error }}</p>
     </div>
   </div>
@@ -65,12 +65,14 @@ async function submit() {
 
 <style scoped>
 /* 未配置背景图或加载失败时的默认渐变兜底 */
+/* TODO: [Design Debt] linear-gradient(135deg, #667eea 0%, #764ba2 100%) 无精确令牌，暂不替换，待定令牌后统一处理 */
 .login-page { display: flex; justify-content: center; align-items: center; min-height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+/* TODO: [Design Debt] 44px 36px 无精确令牌，暂不替换，待定令牌后统一处理 */
 .login-card { width: 340px; padding: 44px 36px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); text-align: center; }
-.login-brand { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 4px; }
-.brand-icon { color: var(--accent); font-size: 22px; }
-.login-brand h1 { font-size: 20px; font-weight: 600; color: var(--text-heading); }
-.login-input { width: 100%; padding: 10px 14px; background: var(--bg); border: 1px solid var(--border); color: var(--text); border-radius: var(--radius); font-size: 14px; outline: none; margin-top: 12px; box-sizing: border-box; }
+.login-brand { display: flex; align-items: center; justify-content: center; gap: var(--space-8); margin-bottom: var(--space-4); }
+.brand-icon { color: var(--accent); font-size: var(--font-size-22); }
+.login-brand h1 { font-size: var(--font-size-20); font-weight: var(--font-weight-semibold); color: var(--text-heading); }
+.login-input { width: 100%; padding: var(--space-10) var(--space-14); background: var(--bg); border: 1px solid var(--border); color: var(--text); border-radius: var(--radius); font-size: var(--font-size-14); outline: none; margin-top: var(--space-12); box-sizing: border-box; }
 .login-input:focus { border-color: var(--accent); box-shadow: var(--focus-ring); }
-.error { color: var(--danger); font-size: 13px; margin-top: 8px; }
+.error { color: var(--danger); font-size: var(--font-size-13); margin-top: var(--space-8); }
 </style>

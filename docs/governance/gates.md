@@ -49,6 +49,7 @@
 | G-051 | API 权限矩阵 | 写操作路由必须有显式 `@require_role("admin")`（或用户白名单/公开白名单），前端 `http.*` 调用必须能匹配到后端路由 | 任一缺口（`--check`） | `scripts/audit_api_matrix.py` | ✅ 已部署（2026-11-05） |
 | G-052 | 文档漂移 | `docs/` 中出现的 `/api/...` 必须是真实路由，配置键必须在 defaults/scope，表名必须在迁移中（归档/ADR/债务台账豁免）；**P2-07（2026-11-13）**：另校验 `COUNT_CLAIMS` 里 6 处写死的数字（router 模块/唯一 API 路径/route×method/表数/迁移模块数），声明缺失也阻断 | 任一不存在或数字不符（`check_docs_drift.py`） | `scripts/check_docs_drift.py` | ✅ 已部署（2026-11-05；数字校验 2026-11-13） |
 | G-053 | backend 测试 GUI import 守卫 | `tests/test_*.py` 的**模块级** import 不得出现 `pilotstd.ui` / `PyQt6`（`tests/gui/` 与 backend CI 已忽略文件除外） | 任一命中（`check_backend_test_imports.py`） | `scripts/check_backend_test_imports.py` | ✅ 已部署（2026-11-10，U37） |
+| G-055 | 设计令牌门禁（棘轮） | `web/src/**/*.{vue,css}` 内**不得新增**可映射到已定义令牌的硬编码视觉样式（颜色 / 字号 / 间距 / 圆角 / 高度 / 行高 / 字重），内联 `style` 同样适用；存量按基线 `scripts/design_token_baseline.json` 放行（只含 C 类分组、B 类 TODO 项与 2 条内联白名单），**A 类必须为 0** | A 类出现；或 B/C 类**超出基线次数**（`check_design_tokens.py`） | `scripts/check_design_tokens.py`（`check_all.sh --fast` + CI `test-frontend`） | ✅ 已部署（2026-11-21；基线 611 条目 / 18 组 / A 0 · B 115 · C 628） |
 | G-054 | GUI 单文件覆盖率棘轮 | 基线 `scripts/gui_coverage_baseline.json` 里登记的前端**运行时**文件，行覆盖率不得低于基线 0.5pp；纯类型文件（`type_only`）一旦出现可执行行即 FAIL（需升格进棘轮或把代码移出）；**规则**：① 提升覆盖率的 PR **必须在同 PR 内收紧基线**，否则视为未完成；② 文件改名/移动**同 PR 改基线路径，不允许加豁免** | 任一文件下降超缓冲、基线文件从报告消失、`type_only` 出现可执行行（`check_gui_coverage_ratchet.py`） | `scripts/check_gui_coverage_ratchet.py`（CI `test-frontend`） | ✅ 已部署（2026-11-14，P2-08；v2.48 加固） |
 
 > G-051 在 CI 的 `repo-compliance` 作业中执行：`python scripts/audit_api_matrix.py --check`（写端点缺显式 admin 或前端死调用即失败）。
@@ -118,6 +119,7 @@
 - **阻断条件**：目标文档存在但未同步更新 → 阻断；目标文档不存在 → 按模式处理，`block` 同样阻断、`warn` 仅告警（当前 12 条均为 `block`，且 12 个目标文档均已存在）
 - **执行方式**：`python scripts/check_g_031_docs_sync.py`
 - **文档检索工具**（2026-11-07）：`scripts/find_docs.py` 是只读检索工具，不是门禁；它用于任务开始前按关键词找文档。按本表 `scripts/` → 本文件的映射，新增该脚本时同步登记本条；检索结果仍需人工打开原文确认，不能替代 G-031/G-037/G-052。
+- **令牌审计工具**（2026-11-21）：`scripts/audit_design_tokens.py` 是只读审计工具，**不是门禁**；扫描 `web/src` 下 `.vue`/`.css` 的硬编码视觉字面量，按 A/B/C/D 四类归档，并刷新 `docs/design-token-audit.md` 的生成区块（`<!-- AUDIT:BEGIN -->`…）。按本表 `scripts/` → 本文件的映射，新增该脚本时同步登记本条；它的**阻断形态**是 G-055（棘轮门禁，只拦新增），二者共用同一套分类函数。
 
 > **v2.27**：变更文件范围不可知时 exit 2（而非静默 PASS）；干净仓库（git 正常返回空）仍 PASS。
 
@@ -649,10 +651,32 @@ B1（声明类 vs 实现类）已覆盖同一语义、且每次 CI 都在跑；�
 
 ---
 
+### G-055：设计令牌门禁（棘轮，只拦新增）
+
+**规则**：
+
+- **A 类必须为 0**：值精确命中已定义令牌的硬编码（`font-size: 13px`、`color: #ef4444`、`border-radius: 8px` 等）一旦出现即阻断——说明有人写了本可映射却未映射的样式。
+- **B / C 类**：必须在基线内，且**当前次数 ≤ 基线次数**；超出即阻断（新增硬编码）。
+- **次数减少**：只打 `[STALE]` 提示人工同步基线，**不阻断、脚本不自动改基线**（禁止自动更新）。
+
+**基线**：`scripts/design_token_baseline.json`（611 条目 / 18 分组；C 628 / B 115 / A 0）。
+匹配键 = **文件 + 属性 + 值**（不含行号，允许格式化导致的行号漂移），计数即上限。
+分组理由写在文件内 `reason` 字段：PrimeVue `RETAINED` / SVG 图表 / `var()` fallback / 布局尺寸 / 相对单位 / 计算值 / 装饰圆角与细线 / 令牌定义 / 滤镜 / B 类无令牌项 / 2 条内联白名单。
+
+**禁止**：整文件或整目录白名单、按目录忽略、脚本自动写基线。更新基线须人工确认并单独提交（`chore:` 或 `docs:`）。
+
+**与审计工具的分工**：分类复用 `scripts/audit_design_tokens.py` 的 `classify()`，门禁只做"基线比对 + 阻断"，避免两份判定漂移。审计工具只读不阻断；**G-055 才是阻断点**。
+
+**受控测试**：`tests/test_check_design_tokens.py`（9 例：新增 hex / 新增固定像素 / 新增内联 height / 基线内 B / 基线内 C / 白名单需占名额 / 超次数 / 过期只提示且不改文件 / CLI 退出码）。**真实仓库三次反证**：新增 `#123456`、新增 `font-size: 15px`、新增内联 `height: 21px` 均 exit 1；还原后 exit 0。
+
+---
+
 ## 版本历史
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
+| v2.61 | 2026-11-21 | **新增 G-055 设计令牌门禁（棘轮）**：`scripts/check_design_tokens.py` + 基线 `scripts/design_token_baseline.json`（611 条目 / 18 组；A 0 / B 115 / C 628）。规则：A 类必须为 0；B/C 类不得超过基线次数；数量减少只提示不阻断；禁止脚本自动更新基线（只能 `--suggest-baseline` 打印候选、人工提交）。接入 `check_all.sh --fast` 与 CI `test-frontend`。分类复用 `audit_design_tokens.classify()` 避免判定漂移。验证：受控测试 9 例 + 真实仓库三次反证（新增 hex / 新增固定像素 / 新增内联 height 均 exit 1，还原后 exit 0）。 |
+| v2.60 | 2026-11-21 | **登记设计令牌审计工具（非门禁）**：新增 `scripts/audit_design_tokens.py`（只读，扫描 `web/src` 下 .vue/.css 的硬编码视觉字面量，A/B/C/D 分类，刷新 `docs/design-token-audit.md` 的生成区块）。按 G-031 的 `scripts/` → 本文件映射同步登记；其阻断形态为**待建的 G-055**（棘轮门禁，只拦新增，与审计工具共用分类函数）。同批交付 `docs/design-token-audit.md`（A 979 / B 115 / C 628 / D 0）。 |
 | v2.56 | 2026-11-19 | **G-029 识别「仅注释变更」，不再误判缺测试**：G-029 要求 `pilotstd/ui/` 变更必须同步 `tests/gui/`｜`tests/test_ui*`，但注释/docstring 变更不改变语义，强制补测试只能产物化无意义用例。新增 `is_comment_only(path, range)`：取范围左端基线内容与工作区内容各建 AST，docstring 文本归一化为占位符后比较，两侧相同即剔除；基线取不到（新增文件/git 不可用/读失败）或语法错误一律按真变更处理。同批补 `sys.stdout.reconfigure(encoding="utf-8")`（Windows GBK 控制台打印 ❌ 明细会 UnicodeEncodeError）。起因：V-17 注释规范化批的 15 个 `pilotstd/ui/` 纯注释文件被判红。测试 `tests/test_check_g_029_comment_only.py`（5 例） |
 | v2.55 | 2026-11-19 | **G-012 `[LANG]` 改为按词判定（V-17 收口，1511 → 0）**。原规则「注释里出现任意英文字母即警告」，对中文注释引用标识符 100% 误报——全仓 1511 条里绝大多数是 `PILOTSTD_API_TOKEN`、`aggregate_keys.py`、`task_id` 这类查证入口。改为：先剔除工具指令（新增 `i18n-allow`，与 `noqa` 同类）、行内代码（反引号）、引号字符串、文件名形态；剩余英文片段只拦**英文普通词**（warning/debug/def/import/dict 等），形如代码标识符的（含 `_` `.` `/` 括号连字符、数字，或含大写字母）放过。口径延续 v1.13 裁定「能中文化的一律中文，用作查证入口的标识符不意译」，区别是标识符**不再需要逐条登记白名单**。实测：1511 → 504（规则收口）→ 0（504 行分 6 批改写：叙事词译中文，裸标识符加反引号）；`--fix` 仍禁止使用（其实现是删光英文字母，见 v1.13）。 |
 | v2.53 | 2026-11-15 | **P2-11 数据修复脚本扩展（非门禁）**：`scripts/repair_validity_keys_v2.py` 新增 `--source validity`（用 `standard_validity` 内部同号/同年 canonical，不再依赖已清空的 `file_index`）；同批修复 validity 键登记根因（`build_standard_number` + `register_new_standard` 守卫），生产 apply 待窗口 |

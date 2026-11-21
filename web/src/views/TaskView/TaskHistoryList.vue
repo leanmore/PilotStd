@@ -48,19 +48,19 @@ function statusLabel(s: string) {
     <DataView :value="paginatedHistory" size="small">
       <template #list="slotProps">
         <div v-for="item in slotProps.items" :key="item.id" class="p-2 border-bottom">
-          <div class="flex" style="display:flex;gap:12px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border-light)">
+          <div class="flex" style="display:flex;gap:var(--space-12);align-items:center;padding:var(--space-6) 0;border-bottom:1px solid var(--border-light)">
             <div style="flex:1;min-width:0">
-              <div class="flex" style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
-                <span class="text-mono" style="font-size:13px;font-family:var(--mono)">{{ item.time }}</span>
-                <span class="text-dim" style="font-size:12px;color:var(--text-dim)">{{ item.path }}</span>
+              <div class="flex" style="display:flex;gap:var(--space-12);flex-wrap:wrap;align-items:center">
+                <span class="text-mono" style="font-size:var(--font-size-13);font-family:var(--mono)">{{ item.time }}</span>
+                <span class="text-dim" style="font-size:var(--font-size-12);color:var(--text-dim)">{{ item.path }}</span>
               </div>
-              <div class="flex" style="display:flex;gap:12px;font-size:12px;color:var(--text-dim);margin-top:4px">
+              <div class="flex" style="display:flex;gap:var(--space-12);font-size:var(--font-size-12);color:var(--text-dim);margin-top:var(--space-4)">
                 <span>{{ t('task.history_scan', { n: item.scanCount }) }}</span>
                 <span>{{ t('task.history_query', { n: item.queryFound }) }}</span>
                 <span>{{ t('task.history_download', { n: item.dlSuccess }) }}</span>
               </div>
             </div>
-            <div class="flex" style="display:flex;gap:6px;align-items:center">
+            <div class="flex" style="display:flex;gap:var(--space-6);align-items:center">
               <Tag :value="statusLabel(item.status)" :severity="statusSeverity(item.status)" />
               <Button :label="t('task.detail')" size="small" text @click="emit('view', item)" />
               <Button :label="t('task.rerun')" size="small" text severity="info" @click="emit('rerun', item)" />
@@ -75,8 +75,8 @@ function statusLabel(s: string) {
 </template>
 
 <style scoped>
-.mt-2 { margin-top: 12px; }
-.mt-3 { margin-top: 16px; }
+.mt-2 { margin-top: var(--space-12); }
+.mt-3 { margin-top: var(--space-16); }
 .border-bottom { border-bottom: 1px solid var(--border-light, #e5e7eb); }
 .text-dim { color: var(--text-dim, #6b7280); }
 .text-mono { font-family: var(--mono, 'Consolas', 'Courier New', monospace); }

@@ -23,8 +23,8 @@ defineExpose({ saveConfig: () => notificationRef.value?.saveConfig() })
   <div class="card mt-2">
     <div class="card-header">{{ t('notification.settings.config_title') }}</div>
     <NotificationConfig ref="notificationRef" />
-    <hr style="margin:24px 0;border-color:var(--border)" />
-    <div class="card-header" style="margin-bottom:12px">{{ t('notification.settings.wechat_ip_title') }}</div>
+    <hr style="margin:var(--space-24) 0;border-color:var(--border)" />
+    <div class="card-header" style="margin-bottom:var(--space-12)">{{ t('notification.settings.wechat_ip_title') }}</div>
     <WechatTrustIP />
   </div>
 </template>

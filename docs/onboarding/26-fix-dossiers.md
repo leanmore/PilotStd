@@ -270,3 +270,33 @@ Web 五段式执行后，下载成功的文件留在 `/standards` 根目录，�
     备注 `expired_conflict`，源文件保持原位（仍可在 `_quarantine`/inbox 追溯）。
   - 责任：日常运维（季度清点）；触发做自动定时任务的条件：冲突行 >20 条，或出现超过 30 天未清的冲突。
 - 当前线上冲突行 **0 条**（2026-11-15 实测）。
+
+## D-07 设计令牌引用完整性（D1 未定义变量 / D2 默认层漂移，已修 2026-11-21）
+
+> 编号续 D-06；本条是**已修复**的 dossier，保留根因与判据供以后排查同类问题（不是待办）。
+
+### 现象
+
+- 通知铃铛在四个主题下**恒为浅色**；两个页面的键盘焦点轮廓**完全不可见**（无报错、无日志）。
+- 首屏（JS 注入主题前）画布与卡片层级颠倒，主题一注入又"跳"回正常。
+
+### 根因
+
+- **D1**：组件引用了 11 个**从未定义**的 CSS 变量（`--text-color-secondary` 12 处、`--primary-color` 4 处、`--surface-card`/`--surface-hover`/`--primary-50`/`--warn` 等）。带 fallback 的写法让它们"看起来有值"（恒为字面量），不带的写法则让整条声明在 computed-value 阶段失效——`outline: 2px solid var(--primary-color)` 即属后者。
+- **D2**：令牌有**两层真相**——`style.css :root`（默认层）与 `config/themes.ts`（运行层）。两者 37 个可比对项中 35 个一致，`--bg` 与 `--surface-raised` 恰好**互换**（`#f8fafc ↔ #f1f5f9`），而 a11y 契约测试只读 `THEMES`，测不出默认层。
+
+### 修复
+
+- 11 个变量全部改指**已定义**语义令牌（`--surface`/`--border`/`--selected`/`--primary-bg`/`--primary`/`--text`/`--text-secondary`/`--success`/`--danger`/`--text-dim`/`--warning`），并删除死 fallback。
+- 以 `themes.ts`（可切换的运行时真相）为准修正 `style.css` 默认层，并在原位写明理由与影响面。
+- 提交 `53b7d3ee`。
+
+### 验证
+
+- 复扫 `var()` 未定义引用 = **0**；`web/src/styles/design-tokens.test.ts` 6 例锁定（含"默认层与 light 一致"、"令牌文件无颜色字面量"）。
+- `theme-spec.test.ts`（30 例）与 `a11y-contrast.test.ts`（7 例）**未改动且仍绿**。
+- 反向验证：注入 `var(--definitely-undefined)` 与 `--ds-bad: #ff00ff` 均报错，移除后恢复。
+
+### 遗留
+
+- 默认层与运行层的"双真相"结构仍在（历史原因：四主题由 JS 注入）。测试只能锁 light 主题的一致性，**其余三主题的默认值仍无人校验**——属结构性问题，未在本轮处理。

@@ -85,7 +85,7 @@ const {
     <div class="card section">
       <div class="card-header">
         <span>{{ t('notification.logs.list_title') }}</span>
-        <div style="display:flex;gap:8px">
+        <div style="display:flex;gap:var(--space-8)">
           <Button icon="pi pi-trash" :label="t('notification.logs.cleanup')" size="small" severity="danger" outlined @click="cleanupVisible = true" />
           <Button icon="pi pi-refresh" size="small" severity="secondary" :loading="loading" @click="loadLogs" />
         </div>
@@ -152,9 +152,9 @@ const {
             text
             @click="loadFailedItems(1)"
           />
-          <p v-if="failedError" class="err" style="margin:6px 0 0">{{ t('notification.config.failed_items.load_failed') }}</p>
-          <div v-else-if="failedLoaded" style="margin-top:6px">
-            <p style="font-size:12px;color:var(--text-dim);margin:0 0 6px">
+          <p v-if="failedError" class="err" style="margin:var(--space-6) 0 0">{{ t('notification.config.failed_items.load_failed') }}</p>
+          <div v-else-if="failedLoaded" style="margin-top:var(--space-6)">
+            <p style="font-size:var(--font-size-12);color:var(--text-dim);margin:0 0 var(--space-6)">
               {{ t('notification.config.failed_items.title') }} · {{ t('notification.config.failed_items.total', { total: failedTotal }) }}
             </p>
             <table v-if="failedItems.length" class="failed-table">
@@ -176,10 +176,10 @@ const {
                 </tr>
               </tbody>
             </table>
-            <p v-else style="font-size:12px;color:var(--text-dim)">{{ t('notification.config.failed_items.empty') }}</p>
-            <div v-if="failedTotal > failedPageSize" style="display:flex;gap:8px;align-items:center;margin-top:6px">
+            <p v-else style="font-size:var(--font-size-12);color:var(--text-dim)">{{ t('notification.config.failed_items.empty') }}</p>
+            <div v-if="failedTotal > failedPageSize" style="display:flex;gap:var(--space-8);align-items:center;margin-top:var(--space-6)">
               <Button label="‹" size="small" text :disabled="failedPage <= 1" @click="loadFailedItems(failedPage - 1)" />
-              <span style="font-size:12px;color:var(--text-dim)">{{ failedPage }}</span>
+              <span style="font-size:var(--font-size-12);color:var(--text-dim)">{{ failedPage }}</span>
               <Button
                 label="›"
                 size="small"
@@ -196,19 +196,19 @@ const {
     <!-- 清理日志确认弹窗 -->
     <Dialog v-model:visible="cleanupVisible" :header="t('notification.logs.cleanup_title')" :style="{ width: '420px' }" modal>
       <div>
-        <p style="margin:0 0 12px;color:var(--text-dim)">{{ t('notification.logs.cleanup_hint') }}</p>
-        <div style="display:flex;align-items:center;gap:8px">
+        <p style="margin:0 0 var(--space-12);color:var(--text-dim)">{{ t('notification.logs.cleanup_hint') }}</p>
+        <div style="display:flex;align-items:center;gap:var(--space-8)">
           <label>{{ t('notification.logs.cleanup_keep') }}</label>
           <input
             v-model.number="cleanupDays"
             type="number"
             min="1"
             max="365"
-            style="width:80px;padding:8px;border:1px solid var(--border);border-radius:var(--radius-sm);text-align:center"
+            style="width:80px;padding:var(--space-8);border:1px solid var(--border);border-radius:var(--radius-sm);text-align:center"
           />
           <label>{{ t('notification.logs.cleanup_days') }}</label>
         </div>
-        <p v-if="cleanupResult" style="margin-top:12px;font-size:12px;color:var(--primary)">{{ cleanupResult }}</p>
+        <p v-if="cleanupResult" style="margin-top:var(--space-12);font-size:var(--font-size-12);color:var(--primary)">{{ cleanupResult }}</p>
       </div>
       <template #footer>
         <Button :label="t('common.cancel')" size="small" severity="secondary" text @click="cleanupVisible = false" />
@@ -220,18 +220,19 @@ const {
 
 <style scoped>
 .page { max-width: 1100px; }
-.page-title { margin: 0 0 20px; font-size: 20px; font-weight: 600; color: var(--text-heading); }
-.section { margin-bottom: 16px; }
+.page-title { margin: 0 0 var(--space-20); font-size: var(--font-size-20); font-weight: var(--font-weight-semibold); color: var(--text-heading); }
+.section { margin-bottom: var(--space-16); }
 
 /* 筛选区 */
-.filter-row { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
-.filter-item { display: flex; flex-direction: column; gap: 6px; min-width: 140px; flex: 1; }
-.filter-item label { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
-.filter-actions { display: flex; gap: 8px; align-items: flex-end; padding-bottom: 1px; }
+.filter-row { display: flex; flex-wrap: wrap; gap: var(--space-14); align-items: flex-end; }
+.filter-item { display: flex; flex-direction: column; gap: var(--space-6); min-width: 140px; flex: 1; }
+.filter-item label { font-size: var(--font-size-12); font-weight: var(--font-weight-medium); color: var(--text-secondary); }
+.filter-actions { display: flex; gap: var(--space-8); align-items: flex-end; padding-bottom: var(--space-1); }
 
 /* 可调整高度的表格容器 */
 .resizable-table {
   position: relative;
+  /* TODO: [Design Debt] 400px 无精确令牌，暂不替换，待定令牌后统一处理 */
   height: 400px;
   min-height: 200px;
   max-height: 800px;
@@ -244,12 +245,12 @@ const {
   overflow-y: auto;
   overflow-x: auto;
 }
-.log-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 700px; }
+.log-table { width: 100%; border-collapse: collapse; font-size: var(--font-size-13); min-width: 700px; }
 .log-table th { position: sticky; top: 0; background: var(--surface-raised); z-index: 1; }
-.log-table th, .log-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
-.log-table th { font-weight: 600; color: var(--text-secondary); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+.log-table th, .log-table td { padding: var(--space-10) var(--space-12); text-align: left; border-bottom: 1px solid var(--border); }
+.log-table th { font-weight: var(--font-weight-semibold); color: var(--text-secondary); font-size: var(--font-size-11); text-transform: uppercase; letter-spacing: 0.05em; }
 .title-cell { max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.empty { color: var(--text-dim); font-size: 14px; padding: 32px 0; text-align: center; }
+.empty { color: var(--text-dim); font-size: var(--font-size-14); padding: var(--space-32) 0; text-align: center; }
 
 /* 拖拽手柄 */
 .resize-handle {
@@ -257,6 +258,7 @@ const {
   bottom: 0;
   left: 0;
   right: 0;
+  /* TODO: [Design Debt] 8px 无精确令牌，暂不替换，待定令牌后统一处理 */
   height: 8px;
   cursor: ns-resize;
   background: transparent;
@@ -264,7 +266,7 @@ const {
   transition: background 0.2s;
 }
 .resize-handle:hover {
-  background: rgba(99, 102, 241, 0.2);
+  background: var(--primary-border);
 }
 .resize-handle::after {
   content: '';
@@ -279,18 +281,19 @@ const {
 }
 .resize-handle:hover::after {
   background: var(--primary);
+  /* TODO: [Design Debt] 4px 无精确令牌，暂不替换，待定令牌后统一处理 */
   height: 4px;
 }
 
 /* 分页 */
-.pagination { display: flex; justify-content: center; align-items: center; gap: 4px; margin-top: 16px; }
+.pagination { display: flex; justify-content: center; align-items: center; gap: var(--space-4); margin-top: var(--space-16); }
 
 /* 详情弹窗 */
-.detail { display: flex; flex-direction: column; gap: 12px; }
-.detail-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+.detail { display: flex; flex-direction: column; gap: var(--space-12); }
+.detail-row { display: flex; justify-content: space-between; align-items: center; font-size: var(--font-size-13); }
 .detail-row span:first-child { color: var(--text-dim); }
-.detail-body { font-size: 13px; }
+.detail-body { font-size: var(--font-size-13); }
 .detail-body span { color: var(--text-dim); }
-.detail-body pre { margin: 4px 0 0; padding: 10px; background: var(--bg); border-radius: var(--radius-sm); font-size: 12px; white-space: pre-wrap; word-break: break-all; }
+.detail-body pre { margin: var(--space-4) 0 0; padding: var(--space-10); background: var(--bg); border-radius: var(--radius-sm); font-size: var(--font-size-12); white-space: pre-wrap; word-break: break-all; }
 .err { color: var(--danger) !important; }
 </style>

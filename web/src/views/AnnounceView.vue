@@ -180,12 +180,12 @@ function onPage(e: any) {
     <DataView :value="paginatedResults" size="small" class="mt-3">
       <template #list="slotProps">
         <div v-for="(item, idx) in slotProps.items" :key="item.announce_no || idx" class="p-2 border-bottom announce-row" @click="router.push('/announce/' + (SOURCE_TO_URL[item.source_site] || 'unknown') + '/' + encodeURIComponent(item.announce_no))">
-          <div style="display:flex;gap:12px;padding:6px 0;border-bottom:1px solid var(--border-light)">
+          <div style="display:flex;gap:var(--space-12);padding:var(--space-6) 0;border-bottom:1px solid var(--border-light)">
             <!-- fix(a11y): 公告号/标题强制 --text-heading——--text-bright 在绿色主题实测仅 4.46:1 未达 AA，--text-heading 四主题 ≥8:1；同时阻断 Aura 亮色 token(#334155) 继承，深色主题对比度 1.8:1→≥8:1；日期/数量由 --text-dim 加深为 --text，绿色主题 2.3:1→≈6.3:1 -->
             <strong style="min-width:140px;flex-shrink:0;color:var(--text-heading)">{{ item.announce_no }}</strong>
             <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-heading)">{{ item.announcement_title }}</span>
-            <span v-if="item.standard_count" style="min-width:60px;font-size:12px;color:var(--text);flex-shrink:0">{{ t('announce.view.item_count', { n: item.standard_count }) }}</span>
-            <span style="min-width:90px;font-size:12px;color:var(--text);flex-shrink:0">{{ item.publish_date }}</span>
+            <span v-if="item.standard_count" style="min-width:60px;font-size:var(--font-size-12);color:var(--text);flex-shrink:0">{{ t('announce.view.item_count', { n: item.standard_count }) }}</span>
+            <span style="min-width:90px;font-size:var(--font-size-12);color:var(--text);flex-shrink:0">{{ item.publish_date }}</span>
           </div>
         </div>
       </template>
@@ -194,32 +194,32 @@ function onPage(e: any) {
     <LogBar class="mt-3" />
   </template>
   <div v-else class="empty-state mt-4">
-    <p style="color: var(--text-dim); text-align: center; padding: 40px 0;">
+    <p style="color: var(--text-dim); text-align: center; padding: var(--space-40) 0;">
       {{ t('announce.view.empty_hint') }}
     </p>
   </div>
 </template>
 
 <style scoped>
-.header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.err-msg { color: var(--danger, #e74c3c); font-size: 12px; margin: 4px 0; }
+.header { display: flex; align-items: center; gap: var(--space-12); flex-wrap: wrap; }
+.err-msg { color: var(--danger, #e74c3c); font-size: var(--font-size-12); margin: var(--space-4) 0; }
 /* 说明「起始日期」是抓取起点（含当日），不是列表过滤；用 --text 保证四主题对比度 */
-.since-hint { font-size: 12px; color: var(--text); }
+.since-hint { font-size: var(--font-size-12); color: var(--text); }
 
-.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
-.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; text-align: center; }
-.fail-panel { border: 1px solid var(--danger, #e74c3c); border-radius: var(--radius); padding: 10px 14px; background: var(--surface); }
-.fail-head { color: var(--danger, #e74c3c); font-size: 13px; font-weight: 600; }
-.fail-list { list-style: none; margin: 8px 0 0; padding: 0; }
-.fail-list li { display: flex; gap: 10px; font-size: 12px; color: var(--text); padding: 4px 0; border-top: 1px solid var(--border-light, #e5e7eb); }
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: var(--space-12); }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-14) var(--space-16); text-align: center; }
+.fail-panel { border: 1px solid var(--danger, #e74c3c); border-radius: var(--radius); padding: var(--space-10) var(--space-14); background: var(--surface); }
+.fail-head { color: var(--danger, #e74c3c); font-size: var(--font-size-13); font-weight: var(--font-weight-semibold); }
+.fail-list { list-style: none; margin: var(--space-8) 0 0; padding: 0; }
+.fail-list li { display: flex; gap: var(--space-10); font-size: var(--font-size-12); color: var(--text); padding: var(--space-4) 0; border-top: 1px solid var(--border-light, #e5e7eb); }
 .fail-site { min-width: 90px; color: var(--text-dim); }
 .fail-msg { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fail-time { min-width: 130px; color: var(--text-dim); text-align: right; }
 /* fix(a11y): 统计数字改用 --text-heading——项目无 --primary-dark 深色变体，--primary-hover 绿色主题实测 3.14:1、--text-bright 4.46:1 均不达标或余量不足；--text-heading 四主题 ≥8:1 */
-.stat-num { font-size: 28px; font-weight: 700; color: var(--text-heading); font-family: var(--mono); }
-.stat-label { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
-.stat-sub { font-size: 11px; color: var(--text-dim); margin-top: 6px; line-height: 1.5; }
+.stat-num { font-size: var(--font-size-28); font-weight: var(--font-weight-bold); color: var(--text-heading); font-family: var(--mono); }
+.stat-label { font-size: var(--font-size-12); color: var(--text-dim); margin-top: var(--space-4); }
+.stat-sub { font-size: var(--font-size-11); color: var(--text-dim); margin-top: var(--space-6); line-height: var(--line-height-normal); }
 .border-bottom { border-bottom: 1px solid var(--border-light, #e5e7eb); }
 .announce-row { cursor: pointer; transition: background 0.15s; }
-.announce-row:hover { background: var(--surface-hover, #f3f4f6); }
+.announce-row:hover { background: var(--selected); }
 </style>

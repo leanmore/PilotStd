@@ -157,9 +157,9 @@ export default defineComponent({
       </div>
       <div class="status-item" v-if="status.last_processed">
         <span class="status-label">{{ t('settings.file_monitor.last') }}</span>
-        <span style="font-size:11px">{{ status.last_processed.split('|')[1] || '' }}</span>
+        <span style="font-size:var(--font-size-11)">{{ status.last_processed.split('|')[1] || '' }}</span>
       </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-left:auto">
+      <div style="display:flex;gap:var(--space-6);flex-wrap:wrap;margin-left:auto">
         <Button :label="t('settings.file_monitor.start')" size="small" severity="success" :loading="startLoading" @click="startMonitor" :disabled="status.running" />
         <Button :label="t('settings.file_monitor.stop')" size="small" severity="danger" :loading="stopLoading" @click="stopMonitor" :disabled="!status.running" />
       </div>
@@ -168,7 +168,7 @@ export default defineComponent({
     <!-- 配置 -->
     <div class="monitor-config">
       <div class="field">
-        <div style="display:flex;align-items:center;gap:8px">
+        <div style="display:flex;align-items:center;gap:var(--space-8)">
           <ToggleSwitch v-model="config.enabled" />
           <label>{{ t('settings.file_monitor.enabled') }}</label>
         </div>
@@ -184,11 +184,11 @@ export default defineComponent({
         </div>
       </div>
       <div class="field-row" style="align-items:center">
-        <div style="display:flex;align-items:center;gap:8px">
+        <div style="display:flex;align-items:center;gap:var(--space-8)">
           <ToggleSwitch v-model="config.recursive" />
           <label>{{ t('settings.file_monitor.subdirs') }}</label>
         </div>
-        <div style="display:flex;align-items:center;gap:8px">
+        <div style="display:flex;align-items:center;gap:var(--space-8)">
           <ToggleSwitch v-model="config.auto_archive" />
           <label>{{ t('settings.file_monitor.auto_archive') }}</label>
         </div>
@@ -205,7 +205,7 @@ export default defineComponent({
                    @update:model-value="v => config.ignore_patterns = (v as string).split(',').map(s => s.trim()).filter(Boolean)"
                    placeholder="~$,.tmp,.swp" />
       </div>
-      <div style="margin-top:12px">
+      <div style="margin-top:var(--space-12)">
         <Button :label="t('settings.save_config')" icon="pi pi-check" size="small" :loading="saving" @click="saveConfig" />
       </div>
     </div>
@@ -213,14 +213,14 @@ export default defineComponent({
 </template>
 
 <style scoped>
-.monitor-status-bar { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; padding: 12px 16px; background: var(--surface-raised); border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 16px; }
-.status-item { display: flex; flex-direction: column; gap: 4px; }
-.status-label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.03em; }
-.status-item code { font-size: 12px; background: var(--surface); padding: 1px 6px; border-radius: 3px; }
-.monitor-config { border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
-.field { margin-bottom: 12px; }
-.field label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
-.field-row { display: flex; gap: 16px; margin-bottom: 12px; align-items: flex-end; }
+.monitor-status-bar { display: flex; flex-wrap: wrap; gap: var(--space-16); align-items: center; padding: var(--space-12) var(--space-16); background: var(--surface-raised); border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: var(--space-16); }
+.status-item { display: flex; flex-direction: column; gap: var(--space-4); }
+.status-label { font-size: var(--font-size-10); color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.03em; }
+.status-item code { font-size: var(--font-size-12); background: var(--surface); padding: var(--space-1) var(--space-6); border-radius: 3px; }
+.monitor-config { border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-18); }
+.field { margin-bottom: var(--space-12); }
+.field label { display: block; font-size: var(--font-size-12); color: var(--text-secondary); margin-bottom: var(--space-6); }
+.field-row { display: flex; gap: var(--space-16); margin-bottom: var(--space-12); align-items: flex-end; }
 .field-path { flex: 1; max-width: 400px; }
 .field-delay { width: 140px; flex-shrink: 0; }
 .full-width { width: 100%; box-sizing: border-box; }

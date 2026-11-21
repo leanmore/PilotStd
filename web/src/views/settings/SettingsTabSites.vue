@@ -313,13 +313,14 @@ onMounted(() => { loadSites() })
 .site-head {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
 }
 .site-head .lock-btn {
   margin-left: auto;
 }
 .health-dot {
   width: 8px;
+  /* TODO: [Design Debt] 8px 无精确令牌，暂不替换，待定令牌后统一处理 */
   height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
@@ -329,42 +330,42 @@ onMounted(() => { loadSites() })
 .health-down { background: var(--danger); }
 .health-none { background: var(--border-light, #ccc); }
 .discard-btn {
-  margin-left: 2px;
+  margin-left: var(--space-2);
 }
 .site-fields {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 8px;
-  margin-top: 8px;
-  padding-top: 8px;
+  gap: var(--space-8);
+  margin-top: var(--space-8);
+  padding-top: var(--space-8);
   border-top: 1px solid var(--border-light, #e5e7eb);
 }
 .site-field {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: var(--space-3);
 }
 .site-field label {
-  font-size: 11px;
-  font-weight: 500;
+  font-size: var(--font-size-11);
+  font-weight: var(--font-weight-medium);
   color: var(--text-secondary);
 }
 .field-value {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
   color: var(--text-bright);
-  padding: 4px 0;
+  padding: var(--space-4) 0;
 }
 .site-field :deep(.edit-input) {
-  border-color: var(--primary-color) !important;
+  border-color: var(--primary) !important;
 }
 .site-status {
   display: flex;
-  gap: 16px;
-  margin-top: 8px;
-  padding-top: 6px;
+  gap: var(--space-16);
+  margin-top: var(--space-8);
+  padding-top: var(--space-6);
   border-top: 1px solid var(--border-light, #e5e7eb);
-  font-size: 12px;
+  font-size: var(--font-size-12);
   color: var(--text-dim);
 }
 </style>

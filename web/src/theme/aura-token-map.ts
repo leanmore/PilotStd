@@ -2,7 +2,8 @@
 // Tech-Debt #8 P1：项目主题 → Aura text/content token 映射表（做减法原则）
 //
 // P0 结论：Aura 的 text/content 系 token 固定为 light 值（--p-content-color 恒为 #334155），
-// 不随 data-p-theme / useTheme / updatePreset 变化（验证环境实证，见 docs/investigations/aura-token-sync-feasibility.md）。
+// 不随 data-p-theme / useTheme / updatePreset 变化（验证环境实证，见 docs/technical-debt.md 的 Tech-Debt #8；
+// 其原始调研报告已归档至 docs/.local/archive/2026-10-24/docs/investigations/，该目录不入库）。
 // 方案 B：在 useThemeSync 中按主题 setProperty 注入 :root 级 token（与 updateSurfacePalette 同路径，P2 实施）。
 //
 // 做减法原则（P1 审核指导）：

@@ -20,9 +20,9 @@ defineProps<{ widget: { config?: { title?: string } } }>()
   height: 100%; box-sizing: border-box;
   background: linear-gradient(135deg, var(--surface), var(--surface-raised));
   border: 1px solid var(--border); border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-xs); padding: 20px;
+  box-shadow: var(--shadow-xs); padding: var(--space-20);
   display: flex; flex-direction: column; justify-content: center; align-items: center;
 }
-.widget-header { font-weight: 700; color: var(--text-heading); font-size: 15px; margin-bottom: 8px; }
-.empty-text { color: var(--text-dim); font-size: 13px; }
+.widget-header { font-weight: var(--font-weight-bold); color: var(--text-heading); font-size: var(--font-size-15); margin-bottom: var(--space-8); }
+.empty-text { color: var(--text-dim); font-size: var(--font-size-13); }
 </style>

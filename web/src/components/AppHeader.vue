@@ -103,12 +103,15 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  /* TODO: [Design Debt] 60px 无精确令牌，暂不替换，待定令牌后统一处理 */
   height: 60px;
-  padding: 0 24px;
+  padding: 0 var(--space-24);
+  /* TODO: [Design Debt] rgba(255, 255, 255, 0.8) 无精确令牌，暂不替换，待定令牌后统一处理 */
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
+  /* TODO: [Design Debt] 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 12px -4px rgba(0, 0, 0, 0.08) 无精确令牌，暂不替换，待定令牌后统一处理 */
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 12px -4px rgba(0, 0, 0, 0.08);
   z-index: 100;
   flex-shrink: 0;
@@ -119,24 +122,25 @@ onUnmounted(() => {
 /* 暗色主题下的顶部导航栏（dark + blue） */
 :root[data-theme="dark"] .topbar,
 :root[data-theme="blue"] .topbar {
+  /* TODO: [Design Debt] rgba(30, 41, 59, 0.85) 无精确令牌，暂不替换，待定令牌后统一处理 */
   background: rgba(30, 41, 59, 0.85);
 }
 
 .topbar-left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--space-16);
 }
 
 .topbar-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
 }
 
 .topbar-brand {
-  font-size: 18px;
-  font-weight: 800;
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-extrabold);
   background: linear-gradient(135deg, var(--primary), var(--primary-hover));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -145,25 +149,25 @@ onUnmounted(() => {
 }
 
 .topbar-title {
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-medium);
   color: var(--text-secondary);
-  padding-left: 16px;
+  padding-left: var(--space-16);
   border-left: 2px solid var(--border);
 }
 
 .topbar-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
+  gap: var(--space-6);
+  padding: var(--space-8) var(--space-14);
   background: none;
   border: 1px solid transparent;
   border-radius: var(--radius);
   color: var(--text-secondary);
   cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-medium);
   transition: all var(--transition);
   white-space: nowrap;
   position: relative;
@@ -188,7 +192,7 @@ onUnmounted(() => {
   transform: scale(0.96);
 }
 .topbar-btn i {
-  font-size: 16px;
+  font-size: var(--font-size-16);
   position: relative;
   z-index: 1;
 }
@@ -203,46 +207,48 @@ onUnmounted(() => {
 .user-tag {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  font-size: 13px;
-  font-weight: 500;
+  gap: var(--space-8);
+  padding: var(--space-6) var(--space-12);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-medium);
   color: var(--text);
   background: var(--surface-raised);
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
-.user-tag i { font-size: 14px; color: var(--primary); }
+.user-tag i { font-size: var(--font-size-14); color: var(--primary); }
 
 /* 响应式 — 平板/移动端隐藏文字 */
 @media (max-width: 1023px) {
-  .topbar { padding: 0 16px; }
+  .topbar { padding: 0 var(--space-16); }
   .hide-mobile { display: none; }
 }
 
 @media (max-width: 767px) {
   .topbar {
+    /* TODO: [Design Debt] 56px 无精确令牌，暂不替换，待定令牌后统一处理 */
     height: 56px;
-    padding: 0 12px;
+    padding: 0 var(--space-12);
   }
-  .topbar-brand { font-size: 16px; }
-  .topbar-title { font-size: 13px; padding-left: 12px; }
-  .topbar-btn { padding: 6px 10px; }
-  .topbar-btn i { font-size: 15px; }
+  .topbar-brand { font-size: var(--font-size-16); }
+  .topbar-title { font-size: var(--font-size-13); padding-left: var(--space-12); }
+  .topbar-btn { padding: var(--space-6) var(--space-10); }
+  .topbar-btn i { font-size: var(--font-size-15); }
 }
 
 /* 触摸设备优化 */
 @media (hover: none) and (pointer: coarse) {
-  .topbar-btn { padding: 10px 14px; }
+  .topbar-btn { padding: var(--space-10) var(--space-14); }
 }
 
 /* 顶部栏折叠态：默认收缩至40px */
 .topbar.collapsed {
+  /* TODO: [Design Debt] 40px 无精确令牌，暂不替换，待定令牌后统一处理 */
   height: 40px;
-  padding: 0 16px;
+  padding: 0 var(--space-16);
 }
 .topbar.collapsed .topbar-brand {
-  font-size: 15px;
+  font-size: var(--font-size-15);
 }
 
 /* 滚动隐藏：完全滑出视口 */

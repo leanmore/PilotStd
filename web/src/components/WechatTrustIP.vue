@@ -154,14 +154,14 @@ onMounted(() => { loadConfig(); loadStatus() })
     <Message v-if="checkResult" severity="info" :closable="false">{{ checkResult }}</Message>
 
     <!-- 总开关 + 当前状态 -->
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px">
-      <div style="display:flex;align-items:center;gap:10px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--space-12);margin-bottom:var(--space-16)">
+      <div style="display:flex;align-items:center;gap:var(--space-10)">
         <ToggleSwitch v-model="config.enabled" />
-        <span style="font-weight:600;font-size:14px">{{ t('settings.wechat_ip.title') }}</span>
+        <span style="font-weight:var(--font-weight-semibold);font-size:var(--font-size-14)">{{ t('settings.wechat_ip.title') }}</span>
         <Tag v-if="config.enabled" severity="success" :value="t('settings.wechat_ip.enabled')" />
         <Tag v-else severity="secondary" :value="t('settings.wechat_ip.disabled')" />
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <div style="display:flex;gap:var(--space-8);flex-wrap:wrap">
         <Button :label="t('settings.wechat_ip.check_now')" icon="pi pi-sync" size="small" :loading="checking" @click="triggerCheck" />
         <Button :label="t('settings.save_config')" icon="pi pi-check" size="small" severity="primary" :loading="saving" @click="saveConfig" />
       </div>
@@ -176,7 +176,7 @@ onMounted(() => { loadConfig(); loadStatus() })
       </div>
       <div class="status-item">
         <span class="status-label">{{ t('settings.wechat_ip.last_ip') }}</span>
-        <span style="font-size:13px">{{ status.last_ip || t('settings.wechat_ip.none') }}</span>
+        <span style="font-size:var(--font-size-13)">{{ status.last_ip || t('settings.wechat_ip.none') }}</span>
       </div>
       <div class="status-item">
         <span class="status-label">{{ t('settings.wechat_ip.ip_changed') }}</span>
@@ -188,7 +188,7 @@ onMounted(() => { loadConfig(); loadStatus() })
       </div>
       <div class="status-item" v-if="status.last_check_at">
         <span class="status-label">{{ t('settings.wechat_ip.last_check') }}</span>
-        <span style="font-size:12px;color:var(--text-dim)">{{ status.last_check_at }}</span>
+        <span style="font-size:var(--font-size-12);color:var(--text-dim)">{{ status.last_check_at }}</span>
       </div>
     </div>
 
@@ -209,7 +209,7 @@ onMounted(() => { loadConfig(); loadStatus() })
             <label>{{ t('settings.wechat_ip.mode') }}</label>
             <SelectButton v-model="config.update_mode" :options="updateModeOptions" option-value="value" option-label="label" size="small" />
           </div>
-          <div class="field" style="display:flex;align-items:center;gap:8px">
+          <div class="field" style="display:flex;align-items:center;gap:var(--space-8)">
             <ToggleSwitch v-model="config.headless" />
             <label>{{ t('settings.wechat_ip.headless') }}</label>
           </div>
@@ -217,7 +217,7 @@ onMounted(() => { loadConfig(); loadStatus() })
             <label>{{ t('settings.wechat_ip.engine') }}</label>
             <SelectButton v-model="config.engine" :options="engineOptions" option-value="value" option-label="label" size="small" />
           </div>
-          <div class="field" style="display:flex;align-items:center;gap:8px">
+          <div class="field" style="display:flex;align-items:center;gap:var(--space-8)">
             <ToggleSwitch v-model="config.notify_result" />
             <label>{{ t('settings.wechat_ip.notify') }}</label>
           </div>
@@ -269,11 +269,11 @@ onMounted(() => { loadConfig(); loadStatus() })
 </template>
 
 <style scoped>
-.status-bar { display: flex; gap: 20px; flex-wrap: wrap; padding: 12px 16px; background: var(--surface-raised); border-radius: var(--radius); margin-bottom: 16px; border: 1px solid var(--border); }
-.status-item { display: flex; flex-direction: column; gap: 4px; }
-.status-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.03em; }
-.config-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 14px; }
+.status-bar { display: flex; gap: var(--space-20); flex-wrap: wrap; padding: var(--space-12) var(--space-16); background: var(--surface-raised); border-radius: var(--radius); margin-bottom: var(--space-16); border: 1px solid var(--border); }
+.status-item { display: flex; flex-direction: column; gap: var(--space-4); }
+.status-label { font-size: var(--font-size-11); color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.03em; }
+.config-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: var(--space-14); }
 .config-card { border: 1px solid var(--border); }
-.field { margin-bottom: 12px; }
-.field label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 500; }
+.field { margin-bottom: var(--space-12); }
+.field label { display: block; font-size: var(--font-size-12); color: var(--text-secondary); margin-bottom: var(--space-4); font-weight: var(--font-weight-medium); }
 </style>

@@ -88,9 +88,9 @@ onMounted(() => { if (isAdmin.value) fetchBackups('/backup') })
 
 <style scoped>
 .page { max-width: 900px; }
-.page-title { margin: 0 0 20px; font-size: 20px; font-weight: 600; color: var(--text-heading); }
+.page-title { margin: 0 0 var(--space-20); font-size: var(--font-size-20); font-weight: var(--font-weight-semibold); color: var(--text-heading); }
 .flex { display: flex; }
-.gap-3 { gap: 12px; }
+.gap-3 { gap: var(--space-12); }
 .align-items-center { align-items: center; }
-.text-sm { font-size: 13px; color: var(--text-color-secondary); }
+.text-sm { font-size: var(--font-size-13); color: var(--text-secondary); }
 </style>

@@ -41,9 +41,9 @@ defineEmits<{
 
 <style scoped>
 .table-load-footer {
-  padding: 12px 16px;
+  padding: var(--space-12) var(--space-16);
   text-align: center;
-  font-size: 13px;
+  font-size: var(--font-size-13);
   color: var(--text-dim);
   border-top: 1px solid var(--border);
 }
@@ -51,26 +51,29 @@ defineEmits<{
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: var(--space-10);
 }
 .load-all-btn {
-  padding: 4px 12px;
+  padding: var(--space-4) var(--space-12);
   border: 1px solid var(--primary);
   background: transparent;
   color: var(--primary);
-  border-radius: 4px;
+  border-radius: var(--ds-radius-xs);
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--font-size-12);
   transition: all 0.2s;
 }
 .load-all-btn:hover {
   background: var(--primary-fill);
+  /* TODO: [Design Debt] #fff 无精确令牌，暂不替换，待定令牌后统一处理 */
   color: #fff;
 }
 .partial-text {
+  /* TODO: [Design Debt] #ca8a04 无精确令牌，暂不替换，待定令牌后统一处理 */
   color: #ca8a04;
 }
 .spinner {
+  /* TODO: [Design Debt] 20px 无精确令牌，暂不替换，待定令牌后统一处理 */
   width: 20px; height: 20px;
   border: 3px solid var(--border);
   border-top-color: var(--primary);

@@ -1,0 +1,125 @@
+/* ═══════════════════════════════════════════
+   PilotStd — 设计令牌 · 与主题无关的尺度层
+   ═══════════════════════════════════════════
+   单一数据源：间距 / 字号 / 行高 / 字重 / 圆角 / 图标方块 / 按钮高度。
+
+   三条硬规则：
+   1. 本文件禁止出现任何颜色字面量（hex / rgb / hsl）。颜色仍由既有三层负责：
+      style.css :root（默认层）→ config/themes.ts（四主题运行层）→ theme/aura-token-map.ts（PrimeVue --p-* 桥）。
+      原因：颜色随主题变化、由 JS 注入；把颜色放进本文件会与四主题双写并再次漂移。
+   2. 数值一律取自 web/src 下所有 .vue/.css 的实测档位（2026-11-21 扫描），按 1:1 等价替换，
+      本轮不做视觉收敛。8pt 收敛与语义化收敛记入 docs/design-token-audit.md 的 TODO 清单。
+   3. 旧令牌 --radius-sm(6px) / --radius(10px) / --radius-lg(14px) 原样保留在 style.css，
+      本文件不覆盖、不复用同名；新增圆角统一用 --ds-radius-*。
+
+   接入点：main.ts 第 1 行 `import './styles/design-tokens.css'`（先于 style.css）。
+   CSS 自定义属性按 computed-value 解析，顺序不影响解析结果；先声明仅为可读性。
+*/
+
+:root {
+  /* ═══════════════════════════════════════════
+     间距 — 实测 19 档（web/src 的 padding/margin/gap 全量取值）
+     8pt/4pt 对齐档在前，off-grid 档在后并标注，供后续收敛
+     ═══════════════════════════════════════════ */
+  --space-4: 4px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-40: 40px;
+  --space-44: 44px;
+
+  /* 半档（2 的倍数但非 4 的倍数）—— 存量广泛使用，等价保留 */
+  --space-2: 2px;
+  --space-6: 6px;
+  --space-10: 10px;
+  --space-14: 14px;
+  --space-18: 18px;
+  --space-30: 30px;
+
+  /* off-grid（非 2/4 的倍数）—— 仅 1~9px 细调场景，收敛需视觉确认，勿盲改 */
+  --space-1: 1px;
+  --space-3: 3px;
+  --space-7: 7px;
+  --space-9: 9px;
+
+  /* ═══════════════════════════════════════════
+     字号 — 实测 16 档（font-size: Npx 全量取值）
+     数字命名的档位是替换用的基座；语义别名仅覆盖全局排版实际用到的档位
+     ═══════════════════════════════════════════ */
+  --font-size-9: 9px;
+  --font-size-10: 10px;
+  --font-size-11: 11px;
+  --font-size-12: 12px;
+  --font-size-13: 13px;
+  --font-size-14: 14px;
+  --font-size-15: 15px;
+  --font-size-16: 16px;
+  --font-size-17: 17px;
+  --font-size-18: 18px;
+  --font-size-20: 20px;
+  --font-size-22: 22px;
+  --font-size-24: 24px;
+  --font-size-28: 28px;
+  --font-size-42: 42px;
+  --font-size-72: 72px;
+
+  /* 语义别名 —— 与 style.css 的 h1~h4 / body / caption 现状严格对应（22/17/15/13/14/12） */
+  --font-size-h1: var(--font-size-22);
+  --font-size-h2: var(--font-size-17);
+  --font-size-h3: var(--font-size-15);
+  --font-size-h4: var(--font-size-13);
+  --font-size-body: var(--font-size-14);
+  --font-size-caption: var(--font-size-12);
+  --font-size-micro: var(--font-size-11);
+
+  /* ═══════════════════════════════════════════
+     行高 — 实测 7 档（无单位倍数，随字号缩放）
+     ═══════════════════════════════════════════ */
+  --line-height-none: 1;
+  --line-height-snug: 1.25;
+  --line-height-compact: 1.3;
+  --line-height-normal: 1.5;
+  --line-height-body: 1.6;
+  --line-height-relaxed: 1.7;
+  --line-height-loose: 1.8;
+
+  /* ═══════════════════════════════════════════
+     字重 — 实测 5 档
+     ═══════════════════════════════════════════ */
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+
+  /* ═══════════════════════════════════════════
+     圆角 — 新命名 --ds-radius-*，避开旧 --radius-sm/:10/-lg
+     实测档位 4/8/12/16/999 全部有消费者；6px 与旧 --radius-sm 同值
+     2px/3px 属装饰细线（滚动条、进度条），保持字面量，不纳入替换
+     ═══════════════════════════════════════════ */
+  --ds-radius-xs: 4px;
+  --ds-radius-sm: 6px;
+  --ds-radius-md: 8px;
+  --ds-radius-lg: 12px;
+  --ds-radius-xl: 16px;
+  --ds-radius-pill: 999px;
+
+  /* ═══════════════════════════════════════════
+     图标方块 — 仪表盘卡片左侧图标底板（34px ×8、32px ×2）
+     独立于 --btn-height-*，因为实测这两档不是按钮高度
+     ═══════════════════════════════════════════ */
+  --icon-tile-md: 34px;
+  --icon-tile-sm: 32px;
+
+  /* ═══════════════════════════════════════════
+     按钮高度 — 锁定值 34px（任务包 Q1 锁定：以存量主档为准）
+     ⚠️ 实测口径说明：34px 的真实消费者是仪表盘图标方块与紧凑控件，
+        .p-button 当前无固定高度（靠 padding 8px 18px + 13px 字号撑开）。
+        故本令牌暂作为"紧凑控件统一高度"锚点，待按钮高度方案确认后接线；
+        48/36/24 因存量无对应消费者，本轮不引入。
+     ═══════════════════════════════════════════ */
+  --btn-height-md: 34px;
+}

@@ -24,21 +24,22 @@ const router = useRouter()
 <style scoped>
 .forbidden {
   max-width: 560px;
+  /* TODO: [Design Debt] 12vh auto 0 无精确令牌，暂不替换，待定令牌后统一处理 */
   margin: 12vh auto 0;
   text-align: center;
-  padding: 32px;
+  padding: var(--space-32);
 }
 .code {
-  font-size: 72px;
-  font-weight: 700;
+  font-size: var(--font-size-72);
+  font-weight: var(--font-weight-bold);
   color: var(--primary);
-  line-height: 1;
+  line-height: var(--line-height-none);
 }
 h1 {
-  margin: 16px 0 8px;
+  margin: var(--space-16) 0 var(--space-8);
 }
 .desc {
   color: var(--text-dim);
-  margin-bottom: 24px;
+  margin-bottom: var(--space-24);
 }
 </style>

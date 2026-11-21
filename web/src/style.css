@@ -5,10 +5,13 @@
    设计令牌 — 默认主题（经典白）
    ═══════════════════════════════════════════ */
 :root {
-  /* 背景层级 */
-  --bg: #f8fafc;
+  /* 背景层级
+     fix(theme): 与运行层对齐——themes.ts 的 light 主题为 bg=#f1f5f9 / surfaceRaised=#f8fafc，
+     本处原值（bg=#f8fafc / raised=#f1f5f9）与之两两互换，导致首屏（JS 注入前）画布与抬升面层级颠倒。
+     以 themes.ts（四主题运行层，可切换的唯一真相）为准修正。 */
+  --bg: #f1f5f9;
   --surface: #ffffff;
-  --surface-raised: #f1f5f9;
+  --surface-raised: #f8fafc;
 
   /* 边框 */
   --border: #e2e8f0;
@@ -119,26 +122,33 @@
   box-shadow: var(--shadow-sm);
   transition: all var(--transition);
 }
+/* TODO: [Design Debt] rgba(99, 102, 241, 0.2) 无精确令牌，暂不替换，待定令牌后统一处理 */
 .mp-card:hover { box-shadow: var(--shadow-md); border-color: rgba(99, 102, 241, 0.2); }
 .mp-badge {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 2px 10px; border-radius: 999px; font-size: 11px; font-weight: 600;
+  display: inline-flex; align-items: center; gap: var(--space-4);
+  padding: var(--space-2) var(--space-10); border-radius: var(--ds-radius-pill); font-size: var(--font-size-11); font-weight: var(--font-weight-semibold);
 }
-.mp-badge-success { background: rgba(34,197,94,0.12); color: var(--success); }
-.mp-badge-danger  { background: rgba(239,68,68,0.12); color: var(--danger); }
-.mp-badge-warning { background: rgba(245,158,11,0.12); color: var(--warning); }
+.mp-badge-success { background: var(--success-bg); color: var(--success); }
+.mp-badge-danger  { background: var(--danger-bg); color: var(--danger); }
+.mp-badge-warning { background: var(--warning-bg); color: var(--warning); }
 .mp-list-row {
-  display: flex; align-items: center; padding: 10px 14px;
+  display: flex; align-items: center; padding: var(--space-10) var(--space-14);
   border-bottom: 1px solid var(--border-light); transition: background 0.2s;
 }
 .mp-list-row:last-child { border-bottom: none; }
+/* TODO: [Design Debt] rgba(99, 102, 241, 0.04) 无精确令牌，暂不替换，待定令牌后统一处理 */
 .mp-list-row:hover { background: rgba(99, 102, 241, 0.04); }
 @keyframes mp-pulse-glow {
+  /* TODO: [Design Debt] 0 0 4px rgba(34,197,94,0.4) 无精确令牌，暂不替换，待定令牌后统一处理 */
   0%, 100% { box-shadow: 0 0 4px rgba(34,197,94,0.4); }
+  /* TODO: [Design Debt] 0 0 14px rgba(34,197,94,0.7) 无精确令牌，暂不替换，待定令牌后统一处理 */
   50% { box-shadow: 0 0 14px rgba(34,197,94,0.7); }
 }
+/* TODO: [Design Debt] 8px 无精确令牌，暂不替换，待定令牌后统一处理 */
 .mp-dot-success { width: 8px; height: 8px; border-radius: 50%; background: var(--success); animation: mp-pulse-glow 2s ease-in-out infinite; }
+/* TODO: [Design Debt] 8px 无精确令牌，暂不替换，待定令牌后统一处理 */
 .mp-dot-danger  { width: 8px; height: 8px; border-radius: 50%; background: var(--danger);  animation: mp-pulse-glow 2s ease-in-out infinite; }
+/* TODO: [Design Debt] 8px 无精确令牌，暂不替换，待定令牌后统一处理 */
 .mp-dot-warning { width: 8px; height: 8px; border-radius: 50%; background: var(--warning); animation: mp-pulse-glow 2s ease-in-out infinite; }
 
 body {
@@ -155,26 +165,26 @@ h2,
 h3,
 h4 {
   font-family: var(--sans);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--text-heading);
   margin: 0;
   letter-spacing: -0.02em;
 }
 
 h1 {
-  font-size: 22px;
+  font-size: var(--font-size-22);
 }
 
 h2 {
-  font-size: 17px;
+  font-size: var(--font-size-17);
 }
 
 h3 {
-  font-size: 15px;
+  font-size: var(--font-size-15);
 }
 
 h4 {
-  font-size: 13px;
+  font-size: var(--font-size-13);
 }
 
 /* ═══════════════════════════════════════════
@@ -232,7 +242,7 @@ body .p-card {
    Reason: Aura 组件作用域 token（--p-datatable-header-cell-color 等）为解析后直接值 #334155，
    root 级 --p-content-color 注入无法覆盖（P1 实证）；--text-dim 作表头色浅色主题 2.4-2.6:1 不达标，
    改用 --text 后 ≈7:1（浅色深字/深色浅字自适应），保留加粗+大写维持表头层级。
-   See: docs/investigations/aura-token-sync-feasibility.md §P1 - component-scope direct values */
+   See: docs/technical-debt.md（Tech-Debt #8；原始调研报告已归档至 docs/.local/archive/2026-10-24/，未入库）*/
 .p-datatable .p-datatable-thead>tr>th {
   background: var(--surface-raised);
   color: var(--text);
@@ -334,7 +344,7 @@ body .p-card {
    Reason: Aura 默认 success/warning 按钮为 emerald-500(#10b981)/orange-500(#f97316) + 白字，
    实测 2.54/2.8:1 不达标；映射表未含 success/warning 变体（做减法），保留固定 #16a34a/#ea580c + #000
    （6.4/5.8:1 ✅）。注：warn 实测为 orange-500，深色变体取 orange-600。
-   See: docs/investigations/aura-token-sync-feasibility.md §P1 - button scope */
+   See: docs/technical-debt.md（Tech-Debt #8；原始调研报告已归档至 docs/.local/archive/2026-10-24/，未入库） */
 html .p-button.p-button-success {
   background-color: #16a34a;
   border-color: #16a34a;
@@ -379,7 +389,7 @@ html .p-button.p-button-danger.p-button-outlined:hover {
    Reason: Aura --p-button-secondary-color 为 text.muted(#64748b) on surface.100(#f1f5f9)，
    浅色主题实测 4.34:1 不达标；html 前缀提高特异性强制 --text-secondary（light 5.44/green 4.89:1 ✅），
    且原规则被 Aura token 覆盖从未生效（阶段 A 实证）。映射表未含 secondary 变体（做减法）。
-   See: docs/investigations/aura-token-sync-feasibility.md §P1 - button scope */
+   See: docs/technical-debt.md（Tech-Debt #8；原始调研报告已归档至 docs/.local/archive/2026-10-24/，未入库） */
 html .p-button.p-button-secondary {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -634,7 +644,7 @@ html .p-button.p-button-secondary {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 20px;
+  padding: var(--space-20);
   box-shadow: var(--shadow-xs);
   transition: box-shadow var(--transition);
 }
@@ -644,11 +654,11 @@ html .p-button.p-button-secondary {
 }
 
 .card-header {
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--text-heading);
-  font-size: 14px;
-  margin-bottom: 14px;
-  padding-bottom: 12px;
+  font-size: var(--font-size-14);
+  margin-bottom: var(--space-14);
+  padding-bottom: var(--space-12);
   border-bottom: 1px solid var(--border);
   display: flex;
   justify-content: space-between;
@@ -659,27 +669,27 @@ html .p-button.p-button-secondary {
    工具类
    ═══════════════════════════════════════════ */
 .mt-1 {
-  margin-top: 8px;
+  margin-top: var(--space-8);
 }
 
 .mt-2 {
-  margin-top: 16px;
+  margin-top: var(--space-16);
 }
 
 .mt-3 {
-  margin-top: 24px;
+  margin-top: var(--space-24);
 }
 
 .mb-1 {
-  margin-bottom: 8px;
+  margin-bottom: var(--space-8);
 }
 
 .mb-2 {
-  margin-bottom: 16px;
+  margin-bottom: var(--space-16);
 }
 
 .ml-2 {
-  margin-left: 16px;
+  margin-left: var(--space-16);
 }
 
 .text-dim {
@@ -692,13 +702,13 @@ html .p-button.p-button-secondary {
 
 .text-mono {
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: var(--font-size-13);
 }
 
 .hint {
   color: var(--text-dim);
-  font-size: 13px;
-  margin-top: 4px;
+  font-size: var(--font-size-13);
+  margin-top: var(--space-4);
 }
 
 .flex-center {
@@ -707,11 +717,11 @@ html .p-button.p-button-secondary {
 }
 
 .gap-2 {
-  gap: 8px;
+  gap: var(--space-8);
 }
 
 .gap-3 {
-  gap: 12px;
+  gap: var(--space-12);
 }
 
 /* link-style button */
@@ -720,10 +730,10 @@ html .p-button.p-button-secondary {
   border: none;
   color: var(--primary);
   cursor: pointer;
-  font-size: 13px;
-  padding: 4px 8px;
+  font-size: var(--font-size-13);
+  padding: var(--space-4) var(--space-8);
   text-decoration: none;
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
   border-radius: var(--radius-sm);
   transition: background var(--transition);
 }
@@ -743,6 +753,7 @@ html .p-button.p-button-secondary {
   background: linear-gradient(90deg, var(--primary), #a78bfa);
   z-index: 1200;
   transition: width 0.3s ease;
+  /* TODO: [Design Debt] 0 2px 2px 0 无精确令牌，暂不替换，待定令牌后统一处理 */
   border-radius: 0 2px 2px 0;
 }
 
@@ -766,11 +777,11 @@ html .p-button.p-button-secondary {
   }
 
   .form-grid > label {
-    margin-top: 8px;
+    margin-top: var(--space-8);
   }
 
   h1 {
-    font-size: 18px;
+    font-size: var(--font-size-18);
   }
 
   .hide-mobile {
@@ -783,6 +794,7 @@ html .p-button.p-button-secondary {
    ═══════════════════════════════════════════ */
 ::-webkit-scrollbar {
   width: 6px;
+  /* TODO: [Design Debt] 6px 无精确令牌，暂不替换，待定令牌后统一处理 */
   height: 6px;
 }
 
@@ -807,7 +819,7 @@ html .p-button.p-button-secondary {
       保留 #047857+白字（5.48:1 ✅）。
    2. 边框/分隔线——用户验收明确要求"面板边框清晰可见"（B+ 方案验收项），#cbd5e1 增强边界感
       （默认 --p-content-border-color #e2e8f0 过浅）。
-   See: docs/investigations/aura-token-sync-feasibility.md §P1 - component-scope direct values
+   See: docs/technical-debt.md（Tech-Debt #8；原始调研报告已归档至 docs/.local/archive/2026-10-24/，未入库）
    ═══════════════════════════════════════════════════════════════ */
 
 /* 1. 选中日：emerald-700 底 + 白字（≈5.48:1 ✅；Aura 默认 emerald-500 白字实测仅 2.54:1） */

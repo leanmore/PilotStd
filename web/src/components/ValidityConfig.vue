@@ -378,7 +378,7 @@ onMounted(() => { loadValidityFilters(); loadConfig(); loadHistory() })
     </div>
 
     <!-- 执行记录 -->
-    <div class="section-title" style="margin-top:24px">{{ t('settings.validity.history_title') }}</div>
+    <div class="section-title" style="margin-top:var(--space-24)">{{ t('settings.validity.history_title') }}</div>
     <div class="filter-row">
       <div class="filter-item">
         <label>{{ t('settings.validity.hist_status') }}</label>
@@ -437,41 +437,44 @@ onMounted(() => { loadValidityFilters(); loadConfig(); loadHistory() })
 </template>
 
 <style scoped>
-.section-title { font-weight: 600; color: var(--text-heading); font-size: 14px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
-.form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px 20px; margin-bottom: 14px; align-items: start; }
-.field { display: flex; flex-direction: column; gap: 6px; }
-.field label { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
+.section-title { font-weight: var(--font-weight-semibold); color: var(--text-heading); font-size: var(--font-size-14); margin-bottom: var(--space-12); padding-bottom: var(--space-8); border-bottom: 1px solid var(--border); }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--space-16) var(--space-20); margin-bottom: var(--space-14); align-items: start; }
+.field { display: flex; flex-direction: column; gap: var(--space-6); }
+.field label { font-size: var(--font-size-12); font-weight: var(--font-weight-medium); color: var(--text-secondary); }
+/* TODO: [Design Debt] 36px 无精确令牌，暂不替换，待定令牌后统一处理 */
 .field-control { width: 100%; height: 36px; }
+/* TODO: [Design Debt] 36px 无精确令牌，暂不替换，待定令牌后统一处理 */
 .form-grid :deep(.p-inputnumber) { height: 36px; }
-.field-hint { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+.field-hint { font-size: var(--font-size-11); color: var(--text-dim); margin-top: var(--space-2); }
 
 /* ✅ #43: 自动计算结果区 */
 .computed-info {
-  display: flex; gap: 24px; padding: 12px 16px;
+  display: flex; gap: var(--space-24); padding: var(--space-12) var(--space-16);
   background: var(--surface-raised); border-radius: var(--radius-sm);
-  margin-bottom: 14px; flex-wrap: wrap;
+  margin-bottom: var(--space-14); flex-wrap: wrap;
 }
-.info-item { display: flex; align-items: center; gap: 4px; font-size: 13px; }
+.info-item { display: flex; align-items: center; gap: var(--space-4); font-size: var(--font-size-13); }
 .info-label { color: var(--text-secondary); }
-.info-value { font-weight: 600; color: var(--text-bright); }
+.info-value { font-weight: var(--font-weight-semibold); color: var(--text-bright); }
 .info-error { color: var(--danger); }
-.error-msg { font-size: 12px; font-weight: 400; }
+.error-msg { font-size: var(--font-size-12); font-weight: var(--font-weight-regular); }
 
-.actions-row { display: flex; gap: 10px; margin-bottom: 8px; }
-.filter-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-bottom: 12px; }
-.filter-item { display: flex; flex-direction: column; gap: 4px; min-width: 120px; }
-.filter-item label { font-size: 11px; font-weight: 500; color: var(--text-secondary); }
-.filter-actions { display: flex; gap: 8px; align-items: flex-end; }
-.table-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
-.data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-.data-table th, .data-table td { padding: 7px 8px; text-align: left; border-bottom: 1px solid var(--border); }
-.data-table th { font-weight: 600; color: var(--text-dim); font-size: 11px; text-transform: uppercase; }
-.empty { color: var(--text-dim); font-size: 13px; padding: 16px 0; text-align: center; }
-.pagination { display: flex; justify-content: center; align-items: center; gap: 2px; margin-top: 10px; }
-.detail { display: flex; flex-direction: column; gap: 10px; font-size: 13px; }
+.actions-row { display: flex; gap: var(--space-10); margin-bottom: var(--space-8); }
+.filter-row { display: flex; flex-wrap: wrap; gap: var(--space-10); align-items: flex-end; margin-bottom: var(--space-12); }
+.filter-item { display: flex; flex-direction: column; gap: var(--space-4); min-width: 120px; }
+.filter-item label { font-size: var(--font-size-11); font-weight: var(--font-weight-medium); color: var(--text-secondary); }
+.filter-actions { display: flex; gap: var(--space-8); align-items: flex-end; }
+.table-meta { display: flex; justify-content: space-between; font-size: var(--font-size-12); color: var(--text-secondary); margin-bottom: var(--space-8); }
+.data-table { width: 100%; border-collapse: collapse; font-size: var(--font-size-12); }
+.data-table th, .data-table td { padding: var(--space-7) var(--space-8); text-align: left; border-bottom: 1px solid var(--border); }
+.data-table th { font-weight: var(--font-weight-semibold); color: var(--text-dim); font-size: var(--font-size-11); text-transform: uppercase; }
+.empty { color: var(--text-dim); font-size: var(--font-size-13); padding: var(--space-16) 0; text-align: center; }
+.pagination { display: flex; justify-content: center; align-items: center; gap: var(--space-2); margin-top: var(--space-10); }
+.detail { display: flex; flex-direction: column; gap: var(--space-10); font-size: var(--font-size-13); }
 .detail-row { display: flex; justify-content: space-between; align-items: center; }
 .detail-row span:first-child { color: var(--text-dim); }
 .time-group { display: flex; align-items: center; gap: 0.25rem; }
 .time-input { width: 4.5rem; }
+/* TODO: [Design Debt] bold 无精确令牌，暂不替换，待定令牌后统一处理 */
 .separator { font-weight: bold; padding: 0 0.25rem; }
 </style>

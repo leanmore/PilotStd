@@ -168,7 +168,7 @@ const breadcrumbs = computed(() => {
       </div>
       <div v-for="item in slotProps.items" :key="item.path" class="p-2 border-bottom">
         <div
-          style="display:flex;gap:12px;padding:6px 0;border-bottom:1px solid var(--border-light);align-items:center"
+          style="display:flex;gap:var(--space-12);padding:var(--space-6) 0;border-bottom:1px solid var(--border-light);align-items:center"
           :class="{ 'dir-row': item.type === 'dir' }"
           :style="item.type === 'dir' ? 'cursor:pointer' : ''"
           @click="item.type === 'dir' ? browse(item.path) : undefined"
@@ -179,9 +179,9 @@ const breadcrumbs = computed(() => {
             @change="toggleFile(item.path)"
           />
           <span v-else style="width:20px;flex-shrink:0" />
-          <span style="min-width:140px;font-weight:500;flex-shrink:0">{{ item.name }}</span>
-          <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;color:var(--text-dim)">{{ item.path }}</span>
-          <span style="min-width:80px;font-size:12px;color:var(--text-dim);flex-shrink:0">{{ item._size }}</span>
+          <span style="min-width:140px;font-weight:var(--font-weight-medium);flex-shrink:0">{{ item.name }}</span>
+          <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--font-size-13);color:var(--text-dim)">{{ item.path }}</span>
+          <span style="min-width:80px;font-size:var(--font-size-12);color:var(--text-dim);flex-shrink:0">{{ item._size }}</span>
           <span style="min-width:60px;flex-shrink:0">
             <Tag :value="item.type" :severity="item.type==='pdf'?'success':'info'" />
           </span>
@@ -194,24 +194,25 @@ const breadcrumbs = computed(() => {
 </template>
 
 <style scoped>
-.controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.fi { padding: 9px 13px; background: var(--bg); border: 1px solid var(--border); color: var(--text); border-radius: var(--radius-sm); font-size: 13px; outline: none; transition: border-color var(--transition); flex: 1; min-width: 200px; }
+.controls { display: flex; gap: var(--space-8); align-items: center; flex-wrap: wrap; }
+/* TODO: [Design Debt] 9px 13px 无精确令牌，暂不替换，待定令牌后统一处理 */
+.fi { padding: 9px 13px; background: var(--bg); border: 1px solid var(--border); color: var(--text); border-radius: var(--radius-sm); font-size: var(--font-size-13); outline: none; transition: border-color var(--transition); flex: 1; min-width: 200px; }
 
-.breadcrumb { display: flex; align-items: center; gap: 4px; font-size: 13px; flex-wrap: wrap; }
-.crumb { color: var(--primary); cursor: pointer; padding: 2px 6px; border-radius: 4px; transition: background 0.15s; }
+.breadcrumb { display: flex; align-items: center; gap: var(--space-4); font-size: var(--font-size-13); flex-wrap: wrap; }
+.crumb { color: var(--primary); cursor: pointer; padding: var(--space-2) var(--space-6); border-radius: var(--ds-radius-xs); transition: background 0.15s; }
 .crumb:hover { background: var(--primary-bg); }
-.crumb.active { color: var(--text-heading); font-weight: 600; cursor: default; }
+.crumb.active { color: var(--text-heading); font-weight: var(--font-weight-semibold); cursor: default; }
 .crumb.active:hover { background: none; }
-.crumb-sep { color: var(--text-dim); font-size: 11px; user-select: none; }
+.crumb-sep { color: var(--text-dim); font-size: var(--font-size-11); user-select: none; }
 .fi:focus { border-color: var(--primary); box-shadow: var(--focus-ring); }
 .dir-row:hover { background: var(--selected); }
-.clean-msg { font-size: 12px; color: var(--success); margin-top: 6px; }
-.err-msg { color: var(--danger, #e74c3c); font-size: 12px; margin-top: 6px; }
-.stats-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-.op-bar { display: flex; align-items: center; gap: 8px; }
-.selected-count { font-size: 12px; color: var(--primary); font-weight: 500; }
-.enqueue-msg { font-size: 12px; color: var(--success); }
-.select-all-row { display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: var(--surface-raised); border-bottom: 1px solid var(--border); }
-.select-all-label { font-size: 12px; color: var(--text-secondary); cursor: pointer; }
+.clean-msg { font-size: var(--font-size-12); color: var(--success); margin-top: var(--space-6); }
+.err-msg { color: var(--danger, #e74c3c); font-size: var(--font-size-12); margin-top: var(--space-6); }
+.stats-row { display: flex; gap: var(--space-8); flex-wrap: wrap; align-items: center; }
+.op-bar { display: flex; align-items: center; gap: var(--space-8); }
+.selected-count { font-size: var(--font-size-12); color: var(--primary); font-weight: var(--font-weight-medium); }
+.enqueue-msg { font-size: var(--font-size-12); color: var(--success); }
+.select-all-row { display: flex; align-items: center; gap: var(--space-8); padding: var(--space-6) var(--space-12); background: var(--surface-raised); border-bottom: 1px solid var(--border); }
+.select-all-label { font-size: var(--font-size-12); color: var(--text-secondary); cursor: pointer; }
 .border-bottom { border-bottom: 1px solid var(--border-light, #e5e7eb); }
 </style>

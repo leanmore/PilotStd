@@ -251,6 +251,7 @@ const {
 <style scoped>
 .announce-detail {
   max-width: 1400px;
+  /* TODO: [Design Debt] 0 auto 无精确令牌，暂不替换，待定令牌后统一处理 */
   margin: 0 auto;
   padding: 1rem;
   background: var(--bg);
@@ -258,21 +259,24 @@ const {
 }
 
 .p-button-text.p-button-rounded:focus-visible {
-  outline: 2px solid var(--primary-color);
+  outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
 
 /* fix(a11y): 标题/公告号强制 --text-heading，阻断 Aura 亮色 token 继承（深色主题 1.8:1→≥8:1）。标题居中 — :deep() 穿透 Card，提高特异性对抗 Aura 的 .p-card-content p */
 :deep(.p-card-content) .announce-title {
-  font-size: 22px;
+  font-size: var(--font-size-22);
+  /* TODO: [Design Debt] bold 无精确令牌，暂不替换，待定令牌后统一处理 */
   font-weight: bold;
   text-align: center;
-  line-height: 1.8;
+  line-height: var(--line-height-loose);
+  /* TODO: [Design Debt] 0.5rem 0 无精确令牌，暂不替换，待定令牌后统一处理 */
   margin: 0.5rem 0; color: var(--text-heading);
 }
 
 .official-doc {
   max-width: 800px;
+  /* TODO: [Design Debt] 0 auto 无精确令牌，暂不替换，待定令牌后统一处理 */
   margin: 0 auto;
   background: var(--surface);
 }
@@ -281,50 +285,54 @@ const {
 .doc-content {
   color: var(--text);
   text-align: justify;
-  line-height: 1.8;
+  line-height: var(--line-height-loose);
 }
 
 /* 通用段落缩进 — 作用于正文区所有段落，优先级低于特定 class */
 .doc-content :where(p, section > p, div > p) {
   text-indent: 2em;
+  /* TODO: [Design Debt] 0.5em 0 无精确令牌，暂不替换，待定令牌后统一处理 */
   margin: 0.5em 0;
 }
 
 /* v-html 注入内容的标题居中 — 仅作用于 official-doc 容器内 */
 :deep(.official-doc .announce-heading) {
   text-align: center;
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   text-indent: 0;
   margin-bottom: 0.5em;
 }
 
 /* 正文段落 — 两端对齐、首行缩进 */
 .doc-content :deep(.announce-body) {
-  font-size: 16px;
+  font-size: var(--font-size-16);
   color: var(--text);
   text-indent: 2em;
   text-align: justify;
-  line-height: 1.8;
+  line-height: var(--line-height-loose);
+  /* TODO: [Design Debt] 0.25em 0 无精确令牌，暂不替换，待定令牌后统一处理 */
   margin: 0.25em 0;
 }
 
 /* 落款机关 — 右对齐、无缩进 */
 .doc-content :deep(.announce-signature) {
-  font-size: 16px;
+  font-size: var(--font-size-16);
   color: var(--text);
   text-align: right;
   text-indent: 0;
-  line-height: 1.8;
+  line-height: var(--line-height-loose);
+  /* TODO: [Design Debt] 0.25em 0 无精确令牌，暂不替换，待定令牌后统一处理 */
   margin: 0.25em 0;
 }
 
 /* 落款日期 — 右对齐、无缩进 */
 .doc-content :deep(.announce-date) {
-  font-size: 16px;
+  font-size: var(--font-size-16);
   color: var(--text);
   text-align: right;
   text-indent: 0;
-  line-height: 1.8;
+  line-height: var(--line-height-loose);
+  /* TODO: [Design Debt] 0.25em 0 无精确令牌，暂不替换，待定令牌后统一处理 */
   margin: 0.25em 0;
 }
 
@@ -336,13 +344,14 @@ const {
 .doc-content :deep(td),
 .doc-content :deep(th) {
   border: 1px solid var(--border);
+  /* TODO: [Design Debt] 0.25rem 0.5rem 无精确令牌，暂不替换，待定令牌后统一处理 */
   padding: 0.25rem 0.5rem;
 }
 
 .attachment-area {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-10);
   flex-wrap: wrap;
 }
 

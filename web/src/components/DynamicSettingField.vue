@@ -211,8 +211,8 @@ function numberVal(): number {
   display: contents;
 }
 .field-label {
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-medium);
   color: var(--text-secondary);
   white-space: nowrap;
 }
@@ -220,17 +220,17 @@ function numberVal(): number {
   color: var(--danger);
 }
 .help-text {
-  font-size: 11px;
+  font-size: var(--font-size-11);
   color: var(--text-dim);
   grid-column: 2;
 }
 .fi {
   width: 100%;
-  padding: 7px 10px;
+  padding: var(--space-7) var(--space-10);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
   color: var(--text);
-  font-size: 13px;
+  font-size: var(--font-size-13);
 }
 </style>

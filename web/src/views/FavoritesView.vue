@@ -178,6 +178,7 @@ onMounted(loadFavorites)
 </template>
 
 <style scoped>
+/* TODO: [Design Debt] 0 auto 无精确令牌，暂不替换，待定令牌后统一处理 */
 .favorites-view { padding: 1rem; max-width: 1200px; margin: 0 auto; }
 .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
 .export-actions { display: flex; gap: 0.5rem; }

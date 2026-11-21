@@ -477,15 +477,16 @@ function stepSeverity(s: string) {
 </template>
 
 <style scoped>
-.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-.controls { display: flex; gap: 12px; align-items: center; }
+.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-20); }
+.controls { display: flex; gap: var(--space-12); align-items: center; }
+/* TODO: [Design Debt] 9px 13px 无精确令牌，暂不替换，待定令牌后统一处理 */
 .fi { padding: 9px 13px; background: var(--bg); border: 1px solid var(--border); color: var(--text);
-  border-radius: var(--radius-sm); font-size: 13px; min-width: 220px; outline: none; }
+  border-radius: var(--radius-sm); font-size: var(--font-size-13); min-width: 220px; outline: none; }
 .fi:focus { border-color: var(--primary); box-shadow: var(--focus-ring); }
-.err-msg { color: var(--danger); font-size: 12px; }
-.mb-2 { margin-bottom: 12px; }
-.mb-3 { margin-bottom: 16px; }
-.mt-3 { margin-top: 16px; }
+.err-msg { color: var(--danger); font-size: var(--font-size-12); }
+.mb-2 { margin-bottom: var(--space-12); }
+.mb-3 { margin-bottom: var(--space-16); }
+.mt-3 { margin-top: var(--space-16); }
 
 /* 流水线步骤 */
 .pipeline {
@@ -495,41 +496,45 @@ function stepSeverity(s: string) {
   box-shadow: var(--shadow-xs);
 }
 .step {
-  display: flex; align-items: center; gap: 14px;
-  padding: 14px 18px;
+  display: flex; align-items: center; gap: var(--space-14);
+  padding: var(--space-14) var(--space-18);
   background: var(--surface);
   border-bottom: 1px solid var(--border-light);
   transition: background 0.15s ease;
 }
 .step:last-child { border-bottom: none; }
 .step.running { background: var(--primary-bg); }
+/* TODO: [Design Debt] rgba(239,68,68,0.06) 无精确令牌，暂不替换，待定令牌后统一处理 */
 .step.fail { background: rgba(239,68,68,0.06); }
 
 .step-indicator {
-  width: 32px; height: 32px;
+  width: 32px; height: var(--icon-tile-sm);
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   background: var(--border);
   color: var(--text);
-  font-size: 13px; font-weight: 600;
+  font-size: var(--font-size-13); font-weight: var(--font-weight-semibold);
   flex-shrink: 0;
 }
+/* TODO: [Design Debt] #fff 无精确令牌，暂不替换，待定令牌后统一处理 */
 .step.done .step-indicator { background: var(--success, #10b981); color: #fff; }
+/* TODO: [Design Debt] #fff 无精确令牌，暂不替换，待定令牌后统一处理 */
 .step.running .step-indicator { background: var(--primary-fill); color: #fff; }
+/* TODO: [Design Debt] #fff 无精确令牌，暂不替换，待定令牌后统一处理 */
 .step.fail .step-indicator { background: var(--danger, #ef4444); color: #fff; }
 
 .step-info { flex: 1; min-width: 0; }
-.step-label { font-size: 14px; font-weight: 500; color: var(--text-heading); }
-.step-summary { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+.step-label { font-size: var(--font-size-14); font-weight: var(--font-weight-medium); color: var(--text-heading); }
+.step-summary { font-size: var(--font-size-12); color: var(--text-dim); margin-top: var(--space-2); }
 
-.stats-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.stats-row { display: flex; gap: var(--space-8); flex-wrap: wrap; }
 
-.summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-.sum-item { display: flex; flex-direction: column; gap: 4px; padding: 10px; background: var(--bg); border-radius: var(--radius-sm); }
-.sum-label { font-size: 12px; color: var(--text-dim); }
-.sum-val { font-size: 18px; font-weight: 600; color: var(--text-heading); font-family: var(--mono); }
+.summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-12); }
+.sum-item { display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-10); background: var(--bg); border-radius: var(--radius-sm); }
+.sum-label { font-size: var(--font-size-12); color: var(--text-dim); }
+.sum-val { font-size: var(--font-size-18); font-weight: var(--font-weight-semibold); color: var(--text-heading); font-family: var(--mono); }
 .border-bottom { border-bottom: 1px solid var(--border-light, #e5e7eb); }
 .text-dim { color: var(--text-dim, #6b7280); }
 .text-mono { font-family: var(--mono, 'Consolas', 'Courier New', monospace); }
-.mt-2 { margin-top: 12px; }
+.mt-2 { margin-top: var(--space-12); }
 </style>

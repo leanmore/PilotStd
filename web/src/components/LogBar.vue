@@ -180,10 +180,10 @@ watch(() => route?.path, () => {
   background: var(--bg);
   border: var(--mp-card-border, 1px solid var(--p-surface-200));
   border-radius: var(--radius-sm, 6px);
-  margin-top: 12px;
+  margin-top: var(--space-12);
   overflow: hidden;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-  font-size: 11px;
+  font-size: var(--font-size-11);
   position: relative;
   color: var(--p-content-color);
 }
@@ -191,27 +191,27 @@ watch(() => route?.path, () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 6px 12px;
+  padding: var(--space-6) var(--space-12);
   background: var(--surface-raised);
   color: var(--text-secondary);
   cursor: pointer;
   user-select: none;
-  font-weight: 500;
-  font-size: 12px;
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-12);
 }
-.log-toggle { font-size: 11px; opacity: 0.7; }
+.log-toggle { font-size: var(--font-size-11); opacity: 0.7; }
 .log-body {
   overflow: auto;
-  padding: 6px 12px;
+  padding: var(--space-6) var(--space-12);
   transition: max-height 0.2s ease;
 }
 /* [I]/普通日志行：弱化辅助文字（重设计后 --text-dim 四主题 ≥4.5:1） */
-.log-line { color: var(--text-dim); line-height: 1.5; white-space: pre; }
+.log-line { color: var(--text-dim); line-height: var(--line-height-normal); white-space: pre; }
 /* [W] 警告行：语义色（非 dim，保持醒目） */
 .log-line.log-warn { color: var(--warning); }
 /* [E] 错误行：语义色（非 dim） */
 .log-line.log-err { color: var(--danger); }
-.log-empty { color: var(--text-dim); text-align: center; padding: 12px; }
+.log-empty { color: var(--text-dim); text-align: center; padding: var(--space-12); }
 .log-err-msg { color: var(--danger); }
 .collapsed .log-body { display: none; }
 
@@ -221,6 +221,7 @@ watch(() => route?.path, () => {
   bottom: 0;
   left: 0;
   right: 0;
+  /* TODO: [Design Debt] 8px 无精确令牌，暂不替换，待定令牌后统一处理 */
   height: 8px;
   cursor: ns-resize;
   background: transparent;
@@ -228,7 +229,7 @@ watch(() => route?.path, () => {
   transition: background 0.2s;
 }
 .log-resize-handle:hover {
-  background: rgba(99, 102, 241, 0.3);
+  background: var(--primary-border);
 }
 .log-resize-handle::after {
   content: '';
@@ -238,11 +239,13 @@ watch(() => route?.path, () => {
   transform: translate(-50%, -50%);
   width: 40px;
   height: 3px;
+  /* TODO: [Design Debt] #555 无精确令牌，暂不替换，待定令牌后统一处理 */
   background: #555;
   border-radius: 2px;
 }
 .log-resize-handle:hover::after {
   background: var(--primary);
+  /* TODO: [Design Debt] 4px 无精确令牌，暂不替换，待定令牌后统一处理 */
   height: 4px;
 }
 </style>

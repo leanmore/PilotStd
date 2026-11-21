@@ -186,6 +186,7 @@ const {
   min-height: 100vh;
   background: var(--bg);
 }
+/* TODO: [Design Debt] 72px 无精确令牌，暂不替换，待定令牌后统一处理 */
 .layout.mobile { padding-bottom: 72px; }
 
 .main-area {
@@ -204,7 +205,9 @@ const {
 }
 .content-inner {
   max-width: 1600px;
+  /* TODO: [Design Debt] 0 auto 无精确令牌，暂不替换，待定令牌后统一处理 */
   margin: 0 auto;
+  /* TODO: [Design Debt] 32px 36px 无精确令牌，暂不替换，待定令牌后统一处理 */
   padding: 32px 36px;
   animation: fadeIn 0.3s ease-out;
 }
@@ -215,7 +218,7 @@ const {
 }
 
 .layout.mobile .content-inner {
-  padding: 20px 16px;
+  padding: var(--space-20) var(--space-16);
 }
 
 /* ═══════════════════════════════════════════
@@ -229,20 +232,27 @@ const {
   bottom: 0;
   left: 0;
   right: 0;
+  /* TODO: [Design Debt] 68px 无精确令牌，暂不替换，待定令牌后统一处理 */
   height: 68px;
-  padding: 0 8px;
+  padding: 0 var(--space-8);
+  /* TODO: [Design Debt] env(safe-area-inset-bottom) 无精确令牌，暂不替换，待定令牌后统一处理 */
   padding-bottom: env(safe-area-inset-bottom);
+  /* TODO: [Design Debt] rgba(255, 255, 255, 0.9) 无精确令牌，暂不替换，待定令牌后统一处理 */
   background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(16px) saturate(180%);
   -webkit-backdrop-filter: blur(16px) saturate(180%);
+  /* TODO: [Design Debt] 1px solid rgba(226, 232, 240, 0.5) 无精确令牌，暂不替换，待定令牌后统一处理 */
   border-top: 1px solid rgba(226, 232, 240, 0.5);
+  /* TODO: [Design Debt] 0 -2px 16px rgba(0, 0, 0, 0.06) 无精确令牌，暂不替换，待定令牌后统一处理 */
   box-shadow: 0 -2px 16px rgba(0, 0, 0, 0.06);
   z-index: 100;
 }
 /* 暗色主题下的毛玻璃（dark + blue） */
 :root[data-theme="dark"] .bottom-nav,
 :root[data-theme="blue"] .bottom-nav {
+  /* TODO: [Design Debt] rgba(15, 23, 42, 0.9) 无精确令牌，暂不替换，待定令牌后统一处理 */
   background: rgba(15, 23, 42, 0.9);
+  /* TODO: [Design Debt] rgba(51, 65, 85, 0.5) 无精确令牌，暂不替换，待定令牌后统一处理 */
   border-top-color: rgba(51, 65, 85, 0.5);
 }
 
@@ -250,11 +260,11 @@ const {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
-  padding: 8px 4px;
+  gap: var(--space-3);
+  padding: var(--space-8) var(--space-4);
   min-width: 56px;
-  font-size: 10px;
-  font-weight: 500;
+  font-size: var(--font-size-10);
+  font-weight: var(--font-weight-medium);
   color: var(--text-dim);
   text-decoration: none;
   border-radius: var(--radius);
@@ -270,11 +280,12 @@ const {
   width: 24px;
   height: 3px;
   background: var(--primary);
+  /* TODO: [Design Debt] 0 0 3px 3px 无精确令牌，暂不替换，待定令牌后统一处理 */
   border-radius: 0 0 3px 3px;
   transition: transform var(--transition);
 }
 .tab i {
-  font-size: 18px;
+  font-size: var(--font-size-18);
   transition: all var(--transition);
 }
 .tab:hover {
@@ -284,7 +295,7 @@ const {
 .tab:hover i { transform: scale(1.1); }
 .tab.active {
   color: var(--primary);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 .tab.active::before { transform: translateX(-50%) scaleX(1); }
 .tab.active i { transform: scale(1.2); filter: drop-shadow(0 2px 4px rgba(99, 102, 241, 0.3)); }
@@ -295,30 +306,31 @@ const {
 
 /* 平板端（768px - 1023px） */
 @media (max-width: 1023px) {
-  .content-inner { padding: 24px 20px; }
+  .content-inner { padding: var(--space-24) var(--space-20); }
 }
 
 /* 移动端（< 768px） */
 @media (max-width: 767px) {
-  .content-inner { padding: 16px 12px; }
+  .content-inner { padding: var(--space-16) var(--space-12); }
 
   /* 移动端底部导航图标优化 */
+  /* TODO: [Design Debt] 64px 无精确令牌，暂不替换，待定令牌后统一处理 */
   .bottom-nav { height: 64px; }
-  .tab { min-width: 48px; padding: 6px 2px; }
-  .tab i { font-size: 17px; }
-  .tab span { font-size: 9px; }
+  .tab { min-width: 48px; padding: var(--space-6) var(--space-2); }
+  .tab i { font-size: var(--font-size-17); }
+  .tab span { font-size: var(--font-size-9); }
 }
 
 /* 超小屏幕（< 375px） */
 @media (max-width: 374px) {
   .tab span { display: none; }
   .tab { min-width: 44px; }
-  .tab i { font-size: 20px; }
+  .tab i { font-size: var(--font-size-20); }
 }
 
 /* 触摸设备优化 */
 @media (hover: none) and (pointer: coarse) {
-  .tab { padding: 10px 4px; }
+  .tab { padding: var(--space-10) var(--space-4); }
 }
 
 /* ═══════════════════════════════════════════
@@ -331,17 +343,20 @@ const {
 
 .floating-workspace-btn {
   width: 56px;
+  /* TODO: [Design Debt] 56px 无精确令牌，暂不替换，待定令牌后统一处理 */
   height: 56px;
   border: none;
   border-radius: 50%;
   /* fix(a11y): 深色主题 --primary 是 #818cf8（浅靛），白字只有 2.98:1；改用 --primary-hover
      （浅色 #4f46e5≈7.4:1、深色 #6366f1≈4.8:1）。悬停靠滤镜提亮，不再换底色。 */
   background: var(--primary-fill);
+  /* TODO: [Design Debt] #ffffff 无精确令牌，暂不替换，待定令牌后统一处理 */
   color: #ffffff;
-  font-size: 22px;
+  font-size: var(--font-size-22);
   display: flex;
   align-items: center;
   justify-content: center;
+  /* TODO: [Design Debt] 0 4px 12px rgba(0, 0, 0, 0.15) 无精确令牌，暂不替换，待定令牌后统一处理 */
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   backdrop-filter: blur(4px);
   cursor: pointer;
@@ -353,17 +368,18 @@ const {
   background: var(--primary-fill-hover);
   filter: brightness(1.02);
   transform: scale(1.08);
+  /* TODO: [Design Debt] 0 6px 16px rgba(0, 0, 0, 0.2) 无精确令牌，暂不替换，待定令牌后统一处理 */
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
 }
-.floating-workspace-btn i { line-height: 1; }
+.floating-workspace-btn i { line-height: var(--line-height-none); }
 
 /* 返回图标加粗 — 仅作用于悬浮按钮内的 undo 图标 */
 .floating-workspace-btn .pi-undo {
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   -webkit-text-stroke: 0.6px currentColor;
 }
 .floating-workspace-btn:focus-visible {
-  outline: 2px solid var(--primary-color);
+  outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
 
@@ -377,20 +393,20 @@ const {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
-  padding: 6px;
+  padding: var(--space-6);
 }
 
 .menu-item {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-10);
   width: 100%;
-  padding: 10px 14px;
+  padding: var(--space-10) var(--space-14);
   border: none;
   border-radius: var(--radius);
   background: none;
   color: var(--text);
-  font-size: 14px;
+  font-size: var(--font-size-14);
   cursor: pointer;
   text-align: left;
   white-space: nowrap;
@@ -398,14 +414,14 @@ const {
 }
 .menu-item:hover { background: var(--selected); color: var(--text-bright); }
 .menu-item:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
-.menu-item i { font-size: 16px; width: 20px; text-align: center; flex-shrink: 0; }
+.menu-item i { font-size: var(--font-size-16); width: 20px; text-align: center; flex-shrink: 0; }
 .menu-item.disabled { color: var(--text-dim); cursor: default; pointer-events: none; }
 .menu-item.disabled:hover { background: none; color: var(--text-dim); }
 
 .menu-divider {
   height: 1px;
   background: var(--border);
-  margin: 4px 6px;
+  margin: var(--space-4) var(--space-6);
 }
 
 /* 菜单过渡动画（向上展开，translateY 取正） */

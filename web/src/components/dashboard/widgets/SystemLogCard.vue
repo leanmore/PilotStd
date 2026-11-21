@@ -87,41 +87,42 @@ onBeforeUnmount(() => { if (timer) clearInterval(timer) })
 
 <style scoped>
 .root {
-  height: 100%; box-sizing: border-box; padding: 14px;
+  height: 100%; box-sizing: border-box; padding: var(--space-14);
   background: linear-gradient(135deg, var(--surface), var(--surface-raised));
   border: 1px solid var(--border); border-radius: var(--radius-lg);
-  display: flex; flex-direction: column; gap: 10px;
+  display: flex; flex-direction: column; gap: var(--space-10);
 }
 .header { display: flex; align-items: center; justify-content: space-between; }
-.header-left { display: flex; align-items: center; gap: 10px; }
+.header-left { display: flex; align-items: center; gap: var(--space-10); }
 .header-icon {
-  width: 34px; height: 34px; border-radius: var(--radius-sm); background: rgba(34,197,94,0.12);
-  display: flex; align-items: center; justify-content: center; color: var(--success); font-size: 16px;
+  width: 34px; height: var(--icon-tile-md); border-radius: var(--radius-sm); background: var(--success-bg);
+  display: flex; align-items: center; justify-content: center; color: var(--success); font-size: var(--font-size-16);
 }
-.header-title { font-size: 13px; font-weight: 700; color: var(--text-heading); }
-.header-sub { font-size: 10px; color: var(--text-dim); }
-.header-actions { display: flex; gap: 6px; }
+.header-title { font-size: var(--font-size-13); font-weight: var(--font-weight-bold); color: var(--text-heading); }
+.header-sub { font-size: var(--font-size-10); color: var(--text-dim); }
+.header-actions { display: flex; gap: var(--space-6); }
 .clear-btn {
-  font-size: 10px; color: var(--text-dim); background: none; border: 1px solid var(--border-light);
-  border-radius: var(--radius-sm); padding: 2px 8px; cursor: pointer; white-space: nowrap;
+  font-size: var(--font-size-10); color: var(--text-dim); background: none; border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm); padding: var(--space-2) var(--space-8); cursor: pointer; white-space: nowrap;
 }
 .clear-btn:hover:not(:disabled) { color: var(--warning); border-color: var(--warning); }
 .clear-all:hover:not(:disabled) { color: var(--danger); border-color: var(--danger); }
 .clear-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .log-box {
+  /* TODO: [Design Debt] rgba(0,0,0,0.08) 无精确令牌，暂不替换，待定令牌后统一处理 */
   flex: 1; overflow-y: auto; background: rgba(0,0,0,0.08); border-radius: var(--radius);
-  padding: 8px 10px; font-family: var(--mono); font-size: 11px; line-height: 1.7;
+  padding: var(--space-8) var(--space-10); font-family: var(--mono); font-size: var(--font-size-11); line-height: var(--line-height-relaxed);
 }
-.empty { color: var(--text-dim); text-align: center; padding: 20px 0; }
-.line { display: flex; gap: 8px; align-items: baseline; }
-.li { font-size: 10px; flex-shrink: 0; margin-top: 3px; }
-.lt { color: var(--text-dim); flex-shrink: 0; font-size: 10px; }
+.empty { color: var(--text-dim); text-align: center; padding: var(--space-20) 0; }
+.line { display: flex; gap: var(--space-8); align-items: baseline; }
+.li { font-size: var(--font-size-10); flex-shrink: 0; margin-top: var(--space-3); }
+.lt { color: var(--text-dim); flex-shrink: 0; font-size: var(--font-size-10); }
 .lm { color: var(--text-heading); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lv-info { color: var(--info); }
 .lv-warn,.lv-warning { color: var(--warning); }
 .lv-error { color: var(--danger); }
 .lv-debug { color: var(--text-dim); }
-.clear-msg { font-size: 11px; color: var(--success); }
+.clear-msg { font-size: var(--font-size-11); color: var(--success); }
 .clear-msg.error { color: var(--danger); }
 </style>
