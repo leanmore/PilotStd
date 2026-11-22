@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """G-027: 检查 Vue 组件是否显式声明 defineOptions，防止生产构建中组件名被压缩器删除"""
 
+import re
 import sys
 from pathlib import Path
 
@@ -17,7 +18,9 @@ def main() -> int:
             continue
         for vue_file in sorted(search_dir.rglob("*.vue")):
             content = vue_file.read_text(encoding="utf-8")
-            if "<script setup" not in content:
+            # 只认真实的 `<script setup ...>` 标签（行首，允许前置空白）；
+            # 注释里出现的「<script setup>」字样不算（2026-11-22 实测误报：FileMonitor.vue）。
+            if not re.search(r"^\s*<script\s+setup\b", content, re.MULTILINE):
                 continue
             if "defineOptions" not in content:
                 failed.append(str(vue_file))
