@@ -1420,3 +1420,15 @@ ailed 字段归一、终态词表（completed/cancelled/failed）、result_json 
 补记（2026-11-22）：P5-2 分支因 A-52 冲突做过一次 rebase（force-push），使 PR 事件里的 `github.event.before`
 指向已不可达的旧 head，`repo-compliance` 的范围检查因此判“显式范围 0 变更”而红（run 44971267154）。
 处置：在分支上追加一次普通提交刷新 before 指针，**不修改任何门禁配置**。
+
+### 116. 修复企业微信菜单同步 500（配置值空格兜底，2026-11-22）
+
+- **现象**：生产 `POST /api/notification/menu/sync?channel=wechat` → 500，
+  `detail: URL can't contain control characters. '/cgi-bin/menu/get?access_token=...&agentid= 1000002'`。
+- **根因**：`/api/notification/config` 里 `wechat.agentid` 实际值为 `" 1000002"`（**前导空格**，人工填表手滑），
+  `WecomMenuClient._url()` 直接插值 → URL 含空格 → `urllib` 拒绝。
+- **修复**：`WecomMenuClient.__init__` 对 `corpid/corpsecret/agentid` 统一 `str(...).strip()`；
+  飞书客户端 `app_id/app_secret/chat_id` 同批兜底（同源风险）。
+- **测试**：`tests/test_notification_menu.py` 增 2 例——拼出的菜单 URL 不含空白且 `agentid=1000002`；飞书三字段被 trim。
+- **运维提醒**：生产配置里 `agentid` 的前导空格仍在 DB 中（`strip` 只是读取兜底）；下次部署后建议在通知配置页
+  重新保存一次，或直接清理该字段，避免日志里反复出现带空格的原始值。

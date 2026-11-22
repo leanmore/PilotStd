@@ -227,3 +227,29 @@ def test_menu_from_config_nested_children() -> None:
         },
     )
     assert menu.items[0].children[0].id == "task_all"
+
+def test_wecom_config_whitespace_is_trimmed() -> None:
+    """生产实证（2026-11-22）：`agentid=" 1000002"` 会把空格拼进 URL → 菜单同步 500。
+
+    兜底：构造函数 strip，保证拼出的 URL 里没有空白字符。
+    """
+    seen: list[str] = []
+
+    def transport(method, url, payload, headers):
+        seen.append(url)
+        return {"errcode": 0, "access_token": "tok"}
+
+    client = WecomMenuClient(" corpid ", " secret ", " 1000002 ", transport=transport)
+    client._url("get")  # 第一次调用用于取 token
+    menu_url = client._url("get")  # token 已缓存，这次拿到菜单 URL
+    assert seen, "transport 未被调用"
+    assert " " not in menu_url, menu_url
+    assert "agentid=1000002" in menu_url
+
+
+def test_feishu_config_whitespace_is_trimmed() -> None:
+    """飞书同源风险：app_id / app_secret / chat_id 也会被手滑带空格。"""
+    client = FeishuMenuClient(" app ", " secret ", " oc_abc ")
+    assert client._app_id == "app"
+    assert client._app_secret == "secret"
+    assert client._chat_id == "oc_abc"
