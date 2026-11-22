@@ -106,7 +106,7 @@
 
 /* 字段集分隔 */
 /* TODO: [Design Debt] 12px 无精确令牌，暂不替换，待定令牌后统一处理 */
-.fieldset-gap { grid-column: 1 / -1; height: 12px; }
+.fieldset-gap { grid-column: 1 / -1; height: var(--size-12); }
 .fieldset-label { font-weight: var(--font-weight-bold); color: var(--text-heading); font-size: var(--font-size-14); grid-column: 1 / -1; }
 
 /* 密码掩码 */
@@ -182,7 +182,7 @@
 .theme-primary-dot {
   width: 12px;
   /* TODO: [Design Debt] 12px 无精确令牌，暂不替换，待定令牌后统一处理 */
-  height: 12px;
+  height: var(--size-12);
   border-radius: 50%;
   position: absolute;
   right: 8px;

@@ -5,8 +5,8 @@
   "note": "人工确认后提交；禁止脚本自动更新。匹配键 = 文件 + 属性 + 值，计数为上限。",
   "counts": {
     "A": 0,
-    "B": 107,
-    "C": 627
+    "B": 90,
+    "C": 619
   },
   "groups": [
     {
@@ -70,36 +70,6 @@
           "count": 1
         },
         {
-          "file": "components/AppSidebar.vue",
-          "prop": "height",
-          "value": "24px",
-          "count": 1
-        },
-        {
-          "file": "components/LogBar.vue",
-          "prop": "height",
-          "value": "4px",
-          "count": 1
-        },
-        {
-          "file": "components/LogBar.vue",
-          "prop": "height",
-          "value": "8px",
-          "count": 1
-        },
-        {
-          "file": "components/NotificationBell.vue",
-          "prop": "height",
-          "value": "8px",
-          "count": 1
-        },
-        {
-          "file": "components/TableLoadFooter.vue",
-          "prop": "height",
-          "value": "20px",
-          "count": 1
-        },
-        {
           "file": "components/ValidityConfig.vue",
           "prop": "height",
           "value": "36px",
@@ -112,40 +82,16 @@
           "count": 1
         },
         {
-          "file": "components/dashboard/widgets/AdapterStatusAnnounceCard.vue",
-          "prop": "height",
-          "value": "6px",
-          "count": 1
-        },
-        {
-          "file": "components/dashboard/widgets/AdapterStatusQueryCard.vue",
-          "prop": "height",
-          "value": "6px",
-          "count": 1
-        },
-        {
           "file": "components/dashboard/widgets/StatsCard.vue",
           "prop": "height",
           "value": "100px",
           "count": 1
         },
         {
-          "file": "components/dashboard/widgets/SystemInfoCard.vue",
-          "prop": "height",
-          "value": "6px",
-          "count": 1
-        },
-        {
           "file": "style.css",
           "prop": "height",
           "value": "6px",
           "count": 1
-        },
-        {
-          "file": "style.css",
-          "prop": "height",
-          "value": "8px",
-          "count": 3
         },
         {
           "file": "views/HomeView.vue",
@@ -158,30 +104,6 @@
           "prop": "height",
           "value": "400px",
           "count": 1
-        },
-        {
-          "file": "views/NotificationLogsView.vue",
-          "prop": "height",
-          "value": "4px",
-          "count": 1
-        },
-        {
-          "file": "views/NotificationLogsView.vue",
-          "prop": "height",
-          "value": "8px",
-          "count": 1
-        },
-        {
-          "file": "views/settings/SettingsTabSites.vue",
-          "prop": "height",
-          "value": "8px",
-          "count": 1
-        },
-        {
-          "file": "views/settings/shared.css",
-          "prop": "height",
-          "value": "12px",
-          "count": 2
         },
         {
           "file": "views/settings/shared.css",
@@ -1123,12 +1045,6 @@
           "count": 1
         },
         {
-          "file": "components/TableLoadFooter.vue",
-          "prop": "width",
-          "value": "20px",
-          "count": 1
-        },
-        {
           "file": "components/TaskManager.vue",
           "prop": "min-width",
           "value": "100px",
@@ -1189,12 +1105,6 @@
           "count": 1
         },
         {
-          "file": "components/dashboard/widgets/AdapterStatusAnnounceCard.vue",
-          "prop": "width",
-          "value": "6px",
-          "count": 1
-        },
-        {
           "file": "components/dashboard/widgets/AdapterStatusCard.vue",
           "prop": "max-width",
           "value": "767px)",
@@ -1204,12 +1114,6 @@
           "file": "components/dashboard/widgets/AdapterStatusQueryCard.vue",
           "prop": "width",
           "value": "34px",
-          "count": 1
-        },
-        {
-          "file": "components/dashboard/widgets/AdapterStatusQueryCard.vue",
-          "prop": "width",
-          "value": "6px",
           "count": 1
         },
         {
@@ -1277,12 +1181,6 @@
           "prop": "width",
           "value": "6px",
           "count": 1
-        },
-        {
-          "file": "style.css",
-          "prop": "width",
-          "value": "8px",
-          "count": 3
         },
         {
           "file": "views/AnnounceDetail.vue",
@@ -2862,12 +2760,6 @@
           "file": "style.css",
           "prop": "height",
           "value": "32px",
-          "count": 1
-        },
-        {
-          "file": "style.css",
-          "prop": "height",
-          "value": "6px",
           "count": 1
         },
         {

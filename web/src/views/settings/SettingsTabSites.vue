@@ -321,7 +321,7 @@ onMounted(() => { loadSites() })
 .health-dot {
   width: 8px;
   /* TODO: [Design Debt] 8px 无精确令牌，暂不替换，待定令牌后统一处理 */
-  height: 8px;
+  height: var(--size-8);
   border-radius: 50%;
   flex-shrink: 0;
   cursor: help;

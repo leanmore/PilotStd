@@ -1432,3 +1432,13 @@ ailed 字段归一、终态词表（completed/cancelled/failed）、result_json 
 - **测试**：`tests/test_notification_menu.py` 增 2 例——拼出的菜单 URL 不含空白且 `agentid=1000002`；飞书三字段被 trim。
 - **运维提醒**：生产配置里 `agentid` 的前导空格仍在 DB 中（`strip` 只是读取兜底）；下次部署后建议在通知配置页
   重新保存一次，或直接清理该字段，避免日志里反复出现带空格的原始值。
+
+### 117. P5-3：小尺寸令牌 `--size-4/6/8/12` 替换原生高度（2026-11-21/22）
+
+- **范围**：`b-layout-size` 26 条（30 次命中）逐条评审——只映射语义明确的“元素尺寸”（状态点/细条/拖拽把手/spinner），
+  大块布局高度（22/36/40/44/56/60/64/68/100/400px）属组件专有，保留 TODO 不强行映射。
+- **新增令牌**：`--size-4/6/8/12`（与既有 `--size-20/24` 同族，语义是元素尺寸，不复用 `--space-*` 间距档）。
+- **替换 13 组（16 次命中）**：`style.css` 三个 `mp-dot` 与进度条、`LogBar` 把手/进度条、`NotificationBell` 圆点、
+  `TableLoadFooter` spinner、`AppSidebar` 指示条、三个仪表盘小组件健康点/进度条、`NotificationLogsView` 把手/进度条、
+  `SettingsTabSites` 状态点、`settings/shared.css` 分隔空隙。
+- **数字**：`B 107→90`、`C 627→619`、总命中 `734→709`；基线/审计 §0·§11/A-52 三处同步；`[STALE]` 归零。

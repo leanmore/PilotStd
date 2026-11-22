@@ -73,7 +73,7 @@ defineEmits<{
 }
 .spinner {
   /* TODO: [Design Debt] 20px 无精确令牌，暂不替换，待定令牌后统一处理 */
-  width: 20px; height: 20px;
+  width: var(--size-20); height: var(--size-20);
   border: 3px solid var(--border);
   border-top-color: var(--primary);
   border-radius: 50%;

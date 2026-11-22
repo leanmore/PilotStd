@@ -147,12 +147,9 @@
   /* TODO: [Design Debt] 原生阴影与既有 --shadow-* 层级不匹配（半径/扩散/透明度不同），待统一评估（A-52） */
   50% { box-shadow: 0 0 14px rgba(34,197,94,0.7); }
 }
-/* TODO: [Design Debt] 8px 无精确令牌，暂不替换，待定令牌后统一处理 */
-.mp-dot-success { width: 8px; height: 8px; border-radius: 50%; background: var(--success); animation: mp-pulse-glow 2s ease-in-out infinite; }
-/* TODO: [Design Debt] 8px 无精确令牌，暂不替换，待定令牌后统一处理 */
-.mp-dot-danger  { width: 8px; height: 8px; border-radius: 50%; background: var(--danger);  animation: mp-pulse-glow 2s ease-in-out infinite; }
-/* TODO: [Design Debt] 8px 无精确令牌，暂不替换，待定令牌后统一处理 */
-.mp-dot-warning { width: 8px; height: 8px; border-radius: 50%; background: var(--warning); animation: mp-pulse-glow 2s ease-in-out infinite; }
+.mp-dot-success { width: var(--size-8); height: var(--size-8); border-radius: 50%; background: var(--success); animation: mp-pulse-glow 2s ease-in-out infinite; }
+.mp-dot-danger  { width: var(--size-8); height: var(--size-8); border-radius: 50%; background: var(--danger);  animation: mp-pulse-glow 2s ease-in-out infinite; }
+.mp-dot-warning { width: var(--size-8); height: var(--size-8); border-radius: 50%; background: var(--warning); animation: mp-pulse-glow 2s ease-in-out infinite; }
 
 body {
   margin: 0;
@@ -542,7 +539,7 @@ html .p-button.p-button-secondary {
 .p-progressbar {
   background: var(--border);
   border-radius: var(--radius-sm);
-  height: 6px;
+  height: var(--size-6);
 }
 
 .p-progressbar .p-progressbar-value {
