@@ -5,8 +5,8 @@
   "note": "人工确认后提交；禁止脚本自动更新。匹配键 = 文件 + 属性 + 值，计数为上限。",
   "counts": {
     "A": 0,
-    "B": 90,
-    "C": 619
+    "B": 140,
+    "C": 569
   },
   "groups": [
     {
@@ -1670,12 +1670,6 @@
           "count": 1
         },
         {
-          "file": "components/AppLayout.vue",
-          "prop": "width",
-          "value": "100%",
-          "count": 1
-        },
-        {
           "file": "components/AppSidebar.vue",
           "prop": "background",
           "value": "none",
@@ -1712,18 +1706,6 @@
           "count": 1
         },
         {
-          "file": "components/AppSidebar.vue",
-          "prop": "width",
-          "value": "100%",
-          "count": 1
-        },
-        {
-          "file": "components/DynamicSettingField.vue",
-          "prop": "width",
-          "value": "100%",
-          "count": 1
-        },
-        {
           "file": "components/FileMonitor.vue",
           "prop": "flex-shrink",
           "value": "0",
@@ -1733,12 +1715,6 @@
           "file": "components/FileMonitor.vue",
           "prop": "margin-left",
           "value": "auto",
-          "count": 1
-        },
-        {
-          "file": "components/FileMonitor.vue",
-          "prop": "width",
-          "value": "100%",
           "count": 1
         },
         {
@@ -1838,21 +1814,9 @@
           "count": 1
         },
         {
-          "file": "components/NotificationConfig.vue",
-          "prop": "width",
-          "value": "100%",
-          "count": 1
-        },
-        {
           "file": "components/RouteDebugPanel.vue",
           "prop": "border",
           "value": "none",
-          "count": 1
-        },
-        {
-          "file": "components/RouteDebugPanel.vue",
-          "prop": "width",
-          "value": "100%",
           "count": 1
         },
         {
@@ -1916,28 +1880,10 @@
           "count": 1
         },
         {
-          "file": "components/ValidityConfig.vue",
-          "prop": "width",
-          "value": "100%",
-          "count": 2
-        },
-        {
-          "file": "components/WechatTrustIP.vue",
-          "prop": "width",
-          "value": "100%",
-          "count": 7
-        },
-        {
           "file": "components/dashboard/widgets/AdapterStatusAnnounceCard.vue",
           "prop": "flex-shrink",
           "value": "0",
           "count": 4
-        },
-        {
-          "file": "components/dashboard/widgets/AdapterStatusAnnounceCard.vue",
-          "prop": "height",
-          "value": "100%",
-          "count": 1
         },
         {
           "file": "components/dashboard/widgets/AdapterStatusAnnounceCard.vue",
@@ -1964,28 +1910,10 @@
           "count": 1
         },
         {
-          "file": "components/dashboard/widgets/AdapterStatusCard.vue",
-          "prop": "height",
-          "value": "100%",
-          "count": 1
-        },
-        {
-          "file": "components/dashboard/widgets/AdapterStatusCard.vue",
-          "prop": "width",
-          "value": "100%",
-          "count": 1
-        },
-        {
           "file": "components/dashboard/widgets/AdapterStatusQueryCard.vue",
           "prop": "flex-shrink",
           "value": "0",
           "count": 1
-        },
-        {
-          "file": "components/dashboard/widgets/AdapterStatusQueryCard.vue",
-          "prop": "height",
-          "value": "100%",
-          "count": 2
         },
         {
           "file": "components/dashboard/widgets/AdapterStatusQueryCard.vue",
@@ -2006,22 +1934,10 @@
           "count": 1
         },
         {
-          "file": "components/dashboard/widgets/AdapterStatusQueryCard.vue",
-          "prop": "width",
-          "value": "100%",
-          "count": 2
-        },
-        {
           "file": "components/dashboard/widgets/PendingItemsCard.vue",
           "prop": "flex-shrink",
           "value": "0",
           "count": 2
-        },
-        {
-          "file": "components/dashboard/widgets/PendingItemsCard.vue",
-          "prop": "height",
-          "value": "100%",
-          "count": 1
         },
         {
           "file": "components/dashboard/widgets/PendingItemsCard.vue",
@@ -2036,18 +1952,6 @@
           "count": 1
         },
         {
-          "file": "components/dashboard/widgets/PlaceholderWidget.vue",
-          "prop": "height",
-          "value": "100%",
-          "count": 1
-        },
-        {
-          "file": "components/dashboard/widgets/QuickActionsCard.vue",
-          "prop": "height",
-          "value": "100%",
-          "count": 1
-        },
-        {
           "file": "components/dashboard/widgets/QuickActionsCard.vue",
           "prop": "pointer-events",
           "value": "none",
@@ -2057,12 +1961,6 @@
           "file": "components/dashboard/widgets/QuickActionsCard.vue",
           "prop": "user-select",
           "value": "none",
-          "count": 1
-        },
-        {
-          "file": "components/dashboard/widgets/RecentAnnounceCard.vue",
-          "prop": "height",
-          "value": "100%",
           "count": 1
         },
         {
@@ -2090,28 +1988,10 @@
           "count": 1
         },
         {
-          "file": "components/dashboard/widgets/StatsCard.vue",
-          "prop": "height",
-          "value": "100%",
-          "count": 1
-        },
-        {
           "file": "components/dashboard/widgets/SystemInfoCard.vue",
           "prop": "flex-shrink",
           "value": "0",
           "count": 2
-        },
-        {
-          "file": "components/dashboard/widgets/SystemInfoCard.vue",
-          "prop": "height",
-          "value": "100%",
-          "count": 2
-        },
-        {
-          "file": "components/dashboard/widgets/SystemInfoCard.vue",
-          "prop": "width",
-          "value": "100%",
-          "count": 1
         },
         {
           "file": "components/dashboard/widgets/SystemLogCard.vue",
@@ -2127,12 +2007,6 @@
         },
         {
           "file": "components/dashboard/widgets/SystemLogCard.vue",
-          "prop": "height",
-          "value": "100%",
-          "count": 1
-        },
-        {
-          "file": "components/dashboard/widgets/SystemLogCard.vue",
           "prop": "overflow-y",
           "value": "auto",
           "count": 1
@@ -2141,12 +2015,6 @@
           "file": "components/dashboard/widgets/TaskTrendCard.vue",
           "prop": "border-bottom",
           "value": "none",
-          "count": 1
-        },
-        {
-          "file": "components/dashboard/widgets/TaskTrendCard.vue",
-          "prop": "height",
-          "value": "100%",
           "count": 1
         },
         {
@@ -2240,12 +2108,6 @@
           "count": 3
         },
         {
-          "file": "views/AnnounceDetail.vue",
-          "prop": "width",
-          "value": "100%",
-          "count": 1
-        },
-        {
           "file": "views/AnnounceView.vue",
           "prop": "flex-shrink",
           "value": "0",
@@ -2276,22 +2138,10 @@
           "count": 1
         },
         {
-          "file": "views/DownloadQueue.vue",
-          "prop": "width",
-          "value": "100%",
-          "count": 1
-        },
-        {
           "file": "views/HomeView.vue",
           "prop": "border",
           "value": "none",
           "count": 1
-        },
-        {
-          "file": "views/HomeView.vue",
-          "prop": "height",
-          "value": "100%",
-          "count": 3
         },
         {
           "file": "views/HomeView.vue",
@@ -2318,12 +2168,6 @@
           "count": 1
         },
         {
-          "file": "views/HomeView.vue",
-          "prop": "width",
-          "value": "100%",
-          "count": 4
-        },
-        {
           "file": "views/LoginView.vue",
           "prop": "min-height",
           "value": "100vh",
@@ -2334,12 +2178,6 @@
           "prop": "outline",
           "value": "none",
           "count": 1
-        },
-        {
-          "file": "views/LoginView.vue",
-          "prop": "width",
-          "value": "100%",
-          "count": 2
         },
         {
           "file": "views/NotificationLogsView.vue",
@@ -2384,12 +2222,6 @@
           "count": 1
         },
         {
-          "file": "views/NotificationLogsView.vue",
-          "prop": "width",
-          "value": "100%",
-          "count": 1
-        },
-        {
           "file": "views/OrganizeView.vue",
           "prop": "background",
           "value": "none",
@@ -2426,12 +2258,6 @@
           "count": 1
         },
         {
-          "file": "views/QueryHistory.vue",
-          "prop": "width",
-          "value": "100%",
-          "count": 1
-        },
-        {
           "file": "views/RegisterView.vue",
           "prop": "margin",
           "value": "0",
@@ -2448,12 +2274,6 @@
           "prop": "outline",
           "value": "none",
           "count": 1
-        },
-        {
-          "file": "views/RegisterView.vue",
-          "prop": "width",
-          "value": "100%",
-          "count": 2
         },
         {
           "file": "views/SettingsView.vue",
@@ -2528,12 +2348,6 @@
           "count": 1
         },
         {
-          "file": "views/settings/SettingsTabSchedule.vue",
-          "prop": "flex-basis",
-          "value": "100%",
-          "count": 1
-        },
-        {
           "file": "views/settings/SettingsTabSites.vue",
           "prop": "flex-shrink",
           "value": "0",
@@ -2549,12 +2363,6 @@
           "file": "views/settings/shared.css",
           "prop": "grid-template-columns",
           "value": "1fr",
-          "count": 1
-        },
-        {
-          "file": "views/settings/shared.css",
-          "prop": "height",
-          "value": "100%",
           "count": 1
         },
         {
@@ -2591,12 +2399,6 @@
           "file": "views/settings/shared.css",
           "prop": "user-select",
           "value": "none",
-          "count": 1
-        },
-        {
-          "file": "views/settings/shared.css",
-          "prop": "width",
-          "value": "100%",
           "count": 1
         }
       ]
@@ -3634,6 +3436,211 @@
           "file": "views/settings/shared.css",
           "prop": "color",
           "value": "var(--danger, #e74c3c)",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "b-percent",
+      "class": "B",
+      "reason": "百分比布局单位（width/height: 100%）：P5-4 收紧后纳入棘轮，需逐条确认是否令牌化",
+      "entries": [
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "width",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "components/AppSidebar.vue",
+          "prop": "width",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "components/DynamicSettingField.vue",
+          "prop": "width",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "components/FileMonitor.vue",
+          "prop": "width",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "components/NotificationConfig.vue",
+          "prop": "width",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "components/RouteDebugPanel.vue",
+          "prop": "width",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "components/ValidityConfig.vue",
+          "prop": "width",
+          "value": "100%",
+          "count": 2
+        },
+        {
+          "file": "components/WechatTrustIP.vue",
+          "prop": "width",
+          "value": "100%",
+          "count": 7
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusAnnounceCard.vue",
+          "prop": "height",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusCard.vue",
+          "prop": "height",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusCard.vue",
+          "prop": "width",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusQueryCard.vue",
+          "prop": "height",
+          "value": "100%",
+          "count": 2
+        },
+        {
+          "file": "components/dashboard/widgets/AdapterStatusQueryCard.vue",
+          "prop": "width",
+          "value": "100%",
+          "count": 2
+        },
+        {
+          "file": "components/dashboard/widgets/PendingItemsCard.vue",
+          "prop": "height",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/PlaceholderWidget.vue",
+          "prop": "height",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/QuickActionsCard.vue",
+          "prop": "height",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/RecentAnnounceCard.vue",
+          "prop": "height",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/StatsCard.vue",
+          "prop": "height",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/SystemInfoCard.vue",
+          "prop": "height",
+          "value": "100%",
+          "count": 2
+        },
+        {
+          "file": "components/dashboard/widgets/SystemInfoCard.vue",
+          "prop": "width",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/SystemLogCard.vue",
+          "prop": "height",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/TaskTrendCard.vue",
+          "prop": "height",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "views/AnnounceDetail.vue",
+          "prop": "width",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "views/DownloadQueue.vue",
+          "prop": "width",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "views/HomeView.vue",
+          "prop": "height",
+          "value": "100%",
+          "count": 3
+        },
+        {
+          "file": "views/HomeView.vue",
+          "prop": "width",
+          "value": "100%",
+          "count": 4
+        },
+        {
+          "file": "views/LoginView.vue",
+          "prop": "width",
+          "value": "100%",
+          "count": 2
+        },
+        {
+          "file": "views/NotificationLogsView.vue",
+          "prop": "width",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "views/QueryHistory.vue",
+          "prop": "width",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "views/RegisterView.vue",
+          "prop": "width",
+          "value": "100%",
+          "count": 2
+        },
+        {
+          "file": "views/settings/SettingsTabSchedule.vue",
+          "prop": "flex-basis",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "views/settings/shared.css",
+          "prop": "height",
+          "value": "100%",
+          "count": 1
+        },
+        {
+          "file": "views/settings/shared.css",
+          "prop": "width",
+          "value": "100%",
           "count": 1
         }
       ]
