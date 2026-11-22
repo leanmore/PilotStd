@@ -212,3 +212,6 @@ A: `--required-only` 参数仅检查 `required` 级别能力。CI 也仅对 `req
 
 > v2.66（2026-11-22）：G-055 收紧 `100%` 口径（C→B，新增 `b-percent` 组），基线 B=140 / C=569，
 > 新增百分比硬编码将直接阻断。
+
+> v2.67（2026-11-22）：G-055 收紧 `vh/fr/fit-content` 口径（新增 `b-layout-unit`），基线 B=150 / C=559；
+> `transparent/none/auto/0/unset` 134 条维持 C 类不动。

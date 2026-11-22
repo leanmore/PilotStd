@@ -11,7 +11,7 @@
 
 | 结论 | 数值 / 判断 |
 |---|---|
-| **当前状态（全量替换后）** | 命中 **709** 条：**A 0** / B 140 / C 569 / D 0（P5-4 后 `100%` 计入 B 类）（A-51 消除 3 条；P5-1 新增 `--text-on-primary` 后 B 再减 6 条） |
+| **当前状态（全量替换后）** | 命中 **709** 条：**A 0** / B 150 / C 559 / D 0（P5-4 `100%`、P5-5 `vh/fr` 计入 B 类）（A-51 消除 3 条；P5-1 新增 `--text-on-primary` 后 B 再减 6 条） |
 | 阶段二审计快照（替换前） | 命中 1722 条：A 979 / B 115 / C 628 / D 0（历史快照，保留原值）（不含已令牌化声明 859 条、与视觉无关的声明 1095 条） |
 | A 精确映射 | **979 条已全部替换**（试点 17 + 5-1 118 + 5-2 204 + 5-3 272 + 5-4 333 + 5-5 35），见 §7 |
 | B 近似映射 | **115 条保持字面量** = **113 条带 `TODO: [Design Debt]`**（5 批 112 + 试点 1）+ **2 条内联白名单**（`PendingView:90 height:20px`、`SystemResources:49 height:24px`，HTML 属性无法插 CSS 注释）。全树 TODO 文本共 **114 处** = 113（B 行）+ 1（旧圆角别名 `10px → var(--radius)`，对应一条已替换的 A 行） |
@@ -385,7 +385,7 @@
 
 - 每批独立提交、独立跑四件套（type-check / lint / test / build），测试恒为 **421 passed**；
 - 5-3 首次应用时替换器把 `margin: 0 0 20px` 错包为 `var(0 0 var(--space-20))`，被 build 拦下，回退重做后入库，**错误未进任何提交**；
-- 全量后复扫：**A=0 / B=140 / C=569 / D=0**（P5-4 收紧 `100%`）（A-51 减 3 条；P5-1 再减 6 条），全树无 `var(0…` / `var(var(…)`。
+- 全量后复扫：**A=0 / B=150 / C=559 / D=0**（P5-4/P5-5 收紧）（A-51 减 3 条；P5-1 再减 6 条），全树无 `var(0…` / `var(var(…)`。
 
 **试点发现的既有缺口**：状态圆点色 `--warning` 在浅色底上仅 2.15:1（green 主题 2.05:1），低于非文本对比度 3:1；该值替换前就是同色字面量 `#f59e0b`，**非本次引入**，登记为 DT-12。
 
@@ -461,7 +461,7 @@ python scripts/audit_design_tokens.py --check   # 输出 A/B/C/D 计数，不写
 python scripts/audit_design_tokens.py           # 刷新本文件 §4（默认全量，不截断）
 ```
 
-**全量后的门禁输入**：**B=140**（P5-4 后；`100%` 共 50 次计入 B 类棘轮）+ **C=569**（A-51 消除 1 条 `width:20px`）；全树 TODO 文本 114 处（113 B + 1 旧圆角别名）。G-055 的棘轮基线按此生成，只含 C 类分组、B 类 TODO 项与 2 条内联白名单；A 类为 0 表示"任何新增可映射硬编码当场红灯"。三处口径（本节 / §0 / 基线文件 `scripts/design_token_baseline.json`）必须一致。
+**全量后的门禁输入**：**B=150**（P5-4/P5-5 后；`100%` 50 次 + `vh/fr/fit-content` 10 次）+ **C=559**（A-51 消除 1 条 `width:20px`）；全树 TODO 文本 114 处（113 B + 1 旧圆角别名）。G-055 的棘轮基线按此生成，只含 C 类分组、B 类 TODO 项与 2 条内联白名单；A 类为 0 表示"任何新增可映射硬编码当场红灯"。三处口径（本节 / §0 / 基线文件 `scripts/design_token_baseline.json`）必须一致。
 
 **修复的守护测试**：`web/src/styles/design-tokens.test.ts`（6 例）—— ① `var()` 无未定义引用；② `style.css` 默认层与 `themes.ts` light 一致；③ 无失效文档引用；④ 令牌文件无颜色字面量；⑤ 不覆盖旧 `--radius-*`；⑥ 关键尺度令牌齐备。反向验证已做：注入 `var(--definitely-undefined)` 与 `--ds-bad: #ff00ff` 均报错，恢复后 6 passed。
 
@@ -489,7 +489,7 @@ python scripts/audit_design_tokens.py           # 刷新本文件 §4（默认�
 |---|---|
 | 每批四件套 | type-check 0 / lint 0 errors（304 warnings 未增）/ vitest **421 passed** / build 0 |
 | 本地门禁 | `check_all.sh --fast --guards --local` exit 0；`--ci`（CI 严格模式复刻）exit 0 |
-| 审计可复现 | `audit_design_tokens.py --check` → A=0 / B=140 / C=569 / D=0；报告重跑幂等 |
+| 审计可复现 | `audit_design_tokens.py --check` → A=0 / B=150 / C=559 / D=0；报告重跑幂等 |
 | 门禁反证 | 真实仓库注入 hex / 固定像素 / 内联 height 均 exit 1；受控测试 9 例；空范围 G-029 非 0 退出 |
 | **PR #9 CI（`bc061a9f`）** | CI/CD run [44894805257](https://github.com/leanmore/PilotStd/actions/runs/44894805257) **success**（10 jobs，3 skipped 属非 main）；Deep Gate run [44894805295](https://github.com/leanmore/PilotStd/actions/runs/44894805295) **success** |
 | 关键步骤级 | `G-055`（test-frontend step 8）success ；`G-029`（repo-compliance step 7）success ；`Run GUI unit tests` success ；`deep-gate-check` success |
