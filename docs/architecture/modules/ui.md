@@ -241,12 +241,13 @@ Handler Handler  Handler    (worker)   Handler
   硬设 20×20 会把点击热区压到 20px，低于 WCAG 2.5.8 的 24px 最小目标；实现只保证 `size_24` 最小边长）。
 - 未新增遮罩层颜色令牌：与 Web 端 `AppDialog` 同口径（迁移前从未覆盖遮罩，观感即 Qt/Aura 默认；
   加颜色键会连带触发 `design-tokens.test.ts` 映射断言与令牌同步链，成本高且无视觉需求）。
-- 调用点替换：`QTableWidget(...)` 构造 **2 处 → 0**（`_ui_setup_ops._setup_work_table`、
-  `task_page.TaskPage`）；`QDialog` 在 `pilotstd/ui/**` 内的 **35 处文本出现 → 0 处裸构造**，
-  其中 7 个基类继承（`ConfigPageDialog` / `ExportFileListDialog` / `PendingQueryDialog` /
-  `WelcomeDialog` / `RuleEditDialog` / `SettingsDialog` / `TaskCenterDialog`）+ 5 处直接
-  `QDialog(...)` 实例化（`_announce` / `_auto` / `_cleanup` / `_query_summary` / `_dialog_ops`），
-  其余是 import、类型标注（`parent: QDialog`）与 `DialogCode` 枚举引用。
+- 调用点替换（数字均以 `git grep QDialog HEAD -- pilotstd/ui` 为准，共 35 行文本）：
+  - `QTableWidget(...)` 构造 **2 处 → 0**（`_ui_setup_ops._setup_work_table`、`task_page.TaskPage`）；
+  - `QDialog` **7 处基类继承 → 0**：`ConfigPageDialog` / `ExportFileListDialog` / `RuleEditDialog` /
+    `SettingsDialog` / `TaskCenterDialog` / `PendingQueryDialog` / `WelcomeDialog`；
+  - `QDialog(...)` **5 处直接构造 → 0**：`_announce` / `_auto` / `_cleanup` / `_query_summary` / `_dialog_ops`；
+  - 其余 14 行 import + 6 行 `DialogCode` 枚举比较 + 2 行类型标注（`parent: QDialog`、
+    `-> QDialog`）+ 1 行 `themes.py` 全局 QSS 选择器，随上述替换一并收敛。
   全部改为继承/使用 `BaseDialog`，业务信号槽与 `exec()` 语义原样保留
   （`BaseDialog.DialogCode` 与 `QDialog.DialogCode` 是同一个枚举，`exec()`/`accept()`/
   `reject()`/`closeEvent()`/`setWindowTitle()`/`resize()` 一律不覆写）。

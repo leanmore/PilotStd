@@ -46,7 +46,7 @@ Win 端存量 35 处 QDialog **全部**自带页脚「关闭 / 确定 / 取消�
 from __future__ import annotations
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QShowEvent
+from PyQt6.QtGui import QResizeEvent, QShowEvent
 from PyQt6.QtWidgets import QDialog, QHBoxLayout, QLayout, QToolButton, QWidget
 
 from pilotstd.i18n import _
@@ -184,7 +184,7 @@ class BaseDialog(QDialog):
         button.raise_()
 
     # ── 内边距（首次显示时套到 layout）────────────────────────
-    def showEvent(self, event: QShowEvent) -> None:
+    def showEvent(self, event: QShowEvent | None) -> None:
         """首次显示时把 DS 内边距套到布局，并按需摆好关闭按钮。"""
         super().showEvent(event)
         if not self._margin_applied:
@@ -197,7 +197,7 @@ class BaseDialog(QDialog):
         if self._closable:
             self._place_close_button()
 
-    def resizeEvent(self, event) -> None:
+    def resizeEvent(self, event: QResizeEvent | None) -> None:
         """窗口尺寸变化时把关闭按钮重新贴到右上角。"""
         super().resizeEvent(event)
         if self._closable and self._close_button is not None:

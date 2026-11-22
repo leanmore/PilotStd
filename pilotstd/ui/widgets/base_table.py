@@ -253,12 +253,15 @@ class BaseTable(QTableWidget):
         # 行高/表头高必须显式设（QSS 的 ::item padding 不改 rowHeight，见模块 docstring）
         row_height = 2 * pad_row + _line_px("font_size_13", "line_height_normal")
         header_height = 2 * pad_head + _line_px("font_size_11", "line_height_normal")
-        self.verticalHeader().setDefaultSectionSize(row_height)
+        vertical = self.verticalHeader()
+        if vertical is not None:
+            vertical.setDefaultSectionSize(row_height)
+            # 选中列时不要把表头画成高亮色（Web 端表头恒为 surface-raised）
+            vertical.setHighlightSections(False)
         horizontal = self.horizontalHeader()
-        horizontal.setFixedHeight(header_height)
-        # 选中列时不要把表头画成高亮色（Web 端表头恒为 surface-raised）
-        horizontal.setHighlightSections(False)
-        self.verticalHeader().setHighlightSections(False)
+        if horizontal is not None:
+            horizontal.setFixedHeight(header_height)
+            horizontal.setHighlightSections(False)
 
         # 与 BaseInput 同款坑：应用级样式表存在时，控件首次 polish 前 sizeHint/尺寸
         # 用的是未套控件 QSS 的值；立即 polish 让构造完成即拿到令牌尺寸，避免首帧按旧值排版。
