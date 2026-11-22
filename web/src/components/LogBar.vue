@@ -222,7 +222,7 @@ watch(() => route?.path, () => {
   left: 0;
   right: 0;
   /* TODO: [Design Debt] 8px 无精确令牌，暂不替换，待定令牌后统一处理 */
-  height: 8px;
+  height: var(--size-8);
   cursor: ns-resize;
   background: transparent;
   z-index: 10;
@@ -246,6 +246,6 @@ watch(() => route?.path, () => {
 .log-resize-handle:hover::after {
   background: var(--primary);
   /* TODO: [Design Debt] 4px 无精确令牌，暂不替换，待定令牌后统一处理 */
-  height: 4px;
+  height: var(--size-4);
 }
 </style>

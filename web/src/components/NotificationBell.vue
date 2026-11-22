@@ -215,7 +215,7 @@ const goToLogs = () => {
 .item-dot {
   width: 8px;
   /* TODO: [Design Debt] `height: 8px` 无对应尺寸令牌（状态圆点），暂不替换，待定令牌后统一处理 */
-  height: 8px;
+  height: var(--size-8);
   border-radius: 50%;
   background: var(--primary);
   margin-right: var(--space-12);

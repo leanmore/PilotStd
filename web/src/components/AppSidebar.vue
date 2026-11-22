@@ -156,7 +156,7 @@ nav::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
   transform: translateY(-50%);
   width: 4px;
   /* TODO: [Design Debt] 24px 无精确令牌，暂不替换，待定令牌后统一处理 */
-  height: 24px;
+  height: var(--size-24);
   background: linear-gradient(180deg, var(--primary), var(--primary-hover));
   /* TODO: [Design Debt] 0 4px 4px 0 无精确令牌，暂不替换，待定令牌后统一处理 */
   border-radius: 0 4px 4px 0;

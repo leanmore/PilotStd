@@ -179,7 +179,7 @@ onBeforeUnmount(() => {
   font-size: var(--font-size-9); color: var(--text-dim); width: 100%; overflow: hidden;
 }
 /* TODO: [Design Debt] 6px 无精确令牌，暂不替换，待定令牌后统一处理 */
-.health-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.health-dot { width: var(--size-6); height: var(--size-6); border-radius: 50%; flex-shrink: 0; }
 .health-up { background: var(--success); }
 .health-down { background: var(--danger); }
 .health-none { background: var(--border-light, #ccc); }
