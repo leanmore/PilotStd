@@ -62,6 +62,7 @@ B_GROUPS = {
     "非实测档位（相对字体/变量）": "b-font-size",
     "px 行高，需换算倍数后确认": "b-line-height",
     "相对行高（em/%）": "b-line-height",
+    "百分比布局单位（P5-4 收紧）": "b-percent",
 }
 
 GROUP_REASONS = {
@@ -84,6 +85,7 @@ GROUP_REASONS = {
     "b-radius": "B 类：非令牌圆角档位",
     "b-font-weight": "B 类：非常规字重",
     "b-font-size": "B 类：非实测字号档位",
+    "b-percent": "百分比布局单位（width/height: 100%）：P5-4 收紧后纳入棘轮，需逐条确认是否令牌化",
     "b-line-height": "B 类：行高需人工换算",
     "b-other": "B 类：其他无精确令牌项",
     "c-other": "C 类：其他排除项",

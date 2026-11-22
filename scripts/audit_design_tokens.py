@@ -235,8 +235,11 @@ def _excluded(file: str, prop_l: str, value_n: str, value: str,
     if re.search(r"(calc|clamp|min|max)\(", value_n):
         return "C", None, "—", "计算值（布局，不纳入令牌）"
     if value_n in {"0", "auto", "inherit", "initial", "unset", "none", "transparent",
-                   "100%", "100vh", "100vw", "fit-content", "1fr"}:
+                   "100vh", "100vw", "fit-content", "1fr"}:
         return "C", None, "—", "无字面量/布局值"
+    if value_n == "100%" and not RADIUS_PROPS.match(prop_l):
+        # P5-4（2026-11-22）：百分比布局单位收紧为 B 类（计入棘轮，需人工确认是否令牌化）
+        return "B", None, "—", "百分比布局单位（P5-4 收紧）"
     if RADIUS_PROPS.match(prop_l) and value_n == "50%":
         return "C", None, "—", "圆形（装饰性）"
     if re.fullmatch(r"[-0-9.]+(rem|em|vh|vw|fr)", value_n):
