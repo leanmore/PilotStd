@@ -879,7 +879,8 @@ eason=copy_quarantined（manifest/rollback C:\Temp\pending28_*）；61 对账见
 ### 73. U-4 公告抓取状态/补抓：已具备并有生产证据（2026-11-19）
 
 - 生产通知 id=4505/4504（2026-11-18 01:00）：距上次成功抓取已约 375 小时，本次已开启回看补抓 → _missed_gap_hours() + lookback override 真实生效；
-- etch_checkpoint 有 3 个来源 last_fetched_at；	ests/test_announce_lookback.py 2 例 + 	est_announcement_checkpoint_regression.py 覆盖补抓/检查点不越失败项；
+- 
+etch_checkpoint 有 3 个来源 last_fetched_at；	ests/test_announce_lookback.py 2 例 + 	est_announcement_checkpoint_regression.py 覆盖补抓/检查点不越失败项；
 - 结论：**U-4 功能正常，无需补实现**；剩余仅为“抓取结果为 0”的数据源问题（公告源无新数据/抓取异常），归 U-4 数据侧观察。
 
 
@@ -911,7 +912,8 @@ ecursive 覆盖子目录。A-44 闭合。
 
 ### 78. V-16 TaskManager 失败分支闭合（2026-11-19）
 
-- 	ests/test_core_task_manager.py 覆盖 ailed 字段归一、终态词表（completed/cancelled/failed）、result_json 防御与两种 result 形状；TaskManager 仅只读门面，运行时失败落库不在该层。V-16 闭合。
+- 	ests/test_core_task_manager.py 覆盖 
+ailed 字段归一、终态词表（completed/cancelled/failed）、result_json 防御与两种 result 形状；TaskManager 仅只读门面，运行时失败落库不在该层。V-16 闭合。
 
 
 ### 79. T-42 渠道限流闭合（2026-11-19）
@@ -1405,3 +1407,16 @@ ecursive 覆盖子目录。A-44 闭合。
   登录页深色渐变上的白字 —— 它们不在 `on-primary` 语义内，保持字面量并留在 A-52 观察。
 - **测试**：`a11y-contrast.test.ts` 增「四主题 on-primary on primaryFill ≥ 4.5」4 例（该文件 15 例）。
 - **数字**：G-055 `B 113→107`、总命中 740→734；基线/审计 §0·§11/A-52 三处同步；STALE=0。
+
+### 115. P5-2：原生阴影映射评估——无可精确映射项（2026-11-21）
+
+- 逐条比对 13 条原生 `box-shadow` 与既有令牌（`--shadow-xs/sm/md/lg`、`--focus-ring`、`--button-primary-shadow`）：
+  **没有一条半径/扩散/透明度完全相等**；其中既有 `--shadow-md` 为 `0 8px 16px -6px`，而原生多为
+  `0 4px 12px`/`0 6px 16px`/`0 2px 8px` 等，替换会产生可见视觉变化。
+- 按裁决“不强行映射”：**只加 TODO 标注 13 条**（注明“与既有层级不匹配，待统一评估（A-52）”），
+  **不新拆 `--shadow-*` 层级**、不改任何阴影值；G-055 数字不变（A=0 / B=107 / C=627，STALE=0）。
+- `box-shadow: var(...)` 的既有 33 处不受影响；A-52 阴影子项已登记。
+
+补记（2026-11-22）：P5-2 分支因 A-52 冲突做过一次 rebase（force-push），使 PR 事件里的 `github.event.before`
+指向已不可达的旧 head，`repo-compliance` 的范围检查因此判“显式范围 0 变更”而红（run 44971267154）。
+处置：在分支上追加一次普通提交刷新 before 指针，**不修改任何门禁配置**。

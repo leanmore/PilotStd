@@ -188,6 +188,7 @@
   right: 8px;
   bottom: 8px;
   /* TODO: [Design Debt] 0 2px 4px rgba(0, 0, 0, 0.2) 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] 原生阴影与既有 --shadow-* 层级不匹配（半径/扩散/透明度不同），待统一评估（A-52） */
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 .theme-option.active .theme-swatch {
@@ -256,6 +257,7 @@
   word-break: break-all;
   color: var(--text-heading);
   /* TODO: [Design Debt] inset 0 2px 4px rgba(0, 0, 0, 0.05) 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] 原生阴影与既有 --shadow-* 层级不匹配（半径/扩散/透明度不同），待统一评估（A-52） */
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 .token-actions { display: flex; gap: var(--space-10); align-items: center; flex-wrap: wrap; }
