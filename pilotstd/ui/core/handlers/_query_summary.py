@@ -21,7 +21,6 @@ from PyQt6.QtWidgets import (
     QLabel,
     QListWidget,
     QMessageBox,
-    QPushButton,
     QScrollArea,
     QSizePolicy,
     QTableWidget,
@@ -31,6 +30,8 @@ from PyQt6.QtWidgets import (
 
 if TYPE_CHECKING:
     pass
+
+from pilotstd.ui.widgets.base_button import BaseButton
 
 from ....i18n import _ as tr
 from ....models import ParsedStdInfo
@@ -141,7 +142,7 @@ class QuerySummaryHandler:
         action_area.addStretch()
         if extra_buttons:
             for btn_text, callback in extra_buttons:
-                btn = QPushButton(btn_text)
+                btn = BaseButton(btn_text, kind="secondary")
                 btn.clicked.connect(callback)
                 action_area.addWidget(btn)
         layout.addLayout(action_area)
@@ -293,7 +294,7 @@ class QuerySummaryHandler:
 
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
-        download_btn = QPushButton(tr("btn_enter_download"))
+        download_btn = BaseButton(tr("btn_enter_download"), kind="primary")
         download_btn.setDefault(True)
         download_btn.setEnabled(has_download)
 
@@ -304,7 +305,7 @@ class QuerySummaryHandler:
                 self._on_download_cb()
 
         download_btn.clicked.connect(on_download_clicked)
-        close_btn = QPushButton(tr("btn_close"))
+        close_btn = BaseButton(tr("btn_close"), kind="ghost")
         close_btn.clicked.connect(dlg.reject)
         btn_layout.addWidget(download_btn)
         btn_layout.addWidget(close_btn)

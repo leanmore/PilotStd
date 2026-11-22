@@ -38,6 +38,7 @@ function makeRouter() {
 /** 只渲染文案的 PrimeVue stub（label/value/placeholder 走 $attrs，插槽原样透出） */
 const TEXT_STUBS = {
   Button: { template: '<button>{{ $attrs.label }}<slot /></button>', inheritAttrs: false },
+  AppButton: { template: '<button>{{ $attrs.label }}<slot /></button>', inheritAttrs: false },
   ToggleSwitch: { template: '<div class="toggle-stub" />' },
   ProgressSpinner: { template: '<div />' },
 }

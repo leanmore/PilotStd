@@ -42,10 +42,9 @@ export default tseslint.config(
     rules: {
       'custom/no-raw-i18n-key': 'error',
       'custom/no-sensitive-persist': 'error',
-      // DS 阶段一：禁止原生 <button> / PrimeVue <Button>，统一走 <AppButton>。
-      // 阶段一为 warn（存量未替换，见 docs/reference/ui-system.md §8）；
-      // 分批替换完成后改为 'error'。
-      'custom/no-raw-button': 'warn',
+      // DS 阶段二完成：142 处存量已全部替换为 <AppButton>，规则升级为阻断级。
+      // 任何新增的原生 <button> / PrimeVue <Button> 都会让 lint 失败。
+      'custom/no-raw-button': 'error',
     },
   },
   // router.ts 是 titleKey 的定义点，豁免 no-raw-i18n-key

@@ -2,7 +2,6 @@
 import { defineComponent, ref, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import http from '@/api/http'
-import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
 import ToggleSwitch from 'primevue/toggleswitch'
@@ -161,7 +160,14 @@ export default defineComponent({
         <span style="font-size:var(--font-size-11)">{{ status.last_processed.split('|')[1] || '' }}</span>
       </div>
       <div style="display:flex;gap:var(--space-6);flex-wrap:wrap;margin-left:auto">
-        <Button :label="t('settings.file_monitor.start')" size="small" severity="success" :loading="startLoading" @click="startMonitor" :disabled="status.running" />
+<AppButton
+          :label="t('settings.file_monitor.start')"
+          :loading="startLoading"
+          @click="startMonitor"
+          :disabled="status.running"
+          size="s"
+          type="primary"
+        />
         <AppButton
         :label="t('settings.file_monitor.stop')"
         size="s"
@@ -214,7 +220,14 @@ export default defineComponent({
                    placeholder="~$,.tmp,.swp" />
       </div>
       <div style="margin-top:var(--space-12)">
-        <Button :label="t('settings.save_config')" icon="pi pi-check" size="small" :loading="saving" @click="saveConfig" />
+<AppButton
+          :label="t('settings.save_config')"
+          icon="pi pi-check"
+          :loading="saving"
+          @click="saveConfig"
+          size="s"
+          type="secondary"
+        />
       </div>
     </div>
   </div>

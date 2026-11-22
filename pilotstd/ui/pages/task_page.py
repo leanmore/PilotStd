@@ -12,7 +12,6 @@ from PyQt6.QtWidgets import (
     QGroupBox,
     QHBoxLayout,
     QHeaderView,
-    QPushButton,
     QSplitter,
     QTableWidget,
     QTableWidgetItem,
@@ -20,6 +19,8 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+from pilotstd.ui.widgets.base_button import BaseButton
 
 from ...i18n import _
 from ...task.models import TaskInfo, TaskStatus, TaskType
@@ -108,10 +109,10 @@ class TaskPage(QWidget):
         task_layout.setContentsMargins(0, 0, 0, 0)
 
         btn_layout = QHBoxLayout()
-        self.btn_refresh = QPushButton(_("btn_refresh"))
+        self.btn_refresh = BaseButton(_("btn_refresh"), kind="secondary")
         self.btn_refresh.clicked.connect(self._refresh)
         btn_layout.addWidget(self.btn_refresh)
-        self.btn_clear = QPushButton(_("btn_clear_done"))
+        self.btn_clear = BaseButton(_("btn_clear_done"), kind="ghost")
         self.btn_clear.clicked.connect(self._clear_completed)
         btn_layout.addWidget(self.btn_clear)
         btn_layout.addStretch()
@@ -221,6 +222,6 @@ class TaskCenterDialog(QDialog):
         self.page = TaskPage(task_queue)
         layout.addWidget(self.page)
 
-        btn_close = QPushButton(_("btn_close"))
+        btn_close = BaseButton(_("btn_close"), kind="ghost")
         btn_close.clicked.connect(self.reject)
         layout.addWidget(btn_close)

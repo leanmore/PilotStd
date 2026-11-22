@@ -4,7 +4,6 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import DataView from 'primevue/dataview'
 import Paginator from 'primevue/paginator'
-import Button from 'primevue/button'
 import Textarea from 'primevue/textarea'
 import Tag from 'primevue/tag'
 import ProgressSpinner from 'primevue/progressspinner'
@@ -13,6 +12,7 @@ import { severityOfStatusKey } from '@/utils/stdStatus'
 import { getItem, setItem } from '@/lib/storage'
 import LogBar from '@/components/LogBar.vue'
 import { useQueryAdapters } from '@/composables/useQueryAdapters'
+import AppButton from '@/components/ui/AppButton.vue'
 
 const { adapters, loading: adaptersLoading, error: adaptersError, ensure, refresh: refreshAdapters } = useQueryAdapters('/pending')
 const { t } = useI18n()
@@ -72,7 +72,13 @@ onMounted(() => { ensure() })
   <p class="hint">{{ t('pending.hint') }}</p>
 
   <div class="btn-row mb-2">
-    <Button :label="t('pending.import_btn')" icon="pi pi-list" size="small" @click="loadPending" />
+<AppButton
+      :label="t('pending.import_btn')"
+      icon="pi pi-list"
+      @click="loadPending"
+      size="s"
+      type="secondary"
+    />
     <span v-if="importMsg" class="import-msg">{{ importMsg }}</span>
   </div>
 
@@ -96,7 +102,13 @@ onMounted(() => { ensure() })
 
     <div v-else-if="adaptersError" class="py-2">
       <p class="err-msg">{{ adaptersError }}</p>
-      <Button :label="t('pending.refresh')" icon="pi pi-refresh" size="small" severity="secondary" @click="refreshAdapters" />
+<AppButton
+        :label="t('pending.refresh')"
+        icon="pi pi-refresh"
+        @click="refreshAdapters"
+        size="s"
+        type="secondary"
+      />
     </div>
 
     <div v-else class="site-grid">
@@ -109,9 +121,16 @@ onMounted(() => { ensure() })
         </div>
       </div>
     </div>
-    <Button :label="t('pending.requery')" icon="pi pi-search" :loading="loading"
-            :disabled="adaptersLoading || !!adaptersError"
-            @click="requery" size="small" class="mt-2" />
+<AppButton
+      :label="t('pending.requery')"
+      icon="pi pi-search"
+      :loading="loading"
+      :disabled="adaptersLoading || !!adaptersError"
+      @click="requery"
+      class="mt-2"
+      size="s"
+      type="secondary"
+    />
   </div>
   <p v-if="error" class="err-msg">{{ error }}</p>
 

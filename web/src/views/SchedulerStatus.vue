@@ -2,12 +2,12 @@
 defineOptions({ name: 'SchedulerStatus' })
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import Button from 'primevue/button'
 import Card from 'primevue/card'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import { getSchedulerStatus } from '@/api/scheduler'
 import type { RouteTag } from '@/types/route-tag'
+import AppButton from '@/components/ui/AppButton.vue'
 
 interface Job {
   id: string
@@ -56,7 +56,12 @@ onMounted(() => fetchStatus('/scheduler'))
           <Badge :value="status.running ? t('scheduler.running') : t('scheduler.stopped')" :severity="status.running ? 'success' : 'danger'" />
           <span class="text-sm">{{ t('scheduler.job_count', { n: status.job_count }) }}</span>
           <span class="text-sm">{{ t('scheduler.updated', { time: formatTime(status.timestamp) }) }}</span>
-          <Button icon="pi pi-refresh" text size="small" @click="fetchStatus()" />
+          <AppButton
+            icon="pi pi-refresh"
+            @click="fetchStatus()"
+            size="s"
+            type="ghost"
+          />
         </div>
         <DataTable :value="status.jobs" striped-rows size="small" :loading="loading">
           <Column field="id" :header="t('scheduler.col_job_id')" />

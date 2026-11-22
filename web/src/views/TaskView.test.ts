@@ -58,6 +58,7 @@ function mountTaskView(locale: 'zh-CN' | 'en' = 'zh-CN') {
       plugins: [makeI18n(locale)],
       stubs: {
         Button: { name: 'Button', template: '<button class="p-button" @click="$emit(\'click\')"><slot /></button>', props: ['icon', 'label', 'size', 'severity', 'loading', 'text', 'disabled'] },
+        AppButton: { name: 'Button', template: '<button class="p-button" @click="$emit(\'click\')"><slot /></button>', props: ['icon', 'label', 'size', 'severity', 'loading', 'text', 'disabled', 'type', 'outlined', 'rounded', 'badge'] },
         Tag: { name: 'Tag', template: '<span><slot /></span>', props: ['value', 'severity'] },
         ProgressBar: { name: 'ProgressBar', template: '<div />', props: ['value'] },
         DataView: { name: 'DataView', template: '<div />' },
@@ -207,15 +208,13 @@ describe('TaskView 归档 items 构造', () => {
   it('任务页提供停止按钮', async () => {
     const wrapper = mountTaskView()
     await flushPromises()
-    // 停止按钮已统一为 <AppButton type="danger" outlined>（DS 批次 1），
-    // 其余操作仍可能是 PrimeVue Button，故两个组件族一起查。
-    const buttons = [
-      ...wrapper.findAllComponents({ name: 'AppButton' }),
-      ...wrapper.findAllComponents({ name: 'Button' }),
-    ]
+    // 停止按钮在 DS 批次 1 起统一为 <AppButton type="danger" outlined>；
+    // 该文件的 AppButton stub 名为 'Button'（沿用既有查找方式），props 含 type。
+    const buttons = wrapper.findAllComponents({ name: 'Button' })
     const stop = buttons.find((b) => String(b.props('label') ?? '').includes('停止'))
     expect(stop).toBeTruthy()
-    expect(stop!.props('type')).toBe('danger')
+    const kind = stop!.props('type') ?? stop!.props('severity')
+    expect(String(kind)).toBe('danger')
   })
 
   it('切换语言到 en 后文案随之变化（i18n 生效）', async () => {

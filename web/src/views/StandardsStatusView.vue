@@ -2,7 +2,6 @@
 defineOptions({ name: 'StandardsStatusView' })
 import { ref, onMounted, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import Button from 'primevue/button'
 import Card from 'primevue/card'
 import Select from 'primevue/select'
 import InputText from 'primevue/inputtext'
@@ -15,6 +14,7 @@ import { STD_STATUS_FILTER, severityOfStatusKey } from '@/utils/stdStatus'
 import { getItem, setItem } from '@/lib/storage'
 import { useIncrementalScroll, type PaginatedResult } from '@/composables/useIncrementalScroll'
 import TableLoadFooter from '@/components/TableLoadFooter.vue'
+import AppButton from '@/components/ui/AppButton.vue'
 
 const MAX_SIZE = 100
 
@@ -187,8 +187,20 @@ onMounted(() => {
             <InputText v-model="filterName" :placeholder="t('standards.filter_name_ph')" />
           </div>
           <div class="filter-actions">
-            <Button icon="pi pi-search" :label="t('standards.search')" size="small" @click="onSearch" />
-            <Button icon="pi pi-refresh" :label="t('standards.refresh')" size="small" severity="secondary" @click="clearStandardsStatusCache(); loadList()" />
+<AppButton
+              icon="pi pi-search"
+              :label="t('standards.search')"
+              @click="onSearch"
+              size="s"
+              type="secondary"
+            />
+<AppButton
+              icon="pi pi-refresh"
+              :label="t('standards.refresh')"
+              @click="clearStandardsStatusCache(); loadList()"
+              size="s"
+              type="secondary"
+            />
           </div>
         </div>
       </template>

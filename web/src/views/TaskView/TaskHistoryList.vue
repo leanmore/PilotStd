@@ -2,7 +2,6 @@
 defineOptions({ name: 'TaskHistoryList' })
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import DataView from 'primevue/dataview'
 import Paginator from 'primevue/paginator'
@@ -63,8 +62,18 @@ function statusLabel(s: string) {
             </div>
             <div class="flex" style="display:flex;gap:var(--space-6);align-items:center">
               <Tag :value="statusLabel(item.status)" :severity="statusSeverity(item.status)" />
-              <Button :label="t('task.detail')" size="small" text @click="emit('view', item)" />
-              <Button :label="t('task.rerun')" size="small" text severity="info" @click="emit('rerun', item)" />
+              <AppButton
+                :label="t('task.detail')"
+                @click="emit('view', item)"
+                size="s"
+                type="ghost"
+              />
+              <AppButton
+                :label="t('task.rerun')"
+                @click="emit('rerun', item)"
+                size="s"
+                type="ghost"
+              />
               <AppButton
         :label="t('task.delete')"
         size="s"

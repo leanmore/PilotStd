@@ -18,12 +18,13 @@ from PyQt6.QtWidgets import (
     QLabel,
     QMessageBox,
     QProgressBar,
-    QPushButton,
     QVBoxLayout,
 )
 
 if TYPE_CHECKING:
     from ....core.config import ConfigManager
+
+from pilotstd.ui.widgets.base_button import BaseButton
 
 from ....i18n import _
 from ...qt_lifecycle import stop_worker_gracefully
@@ -138,7 +139,7 @@ class AnnounceUIHandler:
         layout.addWidget(self._ann_progress_bar)
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
-        cancel_btn = QPushButton(_("btn_cancel"))
+        cancel_btn = BaseButton(_("btn_cancel"), kind="ghost")
         btn_layout.addWidget(cancel_btn)
         layout.addLayout(btn_layout)
 

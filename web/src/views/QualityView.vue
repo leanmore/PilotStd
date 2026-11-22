@@ -2,13 +2,13 @@
 defineOptions({ name: 'QualityView' })
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import Button from 'primevue/button'
 import Card from 'primevue/card'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Tag from 'primevue/tag'
 import Divider from 'primevue/divider'
 import { runQualityCheck } from '@/api/quality'
+import AppButton from '@/components/ui/AppButton.vue'
 
 const { t } = useI18n()
 const results = ref<any[]>([])
@@ -42,7 +42,14 @@ const runCheck = async () => {
     <Card>
       <template #content>
         <div class="flex gap-3 align-items-center">
-          <Button :label="t('quality.run')" icon="pi pi-play" @click="runCheck" :loading="running" />
+<AppButton
+            :label="t('quality.run')"
+            icon="pi pi-play"
+            @click="runCheck"
+            :loading="running"
+            size="m"
+            type="secondary"
+          />
           <span v-if="lastRun" class="text-sm">{{ t('quality.last_run', { time: formatTime(lastRun) }) }}</span>
         </div>
 

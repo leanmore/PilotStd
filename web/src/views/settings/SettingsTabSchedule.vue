@@ -8,10 +8,10 @@ import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ToggleSwitch from 'primevue/toggleswitch'
 import InputText from 'primevue/inputtext'
-import Button from 'primevue/button'
 import Message from 'primevue/message'
 import { getSettings, putSettings } from '@/api'
 import FileMonitor from '@/components/FileMonitor.vue'
+import AppButton from '@/components/ui/AppButton.vue'
 
 defineOptions({ name: 'SettingsTabSchedule' })
 
@@ -157,7 +157,14 @@ onMounted(loadTasks)
           </div>
 
           <div class="actions-row">
-            <Button :label="t('settings.save_config')" icon="pi pi-check" size="small" :loading="saving" @click="saveTasks" />
+<AppButton
+              :label="t('settings.save_config')"
+              icon="pi pi-check"
+              :loading="saving"
+              @click="saveTasks"
+              size="s"
+              type="secondary"
+            />
           </div>
         </div>
       </transition>

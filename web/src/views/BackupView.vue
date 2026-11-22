@@ -2,7 +2,6 @@
 defineOptions({ name: 'BackupView' })
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import Button from 'primevue/button'
 import Card from 'primevue/card'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
@@ -10,6 +9,7 @@ import Divider from 'primevue/divider'
 import { getBackupList, createBackup as createBackupApi } from '@/api/backup'
 import type { RouteTag } from '@/types/route-tag'
 import { useAppStore } from '@/stores/app'
+import AppButton from '@/components/ui/AppButton.vue'
 
 interface Backup {
   id: string; name: string; size: number; size_mb: number; created_at: string
@@ -64,12 +64,14 @@ onMounted(() => { if (isAdmin.value) fetchBackups('/backup') })
     <Card v-else>
       <template #content>
         <div class="flex gap-3 align-items-center">
-          <Button
+<AppButton
             v-if="isAdmin"
             :label="t('backup.create')"
             icon="pi pi-plus"
             @click="createBackup"
             :loading="creating"
+            size="m"
+            type="secondary"
           />
           <span v-if="lastBackup" class="text-sm">{{ t('backup.last_backup', { time: formatTime(lastBackup) }) }}</span>
         </div>

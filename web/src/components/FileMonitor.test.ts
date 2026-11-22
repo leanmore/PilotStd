@@ -29,6 +29,7 @@ function mountFileMonitor(locale: 'zh-CN' | 'en' = 'zh-CN') {
       plugins: [makeI18n(locale)],
       stubs: {
         Button: { template: '<button :disabled="$attrs.disabled" @click="$emit(\'click\')">{{ $attrs.label }}<slot /></button>', inheritAttrs: false },
+        AppButton: { template: '<button :disabled="$attrs.disabled" @click="$emit(\'click\')">{{ $attrs.label }}<slot /></button>', inheritAttrs: false },
         InputText: { template: '<input type="text" :value="$attrs.modelValue" />', inheritAttrs: false },
         InputNumber: { template: '<input type="number" />' },
         ToggleSwitch: { template: '<input type="checkbox" :checked="$attrs.modelValue" />', inheritAttrs: false },

@@ -9,9 +9,9 @@ import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import Tag from 'primevue/tag'
 import InputNumber from 'primevue/inputnumber'
-import Button from 'primevue/button'
 import Message from 'primevue/message'
 import http from '@/api/http'
+import AppButton from '@/components/ui/AppButton.vue'
 
 defineOptions({ name: 'SettingsTabSites' })
 
@@ -220,10 +220,9 @@ onMounted(() => { loadSites() })
               <span class="site-name">{{ s.label }}</span>
               <Tag :value="s.name" severity="info" />
               <span class="health-dot" :class="healthDotClass(s)" :title="healthText(s)" />
-              <Button
+              <AppButton
                 v-if="isAdmin()"
                 :icon="editStates[s.name]?.editing ? 'pi pi-lock-open' : 'pi pi-lock'"
-                :severity="editStates[s.name]?.editing ? 'warn' : 'secondary'"
                 :disabled="editStates[s.name]?.editing && !isValid(s)"
                 :loading="editStates[s.name]?.saving"
                 :title="editStates[s.name]?.editing
@@ -232,25 +231,24 @@ onMounted(() => { loadSites() })
                 :aria-label="editStates[s.name]?.editing
                   ? (isValid(s) ? t('sites.save_edit') : (validate(s) || t('sites.validation_failed')))
                   : t('sites.unlock_edit')"
-                rounded
-                text
-                size="small"
                 class="lock-btn"
                 @click="editStates[s.name]?.editing ? saveSite(s) : enterEdit(s)"
+                size="s"
+                :type="editStates[s.name]?.editing ? 'secondary' : 'secondary'"
+                rounded
               />
               <!-- 编辑态：显式"放弃修改"按钮 -->
-              <Button
+              <AppButton
                 v-if="editStates[s.name]?.editing"
                 icon="pi pi-undo"
-                severity="secondary"
                 :title="t('sites.discard_changes')"
                 :aria-label="t('sites.discard_changes')"
-                rounded
-                text
-                size="small"
                 class="discard-btn"
                 :disabled="editStates[s.name]?.saving"
                 @click="confirmDiscard(s)"
+                size="s"
+                type="ghost"
+                rounded
               />
             </div>
             <div class="site-url text-mono text-dim">{{ s.url }}</div>

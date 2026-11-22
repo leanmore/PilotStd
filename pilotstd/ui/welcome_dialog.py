@@ -9,9 +9,10 @@ from PyQt6.QtWidgets import (
     QDialog,
     QHBoxLayout,
     QLabel,
-    QPushButton,
     QVBoxLayout,
 )
+
+from pilotstd.ui.widgets.base_button import BaseButton
 
 from ..i18n import _
 
@@ -58,7 +59,7 @@ class WelcomeDialog(QDialog):
 
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
-        self.btn_close = QPushButton(_("btn_start"))
+        self.btn_close = BaseButton(_("btn_start"), kind="ghost")
         self.btn_close.clicked.connect(self.accept)
         btn_layout.addWidget(self.btn_close)
         layout.addLayout(btn_layout)

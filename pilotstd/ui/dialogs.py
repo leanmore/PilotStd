@@ -9,9 +9,10 @@ from PyQt6.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
     QLabel,
-    QPushButton,
     QVBoxLayout,
 )
+
+from pilotstd.ui.widgets.base_button import BaseButton
 
 from ..i18n import _
 
@@ -25,7 +26,7 @@ class ConfigPageDialog(QDialog):
         self.resize(650, 480)
         layout = QVBoxLayout(self)
         layout.addWidget(page)
-        btn_close = QPushButton(_("btn_close"))
+        btn_close = BaseButton(_("btn_close"), kind="ghost")
         btn_close.clicked.connect(self.accept)
         layout.addWidget(btn_close)
 
@@ -46,15 +47,15 @@ class ExportFileListDialog(QDialog):
         layout.addWidget(self.include_cb)
 
         btn_layout = QHBoxLayout()
-        btn_change = QPushButton("更改文件夹")
+        btn_change = BaseButton("更改文件夹", kind="secondary")
         btn_change.clicked.connect(self._change_folder)
         btn_layout.addWidget(btn_change)
         btn_layout.addStretch()
 
-        btn_ok = QPushButton("确定")
+        btn_ok = BaseButton("确定", kind="primary")
         btn_ok.clicked.connect(self._on_accept)
         btn_layout.addWidget(btn_ok)
-        btn_cancel = QPushButton("取消")
+        btn_cancel = BaseButton("取消", kind="ghost")
         btn_cancel.clicked.connect(self.reject)
         btn_layout.addWidget(btn_cancel)
         layout.addLayout(btn_layout)

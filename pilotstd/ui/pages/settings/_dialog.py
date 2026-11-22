@@ -7,9 +7,10 @@ from PyQt6.QtWidgets import (
     QDialog,
     QHBoxLayout,
     QMessageBox,
-    QPushButton,
     QVBoxLayout,
 )
+
+from pilotstd.ui.widgets.base_button import BaseButton
 
 from ....i18n import _
 from ._core import SettingsPage
@@ -29,10 +30,10 @@ class SettingsDialog(QDialog):
 
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
-        btn_ok = QPushButton(_("btn_ok"))
+        btn_ok = BaseButton(_("btn_ok"), kind="primary")
         btn_ok.clicked.connect(self._on_accept)
         btn_layout.addWidget(btn_ok)
-        btn_cancel = QPushButton(_("btn_cancel"))
+        btn_cancel = BaseButton(_("btn_cancel"), kind="ghost")
         btn_cancel.clicked.connect(self.reject)
         btn_layout.addWidget(btn_cancel)
         layout.addLayout(btn_layout)

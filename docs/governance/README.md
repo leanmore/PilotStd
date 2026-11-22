@@ -221,3 +221,6 @@ A: `--required-only` 参数仅检查 `required` 级别能力。CI 也仅对 `req
 
 > v2.69（2026-11-22）：DS 批次 1——危险语义按钮统一为 `<AppButton type="danger">`（10 处），
 > `no-raw-button` 存量 142→128；G-055 基线 C=566。
+
+> v2.70（2026-11-22）：DS 阶段二——142 处 Web + 46 处 Win 按钮全量替换完成，\custom/no-raw-button\ 升为 error。
+

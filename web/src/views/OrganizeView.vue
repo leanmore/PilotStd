@@ -6,7 +6,6 @@ import { getFiles, postCleanEmpty } from '@/api'
 import { enqueueValidityCheck } from '@/api/validity'
 import { getItem, setItem } from '@/lib/storage'
 import { useAppStore } from '@/stores/app'
-import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
 import DataView from 'primevue/dataview'
 import Paginator from 'primevue/paginator'
@@ -130,7 +129,14 @@ const breadcrumbs = computed(() => {
   <div class="card mt-2">
     <div class="controls">
       <input :value="rootPath" @keyup.enter="browse(($event.target as any).value)" @change="e => rootPath = (e.target as any).value" class="fi" style="flex:1" placeholder="/standards" />
-      <Button :label="t('organize.browse')" icon="pi pi-folder-open" :loading="loading" @click="browse()" size="small" />
+<AppButton
+        :label="t('organize.browse')"
+        icon="pi pi-folder-open"
+        :loading="loading"
+        @click="browse()"
+        size="s"
+        type="secondary"
+      />
       <AppButton
         :label="t('organize.clean_empty')"
         icon="pi pi-trash"
@@ -160,7 +166,14 @@ const breadcrumbs = computed(() => {
     <div style="flex:1" />
     <div v-if="canEnqueue && selectedFiles.size > 0" class="op-bar">
       <span class="selected-count">{{ t('organize.selected', { n: selectedFiles.size }) }}</span>
-      <Button :label="t('organize.enqueue_validity')" icon="pi pi-clock" size="small" :loading="enqueueLoading" @click="doEnqueue" />
+<AppButton
+        :label="t('organize.enqueue_validity')"
+        icon="pi pi-clock"
+        :loading="enqueueLoading"
+        @click="doEnqueue"
+        size="s"
+        type="secondary"
+      />
     </div>
     <span v-if="enqueueResult" class="enqueue-msg">{{ enqueueResult }}</span>
   </div>

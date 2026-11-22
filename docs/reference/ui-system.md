@@ -200,3 +200,62 @@ btn = BaseButton("取消", kind="ghost", size="s")
 - [x] `pilotstd/ui/widgets/base_button.py` + 单测
 - [x] `tests/test_win_tokens_sync.py`（产物与源一致）
 - [ ] 业务代码批量替换（**阶段二**，待确认）
+
+---
+
+## 十、阶段二：存量替换台账（2026-11-22 完成）
+
+### 10.1 Web 端（142 处 → 0）
+
+| 批次 | 范围 | 处数 | 结果 |
+|---|---|---:|---|
+| 1 | Danger 语义（清理/删除/停止/取消） | 10 | 统一 `type="danger"`，消除实心橙 vs 空心红分裂 |
+| 2 | 非 text 的 PrimeVue Button（主/次操作） | 51 | 按 severity 映射到 primary/secondary/danger |
+| 3 | text 按钮 + 全部原生 `<button>` | 81 | text → `type="ghost"`；原生按语义分类处理 |
+
+**最终账本**：`pnpm lint` 的 `custom/no-raw-button` 命中 **0**（起始 142）。
+
+### 10.2 AppButton 新增能力（替换过程中补齐）
+
+| Prop | 用途 | 来源 |
+|---|---|---|
+| `outlined` | 空心（红/主色描边） | PrimeVue `outlined` |
+| `text` | 纯文字按钮 | PrimeVue `text` |
+| `rounded` | 胶囊圆角 | PrimeVue `rounded` |
+| `badge` / `badgeSeverity` | 角标（未读数） | PrimeVue `badge` |
+| `bare` | 零样式透传，外观交给宿主 class | 结构性控件专用 |
+
+### 10.3 原生 `<button>` 的处置
+
+18 处原生按钮中：
+
+- **4 处**为普通操作按钮（调试、加载全部、清理日志×2）→ 直接换 `AppButton` 的对应层级；
+- **14 处**为结构性控件（顶栏图标按钮、浮动拖拽按钮、`role="menuitem"` 菜单项、子标签/标签页切换、
+  侧栏折叠把手、卡片删除角标）→ 换 `AppButton` + **`bare`**，保留原 class 与全部事件/无障碍属性，**视觉零变化**。
+
+> `bare` 不是"绕过门禁"，而是把「结构性控件」与「按钮层级」解耦：组件统一、样式归宿主。
+> 若将来这些控件需要统一外观，改宿主 class 即可，无需再动标签。
+
+### 10.4 Win 端（46 处 → 0）
+
+`QPushButton(...)` 全部替换为 `BaseButton(...)`，按语义补 `kind`：
+
+| kind | 场景 | 处数 |
+|---|---|---:|
+| `primary` | 确定/开始/查询/下载/保存/导入/导出/立即… | 20 |
+| `secondary` | 浏览/刷新/编辑/复制… | 15 |
+| `ghost` | 取消/关闭/返回/清除完成 | 9 |
+| `danger` | 删除/清理 | 2 |
+
+样式来源：`pilotstd/ui/tokens_generated.py`（由 `scripts/gen_win_tokens.py` 从 Web 源生成），
+**不使用** `themes.py` 的 `COLOR_SCHEMES`。
+
+### 10.5 门禁升级
+
+`eslint.config.js` 的 `custom/no-raw-button` 已由 `warn` 升为 **`error`**。
+验证方式：临时放一个含原生 `<button>` 的组件 → `lint` 报 **1 error** 并 exit 1；删除后恢复 PASS。
+
+### 10.6 遗留
+
+- **A-53**：`disabledBg`/`disabledText` 仍是死键（`applyThemeToDom` 未接线）。`AppButton` 的禁用态
+  暂用 `--border-light` + `--text-dim` 替代；接线后可直接替换，不影响其它规则。

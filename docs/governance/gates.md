@@ -865,3 +865,8 @@ B1（声明类 vs 实现类）已覆盖同一语义、且每次 CI 都在跑；�
 > **2026-11-22 DS 批次 1**：`design_token_baseline.json` 的 `ds-skeleton` 组补齐 `AppButton` 的修饰样式结构值
 > （transparent / border-width:0 等，非可令牌化视觉值）；`C 563→566`，`A=0 / B=151 / C=566 / STALE=0`。
 > 同批 `custom/no-raw-button` 存量 142→128。
+
+> **2026-11-22 DS 阶段二完成**：Web 端 142 处（18 原生 + 124 PrimeVue）与 Win 端 46 处按钮全量替换；
+> ESLint \custom/no-raw-button\ 由 \warn\ 升级为 **\error\**（探针验证会阻断）。
+> G-055 基线 C=577（AppButton 的 bare 结构性值入 ds-skeleton）。
+

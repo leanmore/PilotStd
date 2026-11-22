@@ -60,6 +60,7 @@ function mountComponent(locale: 'zh-CN' | 'en' = 'zh-CN') {
       plugins: [pinia, i18n, router, ConfirmationService, ToastService],
       stubs: {
         Button: { name: 'Button', template: '<button class="p-button">{{ label }}</button>', props: ['label', 'icon', 'size', 'severity', 'loading', 'text'] },
+        AppButton: { name: 'Button', template: '<button class="p-button"><slot>{{ label }}</slot></button>', props: ['label', 'icon', 'size', 'severity', 'loading', 'text', 'type', 'outlined', 'rounded', 'bare', 'block', 'badge'] },
         ConfirmDialog: { name: 'ConfirmDialog', template: '<div class="confirm-dialog" />' },
         Toast: { name: 'Toast', template: '<div class="toast" />' },
         DataView: { name: 'DataView', template: '<div class="dataview"><slot name="list" :items="value" /></div>', props: ['value', 'size'] },

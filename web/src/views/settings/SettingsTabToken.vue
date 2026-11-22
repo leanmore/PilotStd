@@ -8,9 +8,9 @@ import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { getToken, refreshToken } from '@/api'
 import http from '@/api/http'
-import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
 import Message from 'primevue/message'
+import AppButton from '@/components/ui/AppButton.vue'
 
 defineOptions({ name: 'SettingsTabToken' })
 
@@ -108,9 +108,28 @@ onMounted(() => { loadToken(); loadGhToken() })
     <div class="token-display">
       <code class="token-value">{{ showToken ? token : maskToken(token) }}</code>
       <div class="token-actions">
-        <Button :label="showToken ? t('settings.token.hide') : t('settings.token.show')" icon="pi pi-eye" size="small" severity="secondary" @click="showToken = !showToken" />
-        <Button :label="t('settings.token.copy')" icon="pi pi-copy" size="small" severity="secondary" @click="copyToken" />
-        <Button :label="t('settings.token.refresh')" icon="pi pi-refresh" size="small" severity="warning" @click="showRefreshDlg = true" :loading="tokenLoading" />
+<AppButton
+          :label="showToken ? t('settings.token.hide') : t('settings.token.show')"
+          icon="pi pi-eye"
+          @click="showToken = !showToken"
+          size="s"
+          type="secondary"
+        />
+<AppButton
+          :label="t('settings.token.copy')"
+          icon="pi pi-copy"
+          @click="copyToken"
+          size="s"
+          type="secondary"
+        />
+<AppButton
+          :label="t('settings.token.refresh')"
+          icon="pi pi-refresh"
+          @click="showRefreshDlg = true"
+          :loading="tokenLoading"
+          size="s"
+          type="secondary"
+        />
       </div>
       <span v-if="tokenCopied" class="text-dim" style="font-size:var(--font-size-12);color:var(--success,#22c55e)">{{ t('settings.token.copied') }}</span>
     </div>
@@ -131,7 +150,14 @@ onMounted(() => { loadToken(); loadGhToken() })
         style="flex:1"
         placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
       />
-      <Button :label="t('common.save')" icon="pi pi-save" size="small" @click="saveGhToken" :loading="ghTokenSaving" />
+<AppButton
+        :label="t('common.save')"
+        icon="pi pi-save"
+        @click="saveGhToken"
+        :loading="ghTokenSaving"
+        size="s"
+        type="secondary"
+      />
     </div>
     <span v-if="ghTokenSaved" style="font-size:var(--font-size-12);color:var(--success)">{{ t('common.saved') }}</span>
     <span v-if="ghTokenErr" style="font-size:var(--font-size-12);color:var(--danger)">{{ ghTokenErr }}</span>
@@ -142,8 +168,18 @@ onMounted(() => { loadToken(); loadGhToken() })
     <p style="margin-bottom:var(--space-12);line-height:var(--line-height-body)">{{ t('settings.token.refresh_warn_before') }}<strong>{{ t('settings.token.refresh_warn_strong') }}</strong>{{ t('settings.token.refresh_warn_after') }}</p>
     <p style="color:var(--text-dim);font-size:var(--font-size-13)">{{ t('settings.token.refresh_confirm') }}</p>
     <div style="display:flex;gap:var(--space-8);margin-top:var(--space-16);justify-content:flex-end">
-      <Button :label="t('common.cancel')" severity="secondary" @click="showRefreshDlg = false" />
-      <Button :label="t('settings.token.refresh_ok')" severity="warning" @click="doRefreshToken" />
+<AppButton
+        :label="t('common.cancel')"
+        @click="showRefreshDlg = false"
+        size="m"
+        type="secondary"
+      />
+<AppButton
+        :label="t('settings.token.refresh_ok')"
+        @click="doRefreshToken"
+        size="m"
+        type="secondary"
+      />
     </div>
   </Dialog>
   </div>

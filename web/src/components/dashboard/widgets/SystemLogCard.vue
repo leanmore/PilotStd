@@ -3,6 +3,7 @@ defineOptions({ name: 'SystemLogCard' })
 import { ref, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import http from '@/api/http'
+import AppButton from '@/components/ui/AppButton.vue'
 
 const { t } = useI18n()
 
@@ -68,8 +69,14 @@ onBeforeUnmount(() => { if (timer) clearInterval(timer) })
         </div>
       </div>
       <div class="header-actions">
-        <button class="clear-btn" :disabled="clearing" @click="clearOldLogs(24)">{{ t('dashboard.sys_log.clear_old') }}</button>
-        <button class="clear-btn clear-all" :disabled="clearing" @click="clearOldLogs(0)">{{ t('dashboard.sys_log.clear_all') }}</button>
+        <AppButton class="clear-btn" :disabled="clearing" @click="clearOldLogs(24)"
+  size="s"
+  type="danger"
+>{{ t('dashboard.sys_log.clear_old') }}</AppButton>
+        <AppButton class="clear-btn clear-all" :disabled="clearing" @click="clearOldLogs(0)"
+  size="s"
+  type="danger"
+>{{ t('dashboard.sys_log.clear_all') }}</AppButton>
       </div>
     </div>
     <div v-if="clearMsg" class="clear-msg" :class="{ error: clearErr }">{{ clearMsg }}</div>

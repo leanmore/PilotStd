@@ -5,7 +5,7 @@ import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import http from '@/api/http'
 import Tag from 'primevue/tag'
-import Button from 'primevue/button'
+import AppButton from '@/components/ui/AppButton.vue'
 
 const { t } = useI18n()
 
@@ -77,13 +77,12 @@ onBeforeUnmount(() => {
   <div class="adapter-widget">
     <div class="widget-header">
       <span>{{ t('dashboard.adapter.title') }}</span>
-      <Button
+      <AppButton
         icon="pi pi-refresh"
-        size="small"
-        severity="secondary"
-        text
         :loading="loading"
         @click="loadStatus"
+        size="s"
+        type="ghost"
       />
     </div>
     <p v-if="error" class="err-msg">{{ error }}</p>

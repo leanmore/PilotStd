@@ -4,7 +4,6 @@ defineOptions({ name: 'WechatTrustIP' })
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import http from '@/api/http'
-import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import ToggleSwitch from 'primevue/toggleswitch'
 import SelectButton from 'primevue/selectbutton'
@@ -14,6 +13,7 @@ import Message from 'primevue/message'
 import Tag from 'primevue/tag'
 import Accordion from 'primevue/accordion'
 import AccordionTab from 'primevue/accordiontab'
+import AppButton from '@/components/ui/AppButton.vue'
 
 interface WeworkIPConfig {
   enabled: boolean
@@ -162,8 +162,22 @@ onMounted(() => { loadConfig(); loadStatus() })
         <Tag v-else severity="secondary" :value="t('settings.wechat_ip.disabled')" />
       </div>
       <div style="display:flex;gap:var(--space-8);flex-wrap:wrap">
-        <Button :label="t('settings.wechat_ip.check_now')" icon="pi pi-sync" size="small" :loading="checking" @click="triggerCheck" />
-        <Button :label="t('settings.save_config')" icon="pi pi-check" size="small" severity="primary" :loading="saving" @click="saveConfig" />
+<AppButton
+          :label="t('settings.wechat_ip.check_now')"
+          icon="pi pi-sync"
+          :loading="checking"
+          @click="triggerCheck"
+          size="s"
+          type="secondary"
+        />
+<AppButton
+          :label="t('settings.save_config')"
+          icon="pi pi-check"
+          :loading="saving"
+          @click="saveConfig"
+          size="s"
+          type="primary"
+        />
       </div>
     </div>
 

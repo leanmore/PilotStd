@@ -35,6 +35,7 @@ function makeI18n(locale: Locale = 'zh-CN') {
 /** 只渲染文案的 PrimeVue stub（label/value/header 走 $attrs，插槽原样透出） */
 const TEXT_STUBS = {
   Button: { template: '<button>{{ $attrs.label }}<slot /></button>', inheritAttrs: false },
+  AppButton: { template: '<button>{{ $attrs.label }}<slot /></button>', inheritAttrs: false },
   Card: { template: '<div><slot name="content" /><slot name="title" /></div>' },
   DataTable: { template: '<div><slot /></div>' },
   Column: { template: '<div>{{ $attrs.header }}</div>', inheritAttrs: false },

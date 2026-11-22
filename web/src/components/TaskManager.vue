@@ -5,7 +5,6 @@ import { useI18n } from 'vue-i18n'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import http from '@/api/http'
 import { getItem, setItem } from '@/lib/storage'
-import Button from 'primevue/button'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Tag from 'primevue/tag'
@@ -144,15 +143,31 @@ function stepLabel(s: string) {
   <div>
     <!-- 子Tab切换 -->
     <div style="display:flex;gap:0;margin-bottom:var(--space-8);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;width:fit-content">
-      <button :class="['subtab', { active: subTab === 'tasks' }]" @click="subTab = 'tasks'; loadTasks()">{{ t('task.manager.tab_tasks') }}</button>
-      <button :class="['subtab', { active: subTab === 'runs' }]" @click="subTab = 'runs'; loadPipelineRuns()">{{ t('task.manager.tab_runs') }}</button>
+      <AppButton :class="['subtab', { active: subTab === 'tasks' }]" @click="subTab = 'tasks'; loadTasks()"
+  size="s"
+  type="ghost"
+  bare
+>{{ t('task.manager.tab_tasks') }}</AppButton>
+      <AppButton :class="['subtab', { active: subTab === 'runs' }]" @click="subTab = 'runs'; loadPipelineRuns()"
+  size="s"
+  type="ghost"
+  bare
+>{{ t('task.manager.tab_runs') }}</AppButton>
     </div>
 
     <!-- 后台任务 -->
     <template v-if="subTab === 'tasks'">
     <div class="toolbar">
       <SelectButton v-model="filter" :options="statusOptions" option-label="label" option-value="value" size="small" @change="loadTasks" />
-      <Button :label="t('task.manager.refresh')" icon="pi pi-refresh" size="small" severity="secondary" outlined :loading="loading" @click="loadTasks" />
+<AppButton
+        :label="t('task.manager.refresh')"
+        icon="pi pi-refresh"
+        :loading="loading"
+        @click="loadTasks"
+        size="s"
+        type="secondary"
+        outlined
+      />
       <span style="font-size:var(--font-size-12);color:var(--text-dim);margin-left:auto">{{ t('task.manager.total', { n: total }) }}</span>
     </div>
 
@@ -185,7 +200,14 @@ function stepLabel(s: string) {
       <Column :header="t('task.manager.col_action')" style="min-width:90px">
         <template #body="{ data }">
           <div style="display:flex;gap:var(--space-4)">
-            <Button icon="pi pi-refresh" v-if="data.status === 'failed'" size="small" text rounded severity="warn" @click="retryTask(data.task_id)" />
+            <AppButton
+              icon="pi pi-refresh"
+              v-if="data.status === 'failed'"
+              @click="retryTask(data.task_id)"
+              size="s"
+              type="ghost"
+              rounded
+            />
             <AppButton
         icon="pi pi-times"
         v-if="data.status === 'running'"
@@ -195,7 +217,13 @@ function stepLabel(s: string) {
         :title="t('task.stop')"
         @click="cancelTask(data.task_id)"
       />
-            <Button icon="pi pi-info-circle" size="small" text rounded @click="showDetail(data)" />
+            <AppButton
+              icon="pi pi-info-circle"
+              @click="showDetail(data)"
+              size="s"
+              type="ghost"
+              rounded
+            />
           </div>
         </template>
       </Column>
@@ -221,7 +249,15 @@ function stepLabel(s: string) {
     <!-- 管道历史 -->
     <template v-if="subTab === 'runs'">
       <div class="toolbar">
-        <Button :label="t('task.manager.refresh')" icon="pi pi-refresh" size="small" severity="secondary" outlined :loading="runsLoading" @click="loadPipelineRuns" />
+<AppButton
+          :label="t('task.manager.refresh')"
+          icon="pi pi-refresh"
+          :loading="runsLoading"
+          @click="loadPipelineRuns"
+          size="s"
+          type="secondary"
+          outlined
+        />
         <span style="font-size:var(--font-size-12);color:var(--text-dim);margin-left:auto">{{ t('task.manager.total', { n: runsTotal }) }}</span>
       </div>
       <DataTable :value="runs" striped-rows size="small" class="mt-2" paginator :rows="20" :total-records="runsTotal" @page="onRunsPage">

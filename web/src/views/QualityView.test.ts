@@ -6,7 +6,7 @@ import { nextTick } from 'vue'
 import { createI18n } from 'vue-i18n'
 import QualityView from './QualityView.vue'
 import Card from 'primevue/card'
-import Button from 'primevue/button'
+import AppButton from '@/components/ui/AppButton.vue'
 import DataTable from 'primevue/datatable'
 import { runQualityCheck } from '@/api/quality'
 
@@ -34,7 +34,7 @@ function mountComponent(locale: 'zh-CN' | 'en' = 'zh-CN') {
   return shallowMount(QualityView, {
     global: {
       plugins: [makeI18n(locale)],
-      stubs: { Card: StubCard, Button, DataTable: StubDataTable },
+      stubs: { Card: StubCard, DataTable: StubDataTable },
     },
   })
 }
@@ -51,7 +51,7 @@ describe('QualityView', () => {
 
   it('renders the run check button', () => {
     const wrapper = mountComponent()
-    const btn = wrapper.findComponent(Button)
+    const btn = wrapper.findComponent(AppButton)
     expect(btn.exists()).toBe(true)
     // 按钮 label 是 "运行检查"
     expect(btn.props('label')).toBe('运行检查')
@@ -71,7 +71,7 @@ describe('QualityView', () => {
       },
     })
     const wrapper = mountComponent()
-    const btn = wrapper.findComponent(Button)
+    const btn = wrapper.findComponent(AppButton)
     await btn.trigger('click')
     await nextTick()
     await nextTick()
@@ -88,7 +88,7 @@ describe('QualityView', () => {
       data: { ok: true, results: [], summary: { total: 0, files_checked: 0, passed: true, failed: 0 } },
     })
     const wrapper = mountComponent()
-    await wrapper.findComponent(Button).trigger('click')
+    await wrapper.findComponent(AppButton).trigger('click')
     await nextTick()
     await nextTick()
     expect(wrapper.find('.text-sm').exists()).toBe(true)

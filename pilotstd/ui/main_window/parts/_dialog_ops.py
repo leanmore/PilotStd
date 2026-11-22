@@ -11,11 +11,12 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QMessageBox,
-    QPushButton,
     QScrollArea,
     QVBoxLayout,
     QWidget,
 )
+
+from pilotstd.ui.widgets.base_button import BaseButton
 
 from ....i18n import _
 
@@ -91,10 +92,10 @@ def _show_stage_dialog(self, title: str, message: str, next_action: Any = None, 
     btn_layout = QHBoxLayout()
     btn_layout.addStretch()
     if next_action:
-        next_btn = QPushButton(next_label)
+        next_btn = BaseButton(next_label, kind="secondary")
         next_btn.clicked.connect(lambda: [dlg.accept(), next_action()])  # type: ignore[func-returns-value]
         btn_layout.addWidget(next_btn)
-    close_btn = QPushButton(_("btn_close"))
+    close_btn = BaseButton(_("btn_close"), kind="ghost")
     close_btn.clicked.connect(dlg.accept)
     btn_layout.addWidget(close_btn)
     layout.addLayout(btn_layout)

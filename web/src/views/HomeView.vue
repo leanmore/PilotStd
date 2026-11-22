@@ -4,6 +4,7 @@ import { onMounted, watch } from 'vue'
 import { GridLayout, GridItem } from 'grid-layout-plus'
 import { useDashboard } from '@/composables/useDashboard'
 import { useAppStore } from '@/stores/app'
+import AppButton from '@/components/ui/AppButton.vue'
 
 const appStore = useAppStore()
 const { layout, fetchLayout, handleLayoutUpdated, removeCard, saveLayoutToServer } = useDashboard()
@@ -57,7 +58,11 @@ watch(
             :min-h="item.minH || 4"
           >
             <div class="card-wrapper">
-              <button v-if="!appStore.dashboardLocked" class="remove-btn" @click.stop="removeCard(item.i)">&times;</button>
+              <AppButton v-if="!appStore.dashboardLocked" class="remove-btn" @click.stop="removeCard(item.i)"
+  size="s"
+  type="ghost"
+  bare
+>&times;</AppButton>
               <component :is="item.component" class="card-inner" :title-key="item.titleKey" />
             </div>
           </GridItem>
