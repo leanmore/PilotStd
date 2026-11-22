@@ -4,6 +4,7 @@ import { mount } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
 import PrimeVue from 'primevue/config'
 import { createPinia } from 'pinia'
+import Tooltip from 'primevue/tooltip'
 import AnnounceView from './AnnounceView.vue'
 import zhCN from '@/locales/zh-CN.json'
 import en from '@/locales/en.json'
@@ -39,6 +40,7 @@ function mountView(locale: 'zh-CN' | 'en' = 'zh-CN') {
   const i18n = createI18n({ legacy: false, locale, messages: { 'zh-CN': zhCN, en } })
   return mount(AnnounceView, {
     global: {
+      directives: { tooltip: Tooltip },
       plugins: [PrimeVue, i18n, createPinia()],
       stubs: {
         Calendar: { template: '<input class="calendar-stub" />', props: ['modelValue', 'locale', 'dateFormat', 'showIcon'] },
@@ -188,13 +190,17 @@ describe('AnnounceView', () => {
     expect(postAnnounceCheckMock.mock.calls[0][0]).toBeUndefined()
   })
 
-  it('界面文案说明起始日期语义（含当日 + 清空=全量）', async () => {
+  it('起始日期说明收进 Tooltip：图标 aria-label 携带完整语义（含当日 + 清空=全量）', async () => {
     const wrapper = mountView()
     await new Promise(r => setTimeout(r, 10))
 
-    expect(wrapper.find('.since-hint').exists()).toBe(true)
-    expect(wrapper.find('.since-hint').text()).toContain('含当日')
-    expect(wrapper.find('.since-hint').text()).toContain('清空')
+    const icon = wrapper.find('.since-hint-icon')
+    expect(icon.exists()).toBe(true)
+    const label = icon.attributes('aria-label') || ''
+    expect(label).toContain('含当日')
+    expect(label).toContain('清空')
+    // 长文本不再直接占版面
+    expect(wrapper.find('.since-hint').exists()).toBe(false)
   })
 
   it('沿用手选过的起始日期（localStorage 持久化）', async () => {

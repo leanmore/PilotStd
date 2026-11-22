@@ -10,6 +10,7 @@ import Aura from '@primeuix/themes/aura'
 import ConfirmationService from 'primevue/confirmationservice'
 import ToastService from 'primevue/toastservice'
 import Toast from 'primevue/toast'
+import Tooltip from 'primevue/tooltip'
 import Accordion from 'primevue/accordion'
 import AccordionTab from 'primevue/accordiontab'
 import Button from 'primevue/button'
@@ -66,6 +67,7 @@ app.use(PrimeVue, {
   locale: primevueLocales[savedLocale] || primevueLocales['en'],
   ripple: true,
 })
+app.directive('tooltip', Tooltip)
 app.use(ConfirmationService)
 app.use(ToastService)
 app.use(i18n)

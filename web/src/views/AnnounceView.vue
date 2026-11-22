@@ -155,7 +155,13 @@ function onPage(e: any) {
       @update:fetch-enabled="(key, val) => { const k = key as 'gb'|'hb'|'db'; adapterEnabled[k] = val }"
     />
     <AppCalendar v-model="sinceDate" dateFormat="yy-mm-dd" showIcon showClear :placeholder="t('announce.view.since_placeholder')" style="width:160px" />
-    <span class="since-hint">{{ t('announce.view.since_hint') }}</span>
+    <i
+      class="pi pi-question-circle since-hint-icon"
+      v-tooltip.top="t('announce.view.since_hint')"
+      :aria-label="t('announce.view.since_hint')"
+      role="img"
+      tabindex="0"
+    />
     <Button :label="t('announce.view.refresh_list')" icon="pi pi-sync" severity="secondary" outlined size="small" @click="check" />
     <Button :label="t('announce.view.fetch_now')" icon="pi pi-cloud-download" :loading="loading" @click="check" size="small" />
   </div>
@@ -203,8 +209,16 @@ function onPage(e: any) {
 <style scoped>
 .header { display: flex; align-items: center; gap: var(--space-12); flex-wrap: wrap; }
 .err-msg { color: var(--danger, #e74c3c); font-size: var(--font-size-12); margin: var(--space-4) 0; }
-/* 说明「起始日期」是抓取起点（含当日），不是列表过滤；用 --text 保证四主题对比度 */
-.since-hint { font-size: var(--font-size-12); color: var(--text); }
+/* 起始日期说明改为图标 + Tooltip：颜色/字号/间距全部取 design-tokens.css，不写字面量 */
+.since-hint-icon {
+  font-size: var(--font-size-13);
+  color: var(--text-dim);
+  cursor: help;
+  transition: color 0.15s ease;
+}
+.since-hint-icon:hover,
+.since-hint-icon:focus-visible { color: var(--text); }
+.since-hint-icon:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: var(--space-12); }
 .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-14) var(--space-16); text-align: center; }
