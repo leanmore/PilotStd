@@ -3,6 +3,7 @@
 defineOptions({ name: 'TableLoadFooter' })
 
 import { useI18n } from 'vue-i18n'
+import AppButton from '@/components/ui/AppButton.vue'
 
 const { t } = useI18n()
 
@@ -29,9 +30,12 @@ defineEmits<{
     </div>
     <div v-else-if="showLoadAllButton" class="footer-row">
       <span class="partial-text">{{ t('table_load.shown_partial', { displayed, total }) }}</span>
-      <button class="load-all-btn" @click="$emit('loadAll')">
+      <AppButton class="load-all-btn" @click="$emit('loadAll')"
+  size="s"
+  type="secondary"
+>
         {{ t('table_load.load_rest', { n: total - displayed }) }}
-      </button>
+      </AppButton>
     </div>
     <div v-else class="footer-row footer-hint">
       {{ t('table_load.scroll_hint', { displayed, total }) }}

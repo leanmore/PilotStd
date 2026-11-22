@@ -2,12 +2,12 @@
 defineOptions({ name: 'QueryHistory' })
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import Button from 'primevue/button'
 import Card from 'primevue/card'
 import Tag from 'primevue/tag'
 import { getQueryResults } from '@/api'
 import { isActiveStatusKey } from '@/utils/stdStatus'
 import type { RouteTag } from '@/types/route-tag'
+import AppButton from '@/components/ui/AppButton.vue'
 
 const { t } = useI18n()
 
@@ -40,7 +40,12 @@ onMounted(() => fetchHistory('/query-history'))
       <template #content>
         <div class="header-row">
           <span class="text-sm" v-if="results.length">{{ t('query_history.total', { n: results.length }) }}</span>
-          <Button icon="pi pi-refresh" text size="small" @click="fetchHistory()" />
+          <AppButton
+            icon="pi pi-refresh"
+            @click="fetchHistory()"
+            size="s"
+            type="ghost"
+          />
         </div>
         <table v-if="results.length" class="data-table">
           <thead><tr><th>{{ t('standard_table.col_standard_number') }}</th><th>{{ t('standard_table.col_status') }}</th><th>{{ t('standard_table.col_name') }}</th><th>{{ t('standard_table.col_source') }}</th></tr></thead>

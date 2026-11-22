@@ -5,7 +5,6 @@ defineOptions({ name: 'NotificationConfig' })
 // ⇒ 组件对外接口（defineExpose / 无 props·emits·slots）零变化。
 import { useI18n } from 'vue-i18n'
 import { useNotificationConfig } from '@/composables/useNotificationConfig'
-import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import Password from 'primevue/password'
 import ToggleSwitch from 'primevue/toggleswitch'
@@ -13,6 +12,7 @@ import Checkbox from 'primevue/checkbox'
 import Message from 'primevue/message'
 import Tag from 'primevue/tag'
 import AppCalendar from '@/components/AppCalendar.vue'
+import AppButton from '@/components/ui/AppButton.vue'
 
 const { t } = useI18n()
 const {
@@ -143,7 +143,12 @@ defineExpose({ saveConfig })
             </template>
           </template>
           <div style="margin-top:var(--space-8)">
-            <Button :label="t('notification.config.test')" size="small" severity="secondary" @click="testChannel(ch)" />
+<AppButton
+              :label="t('notification.config.test')"
+              @click="testChannel(ch)"
+              size="s"
+              type="secondary"
+            />
           </div>
 
           <div v-if="testResults[ch.name]" class="test-result">{{ testResults[ch.name] }}</div>

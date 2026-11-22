@@ -8,6 +8,7 @@
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import http from '@/api/http'
+import AppButton from '@/components/ui/AppButton.vue'
 
 defineOptions({ name: 'RouteDebugPanel' })
 
@@ -77,9 +78,12 @@ async function debug() {
           :placeholder="t('route_debug.input_ph')"
           @keyup.enter="debug"
         />
-        <button class="debug-btn" :disabled="loading" @click="debug">
+        <AppButton class="debug-btn" :disabled="loading" @click="debug"
+  size="s"
+  type="secondary"
+>
           {{ loading ? t('route_debug.analyzing') : t('route_debug.analyze') }}
-        </button>
+        </AppButton>
       </div>
       <details class="simulate-toggle">
         <summary class="toggle-label">{{ t('route_debug.simulate_label') }}</summary>

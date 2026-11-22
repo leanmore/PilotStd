@@ -6,6 +6,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import NotificationBell from '@/components/NotificationBell.vue'
+import AppButton from '@/components/ui/AppButton.vue'
 
 defineOptions({ name: 'AppHeader' })
 
@@ -59,14 +60,17 @@ onUnmounted(() => {
     @mouseleave="isHovered = false"
   >
     <div class="topbar-left">
-      <button
+      <AppButton
         v-if="!isMobile"
         class="topbar-btn sidebar-toggle"
         @click="emit('toggle-sidebar')"
         :title="sidebarCollapsed ? t('dashboard.header.expand_sidebar') : t('dashboard.header.collapse_sidebar')"
-      >
+  size="s"
+  type="ghost"
+  bare
+>
         <i class="pi pi-bars" />
-      </button>
+      </AppButton>
       <span class="topbar-brand">PilotStd</span>
       <span class="topbar-title" v-show="isHovered">{{ pageTitle }}</span>
     </div>
@@ -74,23 +78,30 @@ onUnmounted(() => {
       <!-- 通知铃铛 -->
       <NotificationBell @popover-show="notificationOpen = true" @popover-hide="notificationOpen = false" />
       <!-- 主题切换 -->
-      <button
+      <AppButton
         class="topbar-btn theme-btn"
         @click="emit('toggle-theme')"
         :title="isDark ? t('dashboard.header.to_light') : t('dashboard.header.to_dark')"
-      >
+  size="s"
+  type="ghost"
+  bare
+>
         <i :class="isDark ? 'pi pi-sun' : 'pi pi-moon'" />
-      </button>
+      </AppButton>
       <!-- 用户信息 -->
       <span class="user-tag" v-if="username">
         <i class="pi pi-user" />
         <span class="hide-mobile">{{ username }}</span>
       </span>
       <!-- 退出 -->
-      <button class="topbar-btn logout-btn" data-testid="user-menu-logout" @click="emit('logout')" :title="t('dashboard.header.logout_title')">
+      <AppButton class="topbar-btn logout-btn" data-testid="user-menu-logout" @click="emit('logout')" :title="t('dashboard.header.logout_title')"
+  size="s"
+  type="ghost"
+  bare
+>
         <i class="pi pi-sign-out" />
         <span class="hide-mobile">{{ t('dashboard.header.logout') }}</span>
-      </button>
+      </AppButton>
     </div>
   </header>
 </template>

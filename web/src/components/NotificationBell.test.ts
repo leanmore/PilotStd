@@ -75,14 +75,14 @@ describe('NotificationBell', () => {
   it('有未读消息时按钮 severity 为 primary', () => {
     const wrapper = mountBell()
     const btn = wrapper.find('button')
-    expect(btn.attributes('data-p-severity')).toBe('primary')
+    expect(btn.classes()).toContain('app-btn--primary')
   })
 
   it('无未读消息时按钮 severity 为 secondary', () => {
     messages.value[0].is_read = true
     const wrapper = mountBell()
     const btn = wrapper.find('button')
-    expect(btn.attributes('data-p-severity')).toBe('secondary')
+    expect(btn.classes()).toContain('app-btn--secondary')
   })
 
   it('空消息列表时正常渲染不崩溃', () => {
@@ -105,7 +105,7 @@ describe('NotificationBell', () => {
     ]
     const wrapper = mountBell()
     expect(wrapper.findAll('.notification-item')).toHaveLength(1)
-    expect(wrapper.find('.p-badge').text()).toBe('1')
+    expect(wrapper.find('.app-btn__badge').text()).toBe('1')
 
     await wrapper.find('.notification-item').trigger('click')
     await flushPromises()

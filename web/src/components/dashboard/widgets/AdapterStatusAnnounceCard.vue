@@ -3,7 +3,7 @@ defineOptions({ name: 'AdapterStatusAnnounceCard' })
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import http from '@/api/http'
-import Button from 'primevue/button'
+import AppButton from '@/components/ui/AppButton.vue'
 
 const { t } = useI18n()
 
@@ -85,7 +85,14 @@ onBeforeUnmount(() => {
           <div class="header-sub">{{ t('dashboard.announce_adapter.subtitle', { n: adapters.length }) }}</div>
         </div>
       </div>
-      <Button icon="pi pi-refresh" size="small" severity="secondary" text rounded :loading="loading" @click="loadStatus" />
+      <AppButton
+        icon="pi pi-refresh"
+        :loading="loading"
+        @click="loadStatus"
+        size="s"
+        type="ghost"
+        rounded
+      />
     </div>
 
     <p v-if="error" class="err">{{ error }}</p>

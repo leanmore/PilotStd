@@ -2,7 +2,6 @@
 defineOptions({ name: 'DownloadQueue' })
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import Button from 'primevue/button'
 import Card from 'primevue/card'
 import Tag from 'primevue/tag'
 import { getTasks, cancelTask as cancelTaskApi } from '@/api/tasks'
@@ -39,7 +38,12 @@ onMounted(() => fetchTasks('/download-queue'))
       <template #content>
         <div class="header-row">
           <span class="text-sm" v-if="tasks.length">{{ t('download.queue.total', { n: tasks.length }) }}</span>
-          <Button icon="pi pi-refresh" text size="small" @click="fetchTasks()" />
+          <AppButton
+            icon="pi pi-refresh"
+            @click="fetchTasks()"
+            size="s"
+            type="ghost"
+          />
         </div>
         <table v-if="tasks.length" class="data-table">
           <thead><tr><th>{{ t('download.queue.col_task_id') }}</th><th>{{ t('download.queue.col_type') }}</th><th>{{ t('download.queue.col_status') }}</th><th>{{ t('download.queue.col_items') }}</th><th>{{ t('download.queue.col_created') }}</th><th>{{ t('download.queue.col_action') }}</th></tr></thead>

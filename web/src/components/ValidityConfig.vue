@@ -3,7 +3,6 @@ defineOptions({ name: 'ValidityConfig' })
 // ValidityConfig.vue — 时效性检查配置组件（从 ValidityConfigView 提取）
 import { ref, onMounted, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import Button from 'primevue/button'
 import Select from 'primevue/select'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
@@ -13,6 +12,7 @@ import Message from 'primevue/message'
 import Dialog from 'primevue/dialog'
 import { getValidityConfig, putValidityConfig, runValidityCheck, getValidityHistory, type ValidityConfig, type ValidityHistoryItem } from '@/api/validity'
 import { getItem, setItem } from '@/lib/storage'
+import AppButton from '@/components/ui/AppButton.vue'
 
 // 兼容旧后端：可能返回 update_interval（天）代替 total_weeks
 interface LegacyValidityResponse extends Partial<ValidityConfig> {
@@ -367,14 +367,23 @@ onMounted(() => { loadValidityFilters(); loadConfig(); loadHistory() })
     </div>
 
     <div class="actions-row">
-      <Button
+<AppButton
         :label="t('settings.save_config')"
         icon="pi pi-save"
         :loading="saving"
         :disabled="!isValid"
         @click="doSave"
+        size="m"
+        type="secondary"
       />
-      <Button icon="pi pi-play" :label="t('settings.validity.run_now')" severity="secondary" :loading="running" @click="doRun" />
+<AppButton
+        icon="pi pi-play"
+        :label="t('settings.validity.run_now')"
+        :loading="running"
+        @click="doRun"
+        size="m"
+        type="secondary"
+      />
     </div>
 
     <!-- 执行记录 -->
@@ -393,8 +402,20 @@ onMounted(() => { loadValidityFilters(); loadConfig(); loadHistory() })
         <InputText v-model="filterEnd" type="date" size="small" />
       </div>
       <div class="filter-actions">
-        <Button :label="t('settings.validity.filter')" icon="pi pi-search" size="small" severity="success" @click="onSearch" />
-        <Button :label="t('settings.validity.reset')" icon="pi pi-refresh" size="small" severity="secondary" @click="onReset" />
+<AppButton
+          :label="t('settings.validity.filter')"
+          icon="pi pi-search"
+          @click="onSearch"
+          size="s"
+          type="primary"
+        />
+<AppButton
+          :label="t('settings.validity.reset')"
+          icon="pi pi-refresh"
+          @click="onReset"
+          size="s"
+          type="secondary"
+        />
       </div>
     </div>
 
@@ -413,16 +434,40 @@ onMounted(() => { loadValidityFilters(); loadConfig(); loadHistory() })
           <td>{{ h.checked_count }}</td>
           <td>{{ t('settings.validity.count_unit', { n: h.changed_count }) }}</td>
           <td><Tag :severity="h.status === 'success' ? 'success' : 'danger'" :value="h.status === 'success' ? t('settings.validity.done') : t('settings.validity.failed')" /></td>
-          <td><Button :label="t('settings.validity.detail')" size="small" severity="secondary" text @click="showDetail(h)" /></td>
+          <td><AppButton
+            :label="t('settings.validity.detail')"
+            @click="showDetail(h)"
+            size="s"
+            type="ghost"
+          /></td>
         </tr>
       </tbody>
     </table>
     <p v-else class="empty">{{ t('settings.validity.history_empty') }}</p>
 
     <div v-if="totalPages > 1" class="pagination">
-      <Button icon="pi pi-angle-left" size="small" severity="secondary" text :disabled="histPage <= 1" @click="histPage--; loadHistory()" />
-      <Button v-for="p in pages" :key="p" :label="String(p)" size="small" :severity="p === histPage ? 'primary' : 'secondary'" text @click="histPage = p; loadHistory()" />
-      <Button icon="pi pi-angle-right" size="small" severity="secondary" text :disabled="histPage >= totalPages" @click="histPage++; loadHistory()" />
+      <AppButton
+        icon="pi pi-angle-left"
+        :disabled="histPage <= 1"
+        @click="histPage--; loadHistory()"
+        size="s"
+        type="ghost"
+      />
+      <AppButton
+        v-for="p in pages"
+        :key="p"
+        :label="String(p)"
+        @click="histPage = p; loadHistory()"
+        size="s"
+        :type="p === histPage ? 'primary' : 'secondary'"
+      />
+      <AppButton
+        icon="pi pi-angle-right"
+        :disabled="histPage >= totalPages"
+        @click="histPage++; loadHistory()"
+        size="s"
+        type="ghost"
+      />
     </div>
 
     <Dialog v-model:visible="detailVisible" :header="t('settings.validity.detail_title')" :style="{width:'400px'}" modal>

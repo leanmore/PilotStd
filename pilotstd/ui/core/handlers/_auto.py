@@ -12,7 +12,6 @@ from PyQt6.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
     QLabel,
-    QPushButton,
     QTableWidget,
     QTextEdit,
     QVBoxLayout,
@@ -20,6 +19,8 @@ from PyQt6.QtWidgets import (
 
 if TYPE_CHECKING:
     from ....core.config import ConfigManager
+
+from pilotstd.ui.widgets.base_button import BaseButton
 
 from ....i18n import _
 from ...qt_lifecycle import stop_worker_gracefully
@@ -252,9 +253,9 @@ class AutoUIHandler:
             layout.addWidget(text)
 
         btn_layout = QHBoxLayout()
-        btn_txt = QPushButton(_("btn_export_txt"))
-        btn_csv = QPushButton(_("btn_export_csv"))
-        btn_close = QPushButton(_("btn_close"))
+        btn_txt = BaseButton(_("btn_export_txt"), kind="primary")
+        btn_csv = BaseButton(_("btn_export_csv"), kind="primary")
+        btn_close = BaseButton(_("btn_close"), kind="ghost")
         btn_layout.addWidget(btn_txt)
         btn_layout.addWidget(btn_csv)
         btn_layout.addStretch()

@@ -11,6 +11,7 @@ defineOptions({ name: 'AppLayout' })
 import { useAppLayout } from '@/composables/useAppLayout'
 import AppHeader from '@/components/AppHeader.vue'
 import AppSidebar from '@/components/AppSidebar.vue'
+import AppButton from '@/components/ui/AppButton.vue'
 
 const {
   t,
@@ -93,7 +94,7 @@ const {
     <div v-if="!isMobile" class="floating-workspace-menu" :class="{ open: menuOpen }" :style="{ left: x + 'px', top: y + 'px' }">
 
       <!-- 模式1：公告详情页 — 返回列表 -->
-      <button
+      <AppButton
         v-if="isAnnounceDetail"
         class="floating-workspace-btn"
         @pointerdown="onPointerDown"
@@ -101,13 +102,16 @@ const {
         @pointerup="onPointerUp"
         @click="onFloatingButtonClick"
         :aria-label="t('dashboard.layout.back_to_list')"
-      >
+  size="s"
+  type="ghost"
+  bare
+>
         <i class="pi pi-undo" />
-      </button>
+      </AppButton>
 
       <!-- 模式2：首页 — 展开菜单 -->
       <template v-else-if="isHomeRoute">
-        <button
+        <AppButton
           :id="triggerBtnId"
           class="floating-workspace-btn"
           @pointerdown="onPointerDown"
@@ -118,9 +122,12 @@ const {
           aria-haspopup="true"
           :aria-expanded="menuOpen"
           :aria-controls="menuOpen ? dropdownId : undefined"
-        >
+  size="s"
+  type="ghost"
+  bare
+>
           <i class="pi pi-th-large" />
-        </button>
+        </AppButton>
         <Transition name="menu-fade">
           <div
             v-show="menuOpen"
@@ -132,35 +139,47 @@ const {
             @keydown="onMenuKeydown"
           >
             <!-- ① 添加卡片 -->
-            <button v-for="card in availableCards" :key="card.key"
+            <AppButton v-for="card in availableCards" :key="card.key"
                     role="menuitem" class="menu-item" tabindex="0"
-                    @click="addCard(card.key); closeMenu()">
+                    @click="addCard(card.key); closeMenu()"
+  size="s"
+  type="ghost"
+  bare
+>
               <i class="pi pi-plus" /><span>{{ t('dashboard.layout.add_card', { name: t(card.labelKey) }) }}</span>
-            </button>
+            </AppButton>
             <div v-if="availableCards.length === 0"
                  class="menu-item disabled" role="menuitem" aria-disabled="true">
               <span>{{ t('dashboard.layout.all_added') }}</span>
             </div>
             <div class="menu-divider" role="separator" />
             <!-- ② 锁定/解锁布局 -->
-            <button role="menuitem" class="menu-item" tabindex="0"
-                    @click="store.toggleDashboardLock(); closeMenu()">
+            <AppButton role="menuitem" class="menu-item" tabindex="0"
+                    @click="store.toggleDashboardLock(); closeMenu()"
+  size="s"
+  type="ghost"
+  bare
+>
               <i :class="store.dashboardLocked ? 'pi pi-lock-open' : 'pi pi-lock'" />
               <span>{{ store.dashboardLocked ? t('dashboard.layout.unlock') : t('dashboard.layout.lock') }}</span>
-            </button>
+            </AppButton>
             <div class="menu-divider" role="separator" />
             <!-- ③ 重置布局 -->
-            <button role="menuitem" class="menu-item" tabindex="0"
-                    @click="resetLayout(); closeMenu()">
+            <AppButton role="menuitem" class="menu-item" tabindex="0"
+                    @click="resetLayout(); closeMenu()"
+  size="s"
+  type="ghost"
+  bare
+>
               <i class="pi pi-refresh" />
               <span>{{ t('dashboard.layout.reset') }}</span>
-            </button>
+            </AppButton>
           </div>
         </Transition>
       </template>
 
       <!-- 模式3：其他页面 — 返回工作台 -->
-      <button
+      <AppButton
         v-else
         class="floating-workspace-btn"
         @pointerdown="onPointerDown"
@@ -168,9 +187,12 @@ const {
         @pointerup="onPointerUp"
         @click="onFloatingButtonClick"
         :aria-label="t('dashboard.layout.back_to_workspace')"
-      >
+  size="s"
+  type="ghost"
+  bare
+>
         <i class="pi pi-home" />
-      </button>
+      </AppButton>
 
     </div>
   </div>

@@ -6,6 +6,7 @@
 defineOptions({ name: 'AppSidebar' })
 
 import { useI18n } from 'vue-i18n'
+import AppButton from '@/components/ui/AppButton.vue'
 
 const { t } = useI18n()
 
@@ -49,14 +50,17 @@ const emit = defineEmits<{
     </nav>
     <!-- 侧边栏底部：折叠按钮 -->
     <div class="sidebar-footer">
-      <button
+      <AppButton
         class="collapse-toggle"
         @click="emit('toggle-collapse')"
         :title="sidebarCollapsed ? t('dashboard.sidebar.expand') : t('dashboard.sidebar.collapse')"
-      >
+  size="s"
+  type="ghost"
+  bare
+>
         <i :class="sidebarCollapsed ? 'pi pi-angle-right' : 'pi pi-angle-left'" />
         <span v-show="!sidebarCollapsed">{{ t('dashboard.sidebar.collapse') }}</span>
-      </button>
+      </AppButton>
     </div>
   </aside>
 </template>

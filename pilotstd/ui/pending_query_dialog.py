@@ -20,6 +20,8 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
 )
 
+from pilotstd.ui.widgets.base_button import BaseButton
+
 from ..i18n import _
 from .qt_lifecycle import stop_worker_gracefully
 from .workers import QueryWorker
@@ -127,8 +129,8 @@ class PendingQueryDialog(QDialog):
         self._progress.setVisible(False)
 
         btn_row = QHBoxLayout()
-        self._start_btn = QPushButton(_("pq_start_query_btn"))
-        cancel_btn = QPushButton(_("btn_cancel"))
+        self._start_btn = BaseButton(_("pq_start_query_btn"), kind="primary")
+        cancel_btn = BaseButton(_("btn_cancel"), kind="ghost")
         btn_row.addStretch()
         btn_row.addWidget(self._start_btn)
         btn_row.addWidget(cancel_btn)

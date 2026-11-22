@@ -8,7 +8,6 @@ import type { PipelineRun } from '@/types/task'
 import { getItem, setItem, removeItem } from '@/lib/storage'
 import { restoreResultsFromStepResults, resolveActiveRun, resumeStartFrom } from '@/utils/taskRestore'
 import { useUserPreferences } from '@/composables/useUserPreferences'
-import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import ProgressBar from 'primevue/progressbar'
 import { TASK_HISTORY_PAGE_SIZES, resolveRows } from '@/utils/pagination'
@@ -377,13 +376,22 @@ function stepSeverity(s: string) {
       <select v-model="selectedPath" class="fi">
         <option v-for="p in paths" :key="p" :value="p">{{ p }}</option>
       </select>
-      <Button :label="t('task.start')" icon="pi pi-play" :loading="running" :disabled="running" @click="runPipeline()" />
-      <Button
+<AppButton
+        :label="t('task.start')"
+        icon="pi pi-play"
+        :loading="running"
+        :disabled="running"
+        @click="runPipeline()"
+        size="m"
+        type="secondary"
+      />
+<AppButton
         v-if="interruptedRun"
         :label="t('task.continue')"
         icon="pi pi-refresh"
-        severity="warn"
         @click="continueRun"
+        size="m"
+        type="secondary"
       />
       <AppButton
         :label="stopping ? t('task.stopping') : t('task.stop')"
@@ -456,7 +464,12 @@ function stepSeverity(s: string) {
   <div v-if="selectedRecord" class="card mt-3">
     <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
       <span>{{ t('task.detail_title', { time: selectedRecord.time }) }}</span>
-      <Button icon="pi pi-times" size="small" text @click="selectedRecord = null" />
+      <AppButton
+        icon="pi pi-times"
+        @click="selectedRecord = null"
+        size="s"
+        type="ghost"
+      />
     </div>
     <div class="pipeline">
       <div v-for="(step, i) in selectedRecord.steps" :key="i" class="step" :class="step.status">

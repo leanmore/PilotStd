@@ -8,13 +8,13 @@ import http from '@/api/http'
 import { usePreferencesStore } from '@/stores/preferences'
 import { getItem, setItem } from '@/lib/storage'
 import { SOURCE_TO_URL } from '@/constants/sourceMapping'
-import Button from 'primevue/button'
 import DataView from 'primevue/dataview'
 import Paginator from 'primevue/paginator'
 import { ANNOUNCE_PAGE_SIZES, resolveRows } from '@/utils/pagination'
 import AppCalendar from '@/components/AppCalendar.vue'
 import UnifiedFilterBar from '@/components/UnifiedFilterBar.vue'
 import LogBar from '@/components/LogBar.vue'
+import AppButton from '@/components/ui/AppButton.vue'
 
 const router = useRouter()
 const { t } = useI18n()
@@ -162,8 +162,22 @@ function onPage(e: any) {
       role="img"
       tabindex="0"
     />
-    <Button :label="t('announce.view.refresh_list')" icon="pi pi-sync" severity="secondary" outlined size="small" @click="check" />
-    <Button :label="t('announce.view.fetch_now')" icon="pi pi-cloud-download" :loading="loading" @click="check" size="small" />
+<AppButton
+      :label="t('announce.view.refresh_list')"
+      icon="pi pi-sync"
+      @click="check"
+      size="s"
+      type="secondary"
+      outlined
+    />
+<AppButton
+      :label="t('announce.view.fetch_now')"
+      icon="pi pi-cloud-download"
+      :loading="loading"
+      @click="check"
+      size="s"
+      type="secondary"
+    />
   </div>
   <p v-if="error" class="err-msg">{{ error }}</p>
   <!-- 统计数据 -->

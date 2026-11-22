@@ -76,8 +76,20 @@ const {
           <AppCalendar v-model="filterEndDate" dateFormat="yy-mm-dd" showIcon />
         </div>
         <div class="filter-actions">
-          <Button icon="pi pi-search" :label="t('notification.logs.search')" size="small" @click="onSearch" />
-          <Button icon="pi pi-refresh" :label="t('notification.logs.reset')" size="small" severity="secondary" @click="onReset" />
+<AppButton
+            icon="pi pi-search"
+            :label="t('notification.logs.search')"
+            @click="onSearch"
+            size="s"
+            type="secondary"
+          />
+<AppButton
+            icon="pi pi-refresh"
+            :label="t('notification.logs.reset')"
+            @click="onReset"
+            size="s"
+            type="secondary"
+          />
         </div>
       </div>
     </div>
@@ -135,9 +147,28 @@ const {
       </div>
 
       <div class="pagination" v-if="totalPages() > 1">
-        <Button icon="pi pi-angle-left" size="small" severity="secondary" text :disabled="page <= 1" @click="onPageChange(page - 1)" />
-        <Button v-for="p in pages()" :key="p" :label="String(p)" size="small" :severity="p === page ? 'primary' : 'secondary'" text @click="onPageChange(p)" />
-        <Button icon="pi pi-angle-right" size="small" severity="secondary" text :disabled="page >= totalPages()" @click="onPageChange(page + 1)" />
+        <AppButton
+          icon="pi pi-angle-left"
+          :disabled="page <= 1"
+          @click="onPageChange(page - 1)"
+          size="s"
+          type="ghost"
+        />
+        <AppButton
+          v-for="p in pages()"
+          :key="p"
+          :label="String(p)"
+          @click="onPageChange(p)"
+          size="s"
+          :type="p === page ? 'primary' : 'secondary'"
+        />
+        <AppButton
+          icon="pi pi-angle-right"
+          :disabled="page >= totalPages()"
+          @click="onPageChange(page + 1)"
+          size="s"
+          type="ghost"
+        />
       </div>
     </div>
 
@@ -186,14 +217,20 @@ const {
             </table>
             <p v-else style="font-size:var(--font-size-12);color:var(--text-dim)">{{ t('notification.config.failed_items.empty') }}</p>
             <div v-if="failedTotal > failedPageSize" style="display:flex;gap:var(--space-8);align-items:center;margin-top:var(--space-6)">
-              <Button label="‹" size="small" text :disabled="failedPage <= 1" @click="loadFailedItems(failedPage - 1)" />
+              <AppButton
+                label="‹"
+                :disabled="failedPage <= 1"
+                @click="loadFailedItems(failedPage - 1)"
+                size="s"
+                type="ghost"
+              />
               <span style="font-size:var(--font-size-12);color:var(--text-dim)">{{ failedPage }}</span>
-              <Button
+              <AppButton
                 label="›"
-                size="small"
-                text
                 :disabled="failedPage * failedPageSize >= failedTotal"
                 @click="loadFailedItems(failedPage + 1)"
+                size="s"
+                type="ghost"
               />
             </div>
           </div>

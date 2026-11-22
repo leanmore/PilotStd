@@ -189,3 +189,14 @@ Handler Handler  Handler    (worker)   Handler
   样式全部取自生成令牌，缺令牌抛错而非静默降级。
 - 阶段一不替换既有 QPushButton 调用点；替换在阶段二分批进行。
 
+## 按钮统一：BaseButton 全量替换（2026-11-22，DS 阶段二）
+
+- `pilotstd/ui/**` 内 **46 处** `QPushButton(...)` 构造已全部替换为 `BaseButton(..., kind=...)`：
+  `primary` 20 / `secondary` 15 / `ghost` 9 / `danger` 2（按语义判定）。
+- 受影响模块（13 个）：`dialogs`、`pages/rules_page`、`pages/task_page`、`pages/settings/_dialog`、
+  `pending_query_dialog`、`welcome_dialog`、`main_window/parts/_ui_setup_ops`、`main_window/parts/_dialog_ops`、
+  `core/handlers/{_announce,_auto,_cleanup,_query_summary,_settings}`。
+- 样式来源统一为 `pilotstd/ui/tokens_generated.py`（由 `scripts/gen_win_tokens.py` 从 Web 源生成），
+  **不再使用** `themes.py` 的 `COLOR_SCHEMES` 作为按钮色值来源。
+- 13 个模块在 `QT_QPA_PLATFORM=offscreen` 下全部导入通过；`ruff --fix` 清理 24 个未用导入。
+- 后续新增 Win 按钮：直接用 `BaseButton`，不要再用 `QPushButton`。

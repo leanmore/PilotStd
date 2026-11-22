@@ -6,7 +6,7 @@
   "counts": {
     "A": 0,
     "B": 151,
-    "C": 566
+    "C": 577
   },
   "groups": [
     {
@@ -3679,7 +3679,7 @@
           "file": "components/ui/AppButton.vue",
           "prop": "background",
           "value": "transparent",
-          "count": 3
+          "count": 5
         },
         {
           "file": "components/ui/AppButton.vue",
@@ -3691,6 +3691,48 @@
           "file": "components/ui/AppButton.vue",
           "prop": "border-width",
           "value": "0",
+          "count": 2
+        },
+        {
+          "file": "components/ui/AppButton.vue",
+          "prop": "border-radius",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "components/ui/AppButton.vue",
+          "prop": "padding",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "components/ui/AppButton.vue",
+          "prop": "font-size",
+          "value": "inherit",
+          "count": 1
+        },
+        {
+          "file": "components/ui/AppButton.vue",
+          "prop": "font-weight",
+          "value": "inherit",
+          "count": 1
+        },
+        {
+          "file": "components/ui/AppButton.vue",
+          "prop": "line-height",
+          "value": "inherit",
+          "count": 1
+        },
+        {
+          "file": "components/ui/AppButton.vue",
+          "prop": "color",
+          "value": "inherit",
+          "count": 2
+        },
+        {
+          "file": "components/ui/AppButton.vue",
+          "prop": "height",
+          "value": "auto",
           "count": 1
         }
       ]

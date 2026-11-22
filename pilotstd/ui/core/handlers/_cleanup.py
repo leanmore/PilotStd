@@ -21,7 +21,6 @@ from PyQt6.QtWidgets import (
     QLabel,
     QMessageBox,
     QProgressDialog,
-    QPushButton,
     QTreeWidget,
     QTreeWidgetItem,
     QVBoxLayout,
@@ -31,6 +30,8 @@ from ...errors import format_ui_error
 
 if TYPE_CHECKING:
     from PyQt6.QtWidgets import QWidget
+
+from pilotstd.ui.widgets.base_button import BaseButton
 
 from ....core.file_utils import ensure_long_path, safe_move
 from ....i18n import _
@@ -311,10 +312,10 @@ class CleanupHandler:
         layout.addWidget(tree)
 
         btn_layout = QHBoxLayout()
-        btn_all = QPushButton(_("select_all"))
-        btn_none = QPushButton(_("deselect_all"))
-        btn_ok = QPushButton(_("btn_ok"))
-        btn_cancel = QPushButton(_("btn_cancel"))
+        btn_all = BaseButton(_("select_all"), kind="secondary")
+        btn_none = BaseButton(_("deselect_all"), kind="secondary")
+        btn_ok = BaseButton(_("btn_ok"), kind="primary")
+        btn_cancel = BaseButton(_("btn_cancel"), kind="ghost")
         def _set_all(state: Qt.CheckState) -> None:
             for cb in checkboxes:
                 cb.setCheckState(0, state)

@@ -5,7 +5,6 @@ import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import Card from 'primevue/card'
 import Tag from 'primevue/tag'
-import Button from 'primevue/button'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import InputText from 'primevue/inputtext'
@@ -14,6 +13,7 @@ import AppCalendar from '@/components/AppCalendar.vue'
 import TableLoadFooter from '@/components/TableLoadFooter.vue'
 import FavoriteStatusTag from '@/components/FavoriteStatusTag.vue'
 import { useAnnounceDetail } from '@/composables/useAnnounceDetail'
+import AppButton from '@/components/ui/AppButton.vue'
 
 const route = useRoute()
 const { t } = useI18n()
@@ -66,11 +66,13 @@ const {
           <div class="flex justify-content-between align-items-center">
             <span class="flex-1 text-center truncate px-2 text-xl font-semibold" style="color:var(--text-heading)">{{ announcement?.announce_no }}</span>
             <Tag :value="t(parseStatusLabelKey)" :severity="parseStatusSeverity" />
-            <Button
+<AppButton
               icon="pi pi-undo"
               :aria-label="t('announce.detail.back')"
               class="p-button-text p-button-rounded ml-3"
               @click="$router.back()"
+              size="m"
+              type="secondary"
             />
           </div>
         </template>
@@ -103,14 +105,15 @@ const {
                   {{ announcement.attachment_url.split('/').pop() }}
                 </span>
                 <span v-else class="text-sm text-color-secondary">{{ t('announce.detail.no_attachment') }}</span>
-                <Button
+<AppButton
                   v-if="announcement?.attachment_url"
                   :label="t(parseButtonLabelKey)"
                   icon="pi pi-refresh"
-                  size="small"
                   :loading="parsing"
                   :disabled="parseButtonDisabled"
                   @click="startParse"
+                  size="s"
+                  type="secondary"
                 />
               </div>
             </div>
@@ -130,13 +133,13 @@ const {
         <template #title>
           <div class="flex justify-content-between align-items-center">
             <span>{{ t('announce.detail.records_title', { n: records.length }) }}</span>
-            <Button
+<AppButton
               :label="t('announce.detail.batch_approve')"
               icon="pi pi-check"
-              severity="success"
-              size="small"
               :disabled="selectedRecords.length === 0"
               @click="handleBatchApprove"
+              size="s"
+              type="primary"
             />
           </div>
         </template>
@@ -219,12 +222,13 @@ const {
             <Column :header="t('announce.detail.col_favorite')" style="width: 9rem">
               <template #body="{ data }">
                 <div class="fav-cell">
-                  <Button
+                  <AppButton
                     :icon="favMap[data.id] ? 'pi pi-star-fill' : 'pi pi-star'"
                     :loading="isFavLoading(data.id)"
-                    rounded text size="small"
-                    :severity="favMap[data.id] ? 'warn' : 'secondary'"
                     @click.stop="toggleFavorite(data)"
+                    size="s"
+                    :type="favMap[data.id] ? 'secondary' : 'secondary'"
+                    rounded
                   />
                   <!-- 收藏对象存在才渲染下载状态标签（不存在则不渲染，星标保持空心） -->
                   <FavoriteStatusTag :status="favStatusMap[data.id]" />

@@ -16,7 +16,6 @@ import type { TabMeta } from '@/api/settings'
 import { useAppStore } from '@/stores/app'
 import { THEMES } from '@/config/themes'
 import { usePreferencesStore } from '@/stores/preferences'
-import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 
 // ── Tab 子组件（Schema 驱动 + 特殊混合布局）──
@@ -133,6 +132,7 @@ const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
 import { SETTINGS_TAB_KEYS } from './settings/constants'
+import AppButton from '@/components/ui/AppButton.vue'
 
 const activeTab = ref((route.query.tab as string) || 'storage')
 
@@ -343,13 +343,16 @@ onMounted(() => {
 
   <!-- 标签页导航栏 -->
   <div class="tab-bar mt-2">
-    <button
+    <AppButton
       v-for="t in allowedTabs"
       :key="t.key"
       :data-tab="t.key"
       :class="{ active: activeTab === t.key }"
       @click="activeTab = t.key"
-    >{{ t.label }}</button>
+  size="s"
+  type="ghost"
+  bare
+>{{ t.label }}</AppButton>
   </div>
 
 
@@ -361,19 +364,22 @@ onMounted(() => {
   <!-- 底部操作栏 -->
   <div class="settings-footer">
     <div class="footer-actions">
-      <Button
+<AppButton
         :label="t('settings.apply')"
         icon="pi pi-refresh"
-        severity="secondary"
         @click="applyCurrentTab"
         :loading="applyLoading"
         :title="t('settings.apply_hint')"
+        size="m"
+        type="secondary"
       />
-      <Button
+<AppButton
         :label="t('settings.ok')"
         icon="pi pi-check"
         @click="saveCfg"
         :title="t('settings.ok_hint')"
+        size="m"
+        type="secondary"
       />
     </div>
     <div style="display:flex;align-items:center;gap:var(--space-8)">

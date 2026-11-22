@@ -4,7 +4,6 @@ defineOptions({ name: 'CacheManager' })
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import http from '@/api/http'
-import Button from 'primevue/button'
 import ProgressBar from 'primevue/progressbar'
 import Tag from 'primevue/tag'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -124,7 +123,14 @@ onMounted(loadStats)
         :loading="loading"
         @click="triggerCleanup"
       />
-        <Button :label="t('settings.cache.refresh_stats')" icon="pi pi-refresh" size="small" severity="secondary" outlined @click="loadStats" />
+<AppButton
+          :label="t('settings.cache.refresh_stats')"
+          icon="pi pi-refresh"
+          @click="loadStats"
+          size="s"
+          type="secondary"
+          outlined
+        />
         <span v-if="cleaned" style="color:var(--success);font-size:var(--font-size-12)">{{ t('settings.cache.cleaned') }}</span>
       </div>
     </div>

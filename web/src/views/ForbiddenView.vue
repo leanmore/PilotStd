@@ -6,7 +6,7 @@
 defineOptions({ name: 'ForbiddenView' })
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import Button from 'primevue/button'
+import AppButton from '@/components/ui/AppButton.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -17,7 +17,13 @@ const router = useRouter()
     <div class="code">403</div>
     <h1>{{ t('nav.forbidden') }}</h1>
     <p class="desc">{{ t('nav.forbidden_desc') }}</p>
-    <Button :label="t('nav.back_home')" icon="pi pi-home" @click="router.push('/')" />
+<AppButton
+      :label="t('nav.back_home')"
+      icon="pi pi-home"
+      @click="router.push('/')"
+      size="m"
+      type="secondary"
+    />
   </div>
 </template>
 

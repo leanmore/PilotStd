@@ -6,6 +6,7 @@ import http from '@/api/http'
 import { useI18n } from 'vue-i18n'
 import { useToast } from 'primevue/usetoast'
 import FavoriteStatusTag from '@/components/FavoriteStatusTag.vue'
+import AppButton from '@/components/ui/AppButton.vue'
 
 const { t } = useI18n()
 const toast = useToast()
@@ -130,10 +131,22 @@ onMounted(loadFavorites)
     <div class="header">
       <h2>{{ t('nav.favorites') }}</h2>
       <div class="export-actions">
-        <Button :label="t('favorites.export_current')" icon="pi pi-download" size="small" severity="secondary"
-          :disabled="filtered.length === 0" @click="exportFavorites('current')" />
-        <Button :label="t('favorites.export_all')" icon="pi pi-file-export" size="small" severity="secondary"
-          :disabled="favorites.length === 0" @click="exportFavorites('all')" />
+<AppButton
+          :label="t('favorites.export_current')"
+          icon="pi pi-download"
+          :disabled="filtered.length === 0"
+          @click="exportFavorites('current')"
+          size="s"
+          type="secondary"
+        />
+<AppButton
+          :label="t('favorites.export_all')"
+          icon="pi pi-file-export"
+          :disabled="favorites.length === 0"
+          @click="exportFavorites('all')"
+          size="s"
+          type="secondary"
+        />
       </div>
     </div>
 

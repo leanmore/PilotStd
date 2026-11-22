@@ -20,6 +20,8 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from pilotstd.ui.widgets.base_button import BaseButton
+
 from ....core.settings_utils import sanitize_setting_value  # noqa: F401  # re-exported for backward compat
 from ....i18n import _, t
 from ._settings_io import SettingsConfigIO
@@ -151,7 +153,7 @@ class SettingsHandler:
         self._root_dir.setPlaceholderText("默认为当前用户文档目录")
         root_layout = QHBoxLayout()
         root_layout.addWidget(self._root_dir)
-        btn_browse = QPushButton(_("btn_browse"))
+        btn_browse = BaseButton(_("btn_browse"), kind="secondary")
         btn_browse.clicked.connect(self._browse_root)
         root_layout.addWidget(btn_browse)
         form.addRow(_("storage_root"), root_layout)
@@ -173,7 +175,7 @@ class SettingsHandler:
         self._downloads_dir = QLineEdit()
         dl_layout = QHBoxLayout()
         dl_layout.addWidget(self._downloads_dir)
-        btn_dl_browse = QPushButton(_("btn_browse"))
+        btn_dl_browse = BaseButton(_("btn_browse"), kind="secondary")
         btn_dl_browse.clicked.connect(self._browse_downloads_dir)
         dl_layout.addWidget(btn_dl_browse)
         form.addRow(_("download_dir_label"), dl_layout)
@@ -302,7 +304,7 @@ class SettingsHandler:
         self._pause_status_label.hide()
         layout.addWidget(self._pause_status_label)
 
-        self._resume_btn = QPushButton("立即恢复通知")
+        self._resume_btn = BaseButton("立即恢复通知", kind="primary")
         self._resume_btn.clicked.connect(self._resume_notifications)
         self._resume_btn.hide()
         layout.addWidget(self._resume_btn)
@@ -321,7 +323,7 @@ class SettingsHandler:
         form.addRow("识别方式", self._ocr_provider_combo)
         self._ocr_model_status = QLabel("检查本地 OCR 模型…")
         self._ocr_model_status.setWordWrap(True)
-        self._ocr_download_btn = QPushButton("下载本地 OCR 模型")
+        self._ocr_download_btn = BaseButton("下载本地 OCR 模型", kind="primary")
         self._ocr_download_btn.clicked.connect(self._download_local_ocr_model)
         local_row = QWidget()
         local_layout = QHBoxLayout(local_row)

@@ -11,7 +11,6 @@ import { useConfirm } from 'primevue/useconfirm'
 import { getUsers, addUser, deleteUser, changePassword } from '@/api'
 import { getApiErrorMessage } from '@/api/http'
 import { useAppStore } from '@/stores/app'
-import Button from 'primevue/button'
 import DataView from 'primevue/dataview'
 import Dialog from 'primevue/dialog'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -99,8 +98,20 @@ onMounted(() => { loadUsers() })
     <div class="card-header">
       <span>{{ t('settings.users.title') }}</span>
       <div style="display:flex;gap:var(--space-8)">
-        <Button :label="t('settings.users.change_pwd')" icon="pi pi-lock" size="small" severity="secondary" @click="showPwd = true" />
-        <Button :label="t('settings.users.add')" icon="pi pi-plus" size="small" @click="showAdd = true" />
+<AppButton
+          :label="t('settings.users.change_pwd')"
+          icon="pi pi-lock"
+          @click="showPwd = true"
+          size="s"
+          type="secondary"
+        />
+<AppButton
+          :label="t('settings.users.add')"
+          icon="pi pi-plus"
+          @click="showAdd = true"
+          size="s"
+          type="secondary"
+        />
       </div>
     </div>
     <p v-if="loadUsersErr" class="err-msg">{{ loadUsersErr }}</p>
@@ -136,8 +147,20 @@ onMounted(() => { loadUsers() })
       </select>
       <p v-if="userErr" class="error">{{ userErr }}</p>
       <div style="display:flex;gap:var(--space-8)">
-        <Button :label="t('common.cancel')" severity="secondary" @click="showAdd=false" style="flex:1" />
-        <Button :label="t('settings.users.add')" @click="doAdd" style="flex:1" />
+<AppButton
+          :label="t('common.cancel')"
+          @click="showAdd=false"
+          style="flex:1"
+          size="m"
+          type="secondary"
+        />
+<AppButton
+          :label="t('settings.users.add')"
+          @click="doAdd"
+          style="flex:1"
+          size="m"
+          type="secondary"
+        />
       </div>
     </div>
   </Dialog>
@@ -151,8 +174,20 @@ onMounted(() => { loadUsers() })
       <input v-model="pwdForm.confirm" type="password" :placeholder="t('settings.users.field_confirm_pwd')" class="fi" />
       <p v-if="pwdErr" class="error">{{ pwdErr }}</p>
       <div style="display:flex;gap:var(--space-8)">
-        <Button :label="t('common.cancel')" severity="secondary" @click="showPwd=false" style="flex:1" />
-        <Button :label="t('settings.users.change_pwd_ok')" @click="doChangePwd" style="flex:1" />
+<AppButton
+          :label="t('common.cancel')"
+          @click="showPwd=false"
+          style="flex:1"
+          size="m"
+          type="secondary"
+        />
+<AppButton
+          :label="t('settings.users.change_pwd_ok')"
+          @click="doChangePwd"
+          style="flex:1"
+          size="m"
+          type="secondary"
+        />
       </div>
     </div>
   </Dialog>

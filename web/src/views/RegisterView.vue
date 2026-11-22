@@ -4,7 +4,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { register } from '@/api/auth'
-import Button from 'primevue/button'
+import AppButton from '@/components/ui/AppButton.vue'
 
 const { t } = useI18n()
 
@@ -49,7 +49,14 @@ async function submit() {
       <p class="hint">{{ t('register.hint') }}</p>
       <input v-model="username" :placeholder="t('register.username_ph')" class="login-input" @keyup.enter="submit" />
       <input v-model="password" type="password" :placeholder="t('register.password_ph')" class="login-input" style="margin-top:var(--space-8)" @keyup.enter="submit" />
-      <Button :label="t('register.submit')" @click="submit" severity="primary" :loading="loading" style="width:100%;margin-top:var(--space-8)" />
+<AppButton
+        :label="t('register.submit')"
+        @click="submit"
+        :loading="loading"
+        style="width:100%;margin-top:var(--space-8)"
+        size="m"
+        type="primary"
+      />
       <p v-if="error" class="error">{{ error }}</p>
       <p class="hint" style="margin-top:var(--space-16)">
         {{ t('register.have_account') }}<router-link to="/login" class="text-primary">{{ t('register.back_to_login') }}</router-link>

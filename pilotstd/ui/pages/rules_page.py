@@ -17,12 +17,13 @@ from PyQt6.QtWidgets import (
     QHeaderView,
     QLineEdit,
     QMessageBox,
-    QPushButton,
     QTreeWidget,
     QTreeWidgetItem,
     QVBoxLayout,
     QWidget,
 )
+
+from pilotstd.ui.widgets.base_button import BaseButton
 
 from ...i18n import _
 
@@ -51,23 +52,23 @@ class RulesPage(QWidget):
             header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
         self.rule_tree.itemDoubleClicked.connect(self._on_edit_rule)
         btn_layout = QVBoxLayout()
-        btn_add = QPushButton(_("btn_add"))
+        btn_add = BaseButton(_("btn_add"), kind="primary")
         btn_add.clicked.connect(self._on_add_rule)
-        btn_edit = QPushButton(_("btn_edit"))
+        btn_edit = BaseButton(_("btn_edit"), kind="secondary")
         btn_edit.clicked.connect(self._on_edit_rule)
-        btn_del = QPushButton(_("btn_delete"))
+        btn_del = BaseButton(_("btn_delete"), kind="danger")
         btn_del.clicked.connect(self._on_delete_rule)
-        btn_copy = QPushButton(_("btn_copy_builtin"))
+        btn_copy = BaseButton(_("btn_copy_builtin"), kind="secondary")
         btn_copy.clicked.connect(self._on_copy_builtin)
         btn_layout.addWidget(btn_add)
         btn_layout.addWidget(btn_edit)
         btn_layout.addWidget(btn_del)
         btn_layout.addWidget(btn_copy)
         btn_layout.addStretch()
-        btn_import = QPushButton(_("btn_import_json"))
+        btn_import = BaseButton(_("btn_import_json"), kind="primary")
         btn_import.clicked.connect(self._on_import_json)
         btn_layout.addWidget(btn_import)
-        btn_export = QPushButton(_("btn_export_json"))
+        btn_export = BaseButton(_("btn_export_json"), kind="primary")
         btn_export.clicked.connect(self._on_export_json)
         btn_layout.addWidget(btn_export)
         rule_layout.addWidget(self.rule_tree)
@@ -281,10 +282,10 @@ class RuleEditDialog(QDialog):
 
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
-        btn_ok = QPushButton(_("btn_ok"))
+        btn_ok = BaseButton(_("btn_ok"), kind="primary")
         btn_ok.clicked.connect(self._on_accept)
         btn_layout.addWidget(btn_ok)
-        btn_cancel = QPushButton(_("btn_cancel"))
+        btn_cancel = BaseButton(_("btn_cancel"), kind="ghost")
         btn_cancel.clicked.connect(self.reject)
         btn_layout.addWidget(btn_cancel)
         layout.addLayout(btn_layout)

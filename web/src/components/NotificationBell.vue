@@ -4,10 +4,10 @@ defineOptions({ name: 'NotificationBell' })
 import { nextTick, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import Button from 'primevue/button'
 import Popover from 'primevue/popover'
 import Divider from 'primevue/divider'
 import { useNotification } from '@/composables/useNotification'
+import AppButton from '@/components/ui/AppButton.vue'
 
 const router = useRouter()
 const { t } = useI18n()
@@ -88,28 +88,28 @@ const goToLogs = () => {
 
 <template>
   <div class="notification-bell">
-    <Button
+    <AppButton
       :icon="bellUnreadCount > 0 ? 'pi pi-bell' : 'pi pi-bell'"
-      :severity="bellUnreadCount > 0 ? 'primary' : 'secondary'"
-      text
-      rounded
       :badge="bellUnreadCount > 0 ? String(bellUnreadCount) : undefined"
       badge-severity="danger"
       @click="togglePopover"
       :aria-label="t('notification.bell.title')"
+      size="m"
+      :type="bellUnreadCount > 0 ? 'primary' : 'secondary'"
+      rounded
     />
 
     <Popover ref="popoverRef" class="notification-popover" @show="emit('popover-show')" @hide="emit('popover-hide')">
       <div class="notification-dropdown">
         <div class="dropdown-header">
           <span class="header-title">{{ t('notification.bell.title') }}</span>
-          <Button
+          <AppButton
             v-show="bellUnreadCount > 0"
-            text
-            size="small"
             class="mark-all-button"
             :label="t('notification.bell.mark_all_read')"
             @click="markAllAsRead"
+            size="s"
+            type="ghost"
           />
         </div>
         <Divider class="header-divider" />
@@ -134,7 +134,12 @@ const goToLogs = () => {
         </div>
         <Divider class="footer-divider" />
         <div class="dropdown-footer">
-          <Button text size="small" :label="t('notification.bell.view_all')" @click="goToLogs" />
+          <AppButton
+            :label="t('notification.bell.view_all')"
+            @click="goToLogs"
+            size="s"
+            type="ghost"
+          />
         </div>
       </div>
     </Popover>

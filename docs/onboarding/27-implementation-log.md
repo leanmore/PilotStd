@@ -1484,3 +1484,17 @@ ailed 字段归一、终态词表（completed/cancelled/failed）、result_json 
 - **测试**：`TaskHistoryList` / `NotificationLogsView` / `TaskView` 三份用例的组件查找同步改为 `AppButton`
   （stub 名与断言一并更新）；全量 **448 例通过**。
 - **数字**：`custom/no-raw-button` 存量 142 → **128**（本批 14 处，含同文件顺带清理）。
+
+### 122. DS 阶段二：142 处 Web 按钮 + 46 处 Win 按钮全量替换，门禁升 error（2026-11-22）
+
+- **Web**：`custom/no-raw-button` 存量 **142 → 0**（18 原生 + 124 PrimeVue）。
+  批次 1 Danger 10 处、批次 2 非 text 51 处、批次 3 text 28 处 + 原生 18 处。
+- **AppButton 能力补齐**：`outlined` / `text` / `rounded` / `badge` / `bare`（零样式透传，结构性控件用）。
+- **原生按钮分类**：4 处普通操作直接换层级；14 处结构性控件（顶栏图标、浮动拖拽、菜单项、标签页、
+  折叠把手、卡片角标）用 `bare` 保留原 class 与事件，**视觉零变化**。
+- **Win**：46 处 `QPushButton(...)` → `BaseButton(..., kind=...)`；`ruff --fix` 清理 24 个未用导入；
+  13 个受影响模块在 offscreen 下全部导入通过。
+- **门禁升级**：`custom/no-raw-button` → `error`；探针验证「新增原生 button → lint 报 1 error 并阻断」。
+- **测试**：前端 448 例全过；Win 侧 9 例全过；`check_all.sh --fast --guards --local` exit 0。
+- **G-055**：`A=0 / B=151 / C=577 / STALE=0`（AppButton 的 bare 结构性值入 `ds-skeleton` 组）。
+- **遗留**：A-53（`disabledBg/disabledText` 死键）继续挂起，AppButton 暂用替代令牌。

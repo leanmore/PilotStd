@@ -37,6 +37,14 @@ const props = withDefaults(
     text?: boolean
     /** 胶囊圆角 */
     rounded?: boolean
+    /** 角标文本（如未读数）；为空则不显示 */
+    badge?: string
+    /** 角标底色语义 */
+    badgeSeverity?: 'danger' | 'primary' | 'success'
+    /** 裸样式：不施加任何基础视觉，外观完全由宿主 class 决定（用于结构性控件） */
+    bare?: boolean
+    /** 原生 type：默认 button（防表单误提交）；表单提交按钮传 submit */
+    nativeType?: 'button' | 'submit' | 'reset'
   }>(),
   {
     type: 'secondary',
@@ -49,6 +57,10 @@ const props = withDefaults(
     outlined: false,
     text: false,
     rounded: false,
+    badge: '',
+    badgeSeverity: 'danger',
+    bare: false,
+    nativeType: 'button',
   },
 )
 
@@ -64,12 +76,12 @@ function onClick(ev: MouseEvent): void {
 
 <template>
   <button
-    type="button"
+    :type="nativeType"
     class="app-btn"
     :class="[
       `app-btn--${type}`,
       `app-btn--${size}`,
-      { 'app-btn--block': block, 'app-btn--loading': loading, 'app-btn--outlined': outlined, 'app-btn--text': text, 'app-btn--rounded': rounded },
+      { 'app-btn--block': block, 'app-btn--loading': loading, 'app-btn--outlined': outlined, 'app-btn--text': text, 'app-btn--rounded': rounded, 'app-btn--bare': bare },
     ]"
     :disabled="isInert"
     :aria-busy="loading ? 'true' : undefined"
@@ -80,11 +92,15 @@ function onClick(ev: MouseEvent): void {
     <span v-if="label || $slots.default" class="app-btn__label">
       <slot>{{ label }}</slot>
     </span>
+    <span v-if="badge" class="app-btn__badge" :class="`app-btn__badge--${badgeSeverity}`" aria-hidden="true">
+      {{ badge }}
+    </span>
   </button>
 </template>
 
 <style scoped>
 .app-btn {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -158,6 +174,24 @@ function onClick(ev: MouseEvent): void {
 }
 
 
+
+/* ── 修饰：裸样式（结构性控件，外观由宿主 class 决定） ── */
+.app-btn--bare {
+  background: transparent;
+  border-width: 0;
+  border-radius: 0;
+  padding: 0;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  color: inherit;
+  height: auto;
+}
+.app-btn--bare:disabled {
+  background: transparent;
+  color: inherit;
+}
+
 /* ── 修饰：描边（透明底 + 描边 + 同色文字） ── */
 .app-btn--outlined {
   background: transparent;
@@ -205,6 +239,30 @@ function onClick(ev: MouseEvent): void {
 .app-btn:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
+}
+
+.app-btn__badge {
+  position: absolute;
+  top: calc(-1 * var(--space-4));
+  right: calc(-1 * var(--space-4));
+  min-width: var(--size-16);
+  height: var(--size-16);
+  padding: 0 var(--space-4);
+  border-radius: var(--ds-radius-pill);
+  font-size: var(--font-size-10);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--size-16);
+  text-align: center;
+  color: var(--text-on-primary);
+}
+.app-btn__badge--danger {
+  background: var(--danger);
+}
+.app-btn__badge--primary {
+  background: var(--primary-fill);
+}
+.app-btn__badge--success {
+  background: var(--success);
 }
 
 /* ── 图标 ── */

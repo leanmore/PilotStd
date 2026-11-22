@@ -7,12 +7,12 @@ defineOptions({ name: 'DownloadImport' })
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { postDownloadImport } from '@/api/download'
-import Button from 'primevue/button'
 import Card from 'primevue/card'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Tag from 'primevue/tag'
 import Textarea from 'primevue/textarea'
+import AppButton from '@/components/ui/AppButton.vue'
 
 interface ImportResult {
   valid: string[]
@@ -103,20 +103,22 @@ function handleFileUpload(event: Event) {
     </Card>
 
     <div class="actions mb-3">
-      <Button
+<AppButton
         :label="t('download.manual_import.submit')"
         icon="pi pi-download"
         @click="handleSubmit"
         :loading="submitting"
         :disabled="!textInput.trim()"
+        size="m"
+        type="secondary"
       />
-      <Button
+      <AppButton
         :label="t('download.manual_import.clear')"
         icon="pi pi-times"
-        severity="secondary"
-        text
         @click="textInput = ''; result = null"
         class="ml-2"
+        size="m"
+        type="ghost"
       />
     </div>
 
@@ -153,13 +155,12 @@ function handleFileUpload(event: Event) {
 
       <!-- 无效条目 -->
       <div v-if="result.invalid.length" class="mb-3">
-        <Button
+        <AppButton
           :label="showInvalid ? t('download.manual_import.hide_invalid') : t('download.manual_import.show_invalid', { n: result.invalid.length })"
           icon="pi pi-exclamation-triangle"
-          severity="warn"
-          text
-          size="small"
           @click="showInvalid = !showInvalid"
+          size="s"
+          type="ghost"
         />
         <Card v-if="showInvalid" class="mt-2">
           <template #content>

@@ -6,7 +6,7 @@ import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { login, getLoginBackground } from '@/api'
 import { notifyAuthChanged } from '@/api/http'
-import Button from 'primevue/button'
+import AppButton from '@/components/ui/AppButton.vue'
 
 const { t } = useI18n()
 
@@ -57,7 +57,14 @@ async function submit() {
       <p class="hint">{{ t('login.hint') }}</p>
       <input v-model="username" name="username" :placeholder="t('login.username')" class="login-input" @keyup.enter="submit" />
       <input v-model="password" name="password" type="password" :placeholder="t('login.password')" class="login-input" style="margin-top:var(--space-8)" @keyup.enter="submit" />
-      <Button :label="t('login.submit_spaced')" type="submit" @click="submit" severity="primary" style="width:100%;margin-top:var(--space-8)" />
+<AppButton
+        :label="t('login.submit_spaced')"
+        native-type="submit"
+        @click="submit"
+        style="width:100%;margin-top:var(--space-8)"
+        size="m"
+        type="primary"
+      />
       <p v-if="error" class="error">{{ error }}</p>
     </div>
   </div>
