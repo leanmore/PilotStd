@@ -877,3 +877,6 @@ B1（声明类 vs 实现类）已覆盖同一语义、且每次 CI 都在跑；�
 > custom/no-raw-input 由 warn 升级为 **error**（探针 4 error / exit 1 反证阻断）。
 > 新增令牌 --input-height-lg/md/sm 与 --input-textarea-min-height；A-53 的 disabledBg/disabledText 已接线。
 > G-055 基线：AppSelectButton 的结构性字面量登记进 ds-skeleton 组、SettingsView 的 min-width 登记进 layout-dimension 组。
+
+> **2026-11-22 DS 阶段三 · 模块二完成**：Web 端 36 处表格/弹窗（PrimeVue DataTable/Dialog/ConfirmDialog 与 6 处手写原生 table）全部替换为 AppTable/AppDialog/AppConfirmDialog；custom/no-raw-table 由 warn 升级为 **error**（探针 5 error / exit 1 反证阻断）。Win 端 QTableWidget 2 处与 QDialog 子类 6 处全部对齐 BaseTable/BaseDialog。
+
