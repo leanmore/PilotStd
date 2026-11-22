@@ -59,6 +59,7 @@ async function submit() {
       <input v-model="password" name="password" type="password" :placeholder="t('login.password')" class="login-input" style="margin-top:var(--space-8)" @keyup.enter="submit" />
 <AppButton
         :label="t('login.submit_spaced')"
+        native-type="submit"
         @click="submit"
         style="width:100%;margin-top:var(--space-8)"
         size="m"

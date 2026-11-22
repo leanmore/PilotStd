@@ -43,6 +43,8 @@ const props = withDefaults(
     badgeSeverity?: 'danger' | 'primary' | 'success'
     /** 裸样式：不施加任何基础视觉，外观完全由宿主 class 决定（用于结构性控件） */
     bare?: boolean
+    /** 原生 type：默认 button（防表单误提交）；表单提交按钮传 submit */
+    nativeType?: 'button' | 'submit' | 'reset'
   }>(),
   {
     type: 'secondary',
@@ -58,6 +60,7 @@ const props = withDefaults(
     badge: '',
     badgeSeverity: 'danger',
     bare: false,
+    nativeType: 'button',
   },
 )
 
@@ -73,7 +76,7 @@ function onClick(ev: MouseEvent): void {
 
 <template>
   <button
-    type="button"
+    :type="nativeType"
     class="app-btn"
     :class="[
       `app-btn--${type}`,
