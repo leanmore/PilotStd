@@ -11,6 +11,7 @@ import http from '@/api/http'
 import Dialog from 'primevue/dialog'
 import Message from 'primevue/message'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppInput from '@/components/ui/AppInput.vue'
 
 defineOptions({ name: 'SettingsTabToken' })
 
@@ -143,10 +144,9 @@ onMounted(() => { loadToken(); loadGhToken() })
       {{ t('settings.token.gh_warning') }}
     </Message>
     <div style="display:flex;gap:var(--space-8);align-items:center">
-      <input
+      <AppInput
         v-model="ghToken"
         type="password"
-        class="fi"
         style="flex:1"
         placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
       />

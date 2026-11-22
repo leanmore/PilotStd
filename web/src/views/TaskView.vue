@@ -17,6 +17,7 @@ import LogBar from '@/components/LogBar.vue'
 import TaskHistoryList from './TaskView/TaskHistoryList.vue'
 import type { StepState, TaskRecord } from './TaskView/types'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppSelect from '@/components/ui/AppSelect.vue'
 
 const { t } = useI18n()
 const paths = ref<string[]>(['/inbox', '/standards'])
@@ -373,9 +374,7 @@ function stepSeverity(s: string) {
   <!-- 路径选择 + 启动 -->
   <div class="card mb-3">
     <div class="controls">
-      <select v-model="selectedPath" class="fi">
-        <option v-for="p in paths" :key="p" :value="p">{{ p }}</option>
-      </select>
+      <AppSelect v-model="selectedPath" :options="paths" size="m" class="fi" />
 <AppButton
         :label="t('task.start')"
         icon="pi pi-play"
@@ -493,10 +492,8 @@ function stepSeverity(s: string) {
 <style scoped>
 .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-20); }
 .controls { display: flex; gap: var(--space-12); align-items: center; }
-/* TODO: [Design Debt] 9px 13px 无精确令牌，暂不替换，待定令牌后统一处理 */
-.fi { padding: 9px 13px; background: var(--bg); border: 1px solid var(--border); color: var(--text);
-  border-radius: var(--radius-sm); font-size: var(--font-size-13); min-width: 220px; outline: none; }
-.fi:focus { border-color: var(--primary); box-shadow: var(--focus-ring); }
+/* 布局只留最小宽度；边框/底色/四态由 <AppSelect size="m"> 承担（ui-system.md §11.4） */
+.fi { min-width: 220px; }
 .err-msg { color: var(--danger); font-size: var(--font-size-12); }
 .mb-2 { margin-bottom: var(--space-12); }
 .mb-3 { margin-bottom: var(--space-16); }

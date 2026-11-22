@@ -229,8 +229,10 @@ function onClick(ev: MouseEvent): void {
 
 /* ── 禁用 / 聚焦 ── */
 .app-btn:disabled {
-  /* 禁用态用已定义令牌：--disabled-bg/--disabled-text 目前是死键（A-53），
-     接线后可直接替换为它们，不影响其它规则。 */
+  /* 禁用态暂用替代令牌（--border-light / --text-dim）。
+     A-53 已接线（--disabled-bg / --disabled-text 自 2026-11-22 起可用），但按钮禁用态
+     切换会让全站禁用按钮视觉变浅（light 主题 7.27:1 → 2.08:1），属独立视觉决策，
+     由「禁用态对齐」单独任务评估后替换，本任务不擅自改观感。 */
   background: var(--border-light);
   color: var(--text-dim);
   border-color: transparent;

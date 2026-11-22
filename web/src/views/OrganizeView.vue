@@ -6,12 +6,13 @@ import { getFiles, postCleanEmpty } from '@/api'
 import { enqueueValidityCheck } from '@/api/validity'
 import { getItem, setItem } from '@/lib/storage'
 import { useAppStore } from '@/stores/app'
-import Checkbox from 'primevue/checkbox'
 import DataView from 'primevue/dataview'
 import Paginator from 'primevue/paginator'
 import Tag from 'primevue/tag'
 import LogBar from '@/components/LogBar.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppInput from '@/components/ui/AppInput.vue'
+import AppCheckbox from '@/components/ui/AppCheckbox.vue'
 
 const { t } = useI18n()
 const appStore = useAppStore()
@@ -128,7 +129,18 @@ const breadcrumbs = computed(() => {
   <!-- 控制区卡片 -->
   <div class="card mt-2">
     <div class="controls">
-      <input :value="rootPath" @keyup.enter="browse(($event.target as any).value)" @change="e => rootPath = (e.target as any).value" class="fi" style="flex:1" placeholder="/standards" />
+      <!-- 两路事件语义都必须保留（原生 <input> 的形态）：
+           @keyup.enter 直接拿输入框当前值去 browse；@change 把值写回 rootPath（失焦/回车提交时同步）。
+           AppInput 透传 $attrs，故两个监听都落在底层 <input> 上。 -->
+      <AppInput
+        :model-value="rootPath"
+        size="m"
+        class="fi"
+        style="flex:1"
+        placeholder="/standards"
+        @keyup.enter="browse(($event.target as any).value)"
+        @change="(e: Event) => rootPath = (e.target as any).value"
+      />
 <AppButton
         :label="t('organize.browse')"
         icon="pi pi-folder-open"
@@ -183,7 +195,7 @@ const breadcrumbs = computed(() => {
     <template #list="slotProps">
       <!-- 全选行 -->
       <div v-if="canEnqueue" class="select-all-row">
-        <Checkbox :model-value="isAllSelected()" @change="toggleAll" :input-id="'select-all'" />
+        <AppCheckbox :model-value="isAllSelected()" @change="toggleAll" :input-id="'select-all'" />
         <label for="select-all" class="select-all-label">{{ t('organize.select_all') }}</label>
       </div>
       <div v-for="item in slotProps.items" :key="item.path" class="p-2 border-bottom">
@@ -193,7 +205,7 @@ const breadcrumbs = computed(() => {
           :style="item.type === 'dir' ? 'cursor:pointer' : ''"
           @click="item.type === 'dir' ? browse(item.path) : undefined"
         >
-          <Checkbox
+          <AppCheckbox
             v-if="item.type !== 'dir' && canEnqueue"
             :model-value="isFileSelected(item.path)"
             @change="toggleFile(item.path)"
@@ -215,8 +227,8 @@ const breadcrumbs = computed(() => {
 
 <style scoped>
 .controls { display: flex; gap: var(--space-8); align-items: center; flex-wrap: wrap; }
-/* TODO: [Design Debt] 9px 13px 无精确令牌，暂不替换，待定令牌后统一处理 */
-.fi { padding: 9px 13px; background: var(--bg); border: 1px solid var(--border); color: var(--text); border-radius: var(--radius-sm); font-size: var(--font-size-13); outline: none; transition: border-color var(--transition); flex: 1; min-width: 200px; }
+/* 布局只留伸缩与最小宽度；边框/底色/四态由 <AppInput size="m"> 承担（ui-system.md §11.4） */
+.fi { flex: 1; min-width: 200px; }
 
 .breadcrumb { display: flex; align-items: center; gap: var(--space-4); font-size: var(--font-size-13); flex-wrap: wrap; }
 .crumb { color: var(--primary); cursor: pointer; padding: var(--space-2) var(--space-6); border-radius: var(--ds-radius-xs); transition: background 0.15s; }
@@ -224,7 +236,6 @@ const breadcrumbs = computed(() => {
 .crumb.active { color: var(--text-heading); font-weight: var(--font-weight-semibold); cursor: default; }
 .crumb.active:hover { background: none; }
 .crumb-sep { color: var(--text-dim); font-size: var(--font-size-11); user-select: none; }
-.fi:focus { border-color: var(--primary); box-shadow: var(--focus-ring); }
 .dir-row:hover { background: var(--selected); }
 .clean-msg { font-size: var(--font-size-12); color: var(--success); margin-top: var(--space-6); }
 .err-msg { color: var(--danger, #e74c3c); font-size: var(--font-size-12); margin-top: var(--space-6); }

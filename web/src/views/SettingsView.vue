@@ -15,6 +15,7 @@ import { getApiErrorMessage } from '@/api/http'
 import type { TabMeta } from '@/api/settings'
 import { useAppStore } from '@/stores/app'
 import { THEMES } from '@/config/themes'
+import type { ThemeId } from '@/stores/app'
 import { usePreferencesStore } from '@/stores/preferences'
 import Tag from 'primevue/tag'
 
@@ -125,6 +126,13 @@ const localeOptions = computed(() => [
   { label: 'English', value: 'en' },
 ])
 
+// 主题下拉的选项：label 沿用原 <option> 的 i18n 表达式 t(cfg.labelKey)，value 为主题 key。
+// 这里只做「原生 option 列表 → AppSelect 的 {label,value} 数组」形态转换，
+// 文案来源与顺序不变（AppSelect 用 optionLabel/optionValue 取值，不渲染 slot）。
+const themeOptions = computed(() =>
+  (Object.keys(THEMES) as ThemeId[]).map(key => ({ label: t(THEMES[key].labelKey), value: key })),
+)
+
 // ═══════════════════════════════════════════
 // 标签页导航
 // ═══════════════════════════════════════════
@@ -133,6 +141,7 @@ const router = useRouter()
 const { t } = useI18n()
 import { SETTINGS_TAB_KEYS } from './settings/constants'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppSelect from '@/components/ui/AppSelect.vue'
 
 const activeTab = ref((route.query.tab as string) || 'storage')
 
@@ -396,15 +405,11 @@ onMounted(() => {
     <p class="text-dim">{{ t('settings.admin_only') }}</p>
     <label class="row">
       <span>{{ t('settings.theme') }}</span>
-      <select v-model="store.theme">
-        <option v-for="(cfg, key) in THEMES" :key="key" :value="key">{{ t(cfg.labelKey) }}</option>
-      </select>
+      <AppSelect v-model="store.theme" :options="themeOptions" option-label="label" option-value="value" size="m" />
     </label>
     <label class="row">
       <span>{{ t('settings.locale') }}</span>
-      <select v-model="store.locale">
-        <option v-for="opt in localeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-      </select>
+      <AppSelect v-model="store.locale" :options="localeOptions" option-label="label" option-value="value" size="m" />
     </label>
   </div>
 </template>
@@ -413,7 +418,8 @@ onMounted(() => {
 <style scoped>
 .user-settings { max-width: 520px; margin-top: var(--space-16); display: flex; flex-direction: column; gap: var(--space-16); }
 .row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-16); }
-.row select { padding: var(--space-6) var(--space-10); border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); }
+/* 下拉框视觉由 <AppSelect size="m"> 承担；这里只给布局宽度（ui-system.md §11.4） */
+.row :deep(.app-select) { min-width: 180px; }
 /* ── 标签页导航 ── */
 .tab-bar {
   display: flex;

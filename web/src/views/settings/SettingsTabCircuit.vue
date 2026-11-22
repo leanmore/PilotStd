@@ -7,8 +7,8 @@
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import http from '@/api/http'
-import InputNumber from 'primevue/inputnumber'
 import Message from 'primevue/message'
+import AppInput from '@/components/ui/AppInput.vue'
 
 defineOptions({ name: 'SettingsTabCircuit' })
 
@@ -80,15 +80,15 @@ onMounted(() => { loadCircuitConfig() })
     <div class="form-grid" style="grid-template-columns:repeat(auto-fill, minmax(220px, 1fr))">
       <div style="display:flex;flex-direction:column;gap:var(--space-6)">
         <label>{{ t('settings.circuit.failure_threshold') }}</label>
-        <InputNumber v-model="circuitCfg.failure_threshold" :min="1" show-buttons />
+        <AppInput v-model="circuitCfg.failure_threshold" type="number" :min="1" show-buttons />
       </div>
       <div v-for="i in 4" :key="i" style="display:flex;flex-direction:column;gap:var(--space-6)">
         <label>{{ t('settings.circuit.step_duration', { step: i }) }}</label>
-        <InputNumber v-model="circuitCfg.freeze_durations[i - 1]" :min="1" show-buttons />
+        <AppInput v-model="circuitCfg.freeze_durations[i - 1]" type="number" :min="1" show-buttons />
       </div>
       <div style="display:flex;flex-direction:column;gap:var(--space-6)">
         <label>{{ t('settings.circuit.reset_window') }}</label>
-        <InputNumber v-model="circuitCfg.reset_window_hours" :min="1" show-buttons />
+        <AppInput v-model="circuitCfg.reset_window_hours" type="number" :min="1" show-buttons />
       </div>
     </div>
   </div>

@@ -9,7 +9,7 @@
     >
       <span class="item-label">{{ t(type.labelKey) }}</span>
       <div @click.stop>
-        <ToggleSwitch
+        <AppToggle
           :model-value="fetchEnabled[type.key]"
           @update:model-value="(val: boolean) => handleToggle(type.key, val)"
         />
@@ -20,7 +20,7 @@
 
 <script setup lang="ts">
 defineOptions({ name: 'UnifiedFilterBar' })
-import ToggleSwitch from 'primevue/toggleswitch'
+import AppToggle from '@/components/ui/AppToggle.vue'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()

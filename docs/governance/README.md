@@ -224,3 +224,6 @@ A: `--required-only` 参数仅检查 `required` 级别能力。CI 也仅对 `req
 
 > v2.70（2026-11-22）：DS 阶段二——142 处 Web + 46 处 Win 按钮全量替换完成，\custom/no-raw-button\ 升为 error。
 
+
+> v2.71（2026-11-22）：DS 阶段三 · 模块一 —— Web 端 138 处输入控件全量替换为 App* 封装，custom/no-raw-input 升为 error；新增 --input-height-* 令牌与 A-53 禁用态接线。详见 gates.md 维护记录与 ui-system.md 第十一节。
+

@@ -5,7 +5,7 @@
 -->
 <script setup lang="ts">
 defineOptions({ name: 'AppCalendar' })
-import DatePicker from 'primevue/datepicker'
+import AppDatePicker from '@/components/ui/AppDatePicker.vue'
 import { primevueLocales } from '@/lib/primevueLocale'
 import { useI18n } from 'vue-i18n'
 import { computed, onMounted, getCurrentInstance } from 'vue'
@@ -24,5 +24,5 @@ onMounted(() => {
 </script>
 
 <template>
-  <DatePicker v-bind="$attrs" :locale="calendarLocale" />
+  <AppDatePicker v-bind="$attrs" :locale="calendarLocale" />
 </template>

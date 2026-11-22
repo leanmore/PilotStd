@@ -927,7 +927,8 @@
       "max_requests_negative": "視窗查詢限額不能為負數",
       "daily_limit_negative": "日限額不能為負數",
       "cooling_negative": "冷卻時間不能為負數",
-      "interval_min": "請求間隔最小 0.1 秒"
+      "interval_min": "請求間隔最小 0.1 秒",
+      "number_required": "請填寫{field}（不能留空）"
     }
   },
   "notification": {

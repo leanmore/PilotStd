@@ -3,16 +3,15 @@ defineOptions({ name: 'ValidityConfig' })
 // ValidityConfig.vue — 时效性检查配置组件（从 ValidityConfigView 提取）
 import { ref, onMounted, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import Select from 'primevue/select'
-import InputText from 'primevue/inputtext'
-import InputNumber from 'primevue/inputnumber'
-import DatePicker from 'primevue/datepicker'
 import Tag from 'primevue/tag'
 import Message from 'primevue/message'
 import Dialog from 'primevue/dialog'
 import { getValidityConfig, putValidityConfig, runValidityCheck, getValidityHistory, type ValidityConfig, type ValidityHistoryItem } from '@/api/validity'
 import { getItem, setItem } from '@/lib/storage'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppInput from '@/components/ui/AppInput.vue'
+import AppSelect from '@/components/ui/AppSelect.vue'
+import AppDatePicker from '@/components/ui/AppDatePicker.vue'
 
 // 兼容旧后端：可能返回 update_interval（天）代替 total_weeks
 interface LegacyValidityResponse extends Partial<ValidityConfig> {
@@ -113,6 +112,44 @@ const isValid = computed(() => {
 
 // 防循环标志：代码赋值触发组件 @update:modelValue 链路时防止双向联动死循环
 let isUpdating = false
+
+/**
+ * number 输入的统一写回：AppInput type="number" 的 update:modelValue 回传
+ * `number`（清空时回传 `null`），这里先落到 config 再跑联动 —— 与替换前
+ * `v-model` 的时序等价（v-model 先赋值，`@update:modelValue` 后触发 handler）。
+ *
+ * 入参放宽到 `string | number | null`：AppInput 的 update:modelValue 是
+ * 「string（文本分叉）/ number|null（数字分叉）」的重载联合，Vue 的类型推导会取并集。
+ * 数字分叉实际只会给 number|null，故这里按 typeof 收窄（字符串一律视为清空）。
+ *
+ * null 按原「方案 A」语义保留：写回后由各 handler 的 Number.isFinite 防御跳过，
+ * isValid 也因 `!total_weeks` 判为无效（不会把 null 变成 0 或 NaN）。
+ * 类型断言是因为 ValidityConfig 接口把字段声明为 number，而运行期允许 null（清空态）。
+ */
+function writeNumber(
+  key: 'total_weeks' | 'frequency_weeks' | 'check_ratio' | 'batch_size' | 'batch_interval',
+  value: string | number | null,
+) {
+  config.value[key] = (typeof value === 'number' ? value : null) as number
+}
+
+/** 总周期变化：写回 T → 重算 P */
+function onTotalWeeksInput(value: string | number | null) {
+  writeNumber('total_weeks', value)
+  onTotalOrFreqChange()
+}
+
+/** 执行频率变化：写回 F → 重算 P */
+function onFrequencyWeeksInput(value: string | number | null) {
+  writeNumber('frequency_weeks', value)
+  onTotalOrFreqChange()
+}
+
+/** 检查比例变化：写回 P → 反推 F 并回写 P */
+function onCheckRatioInput(value: string | number | null) {
+  writeNumber('check_ratio', value)
+  onCheckRatioChange()
+}
 
 /**
  * 正向联动：T 或 F 变化 → 重算 P
@@ -289,59 +326,75 @@ onMounted(() => { loadValidityFilters(); loadConfig(); loadHistory() })
       <!-- 首次执行周几 -->
       <div class="field">
         <label>{{ t('settings.validity.first_weekday') }}</label>
-        <Select v-model="config.first_weekday" :options="weekdayOptions" optionLabel="label" optionValue="value" class="field-control" />
+        <AppSelect v-model="config.first_weekday" :options="weekdayOptions" optionLabel="label" optionValue="value" class="field-control" />
       </div>
       <!-- 首次执行时间 -->
       <div class="field">
         <label>{{ t('settings.validity.first_time') }}</label>
-        <DatePicker v-model="executeTimeDate" timeOnly hourFormat="24" class="field-control" />
+        <!-- 时间选择：timeOnly + hourFormat="24" 必须保留（只选时分、24 小时制，不出现 AM/PM 与日期面板） -->
+        <AppDatePicker v-model="executeTimeDate" timeOnly hourFormat="24" class="field-control" />
       </div>
       <!-- ✅ #43: 总周期（联动源：T 变化 → 重算 P） -->
       <div class="field">
         <label>{{ t('settings.validity.total_weeks') }}</label>
-        <InputNumber
-          v-model="config.total_weeks"
+        <AppInput
+          type="number"
+          :model-value="config.total_weeks"
           :min="4"
           :max="52"
           :step="1"
           show-buttons
-          @update:modelValue="onTotalOrFreqChange"
+          @update:model-value="onTotalWeeksInput"
         />
         <small class="field-hint">{{ t('settings.validity.total_weeks_hint') }}</small>
       </div>
       <!-- ✅ #43: 执行频率（联动源：F 变化 → 重算 P） -->
       <div class="field">
         <label>{{ t('settings.validity.interval_weeks') }}</label>
-        <InputNumber
-          v-model="config.frequency_weeks"
+        <AppInput
+          type="number"
+          :model-value="config.frequency_weeks"
           :min="1"
           :max="config.total_weeks"
           :step="1"
           show-buttons
-          @update:modelValue="onTotalOrFreqChange"
+          @update:model-value="onFrequencyWeeksInput"
         />
         <small class="field-hint">{{ t('settings.validity.interval_weeks_hint') }}</small>
       </div>
       <div class="field">
         <label>{{ t('settings.validity.batch_size') }}</label>
-        <InputNumber v-model="config.batch_size" :min="1" show-buttons />
+        <AppInput
+          type="number"
+          :model-value="config.batch_size"
+          :min="1"
+          show-buttons
+          @update:model-value="(v) => writeNumber('batch_size', v)"
+        />
       </div>
       <div class="field">
         <label>{{ t('settings.validity.batch_interval') }}</label>
-        <InputNumber v-model="config.batch_interval" :min="1" show-buttons />
+        <AppInput
+          type="number"
+          :model-value="config.batch_interval"
+          :min="1"
+          show-buttons
+          @update:model-value="(v) => writeNumber('batch_interval', v)"
+        />
       </div>
       <!-- ✅ #43: 检查比例（联动源：P 变化 → 反推 F 并回写 P） -->
       <div class="field">
         <label>{{ t('settings.validity.ratio') }}</label>
-        <InputNumber
-          v-model="config.check_ratio"
+        <AppInput
+          type="number"
+          :model-value="config.check_ratio"
           :min="0.01"
           :max="100"
           :step="0.1"
           :min-fraction-digits="2"
           :max-fraction-digits="2"
           show-buttons
-          @update:modelValue="onCheckRatioChange"
+          @update:model-value="onCheckRatioInput"
         />
         <small class="field-hint">{{ t('settings.validity.ratio_hint') }}</small>
       </div>
@@ -391,15 +444,15 @@ onMounted(() => { loadValidityFilters(); loadConfig(); loadHistory() })
     <div class="filter-row">
       <div class="filter-item">
         <label>{{ t('settings.validity.hist_status') }}</label>
-        <Select v-model="filterStatus" :options="statusOptions" optionLabel="label" optionValue="value" />
+        <AppSelect v-model="filterStatus" :options="statusOptions" optionLabel="label" optionValue="value" />
       </div>
       <div class="filter-item">
         <label>{{ t('settings.validity.hist_start') }}</label>
-        <InputText v-model="filterStart" type="date" size="small" />
+        <AppInput v-model="filterStart" type="date" size="s" />
       </div>
       <div class="filter-item">
         <label>{{ t('settings.validity.hist_end') }}</label>
-        <InputText v-model="filterEnd" type="date" size="small" />
+        <AppInput v-model="filterEnd" type="date" size="s" />
       </div>
       <div class="filter-actions">
 <AppButton

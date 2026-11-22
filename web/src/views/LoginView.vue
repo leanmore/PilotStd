@@ -7,6 +7,7 @@ import { useAppStore } from '@/stores/app'
 import { login, getLoginBackground } from '@/api'
 import { notifyAuthChanged } from '@/api/http'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppInput from '@/components/ui/AppInput.vue'
 
 const { t } = useI18n()
 
@@ -55,8 +56,9 @@ async function submit() {
     <div class="login-card">
       <div class="login-brand"><span class="brand-icon">&#9678;</span><h1>PilotStd</h1></div>
       <p class="hint">{{ t('login.hint') }}</p>
-      <input v-model="username" name="username" :placeholder="t('login.username')" class="login-input" @keyup.enter="submit" />
-      <input v-model="password" name="password" type="password" :placeholder="t('login.password')" class="login-input" style="margin-top:var(--space-8)" @keyup.enter="submit" />
+      <!-- name 属性必须保留：e2e（announce-pagination.mjs / audit-ui-behavior.spec.ts）依赖 input[name=username] -->
+      <AppInput v-model="username" name="username" size="l" :placeholder="t('login.username')" class="login-input" @keyup.enter="submit" />
+      <AppInput v-model="password" name="password" type="password" size="l" :placeholder="t('login.password')" class="login-input" style="margin-top:var(--space-8)" @keyup.enter="submit" />
 <AppButton
         :label="t('login.submit_spaced')"
         native-type="submit"
@@ -79,7 +81,7 @@ async function submit() {
 .login-brand { display: flex; align-items: center; justify-content: center; gap: var(--space-8); margin-bottom: var(--space-4); }
 .brand-icon { color: var(--accent); font-size: var(--font-size-22); }
 .login-brand h1 { font-size: var(--font-size-20); font-weight: var(--font-weight-semibold); color: var(--text-heading); }
-.login-input { width: 100%; padding: var(--space-10) var(--space-14); background: var(--bg); border: 1px solid var(--border); color: var(--text); border-radius: var(--radius); font-size: var(--font-size-14); outline: none; margin-top: var(--space-12); box-sizing: border-box; }
-.login-input:focus { border-color: var(--accent); box-shadow: var(--focus-ring); }
+/* 布局只留尺寸/间距；输入框的四态与内边距由 <AppInput size="l"> 承担（ui-system.md §11.4） */
+.login-input { width: 100%; margin-top: var(--space-12); box-sizing: border-box; }
 .error { color: var(--danger); font-size: var(--font-size-13); margin-top: var(--space-8); }
 </style>

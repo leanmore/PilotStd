@@ -4,16 +4,22 @@ defineOptions({ name: 'WechatTrustIP' })
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import http from '@/api/http'
-import InputText from 'primevue/inputtext'
-import ToggleSwitch from 'primevue/toggleswitch'
-import SelectButton from 'primevue/selectbutton'
-import Dropdown from 'primevue/dropdown'
-import Textarea from 'primevue/textarea'
 import Message from 'primevue/message'
 import Tag from 'primevue/tag'
 import Accordion from 'primevue/accordion'
 import AccordionTab from 'primevue/accordiontab'
 import AppButton from '@/components/ui/AppButton.vue'
+// DS 输入控件（模块一·C3）：原 PrimeVue InputText / Textarea / ToggleSwitch / SelectButton /
+// Dropdown 全部收口到 App*。**交互形态逐一保留**：
+//   · SelectButton（update_mode / engine / cookie_source）→ AppSelectButton：仍是**分段单选**
+//     （所有选项平铺可见、一键切换），绝不退化成下拉；
+//   · Dropdown（interval_hours）→ AppSelect：仍是**下拉**（PrimeVue 4 的 Dropdown 即 Select 旧别名）；
+//   · Textarea（app_urls / cookie_raw）→ AppInput type="textarea" :rows，行数与占位符不变；
+//   · ToggleSwitch → AppToggle：仍是 role=switch 开关。
+import AppInput from '@/components/ui/AppInput.vue'
+import AppToggle from '@/components/ui/AppToggle.vue'
+import AppSelect from '@/components/ui/AppSelect.vue'
+import AppSelectButton from '@/components/ui/AppSelectButton.vue'
 
 interface WeworkIPConfig {
   enabled: boolean
@@ -156,7 +162,7 @@ onMounted(() => { loadConfig(); loadStatus() })
     <!-- 总开关 + 当前状态 -->
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--space-12);margin-bottom:var(--space-16)">
       <div style="display:flex;align-items:center;gap:var(--space-10)">
-        <ToggleSwitch v-model="config.enabled" />
+        <AppToggle v-model="config.enabled" />
         <span style="font-weight:var(--font-weight-semibold);font-size:var(--font-size-14)">{{ t('settings.wechat_ip.title') }}</span>
         <Tag v-if="config.enabled" severity="success" :value="t('settings.wechat_ip.enabled')" />
         <Tag v-else severity="secondary" :value="t('settings.wechat_ip.disabled')" />
@@ -212,27 +218,29 @@ onMounted(() => { loadConfig(); loadStatus() })
         <div class="config-card-content">
           <div class="field">
             <label>{{ t('settings.wechat_ip.interval') }}</label>
-            <Dropdown v-model="config.interval_hours" :options="intervalOptions" option-label="label" option-value="value" style="width:100%" />
+            <AppSelect v-model="config.interval_hours" :options="intervalOptions" option-label="label" option-value="value" style="width:100%" />
           </div>
           <div class="field">
             <label>{{ t('settings.wechat_ip.app_urls') }}</label>
-            <Textarea v-model="config.app_urls" rows="2" placeholder="https://work.weixin.qq.com/wework_admin/frame#/apps/modApiApp/00000000000" style="width:100%" />
+            <AppInput v-model="config.app_urls" type="textarea" :rows="2" placeholder="https://work.weixin.qq.com/wework_admin/frame#/apps/modApiApp/00000000000" style="width:100%" />
             <small style="color:var(--text-dim)">{{ t('settings.wechat_ip.app_urls_hint') }}</small>
           </div>
           <div class="field">
             <label>{{ t('settings.wechat_ip.mode') }}</label>
-            <SelectButton v-model="config.update_mode" :options="updateModeOptions" option-value="value" option-label="label" size="small" />
+            <!-- 分段单选（不是下拉）：update_mode 只有 2 个互斥值，平铺可见更省一次点击 -->
+            <AppSelectButton v-model="config.update_mode" :options="updateModeOptions" option-value="value" option-label="label" size="s" />
           </div>
           <div class="field" style="display:flex;align-items:center;gap:var(--space-8)">
-            <ToggleSwitch v-model="config.headless" />
+            <AppToggle v-model="config.headless" />
             <label>{{ t('settings.wechat_ip.headless') }}</label>
           </div>
           <div class="field">
             <label>{{ t('settings.wechat_ip.engine') }}</label>
-            <SelectButton v-model="config.engine" :options="engineOptions" option-value="value" option-label="label" size="small" />
+            <!-- 分段单选（不是下拉） -->
+            <AppSelectButton v-model="config.engine" :options="engineOptions" option-value="value" option-label="label" size="s" />
           </div>
           <div class="field" style="display:flex;align-items:center;gap:var(--space-8)">
-            <ToggleSwitch v-model="config.notify_result" />
+            <AppToggle v-model="config.notify_result" />
             <label>{{ t('settings.wechat_ip.notify') }}</label>
           </div>
         </div>
@@ -249,14 +257,15 @@ onMounted(() => { loadConfig(); loadStatus() })
         <div class="config-card-content">
           <div class="field">
             <label>{{ t('settings.wechat_ip.cookie_source') }}</label>
-            <SelectButton v-model="config.cookie_source" :options="cookieSourceOptions" option-value="value" option-label="label" size="small" />
+            <!-- 分段单选（不是下拉） -->
+            <AppSelectButton v-model="config.cookie_source" :options="cookieSourceOptions" option-value="value" option-label="label" size="s" />
           </div>
 
           <!-- 手动导入 -->
           <template v-if="config.cookie_source === 'manual'">
             <div class="field">
               <label>{{ t('settings.wechat_ip.cookie_header') }}</label>
-              <Textarea v-model="cookieRaw" rows="3" placeholder="key1=value1; key2=value2" style="width:100%" />
+              <AppInput v-model="cookieRaw" type="textarea" :rows="3" placeholder="key1=value1; key2=value2" style="width:100%" />
               <small style="color:var(--text-dim)">{{ t('settings.wechat_ip.cookie_hint') }}</small>
             </div>
           </template>
@@ -265,15 +274,15 @@ onMounted(() => { loadConfig(); loadStatus() })
           <template v-if="config.cookie_source === 'cookiecloud'">
             <div class="field">
               <label>{{ t('settings.wechat_ip.cookiecloud_url') }}</label>
-              <InputText v-model="config.cookiecloud_url" placeholder="http://127.0.0.1:8088" style="width:100%" />
+              <AppInput v-model="config.cookiecloud_url" placeholder="http://127.0.0.1:8088" style="width:100%" />
             </div>
             <div class="field">
               <label>{{ t('settings.wechat_ip.cookiecloud_key') }}</label>
-              <InputText v-model="config.cookiecloud_key" :placeholder="t('settings.wechat_ip.cookiecloud_key_placeholder')" style="width:100%" />
+              <AppInput v-model="config.cookiecloud_key" :placeholder="t('settings.wechat_ip.cookiecloud_key_placeholder')" style="width:100%" />
             </div>
             <div class="field">
               <label>{{ t('settings.wechat_ip.cookiecloud_password') }}</label>
-              <InputText v-model="config.cookiecloud_password" :placeholder="t('settings.wechat_ip.cookiecloud_password_placeholder')" style="width:100%" type="password" />
+              <AppInput v-model="config.cookiecloud_password" :placeholder="t('settings.wechat_ip.cookiecloud_password_placeholder')" style="width:100%" type="password" />
             </div>
           </template>
         </div>

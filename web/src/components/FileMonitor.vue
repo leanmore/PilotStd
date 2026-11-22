@@ -2,12 +2,11 @@
 import { defineComponent, ref, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import http from '@/api/http'
-import InputText from 'primevue/inputtext'
-import InputNumber from 'primevue/inputnumber'
-import ToggleSwitch from 'primevue/toggleswitch'
 import Tag from 'primevue/tag'
 import Message from 'primevue/message'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppInput from '@/components/ui/AppInput.vue'
+import AppToggle from '@/components/ui/AppToggle.vue'
 
 interface MonitorConfig {
   enabled: boolean
@@ -39,6 +38,9 @@ interface MonitorStats {
 
 export default defineComponent({
   name: 'FileMonitor',
+  // Options API 不会自动注册 <script> 里 import 的组件（SFC 自动注册只对 <script setup> 生效），
+  // 故 App* 必须显式登记；Tag / Message 走 main.ts 的全局注册，无需在此重复。
+  components: { AppButton, AppInput, AppToggle },
   setup() {
     const { t } = useI18n()
     const config = ref<MonitorConfig>({
@@ -183,39 +185,39 @@ export default defineComponent({
     <div class="monitor-config">
       <div class="field">
         <div style="display:flex;align-items:center;gap:var(--space-8)">
-          <ToggleSwitch v-model="config.enabled" />
+          <AppToggle v-model="config.enabled" />
           <label>{{ t('settings.file_monitor.enabled') }}</label>
         </div>
       </div>
       <div class="field-row">
         <div class="field field-path">
           <label>{{ t('settings.file_monitor.path') }}</label>
-          <InputText v-model="config.watch_path" placeholder="/inbox" class="full-width" />
+          <AppInput v-model="config.watch_path" placeholder="/inbox" class="full-width" />
         </div>
         <div class="field field-delay">
           <label>{{ t('settings.file_monitor.delay') }}</label>
-          <InputNumber v-model="config.delay_seconds" :min="1" :max="60" class="full-width" />
+          <AppInput v-model="config.delay_seconds" type="number" :min="1" :max="60" class="full-width" />
         </div>
       </div>
       <div class="field-row" style="align-items:center">
         <div style="display:flex;align-items:center;gap:var(--space-8)">
-          <ToggleSwitch v-model="config.recursive" />
+          <AppToggle v-model="config.recursive" />
           <label>{{ t('settings.file_monitor.subdirs') }}</label>
         </div>
         <div style="display:flex;align-items:center;gap:var(--space-8)">
-          <ToggleSwitch v-model="config.auto_archive" />
+          <AppToggle v-model="config.auto_archive" />
           <label>{{ t('settings.file_monitor.auto_archive') }}</label>
         </div>
       </div>
       <div class="field">
         <label>{{ t('settings.file_monitor.types') }}</label>
-        <InputText :model-value="config.file_patterns.join(',')"
+        <AppInput :model-value="config.file_patterns.join(',')"
                    @update:model-value="v => config.file_patterns = (v as string).split(',').map(s => s.trim()).filter(Boolean)"
                    placeholder=".pdf,.docx,.doc" />
       </div>
       <div class="field">
         <label>{{ t('settings.file_monitor.ignore') }}</label>
-        <InputText :model-value="config.ignore_patterns.join(',')"
+        <AppInput :model-value="config.ignore_patterns.join(',')"
                    @update:model-value="v => config.ignore_patterns = (v as string).split(',').map(s => s.trim()).filter(Boolean)"
                    placeholder="~$,.tmp,.swp" />
       </div>

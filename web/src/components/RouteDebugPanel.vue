@@ -9,6 +9,7 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import http from '@/api/http'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppInput from '@/components/ui/AppInput.vue'
 
 defineOptions({ name: 'RouteDebugPanel' })
 
@@ -72,7 +73,7 @@ async function debug() {
 
     <div class="input-area">
       <div class="input-row">
-        <input
+        <AppInput
           v-model="query"
           class="query-input"
           :placeholder="t('route_debug.input_ph')"
@@ -87,10 +88,11 @@ async function debug() {
       </div>
       <details class="simulate-toggle">
         <summary class="toggle-label">{{ t('route_debug.simulate_label') }}</summary>
-        <textarea
+        <AppInput
           v-model="runtimeJson"
           class="json-input"
-          rows="4"
+          type="textarea"
+          :rows="4"
           placeholder='{"csres": {"daily_used": 200, "cooldown_until": 0}}'
         />
       </details>
@@ -138,10 +140,8 @@ async function debug() {
 .title { font-size: var(--font-size-14); font-weight: var(--font-weight-bold); color: var(--text-heading); }
 .input-area { margin-bottom: var(--space-12); }
 .input-row { display: flex; gap: var(--space-8); }
-.query-input {
-  flex: 1; padding: var(--space-8) var(--space-12); border: 1px solid var(--border); border-radius: var(--radius);
-  background: var(--surface-raised); color: var(--text); font-size: var(--font-size-13);
-}
+/* 只保留布局：尺寸 / 圆角 / 四态由 AppInput 承担（ui-system.md §11.4 禁止业务页写输入框样式） */
+.query-input { flex: 1; }
 .debug-btn {
   padding: var(--space-8) var(--space-16); border: none; border-radius: var(--radius);
   /* TODO: [Design Debt] #fff 无精确令牌，暂不替换，待定令牌后统一处理 */
@@ -150,10 +150,10 @@ async function debug() {
 .debug-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .simulate-toggle { margin-top: var(--space-8); }
 .toggle-label { font-size: var(--font-size-11); color: var(--text-dim); cursor: pointer; }
+/* 只保留布局与内容语义（等宽）：padding/描边/圆角/底色/字号/resize 由 AppInput textarea 承担 */
 .json-input {
-  width: 100%; margin-top: var(--space-4); padding: var(--space-6) var(--space-8); border: 1px solid var(--border);
-  border-radius: var(--radius); background: var(--surface-raised); color: var(--text);
-  font-family: monospace; font-size: var(--font-size-12); resize: vertical; box-sizing: border-box;
+  width: 100%; margin-top: var(--space-4); box-sizing: border-box;
+  font-family: monospace;
 }
 .error-msg { padding: var(--space-8); background: var(--danger-bg); color: var(--danger); border-radius: var(--radius); font-size: var(--font-size-12); margin-bottom: var(--space-8); }
 .results { border: 1px solid var(--border-light); border-radius: var(--radius); overflow: hidden; }

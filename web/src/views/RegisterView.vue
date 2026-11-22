@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { register } from '@/api/auth'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppInput from '@/components/ui/AppInput.vue'
 
 const { t } = useI18n()
 
@@ -47,8 +48,9 @@ async function submit() {
     <div class="login-card">
       <div class="login-brand"><span class="brand-icon">&#9678;</span><h1>PilotStd</h1></div>
       <p class="hint">{{ t('register.hint') }}</p>
-      <input v-model="username" :placeholder="t('register.username_ph')" class="login-input" @keyup.enter="submit" />
-      <input v-model="password" type="password" :placeholder="t('register.password_ph')" class="login-input" style="margin-top:var(--space-8)" @keyup.enter="submit" />
+      <!-- name 属性与登录页保持一致：注册成功即视为登录态，e2e 复用同一套 input[name=username] 选择器 -->
+      <AppInput v-model="username" name="username" size="l" :placeholder="t('register.username_ph')" class="login-input" @keyup.enter="submit" />
+      <AppInput v-model="password" name="password" type="password" size="l" :placeholder="t('register.password_ph')" class="login-input" style="margin-top:var(--space-8)" @keyup.enter="submit" />
 <AppButton
         :label="t('register.submit')"
         @click="submit"
@@ -84,16 +86,14 @@ async function submit() {
 .login-brand h1 { font-size: var(--font-size-24); font-weight: var(--font-weight-bold); color: #fff; margin: 0; }
 /* TODO: [Design Debt] rgba(255,255,255,0.5) 无精确令牌，暂不替换，待定令牌后统一处理 */
 .hint { color: rgba(255,255,255,0.5); font-size: var(--font-size-13); margin-bottom: var(--space-16); text-align: center; }
+/* 布局只留宽度/间距；边框/底色/四态由 <AppInput size="l"> 承担（ui-system.md §11.4）。
+   注册页是深色玻璃卡，DS 默认 surface 底在这里偏亮，故只保留底色覆盖（非尺寸/四态样式）。 */
 .login-input {
-  /* TODO: [Design Debt] 1px solid rgba(255,255,255,0.1) 无精确令牌，暂不替换，待定令牌后统一处理 */
-  width: 100%; padding: var(--space-12); border-radius: var(--ds-radius-md); border: 1px solid rgba(255,255,255,0.1);
-  /* TODO: [Design Debt] #fff 无精确令牌，暂不替换，待定令牌后统一处理 */
-  /* TODO: [Design Debt] rgba(255,255,255,0.05) 无精确令牌，暂不替换，待定令牌后统一处理 */
-  background: rgba(255,255,255,0.05); color: #fff; font-size: var(--font-size-14); outline: none;
+  width: 100%;
+  background: rgba(255,255,255,0.05); /* TODO: [Design Debt] rgba(255,255,255,0.05) 无精确令牌，暂不替换，待定令牌后统一处理 */
   box-sizing: border-box;
 }
 /* TODO: [Design Debt] rgba(255,255,255,0.3) 无精确令牌，暂不替换，待定令牌后统一处理 */
 .login-input::placeholder { color: rgba(255,255,255,0.3); }
-.login-input:focus { border-color: var(--primary); }
 .error { color: var(--danger); font-size: var(--font-size-12); margin-top: var(--space-8); text-align: center; }
 </style>

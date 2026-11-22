@@ -57,7 +57,12 @@ const TEXT_STUBS = {
   Message: { template: '<div class="msg"><slot /></div>' },
   Dialog: { template: '<div class="dlg">{{ $attrs.header }}<slot /></div>', inheritAttrs: false },
   DataView: { template: '<div class="dv"><slot name="list" :items="[]" /></div>' },
-  Select: { template: '<div class="select" />' },
+  // Select 原为空 div（只够断言「有下拉」）；DynamicSettingField 的 toggle/select 改走
+  // AppSelect → PrimeVue Select 后，选项文案是断言目标（「是/否」），故按 options 渲染 label。
+  Select: {
+    props: ['options'],
+    template: '<div class="select"><span v-for="o in (options || [])" :key="o.value">{{ o.label }}</span></div>',
+  },
   SelectButton: { template: '<div />' },
   Dropdown: { template: '<div class="dropdown" />' },
   Textarea: { template: '<textarea :placeholder="$attrs.placeholder" />', inheritAttrs: false },

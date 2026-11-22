@@ -7,13 +7,13 @@ import Card from 'primevue/card'
 import Tag from 'primevue/tag'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
-import InputText from 'primevue/inputtext'
 import ProgressSpinner from 'primevue/progressspinner'
 import AppCalendar from '@/components/AppCalendar.vue'
 import TableLoadFooter from '@/components/TableLoadFooter.vue'
 import FavoriteStatusTag from '@/components/FavoriteStatusTag.vue'
 import { useAnnounceDetail } from '@/composables/useAnnounceDetail'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppInput from '@/components/ui/AppInput.vue'
 
 const route = useRoute()
 const { t } = useI18n()
@@ -161,7 +161,7 @@ const {
             </Column>
             <Column field="standard_number" :header="t('announce.detail.col_standard_number')" style="min-width: 12rem">
               <template #editor="{ data, field }">
-                <InputText v-model="data[field]" class="w-full" />
+                <AppInput v-model="data[field]" size="s" class="w-full" />
               </template>
               <template #body="{ data }">
                 <span :class="{ 'text-red-500': !data.standard_number }">
@@ -171,7 +171,7 @@ const {
             </Column>
             <Column field="std_name" :header="t('announce.detail.col_std_name')" style="min-width: 18rem">
               <template #editor="{ data, field }">
-                <InputText v-model="data[field]" class="w-full" />
+                <AppInput v-model="data[field]" size="s" class="w-full" />
               </template>
               <template #body="{ data }">
                 <span :class="{ 'text-red-500': !data.std_name }">
@@ -208,7 +208,7 @@ const {
             </Column>
             <Column field="superseded_by" :header="t('announce.detail.col_superseded_by')" style="min-width: 10rem">
               <template #editor="{ data, field }">
-                <InputText v-model="data[field]" class="w-full" />
+                <AppInput v-model="data[field]" size="s" class="w-full" />
               </template>
               <template #body="{ data }">
                 {{ data.superseded_by || '-' }}

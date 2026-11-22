@@ -4,7 +4,6 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import DataView from 'primevue/dataview'
 import Paginator from 'primevue/paginator'
-import Textarea from 'primevue/textarea'
 import Tag from 'primevue/tag'
 import ProgressSpinner from 'primevue/progressspinner'
 import { getPendingItems, postRequery } from '@/api'
@@ -13,6 +12,7 @@ import { getItem, setItem } from '@/lib/storage'
 import LogBar from '@/components/LogBar.vue'
 import { useQueryAdapters } from '@/composables/useQueryAdapters'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppInput from '@/components/ui/AppInput.vue'
 
 const { adapters, loading: adaptersLoading, error: adaptersError, ensure, refresh: refreshAdapters } = useQueryAdapters('/pending')
 const { t } = useI18n()
@@ -84,7 +84,7 @@ onMounted(() => { ensure() })
 
   <div class="mt-2" style="display:flex;gap:var(--space-12);align-items:flex-start">
     <div style="flex:1">
-      <Textarea v-model="input" rows="6" :placeholder="t('pending.input_placeholder')" />
+      <AppInput v-model="input" type="textarea" :rows="6" :placeholder="t('pending.input_placeholder')" />
     </div>
   </div>
 

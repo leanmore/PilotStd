@@ -5,14 +5,18 @@ defineOptions({ name: 'NotificationConfig' })
 // ⇒ 组件对外接口（defineExpose / 无 props·emits·slots）零变化。
 import { useI18n } from 'vue-i18n'
 import { useNotificationConfig } from '@/composables/useNotificationConfig'
-import InputText from 'primevue/inputtext'
-import Password from 'primevue/password'
-import ToggleSwitch from 'primevue/toggleswitch'
-import Checkbox from 'primevue/checkbox'
 import Message from 'primevue/message'
 import Tag from 'primevue/tag'
 import AppCalendar from '@/components/AppCalendar.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+// DS 输入控件（模块一·C3）：原 PrimeVue InputText / Password / ToggleSwitch / Checkbox 全部收口到 App*
+//   - Password 的 toggleMask（可切明文）由 <AppInput type="password" toggle-mask> 承担，
+//     底层仍是 PrimeVue Password，交互形态（眼睛图标切明文）不变；
+//   - InputText 的动态 :type（text_password → password）原样保留，AppInput 按 type 透传给原生 input；
+//   - Checkbox 的多选语义（:value + 数组 v-model）走 AppCheckbox 的 binary=false 分支。
+import AppInput from '@/components/ui/AppInput.vue'
+import AppCheckbox from '@/components/ui/AppCheckbox.vue'
+import AppToggle from '@/components/ui/AppToggle.vue'
 
 const { t } = useI18n()
 const {
@@ -71,7 +75,7 @@ defineExpose({ saveConfig })
 
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-16);flex-wrap:wrap;gap:var(--space-8)">
       <div style="display:flex;align-items:center;gap:var(--space-8)">
-        <ToggleSwitch v-model="enabled" />
+        <AppToggle v-model="enabled" />
         <span style="font-size:var(--font-size-13);color:var(--text)">{{ t('notification.config.enable_all') }}</span>
       </div>
     </div>
@@ -106,8 +110,24 @@ defineExpose({ saveConfig })
                   <span v-if="form.required.includes(f.name)" class="required">{{ t('notification.config.required') }}</span>
                   <span v-else class="optional">{{ fieldBadge(f) }}</span>
                 </label>
-                <Password v-if="f.type === 'password'" v-model="channels[ch.name].fields[f.name]" class="w-full" :placeholder="fieldPlaceholder(f)" size="small" toggleMask :feedback="false" />
-                <InputText v-else v-model="channels[ch.name].fields[f.name]" class="w-full" :placeholder="fieldPlaceholder(f)" size="small" :type="f.type === 'text_password' ? 'password' : 'text'" />
+                <!-- 密码字段：AppInput type="password" + toggle-mask ⇒ 底层仍是 PrimeVue Password，
+                     「眼睛图标切明文」与 :feedback="false"（不显示强度浮层）逐字保留 -->
+                <AppInput
+                  v-if="f.type === 'password'"
+                  v-model="channels[ch.name].fields[f.name]"
+                  class="w-full"
+                  :placeholder="fieldPlaceholder(f)"
+                  type="password"
+                  toggle-mask
+                />
+                <!-- 其余字段：动态 type 原样保留（text_password → password，否则 text） -->
+                <AppInput
+                  v-else
+                  v-model="channels[ch.name].fields[f.name]"
+                  class="w-full"
+                  :placeholder="fieldPlaceholder(f)"
+                  :type="f.type === 'text_password' ? 'password' : 'text'"
+                />
               </div>
             </template>
             <template v-if="fieldsOfForm(ch, '').length">
@@ -119,8 +139,21 @@ defineExpose({ saveConfig })
                   {{ fieldLabel(f) }}
                   <span class="optional">{{ fieldBadge(f) }}</span>
                 </label>
-                <Password v-if="f.type === 'password'" v-model="channels[ch.name].fields[f.name]" class="w-full" :placeholder="fieldPlaceholder(f)" size="small" toggleMask :feedback="false" />
-                <InputText v-else v-model="channels[ch.name].fields[f.name]" class="w-full" :placeholder="fieldPlaceholder(f)" size="small" :type="f.type === 'text_password' ? 'password' : 'text'" />
+                <AppInput
+                  v-if="f.type === 'password'"
+                  v-model="channels[ch.name].fields[f.name]"
+                  class="w-full"
+                  :placeholder="fieldPlaceholder(f)"
+                  type="password"
+                  toggle-mask
+                />
+                <AppInput
+                  v-else
+                  v-model="channels[ch.name].fields[f.name]"
+                  class="w-full"
+                  :placeholder="fieldPlaceholder(f)"
+                  :type="f.type === 'text_password' ? 'password' : 'text'"
+                />
               </div>
             </template>
             <!-- 形态校验结论（缺字段 / 两者都配好时的优先级说明 / 一个都没配好） -->
@@ -137,8 +170,21 @@ defineExpose({ saveConfig })
                   <span v-if="f.required" class="required">{{ t('notification.config.required') }}</span>
                   <span v-else class="optional">{{ fieldBadge(f) }}</span>
                 </label>
-                <Password v-if="f.type === 'password'" v-model="channels[ch.name].fields[f.name]" class="w-full" :placeholder="fieldPlaceholder(f)" size="small" toggleMask :feedback="false" />
-                <InputText v-else v-model="channels[ch.name].fields[f.name]" class="w-full" :placeholder="fieldPlaceholder(f)" size="small" :type="f.type === 'text_password' ? 'password' : 'text'" />
+                <AppInput
+                  v-if="f.type === 'password'"
+                  v-model="channels[ch.name].fields[f.name]"
+                  class="w-full"
+                  :placeholder="fieldPlaceholder(f)"
+                  type="password"
+                  toggle-mask
+                />
+                <AppInput
+                  v-else
+                  v-model="channels[ch.name].fields[f.name]"
+                  class="w-full"
+                  :placeholder="fieldPlaceholder(f)"
+                  :type="f.type === 'text_password' ? 'password' : 'text'"
+                />
               </div>
             </template>
           </template>
@@ -154,7 +200,7 @@ defineExpose({ saveConfig })
           <div v-if="testResults[ch.name]" class="test-result">{{ testResults[ch.name] }}</div>
 
           <div style="display:flex;align-items:center;gap:var(--space-8);margin-top:var(--space-10)">
-            <ToggleSwitch v-model="channels[ch.name].enabled" />
+            <AppToggle v-model="channels[ch.name].enabled" />
             <label style="font-size:var(--font-size-12);color:var(--text-dim)">{{ t('notification.config.enable_channel') }}</label>
           </div>
 
@@ -162,7 +208,8 @@ defineExpose({ saveConfig })
           <div class="events-row">
             <label class="events-label">{{ t('notification.config.classes_label', { count: NOTIFY_EVENTS.length }) }}</label>
             <div v-for="cls in NOTIFY_EVENTS" :key="cls" class="checkbox-field">
-              <Checkbox v-model="channels[ch.name].eventClasses" :value="cls" :input-id="`${ch.name}-cls-${cls}`" />
+              <!-- 多选（binary=false）：:value 作为选项值，v-model 绑数组 —— 与 PrimeVue Checkbox 语义一致 -->
+              <AppCheckbox v-model="channels[ch.name].eventClasses" :value="cls" :input-id="`${ch.name}-cls-${cls}`" />
               <label :for="`${ch.name}-cls-${cls}`">{{ classLabel(cls) }}</label>
             </div>
             <p style="font-size:var(--font-size-11);color:var(--text-dim);margin:var(--space-4) 0 0">
@@ -179,7 +226,7 @@ defineExpose({ saveConfig })
               <div class="class-group-title">{{ classLabel(cls) }}（{{ eventsOfClass(cls).length }}）</div>
               <div class="events-row">
                 <div v-for="ev in eventsOfClass(cls)" :key="ev" class="checkbox-field">
-                  <Checkbox v-model="channels[ch.name].events" :value="ev" :input-id="`${ch.name}-${ev}`" />
+                  <AppCheckbox v-model="channels[ch.name].events" :value="ev" :input-id="`${ch.name}-${ev}`" />
                   <label :for="`${ch.name}-${ev}`">{{ eventLabel(ev) }}</label>
                 </div>
               </div>
@@ -188,7 +235,7 @@ defineExpose({ saveConfig })
               <div class="class-group-title">{{ t('notification.config.advanced_other') }}</div>
               <div class="events-row">
                 <div v-for="ev in unmappedEvents()" :key="ev" class="checkbox-field">
-                  <Checkbox v-model="channels[ch.name].events" :value="ev" :input-id="`${ch.name}-${ev}`" />
+                  <AppCheckbox v-model="channels[ch.name].events" :value="ev" :input-id="`${ch.name}-${ev}`" />
                   <label :for="`${ch.name}-${ev}`">{{ eventLabel(ev) }}</label>
                 </div>
               </div>
@@ -213,7 +260,7 @@ defineExpose({ saveConfig })
       <div class="collapsible-content">
         <div class="config-row">
           <label>{{ t('notification.config.quiet_hours.enable') }}</label>
-          <ToggleSwitch v-model="quietHoursEnabled" @change="saveQuietHours" />
+          <AppToggle v-model="quietHoursEnabled" @change="saveQuietHours" />
           <span style="font-size:var(--font-size-12);color:var(--text-dim);margin-left:var(--space-8)">
             {{ t('notification.config.quiet_hours.hint') }}
           </span>

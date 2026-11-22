@@ -68,6 +68,11 @@
   --selected: rgba(99, 102, 241, 0.08);
   --focus-ring: 0 0 0 3px rgba(99, 102, 241, 0.25);
 
+  /* 禁用态（A-53 接线）：默认层取值必须与 themes.ts 的 light 主题逐字符一致，
+     否则首屏（JS 注入前）与运行层会漂移——由 design-tokens.test.ts 的 D2 断言守护。 */
+  --disabled-bg: #e2e8f0;
+  --disabled-text: #94a3b8;
+
   /* 阴影层级 — 参考 MoviePilot */
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.05);
@@ -431,16 +436,29 @@ html .p-button.p-button-secondary {
   font-weight: 500;
 }
 
-/* Input / Textarea */
+/* Input / Textarea — 阶段二·模块一：尺寸与圆角统一到设计令牌
+   - 圆角由旧 --radius-sm(6px) 收敛到 --ds-radius-md(8px)，与 AppInput 同口径；
+   - 水平内边距 13px 收敛到 --space-12（Aura form.field.padding.x 同为 0.75rem）；
+   - 高度只给单行 .p-inputtext（取 --input-height-md）。单行 <input> 的内容在内容盒内
+     自动垂直居中，故同时清掉上下内边距，避免"9px 上下内边距 + 13px 字号"把 34px 撑到 39px；
+   - .p-textarea 保留上下内边距：多行控件靠 padding 撑出可输入行数，固定高度会压掉行数。 */
 .p-inputtext,
 .p-textarea {
   background: var(--surface);
   border: 1px solid var(--border);
   color: var(--text);
-  border-radius: var(--radius-sm);
-  padding: 9px 13px;
-  font-size: 13px;
+  border-radius: var(--ds-radius-md);
+  font-size: var(--font-size-13);
   transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.p-inputtext {
+  height: var(--input-height-md);
+  padding: 0 var(--space-12);
+}
+
+.p-textarea {
+  padding: var(--space-9) var(--space-12);
 }
 
 .p-inputtext:focus,

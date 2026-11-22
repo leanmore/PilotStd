@@ -11,8 +11,8 @@ import Card from 'primevue/card'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Tag from 'primevue/tag'
-import Textarea from 'primevue/textarea'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppInput from '@/components/ui/AppInput.vue'
 
 interface ImportResult {
   valid: string[]
@@ -80,16 +80,18 @@ function handleFileUpload(event: Event) {
     <Card class="mb-3">
       <template #content>
         <div class="input-area">
-          <Textarea
+          <AppInput
             v-model="textInput"
+            type="textarea"
+            :rows="8"
             :placeholder="t('download.manual_import.placeholder')"
-            rows="8"
             class="w-full"
             :disabled="submitting"
           />
           <div class="file-upload mt-2">
-            <input
+            <AppInput
               type="file"
+              bare
               accept=".csv,.txt"
               @change="handleFileUpload"
               :disabled="submitting"
