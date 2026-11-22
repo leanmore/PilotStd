@@ -1450,3 +1450,10 @@ ailed 字段归一、终态词表（completed/cancelled/failed）、result_json 
 - **基线**：`no-literal` 里 33 条（50 次）`100%` 条目整体迁到 `b-percent`；`B 90→140`、`C 619→569`，总数不变（709）。
 - **效果验证**：临时放一个 `width: 100%` 的探针文件 → 门禁 **exit 1** 并提示“基线外新增 [B 类]”；删除探针后回到 PASS。
 - **未纳入**：`vh/vw/fr/fit-content`（P5-5 单独一批）与 134 条非视觉值（维持 C）。
+
+### 119. P5-5：`no-literal` 收紧第二批——`vh/fr/fit-content` 计入 B 类（2026-11-22）
+
+- **口径变更**：`100vh/100vw/1fr/fit-content` 从 C 类“无字面量/布局值”移入 **B 类**（新组 `b-layout-unit`）。
+- **基线**：`no-literal` 里 9 条（10 次）迁移到 `b-layout-unit`；`B 140→150`、`C 569→559`，总数仍 709。
+- **未纳入**：`transparent/none/auto/0/unset` 等 134 条非视觉值维持 C 类（按裁决不动）。
+- **效果验证**：`min-height: 100vh` 探针文件 → 门禁 exit 1；删除后 PASS。

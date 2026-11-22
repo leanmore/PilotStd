@@ -5,8 +5,8 @@
   "note": "人工确认后提交；禁止脚本自动更新。匹配键 = 文件 + 属性 + 值，计数为上限。",
   "counts": {
     "A": 0,
-    "B": 140,
-    "C": 569
+    "B": 150,
+    "C": 559
   },
   "groups": [
     {
@@ -1623,12 +1623,6 @@
         },
         {
           "file": "components/AppLayout.vue",
-          "prop": "min-height",
-          "value": "100vh",
-          "count": 1
-        },
-        {
-          "file": "components/AppLayout.vue",
           "prop": "opacity",
           "value": "0",
           "count": 2
@@ -1868,12 +1862,6 @@
           "count": 2
         },
         {
-          "file": "components/TaskManager.vue",
-          "prop": "width",
-          "value": "fit-content",
-          "count": 1
-        },
-        {
           "file": "components/UnifiedFilterBar.vue",
           "prop": "user-select",
           "value": "none",
@@ -1982,12 +1970,6 @@
           "count": 1
         },
         {
-          "file": "components/dashboard/widgets/StatsCard.vue",
-          "prop": "grid-template-columns",
-          "value": "1fr",
-          "count": 1
-        },
-        {
           "file": "components/dashboard/widgets/SystemInfoCard.vue",
           "prop": "flex-shrink",
           "value": "0",
@@ -2055,12 +2037,6 @@
         },
         {
           "file": "style.css",
-          "prop": "grid-template-columns",
-          "value": "1fr",
-          "count": 2
-        },
-        {
-          "file": "style.css",
           "prop": "left",
           "value": "0",
           "count": 1
@@ -2087,12 +2063,6 @@
           "file": "style.css",
           "prop": "top",
           "value": "0",
-          "count": 1
-        },
-        {
-          "file": "views/AnnounceDetail.vue",
-          "prop": "min-height",
-          "value": "100vh",
           "count": 1
         },
         {
@@ -2165,12 +2135,6 @@
           "file": "views/HomeView.vue",
           "prop": "overflow",
           "value": "auto",
-          "count": 1
-        },
-        {
-          "file": "views/LoginView.vue",
-          "prop": "min-height",
-          "value": "100vh",
           "count": 1
         },
         {
@@ -2265,12 +2229,6 @@
         },
         {
           "file": "views/RegisterView.vue",
-          "prop": "min-height",
-          "value": "100vh",
-          "count": 1
-        },
-        {
-          "file": "views/RegisterView.vue",
           "prop": "outline",
           "value": "none",
           "count": 1
@@ -2291,12 +2249,6 @@
           "file": "views/SettingsView.vue",
           "prop": "gap",
           "value": "0",
-          "count": 1
-        },
-        {
-          "file": "views/SettingsView.vue",
-          "prop": "width",
-          "value": "fit-content",
           "count": 1
         },
         {
@@ -2357,12 +2309,6 @@
           "file": "views/settings/SettingsTabSites.vue",
           "prop": "margin-left",
           "value": "auto",
-          "count": 1
-        },
-        {
-          "file": "views/settings/shared.css",
-          "prop": "grid-template-columns",
-          "value": "1fr",
           "count": 1
         },
         {
@@ -3641,6 +3587,67 @@
           "file": "views/settings/shared.css",
           "prop": "width",
           "value": "100%",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "b-layout-unit",
+      "class": "B",
+      "reason": "视口/弹性布局单位（100vh/100vw/1fr/fit-content）：P5-5 收紧后纳入棘轮",
+      "entries": [
+        {
+          "file": "components/AppLayout.vue",
+          "prop": "min-height",
+          "value": "100vh",
+          "count": 1
+        },
+        {
+          "file": "components/TaskManager.vue",
+          "prop": "width",
+          "value": "fit-content",
+          "count": 1
+        },
+        {
+          "file": "components/dashboard/widgets/StatsCard.vue",
+          "prop": "grid-template-columns",
+          "value": "1fr",
+          "count": 1
+        },
+        {
+          "file": "style.css",
+          "prop": "grid-template-columns",
+          "value": "1fr",
+          "count": 2
+        },
+        {
+          "file": "views/AnnounceDetail.vue",
+          "prop": "min-height",
+          "value": "100vh",
+          "count": 1
+        },
+        {
+          "file": "views/LoginView.vue",
+          "prop": "min-height",
+          "value": "100vh",
+          "count": 1
+        },
+        {
+          "file": "views/RegisterView.vue",
+          "prop": "min-height",
+          "value": "100vh",
+          "count": 1
+        },
+        {
+          "file": "views/SettingsView.vue",
+          "prop": "width",
+          "value": "fit-content",
+          "count": 1
+        },
+        {
+          "file": "views/settings/shared.css",
+          "prop": "grid-template-columns",
+          "value": "1fr",
           "count": 1
         }
       ]
