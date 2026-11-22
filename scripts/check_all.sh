@@ -170,6 +170,14 @@ run_fast() {
         log_fail "G-055 设计令牌门禁"
     fi
 
+    # 跨端令牌一致性（DS 阶段一）：Win 端产物必须与 Web 源同步。
+    # 生成脚本只读 Web 源、只写产物；此处只做「是否已同步」的校验，不改文件。
+    if python scripts/gen_win_tokens.py --check; then
+        log_pass "跨端令牌一致（Win 与 Web 同源）"
+    else
+        log_fail "跨端令牌不一致（请运行 python scripts/gen_win_tokens.py 后提交）"
+    fi
+
     # G-043: 敏感端点审计接线（凭证生命周期 / 权限与身份边界 / 不可逆批量销毁）
     # 起因（2026-09-26，第 2 批安全审计闭环）：全库仅 4 处 write_audit，而 @require_role
     # 端点有 61 处；改密、轮换静态令牌、改写通知渠道凭证这三类 P0 操作「放行不写审计」

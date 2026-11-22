@@ -21,6 +21,7 @@
 | `download-pipeline.md` | openstd 下载流程：hcno 权威来源、端点族 `/bzgk/std/*`、完整步骤链、历史事故、防回归测试 | 涉及下载链/下载适配器 |
 | `announcement-sources.md` | 公告来源标识映射表 | 涉及公告来源判断 |
 | `ui-components.md` | 前端组件规范、状态展示、布局原则 | 涉及前端 UI |
+| `ui-system.md` | 跨端设计系统（按钮层级/尺寸/圆角/图标/令牌同步） | 涉及按钮或视觉规范 |
 | `coding-standards.md` | Python/TS 编码规范详细版 | 编写新代码时 |
 | `pre-commit-checklist.md` | 提交前自检命令清单 | 提交代码前 |
 | `health-check.md` | `/api/health` 状态码（200/207/500）、磁盘/调度器心跳/数据库读写指标 | 涉及健康检查/部署排障 |

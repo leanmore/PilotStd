@@ -123,6 +123,7 @@ python scripts/generate_capabilities.py
 | 涉及下载链/下载适配器 | `docs/reference/download-pipeline.md` | 代码说明书 |
 | 开发或修改适配器 | `docs/reference/adapter-development.md` | 人的指引 |
 | 涉及前端 UI 组件 | `docs/reference/ui-components.md` | 人的指引 |
+| 涉及按钮/视觉规范 | `docs/reference/ui-system.md` | 人的指引 |
 | 涉及健康检查/部署排障 | `docs/reference/health-check.md` | 人的指引 |
 | 涉及 CI/CD 或门禁 | `docs/ci-lessons.md` | 人的指引 |
 | 涉及门禁配置变更 | `docs/governance/gates.md` | 索引（G-031 强制同步） |
