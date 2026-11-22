@@ -189,7 +189,7 @@ def load_baseline(path: Path) -> dict[tuple[str, str, str], int]:
 
 def check(root: Path, baseline_path: Path) -> tuple[list[str], list[str]]:
     """执行门禁，返回 (违规, 基线过期提示)。违规为 0 时退出码 0。"""
-    # 逐条按基线消耗名额：seen 记录"当前第几次出现"，超过 limit 即新增
+    # 逐条按基线消耗名额：计数器记录“当前第几次出现”，超过上限即视为新增
     limits = load_baseline(baseline_path)
     findings = collect(root)
     seen: Counter[tuple[str, str, str]] = Counter()
@@ -232,7 +232,7 @@ def main() -> int:
         print(json.dumps(suggest_baseline(args.root), ensure_ascii=False, indent=2))
         return 0
 
-    # 退出码：0 通过 / 1 违规 / 2 基线缺失（与 check_all.sh 的 if 判定兼容）
+    # 退出码：0 通过 / 1 违规 / 2 基线缺失（与总入口脚本的条件判定兼容）
     if not args.baseline.exists():
         print(f"[FAIL] 基线文件不存在: {args.baseline}（先用 --suggest-baseline 生成候选并人工提交）", file=sys.stderr)
         return 2

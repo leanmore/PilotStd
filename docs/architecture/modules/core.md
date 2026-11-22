@@ -749,3 +749,10 @@ pilotstd/core/
 
 - 配置键 `pending.mark_missing_enabled`（默认 true）与 `pending.mark_missing_cron`（默认 `30 3 * * *`）
   控制 A-46 的 pending 缺失标记定时任务；挂载保护判据复用 `file_index._is_mass_delete_anomaly`。
+
+### 通知菜单客户端：配置值去空白（2026-11-22）
+
+`pilotstd/core/notification/menu/clients.py` 的 `WecomMenuClient` / `FeishuMenuClient` 在构造时对配置值统一
+`str(...).strip()`（企业微信 `corpid/corpsecret/agentid`；飞书 `app_id/app_secret/chat_id`）。
+原因：生产实测 `agentid=" 1000002"`（前导空格）会被拼进 OAuth/菜单 URL，触发“URL 含非法字符”并让菜单同步 500。
+**读取兜底不改库**：运维仍需清理配置里的空格（见 `08-known-boundaries.md` §29）。

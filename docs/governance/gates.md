@@ -845,3 +845,5 @@ B1（声明类 vs 实现类）已覆盖同一语义、且每次 CI 都在跑；�
 
 > **2026-11-02 修正**：response_model 覆盖检查改为 AST 静态扫描，避免 repo-compliance 作业未装运行依赖导致误红。
 
+> **2026-11-22 维护**：`scripts/check_design_tokens.py` 两处注释按 G-012 语言规则改为全中文（逻辑未变），
+> `[LANG]` 警告清零；同批新增 `scripts/` 变更记录以通过 G-031。

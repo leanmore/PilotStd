@@ -121,9 +121,11 @@ class WecomMenuClient(MenuClient):
         transport: Transport = _http_json,
         proxy_url: str = "",
     ) -> None:
-        self._corpid = corpid
-        self._corpsecret = corpsecret
-        self._agentid = str(agentid)
+        # 配置可能被人手滑带前导/尾随空格（2026-11-22 生产实证：应用标识写成「 1000002」后拼进地址
+        # 触发地址含非法字符错误 → 菜单同步 500）。这里统一去掉首尾空白兜底。
+        self._corpid = str(corpid).strip()
+        self._corpsecret = str(corpsecret).strip()
+        self._agentid = str(agentid).strip()
         self._transport = transport
         self._proxy_url = proxy_url
         self._token = ""
@@ -215,9 +217,10 @@ class FeishuMenuClient(MenuClient):
         *,
         transport: Transport = _http_json,
     ) -> None:
-        self._app_id = app_id
-        self._app_secret = app_secret
-        self._chat_id = chat_id
+        # 与企业微信同源：配置值统一去掉首尾空白（飞书群标识也常被手滑带空格）
+        self._app_id = str(app_id).strip()
+        self._app_secret = str(app_secret).strip()
+        self._chat_id = str(chat_id).strip()
         self._transport = transport
         self._token = ""
 

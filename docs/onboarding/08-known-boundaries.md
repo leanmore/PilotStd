@@ -664,3 +664,10 @@
 - **C 类 628 条按策略排除**：PrimeVue `RETAINED`、SVG 图表、`var()` fallback、布局尺寸 / 相对单位 / 计算值等。
 - **`no-literal` 177 条**（`0/auto/none/transparent`）是策略性排除；若收紧口径，G-055 会一次性报大量 `[STALE]`（已登记 V-19）。
 - **不要顺手改**：① 不要为那 2 条内联高度新增 class（属模板结构变更，需单独 PR）；② 不要改 `--warning` 去"修" DT-12（浅色底 2.15:1 的状态圆点）——那是令牌取值决策，要过四主题对比度契约；③ 改令牌取值会同时影响替换后的 979 处引用。
+
+### 29. 通知渠道配置的空白字符容错（2026-11-22）
+
+- 通知渠道（企微/飞书/Telegram）的配置项来自人工填表，可能带前导/尾随空格。
+- 客户端构造函数统一 `strip()`（`clients.py`：wecom 的 `corpid/corpsecret/agentid`、feishu 的 `app_id/app_secret/chat_id`），
+  避免空格拼进 OAuth/菜单 URL 触发 500。
+- 数据库里保存的原始值不会因此改变：**运维修复仍应清理配置本身**（本次生产 `agentid` 即带前导空格）。
