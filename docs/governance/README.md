@@ -215,3 +215,6 @@ A: `--required-only` 参数仅检查 `required` 级别能力。CI 也仅对 `req
 
 > v2.67（2026-11-22）：G-055 收紧 `vh/fr/fit-content` 口径（新增 `b-layout-unit`），基线 B=150 / C=559；
 > `transparent/none/auto/0/unset` 134 条维持 C 类不动。
+
+> v2.68（2026-11-22）：DS 阶段一——跨端令牌生成脚本接入 `--fast`；G-012 密度豁免覆盖生成产物；
+> 新增 ESLint `custom/no-raw-button`（warn）。规范见 `docs/reference/ui-system.md`。

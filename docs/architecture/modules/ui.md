@@ -179,3 +179,13 @@ Handler Handler  Handler    (worker)   Handler
 
 - G-012 [LANG] 改为按词判定后，本模块注释里的英文普通词改为中文、裸标识符加反引号；
   仅注释与 docstring 变更，AST 比对无代码变化（全仓 504 行，见 27 日志 #81）。
+
+## 跨端设计系统（DS）阶段一（2026-11-22）
+
+- 规范：docs/reference/ui-system.md（按钮四层级 / 三档尺寸 / 圆角与图标 / 跨端令牌）。
+- 令牌：pilotstd/ui/tokens_generated.py 由 scripts/gen_win_tokens.py 从 Web 源生成（勿手改）；
+  --check 已接入 check_all.sh --fast，产物与源不一致即失败。
+- 骨架：pilotstd/ui/widgets/base_button.py 的 BaseButton（kind=primary/secondary/danger/ghost，size=l/m/s），
+  样式全部取自生成令牌，缺令牌抛错而非静默降级。
+- 阶段一不替换既有 QPushButton 调用点；替换在阶段二分批进行。
+

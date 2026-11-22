@@ -68,7 +68,14 @@ EXCLUDE_DIRS = {
     "tests",
 }
 EXCLUDE_PREFIXES = ("whitelist", "probe_")
-DENSITY_EXEMPT_FILES = {"__init__.py", "__main__.py", "setup.py"}  # 密度豁免文件：包入口和构建脚本
+DENSITY_EXEMPT_FILES = {  # 密度豁免文件：包入口、构建脚本、代码生成产物
+    "__init__.py",
+    "__main__.py",
+    "setup.py",
+    # 由 scripts/gen_win_tokens.py 按模板生成的跨端令牌，内容不含手写逻辑；
+    # 其正确性由 tests/test_win_tokens_sync.py 的“产物与源一致”校验保证。
+    "tokens_generated.py",
+}
 # 排除迁移文件：其注释密度由校验和自愈机制保证，不强制-012检查
 EXCLUDE_PATTERNS = ("_migrate_",)
 

@@ -856,3 +856,8 @@ B1（声明类 vs 实现类）已覆盖同一语义、且每次 CI 都在跑；�
 
 > **2026-11-22 P5-5 口径收紧**：`100vh/100vw/1fr/fit-content` 由 C 类移入 B 类（新增组 `b-layout-unit`），
 > `B 140→150`、`C 569→559`；当前口径 `A=0 / B=150 / C=559 / D=0`。
+
+> **2026-11-22 DS 阶段一**：新增 `scripts/gen_win_tokens.py`（跨端令牌生成/校验，已接入 `check_all.sh --fast`）；
+> `scripts/check_g_012_comment_density.py` 的密度豁免加入代码生成产物（`tokens_generated.py`），
+> 理由：产物无手写逻辑，正确性由 `tests/test_win_tokens_sync.py` 的「产物与源一致」保证。
+> 同时新增 ESLint 规则 `custom/no-raw-button`（阶段一 warn）。

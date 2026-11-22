@@ -1,4 +1,4 @@
-// ESLint flat config — 项目自定义规则 + TypeScript + Vue
+// eslint.config.js — 在既有配置上接入 DS 门禁（no-raw-button，阶段一 warn）
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import pluginVue from 'eslint-plugin-vue';
@@ -42,6 +42,10 @@ export default tseslint.config(
     rules: {
       'custom/no-raw-i18n-key': 'error',
       'custom/no-sensitive-persist': 'error',
+      // DS 阶段一：禁止原生 <button> / PrimeVue <Button>，统一走 <AppButton>。
+      // 阶段一为 warn（存量未替换，见 docs/reference/ui-system.md §8）；
+      // 分批替换完成后改为 'error'。
+      'custom/no-raw-button': 'warn',
     },
   },
   // router.ts 是 titleKey 的定义点，豁免 no-raw-i18n-key
@@ -56,6 +60,14 @@ export default tseslint.config(
     files: ['**/*.test.ts', '**/*.spec.ts'],
     rules: {
       'custom/no-raw-i18n-key': 'off',
+      'custom/no-raw-button': 'off',
+    },
+  },
+  // DS 骨架自身允许用原生 button（封装点）
+  {
+    files: ['src/components/ui/AppButton.vue'],
+    rules: {
+      'custom/no-raw-button': 'off',
     },
   },
 );

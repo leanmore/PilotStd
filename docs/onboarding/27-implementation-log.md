@@ -1457,3 +1457,15 @@ ailed 字段归一、终态词表（completed/cancelled/failed）、result_json 
 - **基线**：`no-literal` 里 9 条（10 次）迁移到 `b-layout-unit`；`B 140→150`、`C 569→559`，总数仍 709。
 - **未纳入**：`transparent/none/auto/0/unset` 等 134 条非视觉值维持 C 类（按裁决不动）。
 - **效果验证**：`min-height: 100vh` 探针文件 → 门禁 exit 1；删除后 PASS。
+
+### 120. DS 阶段一：跨端设计系统骨架 + 运维排查指南（2026-11-22）
+
+- **规范**：新增 `docs/reference/ui-system.md`（按钮四层级 / 三档尺寸 / 圆角与图标 / 跨端令牌机制 / 门禁 / 迁移路径）。
+- **跨端令牌**：新增 `scripts/gen_win_tokens.py`（只读 Web 源 → 生成 `pilotstd/ui/tokens_generated.py`，66 尺度令牌 + 4 主题），
+  `--check` 模式接进 `check_all.sh --fast`；`tests/test_win_tokens_sync.py` 守“改了 Web 忘了同步 Win”。
+- **Web 骨架**：`web/src/components/ui/AppButton.vue`（10 例单测）+ ESLint 规则 `custom/no-raw-button`
+  （阶段一 warn：存量 18 处原生 button + 124 处 PrimeVue Button 已可见，替换完成后升 error）。
+- **Win 骨架**：`pilotstd/ui/widgets/base_button.py`（7 例单测，含令牌缺失必须抛错）。
+- **顺手修复**：`themes.ts` 的 `textOnPrimary` 缩进错位（P5-1 正则遗留），导致生成器漏掉该键。
+- **运维指南**：`docs/onboarding/29-ops-troubleshooting-guide.md`（DB 4 项 SQL / 飞书键名 / 挂载排查）。
+- **门禁**：G-012 密度（生成物豁免）、G-047、G-055（骨架 5 处结构性值入基线 ds-skeleton）、G-027（AppButton 补 defineOptions）全过。
