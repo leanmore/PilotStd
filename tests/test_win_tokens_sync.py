@@ -26,9 +26,21 @@ def test_win_tokens_in_sync() -> None:
     )
 
 
+def _load_tokens_module():
+    """按文件路径加载产物，绕开 `pilotstd.ui.__init__`（它会 import PyQt 主窗口，CI 无 GUI 依赖）。"""
+    import importlib.util
+
+    path = ROOT / "pilotstd" / "ui" / "tokens_generated.py"
+    spec = importlib.util.spec_from_file_location("_win_tokens_for_test", path)
+    assert spec and spec.loader, f"无法加载 {path}"
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def test_generated_tokens_cover_required_keys() -> None:
     """产物必须包含按钮层级用到的关键键，否则 BaseButton 会在运行时炸。"""
-    from pilotstd.ui import tokens_generated as T
+    T = _load_tokens_module()
 
     assert len(T.TOKENS) >= 50, f"尺度令牌过少：{len(T.TOKENS)}"
     for name in ("btn_height_lg", "btn_height_md", "btn_height_sm", "ds_radius_md", "space_16"):
