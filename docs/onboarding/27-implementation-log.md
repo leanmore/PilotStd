@@ -1416,3 +1416,7 @@ ailed 字段归一、终态词表（completed/cancelled/failed）、result_json 
 - 按裁决“不强行映射”：**只加 TODO 标注 13 条**（注明“与既有层级不匹配，待统一评估（A-52）”），
   **不新拆 `--shadow-*` 层级**、不改任何阴影值；G-055 数字不变（A=0 / B=107 / C=627，STALE=0）。
 - `box-shadow: var(...)` 的既有 33 处不受影响；A-52 阴影子项已登记。
+
+补记（2026-11-22）：P5-2 分支因 A-52 冲突做过一次 rebase（force-push），使 PR 事件里的 `github.event.before`
+指向已不可达的旧 head，`repo-compliance` 的范围检查因此判“显式范围 0 变更”而红（run 44971267154）。
+处置：在分支上追加一次普通提交刷新 before 指针，**不修改任何门禁配置**。
