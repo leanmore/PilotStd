@@ -129,10 +129,13 @@ describe('NotificationConfig', () => {
 
   it('渲染总开关', async () => {
     const wrapper = mountConfig()
-    await new Promise(r => setTimeout(r, 10))
-    await wrapper.vm.$nextTick()
-
-    expect(wrapper.html()).toContain('启用通知')
+    // 原实现是 `await new Promise(r => setTimeout(r, 10))` —— 固定 10ms 睡等。
+    // 全量并行时 jsdom 环境加载会把这 10ms 挤爆，断言在 DOM 还没渲染完时执行，
+    // 于是偶发 5s 超时（单跑必绿）。改成轮询等待目标文案出现，既消除 flake
+    // 又不放宽断言（超时仍由 vitest 的 testTimeout 兜底）。
+    await vi.waitFor(() => {
+      expect(wrapper.html()).toContain('启用通知')
+    })
   })
 
   it('零渠道时显示配置引导（G-45）', async () => {

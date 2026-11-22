@@ -5,7 +5,6 @@ import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import Card from 'primevue/card'
 import Tag from 'primevue/tag'
-import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import ProgressSpinner from 'primevue/progressspinner'
 import AppCalendar from '@/components/AppCalendar.vue'
@@ -14,6 +13,7 @@ import FavoriteStatusTag from '@/components/FavoriteStatusTag.vue'
 import { useAnnounceDetail } from '@/composables/useAnnounceDetail'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
+import AppTable from '@/components/ui/AppTable.vue'
 
 const route = useRoute()
 const { t } = useI18n()
@@ -144,7 +144,7 @@ const {
           </div>
         </template>
         <template #content>
-          <DataTable
+          <AppTable
             v-model:selection="selectedRecords"
             :value="displayRecords"
             editMode="cell"
@@ -235,7 +235,7 @@ const {
                 </div>
               </template>
             </Column>
-          </DataTable>
+          </AppTable>
 
           <TableLoadFooter
             :displayed="displayRecords.length"

@@ -6,13 +6,13 @@ from typing import Any
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QCheckBox,
-    QDialog,
     QHBoxLayout,
     QLabel,
     QVBoxLayout,
 )
 
 from pilotstd.ui.widgets.base_button import BaseButton
+from pilotstd.ui.widgets.base_dialog import BaseDialog
 
 from ..i18n import _
 
@@ -38,7 +38,7 @@ WELCOME_TEXT = """
 """
 
 
-class WelcomeDialog(QDialog):
+class WelcomeDialog(BaseDialog):
     """首次启动欢迎对话框：展示功能简介和快速上手指南。"""
 
     def __init__(self, parent: Any = None) -> None:

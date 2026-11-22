@@ -7,7 +7,6 @@ from typing import Any
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
-    QDialog,
     QHBoxLayout,
     QLabel,
     QMessageBox,
@@ -17,6 +16,7 @@ from PyQt6.QtWidgets import (
 )
 
 from pilotstd.ui.widgets.base_button import BaseButton
+from pilotstd.ui.widgets.base_dialog import BaseDialog
 
 from ....i18n import _
 
@@ -69,7 +69,7 @@ def _show_stage_dialog(self, title: str, message: str, next_action: Any = None, 
         if next_action:
             next_action()
         return
-    dlg = QDialog(self)
+    dlg = BaseDialog(self)
     dlg.setWindowTitle(title)
     dlg.setMinimumWidth(400)
     dlg.resize(600, 500)

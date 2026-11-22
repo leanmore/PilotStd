@@ -8,7 +8,6 @@ from typing import Any, Optional
 
 from PyQt6.QtCore import QThread, QTimer
 from PyQt6.QtWidgets import (
-    QDialog,
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
@@ -21,6 +20,7 @@ from PyQt6.QtWidgets import (
 )
 
 from pilotstd.ui.widgets.base_button import BaseButton
+from pilotstd.ui.widgets.base_dialog import BaseDialog
 
 from ..i18n import _
 from .qt_lifecycle import stop_worker_gracefully
@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 # ──：待确认查询主对话框──
 
 
-class PendingQueryDialog(QDialog):
+class PendingQueryDialog(BaseDialog):
     """待确认二次查询对话框：选择网站/本地数据库、等待冷却、执行查询。"""
 
     LOCAL_DB_KEY = "_local_db"  # 本地数据库选项的内部标识

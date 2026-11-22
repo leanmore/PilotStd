@@ -8,7 +8,6 @@ import SchedulerStatus from './SchedulerStatus.vue'
 import Card from 'primevue/card'
 import Button from 'primevue/button'
 import Badge from 'primevue/badge'
-import DataTable from 'primevue/datatable'
 import { getSchedulerStatus } from '@/api/scheduler'
 
 vi.mock('@/api/scheduler', () => ({
@@ -21,8 +20,10 @@ const StubCard = {
   template: '<div class="card-stub"><slot name="content" /></div>',
 }
 
+// 模板已改用 DS 封装 <AppTable>（模块二-B2），stub 的键与组件名必须同步成 AppTable，
+// 否则 findComponent(StubDataTable) 找不到节点，断言静默失败。
 const StubDataTable = {
-  name: 'DataTable',
+  name: 'AppTable',
   template: '<div class="datatable-stub"><slot v-for="item in value" name="body" :data="item" /></div>',
   props: ['value', 'stripedRows', 'size', 'loading'],
 }
@@ -35,7 +36,7 @@ function mountComponent(locale: 'zh-CN' | 'en' = 'zh-CN') {
   return shallowMount(SchedulerStatus, {
     global: {
       plugins: [makeI18n(locale)],
-      stubs: { Card: StubCard, Button, Badge, DataTable: StubDataTable },
+      stubs: { Card: StubCard, Button, Badge, AppTable: StubDataTable },
     },
   })
 }
@@ -88,7 +89,7 @@ describe('SchedulerStatus', () => {
     expect(wrapper.html()).toContain('任务数: 5')
   })
 
-  it('passes empty jobs array to DataTable', async () => {
+  it('passes empty jobs array to AppTable', async () => {
     mockedGetSchedulerStatus.mockResolvedValueOnce({
       data: { running: false, job_count: 0, jobs: [], timestamp: '' },
     })

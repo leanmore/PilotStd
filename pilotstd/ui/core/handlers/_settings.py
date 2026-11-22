@@ -21,6 +21,7 @@ from PyQt6.QtWidgets import (
 )
 
 from pilotstd.ui.widgets.base_button import BaseButton
+from pilotstd.ui.widgets.base_input import BaseInput, BaseSelect
 
 from ....core.settings_utils import sanitize_setting_value  # noqa: F401  # re-exported for backward compat
 from ....i18n import _, t
@@ -44,6 +45,8 @@ class SettingsHandler:
         self._page_names: list[str] = []
 
         # ──用户界面控件引用（由___创建，供/使用）──
+        # 输入/下拉统一用 BaseInput/BaseSelect（DS 表单控件），类型标注保留 Qt 基类，
+        # 因为二者都是 QLineEdit/QComboBox 的子类，现有读取代码（text()/currentText()）零改动。
         self._theme_combo: Optional[QComboBox] = None
         self._icon_combo: Optional[QComboBox] = None
         self._lang_combo: Optional[QComboBox] = None
@@ -149,7 +152,7 @@ class SettingsHandler:
         layout = QVBoxLayout(w)
         gb = QGroupBox(_("storage_group"))
         form = QFormLayout(gb)
-        self._root_dir = QLineEdit()
+        self._root_dir = BaseInput()
         self._root_dir.setPlaceholderText("默认为当前用户文档目录")
         root_layout = QHBoxLayout()
         root_layout.addWidget(self._root_dir)
@@ -160,7 +163,7 @@ class SettingsHandler:
         note = QLabel(_("storage_note"))
         note.setStyleSheet("color: #888; font-size: 9pt;")
         form.addRow(note)
-        self._expire_name = QLineEdit()
+        self._expire_name = BaseInput()
         form.addRow(_("expire_folder"), self._expire_name)
         self._auto_clean_cb = QCheckBox(_("auto_clean_source"))
         form.addRow(self._auto_clean_cb)
@@ -172,7 +175,7 @@ class SettingsHandler:
         form.addRow(self._mirror_fallback_cb)
         self._watchdog_cb = QCheckBox(_("watchdog_enabled"))
         form.addRow(self._watchdog_cb)
-        self._downloads_dir = QLineEdit()
+        self._downloads_dir = BaseInput()
         dl_layout = QHBoxLayout()
         dl_layout.addWidget(self._downloads_dir)
         btn_dl_browse = BaseButton(_("btn_browse"), kind="secondary")
@@ -189,7 +192,7 @@ class SettingsHandler:
         layout = QVBoxLayout(w)
         gb = QGroupBox(_("network_group"))
         form = QFormLayout(gb)
-        self._proxy = QLineEdit()
+        self._proxy = BaseInput()
         self._proxy.setPlaceholderText("http://127.0.0.1:8080")
         form.addRow(_("proxy_label"), self._proxy)
         self._ua_cb = QCheckBox(_("ua_rotation"))
@@ -206,12 +209,11 @@ class SettingsHandler:
         self._announce_cache_cb = QCheckBox("启用 Web 端公告缓存")
         self._announce_cache_cb.toggled.connect(self._on_announce_cache_toggled)
         query_form.addRow(self._announce_cache_cb)
-        self._announce_url_edit = QLineEdit()
+        self._announce_url_edit = BaseInput()
         self._announce_url_edit.setPlaceholderText("http://localhost:9028")
         self._announce_url_edit.textChanged.connect(self._on_announce_url_changed)
         query_form.addRow("Web 端公告服务地址", self._announce_url_edit)
-        self._announce_api_key_edit = QLineEdit()
-        self._announce_api_key_edit.setEchoMode(QLineEdit.EchoMode.Password)
+        self._announce_api_key_edit = BaseInput(password=True)
         self._announce_api_key_edit.setPlaceholderText("API Key（用于 Web 端认证）")
         self._announce_api_key_edit.textChanged.connect(self._on_announce_api_key_changed)
         query_form.addRow("Web 端 API Key", self._announce_api_key_edit)
@@ -225,13 +227,13 @@ class SettingsHandler:
         layout = QVBoxLayout(w)
         gb = QGroupBox(_("ui_group"))
         form = QFormLayout(gb)
-        self._theme_combo = QComboBox()
+        self._theme_combo = BaseSelect()
         self._theme_combo.addItems(["经典白", "暗夜黑", "护眼绿", "科技蓝"])
         form.addRow(_("theme_label"), self._theme_combo)
-        self._icon_combo = QComboBox()
+        self._icon_combo = BaseSelect()
         self._icon_combo.addItems(list(ICON_OPTIONS.keys()))
         form.addRow(_("icon_label"), self._icon_combo)
-        self._lang_combo = QComboBox()
+        self._lang_combo = BaseSelect()
         self._lang_combo.addItems([_("lang_zh_CN"), _("lang_zh_TW"), _("lang_en")])
         form.addRow(_("lang_label"), self._lang_combo)
         self._skip_welcome_cb = QCheckBox(_("skip_welcome"))
@@ -246,13 +248,13 @@ class SettingsHandler:
         layout = QVBoxLayout(w)
         gb = QGroupBox(_("scan_group"))
         form = QFormLayout(gb)
-        self._skip_folders = QLineEdit()
+        self._skip_folders = BaseInput()
         self._skip_folders.setPlaceholderText("用逗号分隔，如: 过期作废,备份")
         form.addRow(_("skip_folders"), self._skip_folders)
-        self._scan_extensions = QLineEdit()
+        self._scan_extensions = BaseInput()
         self._scan_extensions.setPlaceholderText("用逗号分隔，如: .pdf,.doc,.txt")
         form.addRow(_("scan_extensions"), self._scan_extensions)
-        self._skip_file_keywords = QLineEdit()
+        self._skip_file_keywords = BaseInput()
         self._skip_file_keywords.setPlaceholderText("用逗号分隔，如: 征求意见稿,培训课件,标准图集")
         form.addRow(_("scan_skip_keywords"), self._skip_file_keywords)
         layout.addWidget(gb)
@@ -317,7 +319,7 @@ class SettingsHandler:
         layout = QVBoxLayout(w)
         gb = QGroupBox(_("ocr_group"))
         form = QFormLayout(gb)
-        self._ocr_provider_combo = QComboBox()
+        self._ocr_provider_combo = BaseSelect()
         self._ocr_provider_combo.addItem("云端优先", "")
         self._ocr_provider_combo.addItem("本地（CPU）优先", "local")
         form.addRow("识别方式", self._ocr_provider_combo)
@@ -331,28 +333,22 @@ class SettingsHandler:
         local_layout.addWidget(self._ocr_model_status, 1)
         local_layout.addWidget(self._ocr_download_btn)
         form.addRow("本地模型", local_row)
-        self._ocr_api_key = QLineEdit()
-        self._ocr_api_key.setEchoMode(QLineEdit.EchoMode.Password)
+        self._ocr_api_key = BaseInput(password=True)
         self._ocr_api_key.setPlaceholderText("百度云 API Key")  # i18n-allow
         form.addRow(_("ocr_baidu_api_key"), self._ocr_api_key)
-        self._ocr_secret_key = QLineEdit()
-        self._ocr_secret_key.setEchoMode(QLineEdit.EchoMode.Password)
+        self._ocr_secret_key = BaseInput(password=True)
         self._ocr_secret_key.setPlaceholderText("百度云 Secret Key")  # i18n-allow
         form.addRow(_("ocr_baidu_secret_key"), self._ocr_secret_key)
-        self._ocr_secret_id = QLineEdit()
-        self._ocr_secret_id.setEchoMode(QLineEdit.EchoMode.Password)
+        self._ocr_secret_id = BaseInput(password=True)
         self._ocr_secret_id.setPlaceholderText("腾讯云 Secret ID")  # i18n-allow
         form.addRow(_("ocr_tencent_secret_id"), self._ocr_secret_id)
-        self._ocr_tencent_secret_key = QLineEdit()
-        self._ocr_tencent_secret_key.setEchoMode(QLineEdit.EchoMode.Password)
+        self._ocr_tencent_secret_key = BaseInput(password=True)
         self._ocr_tencent_secret_key.setPlaceholderText("腾讯云 Secret Key")  # i18n-allow
         form.addRow(_("ocr_tencent_secret_key"), self._ocr_tencent_secret_key)
-        self._ocr_access_key_id = QLineEdit()
-        self._ocr_access_key_id.setEchoMode(QLineEdit.EchoMode.Password)
+        self._ocr_access_key_id = BaseInput(password=True)
         self._ocr_access_key_id.setPlaceholderText("阿里云 Access Key ID")  # i18n-allow
         form.addRow(_("ocr_aliyun_access_key_id"), self._ocr_access_key_id)
-        self._ocr_access_key_secret = QLineEdit()
-        self._ocr_access_key_secret.setEchoMode(QLineEdit.EchoMode.Password)
+        self._ocr_access_key_secret = BaseInput(password=True)
         self._ocr_access_key_secret.setPlaceholderText("阿里云 Access Key Secret")  # i18n-allow
         form.addRow(_("ocr_aliyun_access_key_secret"), self._ocr_access_key_secret)
         note = QLabel(_("ocr_note"))

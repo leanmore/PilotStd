@@ -14,7 +14,6 @@ from typing import TYPE_CHECKING, Any, Callable
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
-    QDialog,
     QFileDialog,
     QLabel,
     QMessageBox,
@@ -29,6 +28,7 @@ from ....i18n import _ as tr
 from ....models import ParsedStdInfo
 from ...pending_query_dialog import PendingQueryDialog
 from ...qt_lifecycle import is_qt_alive, stop_worker_gracefully
+from ...widgets.base_dialog import BaseDialog
 from ..event_bus import EventBus
 from ._query_summary import QuerySummaryHandler
 from .protocols import IQueryDependencies, QueryCallbacks
@@ -338,7 +338,7 @@ class QueryUIHandler:
             return
 
         dlg = PendingQueryDialog(self._mgr, parsed_list, self._deps.table.get_work_table().parentWidget())
-        if dlg.exec() != QDialog.DialogCode.Accepted:
+        if dlg.exec() != BaseDialog.DialogCode.Accepted:
             if self._status_changed:
                 self._status_changed(tr("status_pending_cancelled"))
             return

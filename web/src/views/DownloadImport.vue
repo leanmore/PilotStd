@@ -8,11 +8,11 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { postDownloadImport } from '@/api/download'
 import Card from 'primevue/card'
-import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Tag from 'primevue/tag'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
+import AppTable from '@/components/ui/AppTable.vue'
 
 interface ImportResult {
   valid: string[]
@@ -177,7 +177,7 @@ function handleFileUpload(event: Event) {
       <Card v-if="result.results.length">
         <template #title>{{ t('download.manual_import.result_title') }}</template>
         <template #content>
-          <DataTable :value="result.results" stripedRows size="small">
+          <AppTable :value="result.results" stripedRows size="small">
             <Column field="standard_number" :header="t('download.manual_import.col_standard_number')" style="min-width:12rem" />
             <Column field="standard_name" :header="t('download.manual_import.col_standard_name')" style="min-width:14rem">
               <template #body="{ data }">
@@ -199,7 +199,7 @@ function handleFileUpload(event: Event) {
                 <span class="text-sm text-red-500">{{ data.error || '-' }}</span>
               </template>
             </Column>
-          </DataTable>
+          </AppTable>
         </template>
       </Card>
     </div>

@@ -3,11 +3,11 @@ defineOptions({ name: 'SchedulerStatus' })
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Card from 'primevue/card'
-import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import { getSchedulerStatus } from '@/api/scheduler'
 import type { RouteTag } from '@/types/route-tag'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppTable from '@/components/ui/AppTable.vue'
 
 interface Job {
   id: string
@@ -63,7 +63,7 @@ onMounted(() => fetchStatus('/scheduler'))
             type="ghost"
           />
         </div>
-        <DataTable :value="status.jobs" striped-rows size="small" :loading="loading">
+        <AppTable :value="status.jobs" striped-rows size="small" :loading="loading">
           <Column field="id" :header="t('scheduler.col_job_id')" />
           <Column :header="t('scheduler.col_next_run')">
             <template #body="{ data }">
@@ -76,7 +76,7 @@ onMounted(() => fetchStatus('/scheduler'))
               <Badge :value="data.pending ? t('scheduler.pending') : t('scheduler.scheduled')" :severity="data.pending ? 'warn' : 'info'" />
             </template>
           </Column>
-        </DataTable>
+        </AppTable>
       </template>
     </Card>
   </div>

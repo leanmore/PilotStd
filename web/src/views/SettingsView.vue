@@ -8,7 +8,7 @@
 import { ref, onMounted, watch, provide, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import ConfirmDialog from 'primevue/confirmdialog'
+import AppConfirmDialog from '@/components/ui/AppConfirmDialog.vue'
 import Toast from 'primevue/toast'
 import { getSettings, putSettings, getSettingsSchema, uploadFile, getSettingsMetadata } from '@/api'
 import { getApiErrorMessage } from '@/api/http'
@@ -345,7 +345,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <ConfirmDialog />
+  <AppConfirmDialog />
   <Toast />
   <template v-if="isAdmin">
   <h1>{{ t('settings.title') }}</h1>

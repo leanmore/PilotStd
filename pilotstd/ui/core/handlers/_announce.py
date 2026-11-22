@@ -13,7 +13,6 @@ from PyQt6 import sip as _sip
 from PyQt6.QtCore import QDate
 from PyQt6.QtWidgets import (
     QDateEdit,
-    QDialog,
     QHBoxLayout,
     QLabel,
     QMessageBox,
@@ -25,6 +24,7 @@ if TYPE_CHECKING:
     from ....core.config import ConfigManager
 
 from pilotstd.ui.widgets.base_button import BaseButton
+from pilotstd.ui.widgets.base_dialog import BaseDialog
 
 from ....i18n import _
 from ...qt_lifecycle import stop_worker_gracefully
@@ -115,7 +115,7 @@ class AnnounceUIHandler:
 
     def run_dialog(self) -> AnnounceWorker:
         """构建进度对话框 + 启动后台公告检查 Worker + 模态执行。返回 Worker。"""
-        dlg = QDialog(self._parent)
+        dlg = BaseDialog(self._parent)
         dlg.setWindowTitle(_("announcement_check"))
         dlg.setMinimumWidth(450)
         layout = QVBoxLayout(dlg)

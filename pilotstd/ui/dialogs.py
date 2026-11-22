@@ -5,7 +5,6 @@ from typing import Any
 
 from PyQt6.QtWidgets import (
     QCheckBox,
-    QDialog,
     QFileDialog,
     QHBoxLayout,
     QLabel,
@@ -13,11 +12,12 @@ from PyQt6.QtWidgets import (
 )
 
 from pilotstd.ui.widgets.base_button import BaseButton
+from pilotstd.ui.widgets.base_dialog import BaseDialog
 
 from ..i18n import _
 
 
-class ConfigPageDialog(QDialog):
+class ConfigPageDialog(BaseDialog):
     """通用配置页面对话框，包裹任意 QWidget。"""
 
     def __init__(self, page: Any, title: str, parent: Any = None) -> None:
@@ -31,7 +31,7 @@ class ConfigPageDialog(QDialog):
         layout.addWidget(btn_close)
 
 
-class ExportFileListDialog(QDialog):
+class ExportFileListDialog(BaseDialog):
     """导出文件名清单选项对话框：选择源路径、是否包含路径。"""
 
     def __init__(self, parent: Any, source_path: str) -> None:

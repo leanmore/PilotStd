@@ -12,8 +12,8 @@ import { getUsers, addUser, deleteUser, changePassword } from '@/api'
 import { getApiErrorMessage } from '@/api/http'
 import { useAppStore } from '@/stores/app'
 import DataView from 'primevue/dataview'
-import Dialog from 'primevue/dialog'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppDialog from '@/components/ui/AppDialog.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 
@@ -145,7 +145,7 @@ onMounted(() => { loadUsers() })
   </div>
 
   <!-- 添加用户对话框 -->
-  <Dialog v-model:visible="showAdd" :header="t('settings.users.add_title')" :modal="true" :style="{width:'360px'}">
+  <AppDialog v-model:visible="showAdd" :header="t('settings.users.add_title')" :modal="true" :style="{width:'360px'}">
     <div style="display:flex;flex-direction:column;gap:var(--space-8)">
       <AppInput v-model="newUser.username" :placeholder="t('settings.users.field_username')" />
       <AppInput v-model="newUser.password" type="password" :placeholder="t('settings.users.field_password')" />
@@ -168,10 +168,10 @@ onMounted(() => { loadUsers() })
         />
       </div>
     </div>
-  </Dialog>
+  </AppDialog>
 
   <!-- 修改密码对话框 -->
-  <Dialog v-model:visible="showPwd" :header="t('settings.users.change_pwd_title', { name: store.username })" :modal="true" :style="{width:'360px'}">
+  <AppDialog v-model:visible="showPwd" :header="t('settings.users.change_pwd_title', { name: store.username })" :modal="true" :style="{width:'360px'}">
     <p class="text-dim" style="font-size:var(--font-size-12);margin-bottom:var(--space-8)">{{ t('settings.users.change_pwd_hint_before') }}<strong>{{ store.username }}</strong>{{ t('settings.users.change_pwd_hint_after') }}</p>
     <div style="display:flex;flex-direction:column;gap:var(--space-8)">
       <AppInput v-model="pwdForm.old" type="password" :placeholder="t('settings.users.field_old_pwd')" />
@@ -195,7 +195,7 @@ onMounted(() => { loadUsers() })
         />
       </div>
     </div>
-  </Dialog>
+  </AppDialog>
   </div>
 </template>
 

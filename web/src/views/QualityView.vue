@@ -3,12 +3,12 @@ defineOptions({ name: 'QualityView' })
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Card from 'primevue/card'
-import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Tag from 'primevue/tag'
 import Divider from 'primevue/divider'
 import { runQualityCheck } from '@/api/quality'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppTable from '@/components/ui/AppTable.vue'
 
 const { t } = useI18n()
 const results = ref<any[]>([])
@@ -56,7 +56,7 @@ const runCheck = async () => {
         <div v-if="results.length > 0">
           <Divider />
           <h4>{{ t('quality.summary', { failed: summary.failed, files: summary.files_checked }) }}</h4>
-          <DataTable :value="results" striped-rows size="small">
+          <AppTable :value="results" striped-rows size="small">
             <Column field="rule" :header="t('quality.col_rule')" />
             <Column field="file" :header="t('quality.col_file')" />
             <Column field="line" :header="t('quality.col_line')" />
@@ -66,7 +66,7 @@ const runCheck = async () => {
               </template>
             </Column>
             <Column field="message" :header="t('quality.col_message')" />
-          </DataTable>
+          </AppTable>
         </div>
 
         <div v-else-if="!running" class="text-center p-4" style="color: var(--text-secondary)">
