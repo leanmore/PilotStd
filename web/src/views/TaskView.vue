@@ -17,6 +17,7 @@ import { buildArchiveItems } from '@/utils/taskPipeline'
 import LogBar from '@/components/LogBar.vue'
 import TaskHistoryList from './TaskView/TaskHistoryList.vue'
 import type { StepState, TaskRecord } from './TaskView/types'
+import AppButton from '@/components/ui/AppButton.vue'
 
 const { t } = useI18n()
 const paths = ref<string[]>(['/inbox', '/standards'])
@@ -384,10 +385,10 @@ function stepSeverity(s: string) {
         severity="warn"
         @click="continueRun"
       />
-      <Button
+      <AppButton
         :label="stopping ? t('task.stopping') : t('task.stop')"
         icon="pi pi-stop"
-        severity="danger"
+        type="danger"
         outlined
         :loading="stopping"
         :disabled="!running || stopping"

@@ -7,6 +7,7 @@ import Card from 'primevue/card'
 import Tag from 'primevue/tag'
 import { getTasks, cancelTask as cancelTaskApi } from '@/api/tasks'
 import type { RouteTag } from '@/types/route-tag'
+import AppButton from '@/components/ui/AppButton.vue'
 
 interface Task { task_id: string; task_type: string; status: string; total_items: number; created_at: string }
 const { t } = useI18n()
@@ -43,14 +44,22 @@ onMounted(() => fetchTasks('/download-queue'))
         <table v-if="tasks.length" class="data-table">
           <thead><tr><th>{{ t('download.queue.col_task_id') }}</th><th>{{ t('download.queue.col_type') }}</th><th>{{ t('download.queue.col_status') }}</th><th>{{ t('download.queue.col_items') }}</th><th>{{ t('download.queue.col_created') }}</th><th>{{ t('download.queue.col_action') }}</th></tr></thead>
           <tbody>
-            <tr v-for="t in tasks" :key="t.task_id">
-              <td>{{ t.task_id }}</td>
-              <td>{{ t.task_type }}</td>
-              <td><Tag :value="t.status" :severity="t.status === 'running' ? 'info' : t.status === 'completed' ? 'success' : 'warn'" /></td>
-              <td>{{ t.total_items }}</td>
-              <td>{{ new Date(t.created_at).toLocaleString('zh-CN') }}</td>
+            <tr v-for="task in tasks" :key="task.task_id">
+              <td>{{ task.task_id }}</td>
+              <td>{{ task.task_type }}</td>
+              <td><Tag :value="task.status" :severity="task.status === 'running' ? 'info' : task.status === 'completed' ? 'success' : 'warn'" /></td>
+              <td>{{ task.total_items }}</td>
+              <td>{{ new Date(task.created_at).toLocaleString('zh-CN') }}</td>
               <td>
-                <Button v-if="t.status === 'running'" icon="pi pi-times" text size="small" severity="danger" @click="cancelTask(t.task_id)" />
+                <AppButton
+        v-if="task.status === 'running'"
+        icon="pi pi-times"
+        text
+        size="s"
+        type="danger"
+        :title="t('task.stop')"
+        @click="cancelTask(task.task_id)"
+      />
               </td>
             </tr>
           </tbody>

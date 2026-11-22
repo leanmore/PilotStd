@@ -7,6 +7,7 @@ import http from '@/api/http'
 import Button from 'primevue/button'
 import ProgressBar from 'primevue/progressbar'
 import Tag from 'primevue/tag'
+import AppButton from '@/components/ui/AppButton.vue'
 
 const { t } = useI18n()
 
@@ -115,7 +116,14 @@ onMounted(loadStats)
       </div>
 
       <div class="actions">
-        <Button :label="t('settings.cache.cleanup_now')" icon="pi pi-trash" size="small" severity="warn" :loading="loading" @click="triggerCleanup" />
+        <AppButton
+        :label="t('settings.cache.cleanup_now')"
+        icon="pi pi-trash"
+        size="s"
+        type="danger"
+        :loading="loading"
+        @click="triggerCleanup"
+      />
         <Button :label="t('settings.cache.refresh_stats')" icon="pi pi-refresh" size="small" severity="secondary" outlined @click="loadStats" />
         <span v-if="cleaned" style="color:var(--success);font-size:var(--font-size-12)">{{ t('settings.cache.cleaned') }}</span>
       </div>

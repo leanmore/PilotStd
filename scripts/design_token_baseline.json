@@ -6,7 +6,7 @@
   "counts": {
     "A": 0,
     "B": 151,
-    "C": 563
+    "C": 566
   },
   "groups": [
     {
@@ -3679,12 +3679,18 @@
           "file": "components/ui/AppButton.vue",
           "prop": "background",
           "value": "transparent",
-          "count": 1
+          "count": 3
         },
         {
           "file": "components/ui/AppButton.vue",
           "prop": "border-color",
           "value": "transparent",
+          "count": 1
+        },
+        {
+          "file": "components/ui/AppButton.vue",
+          "prop": "border-width",
+          "value": "0",
           "count": 1
         }
       ]

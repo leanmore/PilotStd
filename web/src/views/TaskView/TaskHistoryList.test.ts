@@ -54,7 +54,13 @@ function mountList(history: TaskRecord[], page = 0, rows = 2, locale: 'zh-CN' | 
     props: { history, page, rows },
     global: {
       plugins: [makeI18n(locale)],
-      stubs: { Button: ButtonStub, Tag: TagStub, DataView: DataViewStub, Paginator: PaginatorStub },
+      stubs: {
+        Button: ButtonStub,
+        AppButton: ButtonStub,
+        Tag: TagStub,
+        DataView: DataViewStub,
+        Paginator: PaginatorStub,
+      },
     },
   })
 }

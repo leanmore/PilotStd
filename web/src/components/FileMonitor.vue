@@ -8,6 +8,7 @@ import InputNumber from 'primevue/inputnumber'
 import ToggleSwitch from 'primevue/toggleswitch'
 import Tag from 'primevue/tag'
 import Message from 'primevue/message'
+import AppButton from '@/components/ui/AppButton.vue'
 
 interface MonitorConfig {
   enabled: boolean
@@ -161,7 +162,14 @@ export default defineComponent({
       </div>
       <div style="display:flex;gap:var(--space-6);flex-wrap:wrap;margin-left:auto">
         <Button :label="t('settings.file_monitor.start')" size="small" severity="success" :loading="startLoading" @click="startMonitor" :disabled="status.running" />
-        <Button :label="t('settings.file_monitor.stop')" size="small" severity="danger" :loading="stopLoading" @click="stopMonitor" :disabled="!status.running" />
+        <AppButton
+        :label="t('settings.file_monitor.stop')"
+        size="s"
+        type="danger"
+        :loading="stopLoading"
+        :disabled="!status.running"
+        @click="stopMonitor"
+      />
       </div>
     </div>
 

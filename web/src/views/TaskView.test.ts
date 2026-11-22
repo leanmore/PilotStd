@@ -207,9 +207,15 @@ describe('TaskView 归档 items 构造', () => {
   it('任务页提供停止按钮', async () => {
     const wrapper = mountTaskView()
     await flushPromises()
-    const buttons = wrapper.findAllComponents({ name: 'Button' })
-    expect(buttons.length).toBe(2)
-    expect(buttons[1].props('label')).toContain('停止')
+    // 停止按钮已统一为 <AppButton type="danger" outlined>（DS 批次 1），
+    // 其余操作仍可能是 PrimeVue Button，故两个组件族一起查。
+    const buttons = [
+      ...wrapper.findAllComponents({ name: 'AppButton' }),
+      ...wrapper.findAllComponents({ name: 'Button' }),
+    ]
+    const stop = buttons.find((b) => String(b.props('label') ?? '').includes('停止'))
+    expect(stop).toBeTruthy()
+    expect(stop!.props('type')).toBe('danger')
   })
 
   it('切换语言到 en 后文案随之变化（i18n 生效）', async () => {

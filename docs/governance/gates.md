@@ -861,3 +861,7 @@ B1（声明类 vs 实现类）已覆盖同一语义、且每次 CI 都在跑；�
 > `scripts/check_g_012_comment_density.py` 的密度豁免加入代码生成产物（`tokens_generated.py`），
 > 理由：产物无手写逻辑，正确性由 `tests/test_win_tokens_sync.py` 的「产物与源一致」保证。
 > 同时新增 ESLint 规则 `custom/no-raw-button`（阶段一 warn）。
+
+> **2026-11-22 DS 批次 1**：`design_token_baseline.json` 的 `ds-skeleton` 组补齐 `AppButton` 的修饰样式结构值
+> （transparent / border-width:0 等，非可令牌化视觉值）；`C 563→566`，`A=0 / B=151 / C=566 / STALE=0`。
+> 同批 `custom/no-raw-button` 存量 142→128。

@@ -4,6 +4,7 @@ defineOptions({ name: 'NotificationLogsView' })
 // 这里只做「装配 + 解构」：**只解构模板实际用到的名字**（其余留在 composable 内部，TS 不再报未使用）。
 import { useI18n } from 'vue-i18n'
 import { useNotificationLogs } from '@/composables/useNotificationLogs'
+import AppButton from '@/components/ui/AppButton.vue'
 
 const { t } = useI18n()
 const {
@@ -86,8 +87,15 @@ const {
       <div class="card-header">
         <span>{{ t('notification.logs.list_title') }}</span>
         <div style="display:flex;gap:var(--space-8)">
-          <Button icon="pi pi-trash" :label="t('notification.logs.cleanup')" size="small" severity="danger" outlined @click="cleanupVisible = true" />
-          <Button icon="pi pi-refresh" size="small" severity="secondary" :loading="loading" @click="loadLogs" />
+          <AppButton
+        icon="pi pi-trash"
+        :label="t('notification.logs.cleanup')"
+        size="s"
+        type="danger"
+        outlined
+        @click="cleanupVisible = true"
+      />
+          <AppButton icon="pi pi-refresh" size="s" type="secondary" :loading="loading" @click="loadLogs" />
         </div>
       </div>
       <Message v-if="errMsg" severity="error" :closable="false">{{ errMsg }}</Message>
@@ -117,7 +125,7 @@ const {
                 <td>{{ eventLabel(l.event_type) }}</td>
                 <td><Tag :severity="statusSeverity(l.status)" :value="statusLabel(l.status)" /></td>
                 <td class="title-cell">{{ l.title }}</td>
-                <td><Button :label="t('notification.logs.view')" size="small" severity="secondary" text @click="showDetail(l)" /></td>
+                <td><AppButton :label="t('notification.logs.view')" size="s" type="secondary" text @click="showDetail(l)" /></td>
               </tr>
             </tbody>
           </table>
@@ -145,10 +153,10 @@ const {
 
         <!-- P3：失败明细（**按需加载 + 自身分页 + 服务端已脱敏**；文案键与通知配置页共用 notification.config 命名空间） -->
         <div v-if="detailItem.failed_count > 0" class="failed-items">
-          <Button
+          <AppButton
             :label="t('notification.config.failed_items.open')"
-            size="small"
-            severity="secondary"
+            size="s"
+            type="secondary"
             text
             @click="loadFailedItems(1)"
           />
@@ -211,8 +219,14 @@ const {
         <p v-if="cleanupResult" style="margin-top:var(--space-12);font-size:var(--font-size-12);color:var(--primary)">{{ cleanupResult }}</p>
       </div>
       <template #footer>
-        <Button :label="t('common.cancel')" size="small" severity="secondary" text @click="cleanupVisible = false" />
-        <Button :label="t('notification.logs.cleanup_confirm')" size="small" severity="danger" :loading="cleanupLoading" @click="doCleanup" />
+        <AppButton :label="t('common.cancel')" size="s" type="ghost" @click="cleanupVisible = false" />
+        <AppButton
+        :label="t('notification.logs.cleanup_confirm')"
+        size="s"
+        type="danger"
+        :loading="cleanupLoading"
+        @click="doCleanup"
+      />
       </template>
     </Dialog>
   </div>
