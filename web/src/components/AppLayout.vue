@@ -350,8 +350,7 @@ const {
   /* fix(a11y): 深色主题 --primary 是 #818cf8（浅靛），白字只有 2.98:1；改用 --primary-hover
      （浅色 #4f46e5≈7.4:1、深色 #6366f1≈4.8:1）。悬停靠滤镜提亮，不再换底色。 */
   background: var(--primary-fill);
-  /* TODO: [Design Debt] #ffffff 无精确令牌，暂不替换，待定令牌后统一处理 */
-  color: #ffffff;
+  color: var(--text-on-primary);
   font-size: var(--font-size-22);
   display: flex;
   align-items: center;

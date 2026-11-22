@@ -200,3 +200,6 @@ A: `--required-only` 参数仅检查 `required` 级别能力。CI 也仅对 `req
 
 > v2.62（2026-11-21）：G-013 规则 0 增加“纯文档提交”豁免（`is_docs_only`；改动非空且全在 `docs/` 或 `*.md` 才放行），
 > 规则实现拆到 `scripts/check_g_013_bugfix_rule.py`（守 G-010）；10 例回归，`ci-lessons.md` 同批登记。
+
+> v2.63（2026-11-21）：P5-1 新增 `--text-on-primary` 令牌并替换 6 处主色底白字，G-055 基线 `B 113→107`
+> （当前口径 A=0 / B=107 / C=627 / D=0，STALE=0）。

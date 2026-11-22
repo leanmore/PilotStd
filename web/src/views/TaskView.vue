@@ -519,7 +519,7 @@ function stepSeverity(s: string) {
 /* TODO: [Design Debt] #fff 无精确令牌，暂不替换，待定令牌后统一处理 */
 .step.done .step-indicator { background: var(--success, #10b981); color: #fff; }
 /* TODO: [Design Debt] #fff 无精确令牌，暂不替换，待定令牌后统一处理 */
-.step.running .step-indicator { background: var(--primary-fill); color: #fff; }
+.step.running .step-indicator { background: var(--primary-fill); color: var(--text-on-primary); }
 /* TODO: [Design Debt] #fff 无精确令牌，暂不替换，待定令牌后统一处理 */
 .step.fail .step-indicator { background: var(--danger, #ef4444); color: #fff; }
 

@@ -5,7 +5,7 @@
   "note": "人工确认后提交；禁止脚本自动更新。匹配键 = 文件 + 属性 + 值，计数为上限。",
   "counts": {
     "A": 0,
-    "B": 113,
+    "B": 107,
     "C": 627
   },
   "groups": [
@@ -330,39 +330,15 @@
           "count": 1
         },
         {
-          "file": "components/AppLayout.vue",
-          "prop": "color",
-          "value": "#ffffff",
-          "count": 1
-        },
-        {
           "file": "components/LogBar.vue",
           "prop": "background",
           "value": "#555",
           "count": 1
         },
         {
-          "file": "components/RouteDebugPanel.vue",
-          "prop": "color",
-          "value": "#fff",
-          "count": 1
-        },
-        {
           "file": "components/TableLoadFooter.vue",
           "prop": "color",
           "value": "#ca8a04",
-          "count": 1
-        },
-        {
-          "file": "components/TableLoadFooter.vue",
-          "prop": "color",
-          "value": "#fff",
-          "count": 1
-        },
-        {
-          "file": "components/UnifiedFilterBar.vue",
-          "prop": "color",
-          "value": "#fff",
           "count": 1
         },
         {
@@ -540,12 +516,6 @@
           "count": 1
         },
         {
-          "file": "views/SettingsView.vue",
-          "prop": "color",
-          "value": "#ffffff",
-          "count": 1
-        },
-        {
           "file": "views/TaskView.vue",
           "prop": "background",
           "value": "rgba(239,68,68,0.06)",
@@ -555,7 +525,7 @@
           "file": "views/TaskView.vue",
           "prop": "color",
           "value": "#fff",
-          "count": 3
+          "count": 2
         }
       ]
     },
