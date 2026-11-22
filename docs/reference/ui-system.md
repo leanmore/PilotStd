@@ -700,3 +700,144 @@ btn = BaseButton("取消", kind="ghost", size="s")
    原直接选 `th`/`td`，改 AppTable 后这些节点不带本组件 scope 属性，规则全部失效。改用 `:deep()`。
 
 **Win 端**：`BaseTable` / `BaseDialog` 见 `docs/architecture/modules/ui.md`（模块二-C 交付）。
+
+---
+
+## 十三、阶段三：页面级布局（Layout / Card）
+
+> 状态：**进行中**。规范（13.1–13.4）已定稿，`<PageContainer>` / `<AppCard>` 封装与存量替换
+> 按 `views/` 分批推进。门禁 `custom/no-raw-card` 当前为 `warn`，替换完成后升 `error`。
+
+### 13.1 PageContainer 规范
+
+#### 13.1.1 职责边界（最容易踩的坑）
+
+本仓有**两层**容器，分工必须分清，否则页面会被挤成很窄一条：
+
+| 层 | 组件 | 负责 | 留白 |
+|---|---|---|---|
+| 视口级 | `AppLayout` 的 `.content-inner` | 内容区与浏览器窗口边缘的距离、`max-width:1600px` 居中 | 桌面 32/36、平板 24/20、移动 16/12 |
+| 页面级 | `<PageContainer>` | 页面内块之间的垂直节奏、标题统一排版、本页自己的最大宽度 | **默认不加左右内边距** |
+
+- **禁止两层同时加左右内边距** —— 会变成"左右各 36px + 各 32px"，内容区凭空少 136px；
+- 子页确实需要自己的左右留白（如嵌在 Tab 里的表单页）时，用 `<PageContainer padded>` 显式开启，
+  且档位与 `.content-inner` 同值；
+- 全宽页面（仪表盘 grid）用 `<PageContainer flush>` 去掉一切内边距。
+
+#### 13.1.2 三断点（与 `.content-inner` 同一断点，不许各自为政）
+
+| 断点 | 条件 | `padded` 时的左右内边距 |
+|---|---|---|
+| 桌面 | `> 1023px` | `--space-32` |
+| 平板 | `<= 1023px` | `--space-24` |
+| 移动 | `<= 767px` | `--space-16` |
+
+- 断点值必须与 `AppLayout.vue` 的 `@media` 完全一致，否则会出现「外层已切移动档、内层还是桌面档」的错位；
+- 竖直节奏：桌面 `gap: --space-16`、移动 `gap: --space-12`。
+
+#### 13.1.3 标题层级
+
+`<PageContainer title="...">` 渲染 `h2.page-title`，统一样式为：
+
+| 属性 | 值 |
+|---|---|
+| 字号 | `--font-size-20` |
+| 字重 | `--font-weight-semibold` |
+| 颜色 | `--text-heading` |
+| 行高 | `--line-height-snug` |
+| margin | `0`（间距由容器的 `gap` 承担，不再写 `margin-bottom`） |
+
+- **背景**：迁移前 8 个 views（Backup / DownloadQueue / NotificationLogs / Quality / QueryHistory /
+  SchedulerStatus / StandardsStatus / SystemResources）各自逐字重复了同一段 `.page-title` CSS，
+  且 `.page` 的 `max-width` 各不相同（900 / 1000 / 1100）。统一到 `PageContainer` 的
+  `title` + `maxWidth` 两个 prop 后，这 8 段重复 CSS 全部删除；
+- 标题右侧操作区用 `#actions` 插槽（自动 `flex-shrink: 0`，移动端换行到标题下方）；
+- 需要完全自定义标题（如带面包屑）时用 `#title` 插槽接管，此时 `title` prop 不生效。
+
+### 13.2 Card 规范
+
+| 属性 | 默认 | `elevated` |
+|---|---|---|
+| 阴影 | `--shadow-sm` | `--shadow-md` |
+| 圆角 | `--ds-radius-md` | 同左 |
+| 边框 | `1px solid var(--border)` | 同左 |
+| 内容区内边距 | `--space-20` | 同左 |
+| 标题区 | `--space-16 / --space-20` + 底部分隔线 | 同左 |
+| 页脚区 | `--space-12 / --space-20` + 顶部分隔线 | 同左 |
+
+- **只有两档阴影**：`--shadow-sm`（默认，卡片浮起一点点）与 `--shadow-md`（`elevated`，需要与背景
+  明显分离的浮层式卡片）。**不引入第三档** —— 三档以上的阴影在浅色主题下几乎无法分辨，
+  只会让规范失去约束力；
+- 圆角与按钮/输入框/表格统一到 `--ds-radius-md`，不再出现 `--radius-lg`（14px）的卡片；
+- 有标题时内容区上内边距收一档（`--space-16`），因为标题区已有自己的下边距与分隔线，
+  否则会出现"标题分隔线下面空一大块"的视觉断层；
+- 仪表盘这类需要完全自定义卡片结构（渐变底、图标方块、自定义间距）的场景用 `<AppCard bare>`。
+
+### 13.3 禁止项
+
+- **禁止业务代码直接使用 PrimeVue `<Card>`**：一律用 `<AppCard>`；需要自定义结构用 `<AppCard bare>`；
+- **禁止直接 `import 'primevue/card'`**；
+- **禁止在 views 的外层 div 自写 `padding` / `margin` / `max-width`**：统一走
+  `<PageContainer>` 的 `padded` / `flush` / `maxWidth` prop。页面只允许写**内部布局**
+  （栅格、flex、gap），不写容器级留白；
+- **禁止再写 `.page-title` 的重复定义**：标题样式由 `PageContainer` 统一提供。
+
+### 13.4 组件契约
+
+| 组件 | 底层 | 显式 props | 透传 | slots |
+|---|---|---|---|---|
+| `PageContainer` | 原生 `div`（无第三方依赖） | `maxWidth`（`number`/`string`/`null`，数字自动补 px）、`title`、`subtitle`、`flush`、`padded` | `$attrs` 全量透传到根元素 | 默认、`#title`（接管标题区）、`#actions`（标题右侧操作区） |
+| `AppCard` | PrimeVue `Card` | `elevated`、`bare` | `$attrs` 全量透传（`class`/`style`/`data-*`/`aria-*`），业务 class 与 DS class 合并 | `v-for` 动态全量转发（`#header`/`#title`/`#subtitle`/`#content`/`#footer` 及任何未列举的具名插槽） |
+
+- 两个逃生舱：
+  - `PageContainer` 的 `flush`（全宽）/ `padded`（显式左右留白）—— 解决"默认不加左右内边距"带来的
+    两种例外；
+  - `AppCard` 的 `bare` —— 走 PrimeVue 官方 `:unstyled`，零基础视觉，外观由宿主全权负责；
+- **不是绕过门禁的手段**：`bare` / `flush` 仍必须走 DS 组件，只是视觉归宿主。
+
+### 13.5 门禁
+
+新增 ESLint 规则 **`custom/no-raw-card`**：
+
+| 项 | 值 |
+|---|---|
+| 级别 | **`error`**（模块三替换完成后已升级；`29` 处存量归零） |
+| 覆盖 | `src/**/*.{ts,vue}`，模板标签 + 脚本 import 两侧 |
+| 模板拦截 | PrimeVue `<Card>`（含 `PrimeCard` 前缀别名） |
+| 脚本拦截 | `primevue/card` |
+| 豁免 | `src/components/ui/App*.vue`（封装点）、`src/main.ts`（PrimeVue 全局注册点）、`*.test.ts` / `*.spec.ts` / `*.test.js` / `*.spec.js` / `*.test.vue`、路径含 `/e2e/` |
+| 单测 | `eslint-plugin-custom/rules/no-raw-card.test.js`（RuleTester，9 例） |
+
+**存量基线（2026-11-22，warn 落地时）**：`29` 处命中（`<Card>` 20 处 + `import 'primevue/card'` 9 处），
+分布在 `15` 个文件。该表是**落地快照**，仅用于核对历史进度；**当前已全部归零**（见 13.6）。
+
+> **2026-11-22 升级实录**：探针文件 `src/views/__GateProbe3.vue` 同时含 PrimeVue `<Card>` 模板
+> 与 `import 'primevue/card'` → `lint` 报 **2 error**、exit 1；删除后 `lint` 恢复 `0 error`、exit 0。
+
+### 13.6 模块三交付台账（2026-11-22 完成）
+
+**Web 端：`29` 处 → `0`**
+
+| 批次 | 范围 | 主要替换 |
+|---|---|---|
+| 容器 | `BackupView` / `DownloadQueue` / `NotificationLogsView` / `QualityView` / `QueryHistory` / `SchedulerStatus` / `StandardsStatusView` / `SystemResources` | 8 个 `<div class="page">` + `<h2 class="page-title">` → `<PageContainer :max-width :title>`；**同时删除 8 段逐字重复的 `.page` / `.page-title` CSS** |
+| 卡片 | 上述 8 页 + `AnnounceDetail`（2）+ `DownloadImport`（6） | 20 处 `<Card>` → `<AppCard>` |
+
+**保留原结构的位置与理由**（这三类不套 `PageContainer`）：
+
+| 页面 | 结构 | 理由 |
+|---|---|---|
+| `HomeView` | `<div class="dashboard-container">` + GridLayout | 仪表盘是栅格拖拽布局，容器需要占满视口且不能有 max-width / gap；套 `PageContainer` 会破坏 GridLayout 的尺寸计算 |
+| `LoginView` / `RegisterView` | `<div class="login-page">` 居中登录卡 | 全屏居中布局，不参与 `.content-inner` 的常规留白体系（登录页在 `App.vue` 里就绕过了 `AppLayout`） |
+| `ForbiddenView` / `LegacyRedirect` | 状态页居中 div | 单行状态提示，无标题/无内容块，套容器只会增加无意义的 DOM 层 |
+
+**替换过程中修掉的真实缺陷**：
+
+1. **8 段重复 CSS** —— `.page-title` 在 8 个 views 里逐字重复（`margin: 0 0 --space-20` + 20px/600/`--text-heading`），
+   `.page` 的 `max-width` 却各不相同（900/1000/1100）。统一到 `PageContainer` 的 `title` + `maxWidth`
+   后全部删除，`max-width` 变成每页显式声明的 prop（可读性也更好）。
+2. **测试 stub 未随组件改名** —— 5 个测试文件 `stubs: { Card: StubCard }` 在模板改 `AppCard` 后不再命中，
+   标题/卡片内容不渲染、断言全红。逐个补 `AppCard` / `PageContainer` 替身。
+3. **`SystemResources.test.ts` 的 `findAllComponents(StubCard)`** —— 断言数「3 张卡片」，改 AppCard 后
+   必须改查 `StubAppCard`，否则恒为 0。这类「断言目标与 stub 绑定」的失败最容易被误读成组件 bug。
+

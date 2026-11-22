@@ -29,9 +29,23 @@ function mountComponent(locale: 'zh-CN' | 'zh-TW' | 'en' = 'zh-CN') {
   return shallowMount(SystemResources, {
     global: {
       plugins: [makeI18n(locale)],
-      stubs: { Card: StubCard, ProgressBar },
+      stubs: { Card: StubCard, AppCard: StubAppCard, ProgressBar, PageContainer: StubPageContainer },
     },
   })
+}
+
+// DS 模块三：模板已改用 <PageContainer>（标题内建 h2.page-title）与 <AppCard>。
+// shallowMount 会把两者 stub 成空壳，导致标题/卡片内容不渲染、断言全红。
+// 替身只还原「标题 + 插槽透传」的最小结构，内容仍走真实插槽。
+const StubPageContainer = {
+  name: 'PageContainer',
+  props: ['title', 'subtitle', 'maxWidth', 'flush', 'padded'],
+  template: '<div class="page-container-stub"><h2 v-if="title" class="page-title">{{ title }}</h2><slot /></div>',
+}
+const StubAppCard = {
+  name: 'AppCard',
+  props: ['elevated', 'bare'],
+  template: '<div class="card-stub"><slot /><slot name="content" /><slot name="title" /><slot name="footer" /></div>',
 }
 
 describe('SystemResources', () => {
@@ -59,7 +73,7 @@ describe('SystemResources', () => {
     const wrapper = mountComponent()
     await nextTick()
     await nextTick()
-    const cards = wrapper.findAllComponents(StubCard)
+    const cards = wrapper.findAllComponents(StubAppCard)
     expect(cards.length).toBe(3)
   })
 

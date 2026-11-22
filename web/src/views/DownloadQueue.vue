@@ -2,13 +2,14 @@
 defineOptions({ name: 'DownloadQueue' })
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import Card from 'primevue/card'
 import Column from 'primevue/column'
 import Tag from 'primevue/tag'
 import { getTasks, cancelTask as cancelTaskApi } from '@/api/tasks'
 import type { RouteTag } from '@/types/route-tag'
 import AppTable from '@/components/ui/AppTable.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import PageContainer from '@/components/ui/PageContainer.vue'
+import AppCard from '@/components/ui/AppCard.vue'
 
 interface Task { task_id: string; task_type: string; status: string; total_items: number; created_at: string }
 const { t } = useI18n()
@@ -34,9 +35,8 @@ onMounted(() => fetchTasks('/download-queue'))
 </script>
 
 <template>
-  <div class="page">
-    <h2 class="page-title">{{ t('download.queue.title') }}</h2>
-    <Card>
+  <PageContainer :max-width="900" :title="t('download.queue.title')">
+    <AppCard>
       <template #content>
         <div class="header-row">
           <span class="text-sm" v-if="tasks.length">{{ t('download.queue.total', { n: tasks.length }) }}</span>
@@ -75,13 +75,11 @@ onMounted(() => fetchTasks('/download-queue'))
         </AppTable>
         <p v-else-if="!loading" class="empty">{{ t('download.queue.empty') }}</p>
       </template>
-    </Card>
-  </div>
+    </AppCard>
+  </PageContainer>
 </template>
 
 <style scoped>
-.page { max-width: 900px; }
-.page-title { margin: 0 0 var(--space-20); font-size: var(--font-size-20); font-weight: var(--font-weight-semibold); color: var(--text-heading); }
 .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-12); }
 .text-sm { font-size: var(--font-size-13); color: var(--text-secondary); }
 .empty { padding: var(--space-32) 0; text-align: center; color: var(--text-secondary); }

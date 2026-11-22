@@ -3,7 +3,6 @@ defineOptions({ name: 'AnnounceDetail' })
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
-import Card from 'primevue/card'
 import Tag from 'primevue/tag'
 import Column from 'primevue/column'
 import ProgressSpinner from 'primevue/progressspinner'
@@ -14,6 +13,7 @@ import { useAnnounceDetail } from '@/composables/useAnnounceDetail'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import AppTable from '@/components/ui/AppTable.vue'
+import AppCard from '@/components/ui/AppCard.vue'
 
 const route = useRoute()
 const { t } = useI18n()
@@ -61,7 +61,7 @@ const {
 
     <div v-else>
       <!-- 公告头 -->
-      <Card class="mb-4">
+      <AppCard class="mb-4">
         <template #title>
           <div class="flex justify-content-between align-items-center">
             <span class="flex-1 text-center truncate px-2 text-xl font-semibold" style="color:var(--text-heading)">{{ announcement?.announce_no }}</span>
@@ -126,10 +126,10 @@ const {
             </div>
           </div>
         </template>
-      </Card>
+      </AppCard>
 
       <!-- 标准清单表格 -->
-      <Card>
+      <AppCard>
         <template #title>
           <div class="flex justify-content-between align-items-center">
             <span>{{ t('announce.detail.records_title', { n: records.length }) }}</span>
@@ -247,7 +247,7 @@ const {
           <!-- 滚动加载哨兵：进入视口前 100px 触发下一批加载（方案 C，不占视觉空间） -->
           <div ref="sentinel" class="scroll-sentinel" style="height: 1px; opacity: 0;" aria-hidden="true" />
         </template>
-      </Card>
+      </AppCard>
     </div>
   </div>
 </template>

@@ -2,13 +2,14 @@
 defineOptions({ name: 'QualityView' })
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import Card from 'primevue/card'
 import Column from 'primevue/column'
 import Tag from 'primevue/tag'
 import Divider from 'primevue/divider'
 import { runQualityCheck } from '@/api/quality'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppTable from '@/components/ui/AppTable.vue'
+import PageContainer from '@/components/ui/PageContainer.vue'
+import AppCard from '@/components/ui/AppCard.vue'
 
 const { t } = useI18n()
 const results = ref<any[]>([])
@@ -37,9 +38,8 @@ const runCheck = async () => {
 </script>
 
 <template>
-  <div class="page">
-    <h2 class="page-title">{{ t('quality.title') }}</h2>
-    <Card>
+  <PageContainer :max-width="1100" :title="t('quality.title')">
+    <AppCard>
       <template #content>
         <div class="flex gap-3 align-items-center">
 <AppButton
@@ -73,13 +73,11 @@ const runCheck = async () => {
           {{ t('quality.empty_hint') }}
         </div>
       </template>
-    </Card>
-  </div>
+    </AppCard>
+  </PageContainer>
 </template>
 
 <style scoped>
-.page { max-width: 1100px; }
-.page-title { margin: 0 0 var(--space-20); font-size: var(--font-size-20); font-weight: var(--font-weight-semibold); color: var(--text-heading); }
 .flex { display: flex; }
 .gap-3 { gap: var(--space-12); }
 .align-items-center { align-items: center; }

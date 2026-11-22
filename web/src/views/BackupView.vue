@@ -2,7 +2,6 @@
 defineOptions({ name: 'BackupView' })
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import Card from 'primevue/card'
 import Column from 'primevue/column'
 import Divider from 'primevue/divider'
 import { getBackupList, createBackup as createBackupApi } from '@/api/backup'
@@ -10,6 +9,8 @@ import type { RouteTag } from '@/types/route-tag'
 import { useAppStore } from '@/stores/app'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppTable from '@/components/ui/AppTable.vue'
+import PageContainer from '@/components/ui/PageContainer.vue'
+import AppCard from '@/components/ui/AppCard.vue'
 
 interface Backup {
   id: string; name: string; size: number; size_mb: number; created_at: string
@@ -54,14 +55,13 @@ onMounted(() => { if (isAdmin.value) fetchBackups('/backup') })
 </script>
 
 <template>
-  <div class="page">
-    <h2 class="page-title">{{ t('backup.title') }}</h2>
-    <Card v-if="!isAdmin">
+  <PageContainer :max-width="900" :title="t('backup.title')">
+    <AppCard v-if="!isAdmin">
       <template #content>
         <p class="text-sm">{{ t('backup.admin_only') }}</p>
       </template>
-    </Card>
-    <Card v-else>
+    </AppCard>
+    <AppCard v-else>
       <template #content>
         <div class="flex gap-3 align-items-center">
 <AppButton
@@ -84,13 +84,11 @@ onMounted(() => { if (isAdmin.value) fetchBackups('/backup') })
           </Column>
         </AppTable>
       </template>
-    </Card>
-  </div>
+    </AppCard>
+  </PageContainer>
 </template>
 
 <style scoped>
-.page { max-width: 900px; }
-.page-title { margin: 0 0 var(--space-20); font-size: var(--font-size-20); font-weight: var(--font-weight-semibold); color: var(--text-heading); }
 .flex { display: flex; }
 .gap-3 { gap: var(--space-12); }
 .align-items-center { align-items: center; }
