@@ -1469,3 +1469,18 @@ ailed 字段归一、终态词表（completed/cancelled/failed）、result_json 
 - **顺手修复**：`themes.ts` 的 `textOnPrimary` 缩进错位（P5-1 正则遗留），导致生成器漏掉该键。
 - **运维指南**：`docs/onboarding/29-ops-troubleshooting-guide.md`（DB 4 项 SQL / 飞书键名 / 挂载排查）。
 - **门禁**：G-012 密度（生成物豁免）、G-047、G-055（骨架 5 处结构性值入基线 ds-skeleton）、G-027（AppButton 补 defineOptions）全过。
+
+### 121. DS 阶段二批次 1：Danger 语义按钮统一（2026-11-22）
+
+- **替换 10 处**危险语义按钮为 `<AppButton type="danger">`：
+  `CacheManager`（清理缓存，原橙实心）、`FileMonitor`（停止监控）、`TaskManager`（取消运行中任务，text）、
+  `DownloadQueue`（取消任务，text）、`NotificationLogsView`（清理日志入口 outlined + 确认实心）、
+  `OrganizeView`（清理空目录，原橙实心）、`SettingsTabUsers`（删除用户）、`TaskHistoryList`（删除记录，text）、
+  `TaskView`（停止任务，outlined）。
+- **AppButton 扩展**：新增 `outlined` / `text` / `rounded` 三个修饰 prop，保留 PrimeVue 原有的视觉语义
+  （空心红、纯文字图标按钮、胶囊），避免替换后布局/观感坍塌；样式仍全部走令牌。
+- **顺带修复**：`DownloadQueue.vue` 的循环变量 `t` 与 i18n 函数 `t()` 重名（替换后暴露，`t('task.stop')` 变成调对象）；
+  循环变量改名 `task`，纯局部重命名。
+- **测试**：`TaskHistoryList` / `NotificationLogsView` / `TaskView` 三份用例的组件查找同步改为 `AppButton`
+  （stub 名与断言一并更新）；全量 **448 例通过**。
+- **数字**：`custom/no-raw-button` 存量 142 → **128**（本批 14 处，含同文件顺带清理）。

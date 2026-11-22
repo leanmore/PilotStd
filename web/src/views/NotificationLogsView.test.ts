@@ -36,6 +36,8 @@ function mountComponent(locale: 'zh-CN' | 'en' = 'zh-CN') {
       plugins: [pinia, i18n, router],
       stubs: {
         Button: { name: 'Button', template: '<button class="p-button"><slot /></button>', props: ['icon', 'label', 'size', 'severity', 'loading', 'text', 'disabled'] },
+
+        AppButton: { name: 'AppButton', template: '<button class="p-button"><slot /></button>', props: ['icon', 'label', 'size', 'severity', 'loading', 'text', 'disabled', 'type', 'outlined', 'rounded', 'block'] },
         Select: { name: 'Select', template: '<select class="p-select"><slot /></select>', props: ['modelValue', 'options', 'optionLabel', 'optionValue'] },
         Calendar: { name: 'Calendar', template: '<div class="calendar" />', props: ['modelValue', 'locale', 'dateFormat', 'showIcon'] },
         Tag: { name: 'Tag', template: '<span class="tag">{{ value }}</span>', props: ['value', 'severity'] },
@@ -231,7 +233,7 @@ describe('NotificationLogsView', () => {
     expect(mockGetFailedItems).not.toHaveBeenCalled()
 
     // 打开详情（Button 是 stub：label 在 props 上，故按 props 定位而不是文本）
-    const buttons = wrapper.findAllComponents({ name: 'Button' })
+    const buttons = wrapper.findAllComponents({ name: 'AppButton' })
     const viewBtn = buttons.find(b => String(b.props('label') ?? '').includes('查看'))
     expect(viewBtn).toBeTruthy()
     await viewBtn!.trigger('click')
@@ -239,7 +241,7 @@ describe('NotificationLogsView', () => {
 
     // 详情里出现"查看失败明细"入口 ⇒ 点击触发按需加载
     const detailBtn = wrapper
-      .findAllComponents({ name: 'Button' })
+      .findAllComponents({ name: 'AppButton' })
       .find(b => String(b.props('label') ?? '').includes('查看失败明细'))
     expect(detailBtn).toBeTruthy()
     await detailBtn!.trigger('click')
@@ -266,12 +268,12 @@ describe('NotificationLogsView', () => {
     const wrapper = mountComponent()
     await nextTick(); await nextTick(); await nextTick()
     const viewBtn = wrapper
-      .findAllComponents({ name: 'Button' })
+      .findAllComponents({ name: 'AppButton' })
       .find(b => String(b.props('label') ?? '').includes('查看'))
     await viewBtn!.trigger('click')
     await nextTick()
     const detailBtn = wrapper
-      .findAllComponents({ name: 'Button' })
+      .findAllComponents({ name: 'AppButton' })
       .find(b => String(b.props('label') ?? '').includes('查看失败明细'))
     await detailBtn!.trigger('click')
     await nextTick(); await nextTick()

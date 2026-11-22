@@ -31,6 +31,12 @@ const props = withDefaults(
     disabled?: boolean
     /** 撑满父容器宽度 */
     block?: boolean
+    /** 描边样式：透明底 + 彩色描边 + 彩色文字（危险操作用空心红） */
+    outlined?: boolean
+    /** 纯文字样式：无底无边（工具栏图标按钮） */
+    text?: boolean
+    /** 胶囊圆角 */
+    rounded?: boolean
   }>(),
   {
     type: 'secondary',
@@ -40,6 +46,9 @@ const props = withDefaults(
     loading: false,
     disabled: false,
     block: false,
+    outlined: false,
+    text: false,
+    rounded: false,
   },
 )
 
@@ -57,7 +66,11 @@ function onClick(ev: MouseEvent): void {
   <button
     type="button"
     class="app-btn"
-    :class="[`app-btn--${type}`, `app-btn--${size}`, { 'app-btn--block': block, 'app-btn--loading': loading }]"
+    :class="[
+      `app-btn--${type}`,
+      `app-btn--${size}`,
+      { 'app-btn--block': block, 'app-btn--loading': loading, 'app-btn--outlined': outlined, 'app-btn--text': text, 'app-btn--rounded': rounded },
+    ]"
     :disabled="isInert"
     :aria-busy="loading ? 'true' : undefined"
     @click="onClick"
@@ -142,6 +155,42 @@ function onClick(ev: MouseEvent): void {
 .app-btn--ghost:hover:not(:disabled) {
   background: var(--surface-raised);
   color: var(--text);
+}
+
+
+/* ── 修饰：描边（透明底 + 描边 + 同色文字） ── */
+.app-btn--outlined {
+  background: transparent;
+  border: 1px solid currentColor;
+}
+.app-btn--outlined.app-btn--primary { color: var(--primary-fill); }
+.app-btn--outlined.app-btn--danger { color: var(--danger); }
+.app-btn--outlined.app-btn--secondary { color: var(--text); border-color: var(--border); }
+.app-btn--outlined:hover:not(:disabled) {
+  background: var(--surface-raised);
+}
+
+/* ── 修饰：纯文字（无底无边） ── */
+.app-btn--text {
+  background: transparent;
+  border-width: 0;
+  padding-left: var(--space-8);
+  padding-right: var(--space-8);
+}
+.app-btn--text:hover:not(:disabled) {
+  background: var(--surface-raised);
+}
+
+/* ── 修饰：胶囊圆角 ── */
+.app-btn--rounded {
+  border-radius: var(--ds-radius-pill);
+}
+
+/* ── 修饰：仅图标（无 label）时保持正方形 ── */
+.app-btn:not(:has(.app-btn__label)) {
+  padding-left: var(--space-8);
+  padding-right: var(--space-8);
+  aspect-ratio: 1;
 }
 
 /* ── 禁用 / 聚焦 ── */

@@ -8,6 +8,7 @@ import DataView from 'primevue/dataview'
 import Paginator from 'primevue/paginator'
 import { TASK_HISTORY_PAGE_SIZES } from '@/utils/pagination'
 import type { TaskRecord } from './types'
+import AppButton from '@/components/ui/AppButton.vue'
 
 const props = defineProps<{
   history: TaskRecord[]
@@ -64,7 +65,13 @@ function statusLabel(s: string) {
               <Tag :value="statusLabel(item.status)" :severity="statusSeverity(item.status)" />
               <Button :label="t('task.detail')" size="small" text @click="emit('view', item)" />
               <Button :label="t('task.rerun')" size="small" text severity="info" @click="emit('rerun', item)" />
-              <Button :label="t('task.delete')" size="small" text severity="danger" @click="emit('delete', item)" />
+              <AppButton
+        :label="t('task.delete')"
+        size="s"
+        text
+        type="danger"
+        @click="emit('delete', item)"
+      />
             </div>
           </div>
         </div>

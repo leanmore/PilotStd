@@ -12,6 +12,7 @@ import Tag from 'primevue/tag'
 import ProgressBar from 'primevue/progressbar'
 import Dialog from 'primevue/dialog'
 import SelectButton from 'primevue/selectbutton'
+import AppButton from '@/components/ui/AppButton.vue'
 
 interface TaskItem {
   task_id: string
@@ -185,7 +186,15 @@ function stepLabel(s: string) {
         <template #body="{ data }">
           <div style="display:flex;gap:var(--space-4)">
             <Button icon="pi pi-refresh" v-if="data.status === 'failed'" size="small" text rounded severity="warn" @click="retryTask(data.task_id)" />
-            <Button icon="pi pi-times" v-if="data.status === 'running'" size="small" text rounded severity="danger" @click="cancelTask(data.task_id)" />
+            <AppButton
+        icon="pi pi-times"
+        v-if="data.status === 'running'"
+        size="s"
+        text
+        type="danger"
+        :title="t('task.stop')"
+        @click="cancelTask(data.task_id)"
+      />
             <Button icon="pi pi-info-circle" size="small" text rounded @click="showDetail(data)" />
           </div>
         </template>

@@ -14,6 +14,7 @@ import { useAppStore } from '@/stores/app'
 import Button from 'primevue/button'
 import DataView from 'primevue/dataview'
 import Dialog from 'primevue/dialog'
+import AppButton from '@/components/ui/AppButton.vue'
 
 const ADMIN_ROLE = 'admin'
 
@@ -110,8 +111,14 @@ onMounted(() => { loadUsers() })
             <span style="min-width:100px;font-weight:var(--font-weight-medium)">{{ item.username }}</span>
             <span style="min-width:80px;font-size:var(--font-size-13);color:var(--text-dim)">{{ item.role }}</span>
             <span style="flex:1;font-size:var(--font-size-12);color:var(--text-dim)">{{ item.created_at }}</span>
-            <Button v-if="canDelete(item)" icon="pi pi-trash" :label="t('settings.users.delete')"
-                    severity="danger" size="small" @click="confirmDelete(item)" />
+            <AppButton
+        v-if="canDelete(item)"
+        icon="pi pi-trash"
+        :label="t('settings.users.delete')"
+        type="danger"
+        size="s"
+        @click="confirmDelete(item)"
+      />
           </div>
         </div>
       </template>

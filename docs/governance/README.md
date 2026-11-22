@@ -218,3 +218,6 @@ A: `--required-only` 参数仅检查 `required` 级别能力。CI 也仅对 `req
 
 > v2.68（2026-11-22）：DS 阶段一——跨端令牌生成脚本接入 `--fast`；G-012 密度豁免覆盖生成产物；
 > 新增 ESLint `custom/no-raw-button`（warn）。规范见 `docs/reference/ui-system.md`。
+
+> v2.69（2026-11-22）：DS 批次 1——危险语义按钮统一为 `<AppButton type="danger">`（10 处），
+> `no-raw-button` 存量 142→128；G-055 基线 C=566。

@@ -12,6 +12,7 @@ import DataView from 'primevue/dataview'
 import Paginator from 'primevue/paginator'
 import Tag from 'primevue/tag'
 import LogBar from '@/components/LogBar.vue'
+import AppButton from '@/components/ui/AppButton.vue'
 
 const { t } = useI18n()
 const appStore = useAppStore()
@@ -130,7 +131,13 @@ const breadcrumbs = computed(() => {
     <div class="controls">
       <input :value="rootPath" @keyup.enter="browse(($event.target as any).value)" @change="e => rootPath = (e.target as any).value" class="fi" style="flex:1" placeholder="/standards" />
       <Button :label="t('organize.browse')" icon="pi pi-folder-open" :loading="loading" @click="browse()" size="small" />
-      <Button :label="t('organize.clean_empty')" icon="pi pi-trash" severity="warn" size="small" @click="cleanEmpty" />
+      <AppButton
+        :label="t('organize.clean_empty')"
+        icon="pi pi-trash"
+        type="danger"
+        size="s"
+        @click="cleanEmpty"
+      />
     </div>
     <p v-if="cleanResult" class="clean-msg">{{ cleanResult }}</p>
     <p v-if="error" class="err-msg">{{ error }}</p>
