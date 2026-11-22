@@ -300,3 +300,65 @@ Web 五段式执行后，下载成功的文件留在 `/standards` 根目录，�
 ### 遗留
 
 - 默认层与运行层的"双真相"结构仍在（历史原因：四主题由 JS 注入）。测试只能锁 light 主题的一致性，**其余三主题的默认值仍无人校验**——属结构性问题，未在本轮处理。
+
+## D-08 DS 阶段三的六类「静默失效」（2026-11-22，模块一/二/三交付过程中发现）
+
+这些问题的共同特征：**不报错、测试也绿，但功能实际是坏的**。它们不是 DS 本身的缺陷，
+而是"把组件换个标签名"这件事在 Vue/PrimeVue/Qt 生态里必然会踩的坑。记录在此供后续排查对照。
+
+### D-08-1 Options API SFC 的组件不会自动注册
+
+- **现象**：`FileMonitor.vue` 是全仓唯一的 Options API SFC。把 `<InputText>` 换成 `<AppInput>`
+  后，模板渲染成未知元素（生产环境静默失效）。
+- **为什么测试没拦住**：测试用 `stubs` 兜住了组件解析，`findComponent` 照样能命中。
+- **判据**：`grep -L "script setup"` 找出所有非 setup 的 SFC，逐个确认 `components: { ... }` 是否登记。
+- **修法**：在该文件 `defineComponent` 里补 `components: { AppButton, AppInput, AppToggle }`。
+
+### D-08-2 `@primevue/core` 的 `$variant` 在无插件环境崩溃
+
+- **现象**：只测文案的 i18n 测试（不装 PrimeVue 插件）里，任何用到 `AppInput` 的页面
+  抛 `TypeError: Cannot read properties of undefined (reading 'config')`。
+- **根因**：`BaseInput.$variant = this.variant ?? this.$primevue.config.inputStyle` ——
+  `variant` 为 null 时**无条件**读 `$primevue.config`。
+- **修法**：四个渲染分叉统一传 `variant="outlined"`（非 null 即短路）。
+- **边界**：`password + toggleMask` 走 PrimeVue `Password`，其 `mounted()` 读
+  `this.$primevue.config.locale.passwordPrompt`，**与 variant 无关**，故该形态必须有插件
+  （生产 `main.ts` 恒装，不构成实际缺陷）。
+
+### D-08-3 固定 `setTimeout` 睡等在并行下必 flake
+
+- **现象**：`NotificationConfig.test.ts` 的「渲染总开关」单跑必绿、全量并行偶发 5s 超时。
+- **根因**：`await new Promise(r => setTimeout(r, 10))` 固定睡 10ms，全量并行时 jsdom 环境加载
+  把这 10ms 挤爆，断言在 DOM 还没渲染完时执行。
+- **修法**：改 `vi.waitFor(() => expect(...))` 轮询，既消除 flake 又不放宽断言
+  （超时仍由 vitest 的 testTimeout 兜底）。
+
+### D-08-4 测试 stub 未随组件改名 → 断言静默失效
+
+- **现象**：模板 `<DataTable>` → `<AppTable>` 后，测试里 `stubs: { DataTable: Stub }` 不再命中，
+  `findComponent(Stub)` 恒为空、断言全红（或者更糟：断言写成 `.not.toBeUndefined()` 之类时静默通过）。
+- **判据**：替换组件标签时，`grep` 测试文件里被替换的组件名，逐个确认 stub 键同步。
+- **同类变体**：`SystemResources.test.ts` 的 `findAllComponents(StubCard)` 断言「3 张卡片」，
+  改 `AppCard` 后必须改查 `StubAppCard`，否则恒为 0。这类「断言目标与 stub 绑定」的失败
+  最容易被误读成组件 bug。
+
+### D-08-5 `shallowMount` 把封装组件整棵子树 stub 掉，测的是替身不是实现
+
+- **现象**：`NotificationLogsView.test.ts` 用 `shallowMount`，`AppTable` 被 stub 后
+  `<Column>#body` 插槽里的 `channelLabel` / `eventLabel` / `errorTypeLabel` **完全不执行**，
+  于是"文案翻译"类断言全部失效 —— 等于把要测的东西测没了。
+- **为什么危险**：任何"替身里硬编码单元格内容"的写法都能让测试变绿，但它测的是替身。
+- **修法**：改用 `mount` + 真实 PrimeVue 插件，让 AppTable 走真实渲染路径。
+
+### D-08-6 scoped 样式对 PrimeVue/Qt 渲染出的内部节点不生效
+
+- **Vue 侧**：`AdapterStatusCard.vue` 的 `.adapter-table` 直接选 `th`/`td`，改 AppTable 后这些节点
+  由 PrimeVue 渲染、**不带本组件的 `[data-v-*]` scope 属性**，规则全部失效（表格变回 Aura 默认）。
+  修法：用 `:deep()`。
+- **Qt 侧**：`QTableWidget` 的 item 委托**不合成**半透明背景 —— 把 rgba 直接写进 `::item` 会渲染成
+  明显偏深的主色（同样的 rgba 在 QLabel 上却是正确的近白色）。修法：用 `_composite()` 按 `surface`
+  预合成 `#rrggbb`（四主题实测与合成值逐位一致）。
+- **Qt 侧另一坑**：窄列（如 34px 的序号列）在 `QHeaderView::section { padding: 10px 14px }` 下会
+  **整列渲染为空白**（省略到 0 像素）。修法：item/表头水平内边距交给 Qt 委托默认，只保留竖直内边距，
+  行高/表头高用 `setDefaultSectionSize` / `setFixedHeight` 显式设（QSS 的 `::item padding` 只影响
+  `sizeHintForRow()`，不改 `rowHeight()`）。

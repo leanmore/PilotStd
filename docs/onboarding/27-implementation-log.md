@@ -1498,3 +1498,87 @@ ailed 字段归一、终态词表（completed/cancelled/failed）、result_json 
 - **测试**：前端 448 例全过；Win 侧 9 例全过；`check_all.sh --fast --guards --local` exit 0。
 - **G-055**：`A=0 / B=151 / C=577 / STALE=0`（AppButton 的 bare 结构性值入 `ds-skeleton` 组）。
 - **遗留**：A-53（`disabledBg/disabledText` 死键）继续挂起，AppButton 暂用替代令牌。
+
+### 123. DS 阶段三：表单输入类全量替换（模块一，2026-11-22）
+
+- **背景**：阶段二完成按钮统一后，后台系统视觉占比最大的三大件（表单输入、数据表格、页面布局）仍未统一。
+  模块一处理表单输入类。
+- **取证**：`no-raw-input` warn 落地时命中 **138 处 / 27 个文件** —— PrimeVue import 31、原生 `<input>` 23、
+  `<InputText>` 21、`<InputNumber>` 16、`<ToggleSwitch>` 15、`<Select>/<Dropdown>` 7、原生 `<select>` 6、
+  `<Checkbox>` 5、`<Textarea>` 4、`<SelectButton>` 4、`<Password>` 3、`<DatePicker>` 2、原生 `<textarea>` 1。
+- **规范**：`ui-system.md` 新增第十一节 —— 高度三档（`--input-height-lg/md/sm` 40/34/28，**与按钮同值但语义独立**）、
+  圆角统一 `--ds-radius-md`、四态矩阵（Default / Hover 只提边框不改底色 / Focus 统一外发光 / Disabled）、
+  禁止项、组件契约（含 `AppInput` 的 `type` 分叉表）、门禁。
+- **组件**：`AppInput`（按 type 四分叉：text/password → InputText、password+toggleMask → Password、
+  textarea → Textarea、number → InputNumber、date/time/… → 原生 type 透传、file/radio/hidden → 结构性 bare）、
+  `AppSelect`、`AppSelectButton`（分段单选，保留交互形态）、`AppCheckbox`、`AppToggle`、`AppDatePicker`。
+  `AppSelect`/`AppToggle` 用 `<script setup generic>` 消解 strictFunctionTypes 参数逆变。
+- **A-53 收口**：`disabledBg`/`disabledText` 死键接线为 `--disabled-bg`/`--disabled-text`，四个 App* 组件统一消费。
+  对比度按**棘轮**处理（light 2.08 / dark 2.96 / blue 1.93 达不到 3:1 且 P2 禁止为过测试改值 → 登记豁免表 + 实测值，
+  改低即红、新增未登记即红、修好删行自动收紧）。
+- **替换过程中修掉的真实缺陷**（6 个，都有复现证据）：
+  1. `FileMonitor.vue` 是全仓唯一 Options API SFC —— `<script>` 里 import 的组件不会自动注册，只换标签名会在
+     **生产**渲染成未知元素（测试靠 stubs 兜住、静默失效）；
+  2. `AppInput` 在无 PrimeVue 插件的测试环境崩溃（`@primevue/core` 的 `$variant` 在 variant 为 null 时
+     无条件读 `$primevue.config`）→ 四分支统一 `variant="outlined"` 短路；
+  3. `textarea` 被压成单行（根节点挂尺寸类，其 `height` 压过 `min-height`）→ textarea 不挂尺寸类；
+  4. `ValidityConfig` 数字联动静默失效（换 `:model-value` 后新值未写回 config，用户改 T/F/P 全不生效，
+     现有单测测不出因为它们直接改 `vm.config`）→ 补 `writeNumber()`；
+  5. `CacheManager` radio 的 v-model 把 number 变 string（原生 `v-model` 走 `vModelRadio` 保 number，
+     `AppInput` 单行回传字符串）→ 改 `:checked` + `@change` 闭包；
+  6. `SettingsTabSites` 清空数字字段漏校验（`null < 0 === false` 放过空值，最终被后端 Pydantic 422 拒）→
+     `validate()` 补 `== null` 必填判断 + 三语 i18n 键。
+- **门禁**：`custom/no-raw-input` warn → **error**（探针 4 error / exit 1 反证阻断）。
+- **验证**：type-check 0、lint 0 error、vitest 562 passed、G-055 A=0、Win 令牌同步 PASS。
+- **PR**：[#23](https://github.com/leanmore/PilotStd/pull/23)
+
+### 124. DS 阶段三：数据表格与弹窗全量替换（模块二，2026-11-22）
+
+- **取证**：`no-raw-table` warn 落地时 **36 处 / 17 个文件** —— `<DataTable>` 10、`<Dialog>` 7、
+  `import 'primevue/datatable'` 7、**手写原生 `<table>` 6**、`import 'primevue/dialog'` 4、
+  `<ConfirmDialog>` + import 2。
+- **规范**：`ui-system.md` 新增第十二节 —— 表格（表头 / 斑马纹 / 行 hover / 边框 / 圆角 / 分页器）、
+  弹窗（遮罩 / 圆角 / 内边距 / 关闭按钮）、禁止项、组件契约、门禁。
+- **组件**：`AppTable`（显式 prop 仅 `bare`，其余全量 `$attrs` 透传；slots 用 `v-for` 动态全量转发，
+  迁移只需改标签名）、`AppDialog`、**`AppConfirmDialog`**（`<ConfirmDialog>` 不是普通弹窗而是
+  ConfirmationService 的渲染宿主，没有 `v-model:visible`/默认插槽，换 AppDialog 会直接切断
+  `confirm.require()` 链路且不报错 → 必须单独薄封装）。
+- **令牌**：未新增任何令牌。两处有意不新增并写明理由 —— `--overlay-backdrop`（迁移前从未覆盖遮罩，
+  加颜色键会连带触发映射断言与 Win 令牌同步）、`--table-stripe`（斑马纹用 `--surface-raised`，
+  若也用 `--selected` 会让 hover 行与相邻斑马行同色、无法辨认悬停哪一行）。
+- **替换过程中修掉的真实缺陷**（6 个）：测试 stub 未随组件改名导致断言静默失效；`shallowMount` 把
+  AppTable 整棵子树 stub 掉使 `<Column>#body` 里的真实翻译逻辑不再执行（改 `mount` + 真实 PrimeVue）；
+  `NotificationConfig` 用固定 `setTimeout(10)` 睡等导致全量并行时偶发 5s 超时（改 `vi.waitFor()`）；
+  scoped 样式对 PrimeVue 渲染的 `th`/`td` 不生效（改 `:deep()`）；`AppDialog` header 的 null 归一；
+  Qt 表头可能为 None 的判空。
+- **Win 端**：`BaseTable`/`BaseDialog` 对齐；`QTableWidget` 2 → 0、`QDialog` 子类 6 → 0、直接构造 5 → 0。
+  实测代价：Qt item 委托**不合成**半透明背景（rgba 直接写会明显偏深，需先按 surface 合成 `#rrggbb`）；
+  窄列（34px 序号列）在 14px 水平内边距下会整列渲染为空白。
+- **门禁**：`custom/no-raw-table` warn → **error**（探针 5 error / exit 1）。
+- **验证**：type-check 0、lint 0 error、vitest 615 passed、build 0、pytest tests/gui 1125 passed、G-055 A=0。
+- **PR**：[#24](https://github.com/leanmore/PilotStd/pull/24)
+
+### 125. DS 阶段三：页面级布局全量替换（模块三，2026-11-22）
+
+- **取证**：`no-raw-card` warn 落地时 **29 处 / 15 个文件**（`<Card>` 20 + `import 'primevue/card'` 9）。
+- **规范**：`ui-system.md` 新增第十三节 —— PageContainer 规范（**两层容器的职责边界**是核心：
+  `.content-inner` 负责视口级留白、`PageContainer` 负责页面内节奏，两层同时加左右内边距会凭空挤掉 136px）、
+  Card 规范（只有两档阴影，三档以上在浅色主题下无法分辨）、禁止项、组件契约、门禁、交付台账。
+- **组件**：`PageContainer`（默认不加左右内边距，`padded`/`flush` 两个逃生舱；`title` 渲染统一
+  `h2.page-title`，消除 8 段重复 CSS）、`AppCard`（`elevated` 两级阴影、`bare` 走 `:unstyled`）。
+- **保留原结构**：`HomeView`（GridLayout 需占满视口）、`LoginView`/`RegisterView`（绕过 AppLayout 的居中卡）、
+  `ForbiddenView`/`LegacyRedirect`（单行状态页）—— 套容器只会破坏布局或增加无意义 DOM 层。
+- **修掉的缺陷**：8 段逐字重复的 `.page-title` CSS 与各不相同的 `.page` max-width；5 个测试文件的
+  Card/PageContainer stub 未同步；`SystemResources.test.ts` 的「断言目标与 stub 绑定」失败（改查 `StubAppCard`）。
+- **门禁**：`custom/no-raw-card` warn → **error**（探针 2 error / exit 1）。
+- **验证**：type-check 0、lint 0 error、vitest 641 passed、build 0、G-055 A=0。
+- **PR**：[#25](https://github.com/leanmore/PilotStd/pull/25)
+
+### 126. G-027 误报修复：只匹配真实 `<script setup>` 标签（2026-11-22）
+
+- **现象**：`FileMonitor.vue` 是 Options API SFC，其头部注释提到「其余都是 `<script setup>`」，
+  G-027 用 `"<script setup" not in content` 判断时把注释也算进去，误判为 setup 形式，
+  进而因缺少 `defineOptions` 而报红。
+- **修法**：正则只匹配行首的 `<script setup ...>` 标签（允许前置空白）。
+- **守护**：新增 `tests/test_check_g_027_define_options.py`（3 条边界：注释不误报 / 真实 setup 缺
+  defineOptions 仍报错 / 合规通过）。
