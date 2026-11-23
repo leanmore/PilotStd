@@ -62,7 +62,7 @@
 | ID | 事项 | 状态 | 判据/触发 |
 |---|---|---|---|
 | A-44 | monitor 实时：新目录半残，必须 restart | 已闭合 | 2026-11-19 	ests/test_monitor_hot_reload.py 5 例（PUT stop→start）+ 	ests/integration/test_monitor_catchup_e2e.py 7 例通过；watchdog recursive 覆盖子目录 |
-| A-45 | 无 dry-run/站内通知渠道 | 已闭合（dry-run） | `notification.dry_run=true` 时 `send_event` 只日志不投递；`test_notification_dry_run.py`；站内渠道仍属新增功能，不在本条范围 |
+| A-45 | 无 dry-run/站内通知渠道 | 已闭合（dry-run） | `notification.dry_run=true` 时 `send_event` 只日志不投递；（测试文件待补；实现见 `pilotstd/core/notification/manager.py:246`）；站内渠道仍属新增功能，不在本条范围 |
 | A-46 | 33 个 file_missing 文件重取 | 等触发 | 触发：公告记录/下载链可重取；取到后归档并核销 |
 | P3-16 多站链 | NB 单站为能力模型配置；SHB 部署后 4 站真查 | 已闭合 | 2026-11-17 61 重查日志 SHB tried=gongbiaoku→hbba→ahbz→njbz365；NB energy→energy 属配置 |
 | P2-08 | diff coverage 转阻断 | 等触发（数据不足，继续收集） | 全仓无 diff-cover 工具/历史数据，仅 PR 模板说明“只报告”；待积累 1~2 个月数据再定阈值 |

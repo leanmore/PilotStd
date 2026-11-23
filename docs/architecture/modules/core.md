@@ -756,3 +756,23 @@ pilotstd/core/
 `str(...).strip()`（企业微信 `corpid/corpsecret/agentid`；飞书 `app_id/app_secret/chat_id`）。
 原因：生产实测 `agentid=" 1000002"`（前导空格）会被拼进 OAuth/菜单 URL，触发“URL 含非法字符”并让菜单同步 500。
 **读取兜底不改库**：运维仍需清理配置里的空格（见 `08-known-boundaries.md` §29）。
+
+## 迁移锁获取：不得在清理失败时 continue（2026-11-23，NEW-02）
+
+`Database._acquire_migration_lock` 在 `except FileExistsError` 分支里会尝试清理陈旧锁，
+原实现在清理失败时执行 `except OSError: continue`。
+
+**问题**：`continue` 会**跳过后面的超时判断**直接回到 `while True`。
+一旦锁文件持续不可读（权限不足、被其他进程占用、路径异常），
+就变成**死循环、永不返回 `False`** —— 调用方永远拿不到「拿不到锁」的结论，
+表现为迁移流程挂死且无任何日志。
+
+**修法**：清理失败只 `logger.warning` 记录，然后**落到超时判断**，
+让调用方在 `timeout` 后拿到明确的 `False`。
+
+**守护**：`tests/test_db_migration_lock_loop.py`（3 例）——
+锁不可读时在超时内返回 `False`（断言耗时上界，防回归成死循环）/ 正常获取 /
+陈旧锁清理后获取。
+
+> 同类模式提醒：`except: continue` 比 `except: pass` 更隐蔽（看起来像正常循环控制流），
+> 2026-11-23 起 G-050 门禁已能识别它（见 `scripts/check_g_050_silent_errors.py`）。

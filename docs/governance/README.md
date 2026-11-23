@@ -236,3 +236,6 @@ A: `--required-only` 参数仅检查 `required` 级别能力。CI 也仅对 `req
 > v2.74（2026-11-23）：DS 方向A —— Toast/Loading 全量收口（23 处 toast + 6 处 spinner）、
 > 页面过渡统一 `mode="out-in"`、collapsible 过渡去重，`custom/no-raw-toast` 升为 error。
 > 详见 `ui-system.md` 第十四节与 `gates.md` 维护记录。
+
+> v2.75（2026-11-23）：方向C 批次3 —— G-050 补 continue/break 识别（26 处冻结）、
+> 修复迁移锁死循环、SVG 存储型 XSS、台账状态互斥。详见 `06-full-inventory.md`。

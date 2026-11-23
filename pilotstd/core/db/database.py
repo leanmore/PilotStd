@@ -77,8 +77,14 @@ class Database:
                     if time.time() - os.path.getmtime(lock_path) > STALE_LOCK_SECONDS:
                         os.remove(lock_path)
                         continue
-                except OSError:
-                    continue
+                except OSError as e:
+                    # 锁文件不可读/不可删（权限、被占用、路径异常）：
+                    # **不能 continue** —— 那会跳过下面的超时判断直接回到 while True，
+                    # 一旦锁文件持续不可读就变成死循环、永不返回 False（NEW-02）。
+                    # 这里只记录并落到超时判断，让调用方拿到明确的"拿不到锁"。
+                    logging.getLogger("pilotstd.db").warning(
+                        "migration lock cleanup failed (%s): %s", lock_path, e
+                    )
                 if time.time() - start > timeout:
                     return False
                 time.sleep(0.5)

@@ -896,3 +896,9 @@ B1（声明类 vs 实现类）已覆盖同一语义、且每次 CI 都在跑；�
 > 写操作白名单仅 login 与只读 query）。
 > 实测发现 3 个真实生产问题：pending 挂载保护误报（61/61 全缺失导致 mark_missing 整轮跳过）、
 > favorite_downloads 3 条孤儿行、飞书凭证未配置。
+
+> **2026-11-23 方向C 批次3（门禁/健壮/安全）**：G-050 补 `except: continue|break` 识别
+> （原只认 pass/空 return，26 处吞错从未受保护）；`silent_errors_baseline.json` 新增
+> continue/break 两档冻结存量（tiers: pass=46/return=47/continue=27/break=2/debug=69）。
+> 同批修复迁移锁死循环（`except OSError: continue` 跳过超时判断）、SVG 上传存储型 XSS
+> （原仅校验前缀，`<svg onload=...>` 可绕过）、台账 5 项状态互斥（A-43/A-44/A-45/A-40/T-42）。
