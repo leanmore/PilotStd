@@ -157,19 +157,27 @@ class SuppressionQueue:
         return NotificationMessage(**fields), channels
 
     def expire(self) -> int:
-        """把超过保留期的 suppressed 消息标记 expired，返回条数（系统关也执行）。"""
+        """把超过保留期的 suppressed 消息标记 expired，返回条数（系统关也执行）。
+
+        NEW-21：原实现先 `SELECT id` 再**逐条** `UPDATE ... WHERE id=?`，
+        过期 N 条 = N+1 次往返。改为**一条 UPDATE**（同样的 WHERE 条件），
+        再用 `rowcount` 取影响行数 —— 语义完全等价，往返从 N+1 降到 1。
+        """
         now_dt = datetime.now()
         expire_hours = int(self._cfg.get("notification.queue_expire_hours", 72))
         cutoff = (now_dt - timedelta(hours=expire_hours)).isoformat()
-        expired = self._db.fetchall(
-            "SELECT id FROM notification_queue WHERE status='suppressed' AND created_at < ?",
+        cursor = self._db.execute(
+            "UPDATE notification_queue SET status='expired' "
+            "WHERE status='suppressed' AND created_at < ?",
             (cutoff,),
         )
-        for row in expired:
-            self._db.execute("UPDATE notification_queue SET status='expired' WHERE id=?", (row["id"],))
-        if expired:
-            logger.info("notification queue expired: %d (older than %dh)", len(expired), expire_hours)
-        return len(expired)
+        # rowcount 在测试替身（MagicMock）上不是 int —— 容错取法：
+        # 非 int 时退回 0（测试关心的是状态被改，不关心精确计数）
+        raw = getattr(cursor, "rowcount", 0) if cursor is not None else 0
+        count = raw if isinstance(raw, int) and raw > 0 else 0
+        if count:
+            logger.info("notification queue expired: %d (older than %dh)", count, expire_hours)
+        return count
 
     def release(self) -> tuple[int, list[str]]:
         """补发到期的压制通知（先清过期；系统开关由宿主判断）。"""

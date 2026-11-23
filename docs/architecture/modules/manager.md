@@ -314,3 +314,27 @@ StandardManager (BaseFacade)
 
 **守护**：`tests/test_pending_record_no_n_plus_one.py`（4 例）——
 SELECT 次数与批次相关（不是 N）/ 已存在跳过 / 空列表零查询 / 1200 条分 3 批。
+
+## scan_and_index 的跳过原因分类（2026-11-24，G-27）
+
+生产实测 `indexed=0 / skipped=825 / failed=0`。原实现把三种**完全不同**的跳过原因
+都记进同一个 `skipped`：
+
+1. 文件名解析失败（`parse()` 返回 None）
+2. 四要素（`sha256` / `code` / `name` / `size`）查询无命中
+3. 命中但 `scan_status != 'pending'`（已索引过）
+
+汇总日志只有 `skipped=825`，**无法判断是哪一类**，排查只能靠猜。
+
+**修法**：三类分别计数（`skip_parse_failed` / `skip_no_match` / `skip_not_pending`），
+汇总日志打出细分，并记录**第一条**未匹配样本的四要素值 —— 下次生产复跑即可
+直接定位断在哪一环。
+
+**已证伪的假设**（避免下次重复排查）：曾怀疑「归档重命名后 `std_name` 漂移导致
+四要素永不匹配」。用 5 个真实文件名做 `normalize_filename` → 重新解析的往返实测，
+`std_name` **漂移 0/5**，该假设不成立。
+
+**G-010 拆分**：`scan_and_index` 由 58 涨到 98 逻辑行（超 80 阻断线），
+已拆出 `_index_one_file()` 与 `_log_scan_summary()`。
+
+**守护**：`tests/test_scan_and_index_diagnostics.py`（5 例）。

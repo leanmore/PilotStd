@@ -239,3 +239,15 @@
 | 理由 | 项目支持多用户，但**不需要专门的 admin 跨用户排障界面**；排障走现有日志/机制（`notification_log` 按用户查、服务端日志、`/api/notification/logs/{id}/diagnostics`）已足够 |
 | 代价 | admin 要跨用户看失败明细时，需逐个用户查或直接查库；属可接受的运维成本 |
 | 复审触发 | 出现"必须跨用户排障且现有手段不够"的真实工单，或 admin 角色被要求承担客服职责 |
+
+### V-3（原观察项）配置文件跨进程写锁：明确不做
+
+| 项 | 内容 |
+|---|---|
+| 决定 | **不做**（2026-11-24 由 04-watch 迁入；原状态已写「已决定不引入文件锁」，`01-archive-closed.md:1267` 亦裁定不做） |
+| 现状 | `ConfigManager.save()` 是「写 `.tmp` → `os.replace`」**原子替换** + 最多 3 次重试 + 写前 `.bak` 备份；`update()` / `update_many()` **先 `reload()` 读盘再改键再写盘**，把覆盖窗口从「整个任务时长」缩到毫秒级。全库 `grep fcntl|msvcrt|flock|portalocker|filelock` 于 `pilotstd/core/config/` 为空 ⇒ **确实无跨进程锁** |
+| 实测证据 | 本机 `data/config.json` 与 `data/config.json.bak` 逐键比对：132 / 132 键完全一致，`only in json=[]`、`only in bak=[]`、`value differs=[]` → **无并发写丢键证据** |
+| 为何不做 | 多进程同时写同一 `config.json` 的概率极低（桌面端单实例 + Docker 单容器）；引入文件锁需处理跨平台锁语义（Windows `msvcrt` / POSIX `fcntl`）、死锁与陈旧锁回收，成本远高于「last-writer-wins + 原子替换」的实际风险 |
+| 代价 | 极端并发写场景下仍是 last-writer-wins（丢一次配置写入，不丢文件完整性）；恢复靠 `.bak` |
+| 复审触发 | **实测到一次并发写丢配置**（`config.json` 与 `.bak` 键差异可复现），届时优先「原子写 + 重试 + 写后校验」，其次才考虑 SQLite 配置后端 |
+| 回归锁定 | `tests/unit/core/config/test_manager_update.py` 4 例（含 `test_update_keeps_other_instance_writes`、`test_update_many_keeps_other_instance_writes`） |

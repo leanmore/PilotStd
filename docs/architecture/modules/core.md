@@ -818,3 +818,19 @@ Windows + 网络挂载下每次可达毫秒级，启动校验明显变慢。
 故锚点必须是 `threading.local` 而不是 conn 本身。
 
 **守护**：`tests/test_db_conn_reclaim.py`（6 例，含该约束的固化断言）。
+
+## 通知日志/队列的批量写（2026-11-24，NEW-21 / NEW-22）
+
+**NEW-21（`_suppression_queue.expire`）**：原实现先 `SELECT id` 再逐条
+`UPDATE ... WHERE id=?`（N+1 次往返）。改为**一条 UPDATE**（同样的 WHERE 条件），
+用 `rowcount` 取影响行数 —— 往返从 N+1 降到 1。
+
+**NEW-22（`_manager_ops.mark_logs_read`）**：原实现逐条 `UPDATE ... WHERE id = ?`。
+改为一条 `WHERE id IN (...)`。作用域过滤**复用** `_log_scope.user_clause`，
+与 `mark_one` 完全同口径（admin + include_system 时纳入系统通知，否则只更新本人）。
+
+**注意**：`mark_logs_read` 的返回契约分两种 —— 无 `user_id` 时返回「请求条数」
+（保持既有调用方契约），有 `user_id` 时返回真实受影响行数。
+
+**守护**：`tests/test_notification_unread_isolation.py`（9 例）、
+`tests/test_notification_stage1a_identity.py`、`test_notification_stage1b_fields.py`。

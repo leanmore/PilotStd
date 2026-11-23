@@ -926,3 +926,10 @@ ecord_pending N+1 消除（500 条从 500 次 SELECT
 > Qt QThread 未回收、QTimer 未停止、DB 线程连接累积）+ CSP 移除 `'unsafe-eval'`
 > （实测生产包 38 个 js 文件 `new Function` 计数为 0，Vue 3 预编译不需要 eval）。
 > NEW-41 关键约束：`sqlite3.Connection` 不可弱引用，finalize 必须锚在 `threading.local`。
+
+> **2026-11-24 方向C 批次5续（后端性能）+ 批次4（台账收口）**：4 处批量/并发改造
+> （`matcher` executemany、`expire` 单条 UPDATE、`mark_logs_read` IN 批量、
+> `upload` 走线程池、`detect_ip` 并发+总预算）；G-27 把 `scan_and_index` 的
+> skipped 拆成三类可定位计数并记录首条未匹配样本（根因待生产复跑，已证伪
+> 「std_name 漂移」假设）；A-42 关闭、V-3 迁入 02-accepted、12 条 V-* 保留观察
+> 并订正 8 处文档漂移；V-16 补 `TaskManager.test.ts` 6 例。

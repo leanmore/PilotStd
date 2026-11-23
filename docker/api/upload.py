@@ -4,6 +4,7 @@ import re
 import uuid
 
 from fastapi import Depends, File, HTTPException, Request, UploadFile
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse
 from fastapi.routing import APIRouter
 from pydantic import BaseModel
@@ -115,9 +116,17 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
     _validate_image(content, ext)  # 魔数校验，防止伪造扩展名
     name = f"{uuid.uuid4().hex}{ext}"
     path = os.path.join(UPLOAD_DIR, name)
+    # NEW-24：这是 `async def`，同步 `open().write()` 会在写盘期间**阻塞事件循环**
+    # （最大 10MB 落盘在慢盘/网络盘上可达数百毫秒，期间其它请求全部挂起）。
+    # 包进线程池，事件循环继续服务其它请求。
+    await run_in_threadpool(_write_file, path, content)
+    return {"url": f"/api/backgrounds/{name}"}
+
+
+def _write_file(path: str, content: bytes) -> None:
+    """同步写盘（供 `run_in_threadpool` 调用；不在事件循环里执行）。"""
     with open(path, "wb") as f:
         f.write(content)
-    return {"url": f"/api/backgrounds/{name}"}
 
 
 @router.get("/api/backgrounds/{filename}")
