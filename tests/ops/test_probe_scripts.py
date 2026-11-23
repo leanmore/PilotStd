@@ -86,6 +86,35 @@ def options(**kwargs: Any) -> common.ProbeOptions:
     return common.ProbeOptions(**params)
 
 
+@pytest.fixture(autouse=True)
+def _deterministic_creds(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """为所有用例注入确定性凭据，**消除对本地 `config/docker_creds.json` 的依赖**。
+
+    ── 为什么必须这么做（CI 实测 2026-11-23）──
+    `config/docker_creds.json` 是**本地文件、不入库**（见 AGENTS.md §一）。
+    开发机上它存在，测试里 `probe_db_counts.run()` 的 `auth.admin` 检查能通过；
+    但 CI 干净检出时它不存在 → `read_creds()` 返回空凭据 → `auth.admin` 变成
+    `unverified`，而它是**阻断项** → `report.exit_code()` 返回 1，
+    于是 `test_db_counts_pass_when_consistent` 等用例红。
+
+    这正是「本地绿、CI 红」的典型形态：测试隐含依赖了不入库的本地状态。
+
+    ── 实现方式 ──
+    不改 `read_creds` 本身（它有自己的专项用例要测真实文件解析），
+    而是把 `DEFAULT_CREDS` 指向一份**临时写出的合法凭据文件** ——
+    `read_creds()` 无参调用时读的就是它，解析路径与生产完全一致。
+    """
+    creds_file = tmp_path / "docker_creds.json"
+    creds_file.write_text(
+        '{\n  "description": "测试注入凭证 — 不入库",\n'
+        '  "docker": {"base_url": "http://fake.local:9028", "username": "test-admin", '
+        '"password": "test-pass"},\n'
+        '  "web_api": {"api_token": "test-token"}\n}\n',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(common, "DEFAULT_CREDS", creds_file)
+
+
 # ── 共享层：凭据与只读闸门 ──────────────────────────────────
 
 
