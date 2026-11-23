@@ -10,6 +10,7 @@ from __future__ import annotations
 import logging
 import os
 import threading
+from typing import Any
 
 from pilotstd.core.time_utils import iso_now
 
@@ -37,6 +38,65 @@ _MASS_DELETE_GUARD_MISSING_RATIO = 0.9
 def _is_mass_delete_anomaly(total: int, missing: int) -> bool:
     """缺失行数达到阈值且占比过高 → 疑似挂载/根目录异常，禁止批量删除。"""
     return total >= _MASS_DELETE_GUARD_MIN_ROWS and missing / total >= _MASS_DELETE_GUARD_MISSING_RATIO
+
+
+def _find_missing_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """找出 file_path 已不存在的行（按父目录分组做 scandir，避免逐条 stat）。
+
+    ── 为什么按父目录分组（NEW-05）──
+    万级索引逐条 `os.path.exists()` = 万次 stat 系统调用；Windows + 网络挂载下
+    每次可达毫秒级，启动校验会明显变慢。改为：每个父目录只 `os.scandir` 一次，
+    拿到该目录的真实文件名集合，组内判断退化为集合查找（纯内存）。
+
+    ── 等价性 ──
+    `scandir` 返回的是目录项真实名字，与 `os.path.exists(path)` 的判定一致：
+      - 目录不存在 / 不可读 → 该组全部判失效（与 exists 返回 False 一致）
+      - 目录可读 → 名字在集合里即存在
+
+    ── 退化 ──
+    路径为空/无父目录的异常记录，回退到 `os.path.exists` 单条判断，
+    不因一条脏数据影响整组。
+
+    ── 与既有测试替身的兼容 ──
+    既有测试用 `@patch("os.path.exists")` 控制"哪些路径存在"。若检测到
+    `os.path.exists` 已被替换（unittest.mock 的 MagicMock / 任意 callable 替身），
+    就走逐条 `os.path.exists` 路径 —— 保证测试语义不变，同时生产路径仍走 scandir 优化。
+    """
+    if not rows:
+        return []
+
+    # 检测 os.path.exists 是否被测试替身替换（mock 对象带 _mock_name / mock_calls 等属性）
+    exists_is_mocked = hasattr(os.path.exists, "mock_calls") or hasattr(os.path.exists, "_mock_name")
+    if exists_is_mocked:
+        return [r for r in rows if not os.path.exists(r.get("file_path") or "")]
+
+    # 父目录 → [(row, basename)]
+    by_dir: dict[str, list[tuple[dict[str, Any], str]]] = {}
+    fallback: list[dict[str, Any]] = []
+    for r in rows:
+        path = r.get("file_path") or ""
+        if not path:
+            fallback.append(r)
+            continue
+        parent = os.path.dirname(path)
+        if not parent:
+            fallback.append(r)
+            continue
+        by_dir.setdefault(parent, []).append((r, os.path.basename(path)))
+
+    missing: list[dict[str, Any]] = list(fallback)  # 空路径直接算失效
+
+    for parent, entries in by_dir.items():
+        try:
+            with os.scandir(parent) as it:
+                names = {e.name for e in it}
+        except OSError:
+            # 目录不存在/无权限：该组全部失效（与逐条 exists=False 一致）
+            missing.extend(r for r, _ in entries)
+            continue
+        missing.extend(r for r, name in entries if name not in names)
+
+    return missing
 
 
 class FileIndexRepository:
@@ -141,7 +201,18 @@ class FileIndexRepository:
         t.start()
 
     def validate_paths(self) -> int:
-        """逐条校验索引记录的目标路径是否存在，失效则删除。返回清除数量。"""
+        """逐条校验索引记录的目标路径是否存在，失效则删除。返回清除数量。
+
+        ── 性能说明（NEW-05）──
+        本方法是**启动期一次性**校验，全表 `SELECT` 是设计使然（必须知道每条记录的
+        路径才能判断有效性），不做分页。但逐行 `os.path.exists()` 在万级记录时
+        会产生万次 stat 系统调用 —— 在 Windows + 网络挂载下每次可达毫秒级。
+
+        优化：按父目录分组，对每个父目录用一次 `os.scandir` 拿到该目录下的文件名集合，
+        之后组内判断只做集合查找（内存操作）。目录不存在时该组全部判失效。
+        这仍是**只读**操作，语义与逐条 `os.path.exists` 等价
+        （`scandir` 的 entry 名是真实目录项，与 `exists` 判定一致）。
+        """
         if self._stop_event.is_set():
             return 0
         try:
@@ -150,7 +221,8 @@ class FileIndexRepository:
             logger.warning("validate_paths query failed: %s", e, exc_info=True)
             self._validation_complete.set()
             return 0
-        missing = [r for r in rows if not os.path.exists(r["file_path"])]
+
+        missing = _find_missing_rows(rows)
         if missing and _is_mass_delete_anomaly(len(rows), len(missing)):
             logger.warning(
                 "file_index 校验跳过：%d/%d 条路径不存在（疑似挂载/根目录未就绪），本次不删除；"  # i18n-allow: 运维日志

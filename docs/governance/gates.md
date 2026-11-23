@@ -902,3 +902,9 @@ B1（声明类 vs 实现类）已覆盖同一语义、且每次 CI 都在跑；�
 > continue/break 两档冻结存量（tiers: pass=46/return=47/continue=27/break=2/debug=69）。
 > 同批修复迁移锁死循环（`except OSError: continue` 跳过超时判断）、SVG 上传存储型 XSS
 > （原仅校验前缀，`<svg onload=...>` 可绕过）、台账 5 项状态互斥（A-43/A-44/A-45/A-40/T-42）。
+
+> **2026-11-23 方向C 批次5（后端性能）**：
+ecord_pending N+1 消除（500 条从 500 次 SELECT
+> 降到 1 次）、alidate_paths 全表 stat 改按父目录 scandir（万级记录从万次 stat 降到
+> 目录数次）、update_container 的同步 subprocess 包进 run_in_threadpool
+> （原会阻塞事件循环最长 300s）。capabilities_registry.md 同批重新生成。

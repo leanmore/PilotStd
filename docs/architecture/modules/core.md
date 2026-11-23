@@ -776,3 +776,30 @@ pilotstd/core/
 
 > 同类模式提醒：`except: continue` 比 `except: pass` 更隐蔽（看起来像正常循环控制流），
 > 2026-11-23 起 G-050 门禁已能识别它（见 `scripts/check_g_050_silent_errors.py`）。
+
+## file_index 启动校验：按父目录 scandir 替代逐条 stat（2026-11-23，NEW-05）
+
+`FileIndexRepository.validate_paths` 原逐条 `os.path.exists()`，万级索引 = 万次 stat；
+Windows + 网络挂载下每次可达毫秒级，启动校验明显变慢。
+
+**修法**：新增模块级 `_find_missing_rows()`，按**父目录分组**，每目录只 `os.scandir`
+一次拿到真实文件名集合，组内判断退化为集合查找。目录不存在/不可读时该组全判失效
+（与 `exists=False` 语义一致）。
+
+**兼容**：检测到 `os.path.exists` 被测试替身替换时走逐条路径，保证既有
+`@patch("os.path.exists")` 测试语义不变。
+
+**守护**：`tests/test_file_index_validate_scandir.py`（6 例）。
+
+## pending_service 写入：批量查重替代逐条 SELECT（2026-11-23，NEW-04）
+
+`PendingService.record_pending` 原对每条 item 先 `SELECT id ... WHERE standard_number=?`
+再决定 INSERT，批量 500 条 = 500 次 SELECT。
+
+**修法**：新增 `_existing_pending_numbers()`，分批
+`SELECT standard_number ... WHERE status='pending' AND standard_number IN (...)`
+一次拿已存在集合；按 500 一批（SQLite 变量上限 999）。
+
+**兼容**：db 无 `fetchall` 时回退逐条 `fetchone`，不破坏既有测试替身。
+
+**守护**：`tests/test_pending_record_no_n_plus_one.py`（4 例）。

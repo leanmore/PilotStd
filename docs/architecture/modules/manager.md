@@ -297,3 +297,20 @@ StandardManager (BaseFacade)
 
 - 入口：定时任务 `pending_missing_check`（每日 03:30 UTC）与 `POST /api/pending/mark-missing`（admin）都调用
   `mark_missing_files()`；命中挂载异常（≥50 行且缺失 ≥90%）时整轮跳过并返回 `skipped=true`。
+
+## pending_service 写入：批量查重替代逐条 SELECT（2026-11-23，NEW-04）
+
+`PendingService.record_pending` 原对每条 item 先
+`SELECT id FROM pending_lookup WHERE standard_number=?` 再决定是否 INSERT。
+批量 500 条 = **500 次 SELECT** + 最多 500 次 INSERT。
+
+**修法**：新增 `_existing_pending_numbers(numbers)`，分批
+`SELECT standard_number FROM pending_lookup WHERE status='pending' AND standard_number IN (...)`
+一次拿到已存在集合，再只对不在集合里的 INSERT。按 500 一批
+（SQLite 单语句变量上限 999，留余量给其它占位符）。500 条从 500 次 SELECT 降到 **1 次**。
+
+**兼容性**：若注入的 db 没有 `fetchall`（部分测试替身只实现 `fetchone`），
+自动回退到逐条 `fetchone` —— 正确性一致，只是失去批量收益。
+
+**守护**：`tests/test_pending_record_no_n_plus_one.py`（4 例）——
+SELECT 次数与批次相关（不是 N）/ 已存在跳过 / 空列表零查询 / 1200 条分 3 批。

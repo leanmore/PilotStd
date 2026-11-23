@@ -84,16 +84,63 @@ class PendingService:
 
     # ── 待确认清单 ─────────────────────────────────────────────
 
+    # SQLite 单语句变量上限是 999；按 500 一批做 IN 查询，留足余量给其它占位符
+    _EXISTING_BATCH = 500
+
+    def _existing_pending_numbers(self, numbers: list[str]) -> set[str]:
+        """一次查出这些标准号里**已处于 pending** 的集合（替代逐条 SELECT）。
+
+        原实现对每条 item 单独 `SELECT id ...`（NEW-04 的 N+1）：
+        批量 500 条 = 500 次 SELECT + 最多 500 次 INSERT。
+        改为分批 IN 查询后，500 条只需 1 次 SELECT。
+
+        ── 兼容性 ──
+        若注入的 db 没有 `fetchall`（部分测试替身只实现了 fetchone），
+        回退到逐条 `fetchone` —— 正确性一致，只是失去批量优化的收益。
+        这样既不破坏既有测试替身，也不让生产路径退回 N+1。
+        """
+        if not numbers:
+            return set()
+        fetchall = getattr(self._db, "fetchall", None)
+        if fetchall is None:
+            # 退化路径：替身没有批量接口
+            found_legacy: set[str] = set()
+            for num in numbers:
+                row = self._db.fetchone(
+                    "SELECT standard_number FROM pending_lookup "
+                    "WHERE status='pending' AND standard_number=?",
+                    (num,),
+                )
+                if row:
+                    found_legacy.add(str(row["standard_number"] if isinstance(row, dict) else row[0]))
+            return found_legacy
+
+        found: set[str] = set()
+        for i in range(0, len(numbers), self._EXISTING_BATCH):
+            batch = numbers[i : i + self._EXISTING_BATCH]
+            placeholders = ",".join("?" * len(batch))
+            rows = fetchall(
+                f"SELECT standard_number FROM pending_lookup "
+                f"WHERE status='pending' AND standard_number IN ({placeholders})",
+                tuple(batch),
+            )
+            for row in rows:
+                # row 可能是 sqlite3.Row / tuple / dict，统一取第一列
+                if isinstance(row, dict):
+                    found.add(str(row["standard_number"]))
+                else:
+                    found.add(str(row[0]))
+        return found
+
     def record_pending(self, pending_items: list[Any]) -> None:
         """将待确认项写入 pending_lookup 表（已存在则跳过）。"""
         now = iso_now()
+        # 先一次性拿到"已存在"集合，避免逐条 SELECT（NEW-04）
+        all_numbers = [p.get_full_number() for p in pending_items]
+        existing_numbers = self._existing_pending_numbers(all_numbers)
         for parsed in pending_items:
             std_num = parsed.get_full_number()
-            existing = self._db.fetchone(
-                "SELECT id FROM pending_lookup WHERE standard_number=? AND status='pending'",
-                (std_num,),
-            )
-            if existing:
+            if std_num in existing_numbers:
                 continue
             self._db.execute(
                 # v67-a 解耦：**不再写入** final_name——③ 决策名的权威落点是
