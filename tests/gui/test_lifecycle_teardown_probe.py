@@ -23,7 +23,7 @@ from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent
 SRC = ROOT / "pilotstd" / "ui" / "main_window" / "_window_lifecycle.py"
 
 
