@@ -42,8 +42,28 @@ def _populate_quick_access(self) -> None:
     self.this_pc.setData(0, _TREE_NODE_KEY, "this_pc")
     self.this_pc.setIcon(0, self.style().standardIcon(self.style().StandardPixmap.SP_DriveHDIcon))
     self.file_tree.addTopLevelItem(self.this_pc)
+    # NEW-39：重建树时会新建 DriveEnumerator；旧线程必须显式收尾，否则
+    # 每次树重建泄漏一个 QThread（持有 Python 对象 + OS 线程句柄）。
+    # 处理顺序：先停旧线程（若仍在跑）→ 断开信号 → deleteLater 交给 Qt 回收。
+    old_thread = getattr(self, "_drive_thread", None)
+    if old_thread is not None:
+        try:
+            old_thread.drives_ready.disconnect(self._on_drives_ready)
+        except (TypeError, RuntimeError) as e:
+            # 未连接/对象已析构：无需断开，记录后继续
+            logger.info("disconnect old DriveEnumerator failed: %s", e)  # i18n-allow: 内部诊断日志
+        try:
+            if old_thread.isRunning():
+                old_thread.wait(2000)  # 最多等 2s，避免阻塞 UI
+            old_thread.deleteLater()
+        except RuntimeError as e:
+            # C++ 对象已析构：跳过
+            logger.info("dispose old DriveEnumerator failed: %s", e)  # i18n-allow: 内部诊断日志
+
     self._drive_thread = DriveEnumerator()
     self._drive_thread.drives_ready.connect(self._on_drives_ready)
+    # 线程结束后由 Qt 回收（与仓内其余 QThread 用法一致）
+    self._drive_thread.finished.connect(self._drive_thread.deleteLater)
     self._drive_thread.start()
 
 

@@ -235,3 +235,15 @@ BaseAdapter (ABC)
 修法：补 `warning`，明确区分「无结果」与「解析失败」。
 
 **守护**：G-050 的 continue/break 档已覆盖这两类（2026-11-23 补）。
+
+## 网络层 Session 生命周期（2026-11-23，NEW-38）
+
+`safe_raw_get` / `safe_raw_post` 原实现每次 `requests.Session()` 后**直接 return，不关闭**，
+公告附件下载 / OCR 路径高频调用会持续泄漏连接池。
+
+修法：`with requests.Session() as session:`，但**必须先读 `resp.content` 再让 with 退出** ——
+`requests` 的 `Response.content` 是惰性读取的，Session 关闭后未读取的响应体
+无法再流式读取。先读一次会缓存到内存，之后调用方读 `resp.content` 命中缓存，
+行为与原实现完全一致。
+
+**守护**：`tests/test_resource_leaks.py`（验证 `__exit__` 被调用 + 响应体已读）。

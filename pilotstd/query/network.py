@@ -161,14 +161,42 @@ def safe_post(
 def safe_raw_get(
     url: str, site_name: str, timeout: int = DEFAULT_TIMEOUT, **kwargs: Any
 ) -> Optional[requests.Response]:
-    """不带 session 的简单 GET 请求（含重试）。供公告适配器等没有 session 的场景。"""
-    session = requests.Session()
-    return safe_request(session, "GET", url, site_name, timeout, **kwargs)
+    """不带 session 的简单 GET 请求（含重试）。供公告适配器等没有 session 的场景。
+
+    ── 为什么用 with 且先 `resp.content` 再关（NEW-38）──
+    原实现 `session = requests.Session(); return safe_request(...)` —— **每次调用
+    都新建一个 Session 且永不关闭**，公告附件下载 / OCR 路径高频调用会持续泄漏连接池。
+
+    但这里不能简单 `with requests.Session() as s: return safe_request(...)`：
+    调用方拿到 `resp` 后要读 `resp.content`，而 Session 关闭会让**未读取的响应体**
+    无法再流式读取（`requests` 的 `Response.content` 是惰性读取的）。
+    故：先在 `with` 块内把响应体读完（`resp.content` 触发读取并缓存到内存），
+    再让 `with` 关闭 Session —— 之后调用方读 `resp.content` 命中的是内存缓存，
+    行为与原实现完全一致。
+    """
+    with requests.Session() as session:
+        resp = safe_request(session, "GET", url, site_name, timeout, **kwargs)
+        if resp is not None:
+            # 触发并缓存响应体（读失败不应影响返回：原实现同样可能在读取时抛错）
+            try:
+                _ = resp.content
+            except Exception as e:
+                logger.warning("%s 响应体读取失败: %s — %s", site_name, url, e)  # i18n-allow: 内部运维日志
+        return resp
 
 
 def safe_raw_post(
     url: str, site_name: str, timeout: int = DEFAULT_TIMEOUT, **kwargs: Any
 ) -> Optional[requests.Response]:
-    """不带 session 的简单 POST 请求（含重试）。供 OCR 等场景。"""
-    session = requests.Session()
-    return safe_request(session, "POST", url, site_name, timeout, **kwargs)
+    """不带 session 的简单 POST 请求（含重试）。供 OCR 等场景。
+
+    同 `safe_raw_get`：`with` 内先读响应体再关闭 Session（NEW-38）。
+    """
+    with requests.Session() as session:
+        resp = safe_request(session, "POST", url, site_name, timeout, **kwargs)
+        if resp is not None:
+            try:
+                _ = resp.content
+            except Exception as e:
+                logger.warning("%s 响应体读取失败: %s — %s", site_name, url, e)  # i18n-allow: 内部运维日志
+        return resp

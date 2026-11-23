@@ -921,3 +921,8 @@ ecord_pending N+1 消除（500 条从 500 次 SELECT
 > 双解析口径（相对当前文件 或 相对仓库根）。基线 `doc_deadlinks_baseline.json` 当前 **0 条**。
 > 修复 529→0 条死链（478 条在归档目录不修、49 条是解析口径误判、1 条真死链指向已归档文档）。
 > 已接入 `check_all.sh --guards`。
+
+> **2026-11-23 方向C 批次8（资源泄漏 + 安全）**：修复 5 类资源泄漏（Session 未关闭 ×2、
+> Qt QThread 未回收、QTimer 未停止、DB 线程连接累积）+ CSP 移除 `'unsafe-eval'`
+> （实测生产包 38 个 js 文件 `new Function` 计数为 0，Vue 3 预编译不需要 eval）。
+> NEW-41 关键约束：`sqlite3.Connection` 不可弱引用，finalize 必须锚在 `threading.local`。

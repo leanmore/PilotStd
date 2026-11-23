@@ -141,6 +141,15 @@ class _WindowLifecycleMixin(_MixinBase):
             w = getattr(self, attr, None)
             if w is None:
                 continue
+            # NEW-39：树重建时旧线程会被 deleteLater() 回收，此处可能拿到
+            # 已析构的包装对象（RuntimeError: wrapped C/C++ object has been deleted）。
+            # 先探测存活再操作，避免 teardown 因回收时序抛错。
+            try:
+                _sip = __import__("PyQt6.sip", fromlist=["isdeleted"])
+                if hasattr(_sip, "isdeleted") and _sip.isdeleted(w):
+                    continue
+            except (AttributeError, ImportError) as e:
+                logger.info("sip unavailable in teardown, skip isdeleted probe: %s", e)  # i18n-allow: 内部诊断日志
             # DriveEnumerator 没有 stop()：`helper` 会跳过缺失的停止方法，
             # 但一定先断开 drives_ready，避免迟到信号访问已析构的文件树
             stop_worker_gracefully(w, signals=(getattr(w, "drives_ready", None),))

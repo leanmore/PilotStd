@@ -245,3 +245,6 @@ A: `--required-only` 参数仅检查 `required` 级别能力。CI 也仅对 `req
 
 > v2.77（2026-11-23）：方向C 批次7 —— 新增 G-056 文档死链扫描并修复全部死链（529→0）。
 > 详见 `gates.md` 维护记录与 `06-full-inventory.md`。
+
+> v2.78（2026-11-23）：方向C 批次8 —— 5 类资源泄漏修复 + CSP 移除 unsafe-eval。
+> 详见 `06-full-inventory.md` 与 `gates.md` 维护记录。

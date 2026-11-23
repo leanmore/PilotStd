@@ -803,3 +803,18 @@ Windows + 网络挂载下每次可达毫秒级，启动校验明显变慢。
 **兼容**：db 无 `fetchall` 时回退逐条 `fetchone`，不破坏既有测试替身。
 
 **守护**：`tests/test_pending_record_no_n_plus_one.py`（4 例）。
+
+## DB 线程连接回收（2026-11-23，NEW-41）
+
+`Database._all_conns` 累积所有线程的连接；`threading.local` 的连接在线程结束后
+**不会自动关闭**，线程 churn 场景（`_batch_dispatcher` / worker 线程）会持续累积。
+
+**修法**：给「当前线程的 `threading.local` 对象」挂 `weakref.finalize` ——
+线程退出后 `_local` 条目被回收，回调关闭该线程的连接并从 `_all_conns` 移除。
+`_all_conns` 的增删加锁；`close_all()` 改为快照遍历（避免与 finalize 并发）。
+
+**关键实测约束**：`sqlite3.Connection` **不支持弱引用**
+（`TypeError: cannot create weak reference to 'sqlite3.Connection' object`），
+故锚点必须是 `threading.local` 而不是 conn 本身。
+
+**守护**：`tests/test_db_conn_reclaim.py`（6 例，含该约束的固化断言）。

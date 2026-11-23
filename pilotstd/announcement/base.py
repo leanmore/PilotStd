@@ -115,51 +115,59 @@ class BaseAnnounceCrawler(ABC):
         当遇到早于 since_date 的记录时提前终止。
         """
         announcements: list[Any] = []
+        # NEW-37：只有「本方法自己创建」的 Session 才由本方法关闭；
+        # self._http 是外部注入的共享实例，关闭它会破坏调用方的连接复用。
+        owns_session = self._http is None
         session = self._http if self._http is not None else requests.Session()
-        session.headers["User-Agent"] = CHROME_UA
-        page = 1
-        while True:
-            params = {
-                "pageNumber": page,
-                "pageSize": page_size,
-                "sortName": "NOTICE_DATE",
-                "sortOrder": "desc",
-            }
-            resp = safe_request(
-                session,
-                "GET",
-                self._list_url,
-                self.site_name,
-                timeout=120,
-                params=params,
-            )
-            if resp is None:
-                break
-            try:
-                data = resp.json()
-            except Exception as e:
-                logger.error("%s公告响应解析失败: %s", self.standard_type.upper(), e)
-                break
-            rows = data.get("rows", [])
-            if not rows:
-                break
-            for row in rows:
-                if since_date and row.get("NOTICE_DATE", "") < since_date:
-                    return announcements
-                announcements.append(
-                    {
-                        "pid": str(row.get("PID", "")).strip(),
-                        "code": str(row.get("CODE", "")).strip(),
-                        "title": str(row.get("TITLE", row.get("C_TITLE", ""))).strip(),
-                        "notice_date": str(row.get("NOTICE_DATE", "")).strip(),
-                        "std_count": row.get("STD_COUNT", ""),
-                    }
+        try:
+            session.headers["User-Agent"] = CHROME_UA
+            page = 1
+            while True:
+                params = {
+                    "pageNumber": page,
+                    "pageSize": page_size,
+                    "sortName": "NOTICE_DATE",
+                    "sortOrder": "desc",
+                }
+                resp = safe_request(
+                    session,
+                    "GET",
+                    self._list_url,
+                    self.site_name,
+                    timeout=120,
+                    params=params,
                 )
-            total = data.get("total", 0)
-            if page * page_size >= total:
-                break
-            page += 1
-        return announcements
+                if resp is None:
+                    break
+                try:
+                    data = resp.json()
+                except Exception as e:
+                    logger.error("%s公告响应解析失败: %s", self.standard_type.upper(), e)
+                    break
+                rows = data.get("rows", [])
+                if not rows:
+                    break
+                for row in rows:
+                    if since_date and row.get("NOTICE_DATE", "") < since_date:
+                        return announcements
+                    announcements.append(
+                        {
+                            "pid": str(row.get("PID", "")).strip(),
+                            "code": str(row.get("CODE", "")).strip(),
+                            "title": str(row.get("TITLE", row.get("C_TITLE", ""))).strip(),
+                            "notice_date": str(row.get("NOTICE_DATE", "")).strip(),
+                            "std_count": row.get("STD_COUNT", ""),
+                        }
+                    )
+                total = data.get("total", 0)
+                if page * page_size >= total:
+                    break
+                page += 1
+            return announcements
+        finally:
+            # 只关自己创建的 Session（共享实例由调用方管）
+            if owns_session:
+                session.close()
 
     # ──详情获取（通用实现，子类只需提供__和_）──
 

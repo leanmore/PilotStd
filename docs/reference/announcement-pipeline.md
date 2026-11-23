@@ -274,3 +274,17 @@ GB/DB/HB 公告头完整；详情记录缺口为 DB 9月第8号 18 条、HB 9月
 末尾汇总「已尝试 N 个解析器 + 失败详情」。
 
 **守护**：G-050 已能识别 `except: continue`（见 `scripts/check_g_050_silent_errors.py`）。
+
+## 公告抓取的 Session 生命周期（2026-11-23，NEW-37）
+
+`BaseAnnounceCrawler._fetch_list` 原实现：
+`session = self._http if self._http is not None else requests.Session()`
+—— 当 `self._http` 为 None 时**每次调用都新建**一个 Session，
+方法有多个 return/break 点，**都不关闭**。每抓一个公告源泄漏一个连接池。
+
+修法：`try/finally` 包裹方法体 + `owns_session = self._http is None` 标志，
+**只关自己创建的 Session** —— 外部注入的 `self._http` 是共享实例，
+关闭它会破坏调用方的连接复用。
+
+**守护**：`tests/test_resource_leaks.py` 里有两个用例分别验证
+「自建关闭」与「注入不关闭」。
