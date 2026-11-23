@@ -464,3 +464,36 @@ CI 的 NODE_VERSION 从浮动 22 固定到 22.23.4，修复 2026-10-21 Node.js �
 - **处置**：新增 `is_docs_only()` 豁免——**必须同时满足**“消息命中 fix/bug 词 + 改动非空 + 全部在 `docs/` 或 `*.md`”；
   含任一代码/脚本/配置路径仍阻断；空改动列表不豁免。
 - **教训**：门禁的“豁免”要按**路径集合**判定，不能只按消息关键词；且必须显式排除空列表。
+
+## 2026-11-23 方向 C 批次 3-8：CI 严格模式的两个真实拦截点
+
+本轮改了 `.github/workflows/ci.yml`（3 个无主 TODO 认领）与 `scripts/`（G-050 补
+continue/break 识别、新增 G-056 死链扫描），CI 严格模式拦了两次，都是**真问题**：
+
+### 1. `docs_sync_check.py --strict-block` 要求「测试文件数大幅变化」同步 `testing-baseline.md`
+
+- **现象**：新增 10 个 Python 测试文件后，`repo-compliance` job 的 Docs sync 步骤 exit 1，
+  报 `docs/testing/testing-baseline.md` 未与本次变更同批更新。
+- **教训**：**加测试文件不是"只加代码"** —— CI 严格模式把「测试基线文档」视为
+  测试规模事实的承载体，新增测试必须同批登记，否则文档会静默过时。
+- **处置**：在 `testing-baseline.md` 追加增量段，列出全部新增测试文件与用例数。
+
+### 2. `docs_sync_check.py --strict-block` 要求「CI/CD 工作流变更」同步 `ci-lessons.md`
+
+- **现象**：改 `.github/workflows/ci.yml` 后，同一 job 报 `docs/ci-lessons.md` 未同步。
+- **教训**：工作流变更必须留下"为什么改"的经验记录，否则下次有人踩同样的坑。
+- **处置**：本条即记录（见下）。
+
+### 3. 本地 `--guards --local` 覆盖不到这两条
+
+`bash scripts/check_all.sh --fast --guards --local` **exit 0**，但 CI 仍红 ——
+因为 `--local` 下 `docs_sync_check.py` 走的是**告警期**（exit 0），
+只有 CI 的 `--strict-block` 才阻断。
+
+> **推论**：本地门禁绿 ≠ CI 绿。涉及 `scripts/`、`.github/`、`docs/`、测试文件数的改动，
+> 提交前应手动跑一次严格模式：
+> ```bash
+> BASE_BRANCH=main DOCS_SYNC_RANGE=<before>..<sha> \
+>   python scripts/docs_sync_check.py --strict-block
+> python scripts/check_module_doc_mappings.py --strict-block
+> ```
