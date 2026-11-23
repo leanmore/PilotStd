@@ -38,8 +38,10 @@ def parse_attachment_text(attachment_bytes: bytes, filename: str = "") -> str:
             if text and len(text) > 20:
                 return text
         except Exception as e:
-            errors.append(f"{parser.__name__}: {type(e).__name__}: {e}")
-            logger.warning("附件解析器 %s 失败: %s", parser.__name__, e)  # i18n-allow: 内部运维日志
+            # 解析器可能是测试替身（Mock），没有 __name__ —— 用安全取名兜底
+            parser_name = getattr(parser, "__name__", None) or type(parser).__name__
+            errors.append(f"{parser_name}: {type(e).__name__}: {e}")
+            logger.warning("附件解析器 %s 失败: %s", parser_name, e)  # i18n-allow: 内部运维日志
     logger.warning(
         "无法解析附件：未知格式（已尝试 %d 个解析器，失败详情: %s）",  # i18n-allow: 内部运维日志
         len(errors),
