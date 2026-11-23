@@ -50,6 +50,13 @@ export default tseslint.config(
       // DatePicker/SelectButton）已全部替换为 App* 封装，规则升级为阻断级。
       // 任何新增的原生输入控件都会让 lint 失败。
       'custom/no-raw-input': 'error',
+      // DS 阶段三模块二进行中：表格与弹窗封装（AppTable/AppDialog）刚落地，
+      // 存量 DataTable/Dialog/手写 <table> 尚未替换完，先以 warn 登记基线。
+      // 替换完成后（模块二-B 批次）升为 error，与 no-raw-button / no-raw-input 同口径。
+      // DS 阶段三模块二完成：全站 DataTable / Dialog / 手写 <table> 已全部替换为
+      // AppTable / AppDialog / AppConfirmDialog，规则升级为阻断级。
+      // 任何新增的 PrimeVue 表格/弹窗原语或手写数据表都会让 lint 失败。
+      'custom/no-raw-table': 'error',
     },
   },
   // router.ts 是 titleKey 的定义点，豁免 no-raw-i18n-key
@@ -66,6 +73,7 @@ export default tseslint.config(
       'custom/no-raw-i18n-key': 'off',
       'custom/no-raw-button': 'off',
       'custom/no-raw-input': 'off',
+      'custom/no-raw-table': 'off',
     },
   },
   // DS 骨架自身允许用原生 button（封装点）
@@ -87,6 +95,22 @@ export default tseslint.config(
     files: ['src/main.ts'],
     rules: {
       'custom/no-raw-input': 'off',
+      'custom/no-raw-table': 'off',
+    },
+  },
+  // 阶段三模块二进行中：AppTable/AppDialog 封装点内部允许 PrimeVue 表格/弹窗原语
+  // （表头/斑马纹/圆角/内边距在封装内收口，业务页只写布局）
+  {
+    files: ['src/components/ui/App*.vue'],
+    rules: {
+      'custom/no-raw-table': 'off',
+    },
+  },
+  // e2e 里的表格/弹窗选择器断言不受该规则约束
+  {
+    files: ['e2e/**', '**/e2e/**'],
+    rules: {
+      'custom/no-raw-table': 'off',
     },
   },
 );

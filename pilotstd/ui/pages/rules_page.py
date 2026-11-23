@@ -8,14 +8,11 @@ import logging
 from typing import Any, Optional
 
 from PyQt6.QtWidgets import (
-    QComboBox,
-    QDialog,
     QFileDialog,
     QFormLayout,
     QGroupBox,
     QHBoxLayout,
     QHeaderView,
-    QLineEdit,
     QMessageBox,
     QTreeWidget,
     QTreeWidgetItem,
@@ -24,6 +21,8 @@ from PyQt6.QtWidgets import (
 )
 
 from pilotstd.ui.widgets.base_button import BaseButton
+from pilotstd.ui.widgets.base_dialog import BaseDialog
+from pilotstd.ui.widgets.base_input import BaseInput, BaseSelect
 
 from ...i18n import _
 
@@ -119,7 +118,7 @@ class RulesPage(QWidget):
     def _on_add_rule(self) -> None:
         """弹出规则编辑对话框并添加新规则。"""
         dlg = RuleEditDialog(self)
-        if dlg.exec() == QDialog.DialogCode.Accepted:
+        if dlg.exec() == BaseDialog.DialogCode.Accepted:
             rules = self._get_rules()
             rules.append(dlg.get_rule())
             self._save_rules(rules)
@@ -135,7 +134,7 @@ class RulesPage(QWidget):
         if isinstance(item, QTreeWidgetItem):
             rule = item.data(0, 1)
             dlg = RuleEditDialog(self, rule)
-            if dlg.exec() == QDialog.DialogCode.Accepted:
+            if dlg.exec() == BaseDialog.DialogCode.Accepted:
                 rules = self._get_rules()
                 idx = next(i for i, r in enumerate(rules) if r.get("name") == rule.get("name"))
                 rules[idx] = dlg.get_rule()
@@ -230,7 +229,7 @@ class RulesPage(QWidget):
 # ──：规则编辑对话框──
 
 
-class RuleEditDialog(QDialog):
+class RuleEditDialog(BaseDialog):
     """网站规则编辑对话框。"""
 
     def __init__(self, parent: Any, rule: Optional[dict[str, Any]] = None) -> None:
@@ -242,29 +241,30 @@ class RuleEditDialog(QDialog):
         layout = QVBoxLayout(self)
         form = QFormLayout()
 
-        self.name_edit = QLineEdit(self._rule.get("name", ""))
+        # 规则编辑是表单场景（对话框内逐项填写），尺寸档取 m（DS 表单默认档）
+        self.name_edit = BaseInput(self._rule.get("name", ""), size="m")
         self.name_edit.setPlaceholderText(_("placeholder_rule_name"))
         form.addRow(_("label_rule_name"), self.name_edit)
 
-        self.type_combo = QComboBox()
+        self.type_combo = BaseSelect(size="m")
         self.type_combo.addItems([_("rule_type_query"), _("rule_type_download")])
         if self._rule.get("type"):
             self.type_combo.setCurrentText(self._rule["type"])
         form.addRow(_("label_type"), self.type_combo)
 
-        self.url_edit = QLineEdit(self._rule.get("url", ""))
+        self.url_edit = BaseInput(self._rule.get("url", ""), size="m")
         self.url_edit.setPlaceholderText(_("placeholder_url"))
         form.addRow(_("label_url"), self.url_edit)
 
-        self.xpath_edit = QLineEdit(self._rule.get("xpath", ""))
+        self.xpath_edit = BaseInput(self._rule.get("xpath", ""), size="m")
         self.xpath_edit.setPlaceholderText(_("placeholder_xpath"))
         form.addRow("XPATH:", self.xpath_edit)
 
-        self.regex_edit = QLineEdit(self._rule.get("regex", ""))
+        self.regex_edit = BaseInput(self._rule.get("regex", ""), size="m")
         self.regex_edit.setPlaceholderText(_("placeholder_regex"))
         form.addRow(_("label_regex"), self.regex_edit)
 
-        self.captcha_combo = QComboBox()
+        self.captcha_combo = BaseSelect(size="m")
         self.captcha_combo.addItems(
             [
                 _("captcha_none"),

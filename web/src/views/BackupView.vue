@@ -3,13 +3,13 @@ defineOptions({ name: 'BackupView' })
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Card from 'primevue/card'
-import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Divider from 'primevue/divider'
 import { getBackupList, createBackup as createBackupApi } from '@/api/backup'
 import type { RouteTag } from '@/types/route-tag'
 import { useAppStore } from '@/stores/app'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppTable from '@/components/ui/AppTable.vue'
 
 interface Backup {
   id: string; name: string; size: number; size_mb: number; created_at: string
@@ -76,13 +76,13 @@ onMounted(() => { if (isAdmin.value) fetchBackups('/backup') })
           <span v-if="lastBackup" class="text-sm">{{ t('backup.last_backup', { time: formatTime(lastBackup) }) }}</span>
         </div>
         <Divider />
-        <DataTable :value="backups" :loading="loading" striped-rows size="small">
+        <AppTable :value="backups" :loading="loading" striped-rows size="small">
           <Column field="name" :header="t('backup.col_name')" />
           <Column field="size_mb" :header="t('backup.col_size')" />
           <Column :header="t('backup.col_created')">
             <template #body="{ data }">{{ formatTime(data.created_at) }}</template>
           </Column>
-        </DataTable>
+        </AppTable>
       </template>
     </Card>
   </div>

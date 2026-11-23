@@ -32,6 +32,7 @@ if TYPE_CHECKING:
     from PyQt6.QtWidgets import QWidget
 
 from pilotstd.ui.widgets.base_button import BaseButton
+from pilotstd.ui.widgets.base_dialog import BaseDialog
 
 from ....core.file_utils import ensure_long_path, safe_move
 from ....i18n import _
@@ -298,7 +299,7 @@ class CleanupHandler:
             QMessageBox.information(self._parent, _("dialog_collect_unrecognized"), _("msg_collect_none"))
             return
 
-        dlg = QDialog(self._parent)
+        dlg = BaseDialog(self._parent)
         dlg.setWindowTitle(_("dialog_collect_unrecognized"))
         dlg.setMinimumSize(700, 400)
         layout = QVBoxLayout(dlg)
@@ -331,7 +332,7 @@ class CleanupHandler:
         btn_layout.addWidget(btn_cancel)
         layout.addLayout(btn_layout)
 
-        if dlg.exec() != QDialog.DialogCode.Accepted:
+        if dlg.exec() != BaseDialog.DialogCode.Accepted:
             return
 
         selected = self.collect_selected_files(checkboxes)

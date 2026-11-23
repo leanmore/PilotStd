@@ -4,11 +4,13 @@ defineOptions({ name: 'ValidityConfig' })
 import { ref, onMounted, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Tag from 'primevue/tag'
+import Column from 'primevue/column'
 import Message from 'primevue/message'
-import Dialog from 'primevue/dialog'
 import { getValidityConfig, putValidityConfig, runValidityCheck, getValidityHistory, type ValidityConfig, type ValidityHistoryItem } from '@/api/validity'
 import { getItem, setItem } from '@/lib/storage'
+import AppTable from '@/components/ui/AppTable.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppDialog from '@/components/ui/AppDialog.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import AppDatePicker from '@/components/ui/AppDatePicker.vue'
@@ -477,25 +479,28 @@ onMounted(() => { loadValidityFilters(); loadConfig(); loadHistory() })
       <span v-if="histTotal > 0">{{ t('settings.validity.page', { page: histPage, pages: totalPages }) }}</span>
     </div>
 
-    <table v-if="history.length" class="data-table">
-      <thead>
-        <tr><th>{{ t('settings.validity.col_run_at') }}</th><th>{{ t('settings.validity.col_checked') }}</th><th>{{ t('settings.validity.col_changed') }}</th><th>{{ t('settings.validity.col_result') }}</th><th>{{ t('settings.validity.col_action') }}</th></tr>
-      </thead>
-      <tbody>
-        <tr v-for="h in history" :key="h.check_date">
-          <td>{{ h.check_date }}</td>
-          <td>{{ h.checked_count }}</td>
-          <td>{{ t('settings.validity.count_unit', { n: h.changed_count }) }}</td>
-          <td><Tag :severity="h.status === 'success' ? 'success' : 'danger'" :value="h.status === 'success' ? t('settings.validity.done') : t('settings.validity.failed')" /></td>
-          <td><AppButton
+    <AppTable v-if="history.length" :value="history" dataKey="check_date" size="small">
+      <Column :header="t('settings.validity.col_run_at')" field="check_date" />
+      <Column :header="t('settings.validity.col_checked')" field="checked_count" />
+      <Column :header="t('settings.validity.col_changed')">
+        <template #body="{ data }">{{ t('settings.validity.count_unit', { n: data.changed_count }) }}</template>
+      </Column>
+      <Column :header="t('settings.validity.col_result')">
+        <template #body="{ data }">
+          <Tag :severity="data.status === 'success' ? 'success' : 'danger'" :value="data.status === 'success' ? t('settings.validity.done') : t('settings.validity.failed')" />
+        </template>
+      </Column>
+      <Column :header="t('settings.validity.col_action')">
+        <template #body="{ data }">
+          <AppButton
             :label="t('settings.validity.detail')"
-            @click="showDetail(h)"
+            @click="showDetail(data)"
             size="s"
             type="ghost"
-          /></td>
-        </tr>
-      </tbody>
-    </table>
+          />
+        </template>
+      </Column>
+    </AppTable>
     <p v-else class="empty">{{ t('settings.validity.history_empty') }}</p>
 
     <div v-if="totalPages > 1" class="pagination">
@@ -523,14 +528,14 @@ onMounted(() => { loadValidityFilters(); loadConfig(); loadHistory() })
       />
     </div>
 
-    <Dialog v-model:visible="detailVisible" :header="t('settings.validity.detail_title')" :style="{width:'400px'}" modal>
+    <AppDialog v-model:visible="detailVisible" :header="t('settings.validity.detail_title')" :style="{width:'400px'}" modal>
       <div v-if="detailItem" class="detail">
         <div class="detail-row"><span>{{ t('settings.validity.col_date') }}</span><span>{{ detailItem.check_date }}</span></div>
         <div class="detail-row"><span>{{ t('settings.validity.col_checked') }}</span><span>{{ detailItem.checked_count }}</span></div>
         <div class="detail-row"><span>{{ t('settings.validity.col_changed') }}</span><span>{{ t('settings.validity.count_unit', { n: detailItem.changed_count }) }}</span></div>
         <div class="detail-row"><span>{{ t('settings.validity.col_result') }}</span><Tag severity="success" :value="t('settings.validity.done')" /></div>
       </div>
-    </Dialog>
+    </AppDialog>
   </div>
 </template>
 
@@ -563,9 +568,7 @@ onMounted(() => { loadValidityFilters(); loadConfig(); loadHistory() })
 .filter-item label { font-size: var(--font-size-11); font-weight: var(--font-weight-medium); color: var(--text-secondary); }
 .filter-actions { display: flex; gap: var(--space-8); align-items: flex-end; }
 .table-meta { display: flex; justify-content: space-between; font-size: var(--font-size-12); color: var(--text-secondary); margin-bottom: var(--space-8); }
-.data-table { width: 100%; border-collapse: collapse; font-size: var(--font-size-12); }
-.data-table th, .data-table td { padding: var(--space-7) var(--space-8); text-align: left; border-bottom: 1px solid var(--border); }
-.data-table th { font-weight: var(--font-weight-semibold); color: var(--text-dim); font-size: var(--font-size-11); text-transform: uppercase; }
+.empty { padding: var(--space-32) 0; text-align: center; color: var(--text-secondary); }
 .empty { color: var(--text-dim); font-size: var(--font-size-13); padding: var(--space-16) 0; text-align: center; }
 .pagination { display: flex; justify-content: center; align-items: center; gap: var(--space-2); margin-top: var(--space-10); }
 .detail { display: flex; flex-direction: column; gap: var(--space-10); font-size: var(--font-size-13); }

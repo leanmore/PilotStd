@@ -5,8 +5,11 @@ defineOptions({ name: 'NotificationLogsView' })
 import { useI18n } from 'vue-i18n'
 import { useNotificationLogs } from '@/composables/useNotificationLogs'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppDialog from '@/components/ui/AppDialog.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
+import AppTable from '@/components/ui/AppTable.vue'
+import Column from 'primevue/column'
 
 const { t } = useI18n()
 const {
@@ -121,28 +124,37 @@ const {
 
       <div class="resizable-table" :style="{ height: tableHeight + 'px' }">
         <div class="table-scroll">
-          <table class="log-table" v-if="logs.length">
-            <thead>
-              <tr>
-                <th>{{ t('notification.logs.field.time') }}</th>
-                <th>{{ t('notification.logs.field.channel') }}</th>
-                <th>{{ t('notification.logs.field.event') }}</th>
-                <th>{{ t('notification.logs.field.status') }}</th>
-                <th>{{ t('notification.logs.field.title') }}</th>
-                <th>{{ t('notification.logs.field.action') }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="l in logs" :key="l.id" :class="rowClass(l)">
-                <td>{{ l.sent_at?.replace('T', ' ').substring(0, 16) }}</td>
-                <td>{{ channelLabel(l.channel) }}</td>
-                <td>{{ eventLabel(l.event_type) }}</td>
-                <td><Tag :severity="statusSeverity(l.status)" :value="statusLabel(l.status)" /></td>
-                <td class="title-cell">{{ l.title }}</td>
-                <td><AppButton :label="t('notification.logs.view')" size="s" type="secondary" text @click="showDetail(l)" /></td>
-              </tr>
-            </tbody>
-          </table>
+          <AppTable
+            v-if="logs.length"
+            :value="logs"
+            dataKey="id"
+            size="small"
+            :row-class="rowClass"
+            table-class="log-table"
+          >
+            <Column :header="t('notification.logs.field.time')">
+              <template #body="{ data }">{{ data.sent_at?.replace('T', ' ').substring(0, 16) }}</template>
+            </Column>
+            <Column :header="t('notification.logs.field.channel')">
+              <template #body="{ data }">{{ channelLabel(data.channel) }}</template>
+            </Column>
+            <Column :header="t('notification.logs.field.event')">
+              <template #body="{ data }">{{ eventLabel(data.event_type) }}</template>
+            </Column>
+            <Column :header="t('notification.logs.field.status')">
+              <template #body="{ data }">
+                <Tag :severity="statusSeverity(data.status)" :value="statusLabel(data.status)" />
+              </template>
+            </Column>
+            <Column :header="t('notification.logs.field.title')" class="title-cell">
+              <template #body="{ data }"><span class="title-cell">{{ data.title }}</span></template>
+            </Column>
+            <Column :header="t('notification.logs.field.action')">
+              <template #body="{ data }">
+                <AppButton :label="t('notification.logs.view')" size="s" type="secondary" text @click="showDetail(data)" />
+              </template>
+            </Column>
+          </AppTable>
           <p v-else-if="!loading" class="empty">{{ t('notification.logs.empty') }}</p>
         </div>
         <div class="resize-handle" @mousedown="onResizeStart" :title="t('notification.logs.resize_title')" />
@@ -174,7 +186,7 @@ const {
       </div>
     </div>
 
-    <Dialog v-model:visible="detailVisible" :header="t('notification.logs.detail_title')" :style="{ width: '500px' }" modal>
+    <AppDialog v-model:visible="detailVisible" :header="t('notification.logs.detail_title')" :style="{ width: '500px' }" modal>
       <div v-if="detailItem" class="detail">
         <div class="detail-row"><span>{{ t('notification.logs.field.time') }}</span><span>{{ detailItem.sent_at }}</span></div>
         <div class="detail-row"><span>{{ t('notification.logs.field.channel') }}</span><span>{{ channelLabel(detailItem.channel) }}</span></div>
@@ -198,25 +210,17 @@ const {
             <p style="font-size:var(--font-size-12);color:var(--text-dim);margin:0 0 var(--space-6)">
               {{ t('notification.config.failed_items.title') }} · {{ t('notification.config.failed_items.total', { total: failedTotal }) }}
             </p>
-            <table v-if="failedItems.length" class="failed-table">
-              <thead>
-                <tr>
-                  <th>{{ t('notification.config.failed_items.col_number') }}</th>
-                  <th>{{ t('notification.config.failed_items.col_name') }}</th>
-                  <th>{{ t('notification.config.failed_items.col_type') }}</th>
-                  <th>{{ t('notification.config.failed_items.col_message') }}</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(it, idx) in failedItems" :key="idx">
-                  <td>{{ it.standard_number }}</td>
-                  <td>{{ it.standard_name }}</td>
-                  <!-- 技术枚举**必须翻译**后展示；未知取值回退 unknown 文案（不暴露原始码） -->
-                  <td>{{ errorTypeLabel(it.error_type) }}</td>
-                  <td class="err">{{ it.error_message }}</td>
-                </tr>
-              </tbody>
-            </table>
+            <AppTable v-if="failedItems.length" :value="failedItems" size="small" table-class="failed-table">
+              <Column :header="t('notification.config.failed_items.col_number')" field="standard_number" />
+              <Column :header="t('notification.config.failed_items.col_name')" field="standard_name" />
+              <!-- 技术枚举**必须翻译**后展示；未知取值回退 unknown 文案（不暴露原始码） -->
+              <Column :header="t('notification.config.failed_items.col_type')">
+                <template #body="{ data }">{{ errorTypeLabel(data.error_type) }}</template>
+              </Column>
+              <Column :header="t('notification.config.failed_items.col_message')">
+                <template #body="{ data }"><span class="err">{{ data.error_message }}</span></template>
+              </Column>
+            </AppTable>
             <p v-else style="font-size:var(--font-size-12);color:var(--text-dim)">{{ t('notification.config.failed_items.empty') }}</p>
             <div v-if="failedTotal > failedPageSize" style="display:flex;gap:var(--space-8);align-items:center;margin-top:var(--space-6)">
               <AppButton
@@ -238,10 +242,10 @@ const {
           </div>
         </div>
       </div>
-    </Dialog>
+    </AppDialog>
 
     <!-- 清理日志确认弹窗 -->
-    <Dialog v-model:visible="cleanupVisible" :header="t('notification.logs.cleanup_title')" :style="{ width: '420px' }" modal>
+    <AppDialog v-model:visible="cleanupVisible" :header="t('notification.logs.cleanup_title')" :style="{ width: '420px' }" modal>
       <div>
         <p style="margin:0 0 var(--space-12);color:var(--text-dim)">{{ t('notification.logs.cleanup_hint') }}</p>
         <div style="display:flex;align-items:center;gap:var(--space-8)">
@@ -268,7 +272,7 @@ const {
         @click="doCleanup"
       />
       </template>
-    </Dialog>
+    </AppDialog>
   </div>
 </template>
 

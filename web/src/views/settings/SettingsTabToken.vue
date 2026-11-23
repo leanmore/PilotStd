@@ -8,9 +8,9 @@ import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { getToken, refreshToken } from '@/api'
 import http from '@/api/http'
-import Dialog from 'primevue/dialog'
 import Message from 'primevue/message'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppDialog from '@/components/ui/AppDialog.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 
 defineOptions({ name: 'SettingsTabToken' })
@@ -164,7 +164,7 @@ onMounted(() => { loadToken(); loadGhToken() })
   </div>
 
   <!-- 刷新令牌确认弹窗 -->
-  <Dialog v-model:visible="showRefreshDlg" :header="t('settings.token.refresh_title')" :modal="true" :style="{width:'440px'}">
+  <AppDialog v-model:visible="showRefreshDlg" :header="t('settings.token.refresh_title')" :modal="true" :style="{width:'440px'}">
     <p style="margin-bottom:var(--space-12);line-height:var(--line-height-body)">{{ t('settings.token.refresh_warn_before') }}<strong>{{ t('settings.token.refresh_warn_strong') }}</strong>{{ t('settings.token.refresh_warn_after') }}</p>
     <p style="color:var(--text-dim);font-size:var(--font-size-13)">{{ t('settings.token.refresh_confirm') }}</p>
     <div style="display:flex;gap:var(--space-8);margin-top:var(--space-16);justify-content:flex-end">
@@ -181,7 +181,7 @@ onMounted(() => { loadToken(); loadGhToken() })
         type="secondary"
       />
     </div>
-  </Dialog>
+  </AppDialog>
   </div>
 </template>
 

@@ -4,19 +4,19 @@
 from typing import Any
 
 from PyQt6.QtWidgets import (
-    QDialog,
     QHBoxLayout,
     QMessageBox,
     QVBoxLayout,
 )
 
 from pilotstd.ui.widgets.base_button import BaseButton
+from pilotstd.ui.widgets.base_dialog import BaseDialog
 
 from ....i18n import _
 from ._core import SettingsPage
 
 
-class SettingsDialog(QDialog):
+class SettingsDialog(BaseDialog):
     """设置对话框，包裹 SettingsPage + 确定/取消按钮。"""
 
     def __init__(self, config_manager: Any, parent: Any = None) -> None:

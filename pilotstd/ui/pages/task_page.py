@@ -8,12 +8,10 @@ from typing import Any
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
-    QDialog,
     QGroupBox,
     QHBoxLayout,
     QHeaderView,
     QSplitter,
-    QTableWidget,
     QTableWidgetItem,
     QTextEdit,
     QVBoxLayout,
@@ -21,6 +19,8 @@ from PyQt6.QtWidgets import (
 )
 
 from pilotstd.ui.widgets.base_button import BaseButton
+from pilotstd.ui.widgets.base_dialog import BaseDialog
+from pilotstd.ui.widgets.base_table import BaseTable
 
 from ...i18n import _
 from ...task.models import TaskInfo, TaskStatus, TaskType
@@ -118,7 +118,7 @@ class TaskPage(QWidget):
         btn_layout.addStretch()
         task_layout.addLayout(btn_layout)
 
-        self.task_table = QTableWidget()
+        self.task_table = BaseTable()
         self.task_table.setColumnCount(5)
         self.task_table.setHorizontalHeaderLabels(
             [
@@ -210,7 +210,7 @@ class TaskPage(QWidget):
 # ──：任务中心对话框──
 
 
-class TaskCenterDialog(QDialog):
+class TaskCenterDialog(BaseDialog):
     """任务中心对话框。"""
 
     def __init__(self, task_queue: TaskQueue | None = None, parent: Any = None) -> None:

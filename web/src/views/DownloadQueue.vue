@@ -3,9 +3,11 @@ defineOptions({ name: 'DownloadQueue' })
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Card from 'primevue/card'
+import Column from 'primevue/column'
 import Tag from 'primevue/tag'
 import { getTasks, cancelTask as cancelTaskApi } from '@/api/tasks'
 import type { RouteTag } from '@/types/route-tag'
+import AppTable from '@/components/ui/AppTable.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 
 interface Task { task_id: string; task_type: string; status: string; total_items: number; created_at: string }
@@ -45,29 +47,32 @@ onMounted(() => fetchTasks('/download-queue'))
             type="ghost"
           />
         </div>
-        <table v-if="tasks.length" class="data-table">
-          <thead><tr><th>{{ t('download.queue.col_task_id') }}</th><th>{{ t('download.queue.col_type') }}</th><th>{{ t('download.queue.col_status') }}</th><th>{{ t('download.queue.col_items') }}</th><th>{{ t('download.queue.col_created') }}</th><th>{{ t('download.queue.col_action') }}</th></tr></thead>
-          <tbody>
-            <tr v-for="task in tasks" :key="task.task_id">
-              <td>{{ task.task_id }}</td>
-              <td>{{ task.task_type }}</td>
-              <td><Tag :value="task.status" :severity="task.status === 'running' ? 'info' : task.status === 'completed' ? 'success' : 'warn'" /></td>
-              <td>{{ task.total_items }}</td>
-              <td>{{ new Date(task.created_at).toLocaleString('zh-CN') }}</td>
-              <td>
-                <AppButton
-        v-if="task.status === 'running'"
-        icon="pi pi-times"
-        text
-        size="s"
-        type="danger"
-        :title="t('task.stop')"
-        @click="cancelTask(task.task_id)"
-      />
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <AppTable v-if="tasks.length" :value="tasks" size="small">
+          <Column field="task_id" :header="t('download.queue.col_task_id')" />
+          <Column field="task_type" :header="t('download.queue.col_type')" />
+          <Column :header="t('download.queue.col_status')">
+            <template #body="{ data }">
+              <Tag :value="data.status" :severity="data.status === 'running' ? 'info' : data.status === 'completed' ? 'success' : 'warn'" />
+            </template>
+          </Column>
+          <Column field="total_items" :header="t('download.queue.col_items')" />
+          <Column :header="t('download.queue.col_created')">
+            <template #body="{ data }">{{ new Date(data.created_at).toLocaleString('zh-CN') }}</template>
+          </Column>
+          <Column :header="t('download.queue.col_action')">
+            <template #body="{ data }">
+              <AppButton
+                v-if="data.status === 'running'"
+                icon="pi pi-times"
+                text
+                size="s"
+                type="danger"
+                :title="t('task.stop')"
+                @click="cancelTask(data.task_id)"
+              />
+            </template>
+          </Column>
+        </AppTable>
         <p v-else-if="!loading" class="empty">{{ t('download.queue.empty') }}</p>
       </template>
     </Card>
@@ -79,8 +84,5 @@ onMounted(() => fetchTasks('/download-queue'))
 .page-title { margin: 0 0 var(--space-20); font-size: var(--font-size-20); font-weight: var(--font-weight-semibold); color: var(--text-heading); }
 .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-12); }
 .text-sm { font-size: var(--font-size-13); color: var(--text-secondary); }
-.data-table { width: 100%; border-collapse: collapse; font-size: var(--font-size-13); }
-.data-table th, .data-table td { padding: var(--space-8) var(--space-12); text-align: left; border-bottom: 1px solid var(--border); }
-.data-table th { font-weight: var(--font-weight-semibold); color: var(--text-secondary); }
 .empty { padding: var(--space-32) 0; text-align: center; color: var(--text-secondary); }
 </style>

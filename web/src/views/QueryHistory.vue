@@ -7,6 +7,8 @@ import Tag from 'primevue/tag'
 import { getQueryResults } from '@/api'
 import { isActiveStatusKey } from '@/utils/stdStatus'
 import type { RouteTag } from '@/types/route-tag'
+import AppTable from '@/components/ui/AppTable.vue'
+import Column from 'primevue/column'
 import AppButton from '@/components/ui/AppButton.vue'
 
 const { t } = useI18n()
@@ -47,18 +49,21 @@ onMounted(() => fetchHistory('/query-history'))
             type="ghost"
           />
         </div>
-        <table v-if="results.length" class="data-table">
-          <thead><tr><th>{{ t('standard_table.col_standard_number') }}</th><th>{{ t('standard_table.col_status') }}</th><th>{{ t('standard_table.col_name') }}</th><th>{{ t('standard_table.col_source') }}</th></tr></thead>
-          <tbody>
-            <tr v-for="(r, i) in results" :key="i">
-              <td>{{ r.standard_number }}</td>
-              <!-- 只比较后端给的英文键 status_key（#32-C / R14-4c），与界面语言无关 -->
-              <td><Tag :value="r.status" :severity="isActiveStatusKey(r.status_key) ? 'success' : 'warn'" /></td>
-              <td>{{ r.found_name || '-' }}</td>
-              <td>{{ r.source_site || '-' }}</td>
-            </tr>
-          </tbody>
-        </table>
+        <AppTable v-if="results.length" :value="results" size="small">
+          <Column field="standard_number" :header="t('standard_table.col_standard_number')" />
+          <!-- 只比较后端给的英文键 status_key（#32-C / R14-4c），与界面语言无关 -->
+          <Column :header="t('standard_table.col_status')">
+            <template #body="{ data }">
+              <Tag :value="data.status" :severity="isActiveStatusKey(data.status_key) ? 'success' : 'warn'" />
+            </template>
+          </Column>
+          <Column :header="t('standard_table.col_name')">
+            <template #body="{ data }">{{ data.found_name || '-' }}</template>
+          </Column>
+          <Column :header="t('standard_table.col_source')">
+            <template #body="{ data }">{{ data.source_site || '-' }}</template>
+          </Column>
+        </AppTable>
         <p v-else-if="!loading" class="empty">{{ t('query_history.empty') }}</p>
       </template>
     </Card>
@@ -70,8 +75,5 @@ onMounted(() => fetchHistory('/query-history'))
 .page-title { margin: 0 0 var(--space-20); font-size: var(--font-size-20); font-weight: var(--font-weight-semibold); color: var(--text-heading); }
 .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-12); }
 .text-sm { font-size: var(--font-size-13); color: var(--text-secondary); }
-.data-table { width: 100%; border-collapse: collapse; font-size: var(--font-size-13); }
-.data-table th, .data-table td { padding: var(--space-8) var(--space-12); text-align: left; border-bottom: 1px solid var(--border); }
-.data-table th { font-weight: var(--font-weight-semibold); color: var(--text-secondary); }
 .empty { padding: var(--space-32) 0; text-align: center; color: var(--text-secondary); }
 </style>

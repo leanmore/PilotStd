@@ -21,6 +21,28 @@ const StubCard = {
   template: '<div class="card-stub"><slot name="content" /></div>',
 }
 
+/**
+ * AppTable 的浅挂载替身：真实 AppTable 内部是 PrimeVue DataTable，
+ * shallowMount 会把整棵子树 stub 掉（连 tbody 都不渲染），
+ * 「行数 / 单元格文案」类断言就全部失效。
+ * 这里还原最小可断言结构：按 value 逐行输出四个字段（与模板 Column 顺序一致）。
+ */
+const StubAppTable = {
+  name: 'AppTable',
+  props: ['value'],
+  template: `<table class="data-table-stub">
+    <thead><tr><th>标准号</th><th>状态</th><th>名称</th><th>来源</th></tr></thead>
+    <tbody>
+      <tr v-for="(row, i) in (value || [])" :key="i">
+        <td>{{ row.standard_number }}</td>
+        <td>{{ row.status }}</td>
+        <td>{{ row.found_name || '-' }}</td>
+        <td>{{ row.source_site || '-' }}</td>
+      </tr>
+    </tbody>
+  </table>`,
+}
+
 /** 用真实 locale 文件挂载（空 messages 会让 t() 回显 key，断言即失去意义） */
 function makeI18n(locale: 'zh-CN' | 'zh-TW' | 'en' = 'zh-CN') {
   return createI18n({ legacy: false, locale, messages: { 'zh-CN': zhCN, 'zh-TW': zhTW, en } })
@@ -30,7 +52,7 @@ function mountComponent(locale: 'zh-CN' | 'zh-TW' | 'en' = 'zh-CN') {
   return shallowMount(QueryHistory, {
     global: {
       plugins: [makeI18n(locale)],
-      stubs: { Card: StubCard, Button, Tag },
+      stubs: { Card: StubCard, Button, Tag, AppTable: StubAppTable },
     },
   })
 }

@@ -21,6 +21,30 @@ const StubCard = {
   template: '<div class="card-stub"><slot name="content" /></div>',
 }
 
+/**
+ * AppTable 的浅挂载替身：真实 AppTable 内部是 PrimeVue DataTable，
+ * shallowMount 会把整棵子树 stub 掉（连 tbody 都不渲染），
+ * 「行数 / 单元格文案」类断言就全部失效。
+ * 这里还原最小可断言结构：按 value 逐行输出六个字段（与模板 Column 顺序一致）。
+ */
+const StubAppTable = {
+  name: 'AppTable',
+  props: ['value'],
+  template: `<table class="data-table-stub">
+    <thead><tr><th>任务</th><th>类型</th><th>状态</th><th>条目</th><th>创建</th><th>操作</th></tr></thead>
+    <tbody>
+      <tr v-for="(row, i) in (value || [])" :key="i">
+        <td>{{ row.task_id }}</td>
+        <td>{{ row.task_type }}</td>
+        <td>{{ row.status }}</td>
+        <td>{{ row.total_items }}</td>
+        <td>{{ new Date(row.created_at).toLocaleString('zh-CN') }}</td>
+        <td><slot name="cell-action" :data="row" /></td>
+      </tr>
+    </tbody>
+  </table>`,
+}
+
 function makeI18n(locale: 'zh-CN' | 'en') {
   return createI18n({ legacy: false, locale, messages: { 'zh-CN': zhCN, en } })
 }
@@ -33,6 +57,7 @@ function mountComponent(locale: 'zh-CN' | 'en' = 'zh-CN') {
         Card: StubCard,
         Button,
         Tag,
+        AppTable: StubAppTable,
       },
     },
   })

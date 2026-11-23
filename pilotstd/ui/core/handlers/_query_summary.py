@@ -14,7 +14,6 @@ from typing import TYPE_CHECKING, Any, Callable
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
-    QDialog,
     QFileDialog,
     QFrame,
     QHBoxLayout,
@@ -32,6 +31,7 @@ if TYPE_CHECKING:
     pass
 
 from pilotstd.ui.widgets.base_button import BaseButton
+from pilotstd.ui.widgets.base_dialog import BaseDialog
 
 from ....i18n import _ as tr
 from ....models import ParsedStdInfo
@@ -250,12 +250,12 @@ class QuerySummaryHandler:
 
     # ── 汇总弹窗构建与销毁 ──
 
-    def build_summary_dialog(self, buckets: dict, total: int, has_download: bool) -> QDialog:
+    def build_summary_dialog(self, buckets: dict, total: int, has_download: bool) -> BaseDialog:
         """构建分栏式汇总弹窗。"""
         section_order = ["organize", "normalize", "expire", "pending", "manual_download", "download"]
         self._summary_sections = {}
 
-        dlg = QDialog(self._parent)
+        dlg = BaseDialog(self._parent)
         dlg.setWindowTitle(tr("summary_title"))
         dlg.resize(800, 600)
         dlg.setSizeGripEnabled(False)

@@ -5,6 +5,8 @@ import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import http from '@/api/http'
 import Tag from 'primevue/tag'
+import Column from 'primevue/column'
+import AppTable from '@/components/ui/AppTable.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 
 const { t } = useI18n()
@@ -86,26 +88,21 @@ onBeforeUnmount(() => {
       />
     </div>
     <p v-if="error" class="err-msg">{{ error }}</p>
-    <table v-if="adapters.length" class="adapter-table">
-      <thead>
-        <tr>
-          <th>{{ t('dashboard.adapter.col_adapter') }}</th>
-          <th>{{ t('dashboard.adapter.col_status') }}</th>
-          <th>{{ t('dashboard.adapter.col_remaining') }}</th>
-          <th>{{ t('dashboard.adapter.col_freeze_count') }}</th>
-          <th>{{ t('dashboard.adapter.col_fail_streak') }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="a in adapters" :key="a.name">
-          <td><strong>{{ a.name.toUpperCase() }}</strong></td>
-          <td><Tag :severity="statusSeverity(a.status)" :value="statusLabel(a.status)" /></td>
-          <td>{{ a.status === 'frozen' ? `${a.remaining_seconds}s` : '—' }}</td>
-          <td>{{ a.freeze_count }}</td>
-          <td>{{ a.fail_streak }}</td>
-        </tr>
-      </tbody>
-    </table>
+    <AppTable v-if="adapters.length" :value="adapters" dataKey="name" size="small" table-class="adapter-table">
+      <Column :header="t('dashboard.adapter.col_adapter')">
+        <template #body="{ data }"><strong>{{ data.name.toUpperCase() }}</strong></template>
+      </Column>
+      <Column :header="t('dashboard.adapter.col_status')">
+        <template #body="{ data }">
+          <Tag :severity="statusSeverity(data.status)" :value="statusLabel(data.status)" />
+        </template>
+      </Column>
+      <Column :header="t('dashboard.adapter.col_remaining')">
+        <template #body="{ data }">{{ data.status === 'frozen' ? `${data.remaining_seconds}s` : '—' }}</template>
+      </Column>
+      <Column :header="t('dashboard.adapter.col_freeze_count')" field="freeze_count" />
+      <Column :header="t('dashboard.adapter.col_fail_streak')" field="fail_streak" />
+    </AppTable>
     <p v-else-if="!loading" class="empty">{{ t('dashboard.adapter.empty') }}</p>
   </div>
 </template>
@@ -139,13 +136,11 @@ onBeforeUnmount(() => {
   border-bottom: 2px solid var(--border);
 }
 
-.adapter-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  font-size: var(--font-size-13);
-}
-.adapter-table th {
+/* 仪表盘紧凑表格：本组件刻意不走 AppTable 的常规行高（面板空间有限，用 12/13px 字号 +
+   6~10px 内边距 + 表头 2px 下边框），故通过 table-class 把 .adapter-table 挂到内层 table 上，
+   再用 :deep() 穿透 —— PrimeVue 渲染的 thead/tbody/th/td 不带本组件的 scope 属性，
+   不加 :deep() 这些规则一条都不会生效。 */
+.adapter-table :deep(th) {
   font-weight: var(--font-weight-semibold);
   color: var(--text-dim);
   font-size: var(--font-size-11);
@@ -155,20 +150,20 @@ onBeforeUnmount(() => {
   background: var(--surface-raised);
   border-bottom: 2px solid var(--border);
 }
-.adapter-table th:first-child { border-radius: var(--radius-sm) 0 0 0; }
-.adapter-table th:last-child { border-radius: 0 var(--radius-sm) 0 0; }
-.adapter-table td {
+.adapter-table :deep(th:first-child) { border-radius: var(--radius-sm) 0 0 0; }
+.adapter-table :deep(th:last-child) { border-radius: 0 var(--radius-sm) 0 0; }
+.adapter-table :deep(td) {
   padding: var(--space-10);
   border-bottom: 1px solid var(--border-light);
   color: var(--text);
 }
-.adapter-table tbody tr {
+.adapter-table :deep(tbody tr) {
   transition: all var(--transition);
 }
-.adapter-table tbody tr:hover {
+.adapter-table :deep(tbody tr:hover) {
   background: var(--selected);
 }
-.adapter-table tbody tr:last-child td { border-bottom: none; }
+.adapter-table :deep(tbody tr:last-child td) { border-bottom: none; }
 
 .empty {
   color: var(--text-dim);
@@ -185,7 +180,6 @@ onBeforeUnmount(() => {
 /* 响应式 */
 @media (max-width: 767px) {
   .adapter-widget { padding: var(--space-16); }
-  .adapter-table { font-size: var(--font-size-12); }
-  .adapter-table th, .adapter-table td { padding: var(--space-6) var(--space-8); }
+  .adapter-table :deep(th), .adapter-table :deep(td) { padding: var(--space-6) var(--space-8); }
 }
 </style>

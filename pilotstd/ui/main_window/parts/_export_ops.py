@@ -7,11 +7,12 @@ import os
 from typing import Any
 
 from PyQt6.QtCore import QStandardPaths
-from PyQt6.QtWidgets import QDialog, QFileDialog
+from PyQt6.QtWidgets import QFileDialog
 
 from ....i18n import _
 from ...dialogs import ExportFileListDialog
 from ...table_constants import WORK_COLUMN_KEYS, WORK_COLUMNS
+from ...widgets.base_dialog import BaseDialog
 
 logger = logging.getLogger("pilotstd.ui")
 
@@ -27,7 +28,7 @@ def _on_export_file_list(self) -> None:
     if not path:
         path = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DesktopLocation)
     dlg = ExportFileListDialog(self, path)
-    if dlg.exec() != QDialog.DialogCode.Accepted:
+    if dlg.exec() != BaseDialog.DialogCode.Accepted:
         return
     root = dlg.source_path
     include_path = dlg.include_path

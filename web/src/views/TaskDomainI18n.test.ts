@@ -42,6 +42,8 @@ const TEXT_STUBS = {
   Tag: { template: '<span class="tag">{{ $attrs.value }}<slot /></span>', inheritAttrs: false },
   Textarea: { template: '<textarea :placeholder="$attrs.placeholder" />', inheritAttrs: false },
   Dialog: { template: '<div>{{ $attrs.header }}<slot /></div>', inheritAttrs: false },
+  // DS 模块二-B4：TaskManager 的弹窗已改用 <AppDialog>，stub 同步保留两者
+  AppDialog: { template: '<div>{{ $attrs.header }}<slot /></div>', inheritAttrs: false },
   Select: { template: '<div />' },
   SelectButton: { template: '<div />' },
   ProgressBar: { template: '<div />' },

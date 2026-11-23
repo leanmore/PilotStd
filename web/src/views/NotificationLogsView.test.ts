@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { shallowMount } from '@vue/test-utils'
+import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 import { createI18n } from 'vue-i18n'
 import { createRouter, createMemoryHistory } from 'vue-router'
+import PrimeVue from 'primevue/config'
 import NotificationLogsView from './NotificationLogsView.vue'
 import zhCN from '@/locales/zh-CN.json'
 import en from '@/locales/en.json'
@@ -31,9 +32,14 @@ function mountComponent(locale: 'zh-CN' | 'en' = 'zh-CN') {
   const i18n = createI18n({ legacy: false, locale, messages: { 'zh-CN': zhCN, en } })
   const router = createRouter({ history: createMemoryHistory(), routes })
 
-  return shallowMount(NotificationLogsView, {
+  // 模块二-B5：表格由 <AppTable>（内部 PrimeVue DataTable）渲染。
+  // 用 mount + 真实 PrimeVue 插件，让 AppTable 走真实渲染路径 —— 这是唯一能同时满足
+  // 「thead th 列数 / tbody tr 行数 / #body 插槽里的翻译逻辑」三类断言的方案。
+  // shallowMount 会 stub 掉 AppTable 整棵子树，任何替身都会绕开 Column 的 #body 插槽，
+  // 使 channelLabel/eventLabel/errorTypeLabel 等真实逻辑不再被执行（等于把要测的东西测没了）。
+  return mount(NotificationLogsView, {
     global: {
-      plugins: [pinia, i18n, router],
+      plugins: [pinia, i18n, router, PrimeVue],
       stubs: {
         Button: { name: 'Button', template: '<button class="p-button"><slot /></button>', props: ['icon', 'label', 'size', 'severity', 'loading', 'text', 'disabled'] },
 
@@ -41,6 +47,9 @@ function mountComponent(locale: 'zh-CN' | 'en' = 'zh-CN') {
         Select: { name: 'Select', template: '<select class="p-select"><slot /></select>', props: ['modelValue', 'options', 'optionLabel', 'optionValue'] },
         Calendar: { name: 'Calendar', template: '<div class="calendar" />', props: ['modelValue', 'locale', 'dateFormat', 'showIcon'] },
         Tag: { name: 'Tag', template: '<span class="tag">{{ value }}</span>', props: ['value', 'severity'] },
+        // DS 模块二-B4：模板已改用 <AppDialog>，stub 必须同步（否则弹窗内容不渲染，
+        // 下方「查看失败明细」等按钮断言会找不到）。保留 Dialog 键兼容未迁移用法。
+        AppDialog: { name: 'AppDialog', template: '<div class="dialog"><slot /></div>', props: ['visible', 'header', 'style', 'modal'] },
         Dialog: { name: 'Dialog', template: '<div class="dialog"><slot /></div>', props: ['visible', 'header', 'style', 'modal'] },
         Message: { name: 'Message', template: '<div class="message"><slot /></div>', props: ['severity', 'closable'] },
       },

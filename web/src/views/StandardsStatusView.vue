@@ -5,7 +5,6 @@ import { useI18n } from 'vue-i18n'
 import Card from 'primevue/card'
 import Tag from 'primevue/tag'
 import Message from 'primevue/message'
-import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import { getStandardsStats, getStandardsStatus, clearStandardsStatusCache, type StandardStatusItem } from '@/api/standards'
 import { STD_STATUS_FILTER, severityOfStatusKey } from '@/utils/stdStatus'
@@ -15,6 +14,7 @@ import TableLoadFooter from '@/components/TableLoadFooter.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
+import AppTable from '@/components/ui/AppTable.vue'
 
 const MAX_SIZE = 100
 
@@ -217,7 +217,7 @@ onMounted(() => {
           </span>
         </div>
 
-        <DataTable
+        <AppTable
           :value="displayRecords"
           :loading="loading"
           stripedRows
@@ -245,7 +245,7 @@ onMounted(() => {
             </template>
           </Column>
           <Column field="check_count" :header="t('standards.col_check_count')" style="width: 6rem; text-align: right" />
-        </DataTable>
+        </AppTable>
 
         <p v-if="!loading && displayRecords.length === 0" class="empty">{{ t('standards.empty') }}</p>
 

@@ -7,12 +7,13 @@ import logging
 from typing import Any
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QDialog, QFileDialog, QMessageBox
+from PyQt6.QtWidgets import QFileDialog, QMessageBox
 
 from pilotstd.core.status import Status
 
 from ....i18n import _
 from ...pending_query_dialog import PendingQueryDialog
+from ...widgets.base_dialog import BaseDialog
 from ...workers import RowUpdate
 
 logger = logging.getLogger("pilotstd.ui")
@@ -102,7 +103,7 @@ def _do_pending_query(self) -> None:
         self.status_changed.emit(_("status_pending_cancelled"))
         return
     dlg = PendingQueryDialog(self._mgr, parsed_list, self)
-    if dlg.exec() != QDialog.DialogCode.Accepted:
+    if dlg.exec() != BaseDialog.DialogCode.Accepted:
         self.status_changed.emit(_("status_pending_cancelled"))
         return
     results = dlg.get_results()

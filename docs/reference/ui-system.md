@@ -427,5 +427,276 @@ btn = BaseButton("取消", kind="ghost", size="s")
 6. **`SettingsTabSites` 清空数字字段漏校验** —— `null < 0 === false` 会放过空值，最终被后端 422 拒。
    在 `validate()` 补 `== null` 必填判断（并补三语 i18n 键 `sites.validation.number_required`）。
 
-**Win 端**：`BaseInput` / `BaseSelect` 见 §12（模块一-E 交付）。
+**Win 端**：`BaseInput` / `BaseSelect` 见 `docs/architecture/modules/ui.md` 的
+「输入控件统一：BaseInput / BaseSelect」小节（模块一-E 交付，2026-11-22）。要点：
 
+- 与 Web 一一对应：`size` l/m/s 映射 `--input-height-*`，圆角 `--ds-radius-md`，
+  四态（default/hover/focus/disabled）全部取自 `tokens_generated.py`，缺令牌抛 `KeyError`；
+- A-53 Win 侧同步收口：`BaseButton` / `BaseInput` / `BaseSelect` 的禁用态统一消费
+  `disabledBg` / `disabledText`，不再用 `borderLight` + `textDim` 顶替；
+- **QSS 没有 `box-shadow`**，故聚焦态用「描边加粗到 2px + 主色」等效 Web 的外发光，
+  并按 `min-height -2 / padding -1` 做等高换算，保证四态外框总高恒等于高度令牌
+  （否则表单控件获得焦点时会跳高、把下方元素顶下去）；
+- 两个 Qt 侧实测坑：`QComboBox` 在应用级 QSS 下首次 `sizeHint()` 会返回未套样式的高度
+  （需 `ensurePolished()` + `updateGeometry()`）；placeholder 调色板必须在 `ensurePolished()`
+  **之后**设置，否则被 QSS 的 `color` 重建覆盖。
+
+---
+
+## 十二、阶段三：数据表格与弹窗（Table / DataGrid / Dialog）
+
+> 状态：**进行中**。规范（12.1–12.4）已定稿，`<AppTable>` / `<AppDialog>` 封装与存量替换
+> 按 `components/` → `views/` 两批推进。
+> 门禁 `custom/no-raw-table` 当前为 `warn`（存量基线 36 处 / 17 文件），替换完成后升 `error`。
+
+### 12.1 表格规范
+
+统一由 `<AppTable>` 承担，业务页只写「哪些列 + 什么数据 + 布局宽度」，不写表头/斑马纹/边框样式。
+
+| 部位 | 令牌 / 值 | 说明 |
+|---|---|---|
+| 表头背景 | `--surface-raised` | 与内容区（`--surface`）拉开一档，形成「表头带」 |
+| 表头字色 | `--text` | **不是** `--text-secondary` / `--text-dim`，见下方对比度理由 |
+| 表头字号 | `--font-size-11` | 比正文小一档，靠字重与大小写补层级 |
+| 表头字重 | `--font-weight-semibold` | 600 |
+| 表头大小写 | `text-transform: uppercase` | 配合字距做「标签化」处理 |
+| 表头字距 | `0.6px`（结构性字面量，登记进 G-055 基线 `ds-skeleton` 组） | 小字号全大写时字距必须放开，否则糊成一片 |
+| 表头内边距 | `--space-10` / `--space-14` | 上下 10px、左右 14px |
+| 单元格边框 | `--border-light` | 行分隔用最浅一档，避免整表被线条切碎 |
+| 行内边距 / 字号 | `--space-9` / `--space-14`；`--font-size-13` | 上下 9px、左右 14px |
+| 表格圆角 | `--ds-radius-md`（容器上）+ `overflow: hidden` | 旧 `--radius`（10px）冻结，按 4.1 收敛到 8px；圆角靠容器裁剪表头四角 |
+| 普通行底色 | `--surface` | 与表头 `--surface-raised` 形成层级 |
+| 行 hover | `--selected` | 主色 8% 透明叠底，与斑马纹是两级信号 |
+| 斑马纹（`:nth-child(even)`） | `--surface-raised` | 极浅抬升面；**不新增 `--table-stripe`**，见下方说明 |
+| 分页器 | 背景 `--surface` / 边框 `--border` / 页码圆角 `--radius-sm` / 页码尺寸 32×32 | **刻意留在 `style.css`**（C 类 RETAINED 段）：分页器是 PrimeVue `Paginator` 的内部结构，与表格本体解耦，放全局段对「尚未迁移的直接 `<DataTable>`」同样生效；且 32px 在 `design-tokens.css` 里没有独立语义令牌（唯一同值是 `--icon-tile-sm`「仪表盘图标方块」，挪用属语义错配）。当前页 `--primary-fill` + `#fff` |
+
+**表头字色为什么是 `--text` 而不是 `--text-secondary`**（RETAINED，勿改）：
+
+> Aura 的组件作用域 token（`--p-datatable-header-cell-color` 等）解析后是**直接值** `#334155`，
+> 在 root 级注入 `--p-content-color` 覆盖不到（P1 实证）。改用 `--text-dim` 时浅色主题实测仅
+> **2.4–2.6:1**，不满足 WCAG AA；改用 `--text` 后 ≈**7:1**（浅色深字 / 深色浅字自适应）。
+> 层级感由「加粗 + 大写 + 小字号 + 字距」承担，不靠降亮度。
+> 依据：`docs/technical-debt.md`（Tech-Debt #8）。
+
+**为什么斑马纹用 `--surface-raised`、hover 用 `--selected`（且不新增 `--table-stripe` 令牌）**：
+
+1. **两级信号必须可分辨**：斑马纹是「可扫读底色」（静态、常驻），hover 是「当前指向的那一行」
+   （动态、瞬时）。两者若同用 `--selected`，hover 行会与相邻的斑马行**同色**，
+   「当前悬停哪一行」反而不可辨 —— 与 11.3 里「输入框 hover 不改底色、避免与表格行 hover
+   叠加成双层高亮」是同一条取舍逻辑。
+2. **`--surface-raised` 本就是现有观感**：迁移前 `style.css` 的
+   `.p-datatable-tbody>tr:nth-child(even)` 用的就是 `--surface-raised`，本轮目标是
+   「视觉等价地令牌化」而非重新设计，改用它以外的值会引入新观感。
+3. **不新增 `--table-stripe` 的理由**：新增颜色令牌必须同时写进 `themes.ts` 的四套主题、
+   `applyThemeToDom` 的映射表与 `style.css` 的 `:root` 默认值，并触发 `design-tokens.test.ts`
+   的「映射表覆盖全部颜色键」断言，还要同步 Win 端 `gen_win_tokens.py` 的产物。
+   现有两个令牌已能表达这两级信号，为一个没有独立视觉诉求的用途付这份成本不划算。
+4. **反例留档**：若将来产品要求「斑马纹必须中性灰、且与 hover 同色系」，那才需要新增
+   `--table-stripe` 并同步四主题，而不是在本节改口径。
+
+- 斑马纹靠 PrimeVue 的 `stripedRows`（`AppTable` 透传），**不要**在业务页写
+  `:nth-child(even)` 选择器；
+- 行 hover 的过渡用 `--transition`（0.2s），不要各页自定义时长；
+- 空数据提示（`#empty` 插槽）文字用 `--text-dim`、上下 `--space-32`、居中、`--font-size-13`；
+- **行内可编辑单元格**（如 `AnnounceDetail` 的可编辑列）用 `AppInput size="s"`，
+  不要为了塞进表格而自降高度写死像素。
+
+> **`style.css` 的 `.p-datatable` 段与 `AppTable` 的关系**：该段**保留**，服务尚未迁移的直接
+> `<DataTable>` 用法（如 `TaskManager` 的两张表），已同步令牌化为与 `AppTable` **逐条等价**的值
+> （唯一差异是圆角：`--radius` 10px → `--ds-radius-md` 8px）。`AppTable` 渲染时组件内 `:deep()`
+> 因多一个 `.app-table` 类而特异性更高，覆盖结果一致，**不存在两套样式打架**。
+> 模块二-B 迁移完成后该段可删。
+
+### 12.2 弹窗规范
+
+统一由 `<AppDialog>` 承担。
+
+| 部位 | 令牌 / 值 | 说明 |
+|---|---|---|
+| 遮罩层 | **不新增令牌**，沿用 PrimeVue Aura 的 `mask.background`（`--p-mask-background`）：浅色主题（light / green）`rgba(0, 0, 0, 0.4)`、深色主题（dark / blue）`rgba(0, 0, 0, 0.6)` | 该值来自 Aura preset，**不在本仓 `:root`**，本仓不覆盖；见下方说明 |
+| 弹窗圆角 | `--ds-radius-lg`（12px） | 冻结的旧 `--radius-lg`（14px）不得新增引用 |
+| 弹窗背景 / 边框 | `--surface` + `1px solid var(--border)` | 与卡片同口径 |
+| 阴影 | `--shadow-lg` | 与 PrimeVue 默认 shadow 二选一，取 DS 值 |
+| header 内边距 | `--space-18` / `--space-20`（上下 18px、左右 20px） | 迁移前是 `18px 22px` 字面量；间距档位表里**没有 22**（1/2/3/4/6/7/8/9/10/12/14/16/18/20/24/30/32/40/44），故水平收敛到最近的 `--space-20`（视觉差 2px 不可辨），竖直保留精确的 `--space-18` |
+| content 内边距 | 同 header（`--space-18` / `--space-20`） | header/content 左右必须对齐，否则标题与正文错位 |
+| header 分隔线 | `1px solid var(--border)`（仅 header 下沿） | content 自身不加边框；footer 沿用 PrimeVue 默认（见下行） |
+| header 标题 | 色 `--text-heading`、字重 `--font-weight-semibold` | 比正文高一档亮度 |
+| 关闭按钮位置 | 右上角，由 PrimeVue 的 `header-actions` 区承载（Aura 默认即在 header 右侧） | **不要**用绝对定位自造；`#closebutton` 插槽可整体替换 |
+| 关闭按钮尺寸 | **只收敛图标字号**到 `--size-20`，色 `--text-secondary`，hover 转 `--text` | 作用于 `.p-dialog-close-button .p-button-icon`，**刻意不设按钮本体 width/height**：Aura 的关闭按钮是 text+rounded 图标按钮，硬设 20×20 会压没内边距、把点击热区缩到 20px（< WCAG 2.5.8 的 24px 最小目标）；只改图标字号既满足「右上角 20px 图标」口径，又保住热区 |
+| footer | **不在封装内定制**，沿用 PrimeVue 默认（内容右对齐、按钮间距 `0.5rem`、上无分隔线） | 主操作在右（与 `AppButton` 层级一致）；需要分隔线时由调用方在 `#footer` 内自行加 |
+
+**遮罩层为什么这轮不新增 `--overlay-backdrop`**：
+
+- 现有视觉直接来自 Aura 的 `mask.background`（浅色 0.4 / 深色 0.6），`web/src/style.css` 与
+  `theme.css` 均**没有**覆盖 `.p-overlay-mask`，即当前观感就是 Aura 默认值，没有「两套值打架」问题；
+- 新增颜色令牌的连带成本是四主题各写一份 + `applyThemeToDom` 接线 + `design-tokens.test.ts` 的
+  映射覆盖断言 + `scripts/gen_win_tokens.py` 的产物同步（Win 端 `BaseDialog` 也要吃同一份），
+  而本轮**没有明确的视觉诉求**（不是「遮罩太黑看不清」这类具体缺陷）；
+- 因此裁定：**本轮不新增**。若将来确需调整，按 5.1 的单一真相流程新增 `--overlay-backdrop`，
+  同批改四主题 + `applyThemeToDom` + `style.css :root`，并把 Win 端产物一起重生成。
+
+- 业务页只传 `v-model:visible` / `header` / `:style="{ width: 'Npx' }"` 这类**布局与语义**参数，
+  圆角、内边距、分隔线、关闭按钮位置一律不写；
+- 宽度用 `:style="{ width: 'Npx' }"` 是既有约定（存量 7 个弹窗都这么写），`AppDialog` 必须透传
+  `style`/`class`，替换时**宽度语义原样保留**；
+- `dismissableMask` **默认 `false`**（与 PrimeVue 一致）：破坏性操作确认弹窗**不要**开；
+  只有「随便点哪都能关」的信息型弹窗才显式开；
+- `closable` / `draggable` 默认 `true`（PrimeVue 默认），需要锁死时显式传 `false`；
+- `header` 类型是 `string`（默认 `undefined`）：PrimeVue 的 `d.ts` 是 `string | undefined`，
+  传 `null` 会在 `vue-tsc` 报 TS2322；`#header` 插槽可完全接管标题区。
+
+> **`style.css` 的 `.p-dialog` 段与 `AppDialog` 的关系**：该段**保留**，服务尚未迁移的直接
+> `<Dialog>` 用法（存量 7 处），已同步令牌化为与 `AppDialog` **逐条等价**的值（唯一差异是圆角：
+> `--radius-lg` 14px → `--ds-radius-lg` 12px）。`AppDialog` 的样式块**不带 `scoped`**（内容经
+> `<Portal>` teleport 到 body，scoped 的 `[data-v-*]` 落不到 teleport 后的节点上），改用
+> `html .app-dialog` 前缀收口并压过 `style.css` 的 `.p-dialog` 段，**不存在两套样式打架**。
+> 模块二-B 迁移完成后该段可删。
+
+### 12.3 禁止项
+
+- **禁止手写原生 `<table>` 做数据表**：表头/斑马纹/hover/边框/圆角/分页器一律由 `AppTable` 提供。
+  历史遗留的 6 处手写表格（`DownloadQueue` / `NotificationLogsView`×2 / `ValidityConfig` /
+  `AdapterStatusCard` / `QueryHistory`）属模块二-B 的替换目标，`custom/no-raw-table` 会命中；
+  `QueryHistory` 的手写表格是本轮明确要替换的对象（**预期命中，不是误伤**）。
+  > 例外：`AppTable` 内部**不使用** `<table>` —— PrimeVue 自己渲染 `<table>`，封装层不出现该标签，
+  > 所以本规则与 `AppTable` 实现不冲突。
+- **禁止直接 import / 使用 PrimeVue 表格与弹窗组件**：
+  `primevue/datatable`、`primevue/treetable`、`primevue/datagrid`、`primevue/dialog`、
+  `primevue/confirmdialog`、`primevue/dynamicdialog`；
+- **禁止在业务页写表格/弹窗样式**：`.data-table` / `.log-table` / `.adapter-table` /
+  `.p-datatable` / `.p-dialog` 之类的选择器不得在新代码出现，视觉一律由 `AppTable`/`AppDialog` 承担；
+  页面只允许写**布局**（宽度、栅格、间距、`min-width`）；
+- **`primevue/column` 不在禁止清单内**：`<Column>` 是 `AppTable` 默认插槽的配套子组件，
+  业务页照常 `import Column from 'primevue/column'` 使用；
+- **`bare` 不是绕过门禁的手段**：树形表格 / 合并单元格 / `DataGrid` 语义走 `<AppTable bare>`
+  或 `<AppDialog bare>`（零样式透传），但**仍必须经 `App*` 组件**，不得回到 PrimeVue 原语。
+
+### 12.4 组件契约
+
+| 组件 | 底层 | 显式 props（含默认值） | `$attrs` 透传 | 透传的 slots |
+|---|---|---|---|---|
+| `AppTable` | PrimeVue `DataTable` | 仅 `bare: boolean = false` | `inheritAttrs: false` + `v-bind="$attrs"`：`:value`、`paginator`、`:rows`、`:totalRecords`、`stripedRows`、`:loading`、`dataKey`、`selectionMode`、`v-model:selection`、`expandedRows`、`editMode`、`:scrollHeight`、`size`、`class`、`@page` / `@sort` / `@rowSelect` / `@cell-edit-complete` … 全部原样透传 | 按 `$slots` 动态全量转发：默认插槽（放 `<Column>`）、`#header`、`#empty`、`#footer`、`#groupheader`、`#expansion`、`#loading`、`#paginatorstart` / `#paginatorend` 及任何未列举的具名插槽 |
+| `AppDialog` | PrimeVue `Dialog` | `visible: boolean = false`、`header: string = undefined`、`modal: boolean = false`、`dismissableMask: boolean = false`、`closable: boolean = true`、`draggable: boolean = true`、`bare: boolean = false`；emits：`update:visible` / `show` / `hide` | `inheritAttrs: false` + `v-bind="$attrs"`：`:style`（宽度约定）、`class`、`maximizable`、`position`、`appendTo`、`contentStyle` / `contentClass`、`breakpoints`、`blockScroll`、`closeOnEscape`、`baseZIndex`、`pt` … 全部原样透传 | 按 `$slots` 动态全量转发：默认插槽（内容）、`#header`、`#footer`、`#container`、`#closebutton`、`#maximizebutton`、`#closeicon`、`#maximizeicon` 及任何未列举的具名插槽 |
+
+> `header` 的类型刻意是 `string`（**不是** `string \| null`）：PrimeVue `Dialog` 的 `d.ts` 声明为
+> `header?: string \| undefined`，传 `null` 会在 `vue-tsc` 阶段报 **TS2322**。`#header` 插槽可完全接管标题区。
+
+**为什么 `AppTable` 只显式声明 `bare` 一个 prop**：`DataTable` 的 props/事件有 80+ 个，
+逐条声明等于抄一遍 PrimeVue 的 `d.ts`，漏一个就静默失效（值落到 DOM attribute 上、不报错、
+单测也测不到），维护成本远高于收益。故全量 `$attrs` 透传，语义与直接用 PrimeVue `DataTable`
+**完全同构**，迁移时只改标签名（`<DataTable>` → `<AppTable>`），props/事件一个都不用动。
+
+**为什么 `AppDialog` 要显式声明 7 个 prop 与 3 个 emit**：这 7 个同时是 `v-model` 与 a11y 的
+语义锚点，声明出来才有类型提示与契约可写；`update:visible` 若只透传，声明式 `emits` 会把监听器
+从 `$attrs` 里摘掉，必须手动转发（`v-model:visible` 依赖它）；`show` / `hide` 是业务侧关闭时
+清理状态的钩子（`TaskManager` 用 `@hide="detailTask = null"`）。其余事件继续走 `$attrs`。
+
+**`bare` 逃生舱（两个组件同义，与 `AppButton` / `AppInput` 的 `bare` 一致）**：
+
+| 项 | `bare: false`（默认） | `bare: true` |
+|---|---|---|
+| 样式 | 施加 12.1 / 12.2 全部 DS 视觉（表头、斑马纹、hover、圆角、内边距、分隔线…） | **零样式**：走 PrimeVue `:unstyled="bare"`，连 `p-datatable` / `p-dialog` / `p-overlay-mask` 类名都不生成，外观（含遮罩）全部交给宿主 |
+| 用途 | 99% 的业务表格与弹窗 | 树形表格（`TreeTable` 语义）、合并单元格、`DataGrid` 语义、完全自定义的浮层结构 |
+| 门禁 | 正常放行 | 同样放行（仍走 `App*`，不回到原语） |
+| 契约 | 全部 props / slots / 事件透传 | 同左 |
+
+**使用示例**（两种典型形态）：
+
+```vue
+<!-- 标准分页表格：业务页只写列与数据 -->
+<AppTable :value="rows" paginator :rows="20" striped-rows dataKey="id" :loading="loading">
+  <Column field="standard_number" :header="t('standard_table.col_standard_number')" />
+  <Column field="status" :header="t('standard_table.col_status')" />
+  <template #empty><span>{{ t('common.no_data') }}</span></template>
+</AppTable>
+
+<!-- 高度定制：树形/合并单元格走 bare，零样式透传 -->
+<AppTable bare :value="nodes" :expanded-rows="expanded" />
+
+<!-- 弹窗：宽度语义原样保留，圆角/内边距由 AppDialog 承担 -->
+<AppDialog v-model:visible="showAdd" :header="t('settings.users.add_title')" modal
+           :style="{ width: '360px' }">
+  <p>…</p>
+  <template #footer>
+    <AppButton type="ghost" :label="t('common.cancel')" @click="showAdd = false" />
+    <AppButton type="primary" :label="t('common.save')" @click="save" />
+  </template>
+</AppDialog>
+```
+
+- 两个组件都必须 `defineOptions({ name: 'AppTable' / 'AppDialog' })`（G-027 门禁）；
+- 全部 `$attrs` 透传是**硬契约**：替换存量时 `:style` 宽度、`@hide`、`v-model:visible`、
+  `headerStyle`、`selectionMode`、可编辑单元格等语义必须原样保留，不允许在封装层「顺手归一」；
+- `AppDialog` 的 header/content/footer 左右内边距必须同源（见 12.2），否则标题与正文错位。
+
+### 12.5 门禁
+
+新增 ESLint 规则 **`custom/no-raw-table`**：
+
+| 项 | 值 |
+|---|---|
+| 级别 | **`error`**（模块二替换完成后已升级；`36` 处存量归零） |
+| 覆盖 | `src/**/*.{ts,vue}`，模板标签 + 脚本 import 两侧 |
+| 模板拦截 | 原生 `<table>`；PrimeVue `<DataTable>` / `<TreeTable>` / `<DataGrid>` / `<Dialog>` / `<ConfirmDialog>` / `<DynamicDialog>`（含 `Prime*` 前缀别名） |
+| 脚本拦截 | `primevue/datatable`、`primevue/treetable`、`primevue/datagrid`、`primevue/dialog`、`primevue/confirmdialog`、`primevue/dynamicdialog` |
+| 豁免 | `src/components/ui/App*.vue`（封装点）、`src/main.ts`（PrimeVue 全局注册点）、`*.test.ts` / `*.spec.ts` / `*.test.js` / `*.spec.js` / `*.test.vue`、路径含 `/e2e/` |
+| 单测 | `eslint-plugin-custom/rules/no-raw-table.test.js`（RuleTester，22 例） |
+
+**存量基线（2026-11-22，warn 落地时）**：`36` 处命中、分布在 `17` 个文件。下表是**落地快照**，
+仅用于核对历史进度；**当前已全部归零**（见 12.6 交付台账）：
+
+| 控件类型 | 命中 | 涉及文件 |
+|---|---:|---:|
+| PrimeVue `<DataTable>`（模板） | 10 | 9 |
+| PrimeVue `<Dialog>`（模板） | 7 | 5 |
+| `import 'primevue/datatable'` | 7 | 7 |
+| 原生 `<table>`（手写数据表） | 6 | 5 |
+| `import 'primevue/dialog'` | 4 | 4 |
+| PrimeVue `<ConfirmDialog>`（模板） | 1 | 1 |
+| `import 'primevue/confirmdialog'` | 1 | 1 |
+| **合计** | **36** | **17** |
+
+> 实现要点（实测，与 `no-raw-button` / `no-raw-input` 完全一致）：ESLint 10 + `vue-eslint-parser`
+> 下直接写 `VElement` 访问器**不会触发**，必须经 `eslint-plugin-vue` 的 `defineTemplateBodyVisitor`
+> 才能遍历模板；该包只提供 `dist/index.js`（无 `lib/utils` 子路径），其 utils 是 CommonJS，
+> **ESM 命名导入拿不到函数（实测 undefined）**，故写
+> `import vueUtils from 'eslint-plugin-vue/dist/utils/index.js'` 再解构
+> `vueUtils.default.defineTemplateBodyVisitor`。
+>
+> **2026-11-22 升级实录**：探针文件 `src/views/__GateProbe2.vue` 同时含原生 `<table>`、
+> PrimeVue `<DataTable>`、PrimeVue `<Dialog>` 与两个 `primevue/*` import → `lint` 报 **5 error**、
+> exit 1；删除后 `lint` 恢复 `0 error`、exit 0。
+
+### 12.6 模块二交付台账（2026-11-22 完成）
+
+**Web 端：`36` 处 → `0`**
+
+| 批次 | 范围 | 主要替换 |
+|---|---|---|
+| B1 | `StandardTable` / `BackupView` / `QualityView` | 3 `AppTable`（含 12 个 `Column` 原样保留） |
+| B2 | `SchedulerStatus` / `FavoritesView` / `DownloadImport` | 3 `AppTable`（含 Tag severity、操作按钮、error 渲染的 `#body` 插槽） |
+| B3 | `AnnounceDetail` / `StandardsStatusView` | 2 `AppTable`（`selectionMode="multiple"` + `v-model:selection` + `editMode="cell"` + 3 个可编辑 `AppInput` 全部保留） |
+| B4 | `TaskManager` / `ValidityConfig` / `NotificationLogsView` / `SettingsTabToken` / `SettingsTabUsers` | 7 `AppDialog`（含 `:visible`+`@hide` 与 `v-model:visible` 两种写法、7 处 `:style` 宽度语义） |
+| B5 | `QueryHistory` / `DownloadQueue` / `NotificationLogsView`（2 处） / `ValidityConfig` / `AdapterStatusCard` | 6 处手写 `<table>` → `AppTable`（含 sticky 表头、`row-class` 动态行类、紧凑仪表盘样式） |
+| — | `SettingsView` | `<ConfirmDialog>` → 新增 `AppConfirmDialog`（见下） |
+
+**`AppConfirmDialog` 为什么单独封装**：`<ConfirmDialog>` 不是普通弹窗，而是
+**PrimeVue ConfirmationService 的渲染宿主** —— 业务侧 `confirm.require({...})` 把请求推进服务队列，
+再由这个**单例**渲染队列头。它没有 `v-model:visible`、没有默认插槽，换成 `AppDialog` 会直接切断
+`confirm.require()` 链路（弹窗永不出现且不报错）。故新增薄封装，保留服务契约、只收敛视觉
+（圆角/内边距/按钮层级与 `AppDialog` 一致）。
+
+**替换过程中修掉的真实缺陷**：
+
+1. **测试 stub 未随组件改名** —— 多处测试 `stubs: { DataTable: Stub }` / `{ Dialog: Stub }` 在模板
+   改 `AppTable`/`AppDialog` 后不再命中，`findComponent` 恒为空、断言静默失效。逐个改为新键名。
+2. **`shallowMount` 把 `AppTable` 整棵子树 stub 掉** —— 任何替身都会绕开 `<Column>` 的 `#body` 插槽，
+   使 `channelLabel`/`eventLabel`/`errorTypeLabel` 等**真实翻译逻辑不再被执行**（等于把要测的东西测没了）。
+   `NotificationLogsView.test.ts` 改为 `mount` + 真实 PrimeVue 插件，让 AppTable 走真实渲染路径。
+3. **`NotificationConfig` 的「渲染总开关」用例 flake** —— 原用固定 `setTimeout(10)` 睡等，全量并行时
+   jsdom 环境加载把这 10ms 挤爆 → 偶发 5s 超时（单跑必绿）。改为 `vi.waitFor()` 轮询，既消除 flake
+   又不放宽断言。
+4. **scoped 样式对 PrimeVue 渲染出的 `th`/`td` 不生效** —— `AdapterStatusCard` 的 `.adapter-table`
+   原直接选 `th`/`td`，改 AppTable 后这些节点不带本组件 scope 属性，规则全部失效。改用 `:deep()`。
+
+**Win 端**：`BaseTable` / `BaseDialog` 见 `docs/architecture/modules/ui.md`（模块二-C 交付）。

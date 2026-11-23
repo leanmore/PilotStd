@@ -56,6 +56,8 @@ const TEXT_STUBS = {
   Tag: { template: '<span class="tag">{{ $attrs.value }}<slot /></span>', inheritAttrs: false },
   Message: { template: '<div class="msg"><slot /></div>' },
   Dialog: { template: '<div class="dlg">{{ $attrs.header }}<slot /></div>', inheritAttrs: false },
+  // DS 模块二-B4：SettingsTabToken / SettingsTabUsers 的弹窗已改用 <AppDialog>，stub 同步保留两者
+  AppDialog: { template: '<div class="dlg">{{ $attrs.header }}<slot /></div>', inheritAttrs: false },
   DataView: { template: '<div class="dv"><slot name="list" :items="[]" /></div>' },
   // Select 原为空 div（只够断言「有下拉」）；DynamicSettingField 的 toggle/select 改走
   // AppSelect → PrimeVue Select 后，选项文案是断言目标（「是/否」），故按 options 渲染 label。

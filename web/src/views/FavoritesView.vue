@@ -7,6 +7,7 @@ import { useI18n } from 'vue-i18n'
 import { useToast } from 'primevue/usetoast'
 import FavoriteStatusTag from '@/components/FavoriteStatusTag.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppTable from '@/components/ui/AppTable.vue'
 
 const { t } = useI18n()
 const toast = useToast()
@@ -159,7 +160,7 @@ onMounted(loadFavorites)
       </TabList>
       <TabPanels>
         <TabPanel v-for="tab in typeTabs" :key="tab.key" :value="tab.key">
-          <DataTable :value="filtered" :loading="loading" striped-rows size="small" dataKey="id">
+          <AppTable :value="filtered" :loading="loading" striped-rows size="small" dataKey="id">
             <Column field="standard_number" :header="t('favorites.col_standard_number')" style="min-width: 180px" />
             <Column field="standard_name" :header="t('favorites.col_name')" style="min-width: 220px" />
             <Column :header="t('favorites.col_type')" style="width: 110px">
@@ -180,7 +181,7 @@ onMounted(loadFavorites)
             <Column field="created_at" :header="t('favorites.col_created_at')" style="width: 160px">
               <template #body="{ data }">{{ (data.created_at || '').replace('T', ' ').slice(0, 16) }}</template>
             </Column>
-          </DataTable>
+          </AppTable>
           <div v-if="!loading && filtered.length === 0" class="empty">
             {{ activeType === 'all' ? t('favorites.empty') : t('favorites.empty_type') }}
           </div>

@@ -211,4 +211,67 @@ Handler Handler  Handler    (worker)   Handler
 - 新增 pilotstd/ui/widgets/base_input.py：BaseInput(QLineEdit) 与 BaseSelect(QComboBox)，
   size l/m/s 映射输入控件高度令牌，圆角取 ds_radius_md，四态（default/hover/focus/disabled）
   全部取自生成令牌，缺令牌抛 KeyError 而非静默降级（与 BaseButton 同风格）。
+- 调用点替换：pilotstd/ui 内 **25 处** 裸 `QLineEdit(...)` / `QComboBox(...)` 全部替换为
+  `BaseInput` / `BaseSelect`（`_settings.py` 19 处、`rules_page.py` 6 处），
+  size 按语义取 m（表单）；7 处密码框改 `BaseInput(password=True)`，不再手工 `setEchoMode`；
+  `setPlaceholderText` / 信号连接 / 下拉选项与 `setCurrentText` 逻辑原样保留。
+  类型标注仍写 Qt 基类（二者是 QLineEdit/QComboBox 子类），调用侧零改动。
+- 聚焦态的等高换算：Qt 的 `min-height` 是内容盒高度，聚焦把描边 1px→2px 会让总高多 2px；
+  故 focus 态按 `高度-4` / `内边距-1` 换算，四态外框总高恒等于高度令牌（避免表单控件聚焦时跳高）。
+- placeholder 走 QPalette.PlaceholderText（Qt QSS 无 `::placeholder` 伪元素），色值取 textDim。
+  **顺序有讲究**：必须排在 `ensurePolished()` 之后 —— polish 会用 QSS 的 `color` 重建调色板，
+  先设会被覆盖回正文色（实测 placeholder 变成 text 色）。
+- **替换过程中修掉的真实缺陷（有回归用例）**：应用级 QSS 生效时，QComboBox 在首次 polish 前
+  `sizeHint()` 返回**未套控件 QSS** 的高度（实测 22px，令牌要求 34px），要等事件循环 polish
+  才恢复。首次布局会按 22px 排，表单下拉"矮一截"。修法：`_apply_style()` 末尾立即
+  `ensurePolished()` + `updateGeometry()`。回归用例 `TestRenderedHeight::test_rendered_height_under_app_stylesheet`
+  （先 `app.setStyleSheet(...)` 再构造控件，断言 sizeHint == 令牌高度）。
+- 守护用例：tests/gui/test_base_input.py（27 项）—— 尺寸令牌取值、四态取色、A-53 禁用态四主题、
+  非法 size 抛 ValueError、缺令牌抛 KeyError、password echoMode、渲染高度（含应用级 QSS 场景）、
+  BaseButton 的 A-53 收口、源码无字面色值、以及「pilotstd/ui 内不得再构造裸 QLineEdit/QComboBox」。
 - 后续新增 Win 输入控件：直接用 BaseInput / BaseSelect，不要再用裸 QLineEdit / QComboBox。
+
+## 表格与弹窗统一：BaseTable / BaseDialog（2026-11-22，DS 阶段三 · 模块二）
+
+- 新增 `pilotstd/ui/widgets/base_table.py`：`BaseTable(QTableWidget)`，表头底色 `surfaceRaised` /
+  表头文字 `text`（**不是 `textSecondary`**，与 Web 端同一取舍：`textDim` 浅色主题仅 2.4-2.6:1 不达标）、
+  斑马纹 `surfaceRaised`、行 hover `selected`、边框 `border` / `borderLight`、圆角 `ds_radius_md`。
+- 新增 `pilotstd/ui/widgets/base_dialog.py`：`BaseDialog(QDialog)`，圆角 `ds_radius_lg`、
+  内边距 `space_18` / `space_20`、右上关闭按钮（只收敛图标字号到 `size_20`，**不设按钮本体宽高**——
+  硬设 20×20 会把点击热区压到 20px，低于 WCAG 2.5.8 的 24px 最小目标；实现只保证 `size_24` 最小边长）。
+- 未新增遮罩层颜色令牌：与 Web 端 `AppDialog` 同口径（迁移前从未覆盖遮罩，观感即 Qt/Aura 默认；
+  加颜色键会连带触发 `design-tokens.test.ts` 映射断言与令牌同步链，成本高且无视觉需求）。
+- 调用点替换（数字均以 `git grep QDialog HEAD -- pilotstd/ui` 为准，共 35 行文本）：
+  - `QTableWidget(...)` 构造 **2 处 → 0**（`_ui_setup_ops._setup_work_table`、`task_page.TaskPage`）；
+  - `QDialog` **7 处基类继承 → 0**：`ConfigPageDialog` / `ExportFileListDialog` / `RuleEditDialog` /
+    `SettingsDialog` / `TaskCenterDialog` / `PendingQueryDialog` / `WelcomeDialog`；
+  - `QDialog(...)` **5 处直接构造 → 0**：`_announce` / `_auto` / `_cleanup` / `_query_summary` / `_dialog_ops`；
+  - 其余 14 行 import + 6 行 `DialogCode` 枚举比较 + 2 行类型标注（`parent: QDialog`、
+    `-> QDialog`）+ 1 行 `themes.py` 全局 QSS 选择器，随上述替换一并收敛。
+  全部改为继承/使用 `BaseDialog`，业务信号槽与 `exec()` 语义原样保留
+  （`BaseDialog.DialogCode` 与 `QDialog.DialogCode` 是同一个枚举，`exec()`/`accept()`/
+  `reject()`/`closeEvent()`/`setWindowTitle()`/`resize()` 一律不覆写）。
+- 保留的 `QDialog` 引用是**语义性**的、不参与替换：`themes.py` 的全局 QSS 选择器
+  `QDialog, QWidget {...}`（对子类同样生效）、`_cleanup.move_unrecognized_files(parent: QDialog)`
+  的类型标注，以及 `QTableWidget.EditTrigger/SelectionBehavior/SelectionMode` 枚举常量
+  （`BaseTable` 是 `QTableWidget` 子类，这些常量照旧可用）。
+- 表格窄列的局部代价（实测）：Web 的 `--space-14` 水平内边距套到 Win 端会把 34px「序号」列
+  整列挤成空白（表头与单元格都被省略到 0 像素，8px 时已开始被挤扁）。故 `BaseTable` 的
+  item/表头**水平**内边距交给 Qt 委托默认值（约 4px），**竖直**方向保留 `--space-9`/`--space-10`；
+  行高（38px）与表头高（37px）由 QSS 之外的 `setDefaultSectionSize`/`setFixedHeight` 显式设，
+  因为 QSS 的 `::item padding` 只影响 `sizeHintForRow()`、不改 `rowHeight()`。
+- `--selected` 是 rgba，Qt 的 item 委托**不会**按行底色合成半透明 `::item` 背景（实测直接写
+  rgba 会渲染成明显偏深的主色）。故 `BaseTable` 先用 `_composite()` 把 alpha 令牌按 `surface`
+  压成 `#rrggbb` 再交给 QSS；四主题渲染实测与合成值逐位一致。
+- `BaseDialog` 的内边距在首次 `showEvent` 里套到 layout：`QWidget.setContentsMargins()` 只内缩
+  窗口内容区、不改布局 margin；而 `QLayout.setContentsMargins()` 在 `show()` 前会被 QDialog 的
+  默认布局重排覆盖回 11px（两者叠加还会翻倍成 (40,36)）。
+- `BaseDialog(closable=)` 默认 **False**（与 Web 的 `closable` 默认 true 有意不同）：存量弹窗
+  全部自带页脚「关闭/确定/取消」，再加浮动关闭按钮 = 同一弹窗两个关闭入口，属业务行为变更。
+  需要右上角关闭按钮的新弹窗显式传 `closable=True`。
+- 守护用例：`tests/gui/test_base_table.py`（27 项）+ `tests/gui/test_base_dialog.py`（27 项）——
+  令牌取值（表头底/字色、斑马纹、hover/选中、边框、圆角、内边距、标题、关闭按钮）、四主题不崩、
+  非法 theme 抛 ValueError、缺令牌抛 KeyError、`--selected` 合成算法、源码与运行期 QSS 无字面色值；
+  `tests/test_ui/test_win_table_dialog_unification.py`（7 项）——「`pilotstd/ui` 内不得再构造裸
+  `QTableWidget`/`QDialog`」、各弹窗公开面（标题/尺寸/closeEvent/信号）保留、列行为语义保留。
+- 后续新增 Win 表格/弹窗：直接用 `BaseTable` / `BaseDialog`，不要再用裸 `QTableWidget` / `QDialog`。

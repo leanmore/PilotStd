@@ -25,6 +25,7 @@ from PyQt6.QtWidgets import (
 )
 
 from pilotstd.ui.widgets.base_button import BaseButton
+from pilotstd.ui.widgets.base_table import BaseTable
 
 from ....i18n import _
 from ...table_constants import WORK_COLUMN_KEYS, WORK_COLUMNS
@@ -264,8 +265,8 @@ def _setup_file_tree(self) -> QWidget:
 
 
 def _setup_work_table(self) -> None:
-    """构建中央工作区 QTableWidget，设置列宽、排序、右键菜单等。"""
-    self.work_table = QTableWidget()
+    """构建中央工作区 BaseTable，设置列宽、排序、右键菜单等。"""
+    self.work_table = BaseTable()
     self.work_table.setColumnCount(len(WORK_COLUMNS))
     self.work_table.setHorizontalHeaderLabels([_(WORK_COLUMN_KEYS[c]) for c in range(len(WORK_COLUMNS))])
     header = self.work_table.horizontalHeader()

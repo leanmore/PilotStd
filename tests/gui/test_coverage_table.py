@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 from PyQt6.QtCore import QPoint, Qt
 from PyQt6.QtGui import QKeyEvent
-from PyQt6.QtWidgets import QMenu, QMessageBox
+from PyQt6.QtWidgets import QMenu, QMessageBox, QTableWidget
 
 from pilotstd.ui.table_constants import TOGGLEABLE_COLS
 from pilotstd.ui.workers._common import RowUpdate
@@ -275,6 +275,21 @@ def test_add_row_adopted_coloring(window):
 
 def test_table_key_press_non_copy(window):
     event = QKeyEvent(QKeyEvent.Type.KeyPress, Qt.Key.Key_Right, Qt.KeyboardModifier.NoModifier)
-    with patch.object(type(window.work_table), "keyPressEvent") as mock_parent:
+    # `_table_key_press_event` 显式走 `QTableWidget.keyPressEvent(...)`（不能走 self.work_table
+    # 上的同名属性 —— 那正是它自己被赋过去的入口，会无限递归），故 patch 的是基类。
+    # 模块二-C 把工作区表格换成 BaseTable（QTableWidget 的子类，MRO 里仍是它），
+    # 故 patch.object(QTableWidget, ...) 依然能拦到 —— 已单独验证 BaseTable.keyPressEvent
+    # 与显式 QTableWidget.keyPressEvent(t, ev) 两条路径都会被 mock 记录。
+    #
+    # 前置断言：全量并行跑时曾出现 mock_parent 未被调用一次的偶发失败。根因是
+    # `work_table` 在某些构造时序下尚未就绪（None 或非表格控件），此时
+    # `QTableWidget.keyPressEvent(self.work_table, event)` 走的是绑定方法的错误接收者，
+    # patch 不到。这里先显式断言前置条件成立，让失败点直接指向"表格没就绪"而不是
+    # 含糊的 "not called"，避免把时序问题误读成替换回归。
+    assert window.work_table is not None, "work_table 未就绪：window fixture 构造时序异常"
+    assert isinstance(window.work_table, QTableWidget), (
+        f"work_table 应为 QTableWidget 子类，实际 {type(window.work_table)!r}"
+    )
+    with patch.object(QTableWidget, "keyPressEvent") as mock_parent:
         window._table_key_press_event(event)
         mock_parent.assert_called_once()

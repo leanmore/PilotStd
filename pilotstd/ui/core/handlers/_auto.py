@@ -8,7 +8,6 @@ import logging
 from typing import TYPE_CHECKING, Any, Callable
 
 from PyQt6.QtWidgets import (
-    QDialog,
     QFileDialog,
     QHBoxLayout,
     QLabel,
@@ -21,6 +20,7 @@ if TYPE_CHECKING:
     from ....core.config import ConfigManager
 
 from pilotstd.ui.widgets.base_button import BaseButton
+from pilotstd.ui.widgets.base_dialog import BaseDialog
 
 from ....i18n import _
 from ...qt_lifecycle import stop_worker_gracefully
@@ -237,7 +237,7 @@ class AutoUIHandler:
 
     def _show_auto_summary_dialog(self, msg: str, manual_all: list[str]) -> None:
         """构建汇总弹窗：消息标签 + 待处理列表 + 导出按钮。"""
-        dlg = QDialog(self._parent)
+        dlg = BaseDialog(self._parent)
         dlg.setWindowTitle(_("auto_run_summary_title"))
         dlg.resize(550, 380)
         layout = QVBoxLayout(dlg)

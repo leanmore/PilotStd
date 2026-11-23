@@ -5,12 +5,12 @@ import { useI18n } from 'vue-i18n'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import http from '@/api/http'
 import { getItem, setItem } from '@/lib/storage'
-import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Tag from 'primevue/tag'
 import ProgressBar from 'primevue/progressbar'
-import Dialog from 'primevue/dialog'
+import AppTable from '@/components/ui/AppTable.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppDialog from '@/components/ui/AppDialog.vue'
 import AppSelectButton from '@/components/ui/AppSelectButton.vue'
 
 interface TaskItem {
@@ -174,7 +174,7 @@ function stepLabel(s: string) {
       <span style="font-size:var(--font-size-12);color:var(--text-dim);margin-left:auto">{{ t('task.manager.total', { n: total }) }}</span>
     </div>
 
-    <DataTable :value="tasks" striped-rows size="small" class="mt-2" paginator :rows="30" :total-records="total" @page="onPage">
+    <AppTable :value="tasks" striped-rows size="small" class="mt-2" paginator :rows="30" :total-records="total" @page="onPage">
       <Column field="task_id" :header="t('task.manager.col_task_id')" style="min-width:130px">
         <template #body="{ data }"><code style="font-size:var(--font-size-11)">{{ data.task_id.slice(0, 12) }}</code></template>
       </Column>
@@ -230,9 +230,9 @@ function stepLabel(s: string) {
           </div>
         </template>
       </Column>
-    </DataTable>
+    </AppTable>
 
-    <Dialog :visible="!!detailTask" :header="t('task.manager.detail_title')" :modal="true" :style="{ width: '500px' }" @hide="detailTask = null">
+    <AppDialog :visible="!!detailTask" :header="t('task.manager.detail_title')" :modal="true" :style="{ width: '500px' }" @hide="detailTask = null">
       <div v-if="detailTask" style="font-size:var(--font-size-13)">
         <p><strong>{{ t('task.manager.field_task_id') }}</strong> {{ detailTask.task_id }}</p>
         <p><strong>{{ t('task.manager.field_type') }}</strong> {{ detailTask.task_type }}</p>
@@ -246,7 +246,7 @@ function stepLabel(s: string) {
           <pre style="font-size:var(--font-size-11);white-space:pre-wrap;margin:var(--space-4) 0">{{ detailTask.error_log }}</pre>
         </div>
       </div>
-    </Dialog>
+    </AppDialog>
     </template>
 
     <!-- 管道历史 -->
@@ -263,7 +263,7 @@ function stepLabel(s: string) {
         />
         <span style="font-size:var(--font-size-12);color:var(--text-dim);margin-left:auto">{{ t('task.manager.total', { n: runsTotal }) }}</span>
       </div>
-      <DataTable :value="runs" striped-rows size="small" class="mt-2" paginator :rows="20" :total-records="runsTotal" @page="onRunsPage">
+      <AppTable :value="runs" striped-rows size="small" class="mt-2" paginator :rows="20" :total-records="runsTotal" @page="onRunsPage">
         <Column field="run_id" header="Run ID" style="min-width:130px">
           <template #body="{ data }"><code style="font-size:var(--font-size-11)">{{ data.run_id.slice(0, 12) }}</code></template>
         </Column>
@@ -289,7 +289,7 @@ function stepLabel(s: string) {
             <span v-else style="font-size:var(--font-size-11);color:var(--text-dim)">--</span>
           </template>
         </Column>
-      </DataTable>
+      </AppTable>
     </template>
   </div>
 </template>
