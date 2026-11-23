@@ -276,7 +276,7 @@ async def update_container(request: Request, mgr=Depends(get_manager_dep)):
         raise HTTPException(500, "无法获取容器 ID，请设置 HOSTNAME 环境变量")
 
     try:
-        # NEW-03：这三步内部都是同步 subprocess.run（docker 命令，pull 可达 300s），
+        # NEW-03：这三步内部都是同步外部命令调用（容器命令，拉取镜像可达 300 秒），
         # 在 `async` 端点里直接调用会阻塞事件循环 —— 期间健康检查/其它用户请求全部挂起。
         # 包进线程池后事件循环继续服务其它请求。
         old_digest = await run_in_threadpool(_get_current_digest, cid)
@@ -290,7 +290,7 @@ async def update_container(request: Request, mgr=Depends(get_manager_dep)):
             }
 
         logger.info("检测到新镜像: %s → %s", old_digest[:80], new_digest[:80])
-        # 重启本身也会阻塞（`docker` `compose` `up` -`d`），同样放线程池
+        # 重启本身也会阻塞（容器编排命令），同样放线程池
         restart_ok = await run_in_threadpool(_restart_via_compose)
         # 镜像更新通知(1.7)
         try:
