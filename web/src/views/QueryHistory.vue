@@ -2,7 +2,6 @@
 defineOptions({ name: 'QueryHistory' })
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import Card from 'primevue/card'
 import Tag from 'primevue/tag'
 import { getQueryResults } from '@/api'
 import { isActiveStatusKey } from '@/utils/stdStatus'
@@ -10,6 +9,8 @@ import type { RouteTag } from '@/types/route-tag'
 import AppTable from '@/components/ui/AppTable.vue'
 import Column from 'primevue/column'
 import AppButton from '@/components/ui/AppButton.vue'
+import PageContainer from '@/components/ui/PageContainer.vue'
+import AppCard from '@/components/ui/AppCard.vue'
 
 const { t } = useI18n()
 
@@ -36,9 +37,8 @@ onMounted(() => fetchHistory('/query-history'))
 </script>
 
 <template>
-  <div class="page">
-    <h2 class="page-title">{{ t('query_history.title') }}</h2>
-    <Card>
+  <PageContainer :max-width="900" :title="t('query_history.title')">
+    <AppCard>
       <template #content>
         <div class="header-row">
           <span class="text-sm" v-if="results.length">{{ t('query_history.total', { n: results.length }) }}</span>
@@ -66,13 +66,11 @@ onMounted(() => fetchHistory('/query-history'))
         </AppTable>
         <p v-else-if="!loading" class="empty">{{ t('query_history.empty') }}</p>
       </template>
-    </Card>
-  </div>
+    </AppCard>
+  </PageContainer>
 </template>
 
 <style scoped>
-.page { max-width: 900px; }
-.page-title { margin: 0 0 var(--space-20); font-size: var(--font-size-20); font-weight: var(--font-weight-semibold); color: var(--text-heading); }
 .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-12); }
 .text-sm { font-size: var(--font-size-13); color: var(--text-secondary); }
 .empty { padding: var(--space-32) 0; text-align: center; color: var(--text-secondary); }

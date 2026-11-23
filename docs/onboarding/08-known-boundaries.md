@@ -671,3 +671,32 @@
 - 客户端构造函数统一 `strip()`（`clients.py`：wecom 的 `corpid/corpsecret/agentid`、feishu 的 `app_id/app_secret/chat_id`），
   避免空格拼进 OAuth/菜单 URL 触发 500。
 - 数据库里保存的原始值不会因此改变：**运维修复仍应清理配置本身**（本次生产 `agentid` 即带前导空格）。
+
+### 30. DS 阶段三完成后的边界（2026-11-22）
+
+模块一/二/三全部交付后，以下边界仍需知晓，**不要误以为"DS 已全覆盖"**：
+
+- **`bare` 不是绕过门禁的手段**：`AppButton` / `AppInput` / `AppTable` / `AppCard` 的 `bare`、
+  `PageContainer` 的 `flush`/`padded` 都是「结构性逃生舱」—— 仍必须走 DS 组件，只是视觉归宿主。
+  新增结构性控件时先问"是不是 DS 该管的语义"，而不是直接上 `bare`。
+- **四条门禁都已升 `error`**：`no-raw-button` / `no-raw-input` / `no-raw-table` / `no-raw-card`。
+  但**只管业务代码**：`src/components/ui/App*.vue`（封装点）、`src/main.ts`（PrimeVue 全局注册）、
+  测试文件、`e2e/` 都豁免。新增封装组件时不要指望门禁帮你查漏。
+- **Win 端禁用态对比度仍是棘轮**：light 2.08 / dark 2.96 / blue 1.93 达不到 3:1，
+  已登记 `DISABLED_CONTRAST_EXEMPT` 并记实测值。**要改必须同时改四主题 + 重新生成
+  `tokens_generated.py`**，不能只改 Web 侧（`design-tokens.test.ts` 与 `test_win_tokens_sync.py` 会红）。
+- **遮罩层与斑马纹有意不建令牌**：`--overlay-backdrop` / `--table-stripe` 都**故意不存在**，
+  理由写在 `AppDialog.vue` / `AppTable.vue` 的注释里（加颜色键会连带触发映射断言与 Win 令牌同步，
+  且会破坏"hover 行与斑马行可区分"）。要加先读那两段注释，别直接建键。
+- **`PageContainer` 默认不加左右内边距**：`AppLayout` 的 `.content-inner` 已负责视口级留白。
+  在 `PageContainer` 里再写 `padding-inline` 会让内容区凭空少 136px —— 要加用 `padded` prop。
+- **`HomeView` / 登录页 / 状态页刻意不套 `PageContainer`**：仪表盘 GridLayout 需要占满视口、
+  登录页绕过 `AppLayout`、状态页无内容块。不要"为了统一"去套，会破坏布局。
+- **测试里的 stub 必须跟随组件改名**：`stubs: { DataTable: ... }` 在模板改 `AppTable` 后
+  不再命中，`findComponent` 恒为空、**断言静默失效**（不报错、看起来"绿"）。这类问题比真 bug 更危险。
+- **`shallowMount` 会把 AppTable/AppCard/PageContainer 整棵子树 stub 掉**：任何替身都会绕开
+  `<Column>#body` 插槽或标题渲染逻辑，使被测量变成"替身的行为"。需要测真实渲染时用 `mount` +
+  真实 PrimeVue 插件（参考 `NotificationLogsView.test.ts`）。
+- **G-055 基线是「只拦新增」的棘轮**：DS 封装组件的结构性字面量（`transparent`/`0`/`none`/断点 px）
+  登记在 `ds-skeleton` 与 `layout-dimension` 组。新增封装组件若报红，**登记进基线**而不是改代码绕过；
+  但登记前先确认它真的是"结构性值"而不是"本该用令牌的视觉值"。

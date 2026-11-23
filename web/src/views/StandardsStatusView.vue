@@ -2,7 +2,6 @@
 defineOptions({ name: 'StandardsStatusView' })
 import { ref, onMounted, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import Card from 'primevue/card'
 import Tag from 'primevue/tag'
 import Message from 'primevue/message'
 import Column from 'primevue/column'
@@ -15,6 +14,8 @@ import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import AppTable from '@/components/ui/AppTable.vue'
+import PageContainer from '@/components/ui/PageContainer.vue'
+import AppCard from '@/components/ui/AppCard.vue'
 
 const MAX_SIZE = 100
 
@@ -147,31 +148,30 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="page">
-    <h2 class="page-title">{{ t('standards.title') }}</h2>
+  <PageContainer :max-width="1000" :title="t('standards.title')">
 
     <div class="stats-row">
-      <Card class="stat-card active">
+      <AppCard class="stat-card active">
         <template #content>
           <div class="stat-num">{{ stats.active }}</div>
           <div class="stat-label">📗 {{ t('standards.status.current') }}</div>
         </template>
-      </Card>
-      <Card class="stat-card inactive">
+      </AppCard>
+      <AppCard class="stat-card inactive">
         <template #content>
           <div class="stat-num">{{ stats.inactive }}</div>
           <div class="stat-label">📕 {{ t('standards.status.abolished') }}</div>
         </template>
-      </Card>
-      <Card class="stat-card unknown">
+      </AppCard>
+      <AppCard class="stat-card unknown">
         <template #content>
           <div class="stat-num">{{ stats.unknown }}</div>
           <div class="stat-label">⚪ {{ t('standards.status.unknown') }}</div>
         </template>
-      </Card>
+      </AppCard>
     </div>
 
-    <Card class="section">
+    <AppCard class="section">
       <template #content>
         <div class="filter-row">
           <div class="filter-item">
@@ -204,9 +204,9 @@ onMounted(() => {
           </div>
         </div>
       </template>
-    </Card>
+    </AppCard>
 
-    <Card class="section">
+    <AppCard class="section">
       <template #content>
         <Message v-if="errMsg" severity="error" :closable="false">{{ errMsg }}</Message>
 
@@ -260,13 +260,11 @@ onMounted(() => {
         <!-- 滚动加载哨兵：进入视口前 100px 触发下一批加载（方案 C，不占视觉空间） -->
         <div ref="sentinel" class="scroll-sentinel" style="height: 1px; opacity: 0;" aria-hidden="true" />
       </template>
-    </Card>
-  </div>
+    </AppCard>
+  </PageContainer>
 </template>
 
 <style scoped>
-.page { max-width: 1000px; }
-.page-title { margin: 0 0 var(--space-20); font-size: var(--font-size-20); font-weight: var(--font-weight-semibold); color: var(--text-heading); }
 .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-16); margin-bottom: var(--space-16); }
 .stat-card { text-align: center; }
 .stat-card.active { border-left: 4px solid var(--success); }

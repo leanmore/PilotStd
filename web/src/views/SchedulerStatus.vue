@@ -2,12 +2,13 @@
 defineOptions({ name: 'SchedulerStatus' })
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import Card from 'primevue/card'
 import Column from 'primevue/column'
 import { getSchedulerStatus } from '@/api/scheduler'
 import type { RouteTag } from '@/types/route-tag'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppTable from '@/components/ui/AppTable.vue'
+import PageContainer from '@/components/ui/PageContainer.vue'
+import AppCard from '@/components/ui/AppCard.vue'
 
 interface Job {
   id: string
@@ -48,9 +49,8 @@ onMounted(() => fetchStatus('/scheduler'))
 </script>
 
 <template>
-  <div class="page">
-    <h2 class="page-title">{{ t('scheduler.title') }}</h2>
-    <Card>
+  <PageContainer :max-width="1100" :title="t('scheduler.title')">
+    <AppCard>
       <template #content>
         <div class="status-header">
           <Badge :value="status.running ? t('scheduler.running') : t('scheduler.stopped')" :severity="status.running ? 'success' : 'danger'" />
@@ -78,13 +78,11 @@ onMounted(() => fetchStatus('/scheduler'))
           </Column>
         </AppTable>
       </template>
-    </Card>
-  </div>
+    </AppCard>
+  </PageContainer>
 </template>
 
 <style scoped>
-.page { max-width: 1100px; }
-.page-title { margin: 0 0 var(--space-20); font-size: var(--font-size-20); font-weight: var(--font-weight-semibold); color: var(--text-heading); }
 .status-header {
   display: flex; justify-content: space-between; align-items: center;
   margin-bottom: var(--space-16); gap: var(--space-12); flex-wrap: wrap;

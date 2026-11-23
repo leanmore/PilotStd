@@ -54,6 +54,19 @@ function mountComponent(locale: 'zh-CN' | 'en' = 'zh-CN') {
     global: {
       plugins: [makeI18n(locale)],
       stubs: {
+        // DS 模块三：模板已改用 <PageContainer>（标题内建 h2.page-title）与 <AppCard>。
+        // shallowMount 会把两者 stub 成空壳，导致标题/卡片内容不渲染、断言全红。
+        // 替身只还原「标题 + 插槽透传」的最小结构，内容仍走真实插槽。
+        PageContainer: {
+          name: 'PageContainer',
+          props: ['title', 'subtitle', 'maxWidth', 'flush', 'padded'],
+          template: '<div class="page-container-stub"><h2 v-if="title" class="page-title">{{ title }}</h2><slot /></div>',
+        },
+        AppCard: {
+          name: 'AppCard',
+          props: ['elevated', 'bare'],
+          template: '<div class="card-stub"><slot /><slot name="content" /><slot name="title" /><slot name="footer" /></div>',
+        },
         Card: StubCard,
         Button,
         Tag,

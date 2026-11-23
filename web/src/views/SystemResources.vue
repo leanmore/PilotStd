@@ -2,10 +2,11 @@
 defineOptions({ name: 'SystemResources' })
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import Card from 'primevue/card'
 import ProgressBar from 'primevue/progressbar'
 import { getSystemResources } from '@/api/system'
 import type { RouteTag } from '@/types/route-tag'
+import PageContainer from '@/components/ui/PageContainer.vue'
+import AppCard from '@/components/ui/AppCard.vue'
 
 const { t } = useI18n()
 
@@ -36,10 +37,9 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="page">
-    <h2 class="page-title">{{ t('system_resources.title') }}</h2>
+  <PageContainer :max-width="900" :title="t('system_resources.title')">
     <div class="grid">
-      <Card v-for="item in [
+      <AppCard v-for="item in [
         { t: 'CPU', p: cpu.percent, d: t('system_resources.cores', { n: cpu.count }) },
         { t: t('system_resources.memory'), p: memory.percent, d: t('system_resources.memory_detail', { total: formatBytes(memory.total), available: formatBytes(memory.available) }) },
         { t: t('system_resources.disk'), p: disk.percent, d: t('system_resources.disk_detail', { free: formatBytes(disk.free) }) },
@@ -49,14 +49,12 @@ onUnmounted(() => {
           <ProgressBar :value="item.p" :show-value="true" :dt="{ height: 'var(--size-24)' }" />
           <p class="detail">{{ item.d }}</p>
         </template>
-      </Card>
+      </AppCard>
     </div>
-  </div>
+  </PageContainer>
 </template>
 
 <style scoped>
-.page { max-width: 900px; }
-.page-title { margin: 0 0 var(--space-20); font-size: var(--font-size-20); font-weight: var(--font-weight-semibold); color: var(--text-heading); }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--space-16); }
 h3 { margin: 0 0 var(--space-12); font-size: var(--font-size-15); }
 .detail { margin-top: var(--space-8); font-size: var(--font-size-13); color: var(--text-secondary); }

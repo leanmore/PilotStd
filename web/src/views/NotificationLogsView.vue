@@ -10,6 +10,7 @@ import AppInput from '@/components/ui/AppInput.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import AppTable from '@/components/ui/AppTable.vue'
 import Column from 'primevue/column'
+import PageContainer from '@/components/ui/PageContainer.vue'
 
 const { t } = useI18n()
 const {
@@ -57,8 +58,7 @@ const {
 </script>
 
 <template>
-  <div class="page">
-    <h2 class="page-title">{{ t('notification.logs.title') }}</h2>
+  <PageContainer :max-width="1100" :title="t('notification.logs.title')">
 
     <!-- 筛选区 -->
     <div class="card section">
@@ -273,12 +273,10 @@ const {
       />
       </template>
     </AppDialog>
-  </div>
+  </PageContainer>
 </template>
 
 <style scoped>
-.page { max-width: 1100px; }
-.page-title { margin: 0 0 var(--space-20); font-size: var(--font-size-20); font-weight: var(--font-weight-semibold); color: var(--text-heading); }
 .section { margin-bottom: var(--space-16); }
 
 /* 筛选区 */

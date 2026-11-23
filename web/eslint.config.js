@@ -57,6 +57,9 @@ export default tseslint.config(
       // AppTable / AppDialog / AppConfirmDialog，规则升级为阻断级。
       // 任何新增的 PrimeVue 表格/弹窗原语或手写数据表都会让 lint 失败。
       'custom/no-raw-table': 'error',
+      // DS 阶段三模块三完成：全站 <Card> 已全部替换为 <AppCard>，规则升级为阻断级。
+      // 任何新增的 PrimeVue Card 原语都会让 lint 失败。
+      'custom/no-raw-card': 'error',
     },
   },
   // router.ts 是 titleKey 的定义点，豁免 no-raw-i18n-key
@@ -98,12 +101,13 @@ export default tseslint.config(
       'custom/no-raw-table': 'off',
     },
   },
-  // 阶段三模块二进行中：AppTable/AppDialog 封装点内部允许 PrimeVue 表格/弹窗原语
-  // （表头/斑马纹/圆角/内边距在封装内收口，业务页只写布局）
+  // 阶段三模块二/三：AppTable/AppDialog/AppCard 封装点内部允许 PrimeVue 原语
+  // （表头/斑马纹/圆角/内边距/阴影在封装内收口，业务页只写布局）
   {
     files: ['src/components/ui/App*.vue'],
     rules: {
       'custom/no-raw-table': 'off',
+      'custom/no-raw-card': 'off',
     },
   },
   // e2e 里的表格/弹窗选择器断言不受该规则约束

@@ -4,6 +4,7 @@ import noSensitivePersist from './rules/no-sensitive-persist.js'
 import noRawButton from './rules/no-raw-button.js';
 import noRawInput from './rules/no-raw-input.js';
 import noRawTable from './rules/no-raw-table.js';
+import noRawCard from './rules/no-raw-card.js';
 
 export default {
   rules: {
@@ -12,5 +13,6 @@ export default {
     'no-raw-button': noRawButton,
     'no-raw-input': noRawInput,
     'no-raw-table': noRawTable,
+    'no-raw-card': noRawCard,
   },
 };

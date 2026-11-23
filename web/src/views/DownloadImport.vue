@@ -7,12 +7,12 @@ defineOptions({ name: 'DownloadImport' })
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { postDownloadImport } from '@/api/download'
-import Card from 'primevue/card'
 import Column from 'primevue/column'
 import Tag from 'primevue/tag'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import AppTable from '@/components/ui/AppTable.vue'
+import AppCard from '@/components/ui/AppCard.vue'
 
 interface ImportResult {
   valid: string[]
@@ -77,7 +77,7 @@ function handleFileUpload(event: Event) {
   <div class="download-import">
     <h2>{{ t('download.manual_import.title') }}</h2>
 
-    <Card class="mb-3">
+    <AppCard class="mb-3">
       <template #content>
         <div class="input-area">
           <AppInput
@@ -102,7 +102,7 @@ function handleFileUpload(event: Event) {
           </div>
         </div>
       </template>
-    </Card>
+    </AppCard>
 
     <div class="actions mb-3">
 <AppButton
@@ -127,15 +127,15 @@ function handleFileUpload(event: Event) {
     <div v-if="result" class="result-area">
       <!-- 统计卡片 -->
       <div class="stats flex gap-3 mb-3">
-        <Card class="flex-1">
+        <AppCard class="flex-1">
           <template #content>
             <div class="text-center">
               <div class="text-2xl font-bold text-primary">{{ result.valid.length }}</div>
               <div class="text-sm text-color-secondary">{{ t('download.manual_import.valid') }}</div>
             </div>
           </template>
-        </Card>
-        <Card class="flex-1">
+        </AppCard>
+        <AppCard class="flex-1">
           <template #content>
             <div class="text-center">
               <div class="text-2xl font-bold" :class="result.invalid.length ? 'text-red-500' : 'text-color'">
@@ -144,15 +144,15 @@ function handleFileUpload(event: Event) {
               <div class="text-sm text-color-secondary">{{ t('download.manual_import.invalid') }}</div>
             </div>
           </template>
-        </Card>
-        <Card class="flex-1">
+        </AppCard>
+        <AppCard class="flex-1">
           <template #content>
             <div class="text-center">
               <div class="text-2xl font-bold text-orange-500">{{ result.duplicates.length }}</div>
               <div class="text-sm text-color-secondary">{{ t('download.manual_import.duplicate') }}</div>
             </div>
           </template>
-        </Card>
+        </AppCard>
       </div>
 
       <!-- 无效条目 -->
@@ -164,17 +164,17 @@ function handleFileUpload(event: Event) {
           size="s"
           type="ghost"
         />
-        <Card v-if="showInvalid" class="mt-2">
+        <AppCard v-if="showInvalid" class="mt-2">
           <template #content>
             <ul class="invalid-list pl-3">
               <li v-for="item in result.invalid" :key="item" class="text-sm">{{ item }}</li>
             </ul>
           </template>
-        </Card>
+        </AppCard>
       </div>
 
       <!-- 下载结果 -->
-      <Card v-if="result.results.length">
+      <AppCard v-if="result.results.length">
         <template #title>{{ t('download.manual_import.result_title') }}</template>
         <template #content>
           <AppTable :value="result.results" stripedRows size="small">
@@ -201,7 +201,7 @@ function handleFileUpload(event: Event) {
             </Column>
           </AppTable>
         </template>
-      </Card>
+      </AppCard>
     </div>
   </div>
 </template>

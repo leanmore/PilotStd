@@ -6,7 +6,7 @@
   "counts": {
     "A": 0,
     "B": 152,
-    "C": 586
+    "C": 599
   },
   "groups": [
     {
@@ -1546,6 +1546,18 @@
           "file": "components/ui/AppConfirmDialog.vue",
           "prop": "max-width",
           "value": "480px",
+          "count": 1
+        },
+        {
+          "file": "components/ui/PageContainer.vue",
+          "prop": "max-width",
+          "value": "1023px)",
+          "count": 1
+        },
+        {
+          "file": "components/ui/PageContainer.vue",
+          "prop": "max-width",
+          "value": "767px)",
           "count": 1
         }
       ]
@@ -3774,6 +3786,54 @@
         {
           "file": "components/ui/AppConfirmDialog.vue",
           "prop": "margin",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "components/ui/AppCard.vue",
+          "prop": "margin",
+          "value": "0",
+          "count": 2
+        },
+        {
+          "file": "components/ui/AppCard.vue",
+          "prop": "padding",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "components/ui/PageContainer.vue",
+          "prop": "padding-block",
+          "value": "0",
+          "count": 2
+        },
+        {
+          "file": "components/ui/PageContainer.vue",
+          "prop": "padding-inline",
+          "value": "0",
+          "count": 2
+        },
+        {
+          "file": "components/ui/PageContainer.vue",
+          "prop": "gap",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "components/ui/PageContainer.vue",
+          "prop": "min-width",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "components/ui/PageContainer.vue",
+          "prop": "margin",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "components/ui/PageContainer.vue",
+          "prop": "flex-shrink",
           "value": "0",
           "count": 1
         }
