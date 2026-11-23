@@ -908,3 +908,10 @@ ecord_pending N+1 消除（500 条从 500 次 SELECT
 > 降到 1 次）、alidate_paths 全表 stat 改按父目录 scandir（万级记录从万次 stat 降到
 > 目录数次）、update_container 的同步 subprocess 包进 run_in_threadpool
 > （原会阻塞事件循环最长 300s）。capabilities_registry.md 同批重新生成。
+
+> **2026-11-23 方向C 批次6（异常静默 + 无主 TODO）**：修复 7 处后端静默吞错
+> （附件解析器全失败无痕、energy fallback 吞异常、jjg/energy JSON 解析失败静默 break、
+> main.py 三处崩溃日志写盘失败无提示、备份删除失败静默）；3 个前端组件 6 处用户操作
+> 失败补 `appToast.error`；`stores/app.ts` 的 matchMedia 监听器改为可 dispose；
+> 3 个无主 TODO 全部认领（A-55 新债号 / V-10 / A-52）。
+> G-050 debug 档 69→66。

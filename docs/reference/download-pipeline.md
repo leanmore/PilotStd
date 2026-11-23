@@ -452,3 +452,16 @@ GB/T 标准被误判成非国标（已由 `test_slash_codes_are_routable` 钉住
 
 > **2026-11-19 注释语言规范化（G-012 [LANG] 收口）**：本目录注释里的英文普通词改为中文、
 > 裸小写标识符加反引号；仅注释与 docstring 变更，AST 归一化比对无代码变化（全仓 504 行，见 27 #81）。
+
+## 适配器错误必须可区分（2026-11-23，NEW-12 / NEW-13）
+
+**NEW-12（energy fallback）**：`energy.py` 在首页用主链接 + `FALLBACK_URLS` 轮询，
+原 `except Exception: continue` 吞掉所有异常（含 DNS/TLS/编码）。最终只报
+「第 1 页请求失败（含 fallback，status=None）」，**站点不可达与代码 bug 无法区分**。
+修法：记录最后一次异常，warning 里带上 `type(e).__name__: e`。
+
+**NEW-13（jjg / energy 的 JSON 解析）**：`resp.json()` 失败时直接 `break` 且无日志。
+站点返回 HTML 错误页时会**静默返回 0 结果**，看起来像「没查到」。
+修法：补 `warning`，明确区分「无结果」与「解析失败」。
+
+**守护**：G-050 的 continue/break 档已覆盖这两类（2026-11-23 补）。

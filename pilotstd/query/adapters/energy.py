@@ -105,20 +105,25 @@ class EnergyAdapter(BaseAdapter):
                 urls_to_try = [self.get_search_url()]
 
             resp = None
+            # NEW-12：fallback 轮询要记录最后一次异常，否则站点不可达与代码 bug 无法区分
+            last_exc: Exception | None = None
             for url in urls_to_try:
                 try:
                     resp = self._client.get(url, params=params, timeout=15)
                     if resp.status_code == 200:
                         break
-                except Exception:
+                except Exception as e:
+                    last_exc = e
+                    logger.warning("energy fallback 请求失败 url=%s: %s", url, e)  # i18n-allow: 内部运维日志
                     continue
 
             if resp is None or resp.status_code != 200:
                 if page == 0:
                     logger.warning(
                         # i18n-allow: 内部运维日志
-                        "energy 查询失败: 第 1 页请求失败（含 fallback，status=%s）",
+                        "energy 查询失败: 第 1 页请求失败（含 fallback，status=%s，最后异常=%s）",
                         getattr(resp, "status_code", None),
+                        f"{type(last_exc).__name__}: {last_exc}" if last_exc else "无",
                     )
                 else:
                     # ✅ 任务6：翻页失败返回已有数据，不静默丢弃
@@ -130,7 +135,10 @@ class EnergyAdapter(BaseAdapter):
 
             try:
                 payload = resp.json()
-            except ValueError:
+            except ValueError as e:
+                # NEW-13：解析失败与「无结果」必须可区分 —— 站点返回 HTML 错误页时
+                # 原实现静默 break，看起来像"没查到"，实际是解析失败。
+                logger.warning("energy 响应解析失败（可能是 HTML 错误页）: %s", e)  # i18n-allow: 内部运维日志
                 break
 
             rows = payload.get("rows", [])

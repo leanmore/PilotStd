@@ -239,3 +239,6 @@ A: `--required-only` 参数仅检查 `required` 级别能力。CI 也仅对 `req
 
 > v2.75（2026-11-23）：方向C 批次3 —— G-050 补 continue/break 识别（26 处冻结）、
 > 修复迁移锁死循环、SVG 存储型 XSS、台账状态互斥。详见 `06-full-inventory.md`。
+
+> v2.76（2026-11-23）：方向C 批次6 —— 7 处后端静默吞错 + 3 个前端组件用户操作失败提示
+> + 监听器可 dispose + 3 个无主 TODO 认领。详见 `06-full-inventory.md`。

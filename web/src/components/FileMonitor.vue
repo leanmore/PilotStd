@@ -7,6 +7,7 @@ import Message from 'primevue/message'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import AppToggle from '@/components/ui/AppToggle.vue'
+import { appToast } from '@/composables/useAppToast'
 
 interface MonitorConfig {
   enabled: boolean
@@ -108,13 +109,18 @@ export default defineComponent({
     async function startMonitor() {
       startLoading.value = true
       try { await http.post('/monitor/start'); await loadStatus() }
-      catch { /* ignore */ } finally { startLoading.value = false }
+      catch (e) {
+        // NEW-16：用户主动操作失败必须提示，否则界面无变化、用户以为成功
+        appToast.error({ key: 'settings.file_monitor.start_failed', detail: String((e as Error)?.message ?? e) })
+      } finally { startLoading.value = false }
     }
 
     async function stopMonitor() {
       stopLoading.value = true
       try { await http.post('/monitor/stop'); await loadStatus() }
-      catch { /* ignore */ } finally { stopLoading.value = false }
+      catch (e) {
+        appToast.error({ key: 'settings.file_monitor.stop_failed', detail: String((e as Error)?.message ?? e) })
+      } finally { stopLoading.value = false }
     }
 
     onMounted(() => { loadConfig(); loadStatus(); loadStats(); pollTimer = setInterval(() => { loadStatus(); loadStats() }, 5000) })

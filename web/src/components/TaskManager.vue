@@ -12,6 +12,7 @@ import AppTable from '@/components/ui/AppTable.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import AppSelectButton from '@/components/ui/AppSelectButton.vue'
+import { appToast } from '@/composables/useAppToast'
 
 interface TaskItem {
   task_id: string
@@ -88,11 +89,15 @@ function progress(task: TaskItem): number {
 }
 
 async function retryTask(taskId: string) {
-  try { await http.post(`/tasks/${taskId}/retry`); await loadTasks() } catch { /* ignore */ }
+  try { await http.post(`/tasks/${taskId}/retry`); await loadTasks() }
+  // NEW-16：重试失败必须提示
+  catch (e) { appToast.error({ key: 'task.manager.retry_failed', detail: String((e as Error)?.message ?? e) }) }
 }
 
 async function cancelTask(taskId: string) {
-  try { await http.post(`/tasks/${taskId}/cancel`); await loadTasks() } catch { /* ignore */ }
+  try { await http.post(`/tasks/${taskId}/cancel`); await loadTasks() }
+  // NEW-16：取消失败必须提示
+  catch (e) { appToast.error({ key: 'task.manager.cancel_failed', detail: String((e as Error)?.message ?? e) }) }
 }
 
 function showDetail(task: TaskItem) { detailTask.value = task }

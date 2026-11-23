@@ -8,6 +8,7 @@ import ProgressBar from 'primevue/progressbar'
 import Tag from 'primevue/tag'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
+import { appToast } from '@/composables/useAppToast'
 
 const { t } = useI18n()
 
@@ -39,7 +40,10 @@ async function saveConfig() {
   try {
     await http.put('/cache/config', { max_size_mb: maxSize.value })
     await loadStats()
-  } catch { /* ignore */ }
+  } catch (e) {
+    // NEW-16：保存失败必须提示（原静默会让用户以为已保存）
+    appToast.error({ key: 'settings.cache.save_failed', detail: String((e as Error)?.message ?? e) })
+  }
 }
 
 async function triggerCleanup() {
@@ -49,7 +53,10 @@ async function triggerCleanup() {
     cleaned.value = true
     setTimeout(() => cleaned.value = false, 3000)
     await loadStats()
-  } catch { /* ignore */ }
+  } catch (e) {
+    // NEW-16：清理失败必须提示（原静默会显示"已清理"的假象）
+    appToast.error({ key: 'settings.cache.cleanup_failed', detail: String((e as Error)?.message ?? e) })
+  }
   finally { loading.value = false }
 }
 

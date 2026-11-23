@@ -340,7 +340,9 @@
       "field_created": "建立:",
       "field_started": "開始:",
       "field_finished": "完成:",
-      "field_error": "錯誤:"
+      "field_error": "錯誤:",
+      "retry_failed": "重試任務失敗",
+      "cancel_failed": "取消任務失敗"
     }
   },
   "organize": {
@@ -672,7 +674,9 @@
       "subdirs": "監控子目錄",
       "auto_archive": "自動歸檔",
       "types": "檔案類型（逗號分隔）",
-      "ignore": "忽略模式（逗號分隔）"
+      "ignore": "忽略模式（逗號分隔）",
+      "start_failed": "啟動監控失敗",
+      "stop_failed": "停止監控失敗"
     },
     "network": {
       "proxy": "代理地址",
@@ -738,7 +742,9 @@
       "max_size": "快取大小上限",
       "cleanup_now": "立即清理",
       "refresh_stats": "重新整理統計",
-      "cleaned": "清理完成"
+      "cleaned": "清理完成",
+      "save_failed": "儲存快取設定失敗",
+      "cleanup_failed": "清理快取失敗"
     },
     "users": {
       "title": "使用者管理",

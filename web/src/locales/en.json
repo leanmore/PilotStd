@@ -340,7 +340,9 @@
       "field_created": "Created:",
       "field_started": "Started:",
       "field_finished": "Finished:",
-      "field_error": "Error:"
+      "field_error": "Error:",
+      "retry_failed": "Failed to retry task",
+      "cancel_failed": "Failed to cancel task"
     }
   },
   "organize": {
@@ -672,7 +674,9 @@
       "subdirs": "Watch Subdirectories",
       "auto_archive": "Auto Archive",
       "types": "File Types (comma separated)",
-      "ignore": "Ignore Patterns (comma separated)"
+      "ignore": "Ignore Patterns (comma separated)",
+      "start_failed": "Failed to start monitoring",
+      "stop_failed": "Failed to stop monitoring"
     },
     "network": {
       "proxy": "Proxy Address",
@@ -738,7 +742,9 @@
       "max_size": "Cache Size Limit",
       "cleanup_now": "Clean Up Now",
       "refresh_stats": "Refresh Stats",
-      "cleaned": "Cleanup complete"
+      "cleaned": "Cleanup complete",
+      "save_failed": "Failed to save cache config",
+      "cleanup_failed": "Failed to clean cache"
     },
     "users": {
       "title": "User Management",

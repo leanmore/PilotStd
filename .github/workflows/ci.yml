@@ -861,7 +861,11 @@ jobs:
             --skip-empty
 
           echo "=== Overall (macro health) >=58% ==="
-          # TODO(P2): restore to 68 after UI handler tests are added
+          # A-55（2026-11-23 认领，原为无主 TODO）：整体覆盖率门槛临时降到 58。
+          # 恢复条件：UI handler 测试补齐后回到 68。判据：
+          #   python -m pytest tests --cov=pilotstd --cov-report=term-missing
+          #   看 TOTAL 行是否 ≥68%；未达标前保持 58，但**不得再降**。
+          # 债号登记：docs/debt/03-open.md A-55
           python -m coverage report --fail-under=58
 
   # ════════════════════════════════════════════════════════════════

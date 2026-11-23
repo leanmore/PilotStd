@@ -133,8 +133,13 @@ def _prune_old_backups(backup_dir: str, keep: int = _BACKUP_KEEP) -> list[str]:
         try:
             os.remove(os.path.join(backup_dir, old))
         except FileNotFoundError:
+            # NEW-15：文件已被别的进程删掉（如并发清理），不算失败，但留 debug 痕迹
+            logger.info("待清理备份已不存在（并发删除？）: %s", old)  # i18n-allow: 内部运维日志
             continue
-        except OSError:
+        except OSError as e:
+            # NEW-15：删除失败的旧备份必须留痕 —— 否则备份目录只增不减会撑满磁盘，
+            # 而运维完全看不到（原实现 `except OSError: continue` 静默跳过）。
+            logger.warning("删除旧备份失败（磁盘可能只增不减）: %s (%s)", old, e)  # i18n-allow: 内部运维日志
             continue
         removed.append(old)
         logger.info("已清理旧备份: %s", old)
