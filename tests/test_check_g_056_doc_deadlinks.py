@@ -130,6 +130,26 @@ def test_anchor_only_and_external_links_skipped(tmp_path):
     assert dead == {}
 
 
+def test_links_to_archived_dirs_are_skipped(tmp_path):
+    """指向 `.local/` 与 `archive/` 的链接视为「已归档」而非死链。
+
+    背景（CI 实测 2026-11-23）：`docs/.local/` 与 `docs/archive/` 被 gitignore / 不入库，
+    本地有、**CI 干净检出时没有**。文档里这些链接是"历史出处"记录，
+    不是给读者点的活链接 —— 判死链会导致「本地绿、CI 红」。
+    """
+    docs = tmp_path / "docs"
+    _write(
+        docs,
+        "a.md",
+        "# A\n\n"
+        "[历史出处1](../../.local/archive/2026-11-08/docs/plans/x.md)\n"
+        "[历史出处2](.local/archive/2026-11-08/docs/plans/y.md)\n"
+        "[历史出处3](../archive/old/z.md)\n",
+    )
+    dead, _ = m.scan(docs)
+    assert dead == {}, "指向归档目录的链接不应判死链（CI 干净检出时这些目录不存在）"
+
+
 if __name__ == "__main__":
     import pytest
 

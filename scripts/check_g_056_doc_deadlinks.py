@@ -94,6 +94,17 @@ def scan(docs_dir: Path) -> tuple[dict[str, list[tuple[int, str]]], int]:
             path_part = target.split("#", 1)[0]
             if not path_part:
                 continue
+            # ── 指向归档目录的链接视为「已归档」而非死链 ──
+            # `docs/.local/` 与 `docs/archive/` 被 gitignore / 不入库，
+            # 本地有、CI 干净检出时没有。这类链接在文档里是"历史出处"记录，
+            # 不是给读者点的活链接 —— 判死链会让 CI 恒红（本地绿、CI 红）。
+            # 实测：干净检出下 5 条这类链接被误判。
+            norm_target = path_part.replace("\\", "/")
+            if "/.local/" in norm_target or norm_target.startswith(".local/"):
+                continue
+            if "/archive/" in norm_target or norm_target.startswith("archive/"):
+                continue
+
             # ── 两种解析口径，任一成立即视为有效 ──
             # 1) 相对当前文件所在目录（markdown 标准语义）
             # 2) 相对仓库根（本仓文档惯例：`pilotstd/query/adapters/base.py` 这类
