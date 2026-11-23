@@ -362,3 +362,8 @@ getsize → parse(basename)                              ← 都廉价
 候选集由 `(code, name, size)` 限定，通常只有 0~2 行。
 
 **守护**：`tests/test_scan_and_index_diagnostics.py`（5 例）。
+
+## 注释中的代码标识符用反引号包裹（2026-11-24，NEW-46）
+
+`scan_and_index` 相关注释里的英文词（`px` 类单位、方法名等）统一用反引号包裹，
+以通过 G-012 的 `[LANG]` 检查。属注释规范化，无行为变更。

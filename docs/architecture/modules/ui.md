@@ -293,3 +293,13 @@ Handler Handler  Handler    (worker)   Handler
 修法：`close()` 里先 `_buf_timer.stop()` + `timeout.disconnect`，再做其余清理。
 
 **守护**：`tests/test_resource_leaks.py`（5 例）。
+
+## 注释中的代码标识符用反引号包裹（2026-11-24，NEW-46）
+
+G-012 的 `[LANG]` 检查会先剔除反引号内内容再判定。三个 UI 控件文件
+（`base_dialog.py` / `base_input.py` / `base_table.py`）历史遗留的 `[LANG]` 违规
+已全部清理：把 `20px`、`22px` 这类 CSS 数值单位与 `polish`、`ensurePolished`、
+`sizeHint`、`text-transform`、`box-shadow` 等代码标识符用反引号包裹。
+
+结果：`[LANG]` 从 20 条降到 **0 条**。纯注释改动，无代码逻辑变更
+（`tests/gui/test_base_input.py` + `test_base_table.py` 54 例全绿）。
