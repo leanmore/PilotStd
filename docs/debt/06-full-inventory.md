@@ -410,3 +410,65 @@ python scripts/audit_design_tokens.py --check    # A=0 B=148 C=588 D=0
 | V-7 | **平台侧信号**：GitHub runner 镜像是否已切 Ubuntu 26 |
 | V-18 | **部署后真实批次**：P3-16 修复后的 `query_metrics` 行 |
 | A-52 | **产品确认**：视觉收敛会改变外观，需接受变化 |
+
+## 附二、TODO / 临时兼容逻辑深度扫描（2026-11-24）
+
+目标要求「扫描全库 TODO/FIXME/临时兼容逻辑」。本节记录**实测口径与结论**，
+避免下次重复排查。
+
+### A. TODO / FIXME / HACK
+
+`git grep -E "TODO|FIXME|HACK"` 于 `pilotstd/ docker/ scripts/ web/src/` 命中 **125 行**。
+
+| 类别 | 行数 | 结论 |
+|---|---:|---|
+| 已有债号（A-x/V-x/NEW-x/T-x/G-x） | 14 | 无需处理 |
+| `TODO: [Design Debt]`（本属 A-52） | 103 | **已补 A-52 债号**（2026-11-24） |
+| 脚本自身词表/正则（误报） | 4 | 不改 |
+| 非真 TODO（note 文案、已删除说明） | 2 | 不改 |
+| **真正的无主 TODO** | **0** | ✅ 已清零 |
+
+**误报识别要点**（下次扫描直接排除，省时间）：
+- `T/XXX`、`TXXX` —— 团体标准号格式，不是待办标记
+- `EVENT_XXX`、`EVENT_X` —— 通知事件符号名
+- `G-XXX` —— 门禁占位符
+- `'TODO'`、`"TODO"` —— 脚本自身的词表条目
+- `\uXXXX` —— Unicode 转义说明
+
+**处置**：103 处 `[Design Debt]` 统一补上 `A-52 —` 前缀，使其可被台账追踪
+（此前 grep 才知道有多少令牌债，现在 `docs/debt/03-open.md` 的 A-52 与代码双向可查）。
+
+### B. 临时兼容逻辑
+
+四类关键词扫描结果：
+
+| 类别 | 行数 | 结论 |
+|---|---:|---|
+| 临时方案 / workaround | 3 | `HomeView.vue` 2 处已挂 V-10；其余为词表 |
+| deprecated / 废弃 | 35 | **均有明确兼容理由**，非技术债 |
+| 旧版兼容 / backward compat | 60 | 均为历史数据/签名兼容，属设计内 |
+| 过渡 / 灰度 / feature flag | 9 | 均为配置项，非临时代码 |
+
+**逐项核实结论**：
+
+- **`/api/user/settings`（GET/PUT）** —— 前端 `web/src/` 与 Win 端 `pilotstd/ui/`
+  **均零引用**（git grep 实测），唯一消费方是验证废弃告警的测试。
+  属「设计内保留」而非债，但已补**移除计划**注释（移除条件、连带删除项、
+  需同步的文档行号），使其可被审计。
+- **`/api/announcements?sync=true`** —— 前端零引用，已由异步端点替代；
+  `[DEPRECATED]` 告警保留（外部脚本可能仍用）。
+- **`bypass_aggregation` 参数**（`notification/events.py`）—— 恒为 False，
+  保留字段仅为兼容旧签名；v1.1 起所有事件均聚合。属设计内兼容。
+- **`NotificationChannel` / `EVENT_EXPIRED`** —— 模块级 `__getattr__` 抛
+  `DeprecationWarning`，是**主动的迁移引导**，不是遗留代码。
+- **`validity.frequency`**（config/defaults.py）—— `@deprecated` 标记，
+  用 `frequency_weeks` 替代；保留供旧配置文件读取。属设计内兼容。
+
+**结论：未发现「该删未删」的临时代码**。所有 deprecated 项都有明确兼容对象
+（旧前端、旧配置、外部脚本、旧签名），删除会造成真实破坏。
+
+### C. 异常未捕获 / 性能 N+1
+
+这两项已在批次 3（G-050 补 `except: continue|break` 识别，26 处吞错冻结）
+与批次 5（9 项 N+1 全部消除）中系统性处理，本清单第三/五节有完整记录，
+本节不重复。
