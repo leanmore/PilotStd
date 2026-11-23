@@ -47,7 +47,7 @@ class FakeParsed:
 
 def make_service(existing: set[str]) -> tuple[PendingService, MagicMock]:
     db = MagicMock()
-    # fetchall 返回已存在的行（dict 形式，与 Database.fetchall 契约一致）
+    # `fetchall` 返回已存在的行（`dict` 形式，与 Database.`fetchall` 契约一致）
     db.fetchall.return_value = [{"standard_number": n} for n in existing]
     svc = PendingService(db=db, file_index=MagicMock())
     return svc, db
@@ -59,7 +59,7 @@ def test_select_count_is_not_proportional_to_items():
     svc, db = make_service(existing=set())
     svc.record_pending(items)
 
-    # 100 条 < 500 一批 ⇒ 只应有 1 次 fetchall（旧实现是 100 次 fetchone）
+    # 100 条 < 500 一批 ⇒ 只应有 1 次 `fetchall`（旧实现是 100 次 `fetchone`）
     assert db.fetchall.call_count == 1, f"预期 1 次批量查询，实际 {db.fetchall.call_count}"
     assert db.fetchone.call_count == 0, "不应再有逐条 fetchone"
     # 100 条都要 INSERT

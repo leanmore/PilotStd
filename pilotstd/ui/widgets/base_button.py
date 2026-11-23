@@ -83,13 +83,13 @@ class BaseButton(QPushButton):
         pad = self._size(pad_key)
         font = self._size(font_key)
 
-        # 主色按钮悬停用更深一档；其余层级保持底色（避免误用主色 hover）
+        # 主色按钮悬停用更深一档；其余层级保持底色（避免误用主色 `hover`）
         hover_bg = self._color("primaryFillHover") if self._kind == "primary" else bg
 
         # A-53 收口（Win 侧）：禁用态用 --disabled-bg / --disabled-text。
         # 此前用 borderLight/textDim 顶替，是因为 disabledBg/disabledText 在 Web 侧
         # 还没接线（ui-system.md §10.6 遗留项）；Web 的 applyThemeToDom 接线后，
-        # 两端统一走 disabled* 令牌，避免 Win 端继续偏离 DS 的禁用态口径。
+        # 两端统一走 `disabled`* 令牌，避免 Win 端继续偏离 DS 的禁用态口径。
         disabled_bg = self._color("disabledBg")
         disabled_fg = self._color("disabledText")
 

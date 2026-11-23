@@ -37,9 +37,9 @@ ROOT = Path(__file__).resolve().parent.parent
 DOCS = ROOT / "docs"
 BASELINE = ROOT / "scripts" / "doc_deadlinks_baseline.json"
 
-# markdown 链接：[text](target) 或 ![alt](target)
+# `markdown` 链接：[text](target) 或 ![alt](target)
 # ⚠️ 必须排除「行内代码」里的伪链接：`[x](y)` 出现在反引号内时是**示例文本**，
-# 不是真链接。实测 docs 里大量 `[text](path)` 写在行内代码/代码块中（文档在讲"链接怎么写"），
+# 不是真链接。实测 `docs` 里大量 `[text](path)` 写在行内代码/代码块中（文档在讲"链接怎么写"），
 # 若不排除会产生数百条假死链。
 LINK_RE = re.compile(r"(?<!!)\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
 FENCE_RE = re.compile(r"```.*?```", re.DOTALL)
@@ -48,7 +48,7 @@ INLINE_CODE_RE = re.compile(r"`[^`\n]*`")
 
 SKIP_PREFIXES = ("http://", "https://", "mailto:", "tel:", "#", "//")
 
-# 归档目录整目录排除：`.local/`（本地笔记，已 gitignore）与 `archive/`（历史归档）。
+# 归档目录整目录排除：`.local/`（本地笔记，已 `gitignore`）与 `archive/`（历史归档）。
 # 这些是"当时写下的事实"，指向当时存在的文件；今天失效属正常历史沉淀，
 # 修它们等于篡改历史记录，且没有读者会从归档里跳转。
 # 实测：529 条死链里 478 条在归档目录，只有 50 条在正式文档 —— 不排除会淹没真问题。
@@ -95,7 +95,7 @@ def scan(docs_dir: Path) -> tuple[dict[str, list[tuple[int, str]]], int]:
             if not path_part:
                 continue
             # ── 指向归档目录的链接视为「已归档」而非死链 ──
-            # `docs/.local/` 与 `docs/archive/` 被 gitignore / 不入库，
+            # `docs/.local/` 与 `docs/archive/` 被 `gitignore` / 不入库，
             # 本地有、CI 干净检出时没有。这类链接在文档里是"历史出处"记录，
             # 不是给读者点的活链接 —— 判死链会让 CI 恒红（本地绿、CI 红）。
             # 实测：干净检出下 5 条这类链接被误判。
@@ -106,7 +106,7 @@ def scan(docs_dir: Path) -> tuple[dict[str, list[tuple[int, str]]], int]:
                 continue
 
             # ── 两种解析口径，任一成立即视为有效 ──
-            # 1) 相对当前文件所在目录（markdown 标准语义）
+            # 1) 相对当前文件所在目录（`markdown` 标准语义）
             # 2) 相对仓库根（本仓文档惯例：`pilotstd/query/adapters/base.py` 这类
             #    "从仓库根数"的路径在 docs/ 下大量使用，且确实是仓库内真实文件）
             # 实测：50 条死链里 48 条属于第 2 类 —— 只按 (1) 解析会产生假死链。

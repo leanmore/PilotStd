@@ -105,7 +105,7 @@ class EnergyAdapter(BaseAdapter):
                 urls_to_try = [self.get_search_url()]
 
             resp = None
-            # NEW-12：fallback 轮询要记录最后一次异常，否则站点不可达与代码 bug 无法区分
+            # NEW-12：`fallback` 轮询要记录最后一次异常，否则站点不可达与代码 `bug` 无法区分
             last_exc: Exception | None = None
             for url in urls_to_try:
                 try:
@@ -137,7 +137,7 @@ class EnergyAdapter(BaseAdapter):
                 payload = resp.json()
             except ValueError as e:
                 # NEW-13：解析失败与「无结果」必须可区分 —— 站点返回 HTML 错误页时
-                # 原实现静默 break，看起来像"没查到"，实际是解析失败。
+                # 原实现静默 `break`，看起来像"没查到"，实际是解析失败。
                 logger.warning("energy 响应解析失败（可能是 HTML 错误页）: %s", e)  # i18n-allow: 内部运维日志
                 break
 

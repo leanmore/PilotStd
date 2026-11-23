@@ -125,7 +125,7 @@ class PendingService:
                 tuple(batch),
             )
             for row in rows:
-                # row 可能是 sqlite3.Row / tuple / dict，统一取第一列
+                # `row` 可能是 sqlite3.Row / `tuple` / `dict`，统一取第一列
                 if isinstance(row, dict):
                     found.add(str(row["standard_number"]))
                 else:

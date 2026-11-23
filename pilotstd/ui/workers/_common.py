@@ -137,7 +137,7 @@ class LogHandler(logging.Handler, QObject):
         QObject 引用不会释放，且 handler 关闭后仍可能被 timeout 触发一次。
         """
         self._closed = True
-        # 先停定时器（在触碰 self 的 Qt 状态之前，避免定时器回调与 close 竞争）
+        # 先停定时器（在触碰 `self` 的 Qt 状态之前，避免定时器回调与 `close` 竞争）
         try:
             if self._buf_timer is not None:
                 self._buf_timer.stop()

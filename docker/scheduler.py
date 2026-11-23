@@ -133,7 +133,7 @@ def _prune_old_backups(backup_dir: str, keep: int = _BACKUP_KEEP) -> list[str]:
         try:
             os.remove(os.path.join(backup_dir, old))
         except FileNotFoundError:
-            # NEW-15：文件已被别的进程删掉（如并发清理），不算失败，但留 debug 痕迹
+            # NEW-15：文件已被别的进程删掉（如并发清理），不算失败，但留 `debug` 痕迹
             logger.info("待清理备份已不存在（并发删除？）: %s", old)  # i18n-allow: 内部运维日志
             continue
         except OSError as e:
@@ -447,7 +447,7 @@ def start_scheduler():
     _add_interval_job("release_suppressed", 300)
     # D-2：长任务周期进度汇报（每分钟扫描；实际按 5~10 分钟节流）
     _add_interval_job("task_progress_report", 60)
-    # pending 缺失标记（A-46）：默认每天 03:30 UTC，可关；带挂载保护
+    # `pending` 缺失标记（A-46）：默认每天 03:30 UTC，可关；带挂载保护
     _add_cron_job("pending_missing_check", cfg.get("pending.mark_missing_cron", "30 3 * * *"))
     # 选中文件检查队列：每分钟消费一次；启动后立即补跑
     _add_interval_job("validity_queue_drain", 60)
@@ -482,7 +482,7 @@ def start_scheduler():
     scheduler.start()
     _heartbeat_stop.clear()
     threading.Thread(target=_heartbeat_loop, daemon=True, name="scheduler-heartbeat").start()
-    # 启动补跑：处理重启前遗留的 pending，不阻塞调度器启动
+    # 启动补跑：处理重启前遗留的 `pending`，不阻塞调度器启动
     threading.Thread(target=_drain_validity_queue, daemon=True, name="validity-queue-startup").start()
     threading.Thread(target=_retry_download_tasks, daemon=True, name="download-retry-startup").start()
     logger.info("APScheduler 已启动")

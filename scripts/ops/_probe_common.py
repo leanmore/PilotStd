@@ -34,7 +34,7 @@ import requests
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CREDS = ROOT / "config" / "docker_creds.json"
 DEFAULT_BASE_URL = "http://192.168.1.18:9028"
-# 探测脚本是命令行工具：日志直接打到 stderr，不用 `print`（G-005 口径）
+# 探测脚本是命令行工具：日志直接打到 `stderr`，不用 `print`（G-005 口径）
 logger = logging.getLogger("pilotstd.ops.probe")
 
 # 退出码语义（与 `scripts/check_all.sh` 的 0/1 口径一致，新增 2 表示环境不可达）

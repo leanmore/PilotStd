@@ -36,7 +36,7 @@ import _probe_common as common  # noqa: E402  共享层（凭据/HTTP/报告）
 ROOT = common.ROOT
 VERSION_FILE = ROOT / "VERSION"
 CONSTANTS_FILE = ROOT / "pilotstd" / "core" / "db" / "_constants.py"
-# `/api/health` 的 version 来自 Dockerfile 的 APP_VERSION 构建参数，本部署是 40 位 git sha
+# `/api/health` 的 `version` 来自 Dockerfile 的 APP_VERSION 构建参数，本部署是 40 位 `git` `sha`
 _SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 
 
@@ -76,7 +76,7 @@ def _git_commit_exists(sha: str) -> tuple[bool, str]:
             timeout=20,
         )
     except (OSError, subprocess.SubprocessError) as exc:
-        # git 不可用：无法验证，必须明说而不是当成通过
+        # `git` 不可用：无法验证，必须明说而不是当成通过
         return False, f"git 不可用（{type(exc).__name__}），无法核对 sha 是否在仓库中"
     if kind.returncode != 0 or kind.stdout.strip() != "commit":
         return False, f"本地仓库中不存在该 commit（git cat-file 返回 {kind.returncode}）"
@@ -193,7 +193,7 @@ def probe_version_consistency(report: common.Report, client: common.HttpClient, 
         package_version=package_version,
         image=str((payload or {}).get("image") or ""),
     )
-    # `/api/health` 的 version 是构建参数 APP_VERSION：本部署为 git sha，需单独核对来源
+    # `/api/health` 的 `version` 是构建参数 APP_VERSION：本部署为 `git` `sha`，需单独核对来源
     health_version = str(health.get("version") or "")
     if _SHA_RE.match(health_version):
         exists, detail = _git_commit_exists(health_version)

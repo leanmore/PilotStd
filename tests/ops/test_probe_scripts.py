@@ -461,7 +461,7 @@ def test_credentials_never_send_messages() -> None:
     verbs = {method for method, _ in session.calls}
     assert verbs <= {"GET", "POST"}
     assert not any("send" in url or "webhook" in url for _m, url in session.calls)
-    # 明文 secret 绝不出现在报告里
+    # 明文 `secret` 绝不出现在报告里
     report = probe_credentials.run(options(), session=FakeSession(credential_routes(feishu_secret="plain-secret")))
     assert "plain-secret" not in json.dumps(report.as_dict(), ensure_ascii=False)
 

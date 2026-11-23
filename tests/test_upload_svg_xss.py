@@ -28,7 +28,7 @@ def _check(payload: str) -> None:
 @pytest.mark.parametrize(
     "payload",
     [
-        # 内嵌 script
+        # 内嵌 `script`
         '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>',
         # 事件属性（最常见、也最容易被漏掉的一种）
         '<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"></svg>',
@@ -41,7 +41,7 @@ def _check(payload: str) -> None:
         '<svg><image href="data:text/html;base64,PHNjcmlwdD4="/></svg>',
         # XXE
         '<?xml version="1.0"?><!DOCTYPE svg [<!ENTITY xxe SYSTEM "file:///etc/passwd">]><svg>&xxe;</svg>',
-        # 带 XML 声明 + 事件的组合（原实现会被 <?xml 前缀放过）
+        # 带 XML 声明 + 事件的组合（原实现会被 <?`xml` 前缀放过）
         '<?xml version="1.0"?><svg onload="alert(document.cookie)"></svg>',
     ],
 )
@@ -62,7 +62,7 @@ def test_executable_svg_is_rejected(payload):
         '<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg"><circle r="4"/></svg>',
         # 带注释的纯图形
         "<!-- 背景图 --><svg xmlns='http://www.w3.org/2000/svg'><path d='M0 0'/></svg>",
-        # 大写标签也应放行（黑名单已 lower）
+        # 大写标签也应放行（黑名单已 `lower`）
         '<SVG xmlns="http://www.w3.org/2000/svg"><RECT/></SVG>',
     ],
 )

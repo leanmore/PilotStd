@@ -55,7 +55,7 @@ def test_safe_raw_get_closes_own_session():
         got = safe_raw_get("http://x", "site")
 
     assert got is resp
-    # with 语句退出 → Session 被关闭（__exit__ 被调用）
+    # `with` 语句退出 → Session 被关闭（__exit__ 被调用）
     fake_session.__exit__.assert_called_once()
     # 响应体在关闭前已被读取一次（保证关闭后调用方仍能读缓存）
     assert resp.content_read_count >= 1
@@ -88,7 +88,7 @@ def test_fetch_list_source_has_owns_session_guard():
     assert "owns_session" in src, "缺少 owns_session 标志（无法区分自建/注入的 Session）"
     assert "finally:" in src
     assert "session.close()" in src
-    # 必须在 finally 里带条件，不能无条件关闭注入的实例
+    # 必须在 `finally` 里带条件，不能无条件关闭注入的实例
     assert "if owns_session:" in src
 
 
@@ -106,7 +106,7 @@ def test_fetch_list_closes_own_session_but_not_injected():
         def __init__(self, http):
             self._http = http
 
-    # 场景 A：注入 session → 不得关闭
+    # 场景 A：注入 `session` → 不得关闭
     injected = MagicMock()
     injected.headers = {}
     with patch.object(base_mod, "safe_request", return_value=None):
@@ -114,7 +114,7 @@ def test_fetch_list_closes_own_session_but_not_injected():
         probe._fetch_list("", 10)
     injected.close.assert_not_called()
 
-    # 场景 B：未注入 → 自建 session 必须关闭
+    # 场景 B：未注入 → 自建 `session` 必须关闭
     own = MagicMock()
     own.headers = {}
     with patch.object(base_mod.requests, "Session", return_value=own), patch.object(
@@ -133,7 +133,7 @@ def test_log_handler_close_stops_timer_source():
     src = (ROOT / "pilotstd" / "ui" / "workers" / "_common.py").read_text(encoding="utf-8")
     close_start = src.find("def close(self)")
     assert close_start > 0
-    # 取 close 方法体（到下一个 def 之前）
+    # 取 `close` 方法体（到下一个 `def` 之前）
     nxt = src.find("\n    def ", close_start + 10)
     body = src[close_start:nxt] if nxt > 0 else src[close_start:]
     assert "_buf_timer.stop()" in body, "close() 必须 stop 批量刷新定时器（NEW-40）"

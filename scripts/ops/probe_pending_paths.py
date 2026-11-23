@@ -36,11 +36,11 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import _probe_common as common  # noqa: E402  共享层（凭据/HTTP/报告）
 
-# 复用生产判据需要能 import pilotstd（直接运行脚本时 sys.path[0] 是 scripts/ops，不含仓库根）
+# 复用生产判据需要能 `import` `pilotstd`（直接运行脚本时 sys.path[0] 是 scripts/ops，不含仓库根）
 if str(common.ROOT) not in sys.path:
     sys.path.insert(0, str(common.ROOT))
 
-# 扫描根缺省值：与 `pilotstd/core/config/defaults.py` 的 storage 默认一致（取不到配置时兜底）
+# 扫描根缺省值：与 `pilotstd/core/config/defaults.py` 的 `storage` 默认一致（取不到配置时兜底）
 DEFAULT_ROOTS = ("/inbox", "/standards")
 # 挂载保护判据的来源：`pilotstd/core/file_index.py` 的同名常量（复用函数而非复制阈值）
 GUARD_MIN_ROWS = 50
@@ -191,7 +191,7 @@ def probe_pending_paths(
         if "无法判定" in detail:
             unverifiable.append(f"{file_path}（{detail}）")
             continue
-        # 镜像假设：同一相对路径在另一个扫描根下是否还在（在 → 之前标 missing 是假缺失）
+        # 镜像假设：同一相对路径在另一个扫描根下是否还在（在 → 之前标 `missing` 是假缺失）
         rel = file_path[len(root) :].lstrip("/")
         mirrored = ""
         for other in roots:
@@ -345,7 +345,7 @@ def run(options: common.ProbeOptions, session=None) -> common.Report:
         login_detail = client.require_admin()
         report.add("auth.admin", common.STATUS_PASS, login_detail)
     except common.AuthError as exc:
-        # 没有 admin 会话：端点存在性、pending 路径都无从核对，如实标「无法验证」
+        # 没有 `admin` 会话：端点存在性、`pending` 路径都无从核对，如实标「无法验证」
         report.add(
             "auth.admin",
             common.STATUS_UNVERIFIED,
@@ -368,7 +368,7 @@ def run(options: common.ProbeOptions, session=None) -> common.Report:
     if pending_total and sampled:
         estimated_missing = round(pending_total * sampled_missing / sampled)
         would_skip = _guard_would_skip(pending_total, estimated_missing)
-        # 保护判据本身分不清「真的大批缺失」与「挂载没起来」；本 probe 已独立核对过挂载可列、
+        # 保护判据本身分不清「真的大批缺失」与「挂载没起来」；本 `probe` 已独立核对过挂载可列、
         # 路径都在配置的扫描根下，故这里能给出更准确的结论：挂载正常时即为保护的**误报**。
         mounts_ok = all(
             c.status == common.STATUS_PASS for c in report.checks if c.name.startswith("mounts/")

@@ -20,7 +20,7 @@ if not getattr(sys, "frozen", False):
     try:
         faulthandler.enable(file=sys.stderr, all_threads=True)
     except Exception as e:
-        # NEW-14：faulthandler 是开发期诊断特性，失败不致命，但要留痕
+        # NEW-14：`faulthandler` 是开发期诊断特性，失败不致命，但要留痕
         print(f"[warn] faulthandler 启用失败: {e}", file=sys.stderr)
 
 # 加载环境配置文件（优先级：系统环境变量 > 配置文件）
@@ -43,7 +43,7 @@ def _global_excepthook(exc_type, exc_value, exc_tb):
             f.write(f"CRASH [{datetime.datetime.now().isoformat()}]\n")
             f.write(msg)
     except Exception as e:
-        # NEW-14：崩溃日志本身写不进去时必须留痕（此时 logging 可能也不可用）
+        # NEW-14：崩溃日志本身写不进去时必须留痕（此时 `logging` 可能也不可用）
         print(f"[warn] 崩溃日志写入失败: {e}", file=sys.stderr)
     sys.__excepthook__(exc_type, exc_value, exc_tb)
 

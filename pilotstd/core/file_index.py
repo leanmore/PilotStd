@@ -65,12 +65,12 @@ def _find_missing_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     if not rows:
         return []
 
-    # 检测 os.path.exists 是否被测试替身替换（mock 对象带 _mock_name / mock_calls 等属性）
+    # 检测 os.path.exists 是否被测试替身替换（`mock` 对象带 _mock_name / mock_calls 等属性）
     exists_is_mocked = hasattr(os.path.exists, "mock_calls") or hasattr(os.path.exists, "_mock_name")
     if exists_is_mocked:
         return [r for r in rows if not os.path.exists(r.get("file_path") or "")]
 
-    # 父目录 → [(row, basename)]
+    # 父目录 → [(`row`, basename)]
     by_dir: dict[str, list[tuple[dict[str, Any], str]]] = {}
     fallback: list[dict[str, Any]] = []
     for r in rows:
@@ -91,7 +91,7 @@ def _find_missing_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
             with os.scandir(parent) as it:
                 names = {e.name for e in it}
         except OSError:
-            # 目录不存在/无权限：该组全部失效（与逐条 exists=False 一致）
+            # 目录不存在/无权限：该组全部失效（与逐条 `exists`=False 一致）
             missing.extend(r for r, _ in entries)
             continue
         missing.extend(r for r, name in entries if name not in names)

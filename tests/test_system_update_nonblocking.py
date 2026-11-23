@@ -50,7 +50,7 @@ def test_no_bare_blocking_calls_remain():
     # 把已正确包装的调用抹掉，再找裸调用
     stripped = re.sub(r"await run_in_threadpool\(\s*_\w+[^)]*\)", "", src)
     for fn in ("_get_current_digest", "_pull_and_compare", "_restart_via_compose"):
-        # 允许出现在 def 定义行与注释里，只禁止「裸调用」
+        # 允许出现在 `def` 定义行与注释里，只禁止「裸调用」
         bare = re.search(rf"(?<!def )\b{fn}\s*\(", stripped)
         assert bare is None, f"{fn} 仍有未包装的裸调用（会阻塞事件循环）"
 

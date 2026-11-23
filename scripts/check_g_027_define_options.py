@@ -19,7 +19,7 @@ def main() -> int:
         for vue_file in sorted(search_dir.rglob("*.vue")):
             content = vue_file.read_text(encoding="utf-8")
             # 只认真实的 `<script setup ...>` 标签（行首，允许前置空白）；
-            # 注释里出现的「<script setup>」字样不算（2026-11-22 实测误报：FileMonitor.vue）。
+            # 注释里出现的「<`script` setup>」字样不算（2026-11-22 实测误报：FileMonitor.vue）。
             if not re.search(r"^\s*<script\s+setup\b", content, re.MULTILINE):
                 continue
             if "defineOptions" not in content:

@@ -52,7 +52,7 @@ from PyQt6.QtWidgets import QDialog, QHBoxLayout, QLayout, QToolButton, QWidget
 from pilotstd.i18n import _
 from pilotstd.ui import tokens_generated as T
 
-# 四主题白名单：未知主题必须显式报错，不能静默回退 light（否则配色错误无人发现）
+# 四主题白名单：未知主题必须显式报错，不能静默回退 `light`（否则配色错误无人发现）
 _THEMES = ("light", "dark", "green", "blue")
 
 
@@ -115,7 +115,7 @@ class BaseDialog(QDialog):
             raise ValueError(f"unknown theme: {theme!r}; expected one of {_THEMES}")
         self._theme = theme
         self._closable = bool(closable)
-        # 调用方显式改过 layout margin 后就不再覆盖（尊重业务自定义布局）
+        # 调用方显式改过 `layout` `margin` 后就不再覆盖（尊重业务自定义布局）
         self._margin_applied = False
         self._close_button: QToolButton | None = None
         self._apply_style()
@@ -183,7 +183,7 @@ class BaseDialog(QDialog):
         button.move(max(0, self.width() - button.width() - pad_h), _px("space_18"))
         button.raise_()
 
-    # ── 内边距（首次显示时套到 layout）────────────────────────
+    # ── 内边距（首次显示时套到 `layout`）────────────────────────
     def showEvent(self, event: QShowEvent | None) -> None:
         """首次显示时把 DS 内边距套到布局，并按需摆好关闭按钮。"""
         super().showEvent(event)

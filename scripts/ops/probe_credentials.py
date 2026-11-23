@@ -156,7 +156,7 @@ def probe_feishu(
         enabled=bool(config.get("enabled")),
         app_id=mask_or_empty(config.get("app_id")),
     )
-    # 只有 app 形态才需要群 chat_id；纯 webhook（群机器人）形态不适用
+    # 只有 `app` 形态才需要群 chat_id；纯 `webhook`（群机器人）形态不适用
     if _complete_form(config, required) != "app":
         report.add(
             "feishu.chat_id",
@@ -182,7 +182,7 @@ def probe_feishu(
             tier=tier,
         )
     if _is_masked(config.get("app_secret")) or not _is_configured(config.get("app_secret")):
-        # 掩码下拿不到明文 secret，无法做令牌换取；如实标「无法验证」而不是假装连通
+        # 掩码下拿不到明文 `secret`，无法做令牌换取；如实标「无法验证」而不是假装连通
         report.add(
             "feishu.connectivity",
             common.STATUS_UNVERIFIED,
@@ -250,7 +250,7 @@ def probe_wechat(
     if not complete:
         state, tier, suffix = _credential_status(config, options)
         if webhook:
-            # 已有群机器人 webhook 兜底：缺应用凭证不阻断，但仍要如实提示
+            # 已有群机器人 `webhook` 兜底：缺应用凭证不阻断，但仍要如实提示
             state = common.STATUS_UNVERIFIED
             tier = common.TIER_ADVISORY
             suffix = "（已有群机器人 webhook 兜底，不阻断）"

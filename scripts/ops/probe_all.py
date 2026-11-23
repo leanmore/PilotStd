@@ -30,7 +30,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import _probe_common as common  # noqa: E402  共享层（凭据/HTTP/报告）
 
-# 子探测注册表：名称 → 模块名（延迟 import，避免单个 probe 的依赖影响 --help）
+# 子探测注册表：名称 → 模块名（延迟 `import`，避免单个 `probe` 的依赖影响 --`help`）
 PROBES = {
     "health": "probe_health",
     "pending_paths": "probe_pending_paths",
@@ -79,7 +79,7 @@ def run_all(options: common.ProbeOptions, names: list[str], session=None) -> tup
     reports: list[common.Report] = []
     for name in names:
         module = _load(name)
-        # 每个 probe 共用同一个 session：登录一次即可，且便于测试注入假会话
+        # 每个 `probe` 共用同一个 `session`：登录一次即可，且便于测试注入假会话
         reports.append(module.run(options, session=session))
     return reports, ""
 

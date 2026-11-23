@@ -32,7 +32,7 @@ def test_lock_unreadable_returns_false_within_timeout(tmp_path):
     # 先造出一个"已存在"的锁文件，让首次 os.open 抛 FileExistsError
     Path(lock_path).write_text("12345", encoding="utf-8")
 
-    # getmtime 永远抛 OSError（模拟权限不足/文件被占用）
+    # `getmtime` 永远抛 OSError（模拟权限不足/文件被占用）
     with patch("pilotstd.core.db.database.os.path.getmtime", side_effect=OSError("denied")):
         started = time.time()
         got = db._acquire_migration_lock(timeout=2.0)
@@ -60,7 +60,7 @@ def test_stale_lock_is_cleaned_and_acquired(tmp_path):
     lock_path = db_path + ".migration_lock"
     Path(lock_path).write_text("99999", encoding="utf-8")
 
-    # 把 mtime 伪造到很久以前
+    # 把 `mtime` 伪造到很久以前
     old = time.time() - 3600
     import os
 

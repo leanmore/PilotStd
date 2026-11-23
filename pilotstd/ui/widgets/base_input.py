@@ -25,8 +25,8 @@ _SIZE_TOKENS: dict[str, tuple[str, str, str]] = {
     "s": ("input_height_sm", "space_10", "font_size_12"),
 }
 
-# 下拉的尺寸档：高度/字号同上，但左右内边距按 AppSelect.vue 的 label 口径
-# （L space-16 / M space-14 / S space-12）——下拉的左右内边距由 label 承担，
+# 下拉的尺寸档：高度/字号同上，但左右内边距按 AppSelect.vue 的 `label` 口径
+# （L space-16 / M space-14 / S space-12）——下拉的左右内边距由 `label` 承担，
 # 与单行输入框不是同一组取值，这里照搬 Web 实现，避免两端看起来"缩进不同"。
 _SELECT_SIZE_TOKENS: dict[str, tuple[str, str, str]] = {
     "l": ("input_height_lg", "space_16", "font_size_15"),
@@ -140,13 +140,13 @@ class BaseInput(QLineEdit):
             f" border-color: {border};"
             f" }}"
         )
-        # 应用级样式表存在时，QComboBox/QLineEdit 的 sizeHint 在首次 polish 前返回的是
+        # 应用级样式表存在时，QComboBox/QLineEdit 的 sizeHint 在首次 `polish` 前返回的是
         # **未套控件 QSS** 的高度（实测 22px），要等事件循环 polish 后才变回令牌高度。
         # 这里立即 ensurePolished，让构造完成即拿到正确高度，避免布局在首帧按 22px 排版。
         self.ensurePolished()
-        # placeholder 只能走调色板：Qt QSS 不支持 `::placeholder` 伪元素。
-        # 必须放在 ensurePolished 之后 —— polish 会用 QSS 的 `color` 重建调色板，
-        # 先设会被覆盖回正文色（实测 placeholder 变成 text 的颜色）。
+        # `placeholder` 只能走调色板：Qt QSS 不支持 `::placeholder` 伪元素。
+        # 必须放在 ensurePolished 之后 —— `polish` 会用 QSS 的 `color` 重建调色板，
+        # 先设会被覆盖回正文色（实测 `placeholder` 变成 `text` 的颜色）。
         palette = self.palette()
         palette.setColor(QPalette.ColorRole.PlaceholderText, QColor(_color(self._theme, "textDim")))
         self.setPalette(palette)

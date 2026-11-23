@@ -139,7 +139,7 @@ class C:
 def test_umbrella_handler_counted_once_and_self_log_recognized(tmp_path) -> None:
     """伞形 handler 只算 1 次；`self.log.debug`（非 Name("logger")）也要识别。"""
     counts = gate.scan(_tree_with(tmp_path, UMBRELLA_AND_RECEIVER))
-    # 内层 handler 计 1；外层不再重复 ⇒ 合计 1（若未剪枝=2，若未识别 self.log=0）
+    # 内层 `handler` 计 1；外层不再重复 ⇒ 合计 1（若未剪枝=2，若未识别 self.log=0）
     assert counts["debug"]["pilotstd/pkg/case.py"] == 1
 
 
@@ -194,7 +194,7 @@ def test_empty_constructor_returns_counted(tmp_path) -> None:
     assert counts["return"]["pilotstd/pkg/case.py"] == 3
 
 
-# ── E2-batch2：scripts/ 纳入 + archive 排除 ─────────────────────────────
+# ── E2-batch2：scripts/ 纳入 + `archive` 排除 ─────────────────────────────
 
 _SIMPLE_PASS = "try:\n    pass\nexcept Exception:\n    pass\n"
 

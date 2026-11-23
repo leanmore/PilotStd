@@ -288,7 +288,7 @@ class TestWinInputUnification:
         # 密码框：走 BaseInput(password=True)，不再手工 setEchoMode
         assert settings_src.count("BaseInput(password=True)") == 7
         assert "setEchoMode(QLineEdit.EchoMode.Password)" not in settings_src
-        # placeholder 原样保留
+        # `placeholder` 原样保留
         assert 'setPlaceholderText("http://127.0.0.1:8080")' in settings_src
         assert 'setPlaceholderText(_("placeholder_xpath"))' in rules_src
         # 下拉选项与 setCurrentText 逻辑保留

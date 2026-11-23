@@ -92,7 +92,7 @@ class JJGAdapter(BaseAdapter):
                 data = resp.json()
             except Exception as e:
                 # NEW-13：解析失败与「无结果」必须可区分 —— 站点返回 HTML 错误页时
-                # 原实现静默 break，看起来像"没查到"，实际是解析失败。
+                # 原实现静默 `break`，看起来像"没查到"，实际是解析失败。
                 logger.warning("jjg 响应解析失败（可能是 HTML 错误页）: %s", e)  # i18n-allow: 内部运维日志
                 break
 

@@ -263,7 +263,7 @@ def test_no_hardcoded_color_values_in_qss(app) -> None:
     for theme in THEMES:
         qss = BaseTable(theme=theme).styleSheet()
         allowed = set(T.THEME_COLORS[theme].values())
-        # 合成后的 selected 不在令牌表里，单独放行
+        # 合成后的 `selected` 不在令牌表里，单独放行
         allowed.add(_composite(T.color(theme, "selected"), T.color(theme, "surface")))
         found = re.findall(r"#[0-9a-fA-F]{3,8}\b|rgba?\([^)]*\)", qss)
         unknown = [value for value in found if value not in allowed]
