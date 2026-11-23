@@ -91,7 +91,7 @@ onMounted(async () => {
 .metrics { display: flex; flex-direction: column; gap: var(--space-10); }
 .metric-row { display: flex; align-items: center; gap: var(--space-10); }
 .metric-label { font-size: var(--font-size-11); color: var(--text-dim); width: 48px; flex-shrink: 0; }
-/* TODO: [Design Debt] 6px 无精确令牌，暂不替换，待定令牌后统一处理 */
+/* TODO: [Design Debt] A-52 — 6px 无精确令牌，暂不替换，待定令牌后统一处理 */
 .metric-bar { flex: 1; height: var(--size-6); background: var(--border-light); border-radius: 3px; overflow: hidden; }
 .metric-fill { height: 100%; border-radius: 3px; transition: width 0.5s; }
 .bar-ok { background: var(--success); }

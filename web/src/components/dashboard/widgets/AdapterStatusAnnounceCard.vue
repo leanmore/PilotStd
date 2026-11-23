@@ -164,15 +164,15 @@ onBeforeUnmount(() => {
   transition: all var(--transition);
 }
 .row:hover { border-color: var(--primary-border); background: var(--primary-bg); }
-/* TODO: [Design Debt] rgba(239,68,68,0.04) 无精确令牌，暂不替换，待定令牌后统一处理 */
-/* TODO: [Design Debt] rgba(239,68,68,0.25) 无精确令牌，暂不替换，待定令牌后统一处理 */
+/* TODO: [Design Debt] A-52 — rgba(239,68,68,0.04) 无精确令牌，暂不替换，待定令牌后统一处理 */
+/* TODO: [Design Debt] A-52 — rgba(239,68,68,0.25) 无精确令牌，暂不替换，待定令牌后统一处理 */
 .row.frozen { border-color: rgba(239,68,68,0.25); background: rgba(239,68,68,0.04); }
-/* TODO: [Design Debt] rgba(245,158,11,0.04) 无精确令牌，暂不替换，待定令牌后统一处理 */
-/* TODO: [Design Debt] rgba(245,158,11,0.25) 无精确令牌，暂不替换，待定令牌后统一处理 */
+/* TODO: [Design Debt] A-52 — rgba(245,158,11,0.04) 无精确令牌，暂不替换，待定令牌后统一处理 */
+/* TODO: [Design Debt] A-52 — rgba(245,158,11,0.25) 无精确令牌，暂不替换，待定令牌后统一处理 */
 .row.cooldown { border-color: rgba(245,158,11,0.25); background: rgba(245,158,11,0.04); }
 
 .row-icon {
-  /* TODO: [Design Debt] 36px 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 36px 无精确令牌，暂不替换，待定令牌后统一处理 */
   width: 36px; height: 36px; border-radius: var(--radius-sm);
   display: flex; align-items: center; justify-content: center;
   font-size: var(--font-size-11); font-weight: var(--font-weight-extrabold); font-family: var(--mono); flex-shrink: 0;
@@ -187,7 +187,7 @@ onBeforeUnmount(() => {
 
 /* 健康检查指示 */
 .row-health { display: flex; align-items: center; gap: var(--space-4); font-size: var(--font-size-9); color: var(--text-dim); margin-top: var(--space-2); }
-/* TODO: [Design Debt] 6px 无精确令牌，暂不替换，待定令牌后统一处理 */
+/* TODO: [Design Debt] A-52 — 6px 无精确令牌，暂不替换，待定令牌后统一处理 */
 .health-dot { width: var(--size-6); height: var(--size-6); border-radius: 50%; flex-shrink: 0; }
 .health-up { background: var(--success); }
 .health-down { background: var(--danger); }

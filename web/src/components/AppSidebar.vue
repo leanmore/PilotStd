@@ -78,7 +78,7 @@ const emit = defineEmits<{
   flex-shrink: 0;
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
-  /* TODO: [Design Debt] 2px 0 8px rgba(0, 0, 0, 0.03) 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 2px 0 8px rgba(0, 0, 0, 0.03) 无精确令牌，暂不替换，待定令牌后统一处理 */
   /* TODO: [Design Debt] 原生阴影与既有 --shadow-* 层级不匹配（半径/扩散/透明度不同），待统一评估（A-52） */
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.03);
 }
@@ -147,7 +147,7 @@ nav::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
   background: linear-gradient(135deg, var(--primary-bg), transparent);
   color: var(--primary);
   font-weight: var(--font-weight-semibold);
-  /* TODO: [Design Debt] 0 2px 8px rgba(99, 102, 241, 0.08) 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 0 2px 8px rgba(99, 102, 241, 0.08) 无精确令牌，暂不替换，待定令牌后统一处理 */
   /* TODO: [Design Debt] 原生阴影与既有 --shadow-* 层级不匹配（半径/扩散/透明度不同），待统一评估（A-52） */
   box-shadow: 0 2px 8px rgba(99, 102, 241, 0.08);
 }
@@ -159,12 +159,12 @@ nav::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
   top: 50%;
   transform: translateY(-50%);
   width: 4px;
-  /* TODO: [Design Debt] 24px 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 24px 无精确令牌，暂不替换，待定令牌后统一处理 */
   height: var(--size-24);
   background: linear-gradient(180deg, var(--primary), var(--primary-hover));
-  /* TODO: [Design Debt] 0 4px 4px 0 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 0 4px 4px 0 无精确令牌，暂不替换，待定令牌后统一处理 */
   border-radius: 0 4px 4px 0;
-  /* TODO: [Design Debt] 2px 0 8px rgba(99, 102, 241, 0.3) 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 2px 0 8px rgba(99, 102, 241, 0.3) 无精确令牌，暂不替换，待定令牌后统一处理 */
   /* TODO: [Design Debt] 原生阴影与既有 --shadow-* 层级不匹配（半径/扩散/透明度不同），待统一评估（A-52） */
   box-shadow: 2px 0 8px rgba(99, 102, 241, 0.3);
 }

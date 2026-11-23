@@ -329,7 +329,7 @@ onMounted(() => { loadSites() })
 }
 .health-dot {
   width: 8px;
-  /* TODO: [Design Debt] 8px 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 8px 无精确令牌，暂不替换，待定令牌后统一处理 */
   height: var(--size-8);
   border-radius: 50%;
   flex-shrink: 0;

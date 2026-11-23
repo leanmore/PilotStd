@@ -144,7 +144,7 @@ async function debug() {
 .query-input { flex: 1; }
 .debug-btn {
   padding: var(--space-8) var(--space-16); border: none; border-radius: var(--radius);
-  /* TODO: [Design Debt] #fff 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — #fff 无精确令牌，暂不替换，待定令牌后统一处理 */
   background: var(--primary-fill); color: var(--text-on-primary); cursor: pointer; font-size: var(--font-size-13); font-weight: var(--font-weight-semibold);
 }
 .debug-btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -172,7 +172,7 @@ async function debug() {
 .col-score.zero { color: var(--text-dim); }
 .col-reasons { display: flex; flex-wrap: wrap; gap: var(--space-4); }
 .reason-tag {
-  /* TODO: [Design Debt] 10px 映射到旧令牌 --radius，待收敛到 ds-radius */
+  /* TODO: [Design Debt] A-52 — 10px 映射到旧令牌 --radius，待收敛到 ds-radius */
   display: inline-block; padding: var(--space-1) var(--space-6); border-radius: var(--radius); font-size: var(--font-size-10);
   border: 1px solid; white-space: nowrap;
 }

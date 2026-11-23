@@ -79,9 +79,9 @@ onMounted(async () => {
 /* ── 主指标 ── */
 .mp-stat-hero {
   position: relative;
-  /* TODO: [Design Debt] linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.08)) 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.08)) 无精确令牌，暂不替换，待定令牌后统一处理 */
   background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.08));
-  /* TODO: [Design Debt] 1px solid rgba(99,102,241,0.25) 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 1px solid rgba(99,102,241,0.25) 无精确令牌，暂不替换，待定令牌后统一处理 */
   border: 1px solid rgba(99,102,241,0.25);
   border-radius: var(--ds-radius-md);
   display: flex;
@@ -92,7 +92,7 @@ onMounted(async () => {
 .mp-hero-glow {
   position: absolute;
   right: -30px; top: -30px;
-  /* TODO: [Design Debt] 100px 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 100px 无精确令牌，暂不替换，待定令牌后统一处理 */
   width: 100px; height: 100px;
   background: var(--primary-border);
   border-radius: 50%;

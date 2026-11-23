@@ -84,9 +84,9 @@ watch(
 .card-wrapper { position: relative; width: 100%; height: 100%; }
 .card-inner { width: 100%; height: 100%; }
 /* semantic color — consistent across all themes */
-/* TODO: [Design Debt] #fff 无精确令牌，暂不替换，待定令牌后统一处理 */
-/* TODO: [Design Debt] rgba(239,68,68,0.85) 无精确令牌，暂不替换，待定令牌后统一处理 */
-/* TODO: [Design Debt] 22px 无精确令牌，暂不替换，待定令牌后统一处理 */
+/* TODO: [Design Debt] A-52 — #fff 无精确令牌，暂不替换，待定令牌后统一处理 */
+/* TODO: [Design Debt] A-52 — rgba(239,68,68,0.85) 无精确令牌，暂不替换，待定令牌后统一处理 */
+/* TODO: [Design Debt] A-52 — 22px 无精确令牌，暂不替换，待定令牌后统一处理 */
 .remove-btn { position: absolute; top: 6px; right: 6px; z-index: 10; width: 22px; height: 22px; border-radius: 50%; border: none; background: rgba(239,68,68,0.85); color: #fff; font-size: var(--font-size-14); cursor: pointer; opacity: 0; transition: opacity 0.2s; display: flex; align-items: center; justify-content: center; }
 .card-wrapper:hover .remove-btn { opacity: 1; }
 .dashboard-grid { width: 100%; min-height: 400px; }

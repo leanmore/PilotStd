@@ -544,9 +544,9 @@ onMounted(() => { loadValidityFilters(); loadConfig(); loadHistory() })
 .form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--space-16) var(--space-20); margin-bottom: var(--space-14); align-items: start; }
 .field { display: flex; flex-direction: column; gap: var(--space-6); }
 .field label { font-size: var(--font-size-12); font-weight: var(--font-weight-medium); color: var(--text-secondary); }
-/* TODO: [Design Debt] 36px 无精确令牌，暂不替换，待定令牌后统一处理 */
+/* TODO: [Design Debt] A-52 — 36px 无精确令牌，暂不替换，待定令牌后统一处理 */
 .field-control { width: 100%; height: 36px; }
-/* TODO: [Design Debt] 36px 无精确令牌，暂不替换，待定令牌后统一处理 */
+/* TODO: [Design Debt] A-52 — 36px 无精确令牌，暂不替换，待定令牌后统一处理 */
 .form-grid :deep(.p-inputnumber) { height: 36px; }
 .field-hint { font-size: var(--font-size-11); color: var(--text-dim); margin-top: var(--space-2); }
 
@@ -576,6 +576,6 @@ onMounted(() => { loadValidityFilters(); loadConfig(); loadHistory() })
 .detail-row span:first-child { color: var(--text-dim); }
 .time-group { display: flex; align-items: center; gap: 0.25rem; }
 .time-input { width: 4.5rem; }
-/* TODO: [Design Debt] bold 无精确令牌，暂不替换，待定令牌后统一处理 */
+/* TODO: [Design Debt] A-52 — bold 无精确令牌，暂不替换，待定令牌后统一处理 */
 .separator { font-weight: bold; padding: 0 0.25rem; }
 </style>

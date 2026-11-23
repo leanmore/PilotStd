@@ -117,7 +117,7 @@ onBeforeUnmount(() => { if (timer) clearInterval(timer) })
 .clear-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .log-box {
-  /* TODO: [Design Debt] rgba(0,0,0,0.08) 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — rgba(0,0,0,0.08) 无精确令牌，暂不替换，待定令牌后统一处理 */
   flex: 1; overflow-y: auto; background: rgba(0,0,0,0.08); border-radius: var(--radius);
   padding: var(--space-8) var(--space-10); font-family: var(--mono); font-size: var(--font-size-11); line-height: var(--line-height-relaxed);
 }
