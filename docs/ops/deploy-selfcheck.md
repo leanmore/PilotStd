@@ -39,7 +39,14 @@ python scripts/ops/probe_health.py        --base-url http://192.168.1.18:9028
 python scripts/ops/probe_pending_paths.py --base-url http://192.168.1.18:9028 --max-items 50
 python scripts/ops/probe_credentials.py   --base-url http://192.168.1.18:9028
 python scripts/ops/probe_db_counts.py     --base-url http://192.168.1.18:9028
+python scripts/ops/probe_batch1.py        --base-url http://192.168.1.18:9028
 ```
+
+> **部署后第一件事**：跑 `probe_batch1.py`。它把《全站技术债与隐患总清单》批次 1 的
+> 22 项「已修复待部署」逐条验证，直接给出「哪些已在生产生效、哪些还要人工看」。
+> 可自动化项（端点 / 字段 / SQL）自动判定，人工项（渲染 / 目录 / 真实外发）
+> 如实标 `unverified` 并写明原因，**不假装通过**。
+
 
 **通用参数**（每个脚本都有）：
 

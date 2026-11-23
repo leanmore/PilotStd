@@ -36,6 +36,7 @@ PROBES = {
     "pending_paths": "probe_pending_paths",
     "credentials": "probe_credentials",
     "db_counts": "probe_db_counts",
+    "batch1": "probe_batch1",
 }
 
 
