@@ -317,3 +317,48 @@ def delete_notification_logs(
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
+@router.get("/api/notification/logs/stats/distribution")
+@require_role("admin")
+def get_log_level_distribution(
+    request: Request,
+    days: int = Query(7, ge=1, le=90),
+    nmgr=Depends(_get_notification_mgr),
+):
+    """通知日志的 `event_type × level` 分布（仅管理员，**只读**）。
+
+    ── 为什么需要这个端点（G-43，2026-11-24）──
+    G-43 记录「`notification_log` 的 info/warning 计数口径是否偏差，待核实
+    （缺两时点分布）」。此前只能靠手工 SQL 到生产库查，且 `level` 是**动态计算**
+    的（`_business_level(event_type)`，非存储字段），手工算容易与代码口径不一致。
+
+    本端点用**与列表接口完全相同**的 `_business_level()` 计算，保证口径一致；
+    返回「近 N 天」的分布，运维可间隔取两次做对比（G-43 要求的两时点分布）。
+
+    只读：仅 `SELECT`，不写库、不改状态。
+    """
+    try:
+        from collections import Counter
+
+        rows = nmgr.ops._db.fetchall(  # noqa: SLF001 - ops 无公开的分布接口
+            "SELECT event_type FROM notification_log WHERE sent_at >= datetime('now', ?)",
+            (f"-{days} days",),
+        )
+        dist = Counter(_business_level(r["event_type"]) for r in rows)
+        by_event = Counter(r["event_type"] for r in rows)
+        return {
+            "days": days,
+            "total": len(rows),
+            # level 口径与 /logs 列表完全一致（同一 _business_level 函数）
+            "by_level": dict(sorted(dist.items())),
+            "by_event_type": dict(by_event.most_common(50)),
+            "level_rule": {
+                "security_alert": "warning",
+                "task_failure": "error",
+                "default": "info",
+            },
+        }
+    except Exception as e:
+        logger.exception(t("notification.api.log_unread_count_failed"))
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
