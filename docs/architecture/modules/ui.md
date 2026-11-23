@@ -200,3 +200,15 @@ Handler Handler  Handler    (worker)   Handler
   **不再使用** `themes.py` 的 `COLOR_SCHEMES` 作为按钮色值来源。
 - 13 个模块在 `QT_QPA_PLATFORM=offscreen` 下全部导入通过；`ruff --fix` 清理 24 个未用导入。
 - 后续新增 Win 按钮：直接用 `BaseButton`，不要再用 `QPushButton`。
+
+## 输入控件统一：BaseInput / BaseSelect（2026-11-22，DS 阶段三 · 模块一）
+
+- 令牌：pilotstd/ui/tokens_generated.py 新增 input_height_lg/md/sm（40/34/28）与
+  input_textarea_min_height，由 scripts/gen_win_tokens.py 从 web/src/styles/design-tokens.css
+  解析生成；仍禁止手改产物，--check 不一致即失败。
+- A-53 收口：disabledBg / disabledText 此前只声明未消费（死键），现由 BaseButton /
+  BaseInput / BaseSelect 的禁用态统一消费，不再用 borderLight + textDim 顶替。
+- 新增 pilotstd/ui/widgets/base_input.py：BaseInput(QLineEdit) 与 BaseSelect(QComboBox)，
+  size l/m/s 映射输入控件高度令牌，圆角取 ds_radius_md，四态（default/hover/focus/disabled）
+  全部取自生成令牌，缺令牌抛 KeyError 而非静默降级（与 BaseButton 同风格）。
+- 后续新增 Win 输入控件：直接用 BaseInput / BaseSelect，不要再用裸 QLineEdit / QComboBox。

@@ -6,12 +6,12 @@
  */
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import ToggleSwitch from 'primevue/toggleswitch'
-import InputText from 'primevue/inputtext'
 import Message from 'primevue/message'
 import { getSettings, putSettings } from '@/api'
 import FileMonitor from '@/components/FileMonitor.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppInput from '@/components/ui/AppInput.vue'
+import AppToggle from '@/components/ui/AppToggle.vue'
 
 defineOptions({ name: 'SettingsTabSchedule' })
 
@@ -98,60 +98,60 @@ onMounted(loadTasks)
           <!-- 自动扫描 -->
           <div class="task-row">
             <div class="task-toggle">
-              <ToggleSwitch v-model="tasks.auto_scan_enabled" />
+              <AppToggle v-model="tasks.auto_scan_enabled" />
               <label>{{ t('settings.tasks.scan') }}</label>
             </div>
             <div class="task-cron" v-if="tasks.auto_scan_enabled">
               <label>{{ t('settings.tasks.cron_label') }}</label>
-              <InputText v-model="tasks.auto_scan_cron" placeholder="0 3 * * *" size="small" />
+              <AppInput v-model="tasks.auto_scan_cron" placeholder="0 3 * * *" size="s" />
             </div>
           </div>
 
           <!-- 公告检查 -->
           <div class="task-row">
             <div class="task-toggle">
-              <ToggleSwitch v-model="tasks.auto_announce_enabled" />
+              <AppToggle v-model="tasks.auto_announce_enabled" />
               <label>{{ t('settings.tasks.announce') }}</label>
             </div>
             <div class="task-cron" v-if="tasks.auto_announce_enabled">
               <label>{{ t('settings.tasks.cron_label') }}</label>
-              <InputText v-model="tasks.auto_announce_cron" placeholder="0 1 * * *" size="small" />
+              <AppInput v-model="tasks.auto_announce_cron" placeholder="0 1 * * *" size="s" />
             </div>
           </div>
 
           <!-- 日期提醒 -->
           <div class="task-row">
             <div class="task-toggle">
-              <ToggleSwitch v-model="tasks.date_reminder_enabled" />
+              <AppToggle v-model="tasks.date_reminder_enabled" />
               <label>{{ t('settings.tasks.reminder') }}</label>
             </div>
             <div class="task-cron" v-if="tasks.date_reminder_enabled">
               <label>{{ t('settings.tasks.cron_label') }}</label>
-              <InputText v-model="tasks.date_reminder_cron" placeholder="0 2 * * *" size="small" />
+              <AppInput v-model="tasks.date_reminder_cron" placeholder="0 2 * * *" size="s" />
             </div>
           </div>
 
           <!-- 适配器健康检查 -->
           <div class="task-row">
             <div class="task-toggle">
-              <ToggleSwitch v-model="tasks.auto_health_check_enabled" />
+              <AppToggle v-model="tasks.auto_health_check_enabled" />
               <label>{{ t('settings.tasks.health_check') }}</label>
             </div>
             <div class="task-cron" v-if="tasks.auto_health_check_enabled">
               <label>{{ t('settings.tasks.cron_label') }}</label>
-              <InputText v-model="tasks.auto_health_check_cron" placeholder="0 * * * *" size="small" />
+              <AppInput v-model="tasks.auto_health_check_cron" placeholder="0 * * * *" size="s" />
             </div>
           </div>
 
           <!-- 收藏标准下载归档 -->
           <div class="task-row">
             <div class="task-toggle">
-              <ToggleSwitch v-model="tasks.auto_archive_retry_enabled" />
+              <AppToggle v-model="tasks.auto_archive_retry_enabled" />
               <label>{{ t('settings.tasks.archive_retry') }}</label>
             </div>
             <div class="task-cron" v-if="tasks.auto_archive_retry_enabled">
               <label>{{ t('settings.tasks.cron_label') }}</label>
-              <InputText v-model="tasks.auto_archive_retry_cron" placeholder="0 4 * * *" size="small" />
+              <AppInput v-model="tasks.auto_archive_retry_cron" placeholder="0 4 * * *" size="s" />
             </div>
             <div class="task-hint">{{ t('settings.tasks.archive_retry_hint') }}</div>
           </div>

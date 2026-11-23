@@ -927,7 +927,8 @@
       "max_requests_negative": "Window limit cannot be negative",
       "daily_limit_negative": "Daily limit cannot be negative",
       "cooling_negative": "Cooldown cannot be negative",
-      "interval_min": "Request interval minimum 0.1s"
+      "interval_min": "Request interval minimum 0.1s",
+      "number_required": "{field} is required (cannot be empty)"
     }
   },
   "notification": {

@@ -5,8 +5,8 @@
   "note": "人工确认后提交；禁止脚本自动更新。匹配键 = 文件 + 属性 + 值，计数为上限。",
   "counts": {
     "A": 0,
-    "B": 151,
-    "C": 577
+    "B": 152,
+    "C": 583
   },
   "groups": [
     {
@@ -1528,6 +1528,12 @@
           "file": "views/settings/shared.css",
           "prop": "width",
           "value": "80px",
+          "count": 1
+        },
+        {
+          "file": "views/SettingsView.vue",
+          "prop": "min-width",
+          "value": "180px",
           "count": 1
         }
       ]
@@ -3733,6 +3739,24 @@
           "file": "components/ui/AppButton.vue",
           "prop": "height",
           "value": "auto",
+          "count": 1
+        },
+        {
+          "file": "components/ui/AppSelectButton.vue",
+          "prop": "background",
+          "value": "transparent",
+          "count": 2
+        },
+        {
+          "file": "components/ui/AppSelectButton.vue",
+          "prop": "padding",
+          "value": "0",
+          "count": 1
+        },
+        {
+          "file": "components/ui/AppSelectButton.vue",
+          "prop": "outline",
+          "value": "none",
           "count": 1
         }
       ]

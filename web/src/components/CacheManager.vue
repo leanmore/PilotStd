@@ -7,6 +7,7 @@ import http from '@/api/http'
 import ProgressBar from 'primevue/progressbar'
 import Tag from 'primevue/tag'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppInput from '@/components/ui/AppInput.vue'
 
 const { t } = useI18n()
 
@@ -108,8 +109,20 @@ onMounted(loadStats)
     <div class="cache-config">
       <label style="font-weight:var(--font-weight-semibold);font-size:var(--font-size-13);margin-bottom:var(--space-8);display:block">{{ t('settings.cache.max_size') }}</label>
       <div style="display:flex;gap:var(--space-12);flex-wrap:wrap">
+        <!-- 结构性单选（radio），走 AppInput bare：零样式透传，保留原生 radio 的取值与事件语义，
+             视觉与替换前完全一致。不套 DS 外观，因为这是「标签 + 单选点 + 文案」的排版单元，
+             不是独立输入框（ui-system.md §11.4 的结构性用法条款）。
+             事件拆成 :checked + @change：原生 radio 的 v-model 会把 :value 绑定的 number 写回 maxSize，
+             而 AppInput 单行走 DOM 事件、回传字符串；这里在 @change 里直接用闭包里的 sz 赋值，
+             保住 number 类型，并同时触发 saveConfig（与替换前 @change 语义一致）。 -->
         <label v-for="sz in [50, 100, 200]" :key="sz" style="display:flex;align-items:center;gap:var(--space-4);cursor:pointer;font-size:var(--font-size-13)">
-          <input type="radio" :value="sz" v-model="maxSize" @change="saveConfig" />
+          <AppInput
+            bare
+            type="radio"
+            :value="sz"
+            :checked="maxSize === sz"
+            @change="maxSize = sz; saveConfig()"
+          />
           {{ sz }} MB
         </label>
       </div>

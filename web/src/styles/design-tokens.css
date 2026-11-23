@@ -125,6 +125,25 @@
   --btn-height-sm: 28px;
   --btn-height-lg: 40px;
 
+  /* ═══════════════════════════════════════════
+     输入控件高度 — 与按钮同档（40/34/28）但语义独立
+     输入控件（Input / Select / DatePicker）的"外框高度"由可点击区域决定，
+     不靠字号 + 内边距撑开；若复用 --btn-height-*，改按钮高度会连带改输入框，
+     两套控件的高度决策就绑死了。故单列一组，值同档、语义不同。
+     ⚠️ 复选（Checkbox）/ 开关（ToggleSwitch）是固定比例控件，不消费本组令牌，
+        它们的尺寸档走 --size-*（见 ui-system.md 表单章节）。
+     ═══════════════════════════════════════════ */
+  --input-height-lg: 40px;
+  --input-height-md: 34px;
+  --input-height-sm: 28px;
+
+  /* 多行输入（textarea）的最小高度基线
+     ⚠️ 刻意不套用 --input-height-*：那三档是「单行控件外框高度」，textarea 用它会被
+        截断成一行。多行控件的高度由 rows 撑开（行数 × 行高 + 上下内边距），
+        本令牌只兜住"内容为空 / 只填一行时塌成一条线"的下限。
+        取值口径：3 行（--font-size-13 × --line-height-body ≈ 21px ⇒ 63px）
+        + 上下内边距（--space-9 × 2 = 18px）≈ 81px，取整 80px。 */
+  --input-textarea-min-height: 80px;
 
   /* 尺寸档位（P5-3：状态点/细条/拖拽把手等小尺寸；语义是元素尺寸，不是间距） */
   --size-4: 4px;

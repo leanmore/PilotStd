@@ -870,3 +870,10 @@ B1（声明类 vs 实现类）已覆盖同一语义、且每次 CI 都在跑；�
 > ESLint \custom/no-raw-button\ 由 \warn\ 升级为 **\error\**（探针验证会阻断）。
 > G-055 基线 C=577（AppButton 的 bare 结构性值入 ds-skeleton）。
 
+
+> **2026-11-22 DS 阶段三 · 模块一完成**：Web 端输入控件 138 处（原生 input/select/textarea 与
+> PrimeVue InputText/InputNumber/Textarea/Password/Select/Dropdown/Checkbox/ToggleSwitch/DatePicker/SelectButton）
+> 全部替换为 App* 封装（新增 AppInput/AppSelect/AppSelectButton/AppCheckbox/AppToggle/AppDatePicker）；
+> custom/no-raw-input 由 warn 升级为 **error**（探针 4 error / exit 1 反证阻断）。
+> 新增令牌 --input-height-lg/md/sm 与 --input-textarea-min-height；A-53 的 disabledBg/disabledText 已接线。
+> G-055 基线：AppSelectButton 的结构性字面量登记进 ds-skeleton 组、SettingsView 的 min-width 登记进 layout-dimension 组。

@@ -311,6 +311,11 @@ export function applyThemeToDom(theme: ThemeConfig): void {
     '--info-text': c.infoText,
     '--selected': c.selected,
     '--focus-ring': c.focusRing,
+    // A-53：disabledBg/disabledText 此前只声明未接线（死键）。接线后由输入类 App* 组件
+    // （AppInput/AppSelect/AppCheckbox/AppToggle/AppDatePicker）消费；AppButton 的禁用态
+    // 仍用替代令牌（切换会让全站禁用按钮变浅），由「禁用态对齐」任务单独评估。
+    '--disabled-bg': c.disabledBg,
+    '--disabled-text': c.disabledText,
     '--shadow-xs': c.shadowXs,
     '--shadow-sm': c.shadowSm,
     '--shadow': c.shadow,

@@ -14,6 +14,8 @@ import { useAppStore } from '@/stores/app'
 import DataView from 'primevue/dataview'
 import Dialog from 'primevue/dialog'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppInput from '@/components/ui/AppInput.vue'
+import AppSelect from '@/components/ui/AppSelect.vue'
 
 const ADMIN_ROLE = 'admin'
 
@@ -29,6 +31,12 @@ const userErr = ref('')
 const loadUsersErr = ref('')
 
 const currentUser = computed(() => users.value.find((u: any) => u.username === store.username) || null)
+
+/** 角色下拉选项：label 走 i18n，value 是提交给后端的角色码 */
+const roleOptions = computed(() => [
+  { label: t('settings.users.role_user'), value: 'user' },
+  { label: t('settings.users.role_admin'), value: 'admin' },
+])
 
 async function loadUsers() {
   try { const r = await getUsers('/settings'); users.value = r.users; loadUsersErr.value = '' }
@@ -139,12 +147,9 @@ onMounted(() => { loadUsers() })
   <!-- 添加用户对话框 -->
   <Dialog v-model:visible="showAdd" :header="t('settings.users.add_title')" :modal="true" :style="{width:'360px'}">
     <div style="display:flex;flex-direction:column;gap:var(--space-8)">
-      <input v-model="newUser.username" :placeholder="t('settings.users.field_username')" class="fi" />
-      <input v-model="newUser.password" type="password" :placeholder="t('settings.users.field_password')" class="fi" />
-      <select v-model="newUser.role" class="fi">
-        <option value="user">{{ t('settings.users.role_user') }}</option>
-        <option value="admin">{{ t('settings.users.role_admin') }}</option>
-      </select>
+      <AppInput v-model="newUser.username" :placeholder="t('settings.users.field_username')" />
+      <AppInput v-model="newUser.password" type="password" :placeholder="t('settings.users.field_password')" />
+      <AppSelect v-model="newUser.role" :options="roleOptions" optionLabel="label" optionValue="value" />
       <p v-if="userErr" class="error">{{ userErr }}</p>
       <div style="display:flex;gap:var(--space-8)">
 <AppButton
@@ -169,9 +174,9 @@ onMounted(() => { loadUsers() })
   <Dialog v-model:visible="showPwd" :header="t('settings.users.change_pwd_title', { name: store.username })" :modal="true" :style="{width:'360px'}">
     <p class="text-dim" style="font-size:var(--font-size-12);margin-bottom:var(--space-8)">{{ t('settings.users.change_pwd_hint_before') }}<strong>{{ store.username }}</strong>{{ t('settings.users.change_pwd_hint_after') }}</p>
     <div style="display:flex;flex-direction:column;gap:var(--space-8)">
-      <input v-model="pwdForm.old" type="password" :placeholder="t('settings.users.field_old_pwd')" class="fi" />
-      <input v-model="pwdForm.new" type="password" :placeholder="t('settings.users.field_new_pwd')" class="fi" />
-      <input v-model="pwdForm.confirm" type="password" :placeholder="t('settings.users.field_confirm_pwd')" class="fi" />
+      <AppInput v-model="pwdForm.old" type="password" :placeholder="t('settings.users.field_old_pwd')" />
+      <AppInput v-model="pwdForm.new" type="password" :placeholder="t('settings.users.field_new_pwd')" />
+      <AppInput v-model="pwdForm.confirm" type="password" :placeholder="t('settings.users.field_confirm_pwd')" />
       <p v-if="pwdErr" class="error">{{ pwdErr }}</p>
       <div style="display:flex;gap:var(--space-8)">
 <AppButton

@@ -10,8 +10,8 @@ import Column from 'primevue/column'
 import Tag from 'primevue/tag'
 import ProgressBar from 'primevue/progressbar'
 import Dialog from 'primevue/dialog'
-import SelectButton from 'primevue/selectbutton'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppSelectButton from '@/components/ui/AppSelectButton.vue'
 
 interface TaskItem {
   task_id: string
@@ -158,7 +158,10 @@ function stepLabel(s: string) {
     <!-- 后台任务 -->
     <template v-if="subTab === 'tasks'">
     <div class="toolbar">
-      <SelectButton v-model="filter" :options="statusOptions" option-label="label" option-value="value" size="small" @change="loadTasks" />
+      <!-- 状态筛选：分段单选（不是下拉，交互形态保持不变）。
+           C3 批次已产出 AppSelectButton（components/ui/AppSelectButton.vue），直接复用；
+           size 由 PrimeVue 的 small 改为 DS 三档的 s（AppSelectButton 内部映射到 small）。 -->
+      <AppSelectButton v-model="filter" :options="statusOptions" option-label="label" option-value="value" size="s" @change="loadTasks" />
 <AppButton
         :label="t('task.manager.refresh')"
         icon="pi pi-refresh"

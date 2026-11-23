@@ -927,7 +927,8 @@
       "max_requests_negative": "窗口查询限额不能为负数",
       "daily_limit_negative": "日限额不能为负数",
       "cooling_negative": "冷却时间不能为负数",
-      "interval_min": "请求间隔最小 0.1 秒"
+      "interval_min": "请求间隔最小 0.1 秒",
+      "number_required": "请填写{field}（不能留空）"
     }
   },
   "notification": {

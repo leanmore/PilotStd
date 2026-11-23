@@ -8,10 +8,10 @@ import { useConfirm } from 'primevue/useconfirm'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import Tag from 'primevue/tag'
-import InputNumber from 'primevue/inputnumber'
 import Message from 'primevue/message'
 import http from '@/api/http'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppInput from '@/components/ui/AppInput.vue'
 
 defineOptions({ name: 'SettingsTabSites' })
 
@@ -57,6 +57,14 @@ function isAdmin() {
 }
 
 function validate(site: SiteConfig): string | null {
+  // 空值必须显式拦截：AppInput 的 number 分叉沿用 PrimeVue InputNumber 的 allowEmpty
+  // 语义，清空后回传 null（不是 0）。null < 0 === false 会漏过下面四条范围校验，
+  // 最终以 null 提交被后端 Pydantic（Field(ge=0)）拒绝成 422，用户只看到「保存失败」。
+  // 故在调用方补必填校验，给出可理解的提示（契约上 AppInput 不代做必填判断）。
+  if (site.maxRequests == null) return t('sites.validation.number_required', { field: t('sites.max_requests') })
+  if (site.dailyLimit == null) return t('sites.validation.number_required', { field: t('sites.daily_limit') })
+  if (site.coolingSeconds == null) return t('sites.validation.number_required', { field: t('sites.cooling_seconds') })
+  if (site.requestInterval == null) return t('sites.validation.number_required', { field: t('sites.request_interval') })
   if (site.maxRequests < 0) return t('sites.validation.max_requests_negative')
   if (site.dailyLimit < 0) return t('sites.validation.daily_limit_negative')
   if (site.coolingSeconds < 0) return t('sites.validation.cooling_negative')
@@ -255,41 +263,45 @@ onMounted(() => { loadSites() })
             <div class="site-fields">
               <div class="site-field">
                 <label>{{ t('sites.max_requests') }}</label>
-                <InputNumber
+                <AppInput
                   v-if="editStates[s.name]?.editing"
                   v-model="s.maxRequests"
+                  type="number"
                   :min="0" :step="1"
-                  :inputClass="'edit-input'"
+                  input-class="edit-input"
                 />
                 <span v-else class="field-value">{{ s.maxRequests }}</span>
               </div>
               <div class="site-field">
                 <label>{{ t('sites.daily_limit') }}</label>
-                <InputNumber
+                <AppInput
                   v-if="editStates[s.name]?.editing"
                   v-model="s.dailyLimit"
+                  type="number"
                   :min="0" :step="1"
-                  :inputClass="'edit-input'"
+                  input-class="edit-input"
                 />
                 <span v-else class="field-value">{{ s.dailyLimit }}</span>
               </div>
               <div class="site-field">
                 <label>{{ t('sites.cooling_seconds') }}</label>
-                <InputNumber
+                <AppInput
                   v-if="editStates[s.name]?.editing"
                   v-model="s.coolingSeconds"
+                  type="number"
                   :min="0" :step="1"
-                  :inputClass="'edit-input'"
+                  input-class="edit-input"
                 />
                 <span v-else class="field-value">{{ s.coolingSeconds }}</span>
               </div>
               <div class="site-field">
                 <label>{{ t('sites.request_interval') }}</label>
-                <InputNumber
+                <AppInput
                   v-if="editStates[s.name]?.editing"
                   v-model="s.requestInterval"
+                  type="number"
                   :min="0.1" :max="10" :step="0.1" :minFractionDigits="1"
-                  :inputClass="'edit-input'"
+                  input-class="edit-input"
                 />
                 <span v-else class="field-value">{{ s.requestInterval.toFixed(1) }}s</span>
               </div>
@@ -354,8 +366,11 @@ onMounted(() => { loadSites() })
   color: var(--text-bright);
   padding: var(--space-4) 0;
 }
+/* 编辑态高亮：input-class 由 AppInput 经 $attrs 透传给 InputNumber，
+   最终落到内层 .p-inputnumber-input（number 分叉的根是 span 包裹，根 class 打不到内层）。
+   走 PrimeVue 原生 inputClass，不再需要强制覆盖（见 docs/reference/ui-system.md 十一）。 */
 .site-field :deep(.edit-input) {
-  border-color: var(--primary) !important;
+  border-color: var(--primary);
 }
 .site-status {
   display: flex;

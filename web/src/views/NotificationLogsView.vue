@@ -5,6 +5,8 @@ defineOptions({ name: 'NotificationLogsView' })
 import { useI18n } from 'vue-i18n'
 import { useNotificationLogs } from '@/composables/useNotificationLogs'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppInput from '@/components/ui/AppInput.vue'
+import AppSelect from '@/components/ui/AppSelect.vue'
 
 const { t } = useI18n()
 const {
@@ -61,11 +63,11 @@ const {
       <div class="filter-row">
         <div class="filter-item">
           <label>{{ t('notification.logs.field.channel') }}</label>
-          <Select v-model="filterChannel" :options="channelOptions" optionLabel="label" optionValue="value" />
+          <AppSelect v-model="filterChannel" :options="channelOptions" optionLabel="label" optionValue="value" />
         </div>
         <div class="filter-item">
           <label>{{ t('notification.logs.field.status') }}</label>
-          <Select v-model="filterStatus" :options="statusOptions" optionLabel="label" optionValue="value" />
+          <AppSelect v-model="filterStatus" :options="statusOptions" optionLabel="label" optionValue="value" />
         </div>
         <div class="filter-item">
           <label>{{ t('notification.logs.start_date') }}</label>
@@ -244,12 +246,13 @@ const {
         <p style="margin:0 0 var(--space-12);color:var(--text-dim)">{{ t('notification.logs.cleanup_hint') }}</p>
         <div style="display:flex;align-items:center;gap:var(--space-8)">
           <label>{{ t('notification.logs.cleanup_keep') }}</label>
-          <input
-            v-model.number="cleanupDays"
+          <AppInput
+            v-model="cleanupDays"
             type="number"
-            min="1"
-            max="365"
-            style="width:80px;padding:var(--space-8);border:1px solid var(--border);border-radius:var(--radius-sm);text-align:center"
+            :min="1"
+            :max="365"
+            size="s"
+            style="width:80px;text-align:center"
           />
           <label>{{ t('notification.logs.cleanup_days') }}</label>
         </div>

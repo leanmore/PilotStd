@@ -3,8 +3,6 @@ defineOptions({ name: 'StandardsStatusView' })
 import { ref, onMounted, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Card from 'primevue/card'
-import Select from 'primevue/select'
-import InputText from 'primevue/inputtext'
 import Tag from 'primevue/tag'
 import Message from 'primevue/message'
 import DataTable from 'primevue/datatable'
@@ -15,6 +13,8 @@ import { getItem, setItem } from '@/lib/storage'
 import { useIncrementalScroll, type PaginatedResult } from '@/composables/useIncrementalScroll'
 import TableLoadFooter from '@/components/TableLoadFooter.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppInput from '@/components/ui/AppInput.vue'
+import AppSelect from '@/components/ui/AppSelect.vue'
 
 const MAX_SIZE = 100
 
@@ -176,15 +176,15 @@ onMounted(() => {
         <div class="filter-row">
           <div class="filter-item">
             <label>{{ t('standards.filter_status') }}</label>
-            <Select v-model="filterStatus" :options="statusOptions" optionLabel="label" optionValue="value" />
+            <AppSelect v-model="filterStatus" :options="statusOptions" optionLabel="label" optionValue="value" />
           </div>
           <div class="filter-item">
             <label>{{ t('standards.filter_standard_no') }}</label>
-            <InputText v-model="filterStandardNo" :placeholder="t('standards.filter_standard_no_ph')" />
+            <AppInput v-model="filterStandardNo" :placeholder="t('standards.filter_standard_no_ph')" />
           </div>
           <div class="filter-item">
             <label>{{ t('standards.filter_name') }}</label>
-            <InputText v-model="filterName" :placeholder="t('standards.filter_name_ph')" />
+            <AppInput v-model="filterName" :placeholder="t('standards.filter_name_ph')" />
           </div>
           <div class="filter-actions">
 <AppButton
