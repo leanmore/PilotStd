@@ -150,7 +150,18 @@ def test_indexed_on_success(tmp_path, monkeypatch):
 
 
 def test_skip_breakdown_sums_to_skipped(tmp_path, monkeypatch):
-    """三类跳过之和必须等于 skipped（防止新增来源时漏登记）。"""
+    """三类跳过之和必须等于 skipped（防止新增来源时漏登记）。
+
+    ⚠️ 必须隔离 `STANDARD_ROOT` 环境变量：
+    `get_library_root()` 的实现是
+        root = os.environ.get("STANDARD_ROOT") or config.get("storage.root_dir", ...)
+    **环境变量优先于 config**。CI 的 `test-backend` 设了 `STANDARD_ROOT=/tmp/standards`
+    （里面是真实测试数据），导致 `scan_and_index()` 扫的是那个目录而不是 tmp_path ——
+    本地不设该变量所以绿、CI 上红（实测踩到，annotation 精确指向本用例）。
+
+    故本用例显式清除该变量，保证扫的就是 tmp_path。
+    """
+    monkeypatch.delenv("STANDARD_ROOT", raising=False)
     for i in range(3):
         _touch(tmp_path, f"bad{i}.pdf")
     svc, _ = _make_service(tmp_path, parser_side_effect=lambda _n: None, db_rows=None)
@@ -163,8 +174,8 @@ def test_skip_breakdown_sums_to_skipped(tmp_path, monkeypatch):
     assert (
         result["skip_parse_failed"] + result["skip_no_match"] + result["skip_not_pending"]
         == result["skipped"]
-    )
-    assert result["skipped"] == 3
+    ), result
+    assert result["skipped"] == 3, result
 
 
 if __name__ == "__main__":
