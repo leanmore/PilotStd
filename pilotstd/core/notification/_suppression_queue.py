@@ -171,7 +171,7 @@ class SuppressionQueue:
             "WHERE status='suppressed' AND created_at < ?",
             (cutoff,),
         )
-        # rowcount 在测试替身（MagicMock）上不是 int —— 容错取法：
+        # `rowcount` 在测试替身（MagicMock）上不是 int —— 容错取法：
         # 非 int 时退回 0（测试关心的是状态被改，不关心精确计数）
         raw = getattr(cursor, "rowcount", 0) if cursor is not None else 0
         count = raw if isinstance(raw, int) and raw > 0 else 0

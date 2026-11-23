@@ -336,7 +336,7 @@ class NotificationOps:
             # 有 user_id 时返回真实受影响行数，避免把别人的 `id` 也计入。
             if user_id is not None:
                 raw = getattr(cursor, "rowcount", 0) if cursor is not None else 0
-                # 测试替身的 rowcount 不是 int：退回请求条数（契约下限）
+                # 测试替身的 `rowcount` 不是 int：退回请求条数（契约下限）
                 return raw if isinstance(raw, int) and raw >= 0 else len(ids)
             return len(ids)
         _log_scope.mark_all(db, user_id, include_system)

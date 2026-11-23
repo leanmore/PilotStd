@@ -220,7 +220,7 @@ class BaseTable(QTableWidget):
             f" selection-color: {text};"
             f" }}"
             # 表头：背景抬升一档、字色 `text`（不是 textSecondary，见模块 `docstring`）、
-            # 11px / 600；大写（text-transform）与字距 0.6px 是 Web 端 CSS 特性，
+            # `11px` / 600；大写（`text-transform`）与字距 `0.6px` 是 Web 端 CSS 特性，
             # Qt QSS 不支持 text-transform，跳过（§12.1 的「大写不适用 Qt」）。
             f" QHeaderView::section {{"
             f" background: {raised};"

@@ -171,7 +171,7 @@ def scan(root: Path) -> tuple[list[str], list[str]]:
 
             logical = _count_logical_lines(lines, fpath.suffix)
             rel = fpath.relative_to(root)
-            # NEW-45：基线键统一用 posix 形式（`a/b.py`），避免 Windows 反斜杠不匹配
+            # NEW-45：基线键统一用 `posix` 形式（`a/b.py`），避免 Windows 反斜杠不匹配
             rel_key = rel.as_posix()
             # 检查文件有效代码行数：先判阻断档（>500），再判警告档（>400）
             if logical > MAX_FILE_LINES:

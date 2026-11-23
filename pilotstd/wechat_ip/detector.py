@@ -86,7 +86,7 @@ def detect_ip(sources: list[tuple[str, Callable[[str], object]]] | None = None) 
                 if ip:
                     results[futures[future]] = ip
         except FuturesTimeoutError:
-            # 总预算耗尽：已完成的 future 结果已收集，未完成的按失败处理
+            # 总预算耗尽：已完成的 `future` 结果已收集，未完成的按失败处理
             pending = [srcs[futures[f]][0] for f in futures if not f.done()]
             logger.warning(
                 "IP probe budget %.1fs exhausted, %d/%d sources pending: %s",
@@ -97,7 +97,7 @@ def detect_ip(sources: list[tuple[str, Callable[[str], object]]] | None = None) 
             )
     # ⚠️ 必须按**源顺序**回填，不能按完成顺序 ——
     # `Counter.most_common` 平票时按**插入顺序**决定胜者，并发完成顺序不确定，
-    # 直接 append 会让 2v2 平票结果在多次运行间漂移（e2e 已锁该契约）。
+    # 直接 `append` 会让 2v2 平票结果在多次运行间漂移（e2e 已锁该契约）。
     ips = [results[i] for i in sorted(results)]
 
     if not ips:

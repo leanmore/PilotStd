@@ -76,7 +76,7 @@ class ScheduledService:
             "indexed": 0,
             "skipped": 0,
             "failed": 0,
-            # 细分（合计 == skipped）——供生产排查定位
+            # 细分（合计 == `skipped`）——供生产排查定位
             "skip_parse_failed": 0,
             "skip_no_match": 0,
             "skip_not_pending": 0,
@@ -128,7 +128,7 @@ class ScheduledService:
             # 终点防御：确保带点号
             parsed.ext = ensure_dot_ext(parsed.ext)
 
-            # 廉价排除：先用「code + name + size」查（不含 sha256）。
+            # 廉价排除：先用「`code` + `name` + `size`」查（不含 sha256）。
             # 若三条都不命中，说明无论如何都不会匹配，**不必读全文算哈希**。
             candidates = self._file_index.db.fetchall(
                 "SELECT id, sha256 FROM standards WHERE code=? AND name=? AND size=?",
@@ -200,7 +200,7 @@ class ScheduledService:
             result["failed"],
         )
         if first_miss is not None:
-            # 只打第一条样本，避免刷屏；四要素值用于与 standards 表比对定位断点
+            # 只打第一条样本，避免刷屏；四要素值用于与 `standards` 表比对定位断点
             logger.warning(
                 "scan_and_index 首条未匹配样本: code=%r name=%r size=%s sha256=%s... file=%s",
                 first_miss["code"],

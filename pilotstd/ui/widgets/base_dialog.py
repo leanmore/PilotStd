@@ -144,7 +144,7 @@ class BaseDialog(QDialog):
             f" font-weight: {weight_heading};"
             f" }}"
             # 关闭按钮：只收敛图标字号到 --size-20 与色阶，**不**设按钮本体宽高
-            # （与 Aura 同款取舍：硬设 20×20 会把点击热区压到 20px，低于 WCAG 2.5.8 的 24px）
+            # （与 Aura 同款取舍：硬设 20×20 会把点击热区压到 `20px`，低于 WCAG 2.5.8 的 `24px`）
             f" QToolButton#dsDialogClose {{"
             f" color: {_color(theme, 'textSecondary')};"
             f" font-size: {_size('size_20')};"

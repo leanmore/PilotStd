@@ -18,7 +18,7 @@ from pilotstd.ui import tokens_generated as T
 
 # 尺寸档 → (高度令牌, 水平内边距令牌, 字号令牌)
 # 取值口径与 web/src/components/ui/AppInput.vue 的 `.app-input--*` 一致：
-#   L 40px / space-16 / font-15、M 34px / space-12 / font-13、S 28px / space-10 / font-12
+#   L `40px` / space-16 / font-15、M `34px` / space-12 / font-13、S `28px` / space-10 / font-12
 _SIZE_TOKENS: dict[str, tuple[str, str, str]] = {
     "l": ("input_height_lg", "space_16", "font_size_15"),
     "m": ("input_height_md", "space_12", "font_size_13"),
@@ -34,7 +34,7 @@ _SELECT_SIZE_TOKENS: dict[str, tuple[str, str, str]] = {
     "s": ("input_height_sm", "space_12", "font_size_12"),
 }
 
-# 四态里描边的粗细：默认/悬停/禁用 1px，聚焦 2px（等效 Web 的 box-shadow 外发光）
+# 四态里描边的粗细：默认/悬停/禁用 `1px`，聚焦 `2px`（等效 Web 的 `box-shadow` 外发光）
 _BORDER_WIDTH = 1
 _FOCUS_BORDER_WIDTH = 2
 
@@ -141,8 +141,8 @@ class BaseInput(QLineEdit):
             f" }}"
         )
         # 应用级样式表存在时，QComboBox/QLineEdit 的 sizeHint 在首次 `polish` 前返回的是
-        # **未套控件 QSS** 的高度（实测 22px），要等事件循环 polish 后才变回令牌高度。
-        # 这里立即 ensurePolished，让构造完成即拿到正确高度，避免布局在首帧按 22px 排版。
+        # **未套控件 QSS** 的高度（实测 `22px`），要等事件循环 `polish` 后才变回令牌高度。
+        # 这里立即 `ensurePolished`，让构造完成即拿到正确高度，避免布局在首帧按 `22px` 排版。
         self.ensurePolished()
         # `placeholder` 只能走调色板：Qt QSS 不支持 `::placeholder` 伪元素。
         # 必须放在 ensurePolished 之后 —— `polish` 会用 QSS 的 `color` 重建调色板，
@@ -247,7 +247,7 @@ class BaseSelect(QComboBox):
             f" selection-color: {text};"
             f" }}"
         )
-        # 同 BaseInput：应用级样式表下首次 polish 前 sizeHint 会退回 22px，立即 polish 修正
+        # 同 BaseInput：应用级样式表下首次 `polish` 前 `sizeHint` 会退回 `22px`，立即 `polish` 修正
         self.ensurePolished()
         self.updateGeometry()
 
