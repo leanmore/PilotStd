@@ -59,6 +59,18 @@ class NotificationLogPageResponse(BaseModel):
     items: list[NotificationLogItem]
 
 
+class LevelDistributionResponse(BaseModel):
+    """通知日志 `event_type × level` 分布（G-43 取证用）。"""
+
+    days: int
+    total: int
+    # level → 条数（level 口径与 /logs 列表完全一致，同一 _business_level 函数）
+    by_level: dict[str, int]
+    by_event_type: dict[str, int]
+    # level 计算规则，便于运维核对口径（不必猜为什么某条算 warning）
+    level_rule: dict[str, str]
+
+
 class FailedNotificationItem(BaseModel):
     """失败明细单条（4 列固定口径，`error_message` 为服务端已脱敏文案）。"""
 
@@ -317,7 +329,7 @@ def delete_notification_logs(
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
-@router.get("/api/notification/logs/stats/distribution")
+@router.get("/api/notification/logs/stats/distribution", response_model=LevelDistributionResponse)
 @require_role("admin")
 def get_log_level_distribution(
     request: Request,
