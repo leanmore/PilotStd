@@ -61,17 +61,21 @@ class DailyQuotaTracker:
             self._ensure_today_rows()
 
     def _ensure_today_rows(self) -> None:
-        """确保所有已注册站点在今天有配额记录行。"""
-        for site in self._limits:
-            row = self._db.fetchone(
-                "SELECT count FROM daily_quota WHERE site_name=? AND query_date=?",
-                (site, self._today),
-            )
-            if row is None:
-                self._db.execute(
-                    "INSERT OR IGNORE INTO daily_quota (site_name, query_date, count) VALUES (?, ?, 0)",
-                    (site, self._today),
-                )
+        """确保所有已注册站点在今天有配额记录行。
+
+        NEW-19：原实现逐站点 `fetchone` + 条件 `INSERT`（N 站点 = N 次 SELECT
+        + 最多 N 次 INSERT）。且 `get_remaining()` 每次查询都会间接触发本方法。
+
+        改为：一次 `INSERT OR IGNORE` 批量补齐 —— 该表对
+        `(site_name, query_date)` 有唯一约束，`INSERT OR IGNORE` 对已存在的行是
+        无操作，语义与「先查再插」完全等价，但往返从 2N 降到 1。
+        """
+        if not self._limits:
+            return
+        self._db.executemany(
+            "INSERT OR IGNORE INTO daily_quota (site_name, query_date, count) VALUES (?, ?, 0)",
+            [(site, self._today) for site in self._limits],
+        )
 
     def get_remaining(self, site_name: str) -> int:
         """返回该站点今日剩余可用次数。配额首次耗尽时发送通知（每日每站点一次）。"""

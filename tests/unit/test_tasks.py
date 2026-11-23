@@ -71,12 +71,38 @@ class TestFetchDueRecords:
         assert result[0]["remind_type"] == "implement"
 
 
+def _cursor_with(rows, one=None):
+    """构造返回指定行的假 cursor（NEW-20 测试辅助）。"""
+    cursor = MagicMock()
+    cursor.fetchall.return_value = rows
+    cursor.fetchone.return_value = one
+    return cursor
+
+
 class TestProcessRecord:
     @pytest.fixture
     def db(self):
+        """构造区分「用户列表查询」与「已提醒批量查询」的假 db。
+
+        NEW-20（2026-11-24）：去重判定从「逐 uid 一次 SELECT」改为「一次批量 SELECT」。
+        原 fixture 让**所有** `execute` 返回同一 cursor，导致批量查询把用户误判为
+        已提醒（`fetchall` 恒返回 `[{"user_id": 1}]`）。这里按 SQL 文本分流：
+          - 含 `date_reminder_log` 的查询 → 返回空（表示都还没提醒过）
+          - 其它（用户列表等）→ 返回 `[{"user_id": 1}]`
+        """
         db = MagicMock()
-        db.execute.return_value.fetchall.return_value = [{"user_id": 1}]
-        db.execute.return_value.fetchone.return_value = None
+
+        def _execute(sql, *args, **kwargs):
+            cursor = MagicMock()
+            text = str(sql)
+            if "date_reminder_log" in text and text.strip().upper().startswith("SELECT"):
+                cursor.fetchall.return_value = []  # 尚无提醒记录
+            else:
+                cursor.fetchall.return_value = [{"user_id": 1}]
+            cursor.fetchone.return_value = None
+            return cursor
+
+        db.execute.side_effect = _execute
         return db
 
     @pytest.fixture
@@ -148,14 +174,34 @@ class TestProcessRecord:
         assert stats["sent"] == 0
 
     def test_no_user_ids_skips(self, db, notif, stats, today):
-        db.execute.return_value.fetchall.return_value = []
+        """用户列表为空 → 直接返回，不发送。
+
+        NEW-20：fixture 已按 SQL 分流，此处只需让「用户列表查询」返回空。
+        """
+        db.execute.side_effect = lambda sql, *a, **kw: _cursor_with([])
         target = today + timedelta(days=30)
         rec = self._make_rec("implement", target)
         _process_record(rec, today, db, notif, stats)
         assert stats["sent"] == 0
 
     def test_already_logged_increments_skipped(self, db, notif, stats, today):
-        db.execute.return_value.fetchone.return_value = {"1": 1}
+        """已提醒过 → 计入 skipped、不发送。
+
+        NEW-20：去重判定改为一次批量查询（`fetchall` 返回已提醒 uid 集合），
+        故这里让 `date_reminder_log` 查询返回该用户。
+        """
+
+        def _execute(sql, *args, **kwargs):
+            cursor = MagicMock()
+            text = str(sql)
+            if "date_reminder_log" in text and text.strip().upper().startswith("SELECT"):
+                cursor.fetchall.return_value = [{"user_id": 1}]
+            else:
+                cursor.fetchall.return_value = [{"user_id": 1}]
+            cursor.fetchone.return_value = None
+            return cursor
+
+        db.execute.side_effect = _execute
         target = today + timedelta(days=30)
         rec = self._make_rec("implement", target)
         _process_record(rec, today, db, notif, stats)

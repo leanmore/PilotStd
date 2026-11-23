@@ -78,22 +78,27 @@ def detect_ip(sources: list[tuple[str, Callable[[str], object]]] | None = None) 
     # 并发拉取；总预算略大于单源超时，避免正常的慢源被误杀
     budget = max(TIMEOUT * 2, TIMEOUT + 1)
     with ThreadPoolExecutor(max_workers=min(len(srcs), _MAX_WORKERS)) as pool:
-        futures = {pool.submit(_fetch_one, url, extractor): url for url, extractor in srcs}
+        futures = {pool.submit(_fetch_one, url, extractor): idx for idx, (url, extractor) in enumerate(srcs)}
+        results: dict[int, str] = {}
         try:
             for future in as_completed(futures, timeout=budget):
                 ip = future.result()
                 if ip:
-                    ips.append(ip)
+                    results[futures[future]] = ip
         except FuturesTimeoutError:
             # 总预算耗尽：已完成的 future 结果已收集，未完成的按失败处理
-            pending = [futures[f] for f in futures if not f.done()]
+            pending = [srcs[futures[f]][0] for f in futures if not f.done()]
             logger.warning(
-                "IP检测总预算 %.1fs 耗尽，%d/%d 个源未返回: %s",
+                "IP probe budget %.1fs exhausted, %d/%d sources pending: %s",
                 budget,
                 len(pending),
                 len(srcs),
                 pending,
             )
+    # ⚠️ 必须按**源顺序**回填，不能按完成顺序 ——
+    # `Counter.most_common` 平票时按**插入顺序**决定胜者，并发完成顺序不确定，
+    # 直接 append 会让 2v2 平票结果在多次运行间漂移（e2e 已锁该契约）。
+    ips = [results[i] for i in sorted(results)]
 
     if not ips:
         logger.warning("所有 IP 检测源均失败")
