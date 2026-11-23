@@ -915,3 +915,9 @@ ecord_pending N+1 消除（500 条从 500 次 SELECT
 > 失败补 `appToast.error`；`stores/app.ts` 的 matchMedia 监听器改为可 dispose；
 > 3 个无主 TODO 全部认领（A-55 新债号 / V-10 / A-52）。
 > G-050 debug 档 69→66。
+
+> **2026-11-23 方向C 批次7（文档死链）**：新增 **G-056 文档死链扫描**（markdown 相对链接；
+> G-032 只查反引号里的全路径引用）。实现要点：排除代码块/行内代码/归档目录，
+> 双解析口径（相对当前文件 或 相对仓库根）。基线 `doc_deadlinks_baseline.json` 当前 **0 条**。
+> 修复 529→0 条死链（478 条在归档目录不修、49 条是解析口径误判、1 条真死链指向已归档文档）。
+> 已接入 `check_all.sh --guards`。
