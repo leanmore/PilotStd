@@ -834,3 +834,14 @@ Windows + 网络挂载下每次可达毫秒级，启动校验明显变慢。
 
 **守护**：`tests/test_notification_unread_isolation.py`（9 例）、
 `tests/test_notification_stage1a_identity.py`、`test_notification_stage1b_fields.py`。
+
+## file_index 查询：get_all 支持可选分页（2026-11-24，NEW-26）
+
+`FileIndexQuery.get_all()` 原无 `LIMIT`，万级索引会整表载入内存
+（每行还有 dict 包装开销）。
+
+**修法**：新增**可选**分页参数 `limit` / `offset`：
+- `limit=None`（默认）**保持原行为**，兼容既有调用方，零风险；
+- 传 `limit` 时只取一页（`LIMIT ? OFFSET ?`），供列表展示 / 分批处理使用。
+
+需要遍历全表的调用方应改成分页循环（`offset` 递增），而不是一次取完。

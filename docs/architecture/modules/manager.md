@@ -338,3 +338,27 @@ SELECT 次数与批次相关（不是 N）/ 已存在跳过 / 空列表零查询
 已拆出 `_index_one_file()` 与 `_log_scan_summary()`。
 
 **守护**：`tests/test_scan_and_index_diagnostics.py`（5 例）。
+
+## scan_and_index：先廉价排除再算全文哈希（2026-11-24，NEW-23）
+
+**原流程**（顺序反了）：
+```
+hash_file_content(path)      ← 读全文（数 MB）
+  → SELECT ... WHERE sha256/code/name/size
+  → parse(basename)          ← 廉价
+```
+文件名解析失败的文件**白读一次全文**；三要素本就不可能命中的文件同样白读。
+
+**新流程**（先廉价后昂贵）：
+```
+getsize → parse(basename)                              ← 都廉价
+  → SELECT id, sha256 WHERE code/name/size（fetchall）  ← 不读全文
+     ├─ 无候选 → 直接判 skip_no_match，**不算哈希**
+     └─ 有候选 → hash_file_content() → 在候选中精确比对 sha256
+```
+
+**语义等价性**：四要素（sha256/code/name/size）的匹配条件未变 ——
+只是把「sha256 参与 SQL 过滤」改成「在 code/name/size 的候选集里比对 sha256」。
+候选集由 `(code, name, size)` 限定，通常只有 0~2 行。
+
+**守护**：`tests/test_scan_and_index_diagnostics.py`（5 例）。
