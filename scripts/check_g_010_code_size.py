@@ -29,6 +29,9 @@ from _gate_paths import is_git_ignored
 MAX_FILE_LINES = 500  # 单文件有效代码行数上限（阻断档）
 WARN_FILE_LINES = 400  # 单文件有效代码行数警告阈值（警告档）
 MAX_FUNCTION_LINES = 80  # 单个函数最大逻辑行数
+# NEW-45（2026-11-24）：警告档棘轮基线 —— {相对路径: 实测有效行数}
+# 只拦「新增进 >400 档」与「存量行数增长」，避免警告档形同虚设。
+WARN_BASELINE = Path(__file__).resolve().parent / "g010_warn_baseline.json"
 # 排除目录：这些目录中的文件不参与行数统计
 EXCLUDE_DIRS = {
     ".git",
@@ -68,6 +71,24 @@ def has_split_evidence(file_path: Path) -> bool:
         return True
 
     return False
+
+
+def load_warn_baseline() -> dict[str, int]:
+    """读取警告档棘轮基线（{相对路径: 行数}）；文件缺失/损坏时返回空 dict。
+
+    基线损坏不应让门禁崩溃，但**必须留痕**（否则「基线悄悄失效 → 20 个文件全部
+    报新增」会让人误以为是代码膨胀，而非基线坏了）。
+    """
+    import json
+
+    if not WARN_BASELINE.exists():
+        return {}
+    try:
+        data = json.loads(WARN_BASELINE.read_text(encoding="utf-8"))
+    except (ValueError, OSError) as e:
+        print(f"[WARN] 警告档基线读取失败（按空基线处理）: {e}", file=sys.stderr)
+        return {}
+    return {str(k): int(v) for k, v in data.get("files", {}).items()}
 
 
 def _count_logical_lines(lines: list[str], file_suffix: str = ".py") -> int:
@@ -134,6 +155,8 @@ def scan(root: Path) -> tuple[list[str], list[str]]:
     """
     errors: list[str] = []
     warnings: list[str] = []
+    # NEW-45：警告档棘轮基线（{相对路径: 实测行数}）
+    warn_baseline = load_warn_baseline()
 
     for pattern in ("**/*.py", "**/*.ts", "**/*.vue"):
         for fpath in root.rglob(pattern):
@@ -148,6 +171,8 @@ def scan(root: Path) -> tuple[list[str], list[str]]:
 
             logical = _count_logical_lines(lines, fpath.suffix)
             rel = fpath.relative_to(root)
+            # NEW-45：基线键统一用 posix 形式（`a/b.py`），避免 Windows 反斜杠不匹配
+            rel_key = rel.as_posix()
             # 检查文件有效代码行数：先判阻断档（>500），再判警告档（>400）
             if logical > MAX_FILE_LINES:
                 errors.append(
@@ -165,9 +190,23 @@ def scan(root: Path) -> tuple[list[str], list[str]]:
                         f"  ✗ 原文件仍 {logical} 行 > {MAX_FILE_LINES}，需继续拆分至 ≤{MAX_FILE_LINES}"
                     )
             elif logical > WARN_FILE_LINES:
-                warnings.append(
-                    f"[FILE] {rel}: {logical} 有效代码行 (>{WARN_FILE_LINES})，文件过长需压缩"
-                )
+                # NEW-45：警告档棘轮 —— 只拦「新增进 >400 档」与「存量增长」
+                warn_base = warn_baseline.get(rel_key)
+                if warn_base is None:
+                    errors.append(
+                        f"[FILE] {rel}: {logical} 有效代码行 (>{WARN_FILE_LINES})，"
+                        f"新进入警告档；请压缩到 ≤{WARN_FILE_LINES} 或登记进基线"
+                    )
+                elif logical > warn_base:
+                    errors.append(
+                        f"[FILE] {rel}: {logical} 有效代码行，较基线 {warn_base} 增长 "
+                        f"+{logical - warn_base}（警告档不允许增长）"
+                    )
+                elif logical < warn_base:
+                    warnings.append(
+                        f"[STALE] {rel}: 基线 {warn_base} → 当前 {logical}，"
+                        f"可收紧基线（不阻断）"
+                    )
 
             # 程序文件超过10行时，进一步检查每个函数
             if fpath.suffix == ".py" and logical > 10:
