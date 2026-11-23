@@ -316,16 +316,23 @@
   padding: var(--space-20);
 }
 
-/* 折叠动画 */
+/* ═══ 折叠展开过渡（全站唯一真相）═══
+   规则来源：docs/reference/ui-system.md §14.3
+   - 曲线与时长与 DS 的 `--transition` 同源（0.2s ease），避免 settings 子页
+     与通知配置页的折叠观感不一致（此前后者多一份 padding 过渡）。
+   - `max-height` 必须给一个「足够大的上界」：CSS 无法对 auto 高度做过渡，
+     2000px 是实测下最长折叠面板（站点配置 8 项 + 说明文字）撑开后的高度上界，
+     再大只会让动画变慢（过渡按声明值线性插值）。面板内容显著变长时需同步调大。
+   - 进出场都保留 `overflow: hidden`，否则折叠中途内容会溢出。 */
 .collapsible-enter-active,
 .collapsible-leave-active {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: opacity var(--transition), max-height var(--transition);
+  overflow: hidden;
 }
 .collapsible-enter-from,
 .collapsible-leave-to {
   opacity: 0;
   max-height: 0;
-  overflow: hidden;
 }
 .collapsible-enter-to,
 .collapsible-leave-from {

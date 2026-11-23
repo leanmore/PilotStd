@@ -1,8 +1,7 @@
 <template>
   <div class="flex justify-content-center align-items-center" style="min-height: 400px">
     <div class="text-center">
-      <ProgressSpinner />
-      <p class="mt-3 text-color-secondary">{{ t('legacy.redirecting') }}</p>
+      <AppLoading variant="spinner" size="l" :label="t('legacy.redirecting')" />
     </div>
   </div>
 </template>
@@ -13,9 +12,9 @@ defineOptions({ name: 'LegacyRedirect' })
 import { onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
-import ProgressSpinner from 'primevue/progressspinner'
 import { getAnnouncementByNo } from '@/api/announce'
 import { SOURCE_TO_URL } from '@/constants/sourceMapping'
+import AppLoading from '@/components/ui/AppLoading.vue'
 
 const { t } = useI18n()
 const route = useRoute()

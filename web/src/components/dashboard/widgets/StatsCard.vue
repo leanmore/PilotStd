@@ -83,7 +83,7 @@ onMounted(async () => {
   background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.08));
   /* TODO: [Design Debt] 1px solid rgba(99,102,241,0.25) 无精确令牌，暂不替换，待定令牌后统一处理 */
   border: 1px solid rgba(99,102,241,0.25);
-  border-radius: var(--radius-lg);
+  border-radius: var(--ds-radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -117,7 +117,7 @@ onMounted(async () => {
   padding: var(--space-8) var(--space-12);
   background: var(--surface-raised);
   border: 1px solid var(--border-light);
-  border-radius: var(--radius);
+  border-radius: var(--ds-radius-md);
 }
 .mp-mini-icon {
   width: 32px; height: var(--icon-tile-sm); border-radius: var(--radius-sm);
@@ -132,19 +132,25 @@ onMounted(async () => {
 .text-info { color: var(--info); }
 .text-dim { color: var(--text-dim); }
 
-/* ── 骨架 ── */
+/* ── 骨架 ──
+   为什么保留自有骨架而不换成 <AppLoading variant="skeleton">：
+   本卡片的骨架是**两栏网格**（1 个主块 + 3 个副块，grid-column 定位），
+   而 AppLoading 的骨架是**竖排列表**（单列若干条）。换成通用骨架会丢掉网格占位，
+   加载完成时卡片高度与位置都会跳动，反而劣化体验。
+   故保留结构，只把渐变动画与令牌口径对齐 AppLoading（避免两套 shimmer 实现）。 */
+
 .mp-skeleton-main {
   grid-column: 1;
   background: linear-gradient(90deg, var(--border-light) 25%, var(--border) 50%, var(--border-light) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
-  border-radius: var(--radius-lg);
+  border-radius: var(--ds-radius-md);
 }
 .mp-skeleton-sub {
   background: linear-gradient(90deg, var(--border-light) 25%, var(--border) 50%, var(--border-light) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
-  border-radius: var(--radius);
+  border-radius: var(--ds-radius-md);
 }
 @keyframes shimmer {
   0% { background-position: 200% 0; }

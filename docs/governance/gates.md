@@ -883,3 +883,9 @@ B1（声明类 vs 实现类）已覆盖同一语义、且每次 CI 都在跑；�
 
 > **2026-11-22 DS 阶段三 · 模块三完成**：Web 端 29 处卡片（<Card> 20 + import 9）全部替换为 AppCard，8 个 views 外层容器归一到 PageContainer（同时删除 8 段重复的 .page/.page-title CSS）；custom/no-raw-card 由 warn 升级为 **error**（探针 2 error / exit 1 反证阻断）。
 
+> **2026-11-23 DS 阶段三 · 方向A（微交互）完成**：Web 端 23 处 `toast.add()` 与 6 处
+> `ProgressSpinner` 全部收口到 `useAppToast`/`AppToast`/`AppLoading`；页面过渡补 `mode="out-in"`，
+> `collapsible` 过渡去重（删除 NotificationConfig 本地副本）；`custom/no-raw-toast` 由 warn 升级为
+> **error**（探针 3 error / exit 1 反证阻断）。
+> G-055 基线：AppToast/AppLoading/App.vue 的结构性字面量登记进 ds-skeleton / b-percent /
+> decorative-radius / layout-dimension / hairline 组（`B 152→155`、`C 586→621`）。

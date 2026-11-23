@@ -5,6 +5,7 @@ import noRawButton from './rules/no-raw-button.js';
 import noRawInput from './rules/no-raw-input.js';
 import noRawTable from './rules/no-raw-table.js';
 import noRawCard from './rules/no-raw-card.js';
+import noRawToast from './rules/no-raw-toast.js';
 
 export default {
   rules: {
@@ -14,5 +15,6 @@ export default {
     'no-raw-input': noRawInput,
     'no-raw-table': noRawTable,
     'no-raw-card': noRawCard,
+    'no-raw-toast': noRawToast,
   },
 };

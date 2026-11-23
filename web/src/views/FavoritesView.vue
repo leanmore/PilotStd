@@ -4,13 +4,13 @@ defineOptions({ name: 'FavoritesView' })
 import { computed, onMounted, ref } from 'vue'
 import http from '@/api/http'
 import { useI18n } from 'vue-i18n'
-import { useToast } from 'primevue/usetoast'
 import FavoriteStatusTag from '@/components/FavoriteStatusTag.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppTable from '@/components/ui/AppTable.vue'
+import { useAppToast } from '@/composables/useAppToast'
 
 const { t } = useI18n()
-const toast = useToast()
+const notify = useAppToast()
 
 interface FavoriteItem {
   id: number
@@ -76,7 +76,7 @@ async function loadFavorites() {
     const data = (await http.get('/favorites')).data
     favorites.value = data.favorites || []
   } catch (e: any) {
-    toast.add({ severity: 'error', summary: t('favorites.load_failed'), detail: String(e?.message || e), life: 3000 })
+    notify.error({ summary: t('favorites.load_failed'), detail: String(e?.message || e) })
   } finally {
     loading.value = false
   }
@@ -120,7 +120,7 @@ async function exportFavorites(scope: 'current' | 'all') {
     a.click()
     URL.revokeObjectURL(url)
   } catch (e: unknown) {
-    toast.add({ severity: 'error', summary: t('favorites.export_failed'), detail: await exportErrorDetail(e), life: 3000 })
+    notify.error({ summary: t('favorites.export_failed'), detail: await exportErrorDetail(e) })
   }
 }
 

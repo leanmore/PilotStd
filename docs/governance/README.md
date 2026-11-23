@@ -233,3 +233,6 @@ A: `--required-only` 参数仅检查 `required` 级别能力。CI 也仅对 `req
 
 > v2.73（2026-11-22）：DS 阶段三 · 模块三 —— 29 处卡片替换为 AppCard，8 个 views 容器归一 PageContainer，custom/no-raw-card 升为 error。详见 ui-system.md 第十三节。
 
+> v2.74（2026-11-23）：DS 方向A —— Toast/Loading 全量收口（23 处 toast + 6 处 spinner）、
+> 页面过渡统一 `mode="out-in"`、collapsible 过渡去重，`custom/no-raw-toast` 升为 error。
+> 详见 `ui-system.md` 第十四节与 `gates.md` 维护记录。

@@ -5,7 +5,6 @@ import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import Tag from 'primevue/tag'
 import Column from 'primevue/column'
-import ProgressSpinner from 'primevue/progressspinner'
 import AppCalendar from '@/components/AppCalendar.vue'
 import TableLoadFooter from '@/components/TableLoadFooter.vue'
 import FavoriteStatusTag from '@/components/FavoriteStatusTag.vue'
@@ -14,6 +13,7 @@ import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import AppTable from '@/components/ui/AppTable.vue'
 import AppCard from '@/components/ui/AppCard.vue'
+import AppLoading from '@/components/ui/AppLoading.vue'
 
 const route = useRoute()
 const { t } = useI18n()
@@ -55,8 +55,8 @@ const {
 
 <template>
   <div class="announce-detail">
-    <div v-if="loading" class="flex justify-content-center align-items-center" style="min-height: 400px">
-      <ProgressSpinner />
+    <div v-if="loading" class="announce-detail__loading">
+      <AppLoading variant="spinner" size="l" block :label="t('common.loading')" />
     </div>
 
     <div v-else>
@@ -253,6 +253,14 @@ const {
 </template>
 
 <style scoped>
+/* 首屏加载占位：给一个最小高度，避免转圈出现时页面高度骤变 */
+.announce-detail__loading {
+  min-height: var(--space-40);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .announce-detail {
   max-width: 1400px;
   /* TODO: [Design Debt] 0 auto 无精确令牌，暂不替换，待定令牌后统一处理 */

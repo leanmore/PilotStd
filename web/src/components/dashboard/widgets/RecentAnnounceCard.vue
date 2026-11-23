@@ -4,6 +4,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { getAnnounceResults } from '@/api'
 import type { AnnounceItem } from '@/types/api'
+import AppLoading from '@/components/ui/AppLoading.vue'
 
 const { t } = useI18n()
 
@@ -78,7 +79,7 @@ onMounted(async () => {
       </div>
     </div>
 
-    <div v-if="loading" class="empty">{{ t('dashboard.common.loading') }}</div>
+    <AppLoading v-if="loading" variant="skeleton" :rows="3" :label="t('dashboard.common.loading')" />
     <div v-else-if="!announcements.length" class="empty">{{ t('dashboard.recent_announce.empty') }}</div>
 
     <Tabs v-else v-model:value="activeTab" class="tabs-root">

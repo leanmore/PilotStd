@@ -5,7 +5,6 @@ import { useI18n } from 'vue-i18n'
 import DataView from 'primevue/dataview'
 import Paginator from 'primevue/paginator'
 import Tag from 'primevue/tag'
-import ProgressSpinner from 'primevue/progressspinner'
 import { getPendingItems, postRequery } from '@/api'
 import { severityOfStatusKey } from '@/utils/stdStatus'
 import { getItem, setItem } from '@/lib/storage'
@@ -13,6 +12,7 @@ import LogBar from '@/components/LogBar.vue'
 import { useQueryAdapters } from '@/composables/useQueryAdapters'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
+import AppLoading from '@/components/ui/AppLoading.vue'
 
 const { adapters, loading: adaptersLoading, error: adaptersError, ensure, refresh: refreshAdapters } = useQueryAdapters('/pending')
 const { t } = useI18n()
@@ -92,12 +92,8 @@ onMounted(() => { ensure() })
   <div class="card mt-2">
     <div class="card-header">{{ t('pending.select_sites') }}</div>
 
-    <div v-if="adaptersLoading" class="flex align-items-center gap-2 py-3">
-      <ProgressSpinner
-        strokeWidth="4"
-        :pt="{ root: { style: { width: 'var(--size-20)', height: 'var(--size-20)' } } }"
-      />
-      <span class="text-dim">{{ t('pending.sites_loading') }}</span>
+    <div v-if="adaptersLoading" class="py-3">
+      <AppLoading variant="inline" size="s" :label="t('pending.sites_loading')" />
     </div>
 
     <div v-else-if="adaptersError" class="py-2">

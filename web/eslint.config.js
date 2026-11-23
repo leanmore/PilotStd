@@ -60,6 +60,9 @@ export default tseslint.config(
       // DS 阶段三模块三完成：全站 <Card> 已全部替换为 <AppCard>，规则升级为阻断级。
       // 任何新增的 PrimeVue Card 原语都会让 lint 失败。
       'custom/no-raw-card': 'error',
+      // DS 阶段三模块四完成：全站 Toast 已收口到 useAppToast / AppToast，规则升级为阻断级。
+      // 业务代码禁止直接 <Toast /> 或 import primevue/toast|usetoast。
+      'custom/no-raw-toast': 'error',
     },
   },
   // router.ts 是 titleKey 的定义点，豁免 no-raw-i18n-key
@@ -77,6 +80,7 @@ export default tseslint.config(
       'custom/no-raw-button': 'off',
       'custom/no-raw-input': 'off',
       'custom/no-raw-table': 'off',
+      'custom/no-raw-toast': 'off',
     },
   },
   // DS 骨架自身允许用原生 button（封装点）
@@ -99,6 +103,7 @@ export default tseslint.config(
     rules: {
       'custom/no-raw-input': 'off',
       'custom/no-raw-table': 'off',
+      'custom/no-raw-toast': 'off',
     },
   },
   // 阶段三模块二/三：AppTable/AppDialog/AppCard 封装点内部允许 PrimeVue 原语
@@ -108,6 +113,7 @@ export default tseslint.config(
     rules: {
       'custom/no-raw-table': 'off',
       'custom/no-raw-card': 'off',
+      'custom/no-raw-toast': 'off',
     },
   },
   // e2e 里的表格/弹窗选择器断言不受该规则约束
@@ -115,6 +121,14 @@ export default tseslint.config(
     files: ['e2e/**', '**/e2e/**'],
     rules: {
       'custom/no-raw-table': 'off',
+    },
+  },
+  // DS 模块四：Toast 宿主挂载处（App.vue）与服务封装点（useAppToast.ts）
+  // 必须直接接触 PrimeVue 原语，否则封装不成立
+  {
+    files: ['src/App.vue', 'src/composables/useAppToast.ts'],
+    rules: {
+      'custom/no-raw-toast': 'off',
     },
   },
 );
