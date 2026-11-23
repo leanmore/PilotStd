@@ -59,26 +59,70 @@ def _classify(results) -> str:
 
 # 单站探针：独立线程 + 超时，任何异常都落 `error`，不阻断其余站点
 def discover_probes() -> dict[str, str]:
-    """从 standard_info_cache 的 exact 记录为 probe_pending 站点自动发现探针。"""
+    """为 probe_pending 站点自动发现探针（标准号）。
+
+    ── 为什么需要两个数据源（G-25，2026-11-24）──
+    原实现只从 `standard_info_cache` 的 exact 记录发现探针。但该表**只存"曾经
+    查成功过"的站点** —— 一个站点若从未查成功，就永远没有 exact 缓存，于是
+    永远 `probe_pending`。这正是 G-25 记录的「探针自动发现**已执行未改善**」
+    （found 6 / probe_pending 11，覆盖率卡在 60%）的死循环。
+
+    修法：加**第二数据源** `standards` 表（已归档的标准号）。
+    理由：探针只需要一个「该站点理论上应该能查到」的标准号来验证可达性，
+    不需要该站点的历史成功记录。`standards` 表里的号是真实存在的标准，
+    作为探针输入完全够用。
+
+    优先级：`standard_info_cache` 的 exact 记录（最贴切）> `standards`（兜底）。
+    """
+    found: dict[str, str] = {}
     try:
         from pilotstd.core.config.paths import get_db_path
         from pilotstd.core.db import Database
 
         db = Database(get_db_path())
+        # 数据源 1（首选）：该站点曾经查成功过的 exact 记录
         rows = db.fetchall(
             "SELECT source_site, standard_number FROM standard_info_cache "
             "WHERE result_json LIKE '%\"match_status\": \"exact\"%' "
             "ORDER BY id DESC"
         )
-        found: dict[str, str] = {}
         for r in rows:
             site = str(r["source_site"] or "")
             if site in PROBE_PENDING and site not in found and r["standard_number"]:
                 found[site] = str(r["standard_number"])
+
+        # 数据源 2（兜底）：`file_index` 表里的真实标准号。
+        # 只对「数据源 1 未覆盖」的站点生效，避免覆盖更贴切的 exact 记录。
+        # 选 `file_index` 而非 `standards`：后者只有 `code`/`name`（无 number/year），
+        # 拼不出完整标准号；`file_index` 有 `logical_code`/`number`/`year`。
+        missing = [s for s in PROBE_PENDING if s not in found]
+        if missing:
+            fallback = db.fetchall(
+                "SELECT logical_code, number, year FROM file_index "
+                "WHERE logical_code != '' AND number > 0 "
+                "ORDER BY scanned_at DESC LIMIT 200"
+            )
+            # 取第一个能拼成标准号的样本，所有缺探针的站点共用它
+            for r in fallback:
+                code = str(r["logical_code"] or "").strip()
+                number = r["number"]
+                year = r["year"]
+                if not code or not number:
+                    continue
+                probe = f"{code} {number}-{year}" if year else f"{code} {number}"
+                for site in missing:
+                    found[site] = probe
+                if found:
+                    logger.info(
+                        "adapter_health: %d sites use file_index fallback probe (%s)",
+                        len(missing),
+                        probe,
+                    )
+                break
         return found
     except Exception as exc:  # noqa: BLE001 - 探针发现失败不影响主流程
         logger.warning("adapter_health probe discovery failed: %s", exc)
-        return {}
+        return found
 
 
 def _probe_one(site: str, probe: str, timeout: float) -> dict:
