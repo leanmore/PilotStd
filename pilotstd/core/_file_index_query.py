@@ -40,12 +40,24 @@ class FileIndexQuery:
             self._db.fetchone(f"SELECT * FROM {FILE_INDEX_TABLE} WHERE file_path=?", (file_path,)),
         )
 
-    def get_all(self) -> list[dict[str, Any]]:
-        """返回全部索引记录（按标准号与序号排序）。"""
-        return cast(
-            "list[dict[str, Any]]",
-            self._db.fetchall(f"SELECT * FROM {FILE_INDEX_TABLE} ORDER BY logical_code, number, part"),
-        )
+    def get_all(self, limit: int | None = None, offset: int = 0) -> list[dict[str, Any]]:
+        """返回全部索引记录（按标准号与序号排序）。
+
+        NEW-26：原实现无 `LIMIT`，全表读在万级索引下会把整表一次性载入内存
+        （每行还有 dict 包装开销）。新增**可选**分页参数：
+          - `limit=None`（默认）保持原行为，兼容既有调用方；
+          - 传 `limit` 时只取一页，供「列表展示/分批处理」场景使用。
+
+        需要遍历全表的调用方应改成分页循环（`offset` 递增）而非一次取完。
+        """
+        sql = f"SELECT * FROM {FILE_INDEX_TABLE} ORDER BY logical_code, number, part"
+        if limit is not None:
+            sql += " LIMIT ? OFFSET ?"
+            return cast(
+                "list[dict[str, Any]]",
+                self._db.fetchall(sql, (int(limit), int(offset))),
+            )
+        return cast("list[dict[str, Any]]", self._db.fetchall(sql))
 
     def find_by_standard(
         self, logical_code: str, number: int, year: int, part: Optional[int] = None

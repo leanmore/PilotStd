@@ -112,8 +112,9 @@ class ScheduledService:
         G-27：三类跳过原因分别累加 `skip_parse_failed` / `skip_no_match` / `skip_not_pending`。
         """
         try:
-            # 计算哈希 + 文件大小
-            file_hash = hash_file_content(file_path)
+            # NEW-23：先做**廉价**判断（解析文件名、取大小），再做**昂贵**的全文哈希。
+            # 原实现先 `hash_file_content()`（读全文）再解析文件名 —— 解析失败的文件
+            # 白读一次全文。万级文件 × 每个数 MB 时，这个顺序差异很显著。
             file_size = os.path.getsize(file_path)
 
             # 解析（仅传文件名，与解析器约定一致）
@@ -127,11 +128,31 @@ class ScheduledService:
             # 终点防御：确保带点号
             parsed.ext = ensure_dot_ext(parsed.ext)
 
-            # 四要素精确查询
-            row = self._file_index.db.execute(
-                "SELECT id FROM standards WHERE sha256=? AND code=? AND name=? AND size=?",
-                (file_hash, parsed.logical_code, parsed.std_name or "", file_size),
-            ).fetchone()  # type: ignore[union-attr]
+            # 廉价排除：先用「code + name + size」查（不含 sha256）。
+            # 若三条都不命中，说明无论如何都不会匹配，**不必读全文算哈希**。
+            candidates = self._file_index.db.fetchall(
+                "SELECT id, sha256 FROM standards WHERE code=? AND name=? AND size=?",
+                (parsed.logical_code, parsed.std_name or "", file_size),
+            )  # type: ignore[union-attr]
+            if not candidates:
+                logger.debug("3-element (code/name/size) miss, skip hashing: %s", file_path)
+                result["skipped"] += 1
+                result["skip_no_match"] += 1
+                return {
+                    "file": file_path,
+                    "sha256": "(not computed: code/name/size miss)",
+                    "code": parsed.logical_code,
+                    "name": parsed.std_name or "",
+                    "size": file_size,
+                }
+
+            # 只有存在候选时才计算全文哈希，并在候选中精确匹配
+            file_hash = hash_file_content(file_path)
+            row = None
+            for cand in candidates:
+                if cand["sha256"] == file_hash:
+                    row = (cand["id"],)
+                    break
 
             if row is None:
                 logger.debug("四要素未匹配，保持 pending: %s", file_path)

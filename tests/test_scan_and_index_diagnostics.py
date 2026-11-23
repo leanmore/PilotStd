@@ -36,14 +36,24 @@ class _Parsed:
         self.ext = ".pdf"
 
 
-def _make_service(tmp_path: Path, parser_side_effect, db_rows):
-    """构造 ScheduledService：只注入 scan_and_index 用到的依赖。"""
+def _make_service(tmp_path: Path, parser_side_effect, db_rows, *, sha256="hash"):
+    """构造 ScheduledService：只注入 scan_and_index 用到的依赖。
+
+    NEW-23（2026-11-24）：查询流程改为「先按 code/name/size 取候选（`fetchall`），
+    命中候选后才算全文哈希并精确比对」。故 `db_rows` 表示候选列表：
+      - `None` 或 `[]` → 三要素未命中（不读全文）
+      - 非空列表 → 候选存在；其元素需是带 `sha256` 与 `id` 的 dict
+    """
     cfg = MagicMock()
     cfg.get.return_value = str(tmp_path)
     parser = MagicMock()
     parser.parse.side_effect = parser_side_effect
     file_index = MagicMock()
-    file_index.db.execute.return_value.fetchone.return_value = db_rows
+    if db_rows is None:
+        file_index.db.fetchall.return_value = []
+    else:
+        file_index.db.fetchall.return_value = db_rows
+    file_index.db.execute.return_value.rowcount = 1
     svc = ScheduledService(
         cfg=cfg,
         scanner=MagicMock(),
@@ -104,7 +114,7 @@ def test_not_pending_counted_separately(tmp_path, monkeypatch):
     svc, file_index = _make_service(
         tmp_path,
         parser_side_effect=lambda _n: _Parsed("GB", "建筑抗震设计规范"),
-        db_rows=(1,),  # 命中
+        db_rows=[{"id": 1, "sha256": "hash"}],  # 命中
     )
     file_index.db.execute.return_value.rowcount = 0  # UPDATE 未生效
     monkeypatch.setattr(
@@ -125,7 +135,7 @@ def test_indexed_on_success(tmp_path, monkeypatch):
     svc, file_index = _make_service(
         tmp_path,
         parser_side_effect=lambda _n: _Parsed("GB", "建筑抗震设计规范"),
-        db_rows=(1,),
+        db_rows=[{"id": 1, "sha256": "hash"}],
     )
     file_index.db.execute.return_value.rowcount = 1
     monkeypatch.setattr(
