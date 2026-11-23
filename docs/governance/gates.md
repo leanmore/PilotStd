@@ -889,3 +889,10 @@ B1（声明类 vs 实现类）已覆盖同一语义、且每次 CI 都在跑；�
 > **error**（探针 3 error / exit 1 反证阻断）。
 > G-055 基线：AppToast/AppLoading/App.vue 的结构性字面量登记进 ds-skeleton / b-percent /
 > decorative-radius / layout-dimension / hairline 组（`B 152→155`、`C 586→621`）。
+
+> **2026-11-23 DS 阶段三 · 方向B（部署验证）完成**：新增 `scripts/ops/` 只读探测套件
+> （health / pending_paths / credentials / db_counts / probe_all）+ `tests/ops/` 29 例
+> + `docs/ops/deploy-selfcheck.md`。全部只读（端点存在性用 OPTIONS 判，绝不发 POST；
+> 写操作白名单仅 login 与只读 query）。
+> 实测发现 3 个真实生产问题：pending 挂载保护误报（61/61 全缺失导致 mark_missing 整轮跳过）、
+> favorite_downloads 3 条孤儿行、飞书凭证未配置。
