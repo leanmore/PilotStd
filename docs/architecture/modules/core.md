@@ -5,7 +5,7 @@
 | 模块路径 | `pilotstd/core/` |
 | G-031 映射 | `pilotstd/core/`（2026-09-25 落地：`DOC_SYNC_MAP` 已含该条，改任何 core 文件都会要求同步本文件） |
 | 核心类 | `Database` / `ConfigManager` / `CacheManager` / `NotificationManager` |
-| 子模块数 | 140 个 `.py`（新增 `validity_log.py` + `db/_migrate_v76_validity_check_log.py`（检查病历，2026-11-07）；上一轮 `notification/_log_scope.py`（日志用户/系统可见性）；上一轮 `db/_migrate_v75_validity_queue.py`（选中文件检查队列）；再上一轮 `db/_migrate_v74_repair_validity_keys.py`（validity 畸形键修复）；上一轮新增 `archive_reconcile.py`（启动归档对账，C-2，2026-11-05）；再上一轮 `db/_migrate_v72_announcement_dedupe.py`（公告记录去重 + `standard_count` 重算，2026-11-03）；**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-11-07**；顶层 = 3 个包 config / db / notification + 23 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
+| 子模块数 | 142 个 `.py`（新增 `validity_log.py` + `db/_migrate_v76_validity_check_log.py`（检查病历，2026-11-07）；上一轮 `notification/_log_scope.py`（日志用户/系统可见性）；上一轮 `db/_migrate_v75_validity_queue.py`（选中文件检查队列）；再上一轮 `db/_migrate_v74_repair_validity_keys.py`（validity 畸形键修复）；上一轮新增 `archive_reconcile.py`（启动归档对账，C-2，2026-11-05）；再上一轮 `db/_migrate_v72_announcement_dedupe.py`（公告记录去重 + `standard_count` 重算，2026-11-03）；**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-11-07**；顶层 = 3 个包 config / db / notification + 23 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
 | Schema 版本 | `CURRENT_SCHEMA_VERSION = 76`（`db/_constants.py`；v75＝`validity_check_queue` 队列；v74＝`standard_validity` 畸形键修复；v73＝时间字符串 ISO 化；v72＝公告记录去重 + `standard_count` 重算） |
 | 状态 | 活跃 |
 
@@ -914,3 +914,32 @@ G-012 的 `[LANG]` 检查要求注释全部用中文，但会**先剔除反引�
 **回归锚点**：`tests/test_notification_renderer.py::TestAutoBackupTelegramRender`、
 `tests/test_notification_wechat_card.py` 第 3 节（级别前缀「恰好一次」/降级不重复/link→jump_list/与 web 动作共存/列表计数）。
 **缺口依据**：`docs/plans/2026-11-24-p1-notification-parity.md` §4、§5.1。
+
+## P1 批次 B：企微降级分段 / markdown 补标题 / 安全告警应用形态 / BPVC 与 API 类型词（2026-11-24）
+
+依据 `docs/plans/2026-11-24-p1-notification-parity.md` 与 `2026-11-24-p1-api-asme-gap.md`。
+
+### 渠道与渲染
+| 项 | 修复前 | 修复后 |
+|---|---|---|
+| 企微应用形态「卡片拒收→文本降级」 | `text[:2000]` **字符**截断（2000 汉字≈6000 字节 > 企微 2048 字节上限）→ 丢尾部/再被拒 | 改用 `split_for_channel(text, "wecom")`（字节口径、段间「续 N/M」）**逐段发送**；任一段失败即整体失败 |
+| `MarkdownRenderer` 无 blocks 消息 | body-only（如 `task_progress`）丢标题 | 补 `## <标题>`，与 Telegram 同口径；**仅 markdown 渲染器**（企微/钉钉 Webhook + 企微应用降级文本），基类与 `DesktopRenderer` 仍逐字 |
+| `security_notifier._channel_instance` | 只认 `webhook_url` → 生产企微应用形态被静默跳过 | **应用形态优先**（corpid+agentid+corpsecret → `WechatChannel` 6 参构造），Webhook 兜底 |
+
+### 编号解析（新增 2 个子模块，故子模块数 140 → 142）
+- **BPVC 卷/册/篇**：新增 `pilotstd/core/std_utils_bpvc.py`（`_try_parse_bpvc`），支持
+  `BPVC.VIII.1-2021` / `BPVC.IX-2021` / `BPVC.II.D` / `BPVC.II.D.M-2021` / `Section VIII Div.1` / `Section II Part D`；
+  口径：卷号→`number`（罗马→阿伯）、Div→`part`、册/篇字母→`num_suffix`、年份缺省 `0`。插在解析链最前。
+- **API 类型词**：新增 `pilotstd/core/std_utils_api.py`（`_try_parse_api_typed`），
+  `API <类型词> <序号>[字母后缀][.分册][-年份]` 的类型词（`API_TYPES` + Q 系列）回填 `num_prefix`；
+  variant 分支补 token 拆分兜底。
+- **扫描侧**：`scan/parser/_constants.py` 的 `_ASME_BPVC_RE` 扩 `Section/Div(ision)/Part/册篇字母`
+  （捕获组口径 1=卷 / 2=分册 / 3=册篇字母 / 4=年份，加 `(?!\d)` 防分册号吃年份）；
+  `_exact_matcher.py` 同步取值并写 `num_suffix`。
+- **已知边界**：册/篇字母复用 `num_suffix` 属语义约定变更，`get_full_number()`/`make_standard_filename()`
+  的罗马分支不补点号（显示 `ASME IID-2021` 而非 `II.D`），需改 `models.py`/`file_utils.py`（未在本批范围）；
+  扫描侧 BPVC **无年份**写法仍被 `validate_result` 拒绝。
+
+**回归锚点**：`tests/test_std_utils_asme.py`、`tests/unit/scan/parser/test_bpvc_section_snapshot.py`、
+`tests/unit/core/notification/test_message_builders_snapshot.py::TestObjectInMessage`、
+`tests/test_notification_wechat_card.py`、`tests/test_notification_security_channel_form.py`。

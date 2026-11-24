@@ -247,3 +247,10 @@ BaseAdapter (ABC)
 行为与原实现完全一致。
 
 **守护**：`tests/test_resource_leaks.py`（验证 `__exit__` 被调用 + 响应体已读）。
+
+## 代号噪音表扩展：API 类型词（2026-11-24，P1-7.1 B-6）
+
+`search_strategy._strip_code_noise` 噪音表补 `SPEC/BULL/MPMS/TDB/PUBL/RP/TR`（`API STD 610` 等
+此前被拼成 `APISTD`，搜索命中不到），并加 `len(code)-len(suffix) >= 2` 守卫，
+避免 `ARP`/`TR` 这类真短代号被剥空。`Q` 不进噪音表——已在解析源头拆分，避免误剥以 Q 结尾的代号。
+回归：`tests/test_std_utils_asme.py`（含 `_strip_code_noise` 用例）。

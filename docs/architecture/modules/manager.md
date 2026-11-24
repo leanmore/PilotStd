@@ -381,3 +381,14 @@ getsize → parse(basename)                              ← 都廉价
 
 效果：`inactive 116 → 174`、`unknown 88 → 30`、`?status=voided` 仍单独返回 58 条、总数守恒 776。
 **口径修正非数据变化**，发布说明需注明。回归：`tests/test_standard_service.py`。
+
+## 通知事件补对象（2026-11-24，P1-6 P1-5）
+
+5 个事件此前只说「失败/未命中/没新增」，缺少可定位的对象，已补 payload 与渲染：
+`scan_empty`（扫描根路径）、`query_empty`（查询标准号清单，正文列前 10 条）、
+`archive_failed`（单条给标准号 / 多条给失败明细，二选一）、`normalize_failed`（失败明细）、
+`auto_pipeline_summary`（批次键 `task_id` + 处理范围 `path`）。
+生产者侧只新增字段采集，不改变控制流与计数；`event_spec_data.payload_keys` 同批同步
+（e2e 的 `builder_keys` 由 spec 派生，不同步会让新契约不可见）。
+回归：`tests/unit/core/notification/test_message_builders_snapshot.py::TestObjectInMessage`、
+`tests/integration/test_notification_high_value_events.py`。
