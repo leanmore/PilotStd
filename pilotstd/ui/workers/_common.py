@@ -131,8 +131,20 @@ class LogHandler(logging.Handler, QObject):
 
         防御 C++ 对象已被 Qt 析构（atexit 期间先于 logging shutdown 触发），
         避免 RuntimeError 淹没 CI 日志。
+
+        NEW-40：必须**停掉批量刷新定时器**。原实现只置 `_closed` / 清 `widget`，
+        定时器仍在跑 —— `_flush` 虽已防 `_closed`，但 QTimer 对象与它持有的
+        QObject 引用不会释放，且 handler 关闭后仍可能被 timeout 触发一次。
         """
         self._closed = True
+        # 先停定时器（在触碰 `self` 的 Qt 状态之前，避免定时器回调与 `close` 竞争）
+        try:
+            if self._buf_timer is not None:
+                self._buf_timer.stop()
+                self._buf_timer.timeout.disconnect(self._flush)
+        except (RuntimeError, TypeError) as e:
+            # 定时器或其 C++ 对象已析构：无需再停，记录后继续清理
+            logger.info("stop buf timer failed in close(): %s", e)  # i18n-allow: 内部诊断日志
         try:
             _sip = __import__("PyQt6.sip", fromlist=["isdeleted"])
             if hasattr(_sip, "isdeleted") and _sip.isdeleted(self):

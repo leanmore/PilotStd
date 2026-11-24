@@ -233,3 +233,21 @@ A: `--required-only` 参数仅检查 `required` 级别能力。CI 也仅对 `req
 
 > v2.73（2026-11-22）：DS 阶段三 · 模块三 —— 29 处卡片替换为 AppCard，8 个 views 容器归一 PageContainer，custom/no-raw-card 升为 error。详见 ui-system.md 第十三节。
 
+> v2.74（2026-11-23）：DS 方向A —— Toast/Loading 全量收口（23 处 toast + 6 处 spinner）、
+> 页面过渡统一 `mode="out-in"`、collapsible 过渡去重，`custom/no-raw-toast` 升为 error。
+> 详见 `ui-system.md` 第十四节与 `gates.md` 维护记录。
+
+> v2.75（2026-11-23）：方向C 批次3 —— G-050 补 continue/break 识别（26 处冻结）、
+> 修复迁移锁死循环、SVG 存储型 XSS、台账状态互斥。详见 `06-full-inventory.md`。
+
+> v2.76（2026-11-23）：方向C 批次6 —— 7 处后端静默吞错 + 3 个前端组件用户操作失败提示
+> + 监听器可 dispose + 3 个无主 TODO 认领。详见 `06-full-inventory.md`。
+
+> v2.77（2026-11-23）：方向C 批次7 —— 新增 G-056 文档死链扫描并修复全部死链（529→0）。
+> 详见 `gates.md` 维护记录与 `06-full-inventory.md`。
+
+> v2.78（2026-11-23）：方向C 批次8 —— 5 类资源泄漏修复 + CSP 移除 unsafe-eval。
+> 详见 `06-full-inventory.md` 与 `gates.md` 维护记录。
+
+> v2.79（2026-11-24）：方向C 批次5续 —— 4 处批量/并发改造 + G-27 可诊断性 +
+> 批次4 台账收口（A-42 关闭 / V-3 转接受 / 12 条保留观察 / 8 处漂移订正）。

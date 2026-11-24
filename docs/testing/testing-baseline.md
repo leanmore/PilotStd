@@ -139,3 +139,12 @@
 > `tests/test_migrate_superseded_by_direction.py`、`tests/test_api_archive_stats.py` 同期扩充。
 > 通知相关套件 `pytest -k "notification or renderer"` 实测 **1276 passed**。
 
+> **2026-11-23 增量（方向 C 批次 3/5/6/7/8）**：新增 10 个 Python 测试文件 + 1 个前端测试文件 ——
+> `test_check_g_050_continue_break.py`（4 例）、`test_upload_svg_xss.py`（13 例）、
+> `test_db_migration_lock_loop.py`（3 例）、`test_pending_record_no_n_plus_one.py`（4 例）、
+> `test_file_index_validate_scandir.py`（6 例）、`test_system_update_nonblocking.py`（4 例）、
+> `test_check_g_056_doc_deadlinks.py`（7 例）、`test_resource_leaks.py`（5 例）、
+> `test_db_conn_reclaim.py`（6 例）、`test_csp_no_unsafe_eval.py`（3 例）、
+> 前端 `web/src/components/__new16_17.test.ts`（8 例）。
+> 前端 vitest：**69 files / 680 tests**。
+> 测试文件数变化幅度较大，按 CI 严格模式要求在此登记。

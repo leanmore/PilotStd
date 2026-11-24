@@ -1,0 +1,32 @@
+{
+  "_meta": {
+    "gate": "G-010",
+    "note": "警告档（>400 且 <=500 有效代码行）棘轮基线。只拦「新进入警告档」与「存量行数增长」；行数减少只提示可收紧，不阻断。>500 阻断档仍由门禁主逻辑处理，不在此列。",
+    "generated_at": "2026-11-24",
+    "warn_threshold": 400,
+    "block_threshold": 500,
+    "file_count": 20
+  },
+  "files": {
+    "docker/api/announce.py": 486,
+    "docker/api/announce_detail.py": 461,
+    "docker/api/settings.py": 416,
+    "docker/scheduler.py": 496,
+    "pilotstd/announcement/base.py": 422,
+    "pilotstd/announcement/parser.py": 437,
+    "pilotstd/core/db/_migrate_v16_v49.py": 438,
+    "pilotstd/core/db/database.py": 477,
+    "pilotstd/core/notification/channel_spec_data.py": 405,
+    "pilotstd/core/notification/event_spec_data.py": 457,
+    "pilotstd/core/notification_aggregator.py": 404,
+    "pilotstd/core/validity_checker.py": 491,
+    "pilotstd/download/engine.py": 450,
+    "pilotstd/manager/facade/_organize.py": 446,
+    "pilotstd/monitor/scheduler.py": 419,
+    "pilotstd/ui/core/handlers/_settings.py": 434,
+    "scripts/audit_design_tokens.py": 489,
+    "scripts/check_g_013_test_coverage.py": 483,
+    "web/src/components/ValidityConfig.vue": 470,
+    "web/src/views/TaskView.vue": 475
+  }
+}

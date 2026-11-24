@@ -80,11 +80,30 @@ export const useAppStore = defineStore('app', () => {
 
   watch(locale, v => { prefsLocale.value = v })
 
+  // NEW-17：matchMedia 监听器必须可 dispose —— 模块级 store 没有 onUnmounted，
+  // 原实现注册后从不移除，HMR/重复挂载会累积监听器（与仓库其余 16 个文件
+  // 的「成对注册/注销」口径不一致）。
+  // 这里保留 mediaQueryList 与 handler 引用，导出 disposeSystemThemeListener()；
+  // 正常运行时 store 是单例、只注册一次，故累积风险主要来自 HMR —— dispose 供 HMR
+  // 与测试清理使用。
+  let _mediaQueryList: MediaQueryList | null = null
+  let _mediaHandler: ((e: MediaQueryListEvent) => void) | null = null
   try {
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+    _mediaQueryList = window.matchMedia('(prefers-color-scheme: dark)')
+    _mediaHandler = (e: MediaQueryListEvent) => {
       if (!prefsTheme.value) theme.value = e.matches ? 'dark' : 'light'
-    })
-  } catch { /* SSR */ }
+    }
+    _mediaQueryList.addEventListener('change', _mediaHandler)
+  } catch { /* SSR / 不支持 matchMedia 的环境 */ }
 
-  return { theme, locale, loggedIn, userId, username, role, dashboardLocked, loadPreferences, clearUser, toggleDashboardLock }
+  /** 注销系统主题监听（HMR / 测试清理用；正常单例运行无需调用） */
+  function disposeSystemThemeListener(): void {
+    if (_mediaQueryList && _mediaHandler) {
+      _mediaQueryList.removeEventListener('change', _mediaHandler)
+      _mediaQueryList = null
+      _mediaHandler = null
+    }
+  }
+
+  return { theme, locale, loggedIn, userId, username, role, dashboardLocked, loadPreferences, clearUser, toggleDashboardLock, disposeSystemThemeListener }
 })

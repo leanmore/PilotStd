@@ -104,7 +104,16 @@ def _iter_handler_scope(handler: ast.ExceptHandler):
 
 
 def _handler_kinds(node: ast.ExceptHandler) -> set[str]:
-    """返回该 handler 命中的类别（pass / return / debug）。"""
+    """返回该 handler 命中的类别（pass / return / continue / break / debug）。
+
+    ── 为什么 continue / break 必须算（2026-11-23 补，NEW-01）──
+    原实现只认单语句 `pass` 与空 `return`，**不认 `except: continue` / `except: break`**。
+    但 `continue` 比 `pass` 更隐蔽：它看起来像正常循环控制流，实际是"出错就跳过、
+    什么都不说"。实测全仓有 29 处这类吞错完全不受棘轮保护。
+
+    判定口径与 pass/return 一致：**只有 handler 体仅一条语句时才算**。
+    多语句说明做了补救动作（如先 log 再 continue），不算静默吞错。
+    """
     kinds: set[str] = set()
     # 只认"handler 体只有一条语句"的情况：多语句说明做了补救动作，不算静默吞错
     if len(node.body) == 1:
@@ -113,6 +122,10 @@ def _handler_kinds(node: ast.ExceptHandler) -> set[str]:
             kinds.add("pass")
         elif isinstance(stmt, ast.Return) and _is_empty_return(stmt.value):
             kinds.add("return")
+        elif isinstance(stmt, ast.Continue):
+            kinds.add("continue")
+        elif isinstance(stmt, ast.Break):
+            kinds.add("break")
     if any(_is_logger_debug_call(child) for child in _iter_handler_scope(node)):
         kinds.add("debug")
     return kinds
@@ -128,7 +141,13 @@ def scan(root: Path) -> dict[str, dict[str, int]]:
     里加了 `[WARN]` 输出，块内变成多语句 ⇒ pass/return 只认单语句，自然不再计入；
     其余 A 类靠基线冻结即可（基线本身就是白名单），无需 `# g050-allow` 逐条标注。
     """
-    counts: dict[str, dict[str, int]] = {"pass": {}, "return": {}, "debug": {}}
+    counts: dict[str, dict[str, int]] = {
+        "pass": {},
+        "return": {},
+        "continue": {},
+        "break": {},
+        "debug": {},
+    }
     for dirname in SCAN_DIRS:
         base = root / dirname
         if not base.exists():
@@ -161,7 +180,7 @@ def compare(
     """
     exceeded: list[str] = []
     tightenable: list[str] = []
-    for kind in ("pass", "return", "debug"):
+    for kind in ("pass", "return", "continue", "break", "debug"):
         cur = current.get(kind, {})
         base = baseline.get(kind, {})
         for file in sorted(set(cur) | set(base)):

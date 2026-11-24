@@ -114,15 +114,15 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  /* TODO: [Design Debt] 60px 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 60px 无精确令牌，暂不替换，待定令牌后统一处理 */
   height: 60px;
   padding: 0 var(--space-24);
-  /* TODO: [Design Debt] rgba(255, 255, 255, 0.8) 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — rgba(255, 255, 255, 0.8) 无精确令牌，暂不替换，待定令牌后统一处理 */
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
-  /* TODO: [Design Debt] 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 12px -4px rgba(0, 0, 0, 0.08) 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 12px -4px rgba(0, 0, 0, 0.08) 无精确令牌，暂不替换，待定令牌后统一处理 */
   /* TODO: [Design Debt] 原生阴影与既有 --shadow-* 层级不匹配（半径/扩散/透明度不同），待统一评估（A-52） */
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 12px -4px rgba(0, 0, 0, 0.08);
   z-index: 100;
@@ -134,7 +134,7 @@ onUnmounted(() => {
 /* 暗色主题下的顶部导航栏（dark + blue） */
 :root[data-theme="dark"] .topbar,
 :root[data-theme="blue"] .topbar {
-  /* TODO: [Design Debt] rgba(30, 41, 59, 0.85) 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — rgba(30, 41, 59, 0.85) 无精确令牌，暂不替换，待定令牌后统一处理 */
   background: rgba(30, 41, 59, 0.85);
 }
 
@@ -238,7 +238,7 @@ onUnmounted(() => {
 
 @media (max-width: 767px) {
   .topbar {
-    /* TODO: [Design Debt] 56px 无精确令牌，暂不替换，待定令牌后统一处理 */
+    /* TODO: [Design Debt] A-52 — 56px 无精确令牌，暂不替换，待定令牌后统一处理 */
     height: 56px;
     padding: 0 var(--space-12);
   }
@@ -255,7 +255,7 @@ onUnmounted(() => {
 
 /* 顶部栏折叠态：默认收缩至40px */
 .topbar.collapsed {
-  /* TODO: [Design Debt] 40px 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 40px 无精确令牌，暂不替换，待定令牌后统一处理 */
   height: 40px;
   padding: 0 var(--space-16);
 }

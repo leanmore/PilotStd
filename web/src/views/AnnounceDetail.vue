@@ -5,7 +5,6 @@ import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import Tag from 'primevue/tag'
 import Column from 'primevue/column'
-import ProgressSpinner from 'primevue/progressspinner'
 import AppCalendar from '@/components/AppCalendar.vue'
 import TableLoadFooter from '@/components/TableLoadFooter.vue'
 import FavoriteStatusTag from '@/components/FavoriteStatusTag.vue'
@@ -14,6 +13,7 @@ import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import AppTable from '@/components/ui/AppTable.vue'
 import AppCard from '@/components/ui/AppCard.vue'
+import AppLoading from '@/components/ui/AppLoading.vue'
 
 const route = useRoute()
 const { t } = useI18n()
@@ -55,8 +55,8 @@ const {
 
 <template>
   <div class="announce-detail">
-    <div v-if="loading" class="flex justify-content-center align-items-center" style="min-height: 400px">
-      <ProgressSpinner />
+    <div v-if="loading" class="announce-detail__loading">
+      <AppLoading variant="spinner" size="l" block :label="t('common.loading')" />
     </div>
 
     <div v-else>
@@ -253,9 +253,17 @@ const {
 </template>
 
 <style scoped>
+/* 首屏加载占位：给一个最小高度，避免转圈出现时页面高度骤变 */
+.announce-detail__loading {
+  min-height: var(--space-40);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .announce-detail {
   max-width: 1400px;
-  /* TODO: [Design Debt] 0 auto 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 0 auto 无精确令牌，暂不替换，待定令牌后统一处理 */
   margin: 0 auto;
   padding: 1rem;
   background: var(--bg);
@@ -270,17 +278,17 @@ const {
 /* fix(a11y): 标题/公告号强制 --text-heading，阻断 Aura 亮色 token 继承（深色主题 1.8:1→≥8:1）。标题居中 — :deep() 穿透 Card，提高特异性对抗 Aura 的 .p-card-content p */
 :deep(.p-card-content) .announce-title {
   font-size: var(--font-size-22);
-  /* TODO: [Design Debt] bold 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — bold 无精确令牌，暂不替换，待定令牌后统一处理 */
   font-weight: bold;
   text-align: center;
   line-height: var(--line-height-loose);
-  /* TODO: [Design Debt] 0.5rem 0 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 0.5rem 0 无精确令牌，暂不替换，待定令牌后统一处理 */
   margin: 0.5rem 0; color: var(--text-heading);
 }
 
 .official-doc {
   max-width: 800px;
-  /* TODO: [Design Debt] 0 auto 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 0 auto 无精确令牌，暂不替换，待定令牌后统一处理 */
   margin: 0 auto;
   background: var(--surface);
 }
@@ -295,7 +303,7 @@ const {
 /* 通用段落缩进 — 作用于正文区所有段落，优先级低于特定 class */
 .doc-content :where(p, section > p, div > p) {
   text-indent: 2em;
-  /* TODO: [Design Debt] 0.5em 0 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 0.5em 0 无精确令牌，暂不替换，待定令牌后统一处理 */
   margin: 0.5em 0;
 }
 
@@ -314,7 +322,7 @@ const {
   text-indent: 2em;
   text-align: justify;
   line-height: var(--line-height-loose);
-  /* TODO: [Design Debt] 0.25em 0 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 0.25em 0 无精确令牌，暂不替换，待定令牌后统一处理 */
   margin: 0.25em 0;
 }
 
@@ -325,7 +333,7 @@ const {
   text-align: right;
   text-indent: 0;
   line-height: var(--line-height-loose);
-  /* TODO: [Design Debt] 0.25em 0 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 0.25em 0 无精确令牌，暂不替换，待定令牌后统一处理 */
   margin: 0.25em 0;
 }
 
@@ -336,7 +344,7 @@ const {
   text-align: right;
   text-indent: 0;
   line-height: var(--line-height-loose);
-  /* TODO: [Design Debt] 0.25em 0 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 0.25em 0 无精确令牌，暂不替换，待定令牌后统一处理 */
   margin: 0.25em 0;
 }
 
@@ -348,7 +356,7 @@ const {
 .doc-content :deep(td),
 .doc-content :deep(th) {
   border: 1px solid var(--border);
-  /* TODO: [Design Debt] 0.25rem 0.5rem 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 0.25rem 0.5rem 无精确令牌，暂不替换，待定令牌后统一处理 */
   padding: 0.25rem 0.5rem;
 }
 

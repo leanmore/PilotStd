@@ -139,9 +139,9 @@ const isLoading = (a: QuickAction): boolean =>
 .header { display: flex; align-items: center; justify-content: space-between; }
 .header-left { display: flex; align-items: center; gap: var(--space-10); }
 .header-icon {
-  /* TODO: [Design Debt] rgba(139,92,246,0.12) 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — rgba(139,92,246,0.12) 无精确令牌，暂不替换，待定令牌后统一处理 */
   width: 34px; height: var(--icon-tile-md); border-radius: var(--radius-sm); background: rgba(139,92,246,0.12);
-  /* TODO: [Design Debt] #8b5cf6 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — #8b5cf6 无精确令牌，暂不替换，待定令牌后统一处理 */
   display: flex; align-items: center; justify-content: center; color: #8b5cf6; font-size: var(--font-size-16);
 }
 .header-title { font-size: var(--font-size-13); font-weight: var(--font-weight-bold); color: var(--text-heading); }

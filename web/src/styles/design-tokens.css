@@ -8,7 +8,8 @@
       style.css :root（默认层）→ config/themes.ts（四主题运行层）→ theme/aura-token-map.ts（PrimeVue --p-* 桥）。
       原因：颜色随主题变化、由 JS 注入；把颜色放进本文件会与四主题双写并再次漂移。
    2. 数值一律取自 web/src 下所有 .vue/.css 的实测档位（2026-11-21 扫描），按 1:1 等价替换，
-      本轮不做视觉收敛。8pt 收敛与语义化收敛记入 docs/design-token-audit.md 的 TODO 清单。
+      本轮不做视觉收敛。8pt 收敛与语义化收敛记入 docs/design-token-audit.md 的 §4 / §11
+      （见 A-52 债号）；闭环判据：A-52 关闭时本行同步删除。
    3. 旧令牌 --radius-sm(6px) / --radius(10px) / --radius-lg(14px) 原样保留在 style.css，
       本文件不覆盖、不复用同名；新增圆角统一用 --ds-radius-*。
 

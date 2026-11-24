@@ -139,7 +139,7 @@ class C:
 def test_umbrella_handler_counted_once_and_self_log_recognized(tmp_path) -> None:
     """伞形 handler 只算 1 次；`self.log.debug`（非 Name("logger")）也要识别。"""
     counts = gate.scan(_tree_with(tmp_path, UMBRELLA_AND_RECEIVER))
-    # 内层 handler 计 1；外层不再重复 ⇒ 合计 1（若未剪枝=2，若未识别 self.log=0）
+    # 内层 `handler` 计 1；外层不再重复 ⇒ 合计 1（若未剪枝=2，若未识别 self.log=0）
     assert counts["debug"]["pilotstd/pkg/case.py"] == 1
 
 
@@ -194,7 +194,7 @@ def test_empty_constructor_returns_counted(tmp_path) -> None:
     assert counts["return"]["pilotstd/pkg/case.py"] == 3
 
 
-# ── E2-batch2：scripts/ 纳入 + archive 排除 ─────────────────────────────
+# ── E2-batch2：scripts/ 纳入 + `archive` 排除 ─────────────────────────────
 
 _SIMPLE_PASS = "try:\n    pass\nexcept Exception:\n    pass\n"
 
@@ -218,22 +218,30 @@ def test_scripts_archive_is_excluded(tmp_path) -> None:
     assert "scripts/archive/old_probe.py" not in counts["pass"]
 
 
-# ── 基线口径自证：`_meta` 必须与三档合计一致（防止改了计数却不同步口径）──────
+# ── 基线口径自证：`_meta` 必须与**五档**合计一致（防止改了计数却不同步口径）──────
 
 
 def test_baseline_meta_matches_counts() -> None:
-    """`silent_errors_baseline.json` 的 `_meta` 是三档计数的口径声明，必须自洽。
+    """`silent_errors_baseline.json` 的 `_meta` 是五档计数的口径声明，必须自洽。
 
-    门禁本身只比较 pass/return/debug 三档（`compare()`），`_meta` 不参与判定；
-    但它是"162 到底是什么"的唯一书面口径（迁移冻结 40 + 已 triage allowlist 122），
+    门禁本身比较 pass/return/continue/break/debug 五档（`compare()`），
+    `_meta` 不参与判定；但它是"这些数字到底是什么"的唯一书面口径，
     所以用测试钉住：任何人改计数不同步 `_meta` 即红。
+
+    2026-11-23（NEW-01）：G-050 补 `except: continue|break` 识别后，
+    档位从三档扩到五档，本测试同步更新。
     """
     baseline = json.loads(gate.BASELINE.read_text(encoding="utf-8"))
     meta = baseline["_meta"]
-    sums = {kind: sum(baseline[kind].values()) for kind in ("pass", "return", "debug")}
+    kinds = ("pass", "return", "continue", "break", "debug")
+    sums = {kind: sum(baseline.get(kind, {}).values()) for kind in kinds}
     assert meta["tiers"] == sums, meta["tiers"]
     assert meta["total"] == sum(sums.values()), meta["total"]
-    assert meta["migration_frozen"] + meta["triaged_allowlist"] == meta["total"]
+    # migration_frozen / triaged_allowlist 是历史口径拆分；continue/break 属新增档，
+    # 归入 triaged_allowlist（都是"已登记、待收紧"的存量）
+    assert meta["migration_frozen"] + meta["triaged_allowlist"] == meta["total"], (
+        f"口径拆分不自洽: {meta['migration_frozen']} + {meta['triaged_allowlist']} != {meta['total']}"
+    )
 
 
 def test_review_due_overdue_only_warns(tmp_path, monkeypatch, capsys) -> None:

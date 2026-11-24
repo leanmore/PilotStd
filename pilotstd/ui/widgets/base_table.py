@@ -58,7 +58,7 @@ from pilotstd.ui import tokens_generated as T
 
 logger = logging.getLogger(__name__)
 
-# 四主题白名单：未知主题必须显式报错，不能静默回退 light（否则配色错误无人发现）
+# 四主题白名单：未知主题必须显式报错，不能静默回退 `light`（否则配色错误无人发现）
 _THEMES = ("light", "dark", "green", "blue")
 
 
@@ -140,7 +140,7 @@ def _alpha(value: str) -> float:
             return max(0.0, min(1.0, float(raw[:-1]) / 100.0))
         number = float(raw)
     except ValueError:
-        # 同上：令牌产物里的非法 alpha 必须留痕，不能静默当成不透明。
+        # 同上：令牌产物里的非法 `alpha` 必须留痕，不能静默当成不透明。
         logger.warning("BaseTable: 无法解析 rgba alpha %r，按不透明处理", value)  # i18n-allow: 内部诊断日志
         return 1.0
     # Qt/CSS 两种写法都收：0–1 的浮点，或 0–255 的整数
@@ -219,8 +219,8 @@ class BaseTable(QTableWidget):
             f" selection-background-color: {selected};"
             f" selection-color: {text};"
             f" }}"
-            # 表头：背景抬升一档、字色 text（不是 textSecondary，见模块 docstring）、
-            # 11px / 600；大写（text-transform）与字距 0.6px 是 Web 端 CSS 特性，
+            # 表头：背景抬升一档、字色 `text`（不是 textSecondary，见模块 `docstring`）、
+            # `11px` / 600；大写（`text-transform`）与字距 `0.6px` 是 Web 端 CSS 特性，
             # Qt QSS 不支持 text-transform，跳过（§12.1 的「大写不适用 Qt」）。
             f" QHeaderView::section {{"
             f" background: {raised};"
@@ -250,7 +250,7 @@ class BaseTable(QTableWidget):
         # 关闭默认网格：DS 只要行分隔线，不要竖线
         self.setShowGrid(False)
 
-        # 行高/表头高必须显式设（QSS 的 ::item padding 不改 rowHeight，见模块 docstring）
+        # 行高/表头高必须显式设（QSS 的 ::`item` `padding` 不改 rowHeight，见模块 `docstring`）
         row_height = 2 * pad_row + _line_px("font_size_13", "line_height_normal")
         header_height = 2 * pad_head + _line_px("font_size_11", "line_height_normal")
         vertical = self.verticalHeader()
@@ -263,8 +263,8 @@ class BaseTable(QTableWidget):
             horizontal.setFixedHeight(header_height)
             horizontal.setHighlightSections(False)
 
-        # 与 BaseInput 同款坑：应用级样式表存在时，控件首次 polish 前 sizeHint/尺寸
-        # 用的是未套控件 QSS 的值；立即 polish 让构造完成即拿到令牌尺寸，避免首帧按旧值排版。
+        # 与 BaseInput 同款坑：应用级样式表存在时，控件首次 `polish` 前 sizeHint/尺寸
+        # 用的是未套控件 QSS 的值；立即 `polish` 让构造完成即拿到令牌尺寸，避免首帧按旧值排版。
         self.ensurePolished()
         self.updateGeometry()
 

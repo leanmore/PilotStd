@@ -515,7 +515,7 @@ function stepSeverity(s: string) {
 }
 .step:last-child { border-bottom: none; }
 .step.running { background: var(--primary-bg); }
-/* TODO: [Design Debt] rgba(239,68,68,0.06) 无精确令牌，暂不替换，待定令牌后统一处理 */
+/* TODO: [Design Debt] A-52 — rgba(239,68,68,0.06) 无精确令牌，暂不替换，待定令牌后统一处理 */
 .step.fail { background: rgba(239,68,68,0.06); }
 
 .step-indicator {
@@ -527,11 +527,11 @@ function stepSeverity(s: string) {
   font-size: var(--font-size-13); font-weight: var(--font-weight-semibold);
   flex-shrink: 0;
 }
-/* TODO: [Design Debt] #fff 无精确令牌，暂不替换，待定令牌后统一处理 */
+/* TODO: [Design Debt] A-52 — #fff 无精确令牌，暂不替换，待定令牌后统一处理 */
 .step.done .step-indicator { background: var(--success, #10b981); color: #fff; }
-/* TODO: [Design Debt] #fff 无精确令牌，暂不替换，待定令牌后统一处理 */
+/* TODO: [Design Debt] A-52 — #fff 无精确令牌，暂不替换，待定令牌后统一处理 */
 .step.running .step-indicator { background: var(--primary-fill); color: var(--text-on-primary); }
-/* TODO: [Design Debt] #fff 无精确令牌，暂不替换，待定令牌后统一处理 */
+/* TODO: [Design Debt] A-52 — #fff 无精确令牌，暂不替换，待定令牌后统一处理 */
 .step.fail .step-indicator { background: var(--danger, #ef4444); color: #fff; }
 
 .step-info { flex: 1; min-width: 0; }

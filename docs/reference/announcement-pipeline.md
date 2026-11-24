@@ -262,3 +262,29 @@ GB/DB/HB 公告头完整；详情记录缺口为 DB 9月第8号 18 条、HB 9月
 - 标题可能混用全角分隔符（`GB／T 27967－2011`）：解析前统一 `NFKC` 归一化，正则只写半角形式。
 - 标题形如「…第N号修改单等M项国家标准修改单的公告」时，分类仍按清单公告处理，但**正文解析为空会回退到标题提取**，
   避免整份公告解析成 0 条。
+
+## 附件解析失败必须留痕（2026-11-23，NEW-11）
+
+`parse_attachment` 在文件类型未知时依次尝试 `parse_wps_text` / `_parse_pdf_text` /
+`_parse_docx_text`。原实现 `except Exception: continue` —— **三种全失败也不留痕**，
+只在末尾打一句「无法解析附件：未知格式」，看不到是哪个解析器、什么异常，
+附件正文为空时无法定位。
+
+**修法**：每个解析器失败记 `warning`（带 `parser.__name__` 与异常类型），
+末尾汇总「已尝试 N 个解析器 + 失败详情」。
+
+**守护**：G-050 已能识别 `except: continue`（见 `scripts/check_g_050_silent_errors.py`）。
+
+## 公告抓取的 Session 生命周期（2026-11-23，NEW-37）
+
+`BaseAnnounceCrawler._fetch_list` 原实现：
+`session = self._http if self._http is not None else requests.Session()`
+—— 当 `self._http` 为 None 时**每次调用都新建**一个 Session，
+方法有多个 return/break 点，**都不关闭**。每抓一个公告源泄漏一个连接池。
+
+修法：`try/finally` 包裹方法体 + `owns_session = self._http is None` 标志，
+**只关自己创建的 Session** —— 外部注入的 `self._http` 是共享实例，
+关闭它会破坏调用方的连接复用。
+
+**守护**：`tests/test_resource_leaks.py` 里有两个用例分别验证
+「自建关闭」与「注入不关闭」。

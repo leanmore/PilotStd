@@ -4,6 +4,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import http from '@/api/http'
 import { getStats } from '@/api'
+import AppLoading from '@/components/ui/AppLoading.vue'
 
 const { t } = useI18n()
 
@@ -40,7 +41,7 @@ onMounted(async () => {
       </div>
     </div>
 
-    <div v-if="loading" class="empty">{{ t('dashboard.common.loading') }}</div>
+    <AppLoading v-if="loading" variant="skeleton" :rows="3" :label="t('dashboard.common.loading')" />
     <div v-else class="body">
       <div class="version-block">
         <span class="version-label">Current Version</span>
@@ -90,7 +91,7 @@ onMounted(async () => {
 .metrics { display: flex; flex-direction: column; gap: var(--space-10); }
 .metric-row { display: flex; align-items: center; gap: var(--space-10); }
 .metric-label { font-size: var(--font-size-11); color: var(--text-dim); width: 48px; flex-shrink: 0; }
-/* TODO: [Design Debt] 6px 无精确令牌，暂不替换，待定令牌后统一处理 */
+/* TODO: [Design Debt] A-52 — 6px 无精确令牌，暂不替换，待定令牌后统一处理 */
 .metric-bar { flex: 1; height: var(--size-6); background: var(--border-light); border-radius: 3px; overflow: hidden; }
 .metric-fill { height: 100%; border-radius: 3px; transition: width 0.5s; }
 .bar-ok { background: var(--success); }

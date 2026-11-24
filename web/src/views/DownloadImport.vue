@@ -209,7 +209,7 @@ function handleFileUpload(event: Event) {
 <style scoped>
 .download-import {
   max-width: 1000px;
-  /* TODO: [Design Debt] 0 auto 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 0 auto 无精确令牌，暂不替换，待定令牌后统一处理 */
   margin: 0 auto;
   padding: 1rem;
 }

@@ -3,7 +3,6 @@
  * SettingsTabSites — Q15: 站点限额/冷却编辑 + 权限控制 + 编辑/保存交互
  */
 import { ref, reactive, onMounted, nextTick } from 'vue'
-import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
@@ -12,11 +11,12 @@ import Message from 'primevue/message'
 import http from '@/api/http'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
+import { useAppToast } from '@/composables/useAppToast'
 
 defineOptions({ name: 'SettingsTabSites' })
 
 const { t } = useI18n()
-const toast = useToast()
+const notify = useAppToast()
 const confirm = useConfirm()
 const store = useAppStore()
 
@@ -134,8 +134,8 @@ async function saveSite(site: SiteConfig) {
   const err = validate(site)
   if (err) {
     // 同站点错误 toast 去重：先移除旧的再显示新的
-    toast.removeGroup(site.name)
-    toast.add({ group: site.name, severity: 'warn', summary: t('common.error'), detail: err, life: 3000 })
+    notify.removeGroup(site.name)
+    notify.warn({ group: site.name, summary: t('common.error'), detail: err })
     return
   }
 
@@ -149,12 +149,11 @@ async function saveSite(site: SiteConfig) {
     })
     await loadSites()
     delete editStates[site.name]
-    toast.add({ severity: 'success', summary: t('common.success'), detail: t('sites.saved', { label: site.label }), life: 3000 })
+    notify.success({ summary: t('common.success'), detail: t('sites.saved', { label: site.label }) })
   } catch (e: any) {
-    toast.removeGroup(site.name)
-    toast.add({
+    notify.removeGroup(site.name)
+    notify.error({
       group: site.name,
-      severity: 'error',
       summary: t('common.save_failed'),
       detail: e.response?.data?.detail || e.response?.data?.error || t('common.retry'),
       life: 5000,
@@ -193,7 +192,7 @@ async function loadSites() {
       healthStatus: s.health_status ?? null,
     }))
   } catch {
-    toast.add({ severity: 'error', summary: t('sites.load_failed'), detail: t('common.check_network'), life: 5000 })
+    notify.error({ summary: t('sites.load_failed'), detail: t('common.check_network'), life: 5000 })
   } finally {
     loading.value = false
   }
@@ -330,7 +329,7 @@ onMounted(() => { loadSites() })
 }
 .health-dot {
   width: 8px;
-  /* TODO: [Design Debt] 8px 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 8px 无精确令牌，暂不替换，待定令牌后统一处理 */
   height: var(--size-8);
   border-radius: 50%;
   flex-shrink: 0;

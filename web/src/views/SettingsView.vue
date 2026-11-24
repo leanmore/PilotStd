@@ -9,7 +9,6 @@ import { ref, onMounted, watch, provide, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import AppConfirmDialog from '@/components/ui/AppConfirmDialog.vue'
-import Toast from 'primevue/toast'
 import { getSettings, putSettings, getSettingsSchema, uploadFile, getSettingsMetadata } from '@/api'
 import { getApiErrorMessage } from '@/api/http'
 import type { TabMeta } from '@/api/settings'
@@ -346,7 +345,6 @@ onMounted(() => {
 
 <template>
   <AppConfirmDialog />
-  <Toast />
   <template v-if="isAdmin">
   <h1>{{ t('settings.title') }}</h1>
 
@@ -453,7 +451,7 @@ onMounted(() => {
   background: linear-gradient(135deg, var(--primary), var(--primary-hover));
   color: var(--text-on-primary);
   font-weight: var(--font-weight-semibold);
-  /* TODO: [Design Debt] 0 2px 8px rgba(99, 102, 241, 0.25) 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 0 2px 8px rgba(99, 102, 241, 0.25) 无精确令牌，暂不替换，待定令牌后统一处理 */
   /* TODO: [Design Debt] 原生阴影与既有 --shadow-* 层级不匹配（半径/扩散/透明度不同），待统一评估（A-52） */
   box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
 }

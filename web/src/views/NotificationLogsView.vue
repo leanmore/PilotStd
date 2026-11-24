@@ -288,7 +288,7 @@ const {
 /* 可调整高度的表格容器 */
 .resizable-table {
   position: relative;
-  /* TODO: [Design Debt] 400px 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 400px 无精确令牌，暂不替换，待定令牌后统一处理 */
   height: 400px;
   min-height: 200px;
   max-height: 800px;
@@ -314,7 +314,7 @@ const {
   bottom: 0;
   left: 0;
   right: 0;
-  /* TODO: [Design Debt] 8px 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 8px 无精确令牌，暂不替换，待定令牌后统一处理 */
   height: var(--size-8);
   cursor: ns-resize;
   background: transparent;
@@ -337,7 +337,7 @@ const {
 }
 .resize-handle:hover::after {
   background: var(--primary);
-  /* TODO: [Design Debt] 4px 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 4px 无精确令牌，暂不替换，待定令牌后统一处理 */
   height: var(--size-4);
 }
 

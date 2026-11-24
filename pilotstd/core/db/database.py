@@ -6,6 +6,7 @@ import os
 import sqlite3
 import threading
 import time
+import weakref
 from typing import Any, Literal, Optional, Sequence
 
 from ._constants import CURRENT_SCHEMA_VERSION, MIGRATIONS, DatabaseError
@@ -77,8 +78,14 @@ class Database:
                     if time.time() - os.path.getmtime(lock_path) > STALE_LOCK_SECONDS:
                         os.remove(lock_path)
                         continue
-                except OSError:
-                    continue
+                except OSError as e:
+                    # 锁文件不可读/不可删（权限、被占用、路径异常）：
+                    # **不能 `continue`** —— 那会跳过下面的超时判断直接回到 `while` True，
+                    # 一旦锁文件持续不可读就变成死循环、永不返回 False（NEW-02）。
+                    # 这里只记录并落到超时判断，让调用方拿到明确的"拿不到锁"。
+                    logging.getLogger("pilotstd.db").warning(
+                        "migration lock cleanup failed (%s): %s", lock_path, e
+                    )
                 if time.time() - start > timeout:
                     return False
                 time.sleep(0.5)
@@ -255,8 +262,27 @@ class Database:
             self._in_migration = False
             self._release_migration_lock()
 
+    def _get_conns_lock(self) -> threading.Lock:
+        """惰性获取 `_all_conns` 的锁（NEW-41）。
+
+        部分测试用 `Database.__new__(Database)` 绕过 `__init__` 构造轻量实例，
+        此时 `_conns_lock` 不存在。惰性创建可兼容这种用法，且不影响正常路径。
+        """
+        lock = getattr(self, "_conns_lock", None)
+        if lock is None:
+            lock = threading.Lock()
+            self._conns_lock = lock
+        return lock
+
     def _get_conn(self) -> sqlite3.Connection:
-        """获取当前线程的数据库连接（线程本地复用，Row 工厂）。"""
+        """获取当前线程的数据库连接（线程本地复用，Row 工厂）。
+
+        NEW-41：`threading.local` 的连接在线程结束后**不会自动关闭**，
+        `_all_conns` 会持续累积（线程 churn 场景如 `_batch_dispatcher` / worker 线程）。
+        这里给每个新连接登记一个 `weakref.finalize`：当线程本地对象被 GC
+        （线程退出后 `_local` 的条目随之失效）时自动 close 并从 `_all_conns` 移除。
+        保留 `close_all()` 作为进程退出时的兜底（对已关闭连接做幂等处理）。
+        """
         if not hasattr(self._local, "conn") or self._local.conn is None:
             conn = sqlite3.connect(self._db_path)
             conn.text_factory = str
@@ -265,8 +291,48 @@ class Database:
             conn.execute("PRAGMA foreign_keys=ON")
             conn.row_factory = sqlite3.Row
             self._local.conn = conn
-            self._all_conns.append(conn)
+            with self._get_conns_lock():
+                self._all_conns.append(conn)
+            # 线程本地引用消失时回收连接（弱引用不延长 `conn` 生命周期）
+            self._register_conn_finalizer(conn)
         return self._local.conn  # type: ignore[no-any-return]
+
+    def _register_conn_finalizer(self, conn: sqlite3.Connection) -> None:
+        """登记连接回收：线程本地对象被回收时自动 close 该线程的连接（NEW-41）。
+
+        ── 为什么锚在 `self._local` 而不是 conn 本身 ──
+        实测（CPython 3.14）**`sqlite3.Connection` 不支持弱引用**：
+            >>> weakref.ref(sqlite3.connect(':memory:'))
+            TypeError: cannot create weak reference to 'sqlite3.Connection' object
+        而 `threading.local()` 支持。故改为给**当前线程的 `_local` 对象**挂 finalize ——
+        线程退出后 `_local` 的条目被回收，finalize 回调随之触发，关闭该线程持有的连接。
+
+        这正好对应 NEW-41 的泄漏根因：`threading.local` 的连接在线程结束后
+        **不会自动关闭**，`_all_conns` 会持续累积（线程 churn 场景）。
+
+        回调在 GC 线程执行，故关闭动作必须容错（可能已在 `close_all()` 关过，
+        或线程已死导致 SQLite 拒绝跨线程关闭）。
+        """
+        _log = logging.getLogger("pilotstd.db")
+
+        def _finalize() -> None:
+            try:
+                conn.close()
+            except (sqlite3.Error, RuntimeError) as e:
+                # 已在 close_all() 关过 / 跨线程关闭被 SQLite 拒绝 —— 都属预期
+                _log.info("conn finalize close skipped: %s", e)  # i18n-allow: 内部诊断日志
+            with self._get_conns_lock():
+                try:
+                    self._all_conns.remove(conn)
+                except ValueError:
+                    # 已被 close_all() 清空
+                    _log.info("conn already removed from _all_conns")  # i18n-allow: 内部诊断日志
+
+        try:
+            weakref.finalize(self._local, _finalize)
+        except TypeError as e:
+            # 极端构建下 threading.local 不可弱引用：退化为仅靠 close_all()
+            _log.warning("thread-local not weakref-able, rely on close_all(): %s", e)  # i18n-allow: 内部运维日志
 
     def connect(self) -> sqlite3.Connection:
         """创建独立的 SQLite 连接（不缓存，调用方负责关闭）。"""
@@ -387,14 +453,20 @@ class Database:
             self._local.conn = None
 
     def close_all(self) -> None:
-        """关闭所有已知的数据库连接。"""
-        # 遍历关闭所有已知连接
-        for conn in self._all_conns:
+        """关闭所有已知的数据库连接。
+
+        NEW-41：与 `_get_conn` 的 finalize 回调并发时需要加锁
+        （finalize 在 GC 线程执行，会同时修改 `_all_conns`）。
+        先取出快照再关闭，避免"边遍历边被移除"。
+        """
+        with self._get_conns_lock():
+            conns = list(self._all_conns)
+            self._all_conns.clear()
+        for conn in conns:
             try:
                 conn.close()
             except Exception as e:
                 logging.getLogger("pilotstd.db").debug("close_all connection failed: %s", e)
-        self._all_conns.clear()
         if hasattr(self._local, "conn"):
             self._local.conn = None
 

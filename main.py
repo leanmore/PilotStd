@@ -19,8 +19,9 @@ from dotenv import load_dotenv
 if not getattr(sys, "frozen", False):
     try:
         faulthandler.enable(file=sys.stderr, all_threads=True)
-    except Exception:
-        pass
+    except Exception as e:
+        # NEW-14：`faulthandler` 是开发期诊断特性，失败不致命，但要留痕
+        print(f"[warn] faulthandler 启用失败: {e}", file=sys.stderr)
 
 # 加载环境配置文件（优先级：系统环境变量 > 配置文件）
 load_dotenv(os.path.join(os.path.dirname(__file__) or ".", ".env"))
@@ -41,8 +42,9 @@ def _global_excepthook(exc_type, exc_value, exc_tb):
             f.write(f"\n{'=' * 60}\n")
             f.write(f"CRASH [{datetime.datetime.now().isoformat()}]\n")
             f.write(msg)
-    except Exception:
-        pass
+    except Exception as e:
+        # NEW-14：崩溃日志本身写不进去时必须留痕（此时 `logging` 可能也不可用）
+        print(f"[warn] 崩溃日志写入失败: {e}", file=sys.stderr)
     sys.__excepthook__(exc_type, exc_value, exc_tb)
 
 
@@ -59,8 +61,9 @@ def _thread_excepthook(args: threading.ExceptHookArgs) -> None:
             f.write(f"\n{'=' * 60}\n")
             f.write(f"THREAD CRASH [{datetime.datetime.now().isoformat()}] thread={thread_name}\n")
             f.write(msg)
-    except Exception:
-        pass
+    except Exception as e:
+        # NEW-14：同上，线程崩溃日志写盘失败必须留痕
+        print(f"[warn] 线程崩溃日志写入失败: {e}", file=sys.stderr)
     sys.__excepthook__(exc_type, exc_value, exc_tb)
 
 

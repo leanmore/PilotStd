@@ -297,3 +297,73 @@ StandardManager (BaseFacade)
 
 - 入口：定时任务 `pending_missing_check`（每日 03:30 UTC）与 `POST /api/pending/mark-missing`（admin）都调用
   `mark_missing_files()`；命中挂载异常（≥50 行且缺失 ≥90%）时整轮跳过并返回 `skipped=true`。
+
+## pending_service 写入：批量查重替代逐条 SELECT（2026-11-23，NEW-04）
+
+`PendingService.record_pending` 原对每条 item 先
+`SELECT id FROM pending_lookup WHERE standard_number=?` 再决定是否 INSERT。
+批量 500 条 = **500 次 SELECT** + 最多 500 次 INSERT。
+
+**修法**：新增 `_existing_pending_numbers(numbers)`，分批
+`SELECT standard_number FROM pending_lookup WHERE status='pending' AND standard_number IN (...)`
+一次拿到已存在集合，再只对不在集合里的 INSERT。按 500 一批
+（SQLite 单语句变量上限 999，留余量给其它占位符）。500 条从 500 次 SELECT 降到 **1 次**。
+
+**兼容性**：若注入的 db 没有 `fetchall`（部分测试替身只实现 `fetchone`），
+自动回退到逐条 `fetchone` —— 正确性一致，只是失去批量收益。
+
+**守护**：`tests/test_pending_record_no_n_plus_one.py`（4 例）——
+SELECT 次数与批次相关（不是 N）/ 已存在跳过 / 空列表零查询 / 1200 条分 3 批。
+
+## scan_and_index 的跳过原因分类（2026-11-24，G-27）
+
+生产实测 `indexed=0 / skipped=825 / failed=0`。原实现把三种**完全不同**的跳过原因
+都记进同一个 `skipped`：
+
+1. 文件名解析失败（`parse()` 返回 None）
+2. 四要素（`sha256` / `code` / `name` / `size`）查询无命中
+3. 命中但 `scan_status != 'pending'`（已索引过）
+
+汇总日志只有 `skipped=825`，**无法判断是哪一类**，排查只能靠猜。
+
+**修法**：三类分别计数（`skip_parse_failed` / `skip_no_match` / `skip_not_pending`），
+汇总日志打出细分，并记录**第一条**未匹配样本的四要素值 —— 下次生产复跑即可
+直接定位断在哪一环。
+
+**已证伪的假设**（避免下次重复排查）：曾怀疑「归档重命名后 `std_name` 漂移导致
+四要素永不匹配」。用 5 个真实文件名做 `normalize_filename` → 重新解析的往返实测，
+`std_name` **漂移 0/5**，该假设不成立。
+
+**G-010 拆分**：`scan_and_index` 由 58 涨到 98 逻辑行（超 80 阻断线），
+已拆出 `_index_one_file()` 与 `_log_scan_summary()`。
+
+**守护**：`tests/test_scan_and_index_diagnostics.py`（5 例）。
+
+## scan_and_index：先廉价排除再算全文哈希（2026-11-24，NEW-23）
+
+**原流程**（顺序反了）：
+```
+hash_file_content(path)      ← 读全文（数 MB）
+  → SELECT ... WHERE sha256/code/name/size
+  → parse(basename)          ← 廉价
+```
+文件名解析失败的文件**白读一次全文**；三要素本就不可能命中的文件同样白读。
+
+**新流程**（先廉价后昂贵）：
+```
+getsize → parse(basename)                              ← 都廉价
+  → SELECT id, sha256 WHERE code/name/size（fetchall）  ← 不读全文
+     ├─ 无候选 → 直接判 skip_no_match，**不算哈希**
+     └─ 有候选 → hash_file_content() → 在候选中精确比对 sha256
+```
+
+**语义等价性**：四要素（sha256/code/name/size）的匹配条件未变 ——
+只是把「sha256 参与 SQL 过滤」改成「在 code/name/size 的候选集里比对 sha256」。
+候选集由 `(code, name, size)` 限定，通常只有 0~2 行。
+
+**守护**：`tests/test_scan_and_index_diagnostics.py`（5 例）。
+
+## 注释中的代码标识符用反引号包裹（2026-11-24，NEW-46）
+
+`scan_and_index` 相关注释里的英文词（`px` 类单位、方法名等）统一用反引号包裹，
+以通过 G-012 的 `[LANG]` 检查。属注释规范化，无行为变更。

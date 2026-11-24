@@ -275,3 +275,31 @@ Handler Handler  Handler    (worker)   Handler
   `tests/test_ui/test_win_table_dialog_unification.py`（7 项）——「`pilotstd/ui` 内不得再构造裸
   `QTableWidget`/`QDialog`」、各弹窗公开面（标题/尺寸/closeEvent/信号）保留、列行为语义保留。
 - 后续新增 Win 表格/弹窗：直接用 `BaseTable` / `BaseDialog`，不要再用裸 `QTableWidget` / `QDialog`。
+
+## Qt 资源回收：QThread / QTimer（2026-11-23，NEW-39 / NEW-40）
+
+**NEW-39（DriveEnumerator QThread）**：`_file_tree_ops` 每次重建树都新建
+`DriveEnumerator()` 并 `start()`，但**无 `finished→deleteLater`、无 `wait()`** ——
+每次树重建泄漏一个 QThread（Python 对象 + OS 线程句柄）。
+
+修法：重建前先收尾旧线程（`wait(2000)` → 断 `drives_ready` → `deleteLater`），
+新线程补 `finished→deleteLater`。`_window_lifecycle` 的 teardown 增加
+`isdeleted` 探测，避免访问已回收的包装对象。
+
+**NEW-40（LogHandler QTimer）**：`LogHandler.close()` 只置 `_closed` / 清 `widget`，
+**不停 `_buf_timer`** —— 定时器仍在跑，QTimer 对象与其持有的 QObject 引用不释放，
+且 handler 关闭后仍可能被 timeout 触发一次。
+
+修法：`close()` 里先 `_buf_timer.stop()` + `timeout.disconnect`，再做其余清理。
+
+**守护**：`tests/test_resource_leaks.py`（5 例）。
+
+## 注释中的代码标识符用反引号包裹（2026-11-24，NEW-46）
+
+G-012 的 `[LANG]` 检查会先剔除反引号内内容再判定。三个 UI 控件文件
+（`base_dialog.py` / `base_input.py` / `base_table.py`）历史遗留的 `[LANG]` 违规
+已全部清理：把 `20px`、`22px` 这类 CSS 数值单位与 `polish`、`ensurePolished`、
+`sizeHint`、`text-transform`、`box-shadow` 等代码标识符用反引号包裹。
+
+结果：`[LANG]` 从 20 条降到 **0 条**。纯注释改动，无代码逻辑变更
+（`tests/gui/test_base_input.py` + `test_base_table.py` 54 例全绿）。

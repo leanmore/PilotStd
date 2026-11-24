@@ -841,3 +841,164 @@ btn = BaseButton("取消", kind="ghost", size="s")
 3. **`SystemResources.test.ts` 的 `findAllComponents(StubCard)`** —— 断言数「3 张卡片」，改 AppCard 后
    必须改查 `StubAppCard`，否则恒为 0。这类「断言目标与 stub 绑定」的失败最容易被误读成组件 bug。
 
+---
+
+## 十四、阶段三：微交互（Toast / Loading / 过渡动画）
+
+> 状态：**已完成**（2026-11-23）。三条门禁 `custom/no-raw-toast` 已升 `error`。
+
+### 14.1 Toast 提示
+
+#### 14.1.1 为什么是「composable + 宿主」两件套
+
+PrimeVue 的 Toast 是**运行时服务**：`<Toast />` 只是渲染宿主，真正的 API 是 `useToast()`
+返回的 `toast.add({...})`。而 `useToast()` 内部 `inject(PrimeVueToastSymbol)`，**必须在
+`setup()` 同步调用**，不能在异步回调或普通函数里临时调。
+
+因此统一 Toast 必须是两件套：
+
+| 件 | 文件 | 职责 |
+|---|---|---|
+| 服务 | `web/src/composables/useAppToast.ts` | 收口 add() 口径：severity 白名单、默认 life、文案与 i18n 插值、group 语义 |
+| 宿主 | `web/src/components/ui/AppToast.vue` | 只负责渲染（位置/圆角/阴影/语义色/进出场动画） |
+
+宿主挂在 `App.vue`（全站唯一一份），业务页**不得**再写 `<Toast />`。
+
+#### 14.1.2 两种消费方式
+
+```ts
+// A. 组件内（有 setup 上下文）
+import { useAppToast } from '@/composables/useAppToast'
+const notify = useAppToast()
+notify.success('已保存')
+notify.error({ key: 'sites.load_failed', detail: t('common.check_network') })
+
+// B. 非组件模块（composables / api 层）—— 走全局单例
+import { appToast } from '@/composables/useAppToast'
+appToast.error({ summary: message })
+```
+
+`appToast` 的全局实例由 `App.vue` 挂载时 `bindAppToast(useToast())` 注入；
+未绑定前调用会 `console.warn` 并**静默丢弃**（不抛错 —— 提示失败不该拖垮业务）。
+
+#### 14.1.3 口径（与直接 `toast.add()` 的差异）
+
+| 项 | 规则 |
+|---|---|
+| `severity` | 只允许 `success` / `info` / `warn` / `error`（与 DS 语义色一一对应，**不自创第五种**） |
+| 默认 `life` | `success`/`info` → **2000ms**；`warn`/`error` → **3000ms**（错误停留更久，让用户看清） |
+| `closable` | 统一 `false`（提示自动消失，不给用户额外关闭负担） |
+| 文案 | `summary` 或 `key`（key 优先，交给全局 i18n 实例翻译）；`detail` / `detailKey` 同理；`named` 传插值参数 |
+| `group` | **只在"同一实体反复失败"场景用**（如按站点分组）。PrimeVue 的 group 语义是"替换同组"，滥用会让多条提示互相覆盖 |
+| 空文案 | 跳过并 `console.warn`（调用方的 bug，但不抛错） |
+
+#### 14.1.4 视觉口径
+
+| 属性 | 值 |
+|---|---|
+| 位置 | `top-right`（与 DS 的"页面右上操作区"视线一致） |
+| 背景 | 实色语义底：success `--success` / info `--info` / warn `--warn-text` / error `--danger` |
+| 文字 | `--text-on-primary`（白字） |
+| 圆角 | `--ds-radius-md` |
+| 阴影 | `--shadow-md`（浮层，需与内容明显分离） |
+| 进出场 | 从右滑入 16px → 0，150ms（与页面过渡同源） |
+
+### 14.2 加载态（Loading）
+
+#### 14.2.1 三种形态
+
+| `variant` | 用途 | 典型场景 |
+|---|---|---|
+| `spinner`（默认） | **短时**操作（<1s） | 按钮触发的保存、单次请求 |
+| `skeleton` | **列表/卡片首屏**（>1s 取数） | 仪表盘卡片、表格首次加载 |
+| `inline` | **内嵌**在表格/区块内 | 筛选栏旁的小提示 |
+
+**选择判据**：加载态的价值在于「不让用户以为页面卡死」与「加载完成后不跳动」。
+- 短时 → spinner（骨架屏来不及显示就消失了，反而闪一下）；
+- 首屏 → skeleton（占位尺寸接近真实内容，避免加载完成时布局跳动）；
+- 内嵌 → inline（不打断已有布局）。
+
+#### 14.2.2 口径
+
+| 项 | 规则 |
+|---|---|
+| 尺寸 | `size` = `l` / `m` / `s`，圆环直径与描边宽全部取令牌（`--size-14/20/24`） |
+| 骨架条数 | `rows`（默认 3）—— 按实际列表行数传，否则占位与真实内容高度差太多 |
+| 骨架高度 | `rowHeight` = `s`/`m`/`l`（映射 `--size-8/12/16`）或数字 px |
+| 无障碍 | 所有形态带 `role="status"` + `aria-live="polite"`；骨架屏额外有 sr-only 文案供读屏 |
+| 动效偏好 | `prefers-reduced-motion: reduce` 时关掉旋转与 shimmer（避免前庭不适） |
+
+#### 14.2.3 为什么不用 PrimeVue 的 ProgressSpinner
+
+它的尺寸/颜色只能靠 CSS 字面量覆盖（PrimeVue 4.5.5 的 ProgressSpinner **没有 size prop**，
+见 A-51 的实测记录），而 DS 要求所有尺寸取令牌。本组件用纯 CSS 圆环 + 令牌，
+既满足 G-055（无字面量）又便于统一。
+
+#### 14.2.4 例外：网格骨架
+
+`StatsCard` 的骨架是**两栏网格**（1 主块 + 3 副块，`grid-column` 定位），
+而 `AppLoading` 的骨架是**竖排列表**。换成通用骨架会丢掉网格占位，
+加载完成时卡片高度与位置都会跳动，**反而劣化体验**。
+故该卡片保留自有骨架结构，只把渐变动画与圆角令牌口径对齐 `AppLoading`
+（避免两套 shimmer 实现）。**这是有意例外，不是漏改。**
+
+### 14.3 过渡动画
+
+#### 14.3.1 页面切换（全站唯一）
+
+定义在 `App.vue` 的 `<style>`（非 scoped），类名 `.page`：
+
+| 阶段 | 时长 | 变化 |
+|---|---|---|
+| 进入 | 150ms | `opacity 0→1`、`translateY(8px→0)` |
+| 离开 | 100ms | `opacity 1→0`、`translateY(0→-4px)` |
+
+- **必须用 `mode="out-in"`**：默认并行会让两个页面同时存在并重叠，视觉上是"双页闪一下"；
+- 位移幅度刻意小（8px / -4px），避免页面大幅晃动；
+- 离开比进入快（100ms < 150ms），减少"卡住"感；
+- **业务页不得再自写 `.page` 过渡**；需要特殊过渡的走 `<Transition name="...">` 并在本节登记。
+
+#### 14.3.2 折叠展开（`.collapsible`）
+
+全站唯一实现在 `views/settings/shared.css`：
+
+- 曲线与时长与 DS 的 `--transition` 同源（0.2s ease）；
+- `max-height` 必须给"足够大的上界"（当前 2000px）—— CSS 无法对 `auto` 高度做过渡，
+  过渡按声明值线性插值，上界过大会让动画变慢。面板内容显著变长时需同步调大；
+- 进出场都保留 `overflow: hidden`，否则折叠中途内容会溢出。
+
+**背景**：迁移前 `NotificationConfig.vue` 有一份本地副本且**曲线不同**（多 padding 过渡），
+导致同一交互在 settings 子页与通知配置页观感不一致。已删除本地副本，统一到 `shared.css`。
+
+#### 14.3.3 其他过渡
+
+| 类名 | 位置 | 用途 |
+|---|---|---|
+| `.menu-fade` | `AppLayout.vue` | 浮动工作台菜单展开 |
+| `.announce-fade` | `RecentAnnounceCard.vue` | 公告列表刷新 |
+
+新增过渡前先检查本节是否已有可复用的类；**不要为一次性效果新增全局类**。
+
+### 14.4 门禁
+
+| 规则 | 拦截对象 | 级别 |
+|---|---|---|
+| `custom/no-raw-toast` | 模板 `<Toast>` / `<PrimeToast>`；脚本 `import 'primevue/toast'`、`'primevue/usetoast'` | **`error`** |
+
+豁免：`src/components/ui/App*.vue`（封装点）、`src/composables/useAppToast.ts`（服务封装点）、
+`src/App.vue`（宿主挂载 + 全局绑定）、`src/main.ts`（PrimeVue 全局注册）、
+`*.test.ts` / `*.spec.ts`、路径含 `/e2e/`。
+
+> **2026-11-23 升级实录**：探针文件 `src/views/__GateProbe4.vue` 同时含
+> `import 'primevue/toast'`、`import 'primevue/usetoast'`、`<Toast />` → `lint` 报 **3 error**、
+> exit 1；删除后 `lint` 恢复 `0 error`、exit 0。
+
+### 14.5 验收清单
+
+- [x] `useAppToast` composable + `AppToast` 宿主 + 单测
+- [x] `AppLoading`（spinner/skeleton/inline 三形态）+ 单测
+- [x] 全站 Toast 收口：`useToast` 从 10 处降至 **0**（业务代码），`toast.add()` 23 处 → **0**
+- [x] 全站 Loading 收口：`ProgressSpinner` 6 处 → **0**；文本占位 2 处 → `AppLoading skeleton`
+- [x] 页面过渡统一（`mode="out-in"` + 减少动效偏好）
+- [x] `collapsible` 过渡去重（删除 NotificationConfig 本地副本）
+- [x] `custom/no-raw-toast` 升 `error`（反证 3 error / exit 1）

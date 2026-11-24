@@ -155,14 +155,14 @@ onBeforeUnmount(() => {
   padding: var(--space-14) var(--space-10) var(--space-12); background: var(--surface); border: 1px solid var(--border-light);
   border-radius: var(--radius); transition: all var(--transition); overflow: hidden;
 }
-/* TODO: [Design Debt] rgba(59,130,246,0.04) 无精确令牌，暂不替换，待定令牌后统一处理 */
-/* TODO: [Design Debt] rgba(59,130,246,0.3) 无精确令牌，暂不替换，待定令牌后统一处理 */
+/* TODO: [Design Debt] A-52 — rgba(59,130,246,0.04) 无精确令牌，暂不替换，待定令牌后统一处理 */
+/* TODO: [Design Debt] A-52 — rgba(59,130,246,0.3) 无精确令牌，暂不替换，待定令牌后统一处理 */
 .cell:hover { border-color: rgba(59,130,246,0.3); background: rgba(59,130,246,0.04); }
-/* TODO: [Design Debt] rgba(239,68,68,0.03) 无精确令牌，暂不替换，待定令牌后统一处理 */
-/* TODO: [Design Debt] rgba(239,68,68,0.2) 无精确令牌，暂不替换，待定令牌后统一处理 */
+/* TODO: [Design Debt] A-52 — rgba(239,68,68,0.03) 无精确令牌，暂不替换，待定令牌后统一处理 */
+/* TODO: [Design Debt] A-52 — rgba(239,68,68,0.2) 无精确令牌，暂不替换，待定令牌后统一处理 */
 .cell.frozen { border-color: rgba(239,68,68,0.2); background: rgba(239,68,68,0.03); }
-/* TODO: [Design Debt] rgba(245,158,11,0.03) 无精确令牌，暂不替换，待定令牌后统一处理 */
-/* TODO: [Design Debt] rgba(245,158,11,0.2) 无精确令牌，暂不替换，待定令牌后统一处理 */
+/* TODO: [Design Debt] A-52 — rgba(245,158,11,0.03) 无精确令牌，暂不替换，待定令牌后统一处理 */
+/* TODO: [Design Debt] A-52 — rgba(245,158,11,0.2) 无精确令牌，暂不替换，待定令牌后统一处理 */
 .cell.cooldown { border-color: rgba(245,158,11,0.2); background: rgba(245,158,11,0.03); }
 
 .cell-dot { position: absolute; top: 6px; right: 6px; }
@@ -185,7 +185,7 @@ onBeforeUnmount(() => {
   display: flex; align-items: center; justify-content: center; gap: var(--space-4);
   font-size: var(--font-size-9); color: var(--text-dim); width: 100%; overflow: hidden;
 }
-/* TODO: [Design Debt] 6px 无精确令牌，暂不替换，待定令牌后统一处理 */
+/* TODO: [Design Debt] A-52 — 6px 无精确令牌，暂不替换，待定令牌后统一处理 */
 .health-dot { width: var(--size-6); height: var(--size-6); border-radius: 50%; flex-shrink: 0; }
 .health-up { background: var(--success); }
 .health-down { background: var(--danger); }
@@ -193,10 +193,10 @@ onBeforeUnmount(() => {
 .health-time { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .cell-overlay {
-  /* TODO: [Design Debt] rgba(239,68,68,0.85) 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — rgba(239,68,68,0.85) 无精确令牌，暂不替换，待定令牌后统一处理 */
   position: absolute; inset: 0; background: rgba(239,68,68,0.85);
   display: flex; align-items: center; justify-content: center;
-  /* TODO: [Design Debt] #fff 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — #fff 无精确令牌，暂不替换，待定令牌后统一处理 */
   color: #fff; font-size: var(--font-size-13); font-weight: var(--font-weight-bold); font-family: var(--mono);
   opacity: 0; transition: opacity 0.2s;
 }

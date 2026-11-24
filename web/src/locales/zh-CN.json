@@ -340,7 +340,9 @@
       "field_created": "创建:",
       "field_started": "开始:",
       "field_finished": "完成:",
-      "field_error": "错误:"
+      "field_error": "错误:",
+      "retry_failed": "重试任务失败",
+      "cancel_failed": "取消任务失败"
     }
   },
   "organize": {
@@ -672,7 +674,9 @@
       "subdirs": "监控子目录",
       "auto_archive": "自动归档",
       "types": "文件类型（逗号分隔）",
-      "ignore": "忽略模式（逗号分隔）"
+      "ignore": "忽略模式（逗号分隔）",
+      "start_failed": "启动监控失败",
+      "stop_failed": "停止监控失败"
     },
     "network": {
       "proxy": "代理地址",
@@ -738,7 +742,9 @@
       "max_size": "缓存大小上限",
       "cleanup_now": "立即清理",
       "refresh_stats": "刷新统计",
-      "cleaned": "清理完成"
+      "cleaned": "清理完成",
+      "save_failed": "保存缓存配置失败",
+      "cleanup_failed": "清理缓存失败"
     },
     "users": {
       "title": "用户管理",

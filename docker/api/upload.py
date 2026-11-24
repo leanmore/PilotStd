@@ -1,8 +1,10 @@
 # 容器//上传脚本—文件上传接口（登录页背景图等）
 import os
+import re
 import uuid
 
 from fastapi import Depends, File, HTTPException, Request, UploadFile
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse
 from fastapi.routing import APIRouter
 from pydantic import BaseModel
@@ -46,8 +48,37 @@ def _validate_image(content: bytes, ext: str) -> None:
     """通过文件头魔数和扩展名双重校验图片类型。"""
     # 是文本，不适用魔数检测，简单检查是否以<开头
     if ext == ".svg":
-        text = content.decode("utf-8", errors="ignore").lstrip()
-        if not (text.startswith("<svg") or text.startswith("<?xml")):
+        # ── SVG 的 XSS 风险必须单独处理（NEW-06）──
+        # SVG 是 XML，可内嵌 <script>、<foreignObject>、事件属性（onload/onerror）、
+        # 外部实体等。仅校验「以 <`svg` 或 <?`xml` 开头」**完全挡不住 XSS**：
+        # `<?xml ...?><svg onload="alert(document.cookie)">` 能通过原校验。
+        # 而 `/api/backgrounds/{filename}` 是同源 FileResponse（Content-Type 由扩展名
+        # 推断为 image/svg+`xml`），浏览器会**按 SVG 文档执行其中脚本** → 存储型 XSS。
+        #
+        # 策略：拒绝一切可执行构造（宁可误杀，也不放行）。合法背景图不需要脚本、
+        # 外部引用或事件属性，故这组黑名单对真实用途无损。
+        lowered = content.decode("utf-8", errors="ignore").lower()
+        _SVG_FORBIDDEN = (
+            "<script",
+            "<foreignobject",
+            "<iframe",
+            "<embed",
+            "<object",
+            "javascript:",
+            "data:text/html",
+            "<!entity",  # XXE
+            "<!doctype svg [",  # 内联 DTD
+        )
+        for token in _SVG_FORBIDDEN:
+            if token in lowered:
+                raise HTTPException(  # i18n-allow: API 错误信息，前端按 code 映射，与同文件既有 8 条同口径
+                    400, f"SVG 含不允许的构造（{token}），请用不含脚本的纯图形 SVG"
+                )
+        # 事件属性：`onload`= / `onerror`= / `onclick`= 等
+        if re.search(r"\son[a-z]+\s*=", lowered):
+            raise HTTPException(400, "SVG 含事件属性（on*=），请用不含脚本的纯图形 SVG")  # i18n-allow: 同上
+        # 必须有 <`svg` 根元素（允许前置 XML 声明/注释/DOCTYPE）
+        if "<svg" not in lowered.lstrip():
             raise HTTPException(400, "文件内容不是有效的 SVG 图片")
         return
     # :容器需检查标识（偏移8字节）
@@ -85,9 +116,17 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
     _validate_image(content, ext)  # 魔数校验，防止伪造扩展名
     name = f"{uuid.uuid4().hex}{ext}"
     path = os.path.join(UPLOAD_DIR, name)
+    # NEW-24：这是 `async def`，同步 `open().write()` 会在写盘期间**阻塞事件循环**
+    # （最大 10MB 落盘在慢盘/网络盘上可达数百毫秒，期间其它请求全部挂起）。
+    # 包进线程池，事件循环继续服务其它请求。
+    await run_in_threadpool(_write_file, path, content)
+    return {"url": f"/api/backgrounds/{name}"}
+
+
+def _write_file(path: str, content: bytes) -> None:
+    """同步写盘（供 `run_in_threadpool` 调用；不在事件循环里执行）。"""
     with open(path, "wb") as f:
         f.write(content)
-    return {"url": f"/api/backgrounds/{name}"}
 
 
 @router.get("/api/backgrounds/{filename}")

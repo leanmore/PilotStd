@@ -221,7 +221,7 @@ watch(() => route?.path, () => {
   bottom: 0;
   left: 0;
   right: 0;
-  /* TODO: [Design Debt] 8px 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 8px 无精确令牌，暂不替换，待定令牌后统一处理 */
   height: var(--size-8);
   cursor: ns-resize;
   background: transparent;
@@ -239,13 +239,13 @@ watch(() => route?.path, () => {
   transform: translate(-50%, -50%);
   width: 40px;
   height: 3px;
-  /* TODO: [Design Debt] #555 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — #555 无精确令牌，暂不替换，待定令牌后统一处理 */
   background: #555;
   border-radius: 2px;
 }
 .log-resize-handle:hover::after {
   background: var(--primary);
-  /* TODO: [Design Debt] 4px 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 4px 无精确令牌，暂不替换，待定令牌后统一处理 */
   height: var(--size-4);
 }
 </style>

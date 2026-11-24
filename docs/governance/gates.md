@@ -883,3 +883,59 @@ B1（声明类 vs 实现类）已覆盖同一语义、且每次 CI 都在跑；�
 
 > **2026-11-22 DS 阶段三 · 模块三完成**：Web 端 29 处卡片（<Card> 20 + import 9）全部替换为 AppCard，8 个 views 外层容器归一到 PageContainer（同时删除 8 段重复的 .page/.page-title CSS）；custom/no-raw-card 由 warn 升级为 **error**（探针 2 error / exit 1 反证阻断）。
 
+> **2026-11-23 DS 阶段三 · 方向A（微交互）完成**：Web 端 23 处 `toast.add()` 与 6 处
+> `ProgressSpinner` 全部收口到 `useAppToast`/`AppToast`/`AppLoading`；页面过渡补 `mode="out-in"`，
+> `collapsible` 过渡去重（删除 NotificationConfig 本地副本）；`custom/no-raw-toast` 由 warn 升级为
+> **error**（探针 3 error / exit 1 反证阻断）。
+> G-055 基线：AppToast/AppLoading/App.vue 的结构性字面量登记进 ds-skeleton / b-percent /
+> decorative-radius / layout-dimension / hairline 组（`B 152→155`、`C 586→621`）。
+
+> **2026-11-23 DS 阶段三 · 方向B（部署验证）完成**：新增 `scripts/ops/` 只读探测套件
+> （health / pending_paths / credentials / db_counts / probe_all）+ `tests/ops/` 29 例
+> + `docs/ops/deploy-selfcheck.md`。全部只读（端点存在性用 OPTIONS 判，绝不发 POST；
+> 写操作白名单仅 login 与只读 query）。
+> 实测发现 3 个真实生产问题：pending 挂载保护误报（61/61 全缺失导致 mark_missing 整轮跳过）、
+> favorite_downloads 3 条孤儿行、飞书凭证未配置。
+
+> **2026-11-23 方向C 批次3（门禁/健壮/安全）**：G-050 补 `except: continue|break` 识别
+> （原只认 pass/空 return，26 处吞错从未受保护）；`silent_errors_baseline.json` 新增
+> continue/break 两档冻结存量（tiers: pass=46/return=47/continue=27/break=2/debug=69）。
+> 同批修复迁移锁死循环（`except OSError: continue` 跳过超时判断）、SVG 上传存储型 XSS
+> （原仅校验前缀，`<svg onload=...>` 可绕过）、台账 5 项状态互斥（A-43/A-44/A-45/A-40/T-42）。
+
+> **2026-11-23 方向C 批次5（后端性能）**：
+ecord_pending N+1 消除（500 条从 500 次 SELECT
+> 降到 1 次）、alidate_paths 全表 stat 改按父目录 scandir（万级记录从万次 stat 降到
+> 目录数次）、update_container 的同步 subprocess 包进 run_in_threadpool
+> （原会阻塞事件循环最长 300s）。capabilities_registry.md 同批重新生成。
+
+> **2026-11-23 方向C 批次6（异常静默 + 无主 TODO）**：修复 7 处后端静默吞错
+> （附件解析器全失败无痕、energy fallback 吞异常、jjg/energy JSON 解析失败静默 break、
+> main.py 三处崩溃日志写盘失败无提示、备份删除失败静默）；3 个前端组件 6 处用户操作
+> 失败补 `appToast.error`；`stores/app.ts` 的 matchMedia 监听器改为可 dispose；
+> 3 个无主 TODO 全部认领（A-55 新债号 / V-10 / A-52）。
+> G-050 debug 档 69→66。
+
+> **2026-11-23 方向C 批次7（文档死链）**：新增 **G-056 文档死链扫描**（markdown 相对链接；
+> G-032 只查反引号里的全路径引用）。实现要点：排除代码块/行内代码/归档目录，
+> 双解析口径（相对当前文件 或 相对仓库根）。基线 `doc_deadlinks_baseline.json` 当前 **0 条**。
+> 修复 529→0 条死链（478 条在归档目录不修、49 条是解析口径误判、1 条真死链指向已归档文档）。
+> 已接入 `check_all.sh --guards`。
+
+> **2026-11-23 方向C 批次8（资源泄漏 + 安全）**：修复 5 类资源泄漏（Session 未关闭 ×2、
+> Qt QThread 未回收、QTimer 未停止、DB 线程连接累积）+ CSP 移除 `'unsafe-eval'`
+> （实测生产包 38 个 js 文件 `new Function` 计数为 0，Vue 3 预编译不需要 eval）。
+> NEW-41 关键约束：`sqlite3.Connection` 不可弱引用，finalize 必须锚在 `threading.local`。
+
+> **2026-11-24 方向C 批次5续（后端性能）+ 批次4（台账收口）**：4 处批量/并发改造
+> （`matcher` executemany、`expire` 单条 UPDATE、`mark_logs_read` IN 批量、
+> `upload` 走线程池、`detect_ip` 并发+总预算）；G-27 把 `scan_and_index` 的
+> skipped 拆成三类可定位计数并记录首条未匹配样本（根因待生产复跑，已证伪
+> 「std_name 漂移」假设）；A-42 关闭、V-3 迁入 02-accepted、12 条 V-* 保留观察
+> 并订正 8 处文档漂移；V-16 补 `TaskManager.test.ts` 6 例。
+
+> **2026-11-24 方向C 批次8（NEW-45）**：G-010 警告档（>400 且 <=500）加**棘轮**——
+> 原只提示不阻断，实测 20 个文件在 400~500 区间全部 PASS（最高 496），
+> 文件可从 401 涨到 500 无人拦。现登记 scripts/g010_warn_baseline.json：
+> 新进入警告档 → FAIL、存量增长 → FAIL、存量减少 → WARN（可收紧）、
+> >500 阻断档不受影响。基线用门禁自身计数函数生成，路径键统一 posix。

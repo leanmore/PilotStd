@@ -105,7 +105,7 @@
 .border-bottom { border-bottom: 1px solid var(--border-light, #e5e7eb); }
 
 /* 字段集分隔 */
-/* TODO: [Design Debt] 12px 无精确令牌，暂不替换，待定令牌后统一处理 */
+/* TODO: [Design Debt] A-52 — 12px 无精确令牌，暂不替换，待定令牌后统一处理 */
 .fieldset-gap { grid-column: 1 / -1; height: var(--size-12); }
 .fieldset-label { font-weight: var(--font-weight-bold); color: var(--text-heading); font-size: var(--font-size-14); grid-column: 1 / -1; }
 
@@ -163,7 +163,7 @@
 .theme-swatch-wrapper { padding: var(--space-4); }
 .theme-swatch {
   width: 80px;
-  /* TODO: [Design Debt] 44px 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 44px 无精确令牌，暂不替换，待定令牌后统一处理 */
   height: 44px;
   border-radius: var(--radius);
   border: 2px solid var(--border);
@@ -181,13 +181,13 @@
 }
 .theme-primary-dot {
   width: 12px;
-  /* TODO: [Design Debt] 12px 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 12px 无精确令牌，暂不替换，待定令牌后统一处理 */
   height: var(--size-12);
   border-radius: 50%;
   position: absolute;
   right: 8px;
   bottom: 8px;
-  /* TODO: [Design Debt] 0 2px 4px rgba(0, 0, 0, 0.2) 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 0 2px 4px rgba(0, 0, 0, 0.2) 无精确令牌，暂不替换，待定令牌后统一处理 */
   /* TODO: [Design Debt] 原生阴影与既有 --shadow-* 层级不匹配（半径/扩散/透明度不同），待统一评估（A-52） */
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
@@ -256,7 +256,7 @@
   letter-spacing: 0.5px;
   word-break: break-all;
   color: var(--text-heading);
-  /* TODO: [Design Debt] inset 0 2px 4px rgba(0, 0, 0, 0.05) 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — inset 0 2px 4px rgba(0, 0, 0, 0.05) 无精确令牌，暂不替换，待定令牌后统一处理 */
   /* TODO: [Design Debt] 原生阴影与既有 --shadow-* 层级不匹配（半径/扩散/透明度不同），待统一评估（A-52） */
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
 }
@@ -316,16 +316,23 @@
   padding: var(--space-20);
 }
 
-/* 折叠动画 */
+/* ═══ 折叠展开过渡（全站唯一真相）═══
+   规则来源：docs/reference/ui-system.md §14.3
+   - 曲线与时长与 DS 的 `--transition` 同源（0.2s ease），避免 settings 子页
+     与通知配置页的折叠观感不一致（此前后者多一份 padding 过渡）。
+   - `max-height` 必须给一个「足够大的上界」：CSS 无法对 auto 高度做过渡，
+     2000px 是实测下最长折叠面板（站点配置 8 项 + 说明文字）撑开后的高度上界，
+     再大只会让动画变慢（过渡按声明值线性插值）。面板内容显著变长时需同步调大。
+   - 进出场都保留 `overflow: hidden`，否则折叠中途内容会溢出。 */
 .collapsible-enter-active,
 .collapsible-leave-active {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: opacity var(--transition), max-height var(--transition);
+  overflow: hidden;
 }
 .collapsible-enter-from,
 .collapsible-leave-to {
   opacity: 0;
   max-height: 0;
-  overflow: hidden;
 }
 .collapsible-enter-to,
 .collapsible-leave-from {

@@ -30,7 +30,7 @@ const router = useRouter()
 <style scoped>
 .forbidden {
   max-width: 560px;
-  /* TODO: [Design Debt] 12vh auto 0 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 12vh auto 0 无精确令牌，暂不替换，待定令牌后统一处理 */
   margin: 12vh auto 0;
   text-align: center;
   padding: var(--space-32);

@@ -98,13 +98,19 @@ def _process_record(rec: dict, today: date, db: Database, notification_mgr: Any,
     if not user_ids:
         return
 
+    # NEW-20：原实现对每个 `uid` 单独 `SELECT 1 ... LIMIT 1` 做去重判定
+    # （N 个用户 = N 次往返）。改为**一次**批量查询拿到已提醒的 `uid` 集合，
+    # 之后组内判断退化为集合查找。
+    placeholders = ",".join("?" * len(user_ids))
+    cursor = db.execute(
+        "SELECT DISTINCT user_id FROM date_reminder_log"
+        f" WHERE record_id=? AND remind_type=? AND days_before=? AND user_id IN ({placeholders})",
+        (record_id, remind_type, days_before, *user_ids),
+    )
+    already_reminded = {r["user_id"] for r in cursor.fetchall()}
+
     for uid in user_ids:
-        cursor = db.execute(
-            "SELECT 1 FROM date_reminder_log"
-            " WHERE user_id=? AND record_id=? AND remind_type=? AND days_before=? LIMIT 1",
-            (uid, record_id, remind_type, days_before),
-        )
-        if cursor.fetchone():
+        if uid in already_reminded:
             stats["skipped"] += 1
             continue
 

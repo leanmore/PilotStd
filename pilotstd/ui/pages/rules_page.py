@@ -241,7 +241,7 @@ class RuleEditDialog(BaseDialog):
         layout = QVBoxLayout(self)
         form = QFormLayout()
 
-        # 规则编辑是表单场景（对话框内逐项填写），尺寸档取 m（DS 表单默认档）
+        # 规则编辑是表单场景（对话框内逐项填写），尺寸档取 `m`（DS 表单默认档）
         self.name_edit = BaseInput(self._rule.get("name", ""), size="m")
         self.name_edit.setPlaceholderText(_("placeholder_rule_name"))
         form.addRow(_("label_rule_name"), self.name_edit)

@@ -208,7 +208,7 @@ const {
   min-height: 100vh;
   background: var(--bg);
 }
-/* TODO: [Design Debt] 72px 无精确令牌，暂不替换，待定令牌后统一处理 */
+/* TODO: [Design Debt] A-52 — 72px 无精确令牌，暂不替换，待定令牌后统一处理 */
 .layout.mobile { padding-bottom: 72px; }
 
 .main-area {
@@ -227,9 +227,9 @@ const {
 }
 .content-inner {
   max-width: 1600px;
-  /* TODO: [Design Debt] 0 auto 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 0 auto 无精确令牌，暂不替换，待定令牌后统一处理 */
   margin: 0 auto;
-  /* TODO: [Design Debt] 32px 36px 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 32px 36px 无精确令牌，暂不替换，待定令牌后统一处理 */
   padding: 32px 36px;
   animation: fadeIn 0.3s ease-out;
 }
@@ -254,18 +254,18 @@ const {
   bottom: 0;
   left: 0;
   right: 0;
-  /* TODO: [Design Debt] 68px 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 68px 无精确令牌，暂不替换，待定令牌后统一处理 */
   height: 68px;
   padding: 0 var(--space-8);
-  /* TODO: [Design Debt] env(safe-area-inset-bottom) 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — env(safe-area-inset-bottom) 无精确令牌，暂不替换，待定令牌后统一处理 */
   padding-bottom: env(safe-area-inset-bottom);
-  /* TODO: [Design Debt] rgba(255, 255, 255, 0.9) 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — rgba(255, 255, 255, 0.9) 无精确令牌，暂不替换，待定令牌后统一处理 */
   background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(16px) saturate(180%);
   -webkit-backdrop-filter: blur(16px) saturate(180%);
-  /* TODO: [Design Debt] 1px solid rgba(226, 232, 240, 0.5) 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 1px solid rgba(226, 232, 240, 0.5) 无精确令牌，暂不替换，待定令牌后统一处理 */
   border-top: 1px solid rgba(226, 232, 240, 0.5);
-  /* TODO: [Design Debt] 0 -2px 16px rgba(0, 0, 0, 0.06) 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 0 -2px 16px rgba(0, 0, 0, 0.06) 无精确令牌，暂不替换，待定令牌后统一处理 */
   /* TODO: [Design Debt] 原生阴影与既有 --shadow-* 层级不匹配（半径/扩散/透明度不同），待统一评估（A-52） */
   box-shadow: 0 -2px 16px rgba(0, 0, 0, 0.06);
   z-index: 100;
@@ -273,9 +273,9 @@ const {
 /* 暗色主题下的毛玻璃（dark + blue） */
 :root[data-theme="dark"] .bottom-nav,
 :root[data-theme="blue"] .bottom-nav {
-  /* TODO: [Design Debt] rgba(15, 23, 42, 0.9) 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — rgba(15, 23, 42, 0.9) 无精确令牌，暂不替换，待定令牌后统一处理 */
   background: rgba(15, 23, 42, 0.9);
-  /* TODO: [Design Debt] rgba(51, 65, 85, 0.5) 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — rgba(51, 65, 85, 0.5) 无精确令牌，暂不替换，待定令牌后统一处理 */
   border-top-color: rgba(51, 65, 85, 0.5);
 }
 
@@ -303,7 +303,7 @@ const {
   width: 24px;
   height: 3px;
   background: var(--primary);
-  /* TODO: [Design Debt] 0 0 3px 3px 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 0 0 3px 3px 无精确令牌，暂不替换，待定令牌后统一处理 */
   border-radius: 0 0 3px 3px;
   transition: transform var(--transition);
 }
@@ -337,7 +337,7 @@ const {
   .content-inner { padding: var(--space-16) var(--space-12); }
 
   /* 移动端底部导航图标优化 */
-  /* TODO: [Design Debt] 64px 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 64px 无精确令牌，暂不替换，待定令牌后统一处理 */
   .bottom-nav { height: 64px; }
   .tab { min-width: 48px; padding: var(--space-6) var(--space-2); }
   .tab i { font-size: var(--font-size-17); }
@@ -366,7 +366,7 @@ const {
 
 .floating-workspace-btn {
   width: 56px;
-  /* TODO: [Design Debt] 56px 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 56px 无精确令牌，暂不替换，待定令牌后统一处理 */
   height: 56px;
   border: none;
   border-radius: 50%;
@@ -378,7 +378,7 @@ const {
   display: flex;
   align-items: center;
   justify-content: center;
-  /* TODO: [Design Debt] 0 4px 12px rgba(0, 0, 0, 0.15) 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 0 4px 12px rgba(0, 0, 0, 0.15) 无精确令牌，暂不替换，待定令牌后统一处理 */
   /* TODO: [Design Debt] 原生阴影与既有 --shadow-* 层级不匹配（半径/扩散/透明度不同），待统一评估（A-52） */
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   backdrop-filter: blur(4px);
@@ -391,7 +391,7 @@ const {
   background: var(--primary-fill-hover);
   filter: brightness(1.02);
   transform: scale(1.08);
-  /* TODO: [Design Debt] 0 6px 16px rgba(0, 0, 0, 0.2) 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 0 6px 16px rgba(0, 0, 0, 0.2) 无精确令牌，暂不替换，待定令牌后统一处理 */
   /* TODO: [Design Debt] 原生阴影与既有 --shadow-* 层级不匹配（半径/扩散/透明度不同），待统一评估（A-52） */
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
 }

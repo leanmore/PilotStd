@@ -32,16 +32,25 @@ def test_unread_count_with_user_filters_user():
 
 
 def test_mark_ids_with_user_filters_user():
+    """按 id 标记已读时，`user_id` 必须作为过滤条件进入 SQL（不能清别人的未读）。
+
+    NEW-22（2026-11-23）：实现从「逐条 UPDATE」改为「一条 `WHERE id IN (...)` 批量更新」，
+    故断言从「调用次数 == id 条数」改为「单次调用 + SQL 含 IN 与 user_id 过滤」。
+    行为语义（只更新该用户的日志）不变，这正是本用例要保护的东西。
+    """
     ops = _ops()
-    ops._mgr._db.execute.return_value.rowcount = 1
+    ops._mgr._db.execute.return_value.rowcount = 2
 
     assert ops.mark_logs_read([1, 2], user_id=7) == 2
     calls = ops._mgr._db.execute.call_args_list
-    assert len(calls) == 2
-    for call in calls:
-        sql, params = call.args
-        assert "user_id = ?" in sql
-        assert params[1] == 7
+    # 批量：一条 UPDATE 覆盖全部 id
+    assert len(calls) == 1
+    sql, params = calls[0].args
+    assert "IN(?,?)" in sql.replace(" ", "")
+    assert "user_id = ?" in sql
+    # 参数顺序：先 ids，后 user_id
+    assert params[-1] == 7
+    assert set(params[:-1]) == {1, 2}
 
 
 def test_mark_all_with_user_only_touches_user():

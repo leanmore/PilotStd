@@ -6,7 +6,6 @@
 // 行为不变：所有状态、计算属性、方法名与实现原样搬入，组件按名解构后模板引用不变。
 
 import { ref, onMounted, onBeforeUnmount, computed, type Ref } from 'vue'
-import { useToast } from 'primevue/usetoast'
 import { i18n } from '@/i18n'
 import DOMPurify from 'dompurify'
 import {
@@ -22,13 +21,14 @@ import type { RecordFetcher } from '@/composables/useIncrementalScroll'
 import { useDetailCache } from '@/composables/useDetailCache'
 import { useFavorite } from '@/composables/useFavorite'
 import { useIncrementalScroll } from '@/composables/useIncrementalScroll'
+import { useAppToast } from '@/composables/useAppToast'
 
 export function useAnnounceDetail(
   announceNo: string,
   source: string,
   sentinel: Ref<HTMLElement | null>,
 ) {
-  const toast = useToast()
+  const notify = useAppToast()
 
   /** 本模块非组件、没有组件上下文：toast 文案在**调用瞬间**读取全局实例即可（一次性，无需响应式）。
    *  模板渲染用的状态标签则返回 key，由组件用 useI18n() 的 t 翻译（保证切语言即时生效）。 */
@@ -125,7 +125,7 @@ export function useAnnounceDetail(
       })
       loadFavStatuses()
     } catch {
-      toast.add({ severity: 'error', summary: t('announce.detail.toast.load_failed'), detail: t('announce.detail.toast.load_failed_detail'), life: 3000 })
+      notify.error({ summary: t('announce.detail.toast.load_failed'), detail: t('announce.detail.toast.load_failed_detail') })
     } finally {
       loading.value = false
     }
@@ -133,7 +133,7 @@ export function useAnnounceDetail(
 
   async function startParse() {
     if (!announcement.value?.attachment_url) {
-      toast.add({ severity: 'warn', summary: t('announce.detail.toast.notice'), detail: t('announce.detail.toast.no_attachment'), life: 3000 })
+      notify.warn({ summary: t('announce.detail.toast.notice'), detail: t('announce.detail.toast.no_attachment') })
       return
     }
     // ✅ #45: 防御性清理已有定时器
@@ -161,25 +161,25 @@ export function useAnnounceDetail(
             await loadDetail()
             // 分页模式：条数取 parse-status 的 record_count；降级模式取本地 records
             const count = usePaginated ? (statusRes.record_count ?? 0) : records.value.length
-            toast.add({ severity: 'success', summary: t('announce.detail.toast.parse_done'), detail: t('announce.detail.toast.parse_done_detail', { n: count }), life: 3000 })
+            notify.success({ summary: t('announce.detail.toast.parse_done'), detail: t('announce.detail.toast.parse_done_detail', { n: count }), life: 3000 })
           } else if (statusRes.status === 'failed') {
             clearInterval(pollTimer!)
             pollTimer = null
             parseStatus.value = 'failed'
             parsing.value = false
-            toast.add({ severity: 'error', summary: t('announce.detail.toast.parse_failed'), detail: t('announce.detail.toast.parse_failed_detail'), life: 3000 })
+            notify.error({ summary: t('announce.detail.toast.parse_failed'), detail: t('announce.detail.toast.parse_failed_detail') })
           } else if (retries >= maxRetries) {
             clearInterval(pollTimer!)
             pollTimer = null
             parsing.value = false
-            toast.add({ severity: 'warn', summary: t('announce.detail.toast.timeout'), detail: t('announce.detail.toast.timeout_detail'), life: 3000 })
+            notify.warn({ summary: t('announce.detail.toast.timeout'), detail: t('announce.detail.toast.timeout_detail') })
           }
         } catch { /* 轮询出错继续 */ }
       }, interval)
     } catch {
       parseStatus.value = 'failed'
       parsing.value = false
-      toast.add({ severity: 'error', summary: t('announce.detail.toast.start_failed'), detail: t('announce.detail.toast.start_failed_detail'), life: 3000 })
+      notify.error({ summary: t('announce.detail.toast.start_failed'), detail: t('announce.detail.toast.start_failed_detail') })
     }
   }
 
@@ -204,7 +204,7 @@ export function useAnnounceDetail(
     const oldValue = data[field]
     if (data.status === 'approved') {
       data[field] = oldValue
-      toast.add({ severity: 'warn', summary: t('announce.detail.toast.notice'), detail: t('announce.detail.toast.approved_locked'), life: 3000 })
+      notify.warn({ summary: t('announce.detail.toast.notice'), detail: t('announce.detail.toast.approved_locked') })
       return
     }
     data[field] = newValue
@@ -213,10 +213,10 @@ export function useAnnounceDetail(
       if (data.status === 'draft') {
         data.status = 'pending_review'
       }
-      toast.add({ severity: 'success', summary: t('announce.detail.toast.save_ok'), life: 2000 })
+      notify.success({ summary: t('announce.detail.toast.save_ok') })
     } catch {
       data[field] = oldValue
-      toast.add({ severity: 'error', summary: t('announce.detail.toast.save_failed'), detail: t('announce.detail.toast.retry'), life: 3000 })
+      notify.error({ summary: t('announce.detail.toast.save_failed'), detail: t('announce.detail.toast.retry') })
     }
   }
 
@@ -225,7 +225,7 @@ export function useAnnounceDetail(
     if (ids.length === 0) return
     try {
       const res = await batchApprove(ids)
-      toast.add({ severity: 'success', summary: t('announce.detail.toast.approve_ok'), detail: t('announce.detail.toast.approve_ok_detail', { n: res.approved_count }), life: 3000 })
+      notify.success({ summary: t('announce.detail.toast.approve_ok'), detail: t('announce.detail.toast.approve_ok_detail', { n: res.approved_count }), life: 3000 })
       selectedRecords.value = []
       clearDetailCache()
       // 分页模式：重新拉第一页刷新列表；降级模式：重载全量
@@ -237,9 +237,9 @@ export function useAnnounceDetail(
     } catch (e: any) {
       const detail = e?.response?.data?.detail
       if (Array.isArray(detail?.errors)) {
-        toast.add({ severity: 'error', summary: t('announce.detail.toast.approve_failed'), detail: detail.errors.join('；'), life: 5000 })
+        notify.error({ summary: t('announce.detail.toast.approve_failed'), detail: detail.errors.join('；'), life: 5000 })
       } else {
-        toast.add({ severity: 'error', summary: t('announce.detail.toast.approve_failed'), detail: t('announce.detail.toast.retry'), life: 3000 })
+        notify.error({ summary: t('announce.detail.toast.approve_failed'), detail: t('announce.detail.toast.retry') })
       }
     }
   }

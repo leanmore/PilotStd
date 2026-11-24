@@ -128,7 +128,7 @@
   box-shadow: var(--shadow-sm);
   transition: all var(--transition);
 }
-/* TODO: [Design Debt] rgba(99, 102, 241, 0.2) 无精确令牌，暂不替换，待定令牌后统一处理 */
+/* TODO: [Design Debt] A-52 — rgba(99, 102, 241, 0.2) 无精确令牌，暂不替换，待定令牌后统一处理 */
 .mp-card:hover { box-shadow: var(--shadow-md); border-color: rgba(99, 102, 241, 0.2); }
 .mp-badge {
   display: inline-flex; align-items: center; gap: var(--space-4);
@@ -142,13 +142,13 @@
   border-bottom: 1px solid var(--border-light); transition: background 0.2s;
 }
 .mp-list-row:last-child { border-bottom: none; }
-/* TODO: [Design Debt] rgba(99, 102, 241, 0.04) 无精确令牌，暂不替换，待定令牌后统一处理 */
+/* TODO: [Design Debt] A-52 — rgba(99, 102, 241, 0.04) 无精确令牌，暂不替换，待定令牌后统一处理 */
 .mp-list-row:hover { background: rgba(99, 102, 241, 0.04); }
 @keyframes mp-pulse-glow {
-  /* TODO: [Design Debt] 0 0 4px rgba(34,197,94,0.4) 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 0 0 4px rgba(34,197,94,0.4) 无精确令牌，暂不替换，待定令牌后统一处理 */
   /* TODO: [Design Debt] 原生阴影与既有 --shadow-* 层级不匹配（半径/扩散/透明度不同），待统一评估（A-52） */
   0%, 100% { box-shadow: 0 0 4px rgba(34,197,94,0.4); }
-  /* TODO: [Design Debt] 0 0 14px rgba(34,197,94,0.7) 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 0 0 14px rgba(34,197,94,0.7) 无精确令牌，暂不替换，待定令牌后统一处理 */
   /* TODO: [Design Debt] 原生阴影与既有 --shadow-* 层级不匹配（半径/扩散/透明度不同），待统一评估（A-52） */
   50% { box-shadow: 0 0 14px rgba(34,197,94,0.7); }
 }
@@ -790,7 +790,7 @@ html .p-button.p-button-secondary {
   background: linear-gradient(90deg, var(--primary), #a78bfa);
   z-index: 1200;
   transition: width 0.3s ease;
-  /* TODO: [Design Debt] 0 2px 2px 0 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 0 2px 2px 0 无精确令牌，暂不替换，待定令牌后统一处理 */
   border-radius: 0 2px 2px 0;
 }
 
@@ -831,7 +831,7 @@ html .p-button.p-button-secondary {
    ═══════════════════════════════════════════ */
 ::-webkit-scrollbar {
   width: 6px;
-  /* TODO: [Design Debt] 6px 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 6px 无精确令牌，暂不替换，待定令牌后统一处理 */
   height: 6px;
 }
 

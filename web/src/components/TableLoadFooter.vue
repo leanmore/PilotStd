@@ -72,11 +72,11 @@ defineEmits<{
   color: var(--text-on-primary);
 }
 .partial-text {
-  /* TODO: [Design Debt] #ca8a04 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — #ca8a04 无精确令牌，暂不替换，待定令牌后统一处理 */
   color: #ca8a04;
 }
 .spinner {
-  /* TODO: [Design Debt] 20px 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — 20px 无精确令牌，暂不替换，待定令牌后统一处理 */
   width: var(--size-20); height: var(--size-20);
   border: 3px solid var(--border);
   border-top-color: var(--primary);

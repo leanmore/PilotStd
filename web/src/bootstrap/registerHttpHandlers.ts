@@ -2,11 +2,14 @@
 import type { App } from 'vue'
 import { setNetworkErrorNotifier, setUnauthorizedHandler } from '@/api/http'
 import { useAppStore } from '@/stores/app'
+import { appToast } from '@/composables/useAppToast'
 import router from '@/router'
 
-type ToastLike = { add(message: { severity: string; summary: string; life: number }): void }
-
 export function registerHttpHandlers(app: App): void {
+  // 保留形参（调用方签名不变）；本文件当前不需要 app 实例，
+  // 提示走 appToast 全局单例，不再从 app.config.globalProperties 摸 $toast。
+  void app
+
   setUnauthorizedHandler(() => {
     // 已在登录页时不要重复 push（会打断正在进行的重新登录）
     if (router.currentRoute.value.path === '/login') return
@@ -14,11 +17,11 @@ export function registerHttpHandlers(app: App): void {
     appStore.clearUser()
     router.push('/login')
   })
-  // [FIX-401] 断网/超时由全局拦截器统一提示；$toast 由 ToastService 注入，注册时惰性读取
+
+  // [FIX-401] 断网/超时由全局拦截器统一提示。
+  // DS 模块四：提示走全局 appToast 单例（App.vue 挂载时 bindAppToast 注入），
+  // 不再直接读 `app.config.globalProperties.$toast`（字符串键，类型与可测性都差）。
   setNetworkErrorNotifier((message: string) => {
-    const toast = (app.config.globalProperties as unknown as { $toast?: ToastLike }).$toast
-    if (toast) {
-      toast.add({ severity: 'error', summary: message, life: 3000 })
-    }
+    appToast.error({ summary: message })
   })
 }

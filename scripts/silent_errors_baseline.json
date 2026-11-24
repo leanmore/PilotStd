@@ -1,16 +1,48 @@
 {
   "_meta": {
     "migration_frozen": 40,
-    "note": "基线即 allowlist：三档合计 = 被冻结的不可见失败点；修复 = 从基线移除该条（收紧），不存在第四档",
+    "note": "基线即 allowlist：各档合计 = 被冻结的不可见失败点；修复 = 从基线移除该条（收紧），不存在第四档。2026-11-23 补 continue/break 两档（原门禁只认 pass/return，26 处 except: continue|break 从未受保护，见 06-full-inventory NEW-01）。",
     "review_due": "2027-02-14",
     "tiers": {
+      "break": 2,
+      "continue": 27,
       "debug": 69,
       "pass": 46,
       "return": 47
     },
-    "total": 162,
-    "triaged_allowlist": 122,
+    "total": 191,
+    "triaged_allowlist": 151,
     "updated_at": "2026-11-14"
+  },
+  "break": {
+    "pilotstd/query/adapters/energy.py": 1,
+    "pilotstd/query/adapters/jjg.py": 1
+  },
+  "continue": {
+    "docker/api/archive.py": 1,
+    "docker/api/organize.py": 1,
+    "docker/api/scan.py": 1,
+    "docker/scheduler.py": 2,
+    "pilotstd/announcement/_attachment_parser.py": 1,
+    "pilotstd/core/db/database.py": 1,
+    "pilotstd/core/time_utils.py": 1,
+    "pilotstd/download/task_store.py": 1,
+    "pilotstd/manager/announce_service.py": 1,
+    "pilotstd/monitor/scheduler.py": 1,
+    "pilotstd/query/adapters/energy.py": 1,
+    "pilotstd/query/adapters/ncha.py": 1,
+    "pilotstd/query/adapters/sppt_local.py": 1,
+    "pilotstd/ui/core/handlers/_cleanup.py": 1,
+    "pilotstd/ui/core/handlers/download_flow_engine.py": 1,
+    "pilotstd/ui/main_window/parts/_export_ops.py": 2,
+    "scripts/audit_api_matrix.py": 2,
+    "scripts/audit_count_claims.py": 1,
+    "scripts/backfill_announce_archive.py": 1,
+    "scripts/check_g_012_comment_density.py": 1,
+    "scripts/check_g_050_silent_errors.py": 1,
+    "scripts/check_i18n_hardcoded.py": 1,
+    "scripts/check_i18n_hardcoded_python.py": 1,
+    "scripts/fix_relative_imports.py": 1
   },
   "debug": {
     "docker/api/adapter.py": 1,

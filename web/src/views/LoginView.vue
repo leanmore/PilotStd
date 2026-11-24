@@ -74,9 +74,9 @@ async function submit() {
 
 <style scoped>
 /* 未配置背景图或加载失败时的默认渐变兜底 */
-/* TODO: [Design Debt] linear-gradient(135deg, #667eea 0%, #764ba2 100%) 无精确令牌，暂不替换，待定令牌后统一处理 */
+/* TODO: [Design Debt] A-52 — linear-gradient(135deg, #667eea 0%, #764ba2 100%) 无精确令牌，暂不替换，待定令牌后统一处理 */
 .login-page { display: flex; justify-content: center; align-items: center; min-height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-/* TODO: [Design Debt] 44px 36px 无精确令牌，暂不替换，待定令牌后统一处理 */
+/* TODO: [Design Debt] A-52 — 44px 36px 无精确令牌，暂不替换，待定令牌后统一处理 */
 .login-card { width: 340px; padding: 44px 36px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); text-align: center; }
 .login-brand { display: flex; align-items: center; justify-content: center; gap: var(--space-8); margin-bottom: var(--space-4); }
 .brand-icon { color: var(--accent); font-size: var(--font-size-22); }

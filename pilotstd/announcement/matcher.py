@@ -79,11 +79,13 @@ class AnnouncementMatcher:
                 len(log_rows),
             )
             # 入库成功后回写_，确保有数据的公告不显示"待解析"
+            # NEW-18：原实现逐条 `execute`（N 条公告 = N 次往返）。
+            # 改为一次 `executemany` 批量提交，语义等价、往返次数从 N 降到 1。
             announce_nos = {row[2] for row in log_rows}
-            for anno in announce_nos:
-                self._db.execute(
+            if announce_nos:
+                self._db.executemany(
                     "UPDATE announcements SET parse_status='completed', updated_at=? WHERE announce_no=?",
-                    (now, anno),
+                    [(now, anno) for anno in announce_nos],
                 )
         if cache_rows:
             self._bulk_upsert_cache(cache_rows)

@@ -2,11 +2,11 @@
 // 收藏状态管理 —— 收藏状态（是否收藏）与下载状态（下到哪一步）解耦维护
 
 import { ref, type Ref } from 'vue'
-import { useToast } from 'primevue/usetoast'
 import { addFavorite, getBatchFavoriteStatus, removeFavorite, type BatchFavoriteStatus } from '@/api/announce'
 import { isFavorited } from '@/utils/downloadStatus'
 import type { AnnouncementRecord } from '@/types/api'
 import { i18n } from '@/i18n'
+import { useAppToast } from '@/composables/useAppToast'
 
 /** 非组件模块：toast 文案在调用瞬间用全局实例解析（一次性，无需响应式） */
 function t(key: string, named?: Record<string, unknown>): string {
@@ -14,7 +14,7 @@ function t(key: string, named?: Record<string, unknown>): string {
 }
 
 export function useFavorite(records: Ref<AnnouncementRecord[]>) {
-  const toast = useToast()
+  const notify = useAppToast()
 
   // 收藏状态：recordId → isFavorited（判定只看后端是否返回收藏对象，见 isFavorited）
   const favMap = ref<Record<number, boolean>>({})
@@ -52,12 +52,12 @@ export function useFavorite(records: Ref<AnnouncementRecord[]>) {
       delete favStatusMap.value[id]
       try {
         await removeFavorite(id)
-        toast.add({ severity: 'success', summary: t('favorites.unfaved'), life: 2000 })
+        notify.success({ summary: t('favorites.unfaved') })
       } catch (e) {
         favMap.value[id] = true  // 回滚
         if (prevStatus) favStatusMap.value[id] = prevStatus
         const msg = handleFavoriteError(e)
-        if (msg) toast.add({ severity: 'error', summary: msg, life: 3000 })
+        if (msg) notify.error({ summary: msg })
       } finally {
         favLoadingMap.value[id] = false
       }
@@ -75,12 +75,12 @@ export function useFavorite(records: Ref<AnnouncementRecord[]>) {
       }
       try {
         await addFavorite(id)
-        toast.add({ severity: 'success', summary: t('favorites.faved'), life: 2000 })
+        notify.success({ summary: t('favorites.faved') })
       } catch (e) {
         favMap.value[id] = false  // 回滚
         delete favStatusMap.value[id]
         const msg = handleFavoriteError(e)
-        if (msg) toast.add({ severity: 'error', summary: msg, life: 3000 })
+        if (msg) notify.error({ summary: msg })
       } finally {
         favLoadingMap.value[id] = false
       }

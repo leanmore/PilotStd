@@ -351,6 +351,13 @@ run_guards() {
         log_fail "G-032 文档健康度守护"
     fi
 
+    # G-056: 文档死链扫描（markdown 相对链接；G-032 只查反引号里的全路径引用）
+    if python scripts/check_g_056_doc_deadlinks.py; then
+        log_pass "G-056 文档死链扫描"
+    else
+        log_fail "G-056 文档死链扫描"
+    fi
+
     # G-037: 触发条件对齐
     if python scripts/check_g_037_trigger_alignment.py; then
         log_pass "G-037 触发条件对齐"

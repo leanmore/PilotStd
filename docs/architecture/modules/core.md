@@ -449,7 +449,7 @@ pilotstd/core/
 - **通知渠道异常处理（2026-09-26）**：`notification/channels/{dingtalk,feishu,wechat}.py` 的错误响应体读取分支（`except Exception: pass`）统一为「记录 `read_exc` + 以 `<body 读取失败: ...>` 标记回填 `body` + `logger.debug`」，三个渠道的外层 `logger.warning` 统一补 `exc_info=True`。**动机**：原 `pass` 使"服务端未返回 body"与"body 读取失败"两种情形在日志里不可区分（都表现为 `body=`），且外层告警丢异常栈。捕获本身**不是**吞错——外层已设置 `last_error`、记录告警并 `return False`，故内层只影响诊断文本丰富度。全链路审计脚本的吞错计数由此从 3 归零（`scripts/audit_notification_chain.py --scope notification`）。
 - **聚合分组键（2026-09-26，第 3 批：target_id 分组修复）**：`notification/aggregate_buffer.py` 的缓冲键由「仅事件类型」改为「**事件类型 × 关联实体**」——`_group_key()` 用 US 分隔符（`\x1f`）拼接 `event_type` 与 `target_id`，`_events_in_group()` / `_group_entity()` 负责还原，使 `_on_timer` / `flush` / `shutdown` 的发送都能取回真实事件类型。**修复的缺陷**：`channel.py` 的 `target_id` 字段注释承诺"同 event_type 下按 target_id 分组"，且 `manager.py` 一路透传该字段，但 `enqueue` 只按 `msg.event_type` 建键——不同业务对象（不同任务、不同标准）的通知被合并进同一条"聚合通知（N 条）"，用户无法分辨各自结果。`target_id` 缺失（空串或纯空白）时回退为纯事件类型分组（同类仍聚合，绝不把不同实体混为一组）。**同批对齐三处默认值不一致**：`notification.aggregate_enabled` 的 manager 回退值 `False` → `True`（与 `defaults.py:79` 及 `events.py` 的"所有事件均经聚合器"声明一致；原回退值会让缺该键的旧配置静默关闭聚合）；`DEFAULT_WINDOW_SECONDS` 60 → 5、`DEFAULT_BATCH_SIZE` 20 → 50（与 `defaults.py` 的 `aggregate_window_seconds` / `aggregate_max_events` 同口径，避免"直接构造聚合器"与生产行为分叉；生产路径由 manager 显式传值，故这两个常量只在测试/独立调用时生效）。契约由 `tests/test_aggregate_buffer.py::TestGroupKeyUsesTargetId`（6 例）锁定；原 `test_same_event_type_merged_after_shutdown` 断言的正是缺陷行为（合并成 1 条 / count=5），已改写为 `test_different_target_ids_not_merged_after_shutdown`（2 条 / count={2,3}）。**未修（预存）**：`_on_timer` 在未达 `MAX_WINDOW_SECONDS` 时"发送当前缓冲并续期"，意味着每过一个窗口都可能发一条，最长延迟可能超过 300s 一个窗口——属预存问题，另排工单。
 - **安全告警投递（2026-09-26，第 2 批安全审计闭环）**：新增 `notification/security_notifier.py`。**它绝不调用 `NotificationManager.send_event`**——凭证类告警必须在"新凭证落库之前"送达**旧**渠道，而 manager 路径的三重延迟会让告警流向攻击者控制的新地址：① 聚合缓冲（`notification.aggregate_enabled` 默认 True）只入队，实际发送推迟到窗口到期；② 静音时段命中时写入 `notification_queue` 表延后补发；③ `send_event` 首行受 `notification.enabled`（默认 False）门控。故该模块按"指定用户"读旧凭证 → 构造**临时渠道实例** → `concurrent.futures` 并发同步 `send()`（总超时 5s 封顶）→ 才允许调用方落库。三个新事件（`notification_credential_changed` / `security_password_changed` / `security_token_refreshed`）仍登记于 `events.py` 并配 `_builders_system.py` 构建器，但**有意豁免** `tests/test_notification_e2e.py` 的"必须有 send_event 触发点"契约（见该文件 `SECURITY_EVENTS_BY_DESIGN_UNTRIGGERED`），投递正确性由 `tests/test_p0_security_endpoints.py` 锁定（含"send 必须先于 set_channel"的顺序断言）。紧急降级开关是**环境变量** `PILOTSTD_SECURITY_NOTIFY_ENABLED` 而非配置文件——凭证变更端点自身能写配置，放配置里等于给攻击者一个关闭告警的把手。`client_ip(request)` 对测试替身做类型校验（`MagicMock` 的任意属性都返回 Mock，直接入审计 detail 会让 `json.dumps` 崩溃）。
-- **通知**：事件驱动 → 渠道独立适配（企业微信/飞书/钉钉/Telegram），支持聚合缓冲与桌面格式化。模板文案统一走 i18n 层级键且**在调用期取 `t()`**（模块级求值会把语言固化在 import 时刻，运行时切换语言失效）；状态类判定使用数据口径（`_format_utils.is_abolished_status`），**禁止拿展示文案参与逻辑比较**（en/zh_TW 下 `t(...)` 与数据中的中文状态永不相等）；渲染层 / 聚合层 / 桌面层 / 渠道层的用户可见文案亦已外置为 `notification.renderer.*`、`notification.aggregated.body.*`、`notification.desktop.level.*`、`notification.channel.*`、`notification.channel_test.*`、`notification.manager.*` 键族；发送层不再追加标准号（与 telegram 同口径 `57f58a6c`，避免与构建器渲染重复）。构建器按「语义阶段」分文件（2026-09-26 G-010 治理）：`_builders_batch.py` 只留下载/收藏/批次类，`_builders_task_results.py` 承接扫描/查询/归档/规范化/状态迁移/公告抓取类——两者**无共享模块级符号**（AST 实测），故拆分不产生反向依赖；调用方一律经 `_message_builders.py` 重导出，增删构建器文件不需要改管理器。管理器本体同轮拆出 `_manager_ops.py`（写发送日志 / 日志分页查询 / 已读标记 / 未读计数 / 过期清理）：这 5 个方法只依赖数据库连接，与「事件 → 渠道分发」主流程无共享局部状态。**采用组合而非继承**——`tests/test_architecture_mixin_guard.py` 明令除 `_WindowLifecycleMixin`（Qt 硬约束）外禁止新增 Mixin，并指定 Composition（ADR-010）；第一版为换取“调用点零改动”用了 Mixin，被该守护测试拦下后改为 `self.ops = NotificationOps(self)`，对外接口相应改为 `mgr.ops.get_logs(...)` 等（`docker/api/notification.py`、`docker/scheduler.py`、测试已同步）。ops 持有宿主引用而不是拷贝 `_db`：只有调用期读取才与拆分前各方法体逐字节不变的语义一致。**WebSocket 广播已彻底移除（阶段 0，2026-10-02）**：原 `NotificationManager.__init__` 的 `ws_broadcast` 形参、`self._ws_broadcast` 属性、`_send_now` 尾部的 `_broadcast_to_ws` 调用与 `_manager_ops.broadcast_to_ws` 方法全部删除——生产唯一构造点（`pilotstd/manager/facade/_base.py:250/:271`）从未传该回调，故 `_ws_broadcast` 恒为 `None`、广播线程永不创建（服务端实现已于 `1784ecbe` 删除）。Web 端通知改为 **30 秒轮询 `GET /api/notification/logs`**（`web/src/composables/useNotification.ts`，含页面隐藏时暂停）。设计方案见 [通知架构重设计](../../plans/notification-redesign/06-阶段0-1实施方案.md)。
+- **通知**：事件驱动 → 渠道独立适配（企业微信/飞书/钉钉/Telegram），支持聚合缓冲与桌面格式化。模板文案统一走 i18n 层级键且**在调用期取 `t()`**（模块级求值会把语言固化在 import 时刻，运行时切换语言失效）；状态类判定使用数据口径（`_format_utils.is_abolished_status`），**禁止拿展示文案参与逻辑比较**（en/zh_TW 下 `t(...)` 与数据中的中文状态永不相等）；渲染层 / 聚合层 / 桌面层 / 渠道层的用户可见文案亦已外置为 `notification.renderer.*`、`notification.aggregated.body.*`、`notification.desktop.level.*`、`notification.channel.*`、`notification.channel_test.*`、`notification.manager.*` 键族；发送层不再追加标准号（与 telegram 同口径 `57f58a6c`，避免与构建器渲染重复）。构建器按「语义阶段」分文件（2026-09-26 G-010 治理）：`_builders_batch.py` 只留下载/收藏/批次类，`_builders_task_results.py` 承接扫描/查询/归档/规范化/状态迁移/公告抓取类——两者**无共享模块级符号**（AST 实测），故拆分不产生反向依赖；调用方一律经 `_message_builders.py` 重导出，增删构建器文件不需要改管理器。管理器本体同轮拆出 `_manager_ops.py`（写发送日志 / 日志分页查询 / 已读标记 / 未读计数 / 过期清理）：这 5 个方法只依赖数据库连接，与「事件 → 渠道分发」主流程无共享局部状态。**采用组合而非继承**——`tests/test_architecture_mixin_guard.py` 明令除 `_WindowLifecycleMixin`（Qt 硬约束）外禁止新增 Mixin，并指定 Composition（ADR-010）；第一版为换取“调用点零改动”用了 Mixin，被该守护测试拦下后改为 `self.ops = NotificationOps(self)`，对外接口相应改为 `mgr.ops.get_logs(...)` 等（`docker/api/notification.py`、`docker/scheduler.py`、测试已同步）。ops 持有宿主引用而不是拷贝 `_db`：只有调用期读取才与拆分前各方法体逐字节不变的语义一致。**WebSocket 广播已彻底移除（阶段 0，2026-10-02）**：原 `NotificationManager.__init__` 的 `ws_broadcast` 形参、`self._ws_broadcast` 属性、`_send_now` 尾部的 `_broadcast_to_ws` 调用与 `_manager_ops.broadcast_to_ws` 方法全部删除——生产唯一构造点（`pilotstd/manager/facade/_base.py:250/:271`）从未传该回调，故 `_ws_broadcast` 恒为 `None`、广播线程永不创建（服务端实现已于 `1784ecbe` 删除）。Web 端通知改为 **30 秒轮询 `GET /api/notification/logs`**（`web/src/composables/useNotification.ts`，含页面隐藏时暂停）。设计方案见《通知架构重设计》（原 `docs/plans/notification-redesign/06-阶段0-1实施方案.md`，**已归档到 `docs/.local/archive/`，不入库**；本文档的「通知」章节已吸收其结论）。
 
 **标准样品编号（2026-10-21）**：parse_std_number 增加 NN-NNNN-FNN-YYYY / GSB NN-NNNN-YYYY 解析，避免通用标准号正则截断尾段。
 
@@ -756,3 +756,110 @@ pilotstd/core/
 `str(...).strip()`（企业微信 `corpid/corpsecret/agentid`；飞书 `app_id/app_secret/chat_id`）。
 原因：生产实测 `agentid=" 1000002"`（前导空格）会被拼进 OAuth/菜单 URL，触发“URL 含非法字符”并让菜单同步 500。
 **读取兜底不改库**：运维仍需清理配置里的空格（见 `08-known-boundaries.md` §29）。
+
+## 迁移锁获取：不得在清理失败时 continue（2026-11-23，NEW-02）
+
+`Database._acquire_migration_lock` 在 `except FileExistsError` 分支里会尝试清理陈旧锁，
+原实现在清理失败时执行 `except OSError: continue`。
+
+**问题**：`continue` 会**跳过后面的超时判断**直接回到 `while True`。
+一旦锁文件持续不可读（权限不足、被其他进程占用、路径异常），
+就变成**死循环、永不返回 `False`** —— 调用方永远拿不到「拿不到锁」的结论，
+表现为迁移流程挂死且无任何日志。
+
+**修法**：清理失败只 `logger.warning` 记录，然后**落到超时判断**，
+让调用方在 `timeout` 后拿到明确的 `False`。
+
+**守护**：`tests/test_db_migration_lock_loop.py`（3 例）——
+锁不可读时在超时内返回 `False`（断言耗时上界，防回归成死循环）/ 正常获取 /
+陈旧锁清理后获取。
+
+> 同类模式提醒：`except: continue` 比 `except: pass` 更隐蔽（看起来像正常循环控制流），
+> 2026-11-23 起 G-050 门禁已能识别它（见 `scripts/check_g_050_silent_errors.py`）。
+
+## file_index 启动校验：按父目录 scandir 替代逐条 stat（2026-11-23，NEW-05）
+
+`FileIndexRepository.validate_paths` 原逐条 `os.path.exists()`，万级索引 = 万次 stat；
+Windows + 网络挂载下每次可达毫秒级，启动校验明显变慢。
+
+**修法**：新增模块级 `_find_missing_rows()`，按**父目录分组**，每目录只 `os.scandir`
+一次拿到真实文件名集合，组内判断退化为集合查找。目录不存在/不可读时该组全判失效
+（与 `exists=False` 语义一致）。
+
+**兼容**：检测到 `os.path.exists` 被测试替身替换时走逐条路径，保证既有
+`@patch("os.path.exists")` 测试语义不变。
+
+**守护**：`tests/test_file_index_validate_scandir.py`（6 例）。
+
+## pending_service 写入：批量查重替代逐条 SELECT（2026-11-23，NEW-04）
+
+`PendingService.record_pending` 原对每条 item 先 `SELECT id ... WHERE standard_number=?`
+再决定 INSERT，批量 500 条 = 500 次 SELECT。
+
+**修法**：新增 `_existing_pending_numbers()`，分批
+`SELECT standard_number ... WHERE status='pending' AND standard_number IN (...)`
+一次拿已存在集合；按 500 一批（SQLite 变量上限 999）。
+
+**兼容**：db 无 `fetchall` 时回退逐条 `fetchone`，不破坏既有测试替身。
+
+**守护**：`tests/test_pending_record_no_n_plus_one.py`（4 例）。
+
+## DB 线程连接回收（2026-11-23，NEW-41）
+
+`Database._all_conns` 累积所有线程的连接；`threading.local` 的连接在线程结束后
+**不会自动关闭**，线程 churn 场景（`_batch_dispatcher` / worker 线程）会持续累积。
+
+**修法**：给「当前线程的 `threading.local` 对象」挂 `weakref.finalize` ——
+线程退出后 `_local` 条目被回收，回调关闭该线程的连接并从 `_all_conns` 移除。
+`_all_conns` 的增删加锁；`close_all()` 改为快照遍历（避免与 finalize 并发）。
+
+**关键实测约束**：`sqlite3.Connection` **不支持弱引用**
+（`TypeError: cannot create weak reference to 'sqlite3.Connection' object`），
+故锚点必须是 `threading.local` 而不是 conn 本身。
+
+**守护**：`tests/test_db_conn_reclaim.py`（6 例，含该约束的固化断言）。
+
+## 通知日志/队列的批量写（2026-11-24，NEW-21 / NEW-22）
+
+**NEW-21（`_suppression_queue.expire`）**：原实现先 `SELECT id` 再逐条
+`UPDATE ... WHERE id=?`（N+1 次往返）。改为**一条 UPDATE**（同样的 WHERE 条件），
+用 `rowcount` 取影响行数 —— 往返从 N+1 降到 1。
+
+**NEW-22（`_manager_ops.mark_logs_read`）**：原实现逐条 `UPDATE ... WHERE id = ?`。
+改为一条 `WHERE id IN (...)`。作用域过滤**复用** `_log_scope.user_clause`，
+与 `mark_one` 完全同口径（admin + include_system 时纳入系统通知，否则只更新本人）。
+
+**注意**：`mark_logs_read` 的返回契约分两种 —— 无 `user_id` 时返回「请求条数」
+（保持既有调用方契约），有 `user_id` 时返回真实受影响行数。
+
+**守护**：`tests/test_notification_unread_isolation.py`（9 例）、
+`tests/test_notification_stage1a_identity.py`、`test_notification_stage1b_fields.py`。
+
+## file_index 查询：get_all 支持可选分页（2026-11-24，NEW-26）
+
+`FileIndexQuery.get_all()` 原无 `LIMIT`，万级索引会整表载入内存
+（每行还有 dict 包装开销）。
+
+**修法**：新增**可选**分页参数 `limit` / `offset`：
+- `limit=None`（默认）**保持原行为**，兼容既有调用方，零风险；
+- 传 `limit` 时只取一页（`LIMIT ? OFFSET ?`），供列表展示 / 分批处理使用。
+
+需要遍历全表的调用方应改成分页循环（`offset` 递增），而不是一次取完。
+
+## 注释中的代码标识符用反引号包裹（2026-11-24，NEW-46）
+
+G-012 的 `[LANG]` 检查要求注释全部用中文，但会**先剔除反引号内内容**再判定。
+历史上有 20 条违规长期挂着（不阻断 ⇒ 永远不会被清理）。
+
+违规词都是普通英文小写词，但实际身份是代码标识符：
+
+| 词 | 实际身份 | 规范写法 |
+|---|---|---|
+| `px`（从 `20px` 切出） | CSS 数值单位 | `` `20px` `` |
+| `polish` / `ensurePolished` / `sizeHint` | Qt 方法名 | `` `polish` `` |
+| `text-transform` / `box-shadow` | CSS 属性名 | `` `text-transform` `` |
+
+**规范**：注释里引用代码标识符时用反引号包裹 —— 这是 Markdown 的标准写法，
+读者一眼看出是代码而非普通英文词，同时被 G-012 正确识别为标识符豁免。
+
+本文件涉及的 `notification/_manager_ops.py` 与 `_suppression_queue.py` 已按此规范清理。

@@ -15,8 +15,9 @@ onMounted(fetchLayout)
 // 动态切换 isDraggable 时库内部微任务调度器（he/Ze）与 Vue 响应式队列不同步，
 // 导致 GridItem 的 interact.js 拖拽监听器未重新绑定。解锁时通过 [...layout] 克隆
 // 数组强制 GridItem 重新挂载以触发 Ze() 重跑，目录下 k.value.draggable() 正确执行。
-// TODO(前置条件): grid-layout-plus 升级到 > 1.1.1（当前 ^1.1.1）后重新评估是否仍需此 workaround；
-// 若升级后仍复现，保留本段并在技术债中登记。
+// V-10（2026-11-23 认领，原为无主 TODO）：grid-layout-plus workaround。
+// 触发条件：grid-layout-plus 升级到 > 1.1.1 后重新评估；若仍复现则保留本段
+// 并在 docs/debt/03-open.md V-10 补充「已复现」记录。当前版本 ^1.1.1。
 watch(
   () => appStore.dashboardLocked,
   (locked, wasLocked) => {
@@ -83,9 +84,9 @@ watch(
 .card-wrapper { position: relative; width: 100%; height: 100%; }
 .card-inner { width: 100%; height: 100%; }
 /* semantic color — consistent across all themes */
-/* TODO: [Design Debt] #fff 无精确令牌，暂不替换，待定令牌后统一处理 */
-/* TODO: [Design Debt] rgba(239,68,68,0.85) 无精确令牌，暂不替换，待定令牌后统一处理 */
-/* TODO: [Design Debt] 22px 无精确令牌，暂不替换，待定令牌后统一处理 */
+/* TODO: [Design Debt] A-52 — #fff 无精确令牌，暂不替换，待定令牌后统一处理 */
+/* TODO: [Design Debt] A-52 — rgba(239,68,68,0.85) 无精确令牌，暂不替换，待定令牌后统一处理 */
+/* TODO: [Design Debt] A-52 — 22px 无精确令牌，暂不替换，待定令牌后统一处理 */
 .remove-btn { position: absolute; top: 6px; right: 6px; z-index: 10; width: 22px; height: 22px; border-radius: 50%; border: none; background: rgba(239,68,68,0.85); color: #fff; font-size: var(--font-size-14); cursor: pointer; opacity: 0; transition: opacity 0.2s; display: flex; align-items: center; justify-content: center; }
 .card-wrapper:hover .remove-btn { opacity: 1; }
 .dashboard-grid { width: 100%; min-height: 400px; }

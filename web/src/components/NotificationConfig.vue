@@ -301,10 +301,8 @@ defineExpose({ saveConfig })
 }
 .collapsible-header:hover .collapsible-icon { color: var(--primary); background: var(--primary-bg); }
 .collapsible-content { padding: var(--space-16) var(--space-18); }
-.collapsible-enter-active,
-.collapsible-leave-active { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-.collapsible-enter-from,
-.collapsible-leave-to { opacity: 0; max-height: 0; padding-top: 0; padding-bottom: 0; }
+/* collapsible 过渡统一由 views/settings/shared.css 提供（全站一份真相）；
+   本组件不再重复定义 —— 原先这里多一份 padding 过渡，导致同一交互在两个页面观感不一致。 */
 
 .field { margin-bottom: var(--space-8); }
 .field label { display: block; font-size: var(--font-size-12); color: var(--text-secondary); margin-bottom: var(--space-4); }

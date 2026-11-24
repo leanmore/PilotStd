@@ -320,16 +320,25 @@ class NotificationOps:
         """
         db = self._db
         if ids:
-            updated = 0
-            for i in ids:
-                if user_id is not None:
-                    updated += _log_scope.mark_one(db, i, user_id, include_system)
-                else:
-                    db.execute("UPDATE notification_log SET is_read = 1 WHERE id = ?", (i,))
-                    updated += 1
+            # NEW-22：原实现逐条 `UPDATE ... WHERE id = ?`（N 条 = N 次往返）。
+            # 改为一条 `WHERE id IN (...)` 批量更新，语义等价、往返从 N 降到 1。
+            # 作用域过滤**复用** `_log_scope.user_clause`，与 `mark_one` 完全同口径
+            # （admin + include_system 时纳入系统通知，否则只更新本人）。
+            placeholders = ",".join("?" * len(ids))
+            params: list[Any] = list(ids)
+            sql = f"UPDATE notification_log SET is_read = 1 WHERE id IN ({placeholders})"
+            if user_id is not None:
+                clause, clause_params = _log_scope.user_clause(user_id, include_system)
+                sql += f" AND {clause}"
+                params.extend(clause_params)
+            cursor = db.execute(sql, tuple(params))
             # 旧行为（无 user_id）返回“请求条数”，保持既有调用方/测试契约；
             # 有 user_id 时返回真实受影响行数，避免把别人的 `id` 也计入。
-            return updated if user_id is not None else len(ids)
+            if user_id is not None:
+                raw = getattr(cursor, "rowcount", 0) if cursor is not None else 0
+                # 测试替身的 `rowcount` 不是 int：退回请求条数（契约下限）
+                return raw if isinstance(raw, int) and raw >= 0 else len(ids)
+            return len(ids)
         _log_scope.mark_all(db, user_id, include_system)
         return 0
 

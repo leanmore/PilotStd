@@ -112,6 +112,15 @@ def delete_preference(
 
 
 # ──统一设置（已废弃：请使用 /api/user/preferences/{key}）──
+#
+# 移除计划（2026-11-24 核实）：
+#   - 前端 `web/src/` 与 Win 端 `pilotstd/ui/` **均零引用**（git grep 实测）
+#   - 唯一消费方是 `tests/test_api_user_preferences_endpoints.py`（验证废弃告警本身）
+#   - 保留原因：外部脚本/第三方集成可能仍在用；且 `get_user_settings` /
+#     `save_user_settings` 的聚合语义尚未完全由 preferences 端点覆盖
+#   - 移除条件：确认无外部调用后，连同 `UserSettingsResponse`、
+#     `_deprecated_warn`、`get_user_settings`/`save_user_settings` 一并删除，
+#     并同步 `docs/onboarding/20-api-route-inventory.md` 的 118/119 行
 
 
 @router.get("/api/user/settings", response_model=UserSettingsResponse)

@@ -213,11 +213,18 @@ class TestProcessRecord(unittest.TestCase):
     # ── 去重：已发送过 ──
 
     def test_already_sent_skips(self):
+        """已提醒过的用户跳过发送。
+
+        NEW-20（2026-11-24）：去重判定从「逐 uid 一次 SELECT」改为「一次批量 SELECT
+        拿已提醒 uid 集合」。故 mock 只需两个 cursor：
+          ① 取用户列表（`fetchall` 返回 user_id）
+          ② 批量取已提醒 uid（`fetchall` 返回 user_id）
+        """
         stats = {"scanned": 0, "sent": 0, "skipped": 0}
         mock_cursor1 = MagicMock()
         mock_cursor1.fetchall.return_value = [{"user_id": 1}]
         mock_cursor2 = MagicMock()
-        mock_cursor2.fetchone.return_value = {"1": 1}  # 已有记录
+        mock_cursor2.fetchall.return_value = [{"user_id": 1}]  # 已有记录
         self.mock_db.execute.side_effect = [mock_cursor1, mock_cursor2]
 
         _process_record(self.base_rec, self.today, self.mock_db, self.mock_nm, stats)
