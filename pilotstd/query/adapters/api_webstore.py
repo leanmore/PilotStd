@@ -45,7 +45,7 @@ _STATUS_MAP = {
     "Current": Status.ACTIVE.value,
     "Reaffirmed": Status.ACTIVE.value,
     "Revised": Status.ACTIVE.value,
-    "Replaced": "被代替",  # i18n-allow: 状态口径中文（与 Status 常量同源）
+    "Replaced": Status.SUPERSEDED.value,
     "Withdrawn": Status.WITHDRAWN.value,
 }
 

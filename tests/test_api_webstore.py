@@ -121,8 +121,9 @@ class TestParseResult(unittest.TestCase):
         self.assertEqual(self.a._parse_result(rec).status, Status.ACTIVE.value)
 
     def test_status_replaced_maps_superseded(self):
+        """`Replaced` 必须映射到 `Status.SUPERSEDED`（禁止裸字面量，见状态收敛守卫）。"""
         rec = {"raw": {"productcode": "610", "type": "STD", "status": "Replaced", "title": "API STD 610: X"}}
-        self.assertEqual(self.a._parse_result(rec).status, "被代替")
+        self.assertEqual(self.a._parse_result(rec).status, Status.SUPERSEDED.value)
 
     def test_iso_date_conversion(self):
         from pilotstd.query.adapters.api_webstore import _iso_date
