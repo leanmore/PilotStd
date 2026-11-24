@@ -128,8 +128,11 @@ def _build_auto_backup_message(data: dict) -> NotificationMessage:
     size = data.get("size_mb", "")
     if success:
         blocks: list[NotificationBlock] = [
-            KeyValueBlock(key=t("notification.system.auto_backup.body.path"), value=path),
-            KeyValueBlock(key=t("notification.system.auto_backup.body.size"), value=size),
+            KeyValueBlock(key=t("notification.system.auto_backup.body.path"), value=str(path)),
+            # `size_mb` 由调度器按 `getsize()/(1024*1024)` 计算，是 **float**；
+            # `KeyValueBlock.value` 声明 str 但无运行时校验，原样传入会让 Telegram 渲染器的
+            # `re.sub` 抛 TypeError ⇒ **整条通知投递失败**（生产 notification_log id=2034）。
+            KeyValueBlock(key=t("notification.system.auto_backup.body.size"), value=str(size)),
         ]
         return NotificationMessage(
             title=t("notification.system.auto_backup.title.success"),

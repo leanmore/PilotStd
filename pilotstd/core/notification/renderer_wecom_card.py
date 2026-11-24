@@ -30,8 +30,11 @@ from __future__ import annotations
 import textwrap
 from typing import Any
 
+from pilotstd.i18n import t
+
 from .blocks import KeyValueBlock, ListBlock, NotificationBlock, StatusChangeBlock, TextBlock
 from .renderer import BlockRenderer
+from .renderer_base import level_prefix
 from .renderer_links import action_label, link_actions
 
 
@@ -54,20 +57,34 @@ class WeChatCardRenderer(BlockRenderer):
         if not items and (message.body or ""):
             items.append({"title": "", "desc": str(message.body)[:140]})
 
-        links = link_actions(message)
-        jump_list = [
+        # P0-3：`message.link`（如标准详情）此前在卡片里**完全不可见**。
+        # 作为 `jump_list` 首项并让 `card_action` 指向它（卡片的主动作＝用户最想去的详情页）；
+        # 既有站内入口动作（`view_detail`）保留为后续项，不互相顶掉。
+        # 企微 `jump_list` 项的 `type` 是 **int**（1 = 跳转 URL），`url/title` 是 str，
+        # 故值类型用 Any（此前注解写成 dict[str, str] 会让 mypy 判 int 不可赋）。
+        jump_list: list[dict[str, Any]] = []
+        detail_url = str(getattr(message, "link", "") or "").strip()
+        if detail_url:
+            jump_list.append({"type": 1, "url": detail_url, "title": t("notification.renderer.detail")})
+        jump_list.extend(
             {
                 "type": 1,  # 1 = 跳转 URL（与实证实现一致）
                 "url": str((getattr(spec, "args", None) or {}).get("url") or ""),
                 "title": action_label(spec),
             }
-            for spec in links
-        ]
+            for spec in link_actions(message)
+        )
 
+        # P0-2：级别前缀（warning/error）此前在卡片里**完全不可见**（27 个事件看不出严重度）。
+        # 只在这里补一次（放 `main_title.desc`，紧贴主标题）；**不放进 `_render_block()`**——
+        # 那会让降级文本路径（`render()` 基座也会加一次前缀）出现二次前缀。
         card: dict[str, Any] = {
             "card_type": "news_notice",
             "source": {"desc": str(message.title or "")},
-            "main_title": {"title": str(message.title or ""), "desc": ""},
+            "main_title": {
+                "title": str(message.title or ""),
+                "desc": level_prefix(getattr(message, "level", "")),
+            },
             "vertical_content_list": items,
         }
         if jump_list:
@@ -87,7 +104,15 @@ class WeChatCardRenderer(BlockRenderer):
         return f"{block.label}: {block.old_value} → {block.new_value}"
 
     def _render_list(self, block: ListBlock) -> str:
-        lines = [f"**{block.title}**"]
+        """列表块：标题 +「共 N 条」+ 逐行条目 + 完整列表链接（P1-1，此前三项全丢）。
+
+        企微卡片正文是纯文本 `desc`（不解析 markdown），故完整列表链接写成「文案：URL」
+        而不是 `[文案](URL)`，避免卡片里出现裸方括号语法。
+        """
+        total = block.total if block.total is not None else len(block.items)
+        lines = [f"**{block.title}**{t('notification.renderer.list_count').format(total=total)}"]
         for item in block.items:
             lines.append("- " + " | ".join(str(v) for v in item.values()))
+        if block.detail_url:
+            lines.append(f"{t('notification.renderer.view_full_list')}：{block.detail_url}")
         return "\n".join(lines)

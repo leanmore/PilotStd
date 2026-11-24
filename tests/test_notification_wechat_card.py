@@ -17,7 +17,9 @@ from pilotstd.core.notification._links import attach_web_actions
 from pilotstd.core.notification.channel import NotificationMessage
 from pilotstd.core.notification.channels.wechat import WechatChannel
 from pilotstd.core.notification.renderer import split_for_channel
+from pilotstd.core.notification.renderer_base import level_prefix
 from pilotstd.core.notification.renderer_wecom_card import WeChatCardRenderer
+from pilotstd.i18n import t
 
 BASE = "https://std.example.com"
 
@@ -198,3 +200,80 @@ def test_token_failure_is_reported(monkeypatch) -> None:
     ch = WechatChannel("", "ww123", "1000001", "bad")
     assert ch.send(_msg()) is False
     assert "令牌" in ch.last_error or "token" in ch.last_error.lower()
+
+
+# ── 3. 信息量对齐（P0-2 级别 / P0-3 详情链接 / P1-1 列表计数） ────────────────
+
+
+def test_card_renders_level_prefix_exactly_once() -> None:
+    """P0-2：warning/error 的级别前缀必须进入卡片（27 个事件此前看不出严重度）。
+
+    「恰好一次」同时锁定**不得重复**：卡片路径只在 `render_card()` 的字段里补一次，
+    不得再经 `_render_block()` 叠加（否则降级文本路径会二次前缀）。
+    """
+    for level in ("warning", "error"):
+        msg = _msg()
+        msg.level = level
+        dumped = json.dumps(WeChatCardRenderer().render_card(msg), ensure_ascii=False)
+        prefix = level_prefix(level)
+        assert prefix in dumped, f"{level} 级别前缀缺失：{dumped}"
+        assert dumped.count(prefix) == 1, f"{level} 级别前缀重复：{dumped}"
+
+
+def test_card_info_level_has_no_prefix() -> None:
+    """info 不加前缀（避免所有企微卡片都出现噪声）。"""
+    msg = _msg()
+    msg.level = "info"
+    dumped = json.dumps(WeChatCardRenderer().render_card(msg), ensure_ascii=False)
+    assert level_prefix("info") == ""
+    assert "⚠️" not in dumped and "❌" not in dumped
+
+
+def test_card_degradation_text_has_level_prefix_exactly_once() -> None:
+    """降级文本（`render()`）里前缀同样只出现一次（防 `_render_block` 二次前缀）。"""
+    msg = _msg()
+    msg.level = "warning"
+    text = WeChatCardRenderer().render(msg)
+    assert text.count(level_prefix("warning")) == 1, text
+
+
+def test_card_puts_message_link_into_jump_list_and_card_action() -> None:
+    """P0-3：`message.link`（标准详情）必须进卡片跳转，且 `card_action` 指向它。"""
+    msg = _msg()
+    msg.link = "https://std.example.com/standards/GB%201-2020"
+    card = WeChatCardRenderer().render_card(msg)
+    assert card["jump_list"] == [
+        {"type": 1, "url": msg.link, "title": t("notification.renderer.detail")}
+    ]
+    assert card["card_action"] == {"type": 1, "url": msg.link}
+
+
+def test_card_keeps_web_actions_after_detail_link() -> None:
+    """详情链接是 `jump_list` 首项；既有站内入口动作保留为后续项（不互相顶掉）。"""
+    msg = _msg()
+    msg.link = "https://std.example.com/standards/GB%201-2020"
+    attach_web_actions(msg, _Cfg())
+    card = WeChatCardRenderer().render_card(msg)
+    urls = [item["url"] for item in card["jump_list"]]
+    assert urls[0] == msg.link
+    assert f"{BASE}/notification-logs" in urls
+
+
+def test_card_list_renders_count_and_detail_url() -> None:
+    """P1-1：ListBlock 的「共 N 条」与 `detail_url` 不得再丢（5 个事件受影响）。"""
+    from pilotstd.core.notification.blocks import ListBlock
+
+    msg = _msg(body="")
+    msg.blocks = [
+        ListBlock(
+            title="新登记",
+            items=[{"standard_number": "GB/T 1-2020"}],
+            total=2,
+            detail_url="https://std.example.com/standards?ids=1,2",
+        )
+    ]
+    card = WeChatCardRenderer().render_card(msg)
+    descs = " ".join(item["desc"] for item in card["vertical_content_list"])
+    assert t("notification.renderer.list_count").format(total=2) in descs
+    assert "https://std.example.com/standards?ids=1,2" in descs
+
