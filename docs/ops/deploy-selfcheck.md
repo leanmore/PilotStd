@@ -229,6 +229,12 @@ python scripts/ops/probe_all.py --help
 
 ---
 
+## 七-A、批次 1 人工验收清单（11 项）
+
+见 [batch1-manual-checklist.md](batch1-manual-checklist.md)：
+probe_batch1.py 自动验证 10 项后，剩余 11 项需人工在浏览器/真实环境确认，
+逐项给出「怎么做 → 看什么 → 判据」。全部完成后批次 1 的 22 项即可闭合。
+
 ## 七-B、数据迁移（需授权，**写库**）��
 
 见 [batch2-data-migration.md](batch2-data-migration.md)：
