@@ -139,6 +139,11 @@ A: `--required-only` 参数仅检查 `required` 级别能力。CI 也仅对 `req
 
 ---
 
+## 2026-11-24 G-055 基线并入 P0 视觉修复所需归零值
+- 背景：任务包 P0 的四类视觉缺陷修复中，日期控件「单层边框」与侧栏「sticky」需要 9 处**无法用令牌表达的归零声明**（`background:transparent`×2、`border:0`×2、`box-shadow:none`×2、`outline:none`、`top:0`、`height:100vh`）。
+- 处置：按 G-055 既有流程经 `--suggest-baseline` 分类后**人工并入**基线（新增 6 条目 / 9 次计数；B 155→156、C 621→629），未删改既有条目；`gates.md` 的 G-055 基线段落与表格口径已同步（642 条目 / 20 分组 / A=0 B=156 C=629）。
+- 反例记录：基线**只由人工确认后提交**，脚本无自动写基线分支（`check_design_tokens.py` 仅 `--suggest-baseline` 打印）。
+
 ## 治理体系原则（并入自 PROJECT_GOVERNANCE）
 
 1. **能力必须有门禁守护**：任何非功能性能力（后台线程、观测日志、缓存、通知等）必须在能力登记簿中登记，并有至少一道门禁守护。

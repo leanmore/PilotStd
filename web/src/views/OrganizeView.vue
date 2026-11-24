@@ -221,7 +221,9 @@ const breadcrumbs = computed(() => {
       </div>
     </template>
   </DataView>
-  <Paginator :rows="rows" :totalRecords="files.length" @page="onPage" class="mt-2" />
+  <!-- 修 2026-11-24（P0-3 同类）：`:first` 必须受控，否则从存储恢复的 page 与
+       Paginator 内部索引错位（内容已是第 N 页、高亮仍停在第 1 页）。 -->
+  <Paginator :first="page * rows" :rows="rows" :totalRecords="files.length" @page="onPage" class="mt-2" />
   <LogBar />
 </template>
 

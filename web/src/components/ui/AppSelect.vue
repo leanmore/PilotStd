@@ -123,7 +123,14 @@ function onUpdate(value: T): void {
   height: var(--input-height-sm);
 }
 
+/* 修 2026-11-24（P0-2）：中文垂直不居中。
+   根因：label 是 block + `line-height: var(--line-height-none)`(≈1)，在 32px 高、
+   13px 字号的盒子里文字贴顶，实测墨迹中心比容器中心高 ≈10px。
+   改为 flex 居中（父级 `.p-select` 是 flex，默认 stretch 已让 label 撑满高度，
+   故无需再写 height:100%）。 */
 .app-select :deep(.p-select-label) {
+  display: flex;
+  align-items: center;
   padding: 0 var(--space-14);
   font-size: var(--font-size-13);
   line-height: var(--line-height-none);

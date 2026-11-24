@@ -50,7 +50,7 @@
 | G-052 | 文档漂移 | `docs/` 中出现的 `/api/...` 必须是真实路由，配置键必须在 defaults/scope，表名必须在迁移中（归档/ADR/债务台账豁免）；**P2-07（2026-11-13）**：另校验 `COUNT_CLAIMS` 里 6 处写死的数字（router 模块/唯一 API 路径/route×method/表数/迁移模块数），声明缺失也阻断 | 任一不存在或数字不符（`check_docs_drift.py`） | `scripts/check_docs_drift.py` | ✅ 已部署（2026-11-05；数字校验 2026-11-13） |
 | G-053 | backend 测试 GUI import 守卫 | `tests/test_*.py` 的**模块级** import 不得出现 `pilotstd.ui` / `PyQt6`（`tests/gui/` 与 backend CI 已忽略文件除外） | 任一命中（`check_backend_test_imports.py`） | `scripts/check_backend_test_imports.py` | ✅ 已部署（2026-11-10，U37） |
 | G-055 | 设计令牌门禁（棘轮） | `web/src/**/*.{vue,css}` 内**不得新增**可映射到已定义令牌的硬编码视觉样式（颜色 / 字号 / 间距 / 圆角 / 高度 / 行高 / 字重），内联 `style` 同样适用；存量按基线 `scripts/design_token_baseline.json` 放行（只含 C 类分组、B 类 TODO 项与 2 条内联白名单），**A 类必须为 0** | A 类出现；或 B/C 类**超出基线次数**（`check_design_tokens.py`） | `scripts/check_design_tokens.py`（`check_all.sh --fast` + CI `test-frontend`） | ✅ 已部署（2026-11-21；基线 611 条目 / 18 组 / A 0 · B 115 · C 628） |
-| G-055（基线） | **2026-11-21 基线收敛**：A-51 消除 3 条后 `B 115→113`、`C 628→627`；P5-1（`--text-on-primary`）后 `B 113→107`，当前口径 `A=0 / B=107 / C=627`；删除 `inline-whitelist` 整组与 C 类 `PendingView.vue width 20px`；`check_design_tokens.py` 复跑 A=0 / B=113 / C=627 / D=0、`[STALE]` 0 条 | 基线为人工维护，禁止脚本自动更新 |
+| G-055（基线） | **2026-11-21 基线收敛**：A-51 消除 3 条后 `B 115→113`、`C 628→627`；P5-1（`--text-on-primary`）后 `B 113→107`，当前口径 `A=0 / B=156 / C=629`；删除 `inline-whitelist` 整组与 C 类 `PendingView.vue width 20px`；`check_design_tokens.py` 复跑 A=0 / B=113 / C=627 / D=0、`[STALE]` 0 条 | 基线为人工维护，禁止脚本自动更新 |
 | G-054 | GUI 单文件覆盖率棘轮 | 基线 `scripts/gui_coverage_baseline.json` 里登记的前端**运行时**文件，行覆盖率不得低于基线 0.5pp；纯类型文件（`type_only`）一旦出现可执行行即 FAIL（需升格进棘轮或把代码移出）；**规则**：① 提升覆盖率的 PR **必须在同 PR 内收紧基线**，否则视为未完成；② 文件改名/移动**同 PR 改基线路径，不允许加豁免** | 任一文件下降超缓冲、基线文件从报告消失、`type_only` 出现可执行行（`check_gui_coverage_ratchet.py`） | `scripts/check_gui_coverage_ratchet.py`（CI `test-frontend`） | ✅ 已部署（2026-11-14，P2-08；v2.48 加固） |
 
 > G-051 在 CI 的 `repo-compliance` 作业中执行：`python scripts/audit_api_matrix.py --check`（写端点缺显式 admin 或前端死调用即失败）。
@@ -660,9 +660,11 @@ B1（声明类 vs 实现类）已覆盖同一语义、且每次 CI 都在跑；�
 - **B / C 类**：必须在基线内，且**当前次数 ≤ 基线次数**；超出即阻断（新增硬编码）。
 - **次数减少**：只打 `[STALE]` 提示人工同步基线，**不阻断、脚本不自动改基线**（禁止自动更新）。
 
-**基线**：`scripts/design_token_baseline.json`（611 条目 / 18 分组；C 628 / B 115 / A 0）。
+**基线**：`scripts/design_token_baseline.json`（642 条目 / 20 分组；C 629 / B 156 / A 0）。
 匹配键 = **文件 + 属性 + 值**（不含行号，允许格式化导致的行号漂移），计数即上限。
 分组理由写在文件内 `reason` 字段：PrimeVue `RETAINED` / SVG 图表 / `var()` fallback / 布局尺寸 / 相对单位 / 计算值 / 装饰圆角与细线 / 令牌定义 / 滤镜 / B 类无令牌项 / 2 条内联白名单。
+
+**2026-11-24 baseline 变更（P0 视觉修复所需）**：新增 6 条目 / 9 次计数，均为**无法用令牌表达的「归零」声明**（`background:transparent`×2、`border:0`×2、`box-shadow:none`×2、`outline:none`、`top:0`、`height:100vh`），落在 P0-1（日期控件单层边框）/ P0-4（侧栏 sticky）两处；经 `--suggest-baseline` 分类后人工并入，未删改既有条目。详见该次 `fix(ui)` 提交说明。
 
 **禁止**：整文件或整目录白名单、按目录忽略、脚本自动写基线。更新基线须人工确认并单独提交（`chore:` 或 `docs:`）。
 

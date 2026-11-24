@@ -78,6 +78,15 @@ const emit = defineEmits<{
   flex-shrink: 0;
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
+  /* 修 2026-11-24（P0-4）：长页面左侧工作栏随内容滚走。
+     根因：`.main-area` 是 flex row，侧栏默认 stretch → 高度被拉成整页（实测 3872px），
+     position 为 static，窗口滚动时整块上移、导航不可见。
+     修法：sticky 固定在视口内 + 高度取视口高（导航区自带 overflow-y:auto，独立滚动）。
+     桌面端专用（移动端 v-if 不渲染侧栏）。 */
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  height: 100vh;
   /* TODO: [Design Debt] A-52 — 2px 0 8px rgba(0, 0, 0, 0.03) 无精确令牌，暂不替换，待定令牌后统一处理 */
   /* TODO: [Design Debt] 原生阴影与既有 --shadow-* 层级不匹配（半径/扩散/透明度不同），待统一评估（A-52） */
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.03);

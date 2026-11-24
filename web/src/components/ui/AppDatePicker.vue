@@ -68,23 +68,29 @@ function onUpdate(value: Date | Array<Date | null> | null | undefined): void {
 </template>
 
 <style scoped>
-/* ── 外壳：只负责排布，描边交给内层 input（单层框，与 AppInput 同口径） ── */
+/* ── 外壳承担**唯一一层**边框/底色/圆角（与 AppInput 同口径）──
+   修 2026-11-24（P0-1）：此前描边画在内层 input 上、下拉按钮又画了一层带右边框圆角的
+   独立框，两者叠加后日历图标外围出现「胶囊」，而清除图标（×）没有 → 视觉不统一。
+   现改为：外层一个框，input 与两个图标都在这一个框内，图标同色同尺寸。 */
 .app-datepicker {
   display: inline-flex;
   align-items: center;
-  color: var(--text);
-}
-
-/* ── 尺寸档：高度落在内层 input 上（p-datepicker-input 才是真正的输入框） ── */
-.app-datepicker :deep(.p-datepicker-input) {
-  height: var(--input-height-md);
-  padding: 0 var(--space-14);
-  font-size: var(--font-size-13);
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--ds-radius-md);
   color: var(--text);
   transition: border-color var(--transition), box-shadow var(--transition), background-color var(--transition);
+}
+
+/* ── 内层 input：不再自带边框/底色/圆角，只保留高度、内边距与字号 ── */
+.app-datepicker :deep(.p-datepicker-input) {
+  height: var(--input-height-md);
+  padding: 0 var(--space-14);
+  font-size: var(--font-size-13);
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: var(--text);
 }
 .app-datepicker--l :deep(.p-datepicker-input) {
   height: var(--input-height-lg);
@@ -100,36 +106,45 @@ function onUpdate(value: Date | Array<Date | null> | null | undefined): void {
   color: var(--text-dim);
 }
 
-/* 下拉箭头：颜色跟随文字层级，不单独设色；与输入框共享圆角右半边 */
+/* 下拉按钮：与外层同框，不再自画边框/底色；颜色与清除图标统一取 --text-secondary */
 .app-datepicker :deep(.p-datepicker-dropdown) {
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: transparent;
+  border: 0;
   color: var(--text-secondary);
-  border-start-end-radius: var(--ds-radius-md);
-  border-end-end-radius: var(--ds-radius-md);
+  padding: 0 var(--space-12);
+}
+/* 清除图标（×）与日历图标统一：同色同尺寸（两枚均为 14×14 SVG），靠外层 flex 居中 */
+.app-datepicker :deep(.p-datepicker-clear-icon) {
+  color: var(--text-secondary);
 }
 
-/* ── 四态：hover / focus / invalid / disabled ── */
-.app-datepicker:not(.app-datepicker--disabled) :deep(.p-datepicker-input:enabled:hover) {
+/* ── 四态：hover / focus / invalid / disabled（全部落在**外层**，因边框已上移）── */
+.app-datepicker:not(.app-datepicker--disabled):hover {
   border-color: var(--text-dim);
 }
-.app-datepicker:not(.app-datepicker--disabled) :deep(.p-datepicker-input:enabled:focus) {
+.app-datepicker:not(.app-datepicker--disabled):focus-within {
   border-color: var(--primary);
   box-shadow: var(--focus-ring);
 }
-.app-datepicker--invalid :deep(.p-datepicker-input) {
+.app-datepicker--invalid {
   border-color: var(--danger);
 }
+/* 内层 input 自己不再画 focus 环（否则会在框内再套一层） */
+.app-datepicker :deep(.p-datepicker-input:enabled:focus) {
+  box-shadow: none;
+  outline: none;
+}
 
-.app-datepicker--disabled :deep(.p-datepicker-input) {
+.app-datepicker--disabled {
   background: var(--disabled-bg);
   border-color: var(--border);
+}
+.app-datepicker--disabled :deep(.p-datepicker-input) {
   color: var(--disabled-text);
   cursor: not-allowed;
 }
-.app-datepicker--disabled :deep(.p-datepicker-dropdown) {
-  background: var(--disabled-bg);
-  border-color: var(--border);
+.app-datepicker--disabled :deep(.p-datepicker-dropdown),
+.app-datepicker--disabled :deep(.p-datepicker-clear-icon) {
   color: var(--disabled-text);
 }
 </style>
