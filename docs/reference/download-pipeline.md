@@ -474,7 +474,7 @@ GB/T 标准被误判成非国标（已由 `test_slash_codes_are_routable` 钉住
 ASME（`ASME B16.5-2020`）、BPVC 等编号 **38/40 解析不出** → 解析失败即 `continue` **静默跳过归档**，
 下载件滞留在 `/standards` 根目录（数据丢失，只在浏览器 console 留一条 warn）。
 
-**修法（避免前端成为第二套口径）**：`/api/download/import` 与 `/api/download/run` 的
+**修法（避免前端成为第二套口径）**：`/api/download/import` 与 `/api/download` 的
 `results[]` 新增四个**后端解析字段**（由唯一口径 `parse_std_number` 生成）：
 
 | 字段 | 含义 | 解析不出时 |

@@ -64,6 +64,9 @@
 - G-047：中文日志/文案需 i18n 或 `# i18n-allow`；
 - G-055：新增视觉字面量需走基线流程；
 - 前端改动：四件套。
+- **文档里引用 API 路径必须真实存在**：	ests/test_check_docs_drift.py（CI 	est-backend 内）会校验
+  dead_api——写错一个端点名（如 /api/download/run 实为 /api/download）即红；提交前
+  python -m pytest tests/test_check_docs_drift.py -q 自检。
 
 每个「同类问题」类做完后，必须回写**全量复核结果**（类内还有多少处、为何不修/已修），
 不能只修用户指出的那几处。
