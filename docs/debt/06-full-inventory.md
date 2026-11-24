@@ -529,3 +529,67 @@ python scripts/audit_design_tokens.py --check    # A=0 B=148 C=588 D=0
 临时文件 临时表 临时目录 临时变量 临时对象 临时态 临时值 临时占位 临时缓存
 临时性错误 临时性失败 临时渠道实例 临时高亮 临时状态
 ```
+
+## 附四、批次 1 真实部署自检结果（2026-11-24 18:39 实测）
+
+对局域网部署实例 `http://192.168.1.18:9028` 跑 `scripts/ops/probe_batch1.py` +
+`probe_all.py` 的实测结果。**这是批次 1 的第一次真实取证**。
+
+### 部署身份
+
+| 项 | 值 |
+|---|---|
+| 版本 | `v0.206.0` |
+| 镜像 | `ghcr.io/leanmore/pilotstd:v0.206.0` |
+| `APP_VERSION`（git sha） | `f433c633` = **main HEAD** |
+| `schema_version` | 76（与迁移链一致） |
+| 健康状态 | `ok`（database / monitor / parser 三服务均 true） |
+
+> ⚠️ **重要**：本次部署的镜像是 **main 分支**（CI 的 docker job 硬约束
+> `if: github.ref == 'refs/heads/main'`，且 `ref: main` 检出构建）。
+> 特性分支 `feat/ds-phase3-microinteractions` 的改动**不在镜像内** ——
+> 要部署方向 A/B/C 的成果，需先把 PR #26 合入 main，CI 才会构建新镜像。
+
+### 批次 1 判据自检（22 项）
+
+| 项 | 结果 | 证据 |
+|---|---|---|
+| G-21 公告服务端分页 | **PASS** | `/api/announce/results → 200，total=784` |
+| G-22 归档统计端点 | **PASS** | `/api/system/archive-stats → 200`，字段 `by_type/exists/root/samples/total_bytes` |
+| G-36 隔离区统计 | **PASS** | `/api/system/quarantine-stats → 200` |
+| G-29 菜单配置写入口 | **PASS** | `OPTIONS /api/notification/menu/config → 405`（端点存在） |
+| G-37 飞书群发现入口 | **PASS** | `OPTIONS /api/notification/menu/chats → 405`（端点存在） |
+| G-48 mark_missing 入口 | **PASS** | `OPTIONS /api/pending/mark-missing → 405`（端点存在） |
+| G-42 query_metrics 落表 | **PASS** | `query_metrics` 行数 = **411**（>0，found/not_found 已落表） |
+| G-44 通知日志可见 | **PASS** | `/api/notification/logs → 200，total=2608` |
+| G-46 / G-14 / G-47 | 进程内实现 | 无独立端点 → `unverified`（本地测试锁定） |
+| G-15/17/18/19/20/23/34/38/39/40/41 | 需人工 | 11 项如实标 `unverified` 并注明原因 |
+
+**合计：10 通过 / 0 失败 / 14 无法验证（11 人工 + 3 进程内）**
+
+结论：**批次 1 中所有「可自动化判定」的判据已在生产验证通过**。
+剩余 11 项需人工按各自判据确认（渲染类 / 目录类 / 真实外发）。
+
+### 完整部署自检（4 个 probe + 批次 1）
+
+| 探测 | 通过 | 失败 | 无法验证 | 阻断项 |
+|---|---:|---:|---:|---|
+| health | 8 | 0 | 0 | — |
+| pending_paths | 8 | 1 | 0 | `pending.mass_delete_guard` |
+| credentials | 5 | 0 | 3 | `feishu.credentials` |
+| db_counts | 12 | 1 | 0 | `favorite_downloads.orphan` |
+| batch1 | 10 | 0 | 14 | — |
+
+### 3 条生产阻断项（真实数据，非本地推测）
+
+1. **`pending.mass_delete_guard`（fail）**：按抽样外推缺失约 **61/61**，
+   触发挂载保护阈值 ⇒ `mark_missing` **整轮跳过**（定时任务与端点跑完都不标记任何行）。
+   探测已确认挂载可列、路径都在配置扫描根下 ⇒ **保护误报**（数据真的缺失）。
+   处置：管理员在维护窗口内以 `protect=False` 执行一次，或先清理这批 pending。
+2. **`feishu.credentials`（unverified）**：飞书凭证不齐全（webhook 缺 `webhook_url`；
+   app 缺 `app_id` / `app_secret` / `receive_id`）。渠道当前**未启用**，
+   如需启用需补齐字段，或加 `--allow-unconfigured-channels` 忽略。
+3. **`favorite_downloads.orphan`（fail）**：**3 条孤儿行**（`favorite_id` 指向不存在的收藏）。
+
+> 这 3 条与方向 B 首次实测（2026-11-23）结论完全一致 —— 说明探测脚本可复现，
+> 不是一次性偶然。
