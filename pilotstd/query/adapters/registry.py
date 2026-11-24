@@ -4,6 +4,7 @@
 import logging
 
 from .ahbz import AhbzAdapter
+from .api_webstore import ApiWebstoreAdapter
 from .base import BaseAdapter
 from .ccsn import CCSNAdapter
 from .cqis import CqisAdapter
@@ -31,6 +32,7 @@ logger = logging.getLogger(__name__)
 
 # 完整注册表：_→适配器类
 ALL_ADAPTERS: dict[str, type[BaseAdapter]] = {
+    "api_webstore": ApiWebstoreAdapter,
     "ahbz": AhbzAdapter,
     "ccsn": CCSNAdapter,
     "cqis": CqisAdapter,

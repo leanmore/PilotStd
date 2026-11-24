@@ -33,6 +33,21 @@ sites:
       historical_hit_rate: 0.0
     notes: ""
 
+  - site_id: api_webstore
+    classification:
+      level1: 特色
+      level2: 按标准类型区分
+    capabilities:
+      supported_types: [API]
+      industries: []
+      is_international: false
+      search_reliability: medium
+    constraints:
+      batch_limit: 50
+    status:
+      historical_hit_rate: 0.0
+    notes: "Coveo POST 检索需公开 token；无实施/代替字段；索引仅最新版"
+
   - site_id: ahbz
     classification:
       level1: 综合

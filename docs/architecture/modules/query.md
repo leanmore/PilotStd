@@ -319,3 +319,36 @@ BaseAdapter (ABC)
 
 **回归锚点**：`tests/test_cqis.py`（12 例，全部基于 `tests/fixtures/cqis_sample.json` 的真实响应）；
 真实冒烟 `scripts/smoke_test_cqis.py`（本地可跑，CI 不跑）。
+
+## 新增 API Webstore 适配器 `api_webstore`（2026-11-24，P2 批次 A2）
+
+**站点**：`https://www.apiwebstore.org/`（美国石油学会标准在线商店）。
+**为何值得接**：API 标准（`API STD/SPEC/RP/TR`）此前只能落到 `iso_gov` 兜底，
+而官方商店是**权威源**且元数据完整（状态/版次/发布日期/归口委员会）。
+
+**接口形态（实测，非推断）**：真实搜索接口是 **Coveo Search**：
+`POST https://platform.cloud.coveo.com/rest/search/v2?organizationId=<orgId>`，JSON body。
+
+| 用途 | 查询式 | 实测 |
+|---|---|---|
+| 精确检索 | `aq='@productcode=="<code>" @producttype=="Standard"'` | `610/6D/5CT/579-1/2A-WSD/938-C/Q1` 各 1 条 |
+| 兜底检索 | `q=<原查询>` + `aq='@producttype=="Standard"'` | `q="API 610"` 1110 条 → 过滤后 897 |
+| 分页 | `firstResult` + `numberOfResults` | offset 型，无重叠 |
+
+**关键坑（已落进适配器与测试）**：
+1. **`token` 是唯一门槛**：无 token/假 token 均 401。token（`xx…`，公开 search token，非用户凭据）
+   藏在公开前端 `bundle` 里；适配器在 401 时**自动从 `bundle` 重新解析并重试一次**（`_refresh_token`），
+   自愈失败才返回空并打 `warning`；
+2. `publisheddate` 是 `MM/DD/YYYY`，需转 ISO；无实施/废止日期、无代替关系；
+3. 索引**只保留每个 `productcode` 的最新版**（历史版查询会回落为 newer、判 `newer`）；
+4. `type` 取值 `STD/SPEC/RP/TR`，`standard_number` 重建为 `API <type> <code>-<year>`。
+
+**路由**：`_extract_std_type("API STD 610-2026")` → `API`；
+`site_capabilities.yaml` 声明 `supported_types: [API]`（L1）→
+`API STD 610-2026 → ['api_webstore']`；v1 硬路由 `CODE_ROUTES["API"] = [api_webstore, iso_gov, csres]`，
+`ADAPTER_TYPE_MAP["api"]` 的 primary 由 `iso_gov` 改为 `api_webstore`。
+
+**回归锚点**：`tests/test_api_webstore.py`（23 例，基于真实响应 fixture，含 token 自愈、401 重试、
+自由文本回退全文检索）；真实冒烟 `scripts/smoke_test_api_webstore.py`（CI 不跑）。
+
+**未做**：ASME（同为 P2 批次 B，需先做 designator 归一化；其依赖的 P1 拆号修复已合入）。

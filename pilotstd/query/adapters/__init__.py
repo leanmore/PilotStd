@@ -1,4 +1,5 @@
 # 模块：项目/查询/适配器/____脚本
+from .api_webstore import ApiWebstoreAdapter
 from .base import BaseAdapter
 from .ccsn import CCSNAdapter
 from .cqis import CqisAdapter
@@ -23,6 +24,7 @@ from .tdpress import TDPressAdapter
 from .ttbz import TTBZAdapter
 
 __all__ = [
+    "ApiWebstoreAdapter",
     "BaseAdapter",
     "CCSNAdapter",
     "CqisAdapter",

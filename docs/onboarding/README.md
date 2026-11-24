@@ -142,7 +142,7 @@ flowchart LR
 | [`12-data-repair-plan.md`](12-data-repair-plan.md) | 709 条畸形 validity 键的修复方案（仅方案，不执行） |
 | [`13-coverage-matrix.md`](13-coverage-matrix.md) | 功能覆盖/认知台账：哪些已了解、哪些还未补 |
 | [`14-decision-log.md`](14-decision-log.md) | 用户决策记录：已定方向、待查/待执行事项 |
-| [`15-query-adapter-matrix.md`](15-query-adapter-matrix.md) | 22 个查询适配器逐站能力/配额矩阵 |
+| [`15-query-adapter-matrix.md`](15-query-adapter-matrix.md) | 23 个查询适配器逐站能力/配额矩阵 |
 | [`16-notification-matrix.md`](16-notification-matrix.md) | 44 个通知事件 × 4 渠道矩阵 |
 | [`17-validity-state-machine.md`](17-validity-state-machine.md) | 有效性 L1/L2/L3 状态机 |
 | [`18-schema-migrations.md`](18-schema-migrations.md) | 43 张表 + 32 个迁移模块清单 |

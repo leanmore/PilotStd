@@ -1,0 +1,40 @@
+{
+ "rows": [
+  {
+   "productcode": "610",
+   "type": "STD",
+   "edition": "13",
+   "status": "Current",
+   "publisheddate": "06/29/2026",
+   "title": "API STD 610: Centrifugal Pumps for Petroleum, Petrochemical and Natural Gas Industries",
+   "producttype": "Standard",
+   "permanentid": "12c588567517c655fb336e10063670fa87338fb6ec97c66fdab2735ef2b2",
+   "committee": "CRE: Committee on Refinery Equipment",
+   "_title": "API STD 610: Centrifugal Pumps for Petroleum, Petrochemical and Natural Gas Industries"
+  },
+  {
+   "productcode": "6D",
+   "type": "SPEC",
+   "edition": "25",
+   "status": "Current",
+   "publisheddate": "11/01/2021",
+   "title": "API SPEC 6D: Specification for Valves",
+   "producttype": "Standard",
+   "permanentid": "5e83e9cb0200326834e22c446af2d31ba7a9be71e233654d3fa81bf2278b",
+   "committee": "CSOEM: Committee on Standardization of Oilfield Equipment & Materials",
+   "_title": "API SPEC 6D: Specification for Valves"
+  },
+  {
+   "productcode": "5CT",
+   "type": "SPEC",
+   "edition": "11",
+   "status": "Current",
+   "publisheddate": "12/19/2023",
+   "title": "API SPEC 5CT: Casing and Tubing",
+   "producttype": "Standard",
+   "permanentid": "345a87384300697d0035d4aeebc0e83375916bb26457700955975c69ea48",
+   "committee": "CSOEM: Committee on Standardization of Oilfield Equipment & Materials",
+   "_title": "API SPEC 5CT: Casing and Tubing"
+  }
+ ]
+}

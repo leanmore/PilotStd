@@ -11,6 +11,18 @@ def _create_sites_part1() -> list[SiteState]:
     S = SiteState  # noqa: N806
     return [
         S(
+            name="api_webstore",
+            base_url="https://www.apiwebstore.org",
+            search_url=(
+                "https://platform.cloud.coveo.com/rest/search/v2"
+                "?organizationId=americanpetroleuminstituteproductionafn6944o"
+            ),
+            max_requests=50,
+            daily_limit=300,
+            cooldown_seconds=1,
+            request_interval=0.5,
+        ),
+        S(
             name="ahbz",
             base_url="https://bzxx.ahbz.org.cn",
             search_url="https://bzxx.ahbz.org.cn/standard/query",

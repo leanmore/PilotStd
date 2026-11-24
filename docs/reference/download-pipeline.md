@@ -367,7 +367,7 @@ A + B + C 叠加 = **下载链长时间全量失败**：现场 2026-09-24~26 连
 | — | 四步全落空 | `None` + `_no_adapter_message(task)` |
 
 **为什么必须有第 3 步**：`source_site` 是**查询路由的产物**（哪个查询站点先答出来），
-而查询侧共有 22 个适配器（`pilotstd/query/adapters/`，`pilotstd/query/` 全目录不存在
+而查询侧共有 23 个适配器（`pilotstd/query/adapters/`，`pilotstd/query/` 全目录不存在
 `openstd_download` 这个值）。把"能否下载"绑在 `source_site` 上 ⇒ **同一部国标因路由落点
 不同而时能下、时不能下**，而 `is_downloadable`（按 `not is_adopted` 算）却始终是 `True`，
 两处判据自相矛盾。
