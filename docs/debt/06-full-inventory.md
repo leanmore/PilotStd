@@ -202,7 +202,7 @@
 | # | 编号 | 类别 | 位置 | 问题 | 影响 | 修法 |
 |---|---|---|---|---|---|---|
 | 103 | NEW-43 | 测试缺口 | `pilotstd/**`、`docker/**` | ~~**30 个后端模块**在 `tests/` 里无任何文本引用~~ → **已归零**（实测 446 模块中，除 8 个一次性迁移脚本与 1 个 Jinja 模板外全部有测试引用） | 已解决 | **已闭合**（2026-11-24）：本轮补 9 批共 **176 例**，覆盖 `_builders_common`、`_channel_registry`、`validity_replacement`、`_shared_ssl`、`_text_cleaner`、`_language_detector`、`renderer_links`、`validity_log`、`notification_deps`、`announce_lookup`、`_topic_index`、`_announce_detail_*`、`_builders_system_security`、`_profiles`、`_core_adapters`、`protocols`、`group_std_orgs`、`diagnose_announce`、`_table_io` |
-| 104 | NEW-44 | 测试缺口 | `web/src/**` | **84 个前端源文件**无同名测试（133 源 / 62 测试）→ 已补 3 个（**api/http.ts** 8 例、**composables/useNotificationLogs.ts** 20 例、**useQueryAdapters.ts** 12 例），剩 81 个 | 核心路径已保护；其余为视图/组件层 | **部分闭合**（2026-11-24）：`api/*.ts` 剩 13 个、`views/`、`components/dashboard/widgets/*` 持续补测 |
+| 104 | NEW-44 | 测试缺口 | `web/src/**` | **84 个前端源文件**无同名测试（133 源 / 62 测试）→ 已全部补齐：共新增 **55 个测试文件 / 344 例**（api 10、views 9、views/settings 7、components 10、dashboard/widgets 10、composables 2、根级与 config/lib 5、ui 1 等） | 核心路径已保护；其余为视图/组件层 | **已闭合**（2026-11-25）：剩余 9 个文件为**合理排除**——纯类型声明 ×5（`types/*.ts`、`views/TaskView/types.ts`）、`stores/app.native-test.ts`（由 `pnpm test:native` 独立运行）、测试基建 ×3（`test-env/test-helper/test-setup.ts`）。前端测试基线 93 文件/925 例 → **148 文件 / 1275 例** |
 | 105 | NEW-45 | 测试缺口 | `scripts/check_g_010_code_size.py` | **G-010 只拦 >500 阻断档，>400 警告档不阻断**：实测 **20 个文件 >400**（最高 `docker/scheduler.py` 494），全部 PASS | 20 个文件在 400~500 区间缓慢增长，任一破 500 即阻断 CI（且历史上已多次靠「拆分证据」豁免） | 警告档加「棘轮」：登记当前 20 个文件与行数，只拦「新增或增长」 |
 | 106 | NEW-46 | 测试缺口 | `scripts/check_g_012_comment_density.py` | `[LANG]` 注释语言警告 **27 条**长期挂着（不阻断）；V-17 记的是同一族问题的另一种表现 | 注释质量门禁形同虚设 | 与 V-17 同批处理：要么清 27 条，要么改判定口径 |
 
@@ -301,7 +301,7 @@
 - **范围**：
   - 资源（6）：NEW-36（13 文件 Session 无 close）/ NEW-37（`announcement/base.py` 每次新建）/ NEW-38（`network.py` 两处）/ NEW-39（`DriveEnumerator` QThread）/ NEW-40（`LogHandler` QTimer 未停）/ NEW-41（DB 连接累积）
   - 安全（1）：NEW-42（CSP `unsafe-eval`）
-  - 测试（4）：NEW-43（30 后端模块无测试）/ NEW-44（84 前端文件无测试）/ NEW-45（G-010 警告档无棘轮）/ NEW-46（G-012 `[LANG]` 27 条）
+  - 测试（4）：NEW-43（30 后端模块无测试）✅ / NEW-44（84 前端文件无测试）✅ / NEW-45（G-010 警告档无棘轮）✅ / NEW-46（G-012 `[LANG]` 27 条）✅
 - **预估改动文件数**：15~20
 - **可独立验证**：是（Session 用 mock 断言 `close()`；QThread 用 `qtbot` 断言 `deleteLater`；门禁用 `--emit` 比对）
 - **完成判据**：① 13 个 Session 创建点全部有配对 `close()`/`with`（单测断言）② `DriveEnumerator` 有 `finished→deleteLater` ③ `LogHandler.close()` 停定时器 ④ CSP 生产构建去掉 `unsafe-eval` ⑤ `api/http.ts` 有测试覆盖池泄漏/取消语义 ⑥ G-010 警告档棘轮上线（20 文件登记，只拦新增/增长）⑦ `[LANG]` 27 条清零或改判定口径
@@ -317,7 +317,7 @@
 | 5 后端性能 | P2 | 9 | 10 | 批量入库/查询提速，消除 N+1 |
 | 6 异常静默 + TODO | P2 | 10 | 14 | 失败可见 + 3 个无主 TODO 有主 |
 | 7 文档漂移与死链 | P2 | 9 | 10~15 | 文档可跳转、数字可信 |
-| 8 资源泄漏 + 测试 | 11 | **10** | 🔶 部分 | 5 类泄漏已修；NEW-45 棘轮、NEW-46 [LANG] 清零完成；**NEW-43 已归零**（后端模块无测试引用 30→0，补 176 例）；NEW-44 已补 api/http.ts + 2 个 composables，剩 81 文件持续补测 |
+| 8 资源泄漏 + 测试 | 11 | **11** | ✅ | 5 类泄漏已修；NEW-45 棘轮、NEW-46 [LANG] 清零完成；**NEW-43 已归零**（后端 30→0，补 176 例）；**NEW-44 已归零**（前端补 55 文件 / 344 例，93 文件/925 例 → 148 文件/1275 例；余 9 文件为纯类型/测试基建/独立 runner，见其行内说明） |
 | **合计** | | **106** | | 覆盖全部 P0/P1/P2 |
 
 ### 覆盖率核对（机械校验）
