@@ -426,3 +426,20 @@ BaseAdapter (ABC)
 `tests/test_ttbz.py`（19 例：参数/会话引导/分页/字段/异常）、
 `tests/test_energy_pagination.py`（9 例）、`tests/test_energy.py`（14 例，真实 fixture）、
 `tests/test_adapters.py` 的 TTBZ 段（14 例，保持绿）。
+
+## 适配器 HTTP 纪律与默认参数修正（2026-11-25，第三轮深扫）
+
+方向 C 第三轮深扫（口径：HTTP 超时 / 资源泄漏 / 可变默认参数 / 裸 except / 锁纪律）发现并修 3 处：
+
+| 位置 | 问题 | 影响 | 修法 |
+|---|---|---|---|
+| `adapters/nrsis.py` 查询调用 | **缺 `timeout`** | 站点不响应时请求**无限挂起**，外层的指数退避重试也会一起挂 | 补 `timeout=15` |
+| `adapters/ahbz.py::_search` | 每次查询 `requests.Session()` 且**从不关闭** | 每次查询泄漏一个连接池 | 改 `with requests.Session()`（响应体已在 `_search_single` 内读完） |
+| `adapters/base.py::_try_exact_search` | `accepted_statuses: set = {"exact"}` **可变默认参数** | 潜在跨调用共享可变对象（当前只读，未触发） | 默认改 `None` + 函数内构造 |
+
+**回归**：`tests/unit/query/test_adapter_http_discipline.py`（5 例：timeout 必填、
+Session 必须 `with` 关闭、默认参数为 `None`、默认口径仍只接受 exact）。
+
+**同轮复核后判定不改**（详见 `docs/plans/2026-11-25-deep-scan3.md`）：
+`network.py` 的 `safe_raw_*` 用 `with Session`（已关闭）；`announcement/base.py` 有
+`owns_session` + finally 关闭；各适配器 `__init__` 内建的 Session/Client 是长生命周期实例，正常。

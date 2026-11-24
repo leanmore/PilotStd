@@ -125,7 +125,9 @@ class NRSISAdapter(BaseAdapter):
         last_error = None
         for attempt in range(self.MAX_RETRIES):
             try:
-                resp = self._client.get(self.get_search_url(), params=params)
+                # 2026-11-25（方向 C 第三轮深扫）：补 timeout —— 原实现无超时，
+                # 站点不响应时查询会无限挂起（重试循环也跟着挂）。
+                resp = self._client.get(self.get_search_url(), params=params, timeout=15)
                 break
             except Exception as e:
                 last_error = e
