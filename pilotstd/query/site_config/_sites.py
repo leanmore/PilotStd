@@ -23,6 +23,15 @@ def _create_sites_part1() -> list[SiteState]:
             request_interval=0.5,
         ),
         S(
+            name="asme",
+            base_url="https://www.asme.org",
+            search_url="https://www.asme.org/api/products",
+            max_requests=50,
+            daily_limit=300,
+            cooldown_seconds=1,
+            request_interval=0.5,
+        ),
+        S(
             name="ahbz",
             base_url="https://bzxx.ahbz.org.cn",
             search_url="https://bzxx.ahbz.org.cn/standard/query",

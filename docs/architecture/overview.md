@@ -114,7 +114,7 @@ graph TD
 - 单条：[pilotstd/query/engine/_single.py](pilotstd/query/engine/_single.py) — 5 步搜索链路（v2 分支 `_query_one_v2` 链式降级）
 
 ### 适配器层 [src: `pilotstd/query/adapters/`]
-- 23 个查询适配器（2026-11-24 新增重庆 cqis），基类 [pilotstd/query/adapters/base.py](pilotstd/query/adapters/base.py)
+- 24 个查询适配器（2026-11-24 新增重庆 cqis），基类 [pilotstd/query/adapters/base.py](pilotstd/query/adapters/base.py)
 - 注册表：[pilotstd/query/adapters/registry.py](pilotstd/query/adapters/registry.py) — `ALL_ADAPTERS` 静态字典
 - 配额：[pilotstd/query/daily_quota.py](pilotstd/query/daily_quota.py) — SQLite 持久化日计数器
 - 冷却：[pilotstd/query/rotator.py](pilotstd/query/rotator.py) — `SiteRotator` 全局进程级

@@ -152,11 +152,11 @@ class TestRouterEngine:
 class TestLoadCapabilities:
     """能力模型加载完整性。"""
 
-    def test_loads_all_23_sites(self, capabilities):
-        """验证 YAML 加载出完整 23 个站点（2026-11-24 新增 cqis）。"""
-        assert len(capabilities) == 23, f"应加载 23 个站点，实际={len(capabilities)}"
+    def test_loads_all_24_sites(self, capabilities):
+        """验证 YAML 加载出完整 24 个站点（2026-11-24 新增 cqis）。"""
+        assert len(capabilities) == 24, f"应加载 24 个站点，实际={len(capabilities)}"
         ids = {s.site_id for s in capabilities}
-        assert len(ids) == 23, f"站点 ID 不应重复，实际={len(ids)}"
+        assert len(ids) == 24, f"站点 ID 不应重复，实际={len(ids)}"
 
     def test_mee_excludes_gb(self, capabilities):
         """验证 mee 能力模型已修正（阶段一产出）：supported_types 不含 GB。"""

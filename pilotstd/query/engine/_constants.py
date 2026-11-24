@@ -38,6 +38,8 @@ def _build_default_code_routes() -> dict[str, list[str]]:
         "WW/T": ["ncha", "std_gov"],
         # API（美国石油学会）标准→API Webstore 优先
         "API": ["api_webstore", "iso_gov", "csres"],
+        # ASME（美国机械工程师学会）标准→ASME 商品目录优先
+        "ASME": ["asme", "iso_gov", "csres"],
     }
     # 地方标准省级代码：数据库11,数据库11/,数据库35,数据库35/等→优先
     for province_code in _DB_PROVINCE_MAP:

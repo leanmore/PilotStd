@@ -1,0 +1,53 @@
+{
+ "total": 4,
+ "rows": [
+  {
+   "Title": "B16.5 - Pipe Flanges and Flanged Fittings: NPS 1/2 through NPS 24, Metric/Inch Standard",
+   "FullDesignator": "B16.5",
+   "DesignatorYear": 2025,
+   "Subtitle": "B16.5 - 2025",
+   "ProductURL": "/codes-standards/find-codes-standards/b16-5-pipe-flanges-flanged-fittings-nps-1-2-nps-24-metric-inch-standard?productKey=M01525",
+   "ProductCode": "M01525",
+   "PublishYear": null,
+   "PublishDate": "0001-01-01T00:00:00",
+   "Pages": "",
+   "ISBN": "9780791876855"
+  },
+  {
+   "Title": "B31.3 - Process Piping",
+   "FullDesignator": "B31.3",
+   "DesignatorYear": 2024,
+   "Subtitle": "B31.3 - 2024",
+   "ProductURL": "/codes-standards/find-codes-standards/b31-3-process-piping?productKey=A0372U",
+   "ProductCode": "A0372U",
+   "PublishYear": null,
+   "PublishDate": "0001-01-01T00:00:00",
+   "Pages": "592",
+   "ISBN": null
+  },
+  {
+   "Title": "BPVC.VIII.1 - BPVC Section VIII-Rules for Construction of Pressure Vessels Division 1",
+   "FullDesignator": "BPVC.VIII.1",
+   "DesignatorYear": 2025,
+   "Subtitle": "BPVC.VIII.1 - 2025",
+   "ProductURL": "/codes-standards/find-codes-standards/bpvc-viii-1-bpvc-section-viii-rules-construction-pressure-vessels-division-1?productKey=500081",
+   "ProductCode": "500081",
+   "PublishYear": 2025,
+   "PublishDate": "0001-01-01T00:00:00",
+   "Pages": "",
+   "ISBN": "9780791877227"
+  },
+  {
+   "Title": "PTC 4 - Fired Steam Generators",
+   "FullDesignator": "PTC 4",
+   "DesignatorYear": 2013,
+   "Subtitle": "PTC 4 - 2013 (R2023)",
+   "ProductURL": "/codes-standards/find-codes-standards/fired-steam-generators?productKey=C02513",
+   "ProductCode": "C02513",
+   "PublishYear": 2013,
+   "PublishDate": "0001-01-01T00:00:00",
+   "Pages": "284",
+   "ISBN": "9780791868997"
+  }
+ ]
+}

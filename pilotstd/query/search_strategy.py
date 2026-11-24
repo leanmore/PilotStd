@@ -296,7 +296,7 @@ ADAPTER_TYPE_MAP: dict[str, dict[str, str | list[str] | list[int]]] = {
     "iso_iec": {"primary": "iso_gov", "fallback": "csres"},
     # 国外标准 → 通用路由
     "astm": {"primary": "iso_gov", "fallback": "csres"},
-    "asme": {"primary": "iso_gov", "fallback": "csres"},
+    "asme": {"primary": "asme", "fallback": "iso_gov"},
     "api": {"primary": "api_webstore", "fallback": "iso_gov"},
     "foreign": {"primary": "njbz365", "fallback": "ahbz"},
     # 团体标准→专业平台（=5），365兜底

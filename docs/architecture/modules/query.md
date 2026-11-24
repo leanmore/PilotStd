@@ -352,3 +352,41 @@ BaseAdapter (ABC)
 自由文本回退全文检索）；真实冒烟 `scripts/smoke_test_api_webstore.py`（CI 不跑）。
 
 **未做**：ASME（同为 P2 批次 B，需先做 designator 归一化；其依赖的 P1 拆号修复已合入）。
+
+## 新增 ASME 适配器 `asme`（2026-11-24，P2 批次 B1）
+
+**站点**：`https://www.asme.org/`（ASME 官方商品目录，标准元数据权威源）。
+**为何值得接**：ASME 标准此前只能落 `iso_gov` 兜底；且 P1-7.1 报告指出
+`ASME B16.5` 在旧解析器下被拆成 `ASMEB1/6/5`（自 mismatch）——**P1 拆号修复已合入 `9e884765`**，
+本适配器是它的下游消费方。
+
+**接口形态（实测）**：`GET https://www.asme.org/api/products?type=Codes-Standards&fullDesignator=<designator>`
+→ `total/results[]`。实测命中：`B16.5` / `B31.3` / `BPVC.VIII.1` / `PTC 4` / `CSD-1` / `Y14.5` /
+`A112.18.1/CSA B125.1`；`ZZZ99.9` → `total=0`（空结果行为正常）。无需登录/cookie/验证码。
+
+**designator 归一化（本适配器核心逻辑）**：商品目录要求**精确** designator：
+
+| 输入 | 归一化 |
+|---|---|
+| `ASME B16.5-2025` | `B16.5` |
+| `ASME BPVC.VIII.1-2025` | `BPVC.VIII.1` |
+| `ASME BPVC Section VIII Div.1-2021` | `BPVC.VIII.1` |
+| `ASME BPVC Section II Part D` | `BPVC.II.D`（目录中细分为 `.C`/`.M`，精确查空时自动补查） |
+| `ASME PTC 4-2013` / `ASME Y14.5-2018` | `PTC 4` / `Y14.5` |
+
+归一化正则**必须整串锚定**：早期版本用 `search` 把 `BPVC.IX` 里的 `V` 误当罗马数字 → `BPVC.V`（已修，测试锁定）。
+
+**字段缺口与推断口径**：
+- **无 `status` 字段** → 按「请求年份 vs `DesignatorYear`」推断：同版/无年份→现行；
+  请求更旧年份（目录只索引最新版）→ 被代替（`Status.SUPERSEDED`）；
+- `PublishDate` 恒为 `0001-01-01`（不可用）→ `publish_date` 只用 `DesignatorYear`；
+- 无实施/废止日期、无代替关系、无归口单位。
+
+**路由**：`_extract_std_type("ASME B16.5-2025")` → `ASME`；
+`site_capabilities.yaml` 声明 `supported_types: [ASME]`（L1）→
+`ASME B16.5-2025 → ['asme']`；v1 `CODE_ROUTES["ASME"]`、`ADAPTER_TYPE_MAP["asme"]`
+的 primary 由 `iso_gov` 改为 `asme`。
+
+**回归锚点**：`tests/test_asme.py`（20 例：归一化 8 形态、真实 fixture 字段映射、
+旧年份→被代替、`BPVC.II.D`→`.C`/`.M` 补查、5 个网络异常分支）；
+真实冒烟 `scripts/smoke_test_asme.py`（4 个真实 designator，CI 不跑）。
