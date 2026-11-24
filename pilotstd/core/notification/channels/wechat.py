@@ -175,9 +175,17 @@ class WechatChannel(NotificationChannel):
         return self._post_app_with_retry({"msgtype": "template_card", "template_card": card})
 
     def _send_app_text(self, message: NotificationMessage) -> bool:
-        """应用形态降级：发送文本消息（卡片被拒收时的兜底，绝不静默丢消息）。"""
+        """应用形态降级：发送文本消息（卡片被拒收时的兜底，绝不静默丢消息）。
+
+        P1-2：企微文本上限是 **2048 字节**（不是 2000 字符）。原实现 `text[:2000]` 按字符
+        硬截断——2000 汉字 ≈ 6000 字节，降级消息本身仍会被平台拒收，且尾部信息直接丢失。
+        改为复用 `split_for_channel` 的**字节口径**分段、逐段发送（任一段失败即整体失败）。
+        """
         text = self._renderer.render(message) or str(message.title or "")
-        return self._post_app_with_retry({"msgtype": "text", "text": {"content": text[:2000]}})
+        for segment in split_for_channel(text, "wecom"):
+            if not self._post_app_with_retry({"msgtype": "text", "text": {"content": segment}}):
+                return False
+        return True
 
     def _send_segment_with_retry(self, rendered: str) -> bool:
         """发送**单个分段**（Webhook markdown）并按渠道基座统一节奏重试。"""

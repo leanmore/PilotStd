@@ -147,6 +147,20 @@ class MarkdownRenderer(BlockRenderer):
             return ""
         return f"## {title}"
 
+    def _render_plain_text(self, message: NotificationMessage) -> str:
+        """无 blocks 的纯文本：补 markdown 标题（与 Telegram 同款口径）。
+
+        P1-3：`task_progress` 等 **body-only** 事件在企微 Webhook（及钉钉 Webhook）形态下
+        此前首行没有标题——基类钩子逐字返回 `body`。本覆盖**只加在 markdown 渲染器**上，
+        基类 `BlockRenderer` / `DesktopRenderer` 的逐字兜底保持不变（桌面 Toast 不受影响）。
+        """
+        body = message.body or ""
+        title = message.title or ""
+        if not title:
+            return body
+        heading = f"## {title}"
+        return f"{heading}\n\n{body}" if body else heading
+
     # ──锁渲染──
 
     def _render_text(self, block: TextBlock) -> str:

@@ -202,6 +202,68 @@ def test_token_failure_is_reported(monkeypatch) -> None:
     assert "令牌" in ch.last_error or "token" in ch.last_error.lower()
 
 
+# ── 4. P1-2：卡片拒收 → 文本降级的**字节**分段（不得按字符截断） ─────────────
+
+
+def test_app_form_text_fallback_splits_by_wecom_byte_limit(monkeypatch) -> None:
+    """P1-2：降级文本必须按 2048 **字节**分段发送，且末段含消息尾部。
+
+    缺陷背景：原实现 `text[:2000]` 按**字符**硬截断——2000 汉字 ≈ 6000 字节，
+    超过企微文本 2048 字节上限 ⇒ 降级消息本身仍会被平台拒收，且尾部信息直接丢失。
+    判别力：把实现改回 `text[:2000]` ⇒ 本用例 FAIL（只有 1 段，尾部不在）。
+    """
+    sent: list[dict] = []
+    state = {"card_failed": False}
+
+    def _open(url: str, payload: dict | None = None) -> _Resp:
+        if "gettoken" in url:
+            return _Resp({"errcode": 0, "access_token": "tok"})
+        sent.append(payload or {})
+        if (payload or {}).get("msgtype") == "template_card" and not state["card_failed"]:
+            state["card_failed"] = True
+            return _Resp({"errcode": 40058, "errmsg": "invalid card"})
+        return _Resp({"errcode": 0})
+
+    monkeypatch.setattr(WechatChannel, "_open", lambda self, url, payload=None: _open(url, payload))
+
+    # 3000 个汉字 = 9000 UTF-8 字节 ⇒ 至少 5 段；末段必须含结尾标记
+    tail = "尾部结束标记"
+    body = "长" * 3000 + tail
+    ch = WechatChannel("", "ww123", "1000001", "secret")
+    assert ch.send(_msg(body=body)) is True
+
+    texts = [p["text"]["content"] for p in sent if p.get("msgtype") == "text"]
+    assert len(texts) > 1, f"降级文本未按字节分段（字符截断回归）：段数={len(texts)}"
+    for seg in texts:
+        size = len(seg.encode("utf-8"))
+        assert size <= 2048, f"分段超过企微 2048 字节上限：{size}"
+    assert tail in texts[-1], f"末段丢失消息尾部：{texts[-1][-30:]!r}"
+    # 内容不丢：正文里 3000 个「长」必须全部出现在各段中
+    assert sum(seg.count("长") for seg in texts) == 3000, "分段后正文内容丢失"
+
+
+def test_app_form_short_text_still_sent_as_single_message(monkeypatch) -> None:
+    """未超限时 `split_for_channel` 原样返回单段（零行为变更，不多发消息）。"""
+    sent: list[dict] = []
+    state = {"card_failed": False}
+
+    def _open(url: str, payload: dict | None = None) -> _Resp:
+        if "gettoken" in url:
+            return _Resp({"errcode": 0, "access_token": "tok"})
+        sent.append(payload or {})
+        if (payload or {}).get("msgtype") == "template_card" and not state["card_failed"]:
+            state["card_failed"] = True
+            return _Resp({"errcode": 40058, "errmsg": "invalid card"})
+        return _Resp({"errcode": 0})
+
+    monkeypatch.setattr(WechatChannel, "_open", lambda self, url, payload=None: _open(url, payload))
+    ch = WechatChannel("", "ww123", "1000001", "secret")
+    assert ch.send(_msg(body="短消息")) is True
+    texts = [p for p in sent if p.get("msgtype") == "text"]
+    assert len(texts) == 1
+    assert "短消息" in texts[0]["text"]["content"]
+
+
 # ── 3. 信息量对齐（P0-2 级别 / P0-3 详情链接 / P1-1 列表计数） ────────────────
 
 
