@@ -48,6 +48,16 @@ def reconcile_archive(
 
     rows = db.fetchall("SELECT id, file_path FROM file_index")
     referenced: set[str] = set()
+    # 性能：原实现在「每条丢失记录」里 `expire_dir.rglob(name)` —— 丢失 N 条就要扫 N 遍目录树。
+    # 改为**一次**遍历建索引（文件名 → 路径列表），丢失项查找变成字典命中；同一份列表
+    # 随后复用于孤儿清理，全函数只走一遍目录树（2026-11-25，方向 C 深度扫描）。
+    expire_files: list[Path] = []
+    expire_by_name: dict[str, list[Path]] = {}
+    if expire_dir.exists():
+        expire_files = [p for p in expire_dir.rglob("*") if p.is_file()]
+        for p in expire_files:
+            expire_by_name.setdefault(p.name, []).append(p)
+
     for row in rows:
         stats["checked"] += 1
         path = str(row["file_path"] or "")
@@ -57,7 +67,7 @@ def reconcile_archive(
         if os.path.exists(path):
             continue
         name = os.path.basename(path)
-        candidates = sorted(expire_dir.rglob(name)) if expire_dir.exists() else []
+        candidates = sorted(expire_by_name.get(name, []))
         if candidates:
             new_path = str(candidates[0])
             db.execute("UPDATE file_index SET file_path=? WHERE id=?", (new_path, row["id"]))
@@ -71,10 +81,8 @@ def reconcile_archive(
             # i18n-allow: 内部日志/参数
             logger.warning("归档对账发现文件丢失（无法回填）: %s", path)
 
-    if expire_dir.exists():
-        for item in expire_dir.rglob("*"):
-            if not item.is_file():
-                continue
+    if expire_files:
+        for item in expire_files:
             if _norm(str(item)) in referenced:
                 continue
             rel = item.relative_to(expire_dir)

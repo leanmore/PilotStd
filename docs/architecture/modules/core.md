@@ -943,3 +943,13 @@ G-012 的 `[LANG]` 检查要求注释全部用中文，但会**先剔除反引�
 **回归锚点**：`tests/test_std_utils_asme.py`、`tests/unit/scan/parser/test_bpvc_section_snapshot.py`、
 `tests/unit/core/notification/test_message_builders_snapshot.py::TestObjectInMessage`、
 `tests/test_notification_wechat_card.py`、`tests/test_notification_security_channel_form.py`。
+
+## 归档对账：目录树只走一遍（2026-11-25，方向 C 深度扫描）
+
+`pilotstd/core/archive_reconcile.py` 的启动期对账原实现在「每条丢失记录」里
+`expire_dir.rglob(name)` —— 丢失 N 条就要扫 N 遍「过期作废」目录树，O(N × 文件数)。
+**修法**：一次遍历建 `文件名 → 路径列表` 索引，丢失项查找变字典命中；同一份文件列表
+随后复用于孤儿清理（全函数只走一遍目录树）。
+
+**回归**：`tests/unit/core/test_n_plus_one_batching.py::TestReconcileSingleWalk`
+（含 `Path.rglob` 调用次数断言 = 1）。

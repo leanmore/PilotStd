@@ -392,3 +392,14 @@ getsize → parse(basename)                              ← 都廉价
 （e2e 的 `builder_keys` 由 spec 派生，不同步会让新契约不可见）。
 回归：`tests/unit/core/notification/test_message_builders_snapshot.py::TestObjectInMessage`、
 `tests/integration/test_notification_high_value_events.py`。
+
+## 本地缓存离线查询：批量化（2026-11-25，方向 C 深度扫描）
+
+`PendingService.query_local_cache`（GUI 离线查询）原实现**逐标准**点查 1~2 次 DB
+（`standard_info_cache` → 未命中再查 `announcement_match`）——典型 N+1。
+**修法**：新增 `_fetch_result_json_map`，按批 `IN (...)`（批 500）**预取**到
+`standard_number → result_json` 字典，循环内全内存查找；语义不变（先网络缓存、后公告缓存、
+未命中仍返回「本地数据库未找到」）。
+
+**回归**：`tests/unit/core/test_n_plus_one_batching.py::TestQueryLocalCacheBatched`
+（结果等价 + 查询次数为常数 2，而不是 2N）。

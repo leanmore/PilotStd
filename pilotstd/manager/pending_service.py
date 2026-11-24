@@ -285,27 +285,41 @@ class PendingService:
 
     # ── 本地缓存查询 ─────────────────────────────────────────
 
+    def _fetch_result_json_map(self, table: str, numbers: list[str], batch: int = 500) -> dict[str, str]:
+        """按批 `IN (...)` 预取 `standard_number → result_json`（替代逐条点查）。"""
+        out: dict[str, str] = {}
+        for start in range(0, len(numbers), batch):
+            chunk = numbers[start : start + batch]
+            placeholders = ",".join("?" for _ in chunk)
+            rows = self._db.fetchall(
+                f"SELECT standard_number, result_json FROM {table} "  # noqa: S608 - 表名是内部常量
+                f"WHERE standard_number IN ({placeholders})",
+                tuple(chunk),
+            )
+            for row in rows or []:
+                std_no = row["standard_number"]
+                if std_no not in out:
+                    out[std_no] = row.get("result_json") or ""
+        return out
+
     def query_local_cache(self, parsed_list: list[Any]) -> list[Any]:
         """从本地缓存（standard_info_cache + announcement_match）查询标准信息。
         返回 [(idx, QueryResult), ...]，供 GUI 离线查询模式使用。
         """
         results = []
+        # 性能：原实现逐个标准点查 1~2 次 DB（真 N+1）。改为按批 `IN (...)` 预取到字典，
+        # 之后全内存查找；批大小 500 远低于 SQLite 变量上限（999）。
+        numbers = [str(parsed.get_full_number()) for parsed in parsed_list]
+        cache_map = self._fetch_result_json_map("standard_info_cache", numbers)
+        announce_map = self._fetch_result_json_map("announcement_match", numbers)
         for i, parsed in enumerate(parsed_list):
-            std_num = parsed.get_full_number()
+            std_num = str(parsed.get_full_number())
             # 先查网络缓存
-            row = self._db.fetchone(
-                "SELECT result_json FROM standard_info_cache WHERE standard_number = ? LIMIT 1",
-                (std_num,),
-            )
-            result_json = row.get("result_json") if row else None
+            result_json = cache_map.get(std_num)
             source = "local_db"
             if not result_json:
                 # 回退到公告缓存
-                row = self._db.fetchone(
-                    "SELECT result_json FROM announcement_match WHERE standard_number = ? LIMIT 1",
-                    (std_num,),
-                )
-                result_json = row.get("result_json") if row else None
+                result_json = announce_map.get(std_num)
                 source = "local_db(公告)"
             if result_json:
                 try:
