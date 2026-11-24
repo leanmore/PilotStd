@@ -229,6 +229,12 @@ python scripts/ops/probe_all.py --help
 
 ---
 
+## 七-B、数据迁移（需授权，**写库**）��
+
+见 [batch2-data-migration.md](batch2-data-migration.md)：
+G-28 / G-33 / G-35 的「演练 → 取证 → 授权 → 全量 → 回滚」完整流程。
+**这不是只读探测**，必须在维护窗口内由负责人授权后执行。
+
 ## 八、已知无法在探测侧验证的点（如实说明）
 
 | 点 | 原因 | 需要的条件 |
