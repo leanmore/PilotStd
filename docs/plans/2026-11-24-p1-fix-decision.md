@@ -78,7 +78,14 @@ C3 ── 红线：生产写库，必须维护窗口授权
 | A4 auto_backup float 整条丢失 | ✅ 并入 73be260f（一处 str() 覆盖四渠道） |
 | 后端相关全量验证 | ✅ 1420 passed |
 | 门禁 | ✅ 全绿（含 mypy 修正 jump_list 注解） |
-| B1..B6 / C1..C4 | ⏳ 按排期待启动（B 批为即用型可并行；C3 需维护窗口） |
+| B1 企微降级分段 | ✅ 并入 c7be4541（字节口径 split_for_channel，超长多段） |
+| B2 markdown 补标题 | ✅ 并入 c7be4541（仅 MarkdownRenderer） |
+| B3 安全告警应用形态 | ✅ 并入 c7be4541（应用形态优先、Webhook 兜底） |
+| B4 5 个事件补对象 | ✅ 35e3f12e（scan_empty/query_empty/archive_failed/normalize_failed/auto_pipeline_summary） |
+| B5 ASME BPVC | ✅ 8a0da208（新增 std_utils_bpvc.py，Section/Div/Part/册篇字母） |
+| B6 API 类型词 | ✅ 8a0da208（新增 std_utils_api.py，APISTD→API+类型词） |
+| 后端广域验证 | ✅ **1763 passed, 1 skipped** |
+| C1..C4 | ⏳ C1/C2 跨前端需四件套；**C3 写生产库需维护窗口**；C4 依赖 B5 已就绪可启动 |
 
 ## 执行纪律（本次已犯并纠正）
 
