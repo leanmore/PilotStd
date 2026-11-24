@@ -2,7 +2,7 @@
   "_meta": {
     "gate": "G-010",
     "note": "警告档（>400 且 <=500 有效代码行）棘轮基线。只拦「新进入警告档」与「存量行数增长」；行数减少只提示可收紧，不阻断。>500 阻断档仍由门禁主逻辑处理，不在此列。",
-    "generated_at": "2026-11-24",
+    "generated_at": "2026-11-25",
     "warn_threshold": 400,
     "block_threshold": 500,
     "file_count": 20
@@ -21,7 +21,7 @@
     "pilotstd/core/notification_aggregator.py": 404,
     "pilotstd/core/validity_checker.py": 491,
     "pilotstd/download/engine.py": 450,
-    "pilotstd/manager/facade/_organize.py": 446,
+    "pilotstd/manager/facade/_organize.py": 436,
     "pilotstd/monitor/scheduler.py": 419,
     "pilotstd/ui/core/handlers/_settings.py": 434,
     "scripts/audit_design_tokens.py": 489,

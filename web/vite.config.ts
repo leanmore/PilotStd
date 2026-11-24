@@ -56,10 +56,10 @@ export default defineConfig({
       // json-summary 供 G-054 单文件覆盖率棘轮读取（scripts/check_gui_coverage_ratchet.py）
       reporter: ['text', 'html', 'json-summary'],
       thresholds: {
-        lines: 48.07,
-        branches: 32.12,
-        functions: 23.42,
-        statements: 44.11,
+        lines: 85.5,
+        branches: 75.3,
+        functions: 73.2,
+        statements: 83.2,
       },
     },
   },

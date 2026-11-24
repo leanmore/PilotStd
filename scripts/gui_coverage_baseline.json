@@ -5,7 +5,7 @@
     "generated_by": "cd web && npx vitest run --coverage --coverage.reporter=json-summary",
     "tolerance_pp": 0.5,
     "review_due": "2027-02-14",
-    "updated_at": "2026-11-14"
+    "updated_at": "2026-11-25"
   },
   "files": {
     "src/views/TaskView.vue": {
@@ -17,8 +17,8 @@
       "note": "历史列表：2026-11-14 补 6 例直接挂载测试（状态四分支/翻页/详情-重跑-删除事件），9.09% → 100%，同 PR 收紧基线"
     },
     "src/utils/taskPipeline.ts": {
-      "lines": 87.5,
-      "note": "五段流水线工具；14/16 行"
+      "lines": 100.0,
+      "note": "五段流水线工具；14/16 行；2026-11-25 补测后 87.50 → 100.00，基线收紧"
     }
   },
   "type_only": [
