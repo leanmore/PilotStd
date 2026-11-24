@@ -473,6 +473,48 @@ python scripts/audit_design_tokens.py --check    # A=0 B=148 C=588 D=0
 与批次 5（9 项 N+1 全部消除）中系统性处理，本清单第三/五节有完整记录，
 本节不重复。
 
+### 附五、CI 版本号 bump 未落库缺陷（2026-11-24 实测取证）
+
+**发现时机**：PR #26 合并后观察 main CI 的 `version` / `docker` job。
+
+**现象**：
+
+| 事实 | 证据 |
+|---|---|
+| main HEAD 仍为 `0e92e5d2`（合并提交），`VERSION` = `0.206.0` | `git show origin/main:VERSION` |
+| `version` job 的 `Commit version bump` 步骤报 **success** | Actions API job steps |
+| bump 提交 `295fe12f`（`chore: bump version to v0.207.0`）**不在任何远端分支** | `git branch -r --contains 295fe12f` 为空 |
+| `v0.207.0` tag 指向 `295fe12f`（孤儿） | GitHub git/ref API |
+| `v0.206.1` 同样**不是** main 的祖先（也是孤儿） | `git merge-base --is-ancestor v0.206.1 origin/main` → 1 |
+
+**后果**：
+
+1. main 的 `VERSION` / `pilotstd/__init__.py` 自 `v0.206.0` 起**再未更新** → `/api/system/version` 上报陈旧版本。
+2. 镜像 tag 与内容漂移：本次 `:v0.207.0` 镜像内容里的 `VERSION` 实为 `0.206.0`。
+3. **更严重**：`:v0.206.0` 这个已发布版本 tag **被本次构建覆盖**（tag 名取自
+   `needs.version.outputs.version`，而 version 未真正提升）→ 按版本号 pin 镜像的人会拿到不同内容。
+
+**根因（代码层，行为可定位）**：`.github/workflows/ci.yml` 的 `Commit version bump` 步骤：
+
+```bash
+for i in 1 2 3; do
+  if git push; then break; fi
+  git pull --rebase origin main
+  sleep 2
+done          # 循环结束不检查是否成功，步骤仍 exit 0
+```
+
+随后 `Create and push tag` 只在 `bumped == true` 时对**本地 HEAD** 打 tag 并 push。
+push 到 main 失败时本地 bump 提交仍在，于是 tag 指向孤儿提交。
+
+**待修（需谨慎，避免 main CI 变红阻断镜像构建）**：
+
+1. retry 循环记录 `PUSHED=1`；三次失败则**不打 tag**，并以 `::warning::` 注解显式告警
+   （保持 job 绿，否则 `docker` job 因 `needs.version.result == 'success'` 被跳过，反而阻断发布）。
+2. `Create and push tag` 增加守卫：`git merge-base --is-ancestor HEAD origin/main` 不成立则跳过。
+3. 另需排查 push 到 main 为何失败（job 日志 401 拿不到，需仓库 admin 查看）。
+4. 修复前**不要**再按版本 tag 部署，统一用 `:latest` + `/api/health` 的 sha 做身份核对。
+
 ## 附三、过期注释深度扫描（2026-11-24）
 
 目标要求「深度排查 ... 过期注释」。本节记录**实测口径与结论**，避免下次重复排查。
