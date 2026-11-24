@@ -168,6 +168,24 @@ sites:
       historical_hit_rate: 0.0
     notes: ""
 
+  - site_id: cqis
+    classification:
+      # 2026-11-24 新增（P2 批次 A1）：重庆标准信息平台，DB50 权威源（含全文 PDF）。
+      # 按「零路由改动」方案声明 `DB`（`_extract_std_type` 对 `DB50/T` 统一产出 `DB`），
+      # 与 dbba 同属 L1，dbba 在前（YAML 顺序）、cqis 紧随其后；省份精准粒度属后续待决项。
+      level1: 特色
+      level2: 按标准类型区分
+    capabilities:
+      supported_types: [DB]
+      industries: []
+      is_international: false
+      search_reliability: medium
+    constraints:
+      batch_limit: 50
+    status:
+      historical_hit_rate: 0.0
+    notes: "仅 HTTP；响应 total 不可靠，以 rows 为准；重庆 DB50 权威且含全文 PDF"
+
   - site_id: iso_gov
     classification:
       level1: 特色

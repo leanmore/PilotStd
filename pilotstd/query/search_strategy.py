@@ -288,6 +288,7 @@ ADAPTER_TYPE_MAP: dict[str, dict[str, str | list[str] | list[int]]] = {
     "db": {"primary": "dbba", "fallback": "csres"},
     "db11": {"primary": "dbba", "fallback": "csres"},
     "db31": {"primary": "dbba", "fallback": "csres"},
+    "db50": {"primary": "cqis", "fallback": "dbba"},
     # 国际标准→_
     "iso": {"primary": "iso_gov", "fallback": "csres"},
     "iec": {"primary": "iso_gov", "fallback": "csres"},

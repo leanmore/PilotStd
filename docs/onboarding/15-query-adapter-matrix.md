@@ -1,31 +1,32 @@
-# 15 · 查询适配器逐站矩阵（21 站）
+# 15 · 查询适配器逐站矩阵（22 站）
 
-> 来源：`pilotstd/query/adapters/registry.py` + `site_config/_profiles.py` + `site_config/_sites.py`，2026-11-07 实测。
+> 来源：`pilotstd/query/adapters/registry.py` + `site_config/_profiles.py` + `site_config/_sites.py`，2026-11-24 实测（新增 cqis）。
 > 仅列“站点能力/配额/路由画像”，不复制每个适配器的解析代码；逐站解析细节仍是待补项。
 
 | # | 适配器 | 站点/平台 | 支持代号 | 行业 | 可靠性/权重/角色 | 日限 / 单批 / 间隔 | 备注 |
 |---|---|---|---|---|---|---|---|
 | 1 | `ahbz` | 安徽标准化信息服务平台 | GB, GB/T, DB | — | high/55/primary | 800 / 200 / 0.5s | 安徽平台；GB/DB 通用。 |
 | 2 | `ccsn` | 中国工程建设标准化协会 | CECS | 工程建设 | medium/50/primary | 500 / 50 / 1.0s | 工程建设 CECS。 |
-| 3 | `csres` | 工标网 | GB, GB/T, GB/Z | — | low/30/background | 200 / 50 / 2.0s |  |
-| 4 | `cssn` | 中国标准服务网 | GB, GB/T | — | high/60/primary | 1000 / 100 / 0.3s |  |
-| 5 | `dbba` | 地方标准信息服务平台 | DB | — | high/55/primary | 800 / 200 / 0.5s | 地方标准 DB。 |
-| 6 | `energy` | 能源标准信息服务平台 | NB, DL | 能源 | low/50/primary | 100 / 30 / 0.5s |  |
-| 7 | `gongbiaoku` | 工标库 | — | — | low/40/primary | 500 / 50 / 0.5s | 无标准前缀、通用站、低可靠；用于兜底/模糊。 |
-| 8 | `hbba` | 行业标准信息服务平台 | SH, NB, HG, JB, YB, SY, CB, QB, FZ | — | high/55/primary | 800 / 400 / 0.5s | 多行业代号；行业标准主站之一。 |
-| 9 | `iso_gov` | ISO/IEC国际标准（全国标准平台子站） | ISO, IEC, IEEE | — | high/60/primary | 800 / 200 / 0.5s | v2 YAML `is_international=false`，所以 v2 对 ISO 会走 njbz365；这是能力模型数据缺口。 |
-| 10 | `jjg` | 国家计量技术规范全文公开系统 | JJG, JJF | 计量 | high/60/primary | 1000 / 100 / 0.3s |  |
-| 11 | `jtst` | 交通运输部标准查询 | JT, JTG, JTS | 交通 | medium/55/primary | 500 / 50 / 0.5s |  |
-| 12 | `mee` | 生态环境部标准查询 | HJ, GB | 环保 | medium/55/primary | 500 / 50 / 0.5s | v1 画像仍含 GB；v2 YAML 已改为 [HJ]。v1 扁平评分可能把 GB 误路由到 mee。 |
-| 13 | `miit` | 工信部行业标准查询 | YD, SJ | 工业 | medium/55/primary | 300 / 50 / 0.5s |  |
-| 14 | `ncha` | 文物保护标准查询 | WW | 文物 | medium/55/primary | 500 / 50 / 0.5s |  |
-| 15 | `njbz365` | 南京标准公共服务平台 | — | — | medium/45/primary | 800 / 200 / 3.0s | 通用站，间隔 3s；v2 常作为国际/模糊兜底。 |
-| 16 | `nrsis` | 自然资源标准信息服务平台 | DZ, TD | 自然资源 | medium/55/primary | 300 / 30 / 0.5s |  |
-| 17 | `sppt` | 食品安全国家标准数据检索平台 | GB | 食品 | medium/55/primary | 500 / 50 / 0.5s |  |
-| 18 | `sppt_local` | 食品安全地方标准数据检索平台 | DB | 食品 | medium/50/primary | 300 / 30 / 0.5s |  |
-| 19 | `std_gov` | 全国标准信息公共服务平台 | GB, GB/T, GB/Z | — | high/70/primary | 800 / 400 / 0.3s | 国标主站；hcno/pid 不同，下载侧不读它的 pid。 |
-| 20 | `tdpress` | 铁路标准信息服务平台 | TB | 铁路 | medium/55/primary | 500 / 50 / 0.5s |  |
-| 21 | `ttbz` | 全国团体标准信息平台 | T/ | — | medium/50/primary | 400 / 100 / 0.5s | 团体标准 T/ 前缀。 |
+| 3 | `cqis` | 重庆标准信息平台（db.cqis.cn） | DB | — | medium/55/primary | 500 / 50 / 0.5s | 重庆 DB50 权威源，含全文 PDF；站点**仅 HTTP**；检索 `POST /LocalStandard/GetDB50ShareList`（`queryJson.FinishCode` 过滤）；响应 `total` 不可靠以 `rows` 为准。（2026-11-24 新增） |
+| 4 | `csres` | 工标网 | GB, GB/T, GB/Z | — | low/30/background | 200 / 50 / 2.0s |  |
+| 5 | `cssn` | 中国标准服务网 | GB, GB/T | — | high/60/primary | 1000 / 100 / 0.3s |  |
+| 6 | `dbba` | 地方标准信息服务平台 | DB | — | high/55/primary | 800 / 200 / 0.5s | 地方标准 DB。 |
+| 7 | `energy` | 能源标准信息服务平台 | NB, DL | 能源 | low/50/primary | 100 / 30 / 0.5s |  |
+| 8 | `gongbiaoku` | 工标库 | — | — | low/40/primary | 500 / 50 / 0.5s | 无标准前缀、通用站、低可靠；用于兜底/模糊。 |
+| 9 | `hbba` | 行业标准信息服务平台 | SH, NB, HG, JB, YB, SY, CB, QB, FZ | — | high/55/primary | 800 / 400 / 0.5s | 多行业代号；行业标准主站之一。 |
+| 10 | `iso_gov` | ISO/IEC国际标准（全国标准平台子站） | ISO, IEC, IEEE | — | high/60/primary | 800 / 200 / 0.5s | v2 YAML `is_international=false`，所以 v2 对 ISO 会走 njbz365；这是能力模型数据缺口。 |
+| 11 | `jjg` | 国家计量技术规范全文公开系统 | JJG, JJF | 计量 | high/60/primary | 1000 / 100 / 0.3s |  |
+| 12 | `jtst` | 交通运输部标准查询 | JT, JTG, JTS | 交通 | medium/55/primary | 500 / 50 / 0.5s |  |
+| 13 | `mee` | 生态环境部标准查询 | HJ, GB | 环保 | medium/55/primary | 500 / 50 / 0.5s | v1 画像仍含 GB；v2 YAML 已改为 [HJ]。v1 扁平评分可能把 GB 误路由到 mee。 |
+| 14 | `miit` | 工信部行业标准查询 | YD, SJ | 工业 | medium/55/primary | 300 / 50 / 0.5s |  |
+| 15 | `ncha` | 文物保护标准查询 | WW | 文物 | medium/55/primary | 500 / 50 / 0.5s |  |
+| 16 | `njbz365` | 南京标准公共服务平台 | — | — | medium/45/primary | 800 / 200 / 3.0s | 通用站，间隔 3s；v2 常作为国际/模糊兜底。 |
+| 17 | `nrsis` | 自然资源标准信息服务平台 | DZ, TD | 自然资源 | medium/55/primary | 300 / 30 / 0.5s |  |
+| 18 | `sppt` | 食品安全国家标准数据检索平台 | GB | 食品 | medium/55/primary | 500 / 50 / 0.5s |  |
+| 19 | `sppt_local` | 食品安全地方标准数据检索平台 | DB | 食品 | medium/50/primary | 300 / 30 / 0.5s |  |
+| 20 | `std_gov` | 全国标准信息公共服务平台 | GB, GB/T, GB/Z | — | high/70/primary | 800 / 400 / 0.3s | 国标主站；hcno/pid 不同，下载侧不读它的 pid。 |
+| 21 | `tdpress` | 铁路标准信息服务平台 | TB | 铁路 | medium/55/primary | 500 / 50 / 0.5s |  |
+| 22 | `ttbz` | 全国团体标准信息平台 | T/ | — | medium/50/primary | 400 / 100 / 0.5s | 团体标准 T/ 前缀。 |
 
 ## 逐站请求模式/坑（细分）
 
@@ -57,7 +58,7 @@
 
 - v1 默认：评分器动态链 + `CODE_ROUTES` 兜底；`GB` 的兜底链可能包含 `mee`（因其画像含 GB）。
 - v2 路由：默认启用；`ROUTING_ENGINE_VERSION=v1` 可回滚。能力模型读 `config/site_capabilities.yaml`；默认 v1。
-- 21 站中：`std_gov`/`hbba`/`dbba`/`njbz365` 等是主力；`csres` 是 background；`gongbiaoku` 低可靠。
+- 22 站中：`std_gov`/`hbba`/`dbba`/`njbz365` 等是主力；`csres` 是 background；`gongbiaoku` 低可靠。
 - 下载侧仍只有 `openstd_download`（GB 类），与查询站数量无关。
 
 ## 待补

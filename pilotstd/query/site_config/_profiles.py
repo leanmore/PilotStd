@@ -187,6 +187,18 @@ ADAPTER_DEFAULT_PROFILES: dict[str, dict] = {
         "cooling_duration": 300,
         "role": "primary",
     },
+    "cqis": {
+        "label": "重庆标准查询",  # i18n-allow: 站点中文标签（与其它适配器 label 同口径）
+        "industries": [],
+        "std_prefixes": ["DB50"],
+        "is_general": False,
+        "reliability": "medium",
+        "default_weight": 55,
+        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5},
+        "cooling_threshold": 3,
+        "cooling_duration": 300,
+        "role": "primary",
+    },
     "gongbiaoku": {
         "label": "工标库",
         "industries": [],

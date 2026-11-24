@@ -1,6 +1,7 @@
 # 模块：项目/查询/适配器/____脚本
 from .base import BaseAdapter
 from .ccsn import CCSNAdapter
+from .cqis import CqisAdapter
 from .csres import CsresAdapter
 from .cssn import CSSNAdapter
 from .dbba import DbbaAdapter
@@ -24,6 +25,7 @@ from .ttbz import TTBZAdapter
 __all__ = [
     "BaseAdapter",
     "CCSNAdapter",
+    "CqisAdapter",
     "CsresAdapter",
     "CSSNAdapter",
     "DbbaAdapter",

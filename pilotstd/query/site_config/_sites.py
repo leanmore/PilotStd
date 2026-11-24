@@ -203,6 +203,16 @@ def _create_sites_part3() -> list[SiteState]:
             request_interval=0.5,
         ),
         S(
+            name="cqis",
+            # 该站点仅 HTTP（HTTPS 握手失败），见 docs/plans/2026-11-24-p2-recon-cq-fj.md
+            base_url="http://db.cqis.cn",
+            search_url="http://db.cqis.cn/LocalStandard/GetDB50ShareList",
+            max_requests=50,
+            daily_limit=500,
+            cooldown_seconds=1,
+            request_interval=0.5,
+        ),
+        S(
             name="miit",
             base_url="https://std.miit.gov.cn",
             search_url="https://std.miit.gov.cn/kjsStandproject/front/zxd/stand/queryFullDisclosureStandards",

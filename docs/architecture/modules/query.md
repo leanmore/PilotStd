@@ -287,3 +287,35 @@ BaseAdapter (ABC)
 
 **未变**：`SH/T`/`JB/T`/`HG/T` 等**无特色站**的族仍落 L2 通用链（`hbba` 本身是 L2 综合站），
 属正确行为；国标/行标/地标既有链不变。
+
+## 新增重庆标准信息平台适配器 `cqis`（2026-11-24，P2 批次 A1）
+
+**站点**：`http://db.cqis.cn/`（重庆市智慧市场监管一体化平台 — 地方标准信息公开）。
+**为何值得接**：重庆 DB50 的**权威源**，且提供**全文 PDF 附件**（`AttachmentUrl`）；
+现有 `dbba`（全国地标平台）只有题录、无全文。
+
+**接口形态（实测）**：
+
+| 用途 | 请求 | 说明 |
+|---|---|---|
+| 检索 | `POST /LocalStandard/GetDB50ShareList`（form-urlencoded） | `queryJson={"FinishCode": <标准号>, ...}` + `page` + `rows` |
+| 详情 | `POST /LocalStandard/GetPublicInfo`（JSON body `{"keyValue": <id>}`） | **本适配器未调用**：列表已含所需全部字段 |
+
+**关键坑（已落进适配器注释与测试）**：
+1. **按编号检索要用 `queryJson.FinishCode`**，`BZName` 匹配的是**标准名称**（用编号搜 BZName 会 0 条）；
+2. 响应 **`total` 字段不可靠**（实测恒为 1/2），以 `rows` 实际内容为准；
+3. 站点**仅 HTTP**（HTTPS 握手失败），故 `base_url` 用 http；
+4. 状态修正：`ReleaseStatus=现行` 但 `ActiveTime` 在未来 → 「即将实施」（与 `dbba` 同口径）。
+
+**注册点（6 处，缺一即不可达）**：`adapters/cqis.py` / `adapters/__init__.py` / `adapters/registry.py` /
+`site_config/_sites.py` / `site_config/_profiles.py` / `config/site_capabilities.yaml`；
+另 v1 硬路由 `engine/_constants.py`（`DB50` → `cqis` 优先）与 `search_strategy.ADAPTER_TYPE_MAP`
+（`db50` → `cqis`）。
+
+**v2 路由现状（按「零路由改动」方案）**：`cqis` 在 `site_capabilities.yaml` 声明 `supported_types: [DB]`
+（`_extract_std_type` 对 `DB50/T` 统一产出 `DB`），与 `dbba` 同属 L1，`dbba` 在前、`cqis` 紧随：
+`DB50/T 950-2026 → ['dbba', 'cqis']`。**省份精准粒度**（让 `cqis` 在 DB50 查询中排首位）是待决项，
+需 v2 支持省份粒度（约 0.25–0.5 人日），见 `docs/plans/2026-11-24-p2-adapter-recon-summary.md` §4。
+
+**回归锚点**：`tests/test_cqis.py`（12 例，全部基于 `tests/fixtures/cqis_sample.json` 的真实响应）；
+真实冒烟 `scripts/smoke_test_cqis.py`（本地可跑，CI 不跑）。

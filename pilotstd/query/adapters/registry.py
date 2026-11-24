@@ -6,6 +6,7 @@ import logging
 from .ahbz import AhbzAdapter
 from .base import BaseAdapter
 from .ccsn import CCSNAdapter
+from .cqis import CqisAdapter
 from .csres import CsresAdapter
 from .cssn import CSSNAdapter
 from .dbba import DbbaAdapter
@@ -32,6 +33,7 @@ logger = logging.getLogger(__name__)
 ALL_ADAPTERS: dict[str, type[BaseAdapter]] = {
     "ahbz": AhbzAdapter,
     "ccsn": CCSNAdapter,
+    "cqis": CqisAdapter,
     "csres": CsresAdapter,
     "cssn": CSSNAdapter,
     "dbba": DbbaAdapter,
