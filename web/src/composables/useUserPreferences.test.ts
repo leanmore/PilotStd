@@ -115,4 +115,25 @@ describe('useUserPreferences', () => {
     expect(localStorage.getItem('dashboard_widgets_visibility')).toBeNull()
     expect(raw('theme')).toBe('"x"')
   })
+
+  it('localStorage 读/写抛错（被禁用/配额满）：模块导入与变更写回都不崩（D-4 回归）', async () => {
+    // 读：getItem 抛 SecurityError 时，locale 等字段必须回退默认值而不是让模块导入失败
+    const getSpy = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('SecurityError')
+    })
+    vi.resetModules()
+    const mod = await import('./useUserPreferences')
+    const p = mod.useUserPreferences()
+    expect(p.locale.value).toBe('zh-CN')
+    expect(p.taskPath.value).toBe('/inbox')
+    getSpy.mockRestore()
+
+    // 写：setItem 抛 QuotaExceededError 时，watch 回调不得把异常抛给调用方
+    const setSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('QuotaExceededError')
+    })
+    expect(() => { p.theme.value = 'dark' }).not.toThrow()
+    await tick()
+    setSpy.mockRestore()
+  })
 })

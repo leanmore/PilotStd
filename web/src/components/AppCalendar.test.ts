@@ -21,7 +21,10 @@ function mountCalendar(locale: string, attrs: Record<string, unknown> = {}) {
   return { wrapper, i18n }
 }
 
-/** AppCalendar 把语言包作为非 prop 属性传给 AppDatePicker（后者再交给 DatePicker） */
+/**
+ * 断言「没有把语言包当成属性下发」：PrimeVue 4.5 DatePicker 没有 `locale` prop，
+ * 传下去只会变成非法 DOM 属性（`locale="[object Object]"`），且对面板无效。
+ */
 function passedLocale(wrapper: ReturnType<typeof mount>) {
   const attrs = wrapper.getComponent(AppDatePicker).vm.$attrs as Record<string, unknown>
   return attrs.locale
@@ -34,29 +37,32 @@ function primevueLocale(wrapper: ReturnType<typeof mount>) {
 }
 
 describe('AppCalendar', () => {
-  it('中文：计算出的语言包是 zh-CN，挂载后同步 PrimeVue 全局 locale', () => {
+  it('中文：挂载后同步 PrimeVue 全局 locale（面板只认全局配置）', () => {
     const { wrapper } = mountCalendar('zh-CN')
-    expect(passedLocale(wrapper)).toEqual(primevueLocales['zh-CN'])
     expect(primevueLocale(wrapper)).toEqual(primevueLocales['zh-CN'])
     expect(primevueLocale(wrapper).today).toBe('今天')
+    // D-3 回归：不得把语言包当作 `locale` 属性下发给 DatePicker
+    expect(passedLocale(wrapper)).toBeUndefined()
   })
 
-  it('英文：语言包与全局 locale 都切到 en', () => {
+  it('英文：全局 locale 切到 en', () => {
     const { wrapper } = mountCalendar('en')
-    expect(passedLocale(wrapper)).toEqual(primevueLocales.en)
     expect(primevueLocale(wrapper).today).toBe('Today')
   })
 
-  it('运行时切换 i18n.locale：computed 重算，下发给 DatePicker 的语言包随之变化', async () => {
+  it('运行时切换 i18n.locale（不重挂载）：watch 更新全局 locale（D-3 回归）', async () => {
     const { wrapper, i18n } = mountCalendar('zh-CN')
+    expect(primevueLocale(wrapper).today).toBe('今天')
+
     i18n.global.locale.value = 'en'
     await wrapper.vm.$nextTick()
-    expect(passedLocale(wrapper)).toEqual(primevueLocales.en)
+
+    // 原缺陷：只在 onMounted 设置一次 → 切语言后面板仍是中文
+    expect(primevueLocale(wrapper).today).toBe('Today')
   })
 
-  it('未知 locale 回退 zh-CN，不把 undefined 传给 DatePicker', () => {
+  it('未知 locale 回退 zh-CN，不把 undefined 写进全局 locale', () => {
     const { wrapper } = mountCalendar('fr')
-    expect(passedLocale(wrapper)).toEqual(primevueLocales['zh-CN'])
     expect(primevueLocale(wrapper)).toEqual(primevueLocales['zh-CN'])
   })
 

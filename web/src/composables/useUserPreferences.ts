@@ -24,11 +24,17 @@ function writeLocal(key: string, value: unknown) {
   setItem(key, JSON.stringify(value))
 }
 
-// 字符串字段透明读写（不 JSON 序列化），兼容旧版 JSON.stringify 写入的带引号值
+// 字符串字段透明读写（不 JSON 序列化），兼容旧版 JSON.stringify 写入的带引号值。
+// 2026-11-25 修复（D-4）：localStorage 可能被禁用（SecurityError），原实现未包 try/catch，
+// 会在模块导入阶段抛错；与同文件 `readLocal` 的保护口径对齐。
 function readPlainString(key: string, fallback: string): string {
-  const raw = getItem(key)
-  if (!raw) return fallback
-  return raw.startsWith('"') ? raw.replace(/^"|"$/g, '') : raw
+  try {
+    const raw = getItem(key)
+    if (!raw) return fallback
+    return raw.startsWith('"') ? raw.replace(/^"|"$/g, '') : raw
+  } catch {
+    return fallback
+  }
 }
 
 const theme = ref<string>(readLocal(KEYS.theme, ''))
@@ -58,10 +64,16 @@ function syncToBackend() {
 watch(
   [theme, locale, taskPath, quietHours],
   () => {
-    writeLocal(KEYS.theme, theme.value)
-    setItem(KEYS.locale, locale.value)
-    writeLocal(KEYS.taskPath, taskPath.value)
-    writeLocal(KEYS.quietHours, quietHours.value)
+    // 2026-11-25 修复（D-4）：写入可能因配额满（QuotaExceededError）/存储禁用而抛错，
+    // 偏好持久化失败不应把 watch 回调炸掉（后端同步仍应继续尝试）。
+    try {
+      writeLocal(KEYS.theme, theme.value)
+      setItem(KEYS.locale, locale.value)
+      writeLocal(KEYS.taskPath, taskPath.value)
+      writeLocal(KEYS.quietHours, quietHours.value)
+    } catch {
+      /* localStorage 不可用：跳过本地持久化，避免中断 UI */
+    }
     if (_initialized.value) syncToBackend()
   },
   { deep: true },

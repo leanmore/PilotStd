@@ -137,6 +137,21 @@ async function loadList() {
 }
 
 function onSearch() {
+  // 2026-11-25 修复（D-6）：分页模式下 loadList 直接 return，导致「查询」按钮无效；
+  // 分页模式应走 useIncrementalScroll 的 reload（用当前筛选重拉第一页）。
+  if (usePaginated) {
+    reloadRecords()
+    return
+  }
+  loadList()
+}
+
+function onRefresh() {
+  clearStandardsStatusCache()
+  if (usePaginated) {
+    reloadRecords()
+    return
+  }
   loadList()
 }
 
@@ -197,7 +212,7 @@ onMounted(() => {
 <AppButton
               icon="pi pi-refresh"
               :label="t('standards.refresh')"
-              @click="clearStandardsStatusCache(); loadList()"
+              @click="onRefresh"
               size="s"
               type="secondary"
             />
