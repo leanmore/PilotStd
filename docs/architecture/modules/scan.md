@@ -82,3 +82,17 @@ pilotstd/scan/
 
 - G-012 [LANG] 改为按词判定后，本模块注释里的英文普通词改为中文、裸标识符加反引号；
   仅注释与 docstring 变更，AST 比对无代码变化（全仓 504 行，见 27 日志 #81）。
+
+## ASME BPVC 扫描侧识别口径扩展（2026-11-24，P1-7.1 B-5）
+
+`scan/parser/_constants.py` 的 `_ASME_BPVC_RE` 扩展支持 `Section` / `Div(ision)` / `Part` / 册篇字母，
+捕获组口径改为 **1=卷号、2=分册号、3=册篇字母、4=年份**；并加 `(?!\d)` 防止分册号吃掉年份前两位
+（例：`BPVC.IX-2021` 曾被匹配为 div=20）。
+
+`scan/parser/_exact_matcher.py` 同步取值并写入 `num_suffix`（`D` / `D.M`）。
+
+**已知边界**：扫描侧 BPVC **无年份**写法（`Section VIII Div.1`、`II.D`）仍被 `validate_result` 拒绝
+（属 G5 范围，本批未放开）。
+
+回归：`tests/unit/scan/parser/test_bpvc_section_snapshot.py`；
+缺口依据：`docs/plans/2026-11-24-p1-api-asme-gap.md` §2.2 / §4-G2。
