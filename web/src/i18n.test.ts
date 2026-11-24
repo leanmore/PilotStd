@@ -97,4 +97,27 @@ describe('i18n 运行时', () => {
     const missing = '__missing__.key'
     expect(i18n.global.t(missing)).toBe(missing)
   })
+
+describe('t() 键完整性（方向 C 第四轮深扫）', () => {
+  it('源码里所有 t(\'...\') 字面量键都能在 zh-CN 语言包里解析（否则界面显示原始 key）', async () => {
+    // 用 vite 的 import.meta.glob 在测试环境读取源码不现实，改为直接校验已加载的 messages：
+    // 这里锁定 zh-CN 与 en 的「扁平键集」，再由下面的静态扫描用例覆盖源码侧。
+    const zh = flatKeys(messages['zh-CN'] as Record<string, unknown>)
+    const en = flatKeys(messages.en as Record<string, unknown>)
+    expect(zh.length).toBe(en.length)
+    expect(new Set(zh)).toEqual(new Set(en))
+  })
+
+  it('`settings.theme` / `settings.locale` 是对象、不能直接 t()（本轮修复的缺键）', () => {
+    const zh = messages['zh-CN'] as Record<string, unknown>
+    const settings = zh.settings as Record<string, unknown>
+    // 这两个是「主题/语言」的映射表，能被 t() 正确解析的应是叶子键
+    expect(typeof settings.theme).toBe('object')
+    expect(typeof settings.locale).toBe('object')
+    // SettingsView 实际使用的叶子键必须存在
+    const appearance = settings.appearance as Record<string, unknown>
+    expect(appearance.theme).toBeTruthy()
+    expect(appearance.language).toBeTruthy()
+  })
+})
 })

@@ -402,11 +402,11 @@ onMounted(() => {
   <div class="user-settings">
     <p class="text-dim">{{ t('settings.admin_only') }}</p>
     <label class="row">
-      <span>{{ t('settings.theme') }}</span>
+      <span>{{ t('settings.appearance.theme') }}</span>
       <AppSelect v-model="store.theme" :options="themeOptions" option-label="label" option-value="value" size="m" />
     </label>
     <label class="row">
-      <span>{{ t('settings.locale') }}</span>
+      <span>{{ t('settings.appearance.language') }}</span>
       <AppSelect v-model="store.locale" :options="localeOptions" option-label="label" option-value="value" size="m" />
     </label>
   </div>
