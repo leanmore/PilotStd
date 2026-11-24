@@ -84,4 +84,19 @@ describe('PendingItemsCard', () => {
     expect(w.text()).toContain('8 项待处理')
     expect(w.find('.more').text()).toContain('还有 2 项...')
   })
+
+  it('接口失败：显示「加载失败」+ 重试，不得渲染「全部处理完毕」假空态（D-1 回归）', async () => {
+    mocks.get.mockRejectedValueOnce(new Error('500'))
+    const w = mountCard()
+    await flushPromises()
+
+    expect(w.text()).toContain('加载失败')
+    expect(w.text()).not.toContain('全部处理完毕')
+
+    // 重试：再次调用接口，成功则恢复列表
+    mocks.get.mockResolvedValueOnce({ data: { items: items(2), total: 2 } })
+    await w.find('.retry-link').trigger('click')
+    await flushPromises()
+    expect(w.findAll('.row')).toHaveLength(2)
+  })
 })

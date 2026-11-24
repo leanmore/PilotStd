@@ -142,4 +142,17 @@ describe('SettingsTabUsers 用户管理', () => {
     await flushPromises()
     expect(wrapper.text()).toContain('加载用户列表失败')
   })
+
+  it('删除失败：展示后端错误文案，不静默（D-7 回归）', async () => {
+    vi.mocked(deleteUser).mockRejectedValue(new Error('403'))
+    const wrapper = mountTab()
+    await flushPromises()
+
+    await (wrapper.vm as unknown as { doDelete: (id: number) => Promise<void> }).doDelete(2)
+    await flushPromises()
+    // 组件通过 getApiErrorMessage 统一取文案（本测试 mock 为「操作失败」）
+    expect(wrapper.text()).toContain('操作失败')
+    // 失败后不得刷新列表（原实现无论如何都会 loadUsers()）
+    expect(getUsers).toHaveBeenCalledTimes(1)
+  })
 })

@@ -59,7 +59,19 @@ async function doAdd() {
   }
 }
 
-async function doDelete(id: number) { await deleteUser(id); loadUsers() }
+// 2026-11-25 修复（D-7）：原实现无 try/catch —— 删除失败（权限/网络）时静默无提示；
+// 且 userErr 只在「添加用户」对话框里渲染，删除错误必须落到列表区的可见位置。
+const deleteError = ref('')
+
+async function doDelete(id: number) {
+  deleteError.value = ''
+  try {
+    await deleteUser(id)
+    loadUsers()
+  } catch (e: any) {
+    deleteError.value = getApiErrorMessage(e)
+  }
+}
 
 function canDelete(item: any): boolean {
   if (store.role !== ADMIN_ROLE) return false
@@ -102,6 +114,7 @@ onMounted(() => { loadUsers() })
 
 <template>
   <div class="tab-content">
+  <p v-if="deleteError" class="error mb-2">{{ deleteError }}</p>
   <div class="card mt-2">
     <div class="card-header">
       <span>{{ t('settings.users.title') }}</span>

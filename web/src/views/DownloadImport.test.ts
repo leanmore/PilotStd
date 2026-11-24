@@ -132,4 +132,16 @@ describe('DownloadImport 手动导入', () => {
     expect((wrapper.find('textarea').element as HTMLTextAreaElement).value).toBe('GB/T 2\nISO 9001')
     expect(input.value).toBe('')
   })
+
+  it('提交失败：展示错误提示，不静默（D-8 回归）', async () => {
+    vi.mocked(postDownloadImport).mockRejectedValue({ response: { data: { detail: '文件格式不支持' } } })
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper.find('textarea').setValue('GB/T 1-2020')
+    await wrapper.findAll('button').find((b) => b.text().includes('提交'))!.trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('文件格式不支持')
+  })
 })

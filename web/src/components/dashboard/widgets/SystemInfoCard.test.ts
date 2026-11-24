@@ -84,4 +84,13 @@ describe('SystemInfoCard', () => {
     expect(http.get).toHaveBeenCalledWith('/adapter/status', { params: { type: 'query' }, routeTag: '/' })
     expect(w).toBeTruthy()
   })
+
+  it('接口失败：显示「加载失败」，不得把故障渲染成"版本 v / 空库"（D-2 回归）', async () => {
+    vi.mocked(http.get).mockRejectedValue(new Error('500'))
+    const w = mountCard()
+    await flushPromises()
+
+    expect(w.text()).toContain('加载失败')
+    expect(w.text()).not.toContain('空库')
+  })
 })

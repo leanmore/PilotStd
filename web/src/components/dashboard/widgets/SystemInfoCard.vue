@@ -3,6 +3,7 @@ defineOptions({ name: 'SystemInfoCard' })
 import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import http from '@/api/http'
+import AppButton from '@/components/ui/AppButton.vue'
 import { getStats } from '@/api'
 import AppLoading from '@/components/ui/AppLoading.vue'
 
@@ -17,19 +18,29 @@ const loading = ref(true)
 const dbOk = computed(() => standardCount.value > 0)
 const adapterOk = computed(() => adapterCount.value > 0)
 
-onMounted(async () => {
-  try {
-    const [verResp, stats, adapterResp] = await Promise.all([
-      http.get('/system/version', { routeTag: '/' }),
-      getStats('/'),
-      http.get('/adapter/status', { params: { type: 'query' }, routeTag: '/' }),
-    ])
-    version.value = verResp.data.version || '—'
-    standardCount.value = (stats.current || 0) + (stats.expired || 0) + (stats.pending || 0) + (stats.upcoming || 0)
-    dbStatus.value = standardCount.value > 0 ? t('dashboard.common.normal') : t('dashboard.sys_info.db_empty')
-    adapterCount.value = (adapterResp.data?.adapters || []).length
-  } finally { loading.value = false }
-})
+// 2026-11-25 修复（D-2）：原实现只有 `finally` 没有 `catch`，任一接口失败都会把
+// 版本显示成 `v`、标准数 0、适配器 0 在线、「空库」——把后端故障读成"系统是空的"。
+const error = ref(false)
+
+function load() {
+  error.value = false
+  loading.value = true
+  Promise.all([
+    http.get('/system/version', { routeTag: '/' }),
+    getStats('/'),
+    http.get('/adapter/status', { params: { type: 'query' }, routeTag: '/' }),
+  ])
+    .then(([verResp, stats, adapterResp]) => {
+      version.value = verResp.data.version || '—'
+      standardCount.value = (stats.current || 0) + (stats.expired || 0) + (stats.pending || 0) + (stats.upcoming || 0)
+      dbStatus.value = standardCount.value > 0 ? t('dashboard.common.normal') : t('dashboard.sys_info.db_empty')
+      adapterCount.value = (adapterResp.data?.adapters || []).length
+    })
+    .catch(() => { error.value = true })
+    .finally(() => { loading.value = false })
+}
+
+onMounted(load)
 </script>
 
 <template>
@@ -42,6 +53,11 @@ onMounted(async () => {
     </div>
 
     <AppLoading v-if="loading" variant="skeleton" :rows="3" :label="t('dashboard.common.loading')" />
+    <div v-else-if="error" class="empty">
+      <i class="pi pi-exclamation-triangle" style="font-size: var(--font-size-24); color: var(--danger); margin-bottom: var(--space-8);" />
+      <span>{{ t('dashboard.common.load_failed') }}</span>
+      <AppButton :label="t('common.retry')" size="s" type="ghost" class="retry-link" @click="load" />
+    </div>
     <div v-else class="body">
       <div class="version-block">
         <span class="version-label">Current Version</span>

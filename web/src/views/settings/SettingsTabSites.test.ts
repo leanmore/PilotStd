@@ -172,4 +172,10 @@ describe('SettingsTabSites 站点限额编辑', () => {
     await flushPromises()
     expect(up.find('.health-dot').classes()).toContain('health-up')
   })
+
+  it('不再渲染死 UI：失败的站点保存只走 toast，页面上没有常驻 Message（D-5 回归）', async () => {
+    const wrapper = mountTab()
+    await flushPromises()
+    expect(wrapper.findAll('.p-message').length).toBe(0)
+  })
 })

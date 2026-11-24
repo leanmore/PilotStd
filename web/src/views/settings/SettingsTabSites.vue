@@ -7,7 +7,6 @@ import { useConfirm } from 'primevue/useconfirm'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import Tag from 'primevue/tag'
-import Message from 'primevue/message'
 import http from '@/api/http'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
@@ -37,8 +36,8 @@ interface SiteConfig {
 
 const sites = ref<SiteConfig[]>([])
 const loading = ref(false)
-const saved = ref(false)
-const errMsg = ref('')
+// 2026-11-25 修复（D-5）：删除 `saved` / `errMsg` —— 两者从未被赋非默认值，
+// 模板里对应的两个 <Message> 是死 UI（成功/失败提示由 useAppToast 承担）。
 const sections = ref({ sites: true })
 
 // 每个站点的编辑状态 + 快照
@@ -178,7 +177,7 @@ function healthText(s: SiteConfig): string {
 }
 
 async function loadSites() {
-  loading.value = true; errMsg.value = ''
+  loading.value = true
   try {
     const r = await http.get('/settings/sites', { routeTag: '/settings' })
     if (!r || !r.data) return  // 请求被取消（响应拦截器静默返回 null），不显示错误
@@ -214,8 +213,6 @@ onMounted(() => { loadSites() })
     <transition name="collapsible">
       <div v-show="sections.sites" class="collapsible-content">
         <p class="text-dim mb-2">{{ t('sites.description') }}</p>
-        <Message v-if="errMsg" severity="error" :closable="false">{{ errMsg }}</Message>
-        <Message v-if="saved" severity="success" :closable="false">{{ t('common.saved') }}</Message>
         <p v-if="!loading && sites.length === 0" class="text-dim text-center py-3">{{ t('sites.empty') }}</p>
         <div v-if="sites.length > 0" class="site-grid">
           <div

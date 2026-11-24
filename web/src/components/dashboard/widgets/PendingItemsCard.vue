@@ -3,6 +3,7 @@ defineOptions({ name: 'PendingItemsCard' })
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import http from '@/api/http'
+import AppButton from '@/components/ui/AppButton.vue'
 
 const { t } = useI18n()
 
@@ -11,14 +12,23 @@ interface PendingItem { id: number; standard_number: string; standard_name?: str
 const items = ref<PendingItem[]>([])
 const total = ref(0)
 const loading = ref(true)
+// 2026-11-25 修复（D-1）：原实现只有 `finally` 没有 `catch`，接口失败时 items 为空 +
+// loading=false → 渲染「全部处理完毕」，把网络/后端故障谎报成"没有待办"。
+const error = ref(false)
 
-onMounted(async () => {
-  try {
-    const r = await http.get('/pending', { routeTag: '/' })
-    items.value = (r.data.items || []).slice(0, 6)
-    total.value = r.data.total ?? r.data.items?.length ?? 0
-  } finally { loading.value = false }
-})
+function load() {
+  error.value = false
+  loading.value = true
+  http.get('/pending', { routeTag: '/' })
+    .then((r) => {
+      items.value = (r.data.items || []).slice(0, 6)
+      total.value = r.data.total ?? r.data.items?.length ?? 0
+    })
+    .catch(() => { error.value = true })
+    .finally(() => { loading.value = false })
+}
+
+onMounted(load)
 </script>
 
 <template>
@@ -33,7 +43,13 @@ onMounted(async () => {
       </div>
     </div>
 
-    <div v-if="!items.length && !loading" class="empty">
+    <div v-if="error" class="empty">
+      <i class="pi pi-exclamation-triangle" style="font-size: var(--font-size-24); color: var(--danger); margin-bottom: var(--space-8);" />
+      <span>{{ t('dashboard.common.load_failed') }}</span>
+      <AppButton :label="t('common.retry')" size="s" type="ghost" class="retry-link" @click="load" />
+    </div>
+
+    <div v-else-if="!items.length && !loading" class="empty">
       <i class="pi pi-check-circle" style="font-size: var(--font-size-24); color: var(--success); margin-bottom: var(--space-8);" />
       <span>{{ t('dashboard.pending.all_done') }}</span>
     </div>

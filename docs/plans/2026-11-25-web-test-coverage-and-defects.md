@@ -54,16 +54,16 @@
 > 均为 lane 复核时发现的**真实**问题（测试按现有行为锁定，未把错误行为写成期望）。
 > 建议按「错误静默 → 用户误解」优先级分批修。
 
-| # | 位置 | 问题 | 影响 |
-|---|---|---|---|
+| # | 位置 | 问题 | 影响 | 状态 |
+|---|---|---|---|---|
 | D-1 | `components/dashboard/widgets/PendingItemsCard.vue:15-21` | `try/finally` 无 `catch` | `GET /pending` 失败 → 渲染「全部处理完毕」，把故障报成"没有待办" |
 | D-2 | `components/dashboard/widgets/SystemInfoCard.vue:20-32` | 同 D-1 | 任一接口失败 → 版本 `v`、标准数 0、适配器 0 在线、数据库「空库」，故障读成"系统是空的" |
-| D-3 | `components/AppCalendar.vue:27`（注释 `:14,:16-23`） | `:locale` 不是 PrimeVue 4.5.5 `DatePicker` 属性（DOM 出现 `locale="[object Object]"`） | 运行中切换语言（不重挂载）月份/星期面板不更新，与文件头承诺不符 |
-| D-4 | `composables/useUserPreferences.ts:28-32,58-68` | `readLocal` 有保护，`readPlainString` 与 4 处写入无保护 | localStorage 被禁用/配额满时模块导入或 watch 抛错 |
+| D-3 | `components/AppCalendar.vue:27`（注释 `:14,:16-23`） | `:locale` 不是 PrimeVue 4.5.5 `DatePicker` 属性（DOM 出现 `locale="[object Object]"`） | 运行中切换语言（不重挂载）月份/星期面板不更新，与文件头承诺不符 | ⏳ 待修（需决定：移除无效 prop 还是改成响应式 locale） |
+| D-4 | `composables/useUserPreferences.ts:28-32,58-68` | `readLocal` 有保护，`readPlainString` 与 4 处写入无保护 | localStorage 被禁用/配额满时模块导入或 watch 抛错 | ⏳ 待修（统一包 try/catch） |
 | D-5 | `views/settings/SettingsTabSites.vue:40-42` | `saved`/`errMsg` 从未被赋非默认值 | 模板两个 `<Message>` 是死 UI |
-| D-6 | `views/StandardsStatusView.vue:115,139-141,197-203` | 分页模式（`VITE_USE_PAGINATED_RECORDS_API=true`）下 `loadList()` 首行 return | 「查询」按钮无效、「刷新」只清缓存不重拉列表（默认降级模式不暴露） |
-| D-7 | `views/settings/SettingsTabUsers.vue:62` | `doDelete` 无错误处理 | 删除失败无提示 |
-| D-8 | `views/DownloadImport.vue:53-55` | 提交失败静默 `result=null` | 用户无反馈 |
+| D-6 | `views/StandardsStatusView.vue:115,139-141,197-203` | 分页模式（`VITE_USE_PAGINATED_RECORDS_API=true`）下 `loadList()` 首行 return | 「查询」按钮无效、「刷新」只清缓存不重拉列表（默认降级模式不暴露） | ⏳ 待修（需确认分页模式是否仍启用） |
+| D-7 | `views/settings/SettingsTabUsers.vue:62` | `doDelete` 无错误处理 | 删除失败无提示 | ✅ 已修（列表区可见错误位 + 回归用例） |
+| D-8 | `views/DownloadImport.vue:53-55` | 提交失败静默 `result=null` | 用户无反馈 | ✅ 已修（展示后端 detail，回归用例） |
 
 ## 5. 方法复盘
 
