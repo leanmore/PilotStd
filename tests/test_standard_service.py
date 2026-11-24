@@ -30,16 +30,18 @@ class TestMapFilterStatus:
         assert op is None
 
     def test_abolished_returns_in_operator(self):
-        """已废止 → IN 操作符匹配废止+被代替。"""
+        """已废止 → IN 操作符匹配废止+被代替+作废（废止族含「作废」）。"""
         vals, op = StandardService._map_filter_status(Status.WITHDRAWN_NORMALIZED.value)
         assert Status.WITHDRAWN.value in vals
         assert Status.SUPERSEDED.value in vals
+        assert Status.VOIDED.value in vals, "作废 ∈ ABOLISHED_STATUSES，筛选废止族必须包含它"
         assert op == "IN"
 
     def test_unknown_returns_not_in_operator(self):
-        """未知 → NOT IN 操作符排除已知状态。"""
+        """未知 → NOT IN 操作符排除已知状态，且必须排除「作废」（否则口径自相矛盾）。"""
         vals, op = StandardService._map_filter_status(Status.UNKNOWN.value)
         assert Status.ACTIVE.value in vals
+        assert Status.VOIDED.value in vals, "作废属废止族，不得被折叠进未知桶"
         assert op == "NOT IN"
 
     def test_arbitrary_status_returns_exact(self):
@@ -65,10 +67,11 @@ class TestBuildWhere:
         assert params == [Status.ACTIVE.value]
 
     def test_status_filter_abolished(self):
-        """status=已废止 生成 status IN (?, ?)"""
+        """status=已废止 生成 status IN (?, ?, ?)，含废止/被代替/作废。"""
         sql, params = StandardService._build_where({"status": Status.WITHDRAWN_NORMALIZED.value})
-        assert "IN (?, ?)" in sql
-        assert len(params) == 2
+        assert "IN (?, ?, ?)" in sql
+        assert len(params) == 3
+        assert Status.VOIDED.value in params
 
     def test_keyword_filter(self):
         """keyword 过滤生成复合 LIKE 条件。"""
@@ -90,10 +93,11 @@ class TestBuildWhere:
         assert "f.status = ?" in sql
 
     def test_not_in_operator_for_unknown(self):
-        """status=未知 生成 NOT IN 子句。"""
+        """status=未知 生成 NOT IN 子句，排除 现行/废止/被代替/作废 四类。"""
         sql, params = StandardService._build_where({"status": Status.UNKNOWN.value})
         assert "NOT IN" in sql
-        assert len(params) == 3  # 现行, 废止, 被代替
+        assert len(params) == 4  # 现行, 废止, 被代替, 作废
+        assert Status.VOIDED.value in params
 
 
 class TestGetStats:
@@ -126,6 +130,34 @@ class TestGetStats:
         result = svc.get_stats()
         assert result["total"] == 50
         assert result["by_status"][Status.WITHDRAWN_NORMALIZED.value] == 0
+        assert result["by_status"][Status.UNKNOWN.value] == 0
+
+    def test_voided_counted_in_abolished_not_unknown(self, mock_mgr, svc):
+        """生产口径复现：「作废」58 条必须计入已废止、并从未知中剔除。
+
+        数据来源：docs/plans/2026-11-24-p1-unknown-standards.md 附录 B
+        （现行 572 / 废止 95 / 作废 58 / 被代替 21 / 即将实施 20 / 未生效 10）。
+        期望：已废止 95+21+58=174，未知 20+10=30，total 仍为 776（守恒）。
+        """
+        mock_mgr.db.fetchall.return_value = [
+            {"status": Status.ACTIVE.value, "cnt": 572},
+            {"status": Status.WITHDRAWN.value, "cnt": 95},
+            {"status": Status.VOIDED.value, "cnt": 58},
+            {"status": Status.SUPERSEDED.value, "cnt": 21},
+            {"status": Status.UPCOMING.value, "cnt": 20},
+            {"status": "未生效", "cnt": 10},
+        ]
+        result = svc.get_stats()
+        assert result["total"] == 776
+        assert result["by_status"][Status.ACTIVE.value] == 572
+        assert result["by_status"][Status.WITHDRAWN_NORMALIZED.value] == 174
+        assert result["by_status"][Status.UNKNOWN.value] == 30
+
+    def test_voided_alone_never_lands_in_unknown(self, mock_mgr, svc):
+        """仅「作废」时：已废止=58、未知=0（作废不得被折叠进未知桶）。"""
+        mock_mgr.db.fetchall.return_value = [{"status": Status.VOIDED.value, "cnt": 58}]
+        result = svc.get_stats()
+        assert result["by_status"][Status.WITHDRAWN_NORMALIZED.value] == 58
         assert result["by_status"][Status.UNKNOWN.value] == 0
 
 

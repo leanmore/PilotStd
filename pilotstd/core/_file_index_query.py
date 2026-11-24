@@ -96,7 +96,11 @@ class FileIndexQuery:
             return {"current": 0, "expired": 0, "pending": 0, "upcoming": 0}
         return {
             "current": s.get(Status.ACTIVE.value, 0),
-            "expired": s.get(Status.WITHDRAWN.value, 0) + s.get(Status.SUPERSEDED.value, 0),
+            # 废止族 = 废止 + 被代替 + 作废（2026-11-24 口径修正：原漏 VOIDED，
+            # 与 standard_service.get_stats 不一致，导致首页卡片少算「作废」条目）
+            "expired": s.get(Status.WITHDRAWN.value, 0)
+            + s.get(Status.SUPERSEDED.value, 0)
+            + s.get(Status.VOIDED.value, 0),
             "pending": s.get(Status.PENDING.value, 0),
             "upcoming": s.get(Status.UPCOMING.value, 0),
         }
