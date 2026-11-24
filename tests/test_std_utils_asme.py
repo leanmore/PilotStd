@@ -12,7 +12,7 @@
 import pytest
 
 from pilotstd.core.std_utils import parse_std_number
-from pilotstd.query.search_strategy import match_result
+from pilotstd.query.search_strategy import _strip_code_noise, match_result
 
 
 class TestAsmeLetterSeriesNoSplit:
@@ -94,3 +94,169 @@ class TestExistingFamiliesUnaffected:
 
     def test_unparseable_still_none(self):
         assert parse_std_number("@@@###") is None
+
+
+class TestAsmeBpvcVolumeForms:
+    """B-5：ASME BPVC 卷/册/篇体系（官方点号写法 + Section/Div/Part 写法）。
+
+    已查阅 `docs/plans/2026-11-24-p1-api-asme-gap.md` §2.2 行 12~20 / §3.2 类型 A2 / §4 G2：
+    修复前 `parse_std_number` 对这批写法全 MISS（`ASME BPVC.VIII-1-2021` 还会把卷号并进代号）。
+    字段口径按报告 G2 建议：卷号→`number`（阿拉伯值）、Div→`part`、册/篇字母（D/M）→`num_suffix`。
+    """
+
+    @pytest.mark.parametrize(
+        "text, number, part, year, num_prefix, num_suffix",
+        [
+            ("ASME BPVC.VIII.1-2021", 8, 1, 2021, "VIII", ""),
+            ("ASME BPVC.IX-2021", 9, None, 2021, "IX", ""),
+            ("ASME BPVC.II.D", 2, None, 0, "II", "D"),
+            ("ASME BPVC.II.D.M-2021", 2, None, 2021, "II", "D.M"),
+            ("ASME BPVC VIII-1-2021", 8, 1, 2021, "VIII", ""),
+            ("ASME BPVC IX-2021", 9, None, 2021, "IX", ""),
+            ("ASME BPVC Section VIII Div.1", 8, 1, 0, "VIII", ""),
+            ("ASME BPVC Section VIII Div. 1-2021", 8, 1, 2021, "VIII", ""),
+            ("ASME BPVC Section VIII, Division 1-2021", 8, 1, 2021, "VIII", ""),
+            ("ASME BPVC Section II Part D", 2, None, 0, "II", "D"),
+        ],
+    )
+    def test_bpvc_forms(self, text, number, part, year, num_prefix, num_suffix):
+        r = parse_std_number(text)
+        assert r is not None, f"{text} 应能解析"
+        assert r["code"] == "ASME"
+        assert r["raw_code"] == "ASME"
+        assert r["number"] == number
+        assert r["part"] == part
+        assert r["year"] == year
+        assert r["num_prefix"] == num_prefix
+        assert r["num_suffix"] == num_suffix
+
+    @pytest.mark.parametrize(
+        "text, number, part, year, num_prefix, num_suffix",
+        [
+            # 报告 §4 G2 建议的 BPVC 语法在省略 `ASME` 前缀时也应成立
+            ("BPVC.IX-2021", 9, None, 2021, "IX", ""),
+            ("BPVC.II.D", 2, None, 0, "II", "D"),
+            ("Section VIII Div.1", 8, 1, 0, "VIII", ""),
+            ("Section II Part D", 2, None, 0, "II", "D"),
+        ],
+    )
+    def test_bpvc_forms_without_asme_prefix(self, text, number, part, year, num_prefix, num_suffix):
+        r = parse_std_number(text)
+        assert r is not None, f"{text} 应能解析"
+        assert r["code"] == "ASME"
+        assert r["number"] == number
+        assert r["part"] == part
+        assert r["year"] == year
+        assert r["num_prefix"] == num_prefix
+        assert r["num_suffix"] == num_suffix
+
+    def test_roman_only_form_unchanged(self):
+        """不带 BPVC/Section 标记时仍走既有 roman 分支（不引入 num_prefix）。"""
+        r = parse_std_number("ASME VIII.1-2021")
+        assert r is not None
+        assert r["code"] == "ASME"
+        assert r["number"] == 8
+        assert r["part"] == 1
+        assert r["year"] == 2021
+
+
+class TestBpvcMatchResult:
+    """B-5：站点返回 BPVC 写法时，与本地 VIII.1-2021 / II.D.M-2021 必须判 exact。"""
+
+    @pytest.mark.parametrize(
+        "local_number, local_year, result_number_str",
+        [
+            (8, 2021, "ASME BPVC.VIII.1-2021"),
+            (8, 2021, "ASME BPVC Section VIII Div.1-2021"),
+            (8, 2021, "ASME BPVC Section VIII, Division 1-2021"),
+            (2, 2021, "ASME BPVC.II.D.M-2021"),
+        ],
+    )
+    def test_bpvc_result_is_exact(self, local_number, local_year, result_number_str):
+        ok, status = match_result("ASME", local_number, local_year, "", result_number_str)
+        assert (ok, status) == (True, "exact"), f"{result_number_str} -> {(ok, status)}"
+
+
+class TestApiTypeWordNotPollutingCode:
+    """B-6：API 大写类型词（STD/RP/Q…）不是代号的一部分，不得污染 `code`。
+
+    已查阅报告 §2.1 行 5/6/12 / §3.2 类型 B2 / §4 G3：修复前 `API STD 610-2004` 解析出
+    `code=APISTD`、`API RP 520-2020`→`APIRP`、`API Q1-2023`→`APIQ`，导致 `match_result`
+    拿污染代号与本地 `API` 比对。类型词应落到 `num_prefix`。
+    """
+
+    @pytest.mark.parametrize(
+        "text, number, year, num_prefix",
+        [
+            ("API STD 610-2004", 610, 2004, "STD"),
+            ("API RP 520-2020", 520, 2020, "RP"),
+            ("API Q1-2023", 1, 2023, "Q"),
+            # 任务/报告同时点名无年份写法（无年份在 A 通道允许 year=0）
+            ("API STD 610", 610, 0, "STD"),
+            ("API Q1", 1, 0, "Q"),
+        ],
+    )
+    def test_type_word_goes_to_num_prefix(self, text, number, year, num_prefix):
+        r = parse_std_number(text)
+        assert r is not None, f"{text} 应能解析"
+        assert r["code"] == "API", f"{text} 代号被污染为 {r['code']!r}"
+        assert r["raw_code"] == "API"
+        assert r["number"] == number
+        assert r["year"] == year
+        assert r["num_prefix"] == num_prefix
+
+    def test_lowercase_spec_type_word_kept(self):
+        """小写混合类型词 `Spec` 走通用分支时本来就正确，不得被本次改动破坏。"""
+        r = parse_std_number("API Spec 610-2004")
+        assert r is not None
+        assert r["code"] == "API"
+        assert r["number"] == 610
+        assert r["year"] == 2004
+        assert r["num_prefix"] == "Spec"
+
+    def test_plain_api_number_unchanged(self):
+        r = parse_std_number("API 610-2004")
+        assert r is not None
+        assert r["code"] == "API"
+        assert r["number"] == 610
+        assert r["year"] == 2004
+        assert r["num_prefix"] == ""
+
+    @pytest.mark.parametrize(
+        "local_number, local_year, result_number_str",
+        [
+            (610, 2004, "API STD 610-2004"),
+            (520, 2020, "API RP 520-2020"),
+            (1, 2023, "API Q1-2023"),
+            (610, 2004, "API Spec 610-2004"),
+            (610, 2004, "API 610-2004"),
+        ],
+    )
+    def test_match_result_exact(self, local_number, local_year, result_number_str):
+        ok, status = match_result("API", local_number, local_year, "", result_number_str)
+        assert (ok, status) == (True, "exact"), f"{result_number_str} -> {(ok, status)}"
+
+
+class TestCodeNoiseSuffixes:
+    """B-6：`_strip_code_noise` 噪音后缀表补齐 API 类型词（报告 §4 G3 建议）。"""
+
+    @pytest.mark.parametrize(
+        "raw, expected",
+        [
+            ("APISTD", "API"),
+            ("APIRP", "API"),
+            ("APISPEC", "API"),
+            ("APIBULL", "API"),
+            ("APITR", "API"),
+            ("APIMPMS", "API"),
+            ("APITDB", "API"),
+            ("APIPUBL", "API"),
+            ("APISTANDARD", "API"),
+            # 不得把真正的短代号剥没（保留 ≥2 字符基础代号）
+            ("API", "API"),
+            ("ARP", "ARP"),
+            ("GBT", "GBT"),
+        ],
+    )
+    def test_strip_code_noise(self, raw, expected):
+        assert _strip_code_noise(raw) == expected
