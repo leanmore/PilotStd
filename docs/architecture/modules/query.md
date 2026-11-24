@@ -254,3 +254,36 @@ BaseAdapter (ABC)
 此前被拼成 `APISTD`，搜索命中不到），并加 `len(code)-len(suffix) >= 2` 守卫，
 避免 `ARP`/`TR` 这类真短代号被剥空。`Q` 不进噪音表——已在解析源头拆分，避免误剥以 Q 结尾的代号。
 回归：`tests/test_std_utils_asme.py`（含 `_strip_code_noise` 用例）。
+
+## v2 路由：团体标准与斜杠变体不可达修复（2026-11-24，P2 侦查发现）
+
+**现象（实测 `get_route_chain`）**：
+
+| 输入 | 修复前 | 修复后 |
+|---|---|---|
+| `T/CIESC 001-2019` | `['njbz365']`（**ttbz 永远选不中**，直落 L3 兜底） | `['ttbz']` |
+| `T/CECS`（批量纯代号） | `['njbz365']` | `['ttbz']` |
+| `NB/T 47016-2023` | `['gongbiaoku','hbba','ahbz','njbz365']`（energy 不可达） | `['energy']` |
+| `HJ/T` / `TB/T` / `YD/T` / `DZ/T` / `JT/T` | 全部落 L2 通用兜底 | 分别命中 `mee` / `tdpress` / `miit` / `nrsis` / `jtst` |
+
+**三处根因与修法**：
+
+1. **`T/<组织>` 被当成纯关键词**：`_STD_PREFIX_RE` 要求 2~6 个字母，`T/CECS` 只有 1 个字母+斜杠
+   → `std_type=None` → `is_keyword_query=True` → 跳过 L1/L2 直落 L3。
+   修法：新增 `_T_GROUP_RE`（`^T/`）在通用正则前识别为 `"T/"`（与 `ttbz` 的
+   `supported_types: ["T/"]` 对齐；`TB/T` 以 `TB/` 开头不受影响）。
+2. **`NB/T` 推不出「能源」领域**：`energy` 声明 `industries: ["能源"]`，但
+   `_STD_TYPE_TO_INDUSTRY` 只有 `NB`/`DL` → 单条查询 `std_type=NB/T` 推不出领域被过滤。
+   修法：`_extract_industry` 增加**基码回退**（`NB/T` → `NB`）；
+   `site_capabilities.yaml` 的 `energy` 补 `NB/T`/`DL/T` 声明（精确命中优先于基码）。
+3. **斜杠变体系统性漏配**：真实标准号中 14+ 个族是 `<基码>/T`（HJ/T、TB/T、YD/T、DZ/T、JT/T…），
+   而站点只声明基码。修法：`_route_l1` 改走 `_type_matches()`——**声明优先、未声明才按基码回退**。
+   「已被任何站点声明的类型不做基码回退」这条守卫很关键：否则 `GB/T` 会落到只声明 `GB`
+   的站点（过匹配，实测会破坏国标 L1 链 `std_gov→csres→cssn`）。
+
+**回归锚点**：`tests/test_router_v2.py::TestGroupStdAndEnergyRouting`、
+`::test_slash_variant_base_code_routing`、`::test_declared_types_do_not_fall_back`。
+查询域广域回归 673 passed。
+
+**未变**：`SH/T`/`JB/T`/`HG/T` 等**无特色站**的族仍落 L2 通用链（`hbba` 本身是 L2 综合站），
+属正确行为；国标/行标/地标既有链不变。

@@ -130,6 +130,12 @@ _INDUSTRY_KEYWORDS: dict[str, list[str]] = {
 # 至少 2 个字母，避免把单字母或纯中文关键词误判为标准号。
 _STD_PREFIX_RE = re.compile(r"^([A-Za-z]{2,6}(?:/[A-Za-z])?)")
 
+# 团体标准 `T/<组织>`（如 `T/CECS`、`T/CIESC`）：代号只有 **1 个字母 + 斜杠**，
+# 通用正则要求 2~6 个字母会匹配不到 → `std_type=None` → 被判为纯关键词
+# → 跳过 L1/L2 直落 L3 兜底（`njbz365`），`ttbz` 永远不会被选中（2026-11-24 实测）。
+# 注意 `TB/T`（铁道行业标准）以 `TB/` 开头，不会被本正则命中。
+_T_GROUP_RE = re.compile(r"^[Tt]/")
+
 
 class IntentParser:
     """意图解析器：规则库驱动（正则 + 关键词字典），不调用外部 API。"""
@@ -156,7 +162,13 @@ class IntentParser:
 
     @staticmethod
     def _extract_std_type(raw: str) -> Optional[str]:
-        """用正则提取标准号前缀，未匹配到返回 None。"""
+        """用正则提取标准号前缀，未匹配到返回 None。
+
+        团体标准 `T/<组织>` 单独识别为 `T/`（配置里 `ttbz` 的 `supported_types` 即 `["T/"]`）：
+        通用正则要求 ≥2 个字母，`T/CECS` 这类只有 1 个字母 + 斜杠的代号会漏掉。
+        """
+        if _T_GROUP_RE.match(raw):
+            return "T/"
         m = _STD_PREFIX_RE.match(raw)
         if m:
             return m.group(1).upper()
@@ -165,8 +177,14 @@ class IntentParser:
     def _extract_industry(self, raw: str, std_type: Optional[str]) -> Optional[str]:
         """识别行业领域：标准号前缀推断优先，其次中文关键词匹配。"""
         # 1. 标准号前缀直接推断领域（优先级最高）
-        if std_type and std_type in _STD_TYPE_TO_INDUSTRY:
-            return _STD_TYPE_TO_INDUSTRY[std_type]
+        if std_type:
+            if std_type in _STD_TYPE_TO_INDUSTRY:
+                return _STD_TYPE_TO_INDUSTRY[std_type]
+            # 斜杠变体按基码回退：`NB/T` → `NB`（否则能源标准单条查询推不出「能源」领域，
+            # 会被 `energy` 的 `industries` 限制过滤掉）。
+            base = std_type.split("/")[0]
+            if base in _STD_TYPE_TO_INDUSTRY:
+                return _STD_TYPE_TO_INDUSTRY[base]
         # 2. 中文关键词匹配
         for industry, keywords in self._industry_keywords.items():
             if any(kw in raw for kw in keywords):
@@ -253,6 +271,11 @@ class RouterEngine:
     def __init__(self, capabilities: list[SiteCapability], quota: QuotaManager) -> None:
         self._capabilities: dict[str, SiteCapability] = {s.site_id: s for s in capabilities}
         self.quota = quota
+        # 所有站点声明过的标准类型（决定基码回退是否启用，见 `_type_matches`）
+        self._declared_types: set[str] = {
+            t for cap in capabilities for t in cap.capabilities.supported_types
+        }
+        self._declared_types = {str(t).upper() for t in self._declared_types}
 
     def route(self, intent: QueryIntent) -> RouteChain:
         """路由入口：查询类型三分支。
@@ -280,6 +303,27 @@ class RouterEngine:
             chain = self._route_l3(intent)
         return chain
 
+    def _type_matches(self, site: SiteCapability, std_type: Optional[str]) -> bool:
+        """标准类型是否命中站点能力声明。
+
+        规则（2026-11-24）：**声明优先，其次按基码回退**。
+        - 精确命中直接通过（如 `GB/T` 命中 std_gov 的声明）。
+        - 若该类型**未被任何站点声明**，则按基码匹配（`SH/T` → `SH`）：
+          真实标准号里 `SH/T`/`HJ/T`/`TB/T`/`YD/T` 等 14+ 个族都以 `<基码>/T` 形态出现，
+          而站点配置只声明基码（`SH`/`HJ`/`TB`/`YD`），精确匹配会全部漏掉 →
+          直落 L2 通用兜底（实测 2026-11-24：`SH/T 1-2020` → gongbiaoku/hbba/...）。
+        - 该类型已被某站声明时**不做基码回退**，避免 `GB/T` 落到只声明 `GB` 的站点（过匹配）。
+        """
+        if not std_type:
+            return False
+        declared = self._declared_types
+        supported = site.capabilities.supported_types
+        if std_type in supported:
+            return True
+        if std_type not in declared:
+            return std_type.split("/")[0] in supported
+        return False
+
     def _route_l1(self, intent: QueryIntent) -> RouteChain:
         """L1 精准匹配层：仅处理国内标准，按标准前缀 + 领域精准匹配。"""
         # 硬性前置条件：L1 不处理国际标准
@@ -290,7 +334,7 @@ class RouterEngine:
         matched = [
             s
             for s in candidates
-            if intent.std_type in s.capabilities.supported_types
+            if self._type_matches(s, intent.std_type)
             and (not s.capabilities.industries or intent.industry in s.capabilities.industries)
         ]
         # 排序：按历史命中率降序

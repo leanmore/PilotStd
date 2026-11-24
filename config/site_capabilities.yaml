@@ -308,7 +308,10 @@ sites:
       level1: 特色
       level2: 按领域区分
     capabilities:
-      supported_types: [NB, DL]
+      # 2026-11-24：补 `NB/T`、`DL/T` 斜杠变体。单条查询传入的 `std_type` 是 `NB/T`
+      # （`parse_std_number` 的 raw_code），只声明 `NB` 会导致 L1 精确匹配失败、
+      # 能源标准单条查询不命中能源平台（批量路径传 `NB` 才命中）。
+      supported_types: [NB, DL, NB/T, DL/T]
       industries: ["能源"]
       is_international: false
       search_reliability: unknown
