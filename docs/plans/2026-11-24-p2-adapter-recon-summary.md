@@ -12,7 +12,7 @@
 |---|---|---|---|---|
 | **API Webstore** | 需新增 | **VIABLE** | Coveo 公开 search token；`POST platform.cloud.coveo.com/rest/search/v2`；httpx 独立复现 200/`totalCount=1110`；`productcode` 精确查询覆盖 `610/6D/5CT/579-1/2A-WSD/938-C/12C`；3 条真实样本 | ~0.5 人日 |
 | **ASME** | 需新增 | **VIABLE（带依赖）** | `GET asme.org/api/products?type=Codes-Standards&fullDesignator=…` 裸 curl 200/`total=1`；`B16.5/B31.3/BPVC.VIII.1/PTC 4/CSD-1/Y14.5/A112.18.1` 全命中；字段缺 status（需按 edition 推断） | ~0.5–1 人日 |
-| **重庆标准信息网** | 需新增 | **VIABLE** | 入口 `http://db.cqis.cn/`（仅 HTTP）；`POST /LocalStandard/GetDB50ShareList`（form+queryJson）裸 httpx 200；详情 `POST /LocalStandard/GetPublicInfo`；**全文 PDF 直链**；3+ 真实样本（含废止/代替/备案号） | ~0.5–1 人日 |
+| **重庆标准信息网** | 已新增 | **VIABLE → 已上线 df6f6a7c** | 入口 `http://db.cqis.cn/`（仅 HTTP）；`POST /LocalStandard/GetDB50ShareList`（form+queryJson）裸 httpx 200；详情 `POST /LocalStandard/GetPublicInfo`；**全文 PDF 直链**；3+ 真实样本（含废止/代替/备案号） | ~0.5–1 人日 |
 | **福建标准信息网** | 需新增 | **BLOCKED** | `pt.fjbz.org.cn:8060` 全端口 TCP 超时/拒绝（0 B），ICMP 通 ⇒ 目标侧 TCP 过滤或停服；同地区其它政务站均 200 ⇒ 非本机网络问题；二手资料显示全文本需登录 | 0（复测前置） |
 | **团体标准平台（ttbz）** | 需评估 | **C（明显不足，含不可用级）** | 默认 v2 下**单条+批量全不命中**（`T/…` 被判关键词直落 L3 → `njbz365`）；无真实 fixture/冒烟；分页只取首页且缺替代关系 | ~0.5 人日 |
 | **能源标准平台（energy）** | 需评估 | **B（小缺口）** | 批量可用、单条不命中（`NB/T` 推不出领域）；冒烟脚本必崩（引用不存在的 `API_URL`）；fallback 与 Host 矛盾 | ~0.25 人日 |
@@ -45,8 +45,8 @@
 
 ```
 批次 A（零依赖，先做）
-  A1 重庆 cqis 适配器（VIABLE，真实 API 已取证）
-      └ 前置决策：DB50 路由方案（§4-①）
+  A1 重庆 cqis 适配器（VIABLE，真实 API 已取证）—— ✅ **已完成** df6f6a7c
+      └ 路由方案：采用「零改动」，声明 DB 与 dbba 同属 L1（dbba 在前）；省份精准粒度仍待决（§4-①）
   A2 API Webstore 适配器（VIABLE，证据最全）
       └ 口径确认：检索为 POST（只读检索，见 §4-②）
 
