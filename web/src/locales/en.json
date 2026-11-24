@@ -352,6 +352,7 @@
     "browse_failed": "Browse failed, please check the path and permissions",
     "clean_empty": "Clean Empty Dirs",
     "cleaned": "Cleaned {n} empty directories",
+    "clean_failed": "Failed to clean empty directories",
     "no_empty_dirs": "No empty directories",
     "root": "Root",
     "files": "{n} files",

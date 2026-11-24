@@ -15,10 +15,13 @@ function migrate(key: string): string {
   const oldVal = localStorage.getItem(key)
   if (oldVal === null) return "" // 无旧数据，跳过
   const newKey = `${PREFIX}${MIGRATIONS[key]}`
-  // 只有新 key 不存在时才覆盖（避免覆盖更新的数据）
-  if (localStorage.getItem(newKey) === null) {
-    localStorage.setItem(newKey, oldVal)
+  if (localStorage.getItem(newKey) !== null) {
+    // 新 key 已存在（更新）：**不得**返回旧值 —— 否则 getItem 会把过期数据交给调用方，
+    // 同时旧 key 已被删除，更新数据永远读不到（2026-11-25 修复，见 storage.test.ts 回归用例）。
+    localStorage.removeItem(key)
+    return ""
   }
+  localStorage.setItem(newKey, oldVal)
   localStorage.removeItem(key)
   return oldVal
 }

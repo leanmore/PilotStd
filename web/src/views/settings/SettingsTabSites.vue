@@ -184,10 +184,14 @@ async function loadSites() {
     if (!r || !r.data) return  // 请求被取消（响应拦截器静默返回 null），不显示错误
     sites.value = (r.data.sites || []).map((s: any) => ({
       ...s,
-      coolingSeconds: s.cooling_seconds ?? 600,
-      requestInterval: s.request_interval ?? 0.5,
-      remainingQuota: s.remaining_quota ?? null,
-      coolingRemaining: s.cooling_remaining ?? null,
+      // 后端 `SiteConfigResponse` 的限额字段是 **camelCase**（coolingSeconds / requestInterval /
+      // remainingQuota / coolingRemaining），只有健康检查是 snake_case。
+      // 2026-11-25 修复：原实现按 snake_case 读 → 全部 undefined → 落到默认值 600/0.5/null，
+      // 界面显示错误，且保存时把默认值 PUT 回后端，**静默覆盖真实配置**。
+      coolingSeconds: s.coolingSeconds ?? 600,
+      requestInterval: s.requestInterval ?? 0.5,
+      remainingQuota: s.remainingQuota ?? null,
+      coolingRemaining: s.coolingRemaining ?? null,
       lastHealthCheck: s.last_health_check ?? null,
       healthStatus: s.health_status ?? null,
     }))

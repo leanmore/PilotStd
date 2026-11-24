@@ -44,8 +44,8 @@ async function requery() {
   loading.value = true
   try {
     const r = await postRequery(numbers, selectedSite.value)
+    // `_site` 用于结果行展示站点标签；2026-11-25 修复：原第二行 map 把它覆盖掉 → 标签恒空
     results.value = (r.results || []).map((x: any) => ({ ...x, _site: selectedSite.value }))
-    results.value = (r.results || []).map((x: any) => ({ ...x }))
   } catch (e: any) { error.value = t('pending.requery_failed') }
   finally { loading.value = false }
 }
