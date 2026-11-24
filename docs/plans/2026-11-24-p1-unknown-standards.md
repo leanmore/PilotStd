@@ -133,7 +133,7 @@ GET /api/standards/status?status=未生效&page=1&page_size=1       → total=77
 > - `status_key`：API 返回的稳定英文键（`docker/api/standards.py` L97 现算）。
 > - 目录：文件是否位于 `过期作废/` 子目录（归档时 `FileMover` 按 `effect_status` 决定，
 >   `pilotstd/organizer/mover.py` L37-44）。
-> - 来源线索：`file_index` **没有来源站点字段**，只能从 4 张表反查（详见 §4.3）：
+> - 来源线索：`file_index` **没有来源站点字段**，只能从下列表反查（详见 §4.3）：
 >   `announcement_match / announcement_record`（公告来源），`pending_lookup`（查询站点）。
 >   `—（四表均无来源字段）` = 抓取链路没有留下任何可反查的来源记录（可观测性缺口，不是数据错误）。
 > - `validity.status(chk)`：`standard_validity` 行 + `check_count`；`—（无 validity 行）` 表示该标准号在有效性表无行。
