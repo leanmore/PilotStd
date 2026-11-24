@@ -85,7 +85,10 @@ C3 ── 红线：生产写库，必须维护窗口授权
 | B5 ASME BPVC | ✅ 8a0da208（新增 std_utils_bpvc.py，Section/Div/Part/册篇字母） |
 | B6 API 类型词 | ✅ 8a0da208（新增 std_utils_api.py，APISTD→API+类型词） |
 | 后端广域验证 | ✅ **1763 passed, 1 skipped** |
-| C1..C4 | ⏳ C1/C2 跨前端需四件套；**C3 写生产库需维护窗口**；C4 依赖 B5 已就绪可启动 |
+| C1 前端解析静默跳过 → 后端供字段 | ✅ 下载结果新增 logical_code/number/year/num_prefix（parse_std_number 唯一口径），前端优先消费、缺失回落；下载件不再因 API/ASME 解析不出而丢失 |
+| C2 状态枚举归一（即将实施/未生效） | ⏳ 涉及三分类产品口径确认 |
+| **C3 写入端归一 + 存量清洗** | ⛔ **写生产库，需维护窗口** |
+| C4 外部适配器 | ⏳ B5 已就绪，可启动只读站点摸底 |
 
 ## 执行纪律（本次已犯并纠正）
 

@@ -465,3 +465,28 @@ GB/T 标准被误判成非国标（已由 `test_slash_codes_are_routable` 钉住
 修法：补 `warning`，明确区分「无结果」与「解析失败」。
 
 **守护**：G-050 的 continue/break 档已覆盖这两类（2026-11-23 补）。
+
+## 下载结果携带后端解析字段（2026-11-24，P1-C1）
+
+**背景**：Web 五段式的「归档」一步由前端 `buildArchiveItems` 组装归档项，
+此前它用**前端自己的正则** `standardParser.parseStandardNumber` 解析下载件的标准号。
+该正则只认「字母代号 + 数字 + 分隔符 + 四位年份」，对 API（`API STD 610`）、
+ASME（`ASME B16.5-2020`）、BPVC 等编号 **38/40 解析不出** → 解析失败即 `continue` **静默跳过归档**，
+下载件滞留在 `/standards` 根目录（数据丢失，只在浏览器 console 留一条 warn）。
+
+**修法（避免前端成为第二套口径）**：`/api/download/import` 与 `/api/download/run` 的
+`results[]` 新增四个**后端解析字段**（由唯一口径 `parse_std_number` 生成）：
+
+| 字段 | 含义 | 解析不出时 |
+|---|---|---|
+| `logical_code` | 原始代号（如 `GB/T` / `ASME` / `API`，取 `raw_code` 保留格式） | `""` |
+| `number` | 主编号 | `0` |
+| `year` | 年份 | `0` |
+| `num_prefix` | 编号前缀（ASME `B` / API 类型词 `STD`） | `""` |
+
+前端 `buildArchiveItems` 改为**优先消费**这四个字段，仅在其缺失（旧接口/解析失败）时
+回落前端正则。回归：`tests/test_api_download_import_quality.py`（3 例）、
+`web/src/utils/taskPipeline.test.ts`（3 例，含「回退实现即红」对照）。
+
+**注意**：BPVC 的册/篇字母写在 `num_suffix`（前端归档项暂不消费该字段），
+`get_full_number()` 的罗马分支不补点号，属已知边界（见 core 模块文档）。
