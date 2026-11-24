@@ -115,12 +115,15 @@ def run(options: common.ProbeOptions, session=None) -> common.Report:
     # ── G-21：公告列表服务端分页（必须有 total 字段）──
     if logged_in:
         try:
-            code, payload = client.get_json("/api/announcements?page=1&page_size=1")
+            # 真实端点是 `/api/announce/results`（服务端分页 + total），
+            # 不是 `/api/announcements`（后者只有 status/results/{task_id} 等异步任务端点）。
+            code, payload = client.get_json("/api/announce/results?page=1&page_size=1")
             has_total = isinstance(payload, dict) and "total" in payload
+            total = (payload or {}).get("total", "?") if isinstance(payload, dict) else "?"
             report.add(
                 "G-21.announcements_paging",
                 common.STATUS_PASS if has_total else common.STATUS_FAIL,
-                f"/api/announcements → {code}，total 字段{'存在' if has_total else '缺失'}",
+                f"/api/announce/results → {code}，total={total}",
             )
         except Exception as exc:  # noqa: BLE001
             report.add("G-21.announcements_paging", common.STATUS_FAIL, f"异常：{exc}")

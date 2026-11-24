@@ -94,7 +94,7 @@ def healthy_routes() -> dict:
     return {
         ("GET", "/api/health"): FakeResponse(200, {"status": "ok", "version": "v1.0.0"}),
         ("POST", "/api/login"): FakeResponse(200, {"ok": True, "username": "u", "role": "admin"}),
-        ("GET", "/api/announcements"): FakeResponse(200, {"total": 233933, "items": []}),
+        ("GET", "/api/announce/results"): FakeResponse(200, {"total": 784, "results": []}),
         ("GET", "/api/system/archive-stats"): FakeResponse(200, {"html": 945, "attachment": 12}),
         ("GET", "/api/system/quarantine-stats"): FakeResponse(200, {"count": 33}),
         ("OPTIONS", "/api/notification/menu/config"): FakeResponse(200, {}),
