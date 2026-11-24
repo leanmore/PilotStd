@@ -120,4 +120,19 @@ def test_endpoint_returns_stats(client):
     r = client.post("/api/pending/mark-missing")
     assert r.status_code == 200, r.text
     body = r.json()
-    assert body == {"checked": 2, "missing": 2, "updated": 2, "skipped": False}
+    assert body == {"checked": 2, "missing": 2, "updated": 2, "skipped": False, "forced": False}
+
+
+def test_endpoint_accepts_protect_false(client):
+    """实测驱动（2026-11-24）：管理员确认数据真缺失时，可用 protect=false 绕过挂载保护。
+
+    生产的挂载保护会**误报**（挂载正常、数据真缺），此前 API 无任何办法推进，
+    只能手工跑脚本。现暴露 protect 参数并在响应里回 orced=true 以便审计。
+    """
+    client.cookies.set(COOKIE_NAME, _admin_cookie())
+    r = client.post("/api/pending/mark-missing?protect=false")
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["forced"] is True
+    # protect=false 时即使缺口大也应真的执行更新
+    assert body["updated"] == 2

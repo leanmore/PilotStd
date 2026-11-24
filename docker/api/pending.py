@@ -1,7 +1,7 @@
 # 容器//脚本—待确认标准重新查询接口
 from typing import Any
 
-from fastapi import Body, Depends, Request
+from fastapi import Body, Depends, Query, Request
 from fastapi.routing import APIRouter
 from pydantic import BaseModel
 
@@ -24,12 +24,14 @@ router = APIRouter(tags=["pending"])
 
 
 class PendingMarkMissingResponse(BaseModel):
-    """缺失标记结果：检查数 / 缺失数 / 更新数 / 是否因挂载异常跳过。"""
+    """缺失标记结果：检查数 / 缺失数 / 更新数 / 是否因挂载异常跳过 / 是否强制绕过保护。"""
 
     checked: int
     missing: int
     updated: int
     skipped: bool
+    # 是否以 protect=false 强制执行（跳过挂载保护）。便于运维事后审计「谁强制跑过」。
+    forced: bool = False
 
 
 class PendingRequeryItem(BaseModel):
@@ -110,18 +112,35 @@ def requery_pending(request: Request, numbers: list[str] = Body(), site: str = "
 
 @router.post("/api/pending/mark-missing", response_model=PendingMarkMissingResponse)
 @require_role("admin")
-def mark_pending_missing(request: Request, db=Depends(get_db)) -> PendingMarkMissingResponse:
+def mark_pending_missing(
+    request: Request,
+    protect: bool = Query(
+        True,
+        description=(
+            "Enable mount/collapse guard (default true). "
+            "Pass false to force the run after confirming files are genuinely missing."
+        ),
+    ),
+    db=Depends(get_db),
+) -> PendingMarkMissingResponse:
     """把“有路径但文件已不存在”的待确认行标成 `file_missing`（幂等，不删行、不移文件）。
 
     挂载保护：缺失行数 ≥50 且占比 ≥90% 视为 `/standards` 未挂载，整轮跳过并返回 `skipped=true`，
     避免一次根目录异常把整表 pending 误标成文件缺失（与 `file_index.validate_paths` 同一判据）。
+
+    ── 为什么加 `protect` 参数（2026-11-24，生产实测驱动）──
+    实测该保护会**误报**：挂载确实正常、路径也在配置扫描根下，但数据真的大面积缺失
+    （外推 61/61），于是整轮跳过 —— 管理员**在 API 上没有任何办法推进**，
+    只能手工跑脚本。现暴露 `protect=false` 供管理员在**确认数据真缺失**后强制执行，
+    并在响应里回 `forced=true` 以便审计。
     """
     from pilotstd.manager.pending_service import mark_missing_files
 
-    stats = mark_missing_files(db)
+    stats = mark_missing_files(db, protect=protect)
     return PendingMarkMissingResponse(
         checked=int(stats.get("checked", 0)),
         missing=int(stats.get("missing", 0)),
         updated=int(stats.get("updated", 0)),
         skipped=bool(stats.get("skipped")),
+        forced=not protect,
     )
