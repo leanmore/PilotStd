@@ -375,6 +375,37 @@ def _try_parse_sample_code(text: str) -> dict[str, Any] | None:
     }
 
 
+# ASME 分类字母系列：`ASME B16.5` 的 `B` 是分类字母（models.ParsedStdInfo.num_prefix），
+# 16 才是序号、5 是部分号。`STD_CODE_TOKEN_PATTERN` 的代号段允许尾随数字，会把 `ASME B16`
+# 吞成代号、`6.5` 当序号（拆号错位，导致同一编号与自身比对 mismatch）。
+# 这里在 variant 分支**之前**用独立正则精确解析，不改被公告提取共用的 token 正则。
+_LETTER_SERIES_RE = re.compile(
+    r"^([A-Z]+(?:/[A-Z]+)?)\s+([BCY])(\d+)(?:\.(\d+))?(?:\s*[-:]\s*((?:19|20)\d{2}))?$"
+)
+
+
+def _try_parse_letter_series(text: str) -> dict[str, Any] | None:
+    """解析 ASME 分类字母系列：`ASME B16.5-2020` / `ASME B31.3` / `ASME Y14.5` / `ASME C1`。
+
+    与 `_try_parse_variant_prefix` 的区别：代号段只允许纯字母、分类字母+序号单独成字段，
+    避免 `B16`/`Y14` 被当成代号。年份可缺省（返回 year=0，与 `_try_parse_fallback` 口径一致）。
+    """
+    s = re.sub(r"\s+", " ", normalize_std_code_text(text)).strip()
+    m = _LETTER_SERIES_RE.match(s)
+    if not m:
+        return None
+    raw = m.group(1).upper()
+    return {
+        "raw_code": raw,
+        "code": raw.replace("/", ""),
+        "number": int(m.group(3)),
+        "part": int(m.group(4)) if m.group(4) else None,
+        "year": int(m.group(5)) if m.group(5) else 0,
+        "num_prefix": m.group(2),
+        "num_suffix": "",
+    }
+
+
 def _try_parse_variant_prefix(text: str) -> dict[str, Any] | None:
     """解析新版公告里常见的变形前缀：DB52T、DB11/、NB/SH/T、SJ/T-、HG/T … 一 …、QB T。"""
     s = re.sub(r"\s+", " ", normalize_std_code_text(text)).strip()
@@ -432,6 +463,7 @@ def parse_std_number(text: str) -> dict[str, Any] | None:
     # 按优先级依次尝试各解析器
     for parser in (
         _try_parse_sample_code,
+        _try_parse_letter_series,
         _try_parse_variant_prefix,
         _try_parse_db_standard,
         _try_parse_general_format,
