@@ -863,3 +863,54 @@ G-012 的 `[LANG]` 检查要求注释全部用中文，但会**先剔除反引�
 读者一眼看出是代码而非普通英文词，同时被 G-012 正确识别为标识符豁免。
 
 本文件涉及的 `notification/_manager_ops.py` 与 `_suppression_queue.py` 已按此规范清理。
+
+## ASME 字母系列编号拆号修复（2026-11-24，P1-7.1）
+
+`parse_std_number` 的 variant 分支复用共享 token 正则 `STD_CODE_TOKEN_PATTERN`，该正则代号段允许
+**尾随数字**，导致 ASME 字母系列被截断：
+
+| 输入 | 修复前 | 修复后 |
+|---|---|---|
+| `ASME B16.5-2020` | `code=ASMEB1 / number=6 / part=5` | `code=ASME / number=16 / part=5 / year=2020` |
+| `ASME B16.5` / `ASME B31.3` / `ASME Y14.5` | `None`（识别不出） | 均可解析（`year` 缺省为 `0`） |
+
+**修法**：解析链在 variant 分支**之前**新增 `_try_parse_letter_series`（配套 `_LETTER_SERIES_RE`），
+精确匹配 `<代号> <B|C|Y><序号>[.部分][-年份]`，返回 `num_prefix` = 分类字母。
+**未改** `STD_CODE_TOKEN_PATTERN`（公告提取共用，保持跨层不变量）。
+
+**后果修复**：`match_result` 对「站点返回与本地完全同号」不再判 `mismatch`
+（修复前 `ASME B16.5-2020` 自己和自己比不过）。
+
+**回归**：`tests/test_std_utils_asme.py`（22 例）；缺口依据见
+`docs/plans/2026-11-24-p1-api-asme-gap.md` §2.2 / §3.2-B1 / §4-G1。
+**残留**：BPVC 卷/册/篇、`API STD/RP` 类型词、前端 `standardParser.ts` 未在本次范围（P1/P2 批次）。
+
+## 状态统计口径：作废计入废止族（2026-11-24，P1-5）
+
+生产 88 条「未知」中 58 条实为 `Status.VOIDED`（作废）。`ABOLISHED_STATUSES` 本就含「作废」，
+但聚合与筛选只认「废止 + 被代替」，造成**系统内部口径自相矛盾**（状态页「未知」与筛选结果冲突）。
+
+- `get_status_stats()`（`_file_index_query.py`，首页卡片数据源）：`expired` 补 `Status.VOIDED`。
+- `standard_service.get_stats()` / `_map_filter_status()`：同步补「作废」（详见 manager 文档）。
+
+口径：**废止族 = 废止 + 被代替 + 作废**；`unknown` 为三分类补集。
+回归：`tests/unit/core/test_file_index_query_snapshot.py::test_voided_counted_in_expired`。
+
+## 通知渲染：企微模板卡片字段补齐 + auto_backup 跨渠道不对称（2026-11-24，P1-6）
+
+摸底结论：44 个事件里，**企微应用形态（模板卡片）** 比 TG 少核心字段，影响 34/44 事件；
+另有反向缺陷导致 TG 整条丢失。均已按最小 diff 修复。
+
+| 缺陷 | 根因 | 修法 |
+|---|---|---|
+| **TG `auto_backup` 整条丢失** | `docker/scheduler.py` 传 float `size_mb` → `_builders_system.py` 原样进 `KeyValueBlock.value` → `renderer_telegram.py` 的 `re.sub` 抛 `TypeError`（生产实证 `notification_log` id=2034） | 构建器出口统一 `str(value)`（`path` 一并转换），一处覆盖四渠道 |
+| 企微卡片看不出级别 | `main_title.desc` 恒为空 | 补 `level_prefix(message.level)`（info 为空串，不留噪声）；**只在此处补一次**，避免降级文本二次前缀 |
+| 企微卡片点不开对象 | 未消费 `message.link` | `message.link` 作为 `jump_list` **首项**（`title` 取 `notification.renderer.detail`），`card_action` 自动指向它；既有 `view_detail` 动作保留为后续项 |
+| 企微卡片列表丢计数/全量链接 | `_render_list` 未渲染 `total`/`detail_url` | 补「共 N 条」+「查看完整列表：URL」文本行（卡片 `desc` 为纯文本，**刻意不抄** Markdown 的 `[文案](url)` 以免出现裸方括号） |
+
+**跨渠道不对称风险点（已登记）**：非 `str` 值进入 `Block.value` 时，TG 渲染器会崩、企微正常
+（因为企微卡片不渲染该块）。构建器层统一 `str()` 是当前的防线；后续新增渲染器需注意同一约束。
+
+**回归锚点**：`tests/test_notification_renderer.py::TestAutoBackupTelegramRender`、
+`tests/test_notification_wechat_card.py` 第 3 节（级别前缀「恰好一次」/降级不重复/link→jump_list/与 web 动作共存/列表计数）。
+**缺口依据**：`docs/plans/2026-11-24-p1-notification-parity.md` §4、§5.1。

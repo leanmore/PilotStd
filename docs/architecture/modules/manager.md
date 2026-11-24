@@ -367,3 +367,17 @@ getsize → parse(basename)                              ← 都廉价
 
 `scan_and_index` 相关注释里的英文词（`px` 类单位、方法名等）统一用反引号包裹，
 以通过 G-012 的 `[LANG]` 检查。属注释规范化，无行为变更。
+
+## 标准状态统计与筛选口径：作废计入废止族（2026-11-24，P1-5）
+
+`Status.VOIDED`（作废）在 `core/status.py` 的 `ABOLISHED_STATUSES` 中已属废止族，
+但 `standard_service` 的聚合与筛选只认「废止 + 被代替」，导致生产状态页出现
+**「未知 88」= 作废 58 + 即将实施 20 + 未生效 10** 的假象（数据/解析问题为 0）。
+
+修法（`pilotstd/manager/standard_service.py`）：
+- `_map_filter_status(已废止)` 的 `IN` 增加 `Status.VOIDED.value`；
+- `_map_filter_status(未知)` 的 `NOT IN` 增加 `Status.VOIDED.value`（列表与卡片口径互补）；
+- `get_stats()` 的「已废止」加 `s.get(Status.VOIDED.value, 0)`。
+
+效果：`inactive 116 → 174`、`unknown 88 → 30`、`?status=voided` 仍单独返回 58 条、总数守恒 776。
+**口径修正非数据变化**，发布说明需注明。回归：`tests/test_standard_service.py`。
