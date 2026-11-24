@@ -31,6 +31,7 @@ from pilotstd.core.notification._builders_system import (
 from pilotstd.core.notification._builders_task_results import (
     _build_announce_fetch_summary_message,
     _build_archive_failed_message,
+    _build_auto_pipeline_summary_message,
     _build_date_reminder_message,
     _build_expire_standard_moved_message,
     _build_normalize_failed_message,
@@ -786,3 +787,168 @@ class TestBatchBuildersSnapshot:
             isinstance(b, KeyValueBlock) and "等共" in b.value
             for b in msg.blocks
         )
+
+
+# ══════════════════════════════════════════════════════════════
+# P1-5（2026-11-24）：5 个"缺对象"事件补对象
+#   判据 = 用户能从消息里定位"哪条标准 / 哪个目录 / 哪一批"。
+#   仅断言"对象值出现在内容里"（不强绑排版，避免与渲染器改动 lane 冲突）。
+# ══════════════════════════════════════════════════════════════
+
+
+def _visible_text(msg: NotificationMessage) -> str:
+    """摊平标题/正文/各块的可见文本，用于断言"对象是否出现在消息内容中"。"""
+    parts: list[str] = [msg.title, msg.body or ""]
+    for block in msg.blocks:
+        if isinstance(block, TextBlock):
+            parts.append(block.text)
+        elif isinstance(block, KeyValueBlock):
+            parts.append(f"{block.key}：{block.value}")
+        elif isinstance(block, ListBlock):
+            parts.append(block.title)
+            for item in block.items:
+                parts.extend(str(v) for v in item.values())
+    return "\n".join(parts)
+
+
+def _rendered_text(msg: NotificationMessage) -> str:
+    """走真实 Markdown 渲染器（企微/TG 共用骨架）确认对象进得了渠道文本。"""
+    from pilotstd.core.notification.renderer import MarkdownRenderer
+
+    return MarkdownRenderer().render(msg)
+
+
+class TestObjectInMessage:
+    """P1-5：payload 补齐后，渲染内容必须含"对象"（路径/标准号/明细/批次号）。"""
+
+    # ── scan_empty：扫描根路径 ──
+
+    def test_scan_empty_renders_scan_path(self):
+        msg = _build_scan_empty_message({"path": "D:/Library"})
+        assert "D:/Library" in _visible_text(msg)
+        assert "D:/Library" in _rendered_text(msg)
+        assert msg.event_type == "scan_empty"
+
+    def test_scan_empty_legacy_payload_unchanged(self):
+        """空 payload（旧调用方/测试样本）不追加路径块，保持零回归。"""
+        msg = _build_scan_empty_message({})
+        assert len(msg.blocks) == 1
+        assert "未发现新文件" in _visible_text(msg)
+
+    # ── query_empty：所查询的标准号列表（列前 N 条）──
+
+    def test_query_empty_lists_standards(self):
+        msg = _build_query_empty_message(
+            {"total": 2, "standards": ["GB/T 1-2020", "GB/T 2-2020"]}
+        )
+        text = _visible_text(msg)
+        assert "GB/T 1-2020" in text and "GB/T 2-2020" in text
+        assert "GB/T 1-2020" in _rendered_text(msg)
+        assert msg.level == "warning"
+
+    def test_query_empty_caps_to_first_n_and_keeps_total(self):
+        standards = [f"GB/T {i}-2020" for i in range(1, 21)]
+        msg = _build_query_empty_message({"total": 20, "standards": standards})
+        text = _visible_text(msg)
+        assert "GB/T 1-2020" in text  # 前 N 条可见
+        assert "GB/T 20-2020" not in text  # 超出 N 条不展开
+        assert "共 20 条标准" in text or "20" in text  # 总数仍在
+
+    def test_query_empty_legacy_payload_symbol(self):
+        msg = _build_query_empty_message({"total": 3})
+        assert "GB/T" not in _visible_text(msg)  # 无 standards 时不凭空造对象
+
+    # ── archive_failed：标准号 / 失败明细 ──
+
+    def test_archive_failed_single_renders_standard_number(self):
+        msg = _build_archive_failed_message(
+            {
+                "count": 1,
+                "error": "磁盘满",
+                "standard_number": "GB/T 9-2019",
+                "failed_items": [],
+            }
+        )
+        assert "GB/T 9-2019" in _visible_text(msg)
+        assert "GB/T 9-2019" in _rendered_text(msg)
+
+    def test_archive_failed_multi_renders_failed_items_block(self):
+        data = {
+            "count": 2,
+            "error": "磁盘满",
+            "standard_number": "",
+            "failed_items": [
+                {
+                    "standard_number": "GB/T 9-2019",
+                    "standard_name": "甲",
+                    "error_type": "unknown",
+                    "error_message": "x",
+                },
+                {
+                    "standard_number": "SH/T 2-2018",
+                    "standard_name": "乙",
+                    "error_type": "unknown",
+                    "error_message": "y",
+                },
+            ],
+        }
+        msg = _build_archive_failed_message(data)
+        text = _visible_text(msg)
+        assert "GB/T 9-2019" in text and "SH/T 2-2018" in text
+        assert any(isinstance(b, ListBlock) for b in msg.blocks)
+        assert "SH/T 2-2018" in _rendered_text(msg)
+
+    def test_archive_failed_legacy_payload_keeps_body(self):
+        msg = _build_archive_failed_message({"count": 3, "error": "磁盘满"})
+        assert "3 条标准归档失败" in _visible_text(msg)
+        assert not any(isinstance(b, ListBlock) for b in msg.blocks)
+
+    # ── normalize_failed：失败明细（文件名/标准号 + 原因）──
+
+    def test_normalize_failed_renders_failed_items(self):
+        msg = _build_normalize_failed_message(
+            {
+                "total": 2,
+                "error": "格式异常",
+                "failed_items": [
+                    {
+                        "standard_number": "GB/T 7-2017",
+                        "standard_name": "丙",
+                        "error_type": "parse",
+                        "error_message": "bad",
+                    }
+                ],
+            }
+        )
+        assert "GB/T 7-2017" in _visible_text(msg)
+        assert "GB/T 7-2017" in _rendered_text(msg)
+        assert any(isinstance(b, ListBlock) for b in msg.blocks)
+
+    def test_normalize_failed_legacy_payload_unchanged(self):
+        msg = _build_normalize_failed_message({"total": 2, "error": "格式异常"})
+        assert "2 条标准规范化失败" in _visible_text(msg)
+        assert not any(isinstance(b, ListBlock) for b in msg.blocks)
+
+    # ── auto_pipeline_summary：批次号 / 处理范围 ──
+
+    def test_auto_pipeline_summary_renders_task_id_and_scope(self):
+        msg = _build_auto_pipeline_summary_message(
+            {
+                "scan": 12,
+                "query_found": 8,
+                "download_success": 6,
+                "organize_moved": 5,
+                "task_id": "imp-abc12345",
+                "path": "D:/Library",
+            }
+        )
+        text = _visible_text(msg)
+        assert "imp-abc12345" in text and "D:/Library" in text
+        rendered = _rendered_text(msg)
+        assert "imp-abc12345" in rendered and "D:/Library" in rendered
+
+    def test_auto_pipeline_summary_legacy_payload_keeps_four_counts(self):
+        msg = _build_auto_pipeline_summary_message(
+            {"scan": 1, "query_found": 1, "download_success": 1, "organize_moved": 1}
+        )
+        assert len([b for b in msg.blocks if isinstance(b, KeyValueBlock)]) == 4

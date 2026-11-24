@@ -247,9 +247,14 @@ class QuerySubsystem:
             pending_count = len(self._core.pending_list)
             if self._core.notification_mgr:
                 if stats.found == 0 and stats.total > 0:
+                    # P1 批 B-4：补「对象」——所查询的标准号清单（用户据此决定重新查哪几条；
+                    # 构建器只列前 N 条，总数仍由首行给出，故此处不截断 payload）。
+                    standards = [
+                        r.standard_number for r in results if getattr(r, "standard_number", "")
+                    ]
                     self._core.notification_mgr.send_event(
                         "query_empty",
-                        {"total": stats.total},
+                        {"total": stats.total, "standards": standards},
                         context=ctx,
                     )
                 else:

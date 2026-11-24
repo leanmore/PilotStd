@@ -1,5 +1,6 @@
 """_scan.py (ScanHandler) 覆盖率补齐 — 目标: 0% → 95%+"""
 
+import os
 from unittest.mock import ANY, MagicMock, patch
 
 import pytest
@@ -83,12 +84,14 @@ class TestScanDirectory:
         )
 
     def test_empty_directory_sends_scan_empty(self, handler, mock_core):
-        """空目录 → scan_empty 通知。"""
+        """空目录 → scan_empty 通知（P1-5：载荷带扫描根路径，用户知道扫了哪个目录）。"""
         mock_core.scanner.scan.return_value = _make_scan_result([])
 
         result = handler.scan_directory("/empty")
         assert result == []
-        mock_core.notification_mgr.send_event.assert_called_with("scan_empty", {}, context=ANY)
+        mock_core.notification_mgr.send_event.assert_called_with(
+            "scan_empty", {"path": "/empty"}, context=ANY
+        )
 
     def test_notification_manager_none_no_crash(self, handler, mock_core):
         """notification_mgr=None → 不发送通知，不崩溃。"""
@@ -213,12 +216,14 @@ class TestScanDirectoryStream:
         assert len(result) == 1
 
     def test_stream_empty_result(self, handler, mock_core):
-        """空结果 → 返回空列表 + scan_empty 通知。"""
+        """空结果 → 返回空列表 + scan_empty 通知（P1-5：带扫描根路径）。"""
         mock_core.scanner.scan.return_value = _make_scan_result([])
 
         result = handler.scan_directory_stream("/root")
         assert result == []
-        mock_core.notification_mgr.send_event.assert_called_with("scan_empty", {}, context=ANY)
+        mock_core.notification_mgr.send_event.assert_called_with(
+            "scan_empty", {"path": "/root"}, context=ANY
+        )
 
     def test_stream_notification_exception_caught(self, handler, mock_core):
         """流式通知抛异常 → 捕获继续。"""
@@ -272,8 +277,9 @@ class TestScanAndIndex:
             context=ANY,
         )
 
-    def test_empty_result_sends_scan_empty(self, handler, mock_core):
-        """indexed=0 + failed=0 → scan_empty。"""
+    def test_empty_result_sends_scan_empty(self, handler, mock_core, tmp_path, monkeypatch):
+        """indexed=0 + failed=0 → scan_empty（P1-5：带实际扫描根目录）。"""
+        monkeypatch.setenv("STANDARD_ROOT", str(tmp_path))
         mock_core.scheduled_svc.scan_and_index.return_value = {
             "indexed": 0,
             "skipped": 0,
@@ -281,7 +287,9 @@ class TestScanAndIndex:
         }
 
         handler.scan_and_index()
-        mock_core.notification_mgr.send_event.assert_called_with("scan_empty", {}, context=ANY)
+        mock_core.notification_mgr.send_event.assert_called_with(
+            "scan_empty", {"path": os.path.abspath(str(tmp_path))}, context=ANY
+        )
 
     def test_scheduled_svc_exception_sends_auto_scan_failed(self, handler, mock_core, tmp_path):
         """scheduled_svc 异常 → auto_scan_failed 通知 + 返回兜底结果。"""

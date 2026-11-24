@@ -7,7 +7,7 @@ import logging
 import time as _time
 from typing import TYPE_CHECKING, Any
 
-from ...core.notification.batch import batch_scope
+from ...core.notification.batch import batch_scope, current_batch_key
 from ...core.notification.context import NotificationContext
 
 if TYPE_CHECKING:
@@ -117,15 +117,19 @@ class AutoPipeline:
             report["fallback_mirrored"],
         )
         logger.info("自动运行完成: %s", report)
-        self._notify_auto_pipeline_summary(report, context)
+        self._notify_auto_pipeline_summary(report, context, root_path)
         return report
 
     def _notify_auto_pipeline_summary(
-        self, report: dict[str, int], context: NotificationContext | None = None
+        self, report: dict[str, int], context: NotificationContext | None = None, root_path: str = ""
     ) -> None:
         """管道级终局汇总（Q11）：四阶段跑完后发一条，替代让用户自己拼 4 条阶段通知。
 
         只取 report 里的四个稳定键；`mirror_*` 属收容细节，不进用户可见汇总。
+
+        P1 批 B-4：补「对象」——`task_id`＝本次一键处理的批次号（`batch_scope("imp")` 打开后
+        由 `current_batch_key()` 取得），`path`＝处理范围（扫描根目录）。原实现只有四个计数，
+        用户不知道"这是哪一批、哪次一键处理"。
         """
         mgr = self._core.notification_mgr
         if not mgr:
@@ -137,6 +141,8 @@ class AutoPipeline:
                 "query_found": report.get("query_found", 0),
                 "download_success": report.get("download_success", 0),
                 "organize_moved": report.get("organize_moved", 0),
+                "task_id": current_batch_key(),
+                "path": root_path or "",
             },
             context=context,
         )
@@ -307,5 +313,5 @@ class AutoPipeline:
         result = self._auto_stage_archive_and_fallback(
             parsed, root_path, on_archive_result, on_stage_change, report, t_stage
         )
-        self._notify_auto_pipeline_summary(result, context)
+        self._notify_auto_pipeline_summary(result, context, root_path)
         return result

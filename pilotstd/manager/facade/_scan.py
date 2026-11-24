@@ -85,7 +85,8 @@ class ScanHandler:
                         context=ctx,
                     )
                 elif failed_count == 0:
-                    self._core.notification_mgr.send_event("scan_empty", {}, context=ctx)
+                    # P1 批 B-4：补「对象」——告诉用户扫的是哪个根目录（便于判断路径配错）
+                    self._core.notification_mgr.send_event("scan_empty", {"path": root_path}, context=ctx)
         except Exception as e:
             logger.warning("扫描完成通知发送失败: %s", e)
 
@@ -173,7 +174,8 @@ class ScanHandler:
                         context=ctx,
                     )
                 elif failed_count == 0:
-                    self._core.notification_mgr.send_event("scan_empty", {}, context=ctx)
+                    # P1 批 B-4：补「对象」——告诉用户扫的是哪个根目录（便于判断路径配错）
+                    self._core.notification_mgr.send_event("scan_empty", {"path": root_path}, context=ctx)
         except Exception as e:
             logger.warning("扫描完成通知发送失败: %s", e)
 
@@ -208,8 +210,11 @@ class ScanHandler:
                             context=NotificationContext(scope="system"),
                         )
                     elif result.get("indexed", 0) == 0 and result.get("failed", 0) == 0:
+                        # P1 批 B-4：补「对象」——定时索引始终扫库根目录，路径取同一配置源
                         self._core.notification_mgr.send_event(
-                            "scan_empty", {}, context=NotificationContext(scope="system")
+                            "scan_empty",
+                            {"path": get_library_root(self._core.cfg)},
+                            context=NotificationContext(scope="system"),
                         )
             except Exception as e:
                 logger.warning("定时扫描通知发送失败: %s", e)

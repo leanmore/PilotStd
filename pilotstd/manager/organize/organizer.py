@@ -73,6 +73,9 @@ class OrganizerCore:
             "conflict_pending": 0,
             "dedup_skipped": 0,
             "details": [],
+            # P1 批 B-4：逐条失败明细（archive_failed 的「对象」）。4 列口径与
+            # `_builders_batch.build_failed_items_block` 一致；只采集数据，不改变归档控制流。
+            "failed_items": [],
         }
         _content_hashes: dict[str, str] = {}
         _org_total, _org_count, _org_t0 = len(items), 0, 0.0
@@ -102,6 +105,22 @@ class OrganizerCore:
     def _ensure_target_dir(self, target_root: str) -> None:
         """确保目标目录存在。"""
         os.makedirs(target_root, exist_ok=True)
+
+    def _record_failed_item(self, result: dict, parsed: Any, error_message: str = "") -> None:
+        """采集一条归档失败明细（P1 批 B-4：让 `archive_failed` 能说出"哪条失败"）。
+
+        只写 `result["failed_items"]`，**不改变归档控制流**；字段口径与
+        `_builders_batch.build_failed_items_block` 的 4 列一致
+        （standard_number / standard_name / error_type / error_message）。
+        """
+        result.setdefault("failed_items", []).append(
+            {
+                "standard_number": str(parsed.get_full_number() or ""),
+                "standard_name": getattr(parsed, "std_name", "") or "-",
+                "error_type": "unknown",
+                "error_message": error_message[:120],
+            }
+        )
 
     def _organize_word_item(
         self, p: Any, root: str, word_source_root: str | None, result: dict, on_exists: str
@@ -142,6 +161,7 @@ class OrganizerCore:
             logger.warning("Word 路径计算失败: %s", src)
             result["failed"] += 1
             result["details"].append(f"Word: 无法计算目标路径: {src}")
+            self._record_failed_item(result, p)
             return
         try:
             os.makedirs(os.path.dirname(dst), exist_ok=True)
@@ -171,14 +191,16 @@ class OrganizerCore:
                     std_name=std_name,
                     status=Status.ACTIVE.value,
                 )
-        except PermissionError:
+        except PermissionError as e:
             logger.warning("Word 归档失败(权限不足): %s — 请关闭占用程序后重试", os.path.basename(src))
             result["failed"] += 1
             result["details"].append(f"Word 归档失败(权限不足): {os.path.basename(src)} — 请关闭占用程序后重试")
+            self._record_failed_item(result, p, str(e))
         except OSError as e:
             logger.warning("Word 归档失败: %s - %s", os.path.basename(src), e)
             result["failed"] += 1
             result["details"].append(f"Word 归档失败: {os.path.basename(src)} - {e}")
+            self._record_failed_item(result, p, str(e))
 
     # _归类__—非文件：哈希去重后移动，更新索引
     def _organize_nonword_item(self, p: Any, mover: Any, result: dict, content_hashes: dict, on_exists: str) -> None:
@@ -239,6 +261,7 @@ class OrganizerCore:
                 self._register_standard(p, fhash, file_size)
         else:
             result["failed"] += 1
+            self._record_failed_item(result, p)
 
     def _record_archive_conflict(self, p: Any, src: str, dst: str) -> None:
         """同名不同内容 → pending_lookup，供待确认页/SQL 统一查看；不移动源文件。"""
@@ -309,9 +332,21 @@ class OrganizerCore:
         )
         try:
             if result.get("failed", 0) > 0 and self._core.notification_mgr:  # type: ignore[attr-defined]  # organizer.py _core 属性由门面注入
+                failed_items = list(result.get("failed_items") or [])
                 self._core.notification_mgr.send_event(  # type: ignore[attr-defined]
                     "archive_failed",
-                    {"count": result["failed"], "error": "部分文件归档失败，请检查日志"},
+                    {
+                        "count": result["failed"],
+                        "error": "部分文件归档失败，请检查日志",
+                        # P1 批 B-4：补「对象」——单条失败直接给标准号；多条走失败明细
+                        # （构建器二选一渲染，避免同一条失败重复展示两遍）。
+                        "standard_number": (
+                            str(failed_items[0].get("standard_number") or "")
+                            if len(failed_items) == 1
+                            else ""
+                        ),
+                        "failed_items": failed_items,
+                    },
                 )
         except Exception as e:
             logger.warning("归档失败通知发送失败: %s", e)

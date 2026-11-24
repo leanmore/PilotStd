@@ -390,3 +390,43 @@ class TestAutoRunStream:
         scan_call = mock_scan.scan_directory_stream.call_args
         assert scan_call[1]["on_progress"] is cb_scan_progress
         assert scan_call[1]["on_batch"] is cb_scan_batch
+
+
+# ════════════════════════════════════════════════════════════
+# T5: auto_pipeline_summary 载荷补对象（P1-5）
+# ════════════════════════════════════════════════════════════
+
+
+class TestAutoPipelineSummaryPayload:
+    """P1-5：终局汇总补「批次号 + 处理范围」，用户能定位"这是哪一批/哪次一键处理"。"""
+
+    def _summary_payload(self, core):
+        calls = [
+            c
+            for c in core.notification_mgr.send_event.call_args_list
+            if c.args[0] == "auto_pipeline_summary"
+        ]
+        assert calls, "未发出 auto_pipeline_summary"
+        return calls[0].args[1]
+
+    def test_auto_run_summary_has_task_id_and_scope(self, pipeline, mock_core, mock_scan):
+        mock_scan.scan_directory.return_value = []
+
+        pipeline.auto_run("/library/root")
+
+        payload = self._summary_payload(mock_core)
+        assert payload["path"] == "/library/root"
+        assert str(payload["task_id"]).startswith("imp-"), f"缺批次号对象：{payload}"
+        # 四个阶段计数仍在（零回归）
+        for key in ("scan", "query_found", "download_success", "organize_moved"):
+            assert key in payload
+
+    def test_auto_run_stream_summary_has_task_id_and_scope(self, pipeline, mock_core, mock_scan):
+        mock_scan.scan_directory_stream.return_value = [MagicMock()]
+        mock_core.download_list = []
+
+        pipeline.auto_run_stream("/library/root")
+
+        payload = self._summary_payload(mock_core)
+        assert payload["path"] == "/library/root"
+        assert str(payload["task_id"]).startswith("imp-"), f"缺批次号对象：{payload}"

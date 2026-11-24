@@ -231,25 +231,29 @@ TRIGGER_KEYS: dict[str, set[str]] = {
     "validity_standard_failed": {"standard_number", "standard_name", "error"},
     "validity_system_failed": {"error"},
     "scan_complete": {"count", "failed"},
-    "scan_empty": set(),
+    # P1 批 B-4：补对象——扫描根路径（`_scan.py` 三处触发点均传 `path`）
+    "scan_empty": {"path"},
     # 平台层（阶段 4 · P6 · 4c）：桌面弹层**直构消息**（不经 `send_event`，故无 payload 键）；
     # 登记它是为了消除 G-045 盲区（旧处置＝方案 B 显式声明未覆盖）。
     "desktop_toast": set(),
     "auto_scan_failed": {"path", "error"},
     "batch_query_summary": {"total", "found", "pending", "results", "failed_items"},
     "query_failed": {"standard_number", "standard_name", "error"},
-    "query_empty": {"total"},
+    # P1 批 B-4：补对象——本次所查询的标准号清单
+    "query_empty": {"total", "standards"},
     "batch_download_complete": {"total", "success", "failed", "skipped", "failed_items"},
     # 下载族三事件自 2026-10-05 起载荷带名称键 standard_name（值＝「最高可得阶段名」，
     # 由 pilotstd/core/name_resolution.py 回退链取得）⇒ 必须与 event_spec.py 的 payload_keys 同批更新。
     "download_failed": {"user_id", "standard_number", "standard_name", "error", "favorite_id"},
     "normalize_complete": {"total", "success", "failed", "failed_items"},
-    "normalize_failed": {"total", "error"},
+    # P1 批 B-4：补对象——失败明细（4 列口径）
+    "normalize_failed": {"total", "error", "failed_items"},
     # 2026-10-05 B1-3：按**实现**对齐——`_organize.py::archive_standards` 实际只传
     # count / directories / category_stats（原列出的 standard_number/status/target_id/elapsed_ms 从未传入），
     # 并新增 failed_items（批量导入失败明细）。
     "archive_complete": {"count", "directories", "category_stats", "failed_items"},
-    "archive_failed": {"count", "error"},
+    # P1 批 B-4：补对象——单条失败给 standard_number；多条失败给 failed_items
+    "archive_failed": {"count", "error", "standard_number", "failed_items"},
     "archive_abandoned": {"standard_info", "error"},
     "expire_standard_moved": {"standard_number", "standard_name", "target_path"},
     "announcement_fetch_complete": {"count", "source"},

@@ -131,17 +131,23 @@ class TestArchiveFailed:
     """`archive_failed`（提案 §一 第 6 项；接线点 `manager/organize/organizer.py:255`）。"""
 
     def test_real_move_failure_fires_event(self, tmp_path: Path, library_root: Path) -> None:
-        """真实归档链路 + OS 边界移动失败 ⇒ `failed > 0` ⇒ 发 `archive_failed`（含计数）。"""
+        """真实归档链路 + OS 边界移动失败 ⇒ `failed > 0` ⇒ 发 `archive_failed`（含计数 + 对象）。"""
         source = tmp_path / "GB 1-2020 测试标准.pdf"
         source.write_bytes(b"content")
+        parsed = _make_parsed(source)
         organizer, notifier = _build_organizer(_FailingMover(_DirBuilderStub(os.environ["STANDARD_ROOT"])))
 
-        result = organizer.organize([_make_parsed(source)])
+        result = organizer.organize([parsed])
 
         assert result["failed"] >= 1, f"移动失败未被计数：{result}"
         assert "archive_failed" in notifier.events(), f"未发出事件：{notifier.events()}"
         payload = next(p for n, p in notifier.calls if n == "archive_failed")
         assert payload.get("count") == result["failed"], "事件载荷的 count 应与失败计数一致"
+        # P1-5：缺对象 → 补 standard_number（单条失败）与 failed_items（逐条明细）
+        assert payload.get("standard_number") == parsed.get_full_number(), f"缺标准号对象：{payload}"
+        failed_items = payload.get("failed_items") or []
+        assert failed_items, f"缺失败明细对象：{payload}"
+        assert failed_items[0]["standard_number"] == parsed.get_full_number(), failed_items
 
     def test_success_path_does_not_fire(self, tmp_path: Path, library_root: Path) -> None:
         """反向验证：移动"成功"时**不得**发 `archive_failed`（防"永远发"的假绿）。"""
