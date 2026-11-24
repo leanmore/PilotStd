@@ -30,7 +30,7 @@ def main() -> int:
     # 1. 初始化适配器
     adapter = EnergyAdapter()
     print(f"\n[1/5] 适配器初始化: {adapter.site_label} ({adapter.site_name})")
-    print(f"      API_URL: {adapter.API_URL}")
+    print(f"      查询端点: {adapter.get_search_url()}")
 
     # 2.验证
     host = adapter._client.headers.get("Host", "")

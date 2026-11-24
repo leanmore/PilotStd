@@ -35,8 +35,13 @@ class TTBZAdapter(BaseAdapter):
     - standardTitleEn 和 standardField 以动态属性挂载（QueryResult 无对应字段）
     """
 
+    # 最大翻页数：`standardNo` 是前缀/模糊过滤，目标通常在首页；仍可能落在后续页
+    MAX_PAGES = 3
+    PAGE_SIZE = 20
+
     def __init__(self, session: requests.Session | None = None):
         self._session = session or requests.Session()
+        self._session_ready = False
         self._session.headers.update(
             {
                 "User-Agent": (
@@ -77,25 +82,57 @@ class TTBZAdapter(BaseAdapter):
         if not keyword:
             return []
 
-        data: dict[str, Any] = {
-            "pageNo": kwargs.pop("pageNo", 1),
-            "pageSize": kwargs.pop("pageSize", 20),
-            "standardName": keyword,
-        }
-        # 透传额外过滤参数
-        for key in (
-            "organName",
-            "publishDateBegin",
-            "publishDateEnd",
-            "standardField",
-            "implementDateBegin",
-            "implementDateEnd",
-            "standardType",
-        ):
-            if key in kwargs:
-                data[key] = kwargs.pop(key)
+        self._ensure_session()
+        # 注意：`standardName` 是**名称**过滤，用标准号搜索会返回 0 条（实测 2026-11-24）。
+        # 按标准号检索必须用 `standardNo`（站点前端 `params.standardNo`，前缀/模糊匹配）。
+        page_size = int(kwargs.pop("pageSize", self.PAGE_SIZE))
+        first_page = int(kwargs.pop("pageNo", 1))
+        collected: list[QueryResult] = []
+        for offset in range(self.MAX_PAGES):
+            data: dict[str, Any] = {
+                "pageNo": first_page + offset,
+                "pageSize": page_size,
+                "standardNo": keyword,
+            }
+            # 透传额外过滤参数（站点支持的字段，见 `standard.html` 的 `params` 构造）
+            for key in (
+                "organName",
+                "organCode",
+                "standardName",
+                "standardTitleEn",
+                "standardStatus",
+                "publishDateBegin",
+                "publishDateEnd",
+                "implementDateBegin",
+                "implementDateEnd",
+                "searchKey",
+            ):
+                if key in kwargs:
+                    data[key] = kwargs.pop(key)
+            rows, total = self._fetch_page(data)
+            if not rows:
+                break
+            collected.extend(self._parse_result(rec, keyword) for rec in rows)
+            # 已拿到精确匹配、或已到末页 → 停止翻页
+            if any(r.match_status == "exact" for r in collected):
+                break
+            if len(collected) >= total:
+                break
+        return collected
 
-        # 显式传递，确保模拟能检测到（.在模拟下不会自动合并）
+    def _ensure_session(self) -> None:
+        """建立 JSESSIONID：直接 POST 接口会返回 403「访问受限」（实测），需先访问标准页。"""
+        if self._session_ready:
+            return
+        try:
+            self._session.get("https://www.ttbz.org.cn/standard.html", timeout=15)
+        except Exception:
+            # i18n-allow: 内部运维日志
+            logger.warning("ttbz 会话引导失败（后续请求可能被拒）", exc_info=True)
+        self._session_ready = True
+
+    def _fetch_page(self, data: dict[str, Any]) -> tuple[list[dict[str, Any]], int]:
+        """请求一页并返回 `(rows, total)`；失败返回空。"""
         try:
             resp = safe_post(
                 self._session,
@@ -106,25 +143,25 @@ class TTBZAdapter(BaseAdapter):
                 headers=dict(self._session.headers),
             )
         except Exception:
-            # 保持 `debug` 级别：safe_post 在重试耗尽 / HTTP>=400 时已经打过 `warning`，
-            # 此处只兜 `ttbz` 特有的意外异常，升级会与 safe_post 的告警重复。
-            logger.debug("ttbz 网络请求异常", exc_info=True)
-            return []
+            # 保持 DEBUG：safe_post 在重试耗尽 / HTTP>=400 时已打过 warning，此处只兜意外异常，
+            # 再打 WARNING 会与上游重复告警（见 tests/query/adapters/test_adapter_log_levels.py）。
+            logger.debug("ttbz 网络请求异常（pageNo=%s）", data.get("pageNo"), exc_info=True)
+            return [], 0
         if resp is None or resp.status_code != 200:
-            return []
-
+            return [], 0
         try:
             payload = resp.json()
         except ValueError:
             # i18n-allow: 内部运维日志
             logger.warning("ttbz 响应 JSON 解析失败（站点可能改版），本次返回空结果", exc_info=True)
-            return []
+            return [], 0
+        body = payload.get("data") if isinstance(payload, dict) else None
+        if not isinstance(body, dict):
+            return [], 0
+        rows = body.get("rows") or []
+        total = int(body.get("total") or 0)
+        return rows if isinstance(rows, list) else [], total
 
-        rows = payload.get("data", {}).get("rows", [])
-        if not rows:
-            return []
-
-        return [self._parse_result(rec, keyword) for rec in rows]
 
     # ──引擎层：融入渐进搜索体系──
 
@@ -142,15 +179,19 @@ class TTBZAdapter(BaseAdapter):
         return best
 
     def _build_search_data(self, search_term: str) -> dict[str, Any]:
-        """构建搜索请求 form data。BaseAdapter 兼容接口。"""
-        return {"pageNo": 1, "pageSize": 15, "standardName": search_term}
+        """构建搜索请求 form data（BaseAdapter 兼容接口）。
+
+        **必须用 `standardNo`**：`standardName` 是名称过滤，用标准号会返回 0 条（实测）。
+        """
+        return {"pageNo": 1, "pageSize": self.PAGE_SIZE, "standardNo": search_term}
 
     def _parse_result(self, rec: dict[str, Any], search_term: str = "") -> QueryResult:
         """将 API 返回的单条 JSON 映射为 QueryResult。
 
-        动态属性说明（QueryResult 无对应字段，以动态属性挂载）：
-        - result.standard_name_en: str — 英文名称，来源 rec["standardTitleEn"]
-        - result.field: str — 标准领域，来源 rec["standardField"]
+        映射口径（真实响应字段，见 tests/fixtures/ttbz_sample.json）：
+        - 标准号/名称/状态/发布/实施/废止日期/归口团体/站点唯一 ID 直接映射；
+        - 英文名称与领域以动态属性挂载（QueryResult 无对应字段）；
+        - **无「代替标准」字段**：接口不返回，故 `replaces` 恒为空（不臆造）。
         """
         code = rec.get("standardNo", "")
         ch_name = rec.get("standardTitleCn", "")
@@ -162,6 +203,8 @@ class TTBZAdapter(BaseAdapter):
 
         publish_date = rec.get("publishDate", "") or ""
         implement_date = rec.get("implementDate", "") or ""
+        # 废止日期（2026-11-24 补：真实响应含 `abolishDate`，此前未映射）
+        abolish_date = rec.get("abolishDate", "") or ""
 
         # 状态映射：仅对明确的几个值做归一化，其余原样保留
         status_map = {
@@ -191,7 +234,11 @@ class TTBZAdapter(BaseAdapter):
             responsible_dept=organ_name,
             source_site=self.site_name,
             hcno=unique_id,
+            # 已知接口无「代替标准」字段（真实响应字段集不含 `replaces` 类字段），留空不臆造
+            replaces="",
         )
+        if abolish_date:
+            result.abolition_date = abolish_date
         # 动态属性：无对应字段，以动态属性承载
         result.standard_name_en = en_name  # type: ignore[attr-defined]
         result.field = field  # type: ignore[attr-defined]

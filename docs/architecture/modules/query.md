@@ -390,3 +390,39 @@ BaseAdapter (ABC)
 **回归锚点**：`tests/test_asme.py`（20 例：归一化 8 形态、真实 fixture 字段映射、
 旧年份→被代替、`BPVC.II.D`→`.C`/`.M` 补查、5 个网络异常分支）；
 真实冒烟 `scripts/smoke_test_asme.py`（4 个真实 designator，CI 不跑）。
+
+## P2 批次 B2：团体标准与能源标准适配器补齐（2026-11-24）
+
+依据 `docs/plans/2026-11-24-p2-recon-existing.md` 对 `ttbz`/`energy` 的评估结论。
+
+### ttbz（全国团体标准信息平台）—— 原实现按标准号查询**恒为 0 条**
+
+真实接口与站点前端（`standard.html` 的 `params` 构造）实测：
+
+| 问题 | 实证 | 修法 |
+|---|---|---|
+| **参数用错**（不可用级） | `standardName` 是**名称**过滤；传标准号（如 `T/BSCA 0006—2026`）→ `total=0` | 改用 **`standardNo`**（站点前端 `params.standardNo`，前缀/模糊匹配），再用 `match_result` 选精确项 |
+| **缺会话引导** | 直接 `POST` 接口 → **403「访问受限」** | 首次请求前 `GET standard.html` 取 `JSESSIONID`（`_ensure_session`，失败不阻断） |
+| **只取首页** | 原实现 `pageSize=20` 单页 | 最多 `MAX_PAGES=3` 页；**命中 exact 或到达 total 即停** |
+| **字段缺映射** | 真实响应含 `abolishDate` | 映射到 `abolition_date`；`replaces` 接口不返回 → **留空不臆造**（文档已注明） |
+
+**实测效果**：`T/BSCA 0006—2026` 从 **0 条 → 20 条候选且首条为 exact**；`T/CECS → 60 条`（3 页上限）。
+**真实响应 fixture**：`tests/fixtures/ttbz_sample.json`（2026-11-24 实测冻结，未人工构造）。
+**冒烟**：`scripts/smoke_test_ttbz.py`（真实网络，`T/BSCA`/`T/CECS 2355—2026` 两组）。
+
+### energy（能源标准平台）—— 三处结构性缺陷
+
+| 问题 | 实证 | 修法 |
+|---|---|---|
+| **冒烟脚本必崩** | `smoke_test_energy.py:33` 引用不存在的 `adapter.API_URL` → `AttributeError` | 改 `adapter.get_search_url()` |
+| **未验证域名 fallback** | `https://energy.nbse.org.cn:18080` 从未实测可达，且与固定 `Host` 头矛盾（会拿到错误主机响应），站点故障时白等 15 秒 | **删除**该 fallback，只保留同主机 `HTTP` 降级 |
+| **多页/解析失败/fallback 无用例** | 旧 fixture `total=3` 从不进第 2 页 | 新增 `tests/test_energy_pagination.py`（翻页 3 例 + fallback 3 例 + 解析失败/年份回退 3 例） |
+
+**真实响应 fixture**：`tests/fixtures/energy_sample.json` 已替换为 **2026-11-24 实测**数据
+（现行/废止/即将实施 三种状态各 1 条，原文件为手工构造 `stdId=10001~10003`）。
+**冒烟**：`scripts/smoke_test_energy.py` **真实网络通过**（19 项检查）。
+
+### 回归锚点
+`tests/test_ttbz.py`（19 例：参数/会话引导/分页/字段/异常）、
+`tests/test_energy_pagination.py`（9 例）、`tests/test_energy.py`（14 例，真实 fixture）、
+`tests/test_adapters.py` 的 TTBZ 段（14 例，保持绿）。

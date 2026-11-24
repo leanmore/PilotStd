@@ -1,0 +1,47 @@
+{
+ "total": 6,
+ "rows": [
+  {
+   "standardUniqueId": "7f4dd20ea2404a16b507453cc0256cdd",
+   "standardNo": "T/BSCA 0006—2026",
+   "standardTitleCn": "多元艺术疗愈师资综合素养培训与评价",
+   "standardTitleEn": "Comprehensive Literacy Training and Evaluation for Multimodal Art Healing Instructors",
+   "organName": "北京丝路文化发展协会",
+   "organCode": "BSCA",
+   "standardStatus": 1,
+   "standardStatusName": "现行",
+   "publishDate": "2026-11-12",
+   "implementDate": "2026-12-01",
+   "abolishDate": null,
+   "filePublishDate": "2026-11-25"
+  },
+  {
+   "standardUniqueId": "59cea432cccf4f488ad3837a37ecf853",
+   "standardNo": "T/BSCA 0002—2026",
+   "standardTitleCn": "脑机接口适配师培训及评价",
+   "standardTitleEn": "Training and evaluation of Brain-Computer Interface Specialist",
+   "organName": "北京丝路文化发展协会",
+   "organCode": "BSCA",
+   "standardStatus": 1,
+   "standardStatusName": "现行",
+   "publishDate": "2026-06-01",
+   "implementDate": "2026-07-01",
+   "abolishDate": null,
+   "filePublishDate": "2026-06-03"
+  },
+  {
+   "standardUniqueId": "2cc395cf85b948cd8ae9b1335877490a",
+   "standardNo": "T/BSCA 0003—2025",
+   "standardTitleCn": "榜书传承指导师资（艺术疗愈方向）培训及评价",
+   "standardTitleEn": "Training and evaluation of Bangshu Inheritance and Guidance Teacher（Art Therapy Direction）",
+   "organName": "北京丝路文化发展协会",
+   "organCode": "BSCA",
+   "standardStatus": 1,
+   "standardStatusName": "现行",
+   "publishDate": "2026-05-01",
+   "implementDate": "2026-06-01",
+   "abolishDate": null,
+   "filePublishDate": "2026-06-11"
+  }
+ ]
+}
