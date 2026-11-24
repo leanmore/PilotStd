@@ -58,6 +58,9 @@
 - G-010：目标文件当前有效行数 + 「警告档 400~500 不允许增长 / >500 阻断」；
 - G-013：`fix:` 必须带测试；
 - G-031：改哪个模块目录 ⇒ 同批要更新哪份模块文档（子任务只回报、主线改）；
+  **注意 CI 有两套映射表**：check_g_031_docs_sync.py（pilotstd/scan/parser/→parser.md）与
+  check_module_doc_mappings.py（pilotstd/scan/→scan.md）粒度不同，**两处都要满足**，
+  提交前用 DOCS_SYNC_RANGE=<before>..HEAD 分别跑一次；
 - G-047：中文日志/文案需 i18n 或 `# i18n-allow`；
 - G-055：新增视觉字面量需走基线流程；
 - 前端改动：四件套。
