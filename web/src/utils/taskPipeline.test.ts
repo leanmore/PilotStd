@@ -205,3 +205,64 @@ describe('buildArchiveItems 异常分支', () => {
     expect(downloads).toHaveLength(1)
   })
 })
+
+describe('buildArchiveItems 优先消费后端解析字段（P1-C1，2026-11-24）', () => {
+  it('后端给出 API/ASME 解析字段时，不再因前端正则不识别而跳过归档', () => {
+    // 前端正则对 \API STD 610\ 是解析不出的（38/40 全盲）；后端 parse_std_number 已能给出字段。
+    const items = buildArchiveItems(
+      [],
+      [],
+      [
+        downloadResult({
+          saved_path: 'D:/out/API STD 610.pdf',
+          standard_number: 'API STD 610',
+          logical_code: 'API',
+          number: 610,
+          year: 0,
+          num_prefix: 'STD',
+        }),
+        downloadResult({
+          saved_path: 'D:/out/ASME B16.5-2020.pdf',
+          standard_number: 'ASME B16.5-2020',
+          logical_code: 'ASME',
+          number: 16,
+          year: 2020,
+          num_prefix: 'B',
+        }),
+      ],
+    )
+
+    expect(items).toHaveLength(2)
+    expect(items[0]).toMatchObject({ logical_code: 'API', number: 610, num_prefix: 'STD' })
+    expect(items[1]).toMatchObject({ logical_code: 'ASME', number: 16, year: 2020, num_prefix: 'B' })
+  })
+
+  it('后端字段缺失（旧接口/解析失败）时回落前端正则解析', () => {
+    const items = buildArchiveItems(
+      [],
+      [],
+      [downloadResult({ saved_path: 'D:/out/GB_T 1-2020.pdf', standard_number: 'GB/T 1-2020' })],
+    )
+
+    expect(items).toHaveLength(1)
+    expect(items[0]).toMatchObject({ logical_code: 'GB/T', number: 1, year: 2020 })
+  })
+
+  it('后端字段为空串 / number=0 视为缺失，仍回落前端解析', () => {
+    const items = buildArchiveItems(
+      [],
+      [],
+      [
+        downloadResult({
+          saved_path: 'D:/out/GB_T 2-2001.pdf',
+          standard_number: 'GB/T 2-2001',
+          logical_code: '',
+          number: 0,
+        }),
+      ],
+    )
+
+    expect(items).toHaveLength(1)
+    expect(items[0]).toMatchObject({ logical_code: 'GB/T', number: 2, year: 2001 })
+  })
+})
