@@ -517,3 +517,22 @@ continue/break 识别、新增 G-056 死链扫描），CI 严格模式拦了两�
    不能只测 push 路径；`G-029` 步骤早已按事件分支，但其它三处漏了，说明**同类修复要全量回扫**；
 2. 假绿防护（拒绝 0 变更）本身正确，但它把「范围取错」暴露成了「PR 失败」——
    排查时应先看 `COMPLIANCE_RANGE` 的**实际取值**，而不是先怀疑 PR 内容。
+
+## 2026-11-25 版本号不升级 + 孤儿 tag：CI 直推受保护分支被静默吞掉
+
+**现象**：合并 46 提交并部署后，`/api/health.version` 是新 sha，但 `/api/system/version` 仍是
+`0.206.0`；远端存在 `v0.206.1`/`v0.207.0` 两个 tag，指向**不在 main 上**的 bump 提交（孤儿 tag）。
+
+**根因**：`main` 启用了 ruleset `main-protection`（`pull_request` 必填 + 必需状态检查 +
+`non_fast_forward`）。`version` job 用 `GITHUB_TOKEN` 直接 `git push` bump 提交到 main → 被规则拒绝；
+脚本的 3 次重试都失败后**没有退出**，继续执行「创建并推送 tag」→ tag 指向本地未推送提交。
+
+**修复（2026-11-25）**：① bump 改为 **PR 内**由 `scripts/bump_version.py` 完成；
+② 新增 `scripts/check_version_bump.py` 门禁（feat/fix/BREAKING 必须同批改 `VERSION`）；
+③ `version` job 删除 push 段，tag 只打在**已在 `origin/main`** 的提交上，tag 已存在但指向不同 sha 时显式失败；
+④ 清理孤儿 tag。
+
+**教训**：
+1. 「命令失败但脚本继续」是最危险的一类缺陷——凡 `git push`/网络写操作，失败必须 `set -e` 或显式 `exit 1`；
+2. 受保护分支上任何「CI 自动提交」方案都要先验证 token 权限，否则会以**孤儿 tag / 静默旧版本**的形式长期潜伏；
+3. 版本号必须与发版动作同批评审，不能依赖 CI 事后补写。
