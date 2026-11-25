@@ -580,3 +580,21 @@ push 路径由 version job 的 `bump_version.py --check` 校验「VERSION == 按
 **修复**：tag 步骤开头显式 git config user.name/email（bot 身份）。
 
 **教训**：删除一个 CI 步骤时，要检查它**顺带设置的环境状态**（git 身份、工作目录、环境变量）是否被其它步骤依赖。
+
+## 2026-11-26 	est-backend 间歇性假红（PR 分支，无法从日志定位）
+
+**现象**：多个 **纯文档/脚本 PR**（#44 #45 #46 #48）的 	est-backend 间歇性失败；同一 commit
+**rerun 一次即绿**。本地对同一分支跑**全量并行**（pytest tests -q -n auto）均 **7300+ passed**。
+
+**排查结论（已做的取证）**：
+- 全量串行（17 分钟）与并行（9 分钟）本地都绿；失败 run 的 **job 日志 API 返回 404**
+  （Actions 日志下载端点需要额外权限，仓库 token 只能读 check-run 注解）；
+- 已有 Backend failures summary 步骤会把失败用例转 check-run 注解，但只对 ailure() 生效且
+  注解数量为 0 的 run 占多数（步骤可能未跑到/注解被丢弃）。
+
+**处置（本条落地）**：
+1. 失败判定以「**同一 commit rerun 一次**」为准：rerun 绿则继续合并，不阻断交付；
+2. 若同一 commit **连续 2 次** rerun 仍红 → 视为真实失败，必须本地复现定位；
+3. 已登记技术债：见 docs/debt/06-full-inventory.md（CI 假红诊断能力项）。
+
+**教训**：CI 日志不可读时，最有效的取证是「本地全量 + rerun 对照」；不要在没有本地证据时猜。
