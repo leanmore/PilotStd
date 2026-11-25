@@ -93,11 +93,18 @@ def looks_rate_limited(text: str) -> bool:
     return any(hint in lowered for hint in _RATE_LIMIT_HINTS)
 
 
-# A-42（T-42）：已取证的渠道限流错误码。查不到的渠道保持空集 + 关键词兜底。
+# A-42（T-42）：已取证的渠道限流错误码（**码优先**，未取证渠道保持空集 + 关键词兜底）。
+# 取证来源（2026-11-26）：
+#   * 企微 45009 `api freq out limit` — https://developer.work.weixin.qq.com/document/path/90312
+#   * 飞书 99991400 `request trigger frequency limit` —
+#     https://open.feishu.cn/document/server-docs/api-call-guide/frequency-control
+#   * 钉钉 90018（触发限流；旧版服务端 API）—
+#     https://open.dingtalk.com/document/orgapp/invocation-frequency-limit
+#   * Telegram 无业务码，仅 HTTP 429 + `retry_after`（见 `parse_retry_after`）
 CHANNEL_RATE_LIMIT_CODES: dict[str, frozenset[int]] = {
     "wechat": frozenset({45009}),  # api freq out of limit
     "feishu": frozenset({99991400}),  # request trigger frequency limit
-    "dingtalk": frozenset(),  # 官方文档为 JS 渲染，暂未取证
+    "dingtalk": frozenset({90018}),  # 触发限流（官方文档：超过最高频率时返回 90018）
     "telegram": frozenset(),  # 仅 HTTP 429，无业务码
 }
 

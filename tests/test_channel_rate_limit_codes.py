@@ -28,3 +28,7 @@ def test_logs_hit_path(caplog):
         is_rate_limited("dingtalk", 1, "rate limit")
     assert "rate_limited_by=code" in caplog.text
     assert "rate_limited_by=keyword" in caplog.text
+
+def test_dingtalk_code_wins_without_keyword():
+    """T-42：钉钉 90018（官方「触发限流」码）应直接判为限流，不依赖关键词。"""
+    assert is_rate_limited("dingtalk", 90018, "invalid parameter") is True
