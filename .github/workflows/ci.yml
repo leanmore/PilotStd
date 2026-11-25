@@ -903,10 +903,15 @@ jobs:
           COMPLIANCE_RANGE: ${{ github.event.pull_request.base.sha || github.event.before }}..${{ github.event.pull_request.head.sha || github.sha }}
         run: bash .github/scripts/check-repo-compliance.sh
 
-      # 2026-11-25 新增：版本号必须随 PR 递增（main 受 ruleset 保护，CI 不再直推 bump 提交）
-      - name: 版本号 bump 校验（feat/fix 必须同批改 VERSION）
+      # 2026-11-25 新增：版本号必须随 PR 递增（main 受 ruleset 保护，CI 不再直推 bump 提交）。
+      # 2026-11-26 修正：**只在 PR 事件强制**——push 到 main 的 before..sha 范围包含「已合并 PR 的
+      # feat/fix 提交」，在 push 事件上判「本范围必须改 VERSION」会把正常 merge 误判失败
+      # （实测 main ea7b4db6 的 repo-compliance 因此红、docker 被跳过）。push 路径由 version job
+      # 的 `bump_version.py --check` 校验「VERSION == 按提交计算值」，语义正确且不误伤。
+      - name: 版本号 bump 校验（仅 PR 事件强制）
+        if: github.event_name == 'pull_request'
         env:
-          VERSION_CHECK_RANGE: ${{ github.event.before || github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha || github.sha }}
+          VERSION_CHECK_RANGE: ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}
         run: python scripts/check_version_bump.py --range "$VERSION_CHECK_RANGE"
 
       - name: G-026 — Docker 挂载黑名单

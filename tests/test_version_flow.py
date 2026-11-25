@@ -138,3 +138,15 @@ def test_check_passes_for_docs_only_range(tmp_path: Path) -> None:
         ["git", "rev-parse", "HEAD"], cwd=str(repo), capture_output=True, text=True
     ).stdout.strip()
     assert _run_check(repo, f"{base}..{head}", tmp_path) == 0
+
+def test_infra_scopes_do_not_require_version_bump(tmp_path) -> None:  # noqa: ANN001
+    """``fix(ci|docs|test|build):`` 属基础设施修复，不触发行版本 bump。"""
+    repo = tmp_path / "r_infra"
+    repo.mkdir()
+    _init_repo(repo)
+    base = subprocess.run(["git", "rev-parse", "HEAD"], cwd=str(repo), capture_output=True, text=True).stdout.strip()
+    (repo / "ci.txt").write_text("x\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-qm", "fix(ci): 只改流水线")
+    head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=str(repo), capture_output=True, text=True).stdout.strip()
+    assert _run_check(repo, f"{base}..{head}", tmp_path) == 0
