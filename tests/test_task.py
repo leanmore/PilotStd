@@ -86,6 +86,15 @@ class TestTaskQueue(unittest.TestCase):
         t = self.queue.get(task.task_id)
         self.assertEqual(t.status, TaskStatus.COMPLETED)
 
+    def _wait_status(self, task_id, expected: TaskStatus, timeout: float = 5.0) -> TaskInfo:
+        """轮询等待任务进入期望状态（替代固定 sleep，避免 CI 慢机上的时序 flake）。"""
+        deadline = time.time() + timeout
+        task = self.queue.get(task_id)
+        while time.time() < deadline and task.status != expected:
+            time.sleep(0.05)
+            task = self.queue.get(task_id)
+        return task
+
     def test_handler_execution(self):
         handler_called = []
 
@@ -98,8 +107,7 @@ class TestTaskQueue(unittest.TestCase):
         task = self.queue.enqueue(TaskType.SCAN, total_items=1)
         self.queue.start(task)
 
-        time.sleep(0.2)
-        t = self.queue.get(task.task_id)
+        t = self._wait_status(task.task_id, TaskStatus.COMPLETED)
         self.assertTrue(handler_called)
         self.assertEqual(t.status, TaskStatus.COMPLETED)
 
@@ -111,8 +119,7 @@ class TestTaskQueue(unittest.TestCase):
         task = self.queue.enqueue(TaskType.EXPIRE, total_items=1)
         self.queue.start(task)
 
-        time.sleep(0.2)
-        t = self.queue.get(task.task_id)
+        t = self._wait_status(task.task_id, TaskStatus.FAILED)
         self.assertEqual(t.status, TaskStatus.FAILED)
         self.assertIn("模拟异常", t.error_log)
 
