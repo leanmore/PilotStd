@@ -194,3 +194,15 @@ page.click('button:has-text("搜索")')
 - DNS 不存在且无替代域名
 
 **NHC 卫健委是唯一触发放弃标准的站点**（企业级 WAF 检测 TLS 指纹，39 字节空响应）。
+
+### 9.4 4 站冒烟工具（2026-11-25，适配器节点 A2）
+
+```bash
+python scripts/smoke_adapters.py          # 离线：打印 8 个代表编号的「解析结果 + 路由链」
+python scripts/smoke_adapters.py --live   # 联网：API Webstore / ASME / 重庆 cqis 真实检索
+python scripts/smoke_adapters.py --live --site asme
+```
+
+- **不进 CI 快闸**（CI 禁网）；离线一致性由 `tests/test_adapter_site_conformance.py`（15 例）锁定；
+- 福建站当前 **BLOCKED**（`220.160.53.32` 全端口 TCP 超时），脚本只打印结论、不做重试；
+- 新增/修改适配器后，先跑离线模式确认「路由选中的就是目标站点」，再 `--live` 验证真实可达。
