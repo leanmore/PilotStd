@@ -1,0 +1,76 @@
+# Master Plan · 统一全局任务看板（2026-11-25）
+
+> 唯一看板：主线（方向 A/B/C）+ 附加任务包 1–7 项 + 并行 lane 的实时状态。
+> 关联文档：`2026-11-25-final-debt-inventory.md`（总账）、`2026-11-25-p1-*-refresh.md`（摸底）、`2026-11-25-c3-dryrun-superseded.md`（迁移影响）。
+
+## 0. 一句话状态
+
+**方向 A ✅ 完成；方向 B 代码已全部合入 main（`c016013d`），等一次部署 + 探针验收；方向 C 总账 148 项，剩 71 项 / 7 批，其中 3 条 lane 正在并行修。附加包 1–4 已修完待部署验证，5 已闭合、6/7.1 由 lane 修、7.2 节点已排。**
+
+## 1. 部署链路（当前卡点）
+
+| 步骤 | 状态 |
+|---|---|
+| PR #27（46 提交：方向 A/B/C + P2 适配器） | ✅ **已合并** → `0bb0e9ad` |
+| PR #28（新总账文档）、#29（测试基线修复 main docs-sync） | ✅ 已合并 |
+| **main HEAD** | **`c016013d`** |
+| 新镜像构建（CI `docker` job，需 `version` job 先跑） | 🔄 进行中（前一个 run 因新 push 被取消，以最新 run 为准） |
+| 用户：`.18` 上 `docker compose pull && up -d` | ⏳ 等用户 |
+| 部署后主检查（方向 B 结案） | ⏳ 我立刻跑：`probe_all.py`（33~36 项）+ `probe_batch1.py`（11 自动 + 11 人工）+ `/api/stats` 应为 `expired 174 / unknown 30` |
+
+## 2. 方向 C：剩余 71 项 / 7 批（累计 148 项总账）
+
+| 批次 | 内容 | 项数 | 级别 | 状态 |
+|---|---|---:|---|---|
+| **9** | 通知 P0 收口（TG 转义 / 企微卡片契约 / 降级类型 / 聚合口径） | 9 | P0×2 P1×4 P2×3 | 🔄 **lane-notif 进行中**（worktree `D:\PilotStd-wt\notif-p0`，分支 `fix/notif-p0`） |
+| **10** | 编号识别规则（ASME 类型词 / B 通道无年份 / 后缀联合标准 / 表示键 / 前端 year / 查询 target） | 6 | P1 | 🔄 **lane-parse 进行中**（`D:\PilotStd-wt\parse-rules`，`fix/parse-rules`） |
+| **11** | 状态口径（`未生效` 过滤 P0 / unknown 补集 / API 契约 / 写入端归一） | 4 | P0×1 P1×1 P2×2 | 🔄 **lane-status 进行中**（`D:\PilotStd-wt\status-caliber`，`fix/status-caliber`） |
+| **12** | 数据治理（`superseded_by` 规则 A 迁移 / C3 清洗 / A-40 89 行） | 5 | P0 | 🕓 需维护窗口（规则 A 已拍板） |
+| **13** | A-52 令牌语义化（方案 a：零视觉变化） | 1 | P2 | ⏳ 待排（lane 空位后启动） |
+| **14** | 部署验收收口（原批次 1 的 22 项 + G-27/G-03/G-25/G-43/V-18/N6 真机/A-27.x） | 25 | P0/P1 | ⏳ 依赖部署 |
+| **15** | 外部依赖（T-42/T-40/T-43/A-44/A-45/V-7/省份路由/POST 口径/福建） | 9 | P1/P2 | 🕓 等外部/产品 |
+
+**工时**：批次 9+10+11+13 ≈ **3 人日**（并行后约 1.5 个工作日墙钟）；批次 12 ≈ 3~4h（窗口）；批次 14 ≈ 2~4h；批次 15 不定。
+
+## 3. 附加任务包 1–7 项实时状态
+
+| 项 | 现象 | 状态 | 证据 / 去向 |
+|---|---|---|---|
+| **1** 日历图标样式不统一 | `×` 与日历图标不一致、双层边框 | ✅ **已修**（随部署生效） | `e5b20338`：边框/底色/圆角收到外层；`clear=14×14 / dropSvg=14×14`；全站 7 处日期控件统一，业务代码零裸用 PrimeVue datepicker |
+| **2** 下拉框中文垂直不居中 | `.p-select-label` block + line-height≈1 | ✅ **已修** | `e5b20338`：改 flex 居中，墨迹中心偏差 **-9.97px → -0.5px** |
+| **3** 公告翻页需刷新 | `Paginator` 未绑 `:first` | ✅ **已修** | `e5b20338` + `web/src/views/AnnounceView.pagination.test.ts`；另有服务端分页修复（`7a84862e`） |
+| **4** 左侧工作栏不随动 | `.sidebar` 被 stretch 到 3872px 且 static | ✅ **已修** | `e5b20338`：sticky + 限高；`web/e2e/p0-ui-regressions.spec.ts` |
+| **5** 未知标准定性 | 88 条「未知」 | ✅ **分析闭合**：30 = 20 即将实施 + 10 未生效，真未知 **0**；衍生 4 个口径漏洞 | `2026-11-25-p1-unknown-refresh.md`；口径修复 → **批次 11（lane-status）** |
+| **6** 通知效果对比 | 企微 vs TG 信息量 | ❌ 上轮 34/44 字段缺口**已闭合**，但新发现 9 项（TG 转义整条丢失、企微卡片契约、降级类型…） | `2026-11-25-p1-notify-refresh.md`；修复 → **批次 9（lane-notif）** |
+| **7.1** API/ASME 编号识别 | A+B 双通道 7/16，40 样本 21/40 | ❌ 未闭合，3 批工作量（13~15 文件 / 45~58 用例） | `2026-11-25-p1-api-refresh.md`；修复 → **批次 10（lane-parse）** |
+| **7.2** 逆向适配器（4 站） | API Webstore / ASME / 重庆**已落地**；福建 BLOCKED（全端口 TCP 过滤） | 🔶 3/4 已提前完成；等 A1 | 节点：A1 规则修复（=批次 10）→ A2 三站做足复评 → A3 福建复测 → A4 省份路由/POST 口径；**A1 完成后立刻建 `feat/adapters-phase1`** |
+
+## 4. 并行与串行安排（DAG + 限 WIP）
+
+```
+[并行 lane · 各自 worktree + 分支 + PR]
+  lane-notif  (fix/notif-p0)      ─┐
+  lane-parse  (fix/parse-rules)   ─┼─► 主线按拓扑序合并 ─► 整合点：全量门禁 + 四件套 + CI
+  lane-status (fix/status-caliber)─┘
+                                     │
+部署（用户） ─► 批次 14 探针验收 ─────┤
+                                     │
+批次 12（维护窗口，规则 A）──────────┤
+A-52（批次 13，零视觉）──────────────┘
+                                     │
+A1 完成（=批次 10）─► feat/adapters-phase1（A2 三站复评 → A3 福建 → A4 路由口径）
+```
+
+- **并行组**：{lane-notif} ∥ {lane-parse} ∥ {lane-status}（文件零重叠：core/notification vs core/std_utils+scan/query vs core/status+manager）；
+- **串行关键路径**：部署 → 批次 14 验收 → 方向 B 结案；批次 12 必须等维护窗口；
+- **合并顺序**：lane-status（最小、P0）→ lane-notif（P0）→ lane-parse（P1，体量最大）→ A-52 → 各自 PR + CI 绿后按序 merge；
+- **整合点**：每次合并到 main 后跑一次全量门禁 + 四件套 + backend 全量，禁止在 lane 进行中动 `D:\PilotStd`。
+
+## 5. 需要你拍板/执行的
+
+| # | 事项 | 需要 |
+|---|---|---|
+| 1 | **部署** | `.18`：`docker compose pull && up -d`（镜像构建完成后我会报确切 tag/sha）；部署完通知我，我立刻跑探针补方向 B 10/10 |
+| 2 | **批次 12 维护窗口** | `superseded_by` 规则 A 迁移（清除 10,436 条 / 零丢失）+ C3 清洗 + A-40，需一次写库窗口 |
+| 3 | **产品口径** | A-45 站内渠道是否做；省份粒度路由；POST 检索口径（三者不阻塞当前 lane） |
+| 4 | **企微真机** | 批次 9 的卡片契约最终确认需窗口内发 1 条真机消息 |
