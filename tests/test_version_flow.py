@@ -150,3 +150,16 @@ def test_infra_scopes_do_not_require_version_bump(tmp_path) -> None:  # noqa: AN
     _git(repo, "commit", "-qm", "fix(ci): 只改流水线")
     head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=str(repo), capture_output=True, text=True).stdout.strip()
     assert _run_check(repo, f"{base}..{head}", tmp_path) == 0
+
+
+def test_ops_scope_does_not_require_bump(tmp_path) -> None:  # noqa: ANN001
+    """``feat(ops):`` 属运维/工具链改动（scripts/ops 等），不改变运行时行为，不触发版本 bump。"""
+    repo = tmp_path / "r_ops"
+    repo.mkdir()
+    _init_repo(repo)
+    base = subprocess.run(["git", "rev-parse", "HEAD"], cwd=str(repo), capture_output=True, text=True).stdout.strip()
+    (repo / "probe.py").write_text("x\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-qm", "feat(ops): 新增只读验收脚本")
+    head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=str(repo), capture_output=True, text=True).stdout.strip()
+    assert _run_check(repo, f"{base}..{head}", tmp_path) == 0

@@ -100,6 +100,8 @@
 
 ### G-031：文档同步检查
 
+**2026-11-26 v0.207.0 验收脚本**：新增 `scripts/ops/probe_v0207.py`（只读，自动核对版本/状态口径/数据治理/统计四组共 11 项），配套 `tests/ops/test_probe_v0207.py`（3 例：全绿/旧版本/口径回退）。该脚本不参与任何门禁模式，属部署验收入口。
+
 **2026-11-26 tag 身份补记**：`.github/workflows/ci.yml` 的 tag 步骤显式配置 committer 身份（`git tag -a` 必需；原 commit 步骤删除后身份配置一并丢失，导致 CI 发布 tag 失败）。
 
 **2026-11-26 版本门禁修正**：`.github/workflows/ci.yml` 的「版本号 bump 校验」改为仅 `pull_request` 事件强制（push 事件交给 version job 的 `bump_version.py --check`），避免把已合并 PR 的 feat/fix 提交重复判违规。

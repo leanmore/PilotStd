@@ -36,7 +36,7 @@ ROOT = Path(__file__).resolve().parent.parent
 _REPO = Path(os.environ.get("VERSION_CHECK_ROOT") or ROOT)
 BUMP_TYPES = re.compile(r"^(@ )?(feat|fix)(\(.+\))?:")
 # 基础设施类 scope 不触发发版（CI/文档/测试/构建 修复不改变运行时行为）
-INFRA_SCOPES = re.compile(r"^(@ )?(feat|fix)\((ci|docs|test|build)\):")
+INFRA_SCOPES = re.compile(r"^(@ )?(feat|fix)\((ci|docs|test|build|ops)\):")
 EXEMPT_MARK = "[no-version-bump]"
 
 
