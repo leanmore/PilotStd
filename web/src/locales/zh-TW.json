@@ -352,6 +352,7 @@
     "browse_failed": "瀏覽失敗，請檢查路徑和權限",
     "clean_empty": "清理空目錄",
     "cleaned": "已清理 {n} 個空目錄",
+    "clean_failed": "清理空目錄失敗",
     "no_empty_dirs": "無空目錄",
     "root": "根目錄",
     "files": "{n} 個檔案",

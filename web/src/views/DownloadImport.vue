@@ -44,14 +44,19 @@ function statusSeverity(status: string) {
   return map[status] || 'info'
 }
 
+// 2026-11-25 修复（D-8）：提交失败原来静默把 result 置 null，用户看不到任何反馈。
+const submitError = ref('')
+
 async function handleSubmit() {
   if (!textInput.value.trim()) return
   submitting.value = true
+  submitError.value = ''
   try {
     const { data } = await postDownloadImport(textInput.value)
     result.value = data as ImportResult
-  } catch {
+  } catch (e: any) {
     result.value = null
+    submitError.value = e?.response?.data?.detail || e?.response?.data?.error || t('common.error')
   } finally {
     submitting.value = false
   }
@@ -123,6 +128,8 @@ function handleFileUpload(event: Event) {
         type="ghost"
       />
     </div>
+
+    <p v-if="submitError" class="error mb-3">{{ submitError }}</p>
 
     <div v-if="result" class="result-area">
       <!-- 统计卡片 -->

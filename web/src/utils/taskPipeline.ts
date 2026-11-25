@@ -36,7 +36,18 @@ export function buildArchiveItems(
   for (const dl of downloadResults || []) {
     if (dl.status !== 'success' || !dl.saved_path || !dl.standard_number) continue
     if (archivedPaths.has(dl.saved_path)) continue
-    const parsed = parseStandardNumber(dl.standard_number)
+    // 优先用**后端解析结果**（唯一口径：`parse_std_number`，已覆盖 API/ASME/BPVC）；
+    // 后端字段缺失（旧版接口/解析失败）时才回落前端正则。
+    // 2026-11-24 修：此前只用前端正则，对 API/ASME 等编号 38/40 全盲 → 解析失败即静默跳过归档，
+    // 下载件会滞留在 /standards 根目录（数据丢失）。
+    const parsed =
+      dl.logical_code && dl.number
+        ? {
+            logical_code: String(dl.logical_code),
+            number: Number(dl.number),
+            year: Number(dl.year) || 0,
+          }
+        : parseStandardNumber(dl.standard_number)
     if (!parsed) {
       console.warn('[Archive] 跳过无法解析的下载件:', dl.standard_number, dl.saved_path) // i18n-allow: 开发者日志
       continue
@@ -49,7 +60,7 @@ export function buildArchiveItems(
       number: parsed.number,
       year: parsed.year,
       std_name: dl.standard_name || filename,
-      num_prefix: '',
+      num_prefix: dl.num_prefix || '',
       ext: filename.toLowerCase().endsWith('.pdf') ? 'pdf' : 'doc',
     })
     archivedPaths.add(dl.saved_path)

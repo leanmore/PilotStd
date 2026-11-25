@@ -124,7 +124,8 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         builder_ref="pilotstd.core.notification._builders_task_results:_build_scan_empty_message",
         i18n_category="notification.scan", default_channels=(), levels=("info",),
         module_key="notification.module.scan", trigger_file="pilotstd/manager/facade/_scan.py",
-        payload_keys=frozenset(), security=False, branch_by=None, subscribable=True, aggregation="aggregate",
+        # P1 批 B-4：补对象——扫描根路径（`{"path": <扫描根>}`）；构建器渲染"路径："行。
+        payload_keys=frozenset({"path"}), security=False, branch_by=None, subscribable=True, aggregation="aggregate",
 
         verify="e2e",
         verify_reason="",
@@ -167,7 +168,8 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         builder_ref="pilotstd.core.notification._builders_task_results:_build_query_empty_message",
         i18n_category="notification.query", default_channels=(), levels=("warning",),
         module_key="notification.module.query", trigger_file="pilotstd/manager/facade/_query_subsystem.py",
-        payload_keys=frozenset({"total"}), security=False, branch_by=None, subscribable=True,
+        # P1 批 B-4：补对象——本次所查询的标准号清单（构建器正文列前 N 条，总数仍在首行）。
+        payload_keys=frozenset({"standards", "total"}), security=False, branch_by=None, subscribable=True,
         aggregation="aggregate",
 
         verify="manual",
@@ -220,8 +222,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         builder_ref="pilotstd.core.notification._builders_task_results:_build_normalize_failed_message",
         i18n_category="notification.archive", default_channels=(), levels=("error",),
         module_key="notification.module.normalize", trigger_file="pilotstd/manager/facade/_organize.py",
-        payload_keys=frozenset({"error", "total"}), security=False, branch_by=None, subscribable=True,
-        aggregation="aggregate",
+        # P1 批 B-4：补对象——失败明细（4 列口径：standard_number / standard_name / error_type / error_message）。
+        payload_keys=frozenset({"error", "failed_items", "total"}), security=False, branch_by=None,
+        subscribable=True, aggregation="aggregate",
 
         verify="manual",
         verify_reason="real_chain_only",
@@ -246,8 +249,9 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         builder_ref="pilotstd.core.notification._builders_task_results:_build_archive_failed_message",
         i18n_category="notification.archive", default_channels=(), levels=("error",),
         module_key="notification.module.archive", trigger_file="pilotstd/manager/organize/organizer.py",
-        payload_keys=frozenset({"count", "error"}), security=False, branch_by=None, subscribable=True,
-        aggregation="aggregate",
+        # P1 批 B-4：补对象——单条失败给 standard_number；多条失败给 failed_items（4 列明细）。
+        payload_keys=frozenset({"count", "error", "failed_items", "standard_number"}), security=False,
+        branch_by=None, subscribable=True, aggregation="aggregate",
 
         verify="e2e",
         verify_reason="",
@@ -539,7 +543,8 @@ EVENT_SPECS: tuple[EventSpec, ...] = (
         builder_ref="pilotstd.core.notification._builders_task_results:_build_auto_pipeline_summary_message",
         i18n_category="notification.auto", default_channels=(), levels=("info",),
         module_key="notification.module.system", trigger_file="pilotstd/manager/facade/_auto.py",
-        payload_keys=frozenset({"download_success", "organize_moved", "query_found", "scan"}),
+        # P1 批 B-4：补对象——`task_id`（本次一键处理批次号）+ `path`（处理范围＝扫描根目录）。
+        payload_keys=frozenset({"download_success", "organize_moved", "path", "query_found", "scan", "task_id"}),
         security=False, branch_by=None,
         subscribable=True, aggregation="aggregate",
 

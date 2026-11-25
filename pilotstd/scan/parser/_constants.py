@@ -120,11 +120,21 @@ _ROMAN_MAP = {
     "XIV": 14,
     "XV": 15,
 }
+# ASME BPVC 卷/册/篇（P1-7.1 B-5）：除 `ASME BPVC.<罗马>[.<分册>]` 外，还要支持
+#   · `Section <卷> Div(ision) <分册>`（如 ASME BPVC Section VIII Div. 1-2021）
+#   · `Section <卷> Part <册/篇字母>`（如 ASME BPVC Section II Part D）
+#   · `<卷>.<册篇字母>[.<册篇字母>]`（如 ASME BPVC.II.D.M-2021）
+# 捕获组顺序（_exact_matcher 依赖）：1=卷号罗马、2=分册(Div)数字、3=册篇字母、4=年份。
 _ASME_BPVC_RE = re.compile(
-    r"^ASME\s+(?:BPVC[\.\-\s]*)?"  # BPVC 可选（兼容 ASME IX-2021）
-    r"([IVXLCDM]+)"  # 卷号（罗马数字）
-    r"(?:[\.\-](\d{1,2})(?=[\-]\d{4}))?"  # 子分册（仅当后面还有-年份时匹配）
-    r"(?:[\-](\d{4}))?",  # 年份（4位数字）
+    r"^ASME\s+"
+    r"(?:BPVC[.\-\s]*)?"  # BPVC 可选（兼容 ASME IX-2021）
+    r"(?:Section[,\s]+)?"  # Section 文字写法（可选）
+    r"([IVXLCDM]+)"  # 1 卷号（罗马数字）
+    r"(?:[,\s.]*(?:Div(?:ision)?\.?)?[,\s.\-]*)?"  # Div./Division 关键字（可选）
+    r"(\d{1,2})?(?!\d)"  # 2 分册号（不得吃掉年份前两位）
+    r"(?:[,\s.]*(?:Part\.?)?[,\s.]*)?"  # Part 关键字（可选）
+    r"([A-Z](?:\.[A-Z])*)?"  # 3 册/篇字母（D / D.M）
+    r"(?:\s*[\-:]\s*(\d{4}))?",  # 4 年份（4位数字）
     re.IGNORECASE,
 )
 

@@ -81,3 +81,13 @@ StandardParser (入口)
 
 > **2026-11-19 注释语言规范化（G-012 [LANG] 收口）**：本目录注释里的英文普通词改为中文、
 > 裸小写标识符加反引号；仅注释与 docstring 变更，AST 归一化比对无代码变化（全仓 504 行，见 27 #81）。
+
+## ASME BPVC 识别口径扩展（2026-11-24，P1-7.1 B-5）
+
+`_ASME_BPVC_RE` 扩展支持 `Section` / `Div(ision)` / `Part` / 册篇字母，捕获组口径改为
+**1=卷号、2=分册号、3=册篇字母、4=年份**；另加 `(?!\d)` 防止分册号吃掉年份前两位
+（例：`BPVC.IX-2021` 曾被匹配成 div=20）。
+
+`_exact_matcher` 同步取值并写入 `num_suffix`。**已知边界**：扫描侧 BPVC 无年份写法
+（`Section VIII Div.1`、`II.D`）仍被 `validate_result` 拒绝（属 G5 范围）。
+回归：`tests/unit/scan/parser/test_bpvc_section_snapshot.py`。

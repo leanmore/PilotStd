@@ -123,3 +123,38 @@ def test_quality_run_returns_service_result(client: TestClient, mgr: MagicMock) 
     assert r.status_code == 200
     assert r.json() == {"ok": True, "checked": 3, "issues": []}
     mgr.quality_service.run_check.assert_called_once_with()
+
+
+def test_import_results_carry_backend_parsed_fields(client: TestClient) -> None:
+    """P1-C1（2026-11-24）：下载结果必须带**后端解析字段**。
+
+    前端归档此前只用自身正则解析标准号，对 API/ASME 等编号 38/40 全盲 →
+    解析失败即静默跳过归档，下载件滞留 `/standards` 根目录。现由后端统一口径给出字段。
+    """
+    r = client.post("/api/download/import", data={"text": "GB/T 12345-2020"})
+    item = r.json()["results"][0]
+    assert item["logical_code"] == "GB/T"
+    assert item["number"] == 12345
+    assert item["year"] == 2020
+    assert item["num_prefix"] == ""
+
+
+def test_import_results_parse_api_typed_number(client: TestClient, mgr: MagicMock) -> None:
+    """API 类型词编号（前端正则解析不出）也必须由后端给出字段。"""
+    mgr.download_by_numbers.return_value = ([_task("API STD 610")], _stats())
+    r = client.post("/api/download/import", data={"text": "API STD 610"})
+    item = r.json()["results"][0]
+    assert item["logical_code"] == "API"
+    assert item["number"] == 610
+    assert item["num_prefix"] == "STD"
+
+
+def test_import_results_unparseable_keeps_empty_defaults(client: TestClient, mgr: MagicMock) -> None:
+    """解析不出的标准号：四个字段保持默认空值，由前端回落自身解析。"""
+    mgr.download_by_numbers.return_value = ([_task("Zzz 未知编号")], _stats())
+    r = client.post("/api/download/import", data={"text": "GB/T 12345-2020"})
+    item = r.json()["results"][0]
+    assert item["logical_code"] == ""
+    assert item["number"] == 0
+    assert item["year"] == 0
+    assert item["num_prefix"] == ""

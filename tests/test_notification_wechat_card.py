@@ -17,7 +17,9 @@ from pilotstd.core.notification._links import attach_web_actions
 from pilotstd.core.notification.channel import NotificationMessage
 from pilotstd.core.notification.channels.wechat import WechatChannel
 from pilotstd.core.notification.renderer import split_for_channel
+from pilotstd.core.notification.renderer_base import level_prefix
 from pilotstd.core.notification.renderer_wecom_card import WeChatCardRenderer
+from pilotstd.i18n import t
 
 BASE = "https://std.example.com"
 
@@ -198,3 +200,142 @@ def test_token_failure_is_reported(monkeypatch) -> None:
     ch = WechatChannel("", "ww123", "1000001", "bad")
     assert ch.send(_msg()) is False
     assert "令牌" in ch.last_error or "token" in ch.last_error.lower()
+
+
+# ── 4. P1-2：卡片拒收 → 文本降级的**字节**分段（不得按字符截断） ─────────────
+
+
+def test_app_form_text_fallback_splits_by_wecom_byte_limit(monkeypatch) -> None:
+    """P1-2：降级文本必须按 2048 **字节**分段发送，且末段含消息尾部。
+
+    缺陷背景：原实现 `text[:2000]` 按**字符**硬截断——2000 汉字 ≈ 6000 字节，
+    超过企微文本 2048 字节上限 ⇒ 降级消息本身仍会被平台拒收，且尾部信息直接丢失。
+    判别力：把实现改回 `text[:2000]` ⇒ 本用例 FAIL（只有 1 段，尾部不在）。
+    """
+    sent: list[dict] = []
+    state = {"card_failed": False}
+
+    def _open(url: str, payload: dict | None = None) -> _Resp:
+        if "gettoken" in url:
+            return _Resp({"errcode": 0, "access_token": "tok"})
+        sent.append(payload or {})
+        if (payload or {}).get("msgtype") == "template_card" and not state["card_failed"]:
+            state["card_failed"] = True
+            return _Resp({"errcode": 40058, "errmsg": "invalid card"})
+        return _Resp({"errcode": 0})
+
+    monkeypatch.setattr(WechatChannel, "_open", lambda self, url, payload=None: _open(url, payload))
+
+    # 3000 个汉字 = 9000 UTF-8 字节 ⇒ 至少 5 段；末段必须含结尾标记
+    tail = "尾部结束标记"
+    body = "长" * 3000 + tail
+    ch = WechatChannel("", "ww123", "1000001", "secret")
+    assert ch.send(_msg(body=body)) is True
+
+    texts = [p["text"]["content"] for p in sent if p.get("msgtype") == "text"]
+    assert len(texts) > 1, f"降级文本未按字节分段（字符截断回归）：段数={len(texts)}"
+    for seg in texts:
+        size = len(seg.encode("utf-8"))
+        assert size <= 2048, f"分段超过企微 2048 字节上限：{size}"
+    assert tail in texts[-1], f"末段丢失消息尾部：{texts[-1][-30:]!r}"
+    # 内容不丢：正文里 3000 个「长」必须全部出现在各段中
+    assert sum(seg.count("长") for seg in texts) == 3000, "分段后正文内容丢失"
+
+
+def test_app_form_short_text_still_sent_as_single_message(monkeypatch) -> None:
+    """未超限时 `split_for_channel` 原样返回单段（零行为变更，不多发消息）。"""
+    sent: list[dict] = []
+    state = {"card_failed": False}
+
+    def _open(url: str, payload: dict | None = None) -> _Resp:
+        if "gettoken" in url:
+            return _Resp({"errcode": 0, "access_token": "tok"})
+        sent.append(payload or {})
+        if (payload or {}).get("msgtype") == "template_card" and not state["card_failed"]:
+            state["card_failed"] = True
+            return _Resp({"errcode": 40058, "errmsg": "invalid card"})
+        return _Resp({"errcode": 0})
+
+    monkeypatch.setattr(WechatChannel, "_open", lambda self, url, payload=None: _open(url, payload))
+    ch = WechatChannel("", "ww123", "1000001", "secret")
+    assert ch.send(_msg(body="短消息")) is True
+    texts = [p for p in sent if p.get("msgtype") == "text"]
+    assert len(texts) == 1
+    assert "短消息" in texts[0]["text"]["content"]
+
+
+# ── 3. 信息量对齐（P0-2 级别 / P0-3 详情链接 / P1-1 列表计数） ────────────────
+
+
+def test_card_renders_level_prefix_exactly_once() -> None:
+    """P0-2：warning/error 的级别前缀必须进入卡片（27 个事件此前看不出严重度）。
+
+    「恰好一次」同时锁定**不得重复**：卡片路径只在 `render_card()` 的字段里补一次，
+    不得再经 `_render_block()` 叠加（否则降级文本路径会二次前缀）。
+    """
+    for level in ("warning", "error"):
+        msg = _msg()
+        msg.level = level
+        dumped = json.dumps(WeChatCardRenderer().render_card(msg), ensure_ascii=False)
+        prefix = level_prefix(level)
+        assert prefix in dumped, f"{level} 级别前缀缺失：{dumped}"
+        assert dumped.count(prefix) == 1, f"{level} 级别前缀重复：{dumped}"
+
+
+def test_card_info_level_has_no_prefix() -> None:
+    """info 不加前缀（避免所有企微卡片都出现噪声）。"""
+    msg = _msg()
+    msg.level = "info"
+    dumped = json.dumps(WeChatCardRenderer().render_card(msg), ensure_ascii=False)
+    assert level_prefix("info") == ""
+    assert "⚠️" not in dumped and "❌" not in dumped
+
+
+def test_card_degradation_text_has_level_prefix_exactly_once() -> None:
+    """降级文本（`render()`）里前缀同样只出现一次（防 `_render_block` 二次前缀）。"""
+    msg = _msg()
+    msg.level = "warning"
+    text = WeChatCardRenderer().render(msg)
+    assert text.count(level_prefix("warning")) == 1, text
+
+
+def test_card_puts_message_link_into_jump_list_and_card_action() -> None:
+    """P0-3：`message.link`（标准详情）必须进卡片跳转，且 `card_action` 指向它。"""
+    msg = _msg()
+    msg.link = "https://std.example.com/standards/GB%201-2020"
+    card = WeChatCardRenderer().render_card(msg)
+    assert card["jump_list"] == [
+        {"type": 1, "url": msg.link, "title": t("notification.renderer.detail")}
+    ]
+    assert card["card_action"] == {"type": 1, "url": msg.link}
+
+
+def test_card_keeps_web_actions_after_detail_link() -> None:
+    """详情链接是 `jump_list` 首项；既有站内入口动作保留为后续项（不互相顶掉）。"""
+    msg = _msg()
+    msg.link = "https://std.example.com/standards/GB%201-2020"
+    attach_web_actions(msg, _Cfg())
+    card = WeChatCardRenderer().render_card(msg)
+    urls = [item["url"] for item in card["jump_list"]]
+    assert urls[0] == msg.link
+    assert f"{BASE}/notification-logs" in urls
+
+
+def test_card_list_renders_count_and_detail_url() -> None:
+    """P1-1：ListBlock 的「共 N 条」与 `detail_url` 不得再丢（5 个事件受影响）。"""
+    from pilotstd.core.notification.blocks import ListBlock
+
+    msg = _msg(body="")
+    msg.blocks = [
+        ListBlock(
+            title="新登记",
+            items=[{"standard_number": "GB/T 1-2020"}],
+            total=2,
+            detail_url="https://std.example.com/standards?ids=1,2",
+        )
+    ]
+    card = WeChatCardRenderer().render_card(msg)
+    descs = " ".join(item["desc"] for item in card["vertical_content_list"])
+    assert t("notification.renderer.list_count").format(total=2) in descs
+    assert "https://std.example.com/standards?ids=1,2" in descs
+

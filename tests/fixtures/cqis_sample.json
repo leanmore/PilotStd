@@ -1,0 +1,33 @@
+{
+ "total": 2,
+ "rows": [
+  {
+   "BZProjectPublicId": "dba6c814-91c0-483d-a691-2f08a3029833",
+   "Project_FinishCODE": "DB50/T 950-2026",
+   "BZName": "荣昌卤鹅加工技术规范",
+   "ReplaceStandardNumber": "DB50/T 950-2019",
+   "ReleaseStatus": "现行",
+   "ReleaseTime": "2026-09-24 00:00:00",
+   "ActiveTime": "2026-12-01 00:00:00",
+   "StandardDepartment": "重庆市市场监督管理局",
+   "FilingNumber": "131818-2026",
+   "Batch": "2026年第5号(总第317号)",
+   "SourceName": "重庆",
+   "AttachmentUrl": "/UploadFile/2026/DB50_BZProjectPublic/dba6c814-91c0-483d-a691-2f08a3029833/DB50T 950-2026 荣昌卤鹅加工技术规范.pdf"
+  },
+  {
+   "BZProjectPublicId": "949fe790-5e46-4b68-9657-f5d6a8056bc2",
+   "Project_FinishCODE": "DB50/T 950-2019",
+   "BZName": "荣昌卤鹅加工技术规范",
+   "ReplaceStandardNumber": "",
+   "ReleaseStatus": "废止",
+   "ReleaseTime": "2019-12-02 00:00:00",
+   "ActiveTime": "2020-03-01 00:00:00",
+   "StandardDepartment": "重庆市市场监督管理局",
+   "FilingNumber": "069347-2020",
+   "Batch": "2019年第12号(总第240号)",
+   "SourceName": "重庆",
+   "AttachmentUrl": "/UploadFile/2020/DB50_BZProjectPublic/949fe790-5e46-4b68-9657-f5d6a8056bc2/DB50_T 950-2019 荣昌卤鹅加工技术规范（标准文本）.pdf"
+  }
+ ]
+}

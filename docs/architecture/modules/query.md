@@ -247,3 +247,199 @@ BaseAdapter (ABC)
 行为与原实现完全一致。
 
 **守护**：`tests/test_resource_leaks.py`（验证 `__exit__` 被调用 + 响应体已读）。
+
+## 代号噪音表扩展：API 类型词（2026-11-24，P1-7.1 B-6）
+
+`search_strategy._strip_code_noise` 噪音表补 `SPEC/BULL/MPMS/TDB/PUBL/RP/TR`（`API STD 610` 等
+此前被拼成 `APISTD`，搜索命中不到），并加 `len(code)-len(suffix) >= 2` 守卫，
+避免 `ARP`/`TR` 这类真短代号被剥空。`Q` 不进噪音表——已在解析源头拆分，避免误剥以 Q 结尾的代号。
+回归：`tests/test_std_utils_asme.py`（含 `_strip_code_noise` 用例）。
+
+## v2 路由：团体标准与斜杠变体不可达修复（2026-11-24，P2 侦查发现）
+
+**现象（实测 `get_route_chain`）**：
+
+| 输入 | 修复前 | 修复后 |
+|---|---|---|
+| `T/CIESC 001-2019` | `['njbz365']`（**ttbz 永远选不中**，直落 L3 兜底） | `['ttbz']` |
+| `T/CECS`（批量纯代号） | `['njbz365']` | `['ttbz']` |
+| `NB/T 47016-2023` | `['gongbiaoku','hbba','ahbz','njbz365']`（energy 不可达） | `['energy']` |
+| `HJ/T` / `TB/T` / `YD/T` / `DZ/T` / `JT/T` | 全部落 L2 通用兜底 | 分别命中 `mee` / `tdpress` / `miit` / `nrsis` / `jtst` |
+
+**三处根因与修法**：
+
+1. **`T/<组织>` 被当成纯关键词**：`_STD_PREFIX_RE` 要求 2~6 个字母，`T/CECS` 只有 1 个字母+斜杠
+   → `std_type=None` → `is_keyword_query=True` → 跳过 L1/L2 直落 L3。
+   修法：新增 `_T_GROUP_RE`（`^T/`）在通用正则前识别为 `"T/"`（与 `ttbz` 的
+   `supported_types: ["T/"]` 对齐；`TB/T` 以 `TB/` 开头不受影响）。
+2. **`NB/T` 推不出「能源」领域**：`energy` 声明 `industries: ["能源"]`，但
+   `_STD_TYPE_TO_INDUSTRY` 只有 `NB`/`DL` → 单条查询 `std_type=NB/T` 推不出领域被过滤。
+   修法：`_extract_industry` 增加**基码回退**（`NB/T` → `NB`）；
+   `site_capabilities.yaml` 的 `energy` 补 `NB/T`/`DL/T` 声明（精确命中优先于基码）。
+3. **斜杠变体系统性漏配**：真实标准号中 14+ 个族是 `<基码>/T`（HJ/T、TB/T、YD/T、DZ/T、JT/T…），
+   而站点只声明基码。修法：`_route_l1` 改走 `_type_matches()`——**声明优先、未声明才按基码回退**。
+   「已被任何站点声明的类型不做基码回退」这条守卫很关键：否则 `GB/T` 会落到只声明 `GB`
+   的站点（过匹配，实测会破坏国标 L1 链 `std_gov→csres→cssn`）。
+
+**回归锚点**：`tests/test_router_v2.py::TestGroupStdAndEnergyRouting`、
+`::test_slash_variant_base_code_routing`、`::test_declared_types_do_not_fall_back`。
+查询域广域回归 673 passed。
+
+**未变**：`SH/T`/`JB/T`/`HG/T` 等**无特色站**的族仍落 L2 通用链（`hbba` 本身是 L2 综合站），
+属正确行为；国标/行标/地标既有链不变。
+
+## 新增重庆标准信息平台适配器 `cqis`（2026-11-24，P2 批次 A1）
+
+**站点**：`http://db.cqis.cn/`（重庆市智慧市场监管一体化平台 — 地方标准信息公开）。
+**为何值得接**：重庆 DB50 的**权威源**，且提供**全文 PDF 附件**（`AttachmentUrl`）；
+现有 `dbba`（全国地标平台）只有题录、无全文。
+
+**接口形态（实测）**：
+
+| 用途 | 请求 | 说明 |
+|---|---|---|
+| 检索 | `POST /LocalStandard/GetDB50ShareList`（form-urlencoded） | `queryJson={"FinishCode": <标准号>, ...}` + `page` + `rows` |
+| 详情 | `POST /LocalStandard/GetPublicInfo`（JSON body `{"keyValue": <id>}`） | **本适配器未调用**：列表已含所需全部字段 |
+
+**关键坑（已落进适配器注释与测试）**：
+1. **按编号检索要用 `queryJson.FinishCode`**，`BZName` 匹配的是**标准名称**（用编号搜 BZName 会 0 条）；
+2. 响应 **`total` 字段不可靠**（实测恒为 1/2），以 `rows` 实际内容为准；
+3. 站点**仅 HTTP**（HTTPS 握手失败），故 `base_url` 用 http；
+4. 状态修正：`ReleaseStatus=现行` 但 `ActiveTime` 在未来 → 「即将实施」（与 `dbba` 同口径）。
+
+**注册点（6 处，缺一即不可达）**：`adapters/cqis.py` / `adapters/__init__.py` / `adapters/registry.py` /
+`site_config/_sites.py` / `site_config/_profiles.py` / `config/site_capabilities.yaml`；
+另 v1 硬路由 `engine/_constants.py`（`DB50` → `cqis` 优先）与 `search_strategy.ADAPTER_TYPE_MAP`
+（`db50` → `cqis`）。
+
+**v2 路由现状（按「零路由改动」方案）**：`cqis` 在 `site_capabilities.yaml` 声明 `supported_types: [DB]`
+（`_extract_std_type` 对 `DB50/T` 统一产出 `DB`），与 `dbba` 同属 L1，`dbba` 在前、`cqis` 紧随：
+`DB50/T 950-2026 → ['dbba', 'cqis']`。**省份精准粒度**（让 `cqis` 在 DB50 查询中排首位）是待决项，
+需 v2 支持省份粒度（约 0.25–0.5 人日），见 `docs/plans/2026-11-24-p2-adapter-recon-summary.md` §4。
+
+**回归锚点**：`tests/test_cqis.py`（12 例，全部基于 `tests/fixtures/cqis_sample.json` 的真实响应）；
+真实冒烟 `scripts/smoke_test_cqis.py`（本地可跑，CI 不跑）。
+
+## 新增 API Webstore 适配器 `api_webstore`（2026-11-24，P2 批次 A2）
+
+**站点**：`https://www.apiwebstore.org/`（美国石油学会标准在线商店）。
+**为何值得接**：API 标准（`API STD/SPEC/RP/TR`）此前只能落到 `iso_gov` 兜底，
+而官方商店是**权威源**且元数据完整（状态/版次/发布日期/归口委员会）。
+
+**接口形态（实测，非推断）**：真实搜索接口是 **Coveo Search**：
+`POST https://platform.cloud.coveo.com/rest/search/v2?organizationId=<orgId>`，JSON body。
+
+| 用途 | 查询式 | 实测 |
+|---|---|---|
+| 精确检索 | `aq='@productcode=="<code>" @producttype=="Standard"'` | `610/6D/5CT/579-1/2A-WSD/938-C/Q1` 各 1 条 |
+| 兜底检索 | `q=<原查询>` + `aq='@producttype=="Standard"'` | `q="API 610"` 1110 条 → 过滤后 897 |
+| 分页 | `firstResult` + `numberOfResults` | offset 型，无重叠 |
+
+**关键坑（已落进适配器与测试）**：
+1. **`token` 是唯一门槛**：无 token/假 token 均 401。token（`xx…`，公开 search token，非用户凭据）
+   藏在公开前端 `bundle` 里；适配器在 401 时**自动从 `bundle` 重新解析并重试一次**（`_refresh_token`），
+   自愈失败才返回空并打 `warning`；
+2. `publisheddate` 是 `MM/DD/YYYY`，需转 ISO；无实施/废止日期、无代替关系；
+3. 索引**只保留每个 `productcode` 的最新版**（历史版查询会回落为 newer、判 `newer`）；
+4. `type` 取值 `STD/SPEC/RP/TR`，`standard_number` 重建为 `API <type> <code>-<year>`。
+
+**路由**：`_extract_std_type("API STD 610-2026")` → `API`；
+`site_capabilities.yaml` 声明 `supported_types: [API]`（L1）→
+`API STD 610-2026 → ['api_webstore']`；v1 硬路由 `CODE_ROUTES["API"] = [api_webstore, iso_gov, csres]`，
+`ADAPTER_TYPE_MAP["api"]` 的 primary 由 `iso_gov` 改为 `api_webstore`。
+
+**回归锚点**：`tests/test_api_webstore.py`（23 例，基于真实响应 fixture，含 token 自愈、401 重试、
+自由文本回退全文检索）；真实冒烟 `scripts/smoke_test_api_webstore.py`（CI 不跑）。
+
+**未做**：ASME（同为 P2 批次 B，需先做 designator 归一化；其依赖的 P1 拆号修复已合入）。
+
+## 新增 ASME 适配器 `asme`（2026-11-24，P2 批次 B1）
+
+**站点**：`https://www.asme.org/`（ASME 官方商品目录，标准元数据权威源）。
+**为何值得接**：ASME 标准此前只能落 `iso_gov` 兜底；且 P1-7.1 报告指出
+`ASME B16.5` 在旧解析器下被拆成 `ASMEB1/6/5`（自 mismatch）——**P1 拆号修复已合入 `9e884765`**，
+本适配器是它的下游消费方。
+
+**接口形态（实测）**：`GET https://www.asme.org/api/products?type=Codes-Standards&fullDesignator=<designator>`
+→ `total/results[]`。实测命中：`B16.5` / `B31.3` / `BPVC.VIII.1` / `PTC 4` / `CSD-1` / `Y14.5` /
+`A112.18.1/CSA B125.1`；`ZZZ99.9` → `total=0`（空结果行为正常）。无需登录/cookie/验证码。
+
+**designator 归一化（本适配器核心逻辑）**：商品目录要求**精确** designator：
+
+| 输入 | 归一化 |
+|---|---|
+| `ASME B16.5-2025` | `B16.5` |
+| `ASME BPVC.VIII.1-2025` | `BPVC.VIII.1` |
+| `ASME BPVC Section VIII Div.1-2021` | `BPVC.VIII.1` |
+| `ASME BPVC Section II Part D` | `BPVC.II.D`（目录中细分为 `.C`/`.M`，精确查空时自动补查） |
+| `ASME PTC 4-2013` / `ASME Y14.5-2018` | `PTC 4` / `Y14.5` |
+
+归一化正则**必须整串锚定**：早期版本用 `search` 把 `BPVC.IX` 里的 `V` 误当罗马数字 → `BPVC.V`（已修，测试锁定）。
+
+**字段缺口与推断口径**：
+- **无 `status` 字段** → 按「请求年份 vs `DesignatorYear`」推断：同版/无年份→现行；
+  请求更旧年份（目录只索引最新版）→ 被代替（`Status.SUPERSEDED`）；
+- `PublishDate` 恒为 `0001-01-01`（不可用）→ `publish_date` 只用 `DesignatorYear`；
+- 无实施/废止日期、无代替关系、无归口单位。
+
+**路由**：`_extract_std_type("ASME B16.5-2025")` → `ASME`；
+`site_capabilities.yaml` 声明 `supported_types: [ASME]`（L1）→
+`ASME B16.5-2025 → ['asme']`；v1 `CODE_ROUTES["ASME"]`、`ADAPTER_TYPE_MAP["asme"]`
+的 primary 由 `iso_gov` 改为 `asme`。
+
+**回归锚点**：`tests/test_asme.py`（20 例：归一化 8 形态、真实 fixture 字段映射、
+旧年份→被代替、`BPVC.II.D`→`.C`/`.M` 补查、5 个网络异常分支）；
+真实冒烟 `scripts/smoke_test_asme.py`（4 个真实 designator，CI 不跑）。
+
+## P2 批次 B2：团体标准与能源标准适配器补齐（2026-11-24）
+
+依据 `docs/plans/2026-11-24-p2-recon-existing.md` 对 `ttbz`/`energy` 的评估结论。
+
+### ttbz（全国团体标准信息平台）—— 原实现按标准号查询**恒为 0 条**
+
+真实接口与站点前端（`standard.html` 的 `params` 构造）实测：
+
+| 问题 | 实证 | 修法 |
+|---|---|---|
+| **参数用错**（不可用级） | `standardName` 是**名称**过滤；传标准号（如 `T/BSCA 0006—2026`）→ `total=0` | 改用 **`standardNo`**（站点前端 `params.standardNo`，前缀/模糊匹配），再用 `match_result` 选精确项 |
+| **缺会话引导** | 直接 `POST` 接口 → **403「访问受限」** | 首次请求前 `GET standard.html` 取 `JSESSIONID`（`_ensure_session`，失败不阻断） |
+| **只取首页** | 原实现 `pageSize=20` 单页 | 最多 `MAX_PAGES=3` 页；**命中 exact 或到达 total 即停** |
+| **字段缺映射** | 真实响应含 `abolishDate` | 映射到 `abolition_date`；`replaces` 接口不返回 → **留空不臆造**（文档已注明） |
+
+**实测效果**：`T/BSCA 0006—2026` 从 **0 条 → 20 条候选且首条为 exact**；`T/CECS → 60 条`（3 页上限）。
+**真实响应 fixture**：`tests/fixtures/ttbz_sample.json`（2026-11-24 实测冻结，未人工构造）。
+**冒烟**：`scripts/smoke_test_ttbz.py`（真实网络，`T/BSCA`/`T/CECS 2355—2026` 两组）。
+
+### energy（能源标准平台）—— 三处结构性缺陷
+
+| 问题 | 实证 | 修法 |
+|---|---|---|
+| **冒烟脚本必崩** | `smoke_test_energy.py:33` 引用不存在的 `adapter.API_URL` → `AttributeError` | 改 `adapter.get_search_url()` |
+| **未验证域名 fallback** | `https://energy.nbse.org.cn:18080` 从未实测可达，且与固定 `Host` 头矛盾（会拿到错误主机响应），站点故障时白等 15 秒 | **删除**该 fallback，只保留同主机 `HTTP` 降级 |
+| **多页/解析失败/fallback 无用例** | 旧 fixture `total=3` 从不进第 2 页 | 新增 `tests/test_energy_pagination.py`（翻页 3 例 + fallback 3 例 + 解析失败/年份回退 3 例） |
+
+**真实响应 fixture**：`tests/fixtures/energy_sample.json` 已替换为 **2026-11-24 实测**数据
+（现行/废止/即将实施 三种状态各 1 条，原文件为手工构造 `stdId=10001~10003`）。
+**冒烟**：`scripts/smoke_test_energy.py` **真实网络通过**（19 项检查）。
+
+### 回归锚点
+`tests/test_ttbz.py`（19 例：参数/会话引导/分页/字段/异常）、
+`tests/test_energy_pagination.py`（9 例）、`tests/test_energy.py`（14 例，真实 fixture）、
+`tests/test_adapters.py` 的 TTBZ 段（14 例，保持绿）。
+
+## 适配器 HTTP 纪律与默认参数修正（2026-11-25，第三轮深扫）
+
+方向 C 第三轮深扫（口径：HTTP 超时 / 资源泄漏 / 可变默认参数 / 裸 except / 锁纪律）发现并修 3 处：
+
+| 位置 | 问题 | 影响 | 修法 |
+|---|---|---|---|
+| `adapters/nrsis.py` 查询调用 | **缺 `timeout`** | 站点不响应时请求**无限挂起**，外层的指数退避重试也会一起挂 | 补 `timeout=15` |
+| `adapters/ahbz.py::_search` | 每次查询 `requests.Session()` 且**从不关闭** | 每次查询泄漏一个连接池 | 改 `with requests.Session()`（响应体已在 `_search_single` 内读完） |
+| `adapters/base.py::_try_exact_search` | `accepted_statuses: set = {"exact"}` **可变默认参数** | 潜在跨调用共享可变对象（当前只读，未触发） | 默认改 `None` + 函数内构造 |
+
+**回归**：`tests/unit/query/test_adapter_http_discipline.py`（5 例：timeout 必填、
+Session 必须 `with` 关闭、默认参数为 `None`、默认口径仍只接受 exact）。
+
+**同轮复核后判定不改**（详见 `docs/plans/2026-11-25-deep-scan3.md`）：
+`network.py` 的 `safe_raw_*` 用 `with Session`（已关闭）；`announcement/base.py` 有
+`owns_session` + finally 关闭；各适配器 `__init__` 内建的 Session/Client 是长生命周期实例，正常。

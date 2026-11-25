@@ -241,7 +241,7 @@ class TestDebugApi:
             r = score_adapter(name, "NB/T 1234")
             results.append((name, r.score, r.reasons))
         results.sort(key=lambda x: x[1], reverse=True)
-        assert len(results) == 21, f"应返回21个适配器，实际={len(results)}"
+        assert len(results) == 24, f"应返回21个适配器，实际={len(results)}"
         assert results[0][1] > 0, "第一名分数应>0"
 
     def test_debug_simulate_cooldown_zeroes_adapter(self):

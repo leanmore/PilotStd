@@ -883,5 +883,11 @@
   "notification.renderer.level.warning": "⚠️ Warning",
   "notification.renderer.level.error": "❌ Error",
   "notification.manager.skipped_no_channel": "No notification channel configured; event not delivered (visible in app)",
-  "notification.channel.none": "No channel"
+  "notification.channel.none": "No channel",
+  "notification.channel.wechat.token_failed": "Failed to obtain access token",
+  "no_extension": "No extension",
+  "announcement_failures": "\n\n{count} site(s) failed to fetch; details saved to {path}",
+  "title_name_conflict": "Name Conflict",
+  "btn_use_source_name": "Use Source File Name",
+  "btn_use_query_name": "Use Queried Web Name"
 }

@@ -21,29 +21,13 @@ from ...core.std_utils import build_standard_number, classify_std_code, parse_st
 from ...i18n import t
 from ...models import ParsedStdInfo
 from ...organizer.industry_lookup import INDUSTRY_MAP
+from ._organize_payloads import _fmt_std_number, build_failed_item
 
 if TYPE_CHECKING:
     from ._core import ManagerCore
 
 logger = logging.getLogger(__name__)
 # 归档处理器，封装所有归档方法，替代原
-
-
-def _fmt_std_number(p: Any) -> str:
-    """把 `ParsedStdInfo` 拼成**可读的标准完整编号**（如 `GB/T 1234-2020`），供失败明细展示。
-
-    为什么不用 `p.number` 而优先 `raw_number`：`number` 是 int（丢前导零），
-    `raw_number` 保留原始数字串（见 `pilotstd/models.py:16-18`）；两者都空时退回 `"-"`。
-    年度缺失（如 `GB/T 1`）时不追加 `-年份`；样例见
-    `tests/download/adapters/test_openstd_download.py:600`。
-    """
-    code = (getattr(p, "logical_code", "") or "").strip()
-    num = (getattr(p, "raw_number", "") or "").strip() or str(getattr(p, "number", "") or "").strip()
-    year = getattr(p, "year", 0) or 0
-    if not code and not num:
-        return "-"
-    base = f"{code} {num}".strip()
-    return f"{base}-{year}" if year else base
 
 
 def _archive_category_stats(items: list[Any]) -> dict[str, int]:
@@ -472,8 +456,12 @@ class OrganizeHandler:
         results: list[dict[str, Any]] = []
         total = len(parsed_list)
         batch: list[tuple[int, ParsedStdInfo, str]] = []
+        # P1 批 B-4：异常时把"正在处理的那条"作为失败明细对象（标准号/名称），
+        # 否则用户只看到"N 条标准规范化失败"却不知道是哪条。
+        current_item: ParsedStdInfo | None = None
         try:
             for i, parsed in enumerate(parsed_list):
+                current_item = parsed
                 src_path = getattr(parsed, "source_path", "") or ""
                 name = self._make_archive_filename(parsed)
                 folder = get_folder_name(parsed.logical_code)
@@ -494,11 +482,12 @@ class OrganizeHandler:
                 if on_progress:
                     on_progress(i + 1, total)
         except Exception as e:
+            failed_item = build_failed_item(current_item, str(e))
             try:
                 if self._core.notification_mgr:
                     self._core.notification_mgr.send_event(
                         "normalize_failed",
-                        {"total": total, "error": str(e)},
+                        {"total": total, "error": str(e), "failed_items": [failed_item] if failed_item else []},
                     )
             except Exception as e2:
                 logger.warning("规范化失败通知发送失败: %s", e2)

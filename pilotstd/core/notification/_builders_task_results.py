@@ -16,6 +16,7 @@
 # 覆盖全部任务类通知。顺序本身无副作用（管理器按事件名查表，不依赖定义顺序）。
 from pilotstd.i18n import t
 
+from ._builders_batch import build_failed_items_block
 from ._builders_common import _std_label
 from ._format_utils import translate_error_message
 from .blocks import (
@@ -24,6 +25,10 @@ from .blocks import (
     TextBlock,
 )
 from .channel import NotificationMessage
+
+# 查询全未命中时正文最多列出的标准号条数（超长批量只列前 N 条；总数仍由首行给出）。
+# 为什么不在构建器里无限展开：一次批量查询可达数百条，全部展开会让单条消息被渠道反复分段。
+_MAX_QUERY_EMPTY_STANDARDS = 10
 
 
 def _build_scan_complete_message(data: dict) -> NotificationMessage:
@@ -93,10 +98,20 @@ def _build_date_reminder_message(data: dict) -> NotificationMessage:
 
 
 def _build_scan_empty_message(data: dict) -> NotificationMessage:
-    """原 Mixin 方法，现为模块级纯函数。"""
+    """扫描完成但无新增文件（P1 批 B-4：补「对象」——扫描了哪个目录）。
+
+    原实现只说"未发现新文件"，用户无法判断"没扫到"是不是路径配错。
+    payload 的 `path` 由 `_scan.py` 三处触发点传入（扫描根目录）；旧 payload/测试样本
+    没有该键时**不追加**路径块（零回归）。
+    """
+    blocks: list[NotificationBlock] = [TextBlock(text=t("notification.scan.scan_empty.body"))]
+    scan_path = data.get("path") or ""
+    if scan_path:
+        # 复用同类别（notification.scan）既有的"路径："模板，避免为一个字段扩散新增 i18n 键
+        blocks.append(TextBlock(text=t("notification.scan.auto_scan_failed.body.path").format(p=scan_path)))
     return NotificationMessage(
         title=t("notification.scan.scan_empty.title"),
-        blocks=[TextBlock(text=t("notification.scan.scan_empty.body"))],
+        blocks=blocks,
         level="info",
         event_type="scan_empty",
         icon="pi pi-search",
@@ -126,11 +141,28 @@ def _build_query_failed_message(data: dict) -> NotificationMessage:
 
 
 def _build_query_empty_message(data: dict) -> NotificationMessage:
-    """原 Mixin 方法，现为模块级纯函数。"""
+    """批量查询全部未命中（P1 批 B-4：补「对象」——所查询的标准号清单）。
+
+    原实现只有"共 N 条标准，均未查询到结果"，用户不知道"该重新查哪几条"。
+    payload 的 `standards` 由 `_query_subsystem.py` 传入（本次查询的标准号，按结果顺序）；
+    正文列**前 N 条**（`_MAX_QUERY_EMPTY_STANDARDS`），总数仍由首行给出。
+    """
     total = data.get("total", 0)
+    blocks: list[NotificationBlock] = [
+        TextBlock(text=t("notification.query.query_empty.body").format(total=total))
+    ]
+    standards = [str(s).strip() for s in (data.get("standards") or []) if str(s).strip()]
+    if standards:
+        blocks.append(
+            TextBlock(
+                text=t("notification.common.std_no").format(
+                    s=", ".join(standards[:_MAX_QUERY_EMPTY_STANDARDS])
+                )
+            )
+        )
     return NotificationMessage(
         title=t("notification.query.query_empty.title"),
-        blocks=[TextBlock(text=t("notification.query.query_empty.body").format(total=total))],
+        blocks=blocks,
         level="warning",
         event_type="query_empty",
         icon="pi pi-search",
@@ -139,13 +171,30 @@ def _build_query_empty_message(data: dict) -> NotificationMessage:
 
 # ── 归档 / 规范化（失败侧）──
 def _build_archive_failed_message(data: dict) -> NotificationMessage:
-    """归档失败汇总（与 archive_abandoned 语义区分：本事件指批量归档操作失败
-    的汇总通知；archive_abandoned 指单条收藏下载重试 7 次后放弃）。"""
+    """归档失败汇总（P1 批 B-4：补「对象」——失败的标准号 / 失败明细）。
+
+    与 archive_abandoned 语义区分：本事件指批量归档操作失败的汇总通知；
+    archive_abandoned 指单条收藏下载重试 7 次后放弃。
+
+    渲染口径（避免同一条失败重复展示两遍）：
+    · `standard_number` 非空（生产者仅在**单条失败**时给出）⇒ 正文补"标准号：X"；
+    · 否则 `failed_items` 非空（多条失败）⇒ 追加失败明细列表块。
+    """
     count = data.get("count", 0)
     error = data.get("error", t("notification.common.unknown_error"))
+    blocks: list[NotificationBlock] = [
+        TextBlock(text=t("notification.archive.archive_failed.body").format(count=count, error=error))
+    ]
+    std_no = data.get("standard_number") or ""
+    if std_no:
+        blocks.append(TextBlock(text=t("notification.common.std_no").format(s=std_no)))
+    else:
+        failed_block = build_failed_items_block(data)
+        if failed_block:
+            blocks.append(failed_block)
     return NotificationMessage(
         title=t("notification.archive.archive_failed.title"),
-        blocks=[TextBlock(text=t("notification.archive.archive_failed.body").format(count=count, error=error))],
+        blocks=blocks,
         level="error",
         event_type="archive_failed",
         icon="pi pi-folder-open",
@@ -153,19 +202,25 @@ def _build_archive_failed_message(data: dict) -> NotificationMessage:
 
 
 def _build_normalize_failed_message(data: dict) -> NotificationMessage:
-    """原 Mixin 方法，现为模块级纯函数。
+    """规范化流程异常（P1 批 B-4：补「对象」——失败明细）。
 
     P1 修复：error 经翻译映射后再渲染，避免 raw Python 异常文本直出。
+    P1 批 B-4：payload 的 `failed_items`（文件名/标准号 + 原因，4 列口径）渲染为明细块；
+    无明细时保持原正文形态（零回归），复用 `_builders_batch.build_failed_items_block`。
     """
     total = data.get("total", 0)
     friendly_error = translate_error_message(data.get("error", ""))
+    blocks: list[NotificationBlock] = [
+        TextBlock(
+            text=t("notification.archive.normalize_failed.body").format(total=total, error=friendly_error)
+        )
+    ]
+    failed_block = build_failed_items_block(data)
+    if failed_block:
+        blocks.append(failed_block)
     return NotificationMessage(
         title=t("notification.archive.normalize_failed.title"),
-        blocks=[
-            TextBlock(
-                text=t("notification.archive.normalize_failed.body").format(total=total, error=friendly_error)
-            )
-        ],
+        blocks=blocks,
         level="error",
         event_type="normalize_failed",
         icon="pi pi-check-square",
@@ -304,18 +359,34 @@ def _build_auto_pipeline_summary_message(data: dict) -> NotificationMessage:
 
     为什么用 `KeyValueBlock` 而不是正文：四个阶段是并列指标，键值块在桌面与 Web
     都能按列对齐；正文拼串在窄屏会折行成不可读的长句。
+
+    P1 批 B-4：补「对象」——`task_id`（本次一键处理的批次号）与 `path`（扫描根/处理范围）。
+    原实现只有四个计数，用户不知道"这 12 个文件是哪一批、哪次一键处理"。
     """
     scan = int(data.get("scan") or 0)
     found = int(data.get("query_found") or 0)
     downloaded = int(data.get("download_success") or 0)
     moved = int(data.get("organize_moved") or 0)
+    task_id = data.get("task_id") or ""
+    scope_path = data.get("path") or ""
 
-    blocks: list[NotificationBlock] = [
-        KeyValueBlock(key=t("notification.auto.auto_pipeline_summary.body.scan"), value=str(scan)),
-        KeyValueBlock(key=t("notification.auto.auto_pipeline_summary.body.query_found"), value=str(found)),
-        KeyValueBlock(key=t("notification.auto.auto_pipeline_summary.body.download_success"), value=str(downloaded)),
-        KeyValueBlock(key=t("notification.auto.auto_pipeline_summary.body.organize_moved"), value=str(moved)),
-    ]
+    blocks: list[NotificationBlock] = []
+    # 对象行优先：先回答"处理了哪一批/哪个范围"，再回答"结果如何"。
+    # 复用既有模板（任务/路径），避免为一个字段扩散新增 i18n 键。
+    if task_id:
+        blocks.append(TextBlock(text=t("notification.system.task_execution_failed.body.task").format(t=task_id)))
+    if scope_path:
+        blocks.append(TextBlock(text=t("notification.scan.auto_scan_failed.body.path").format(p=scope_path)))
+    blocks.extend(
+        [
+            KeyValueBlock(key=t("notification.auto.auto_pipeline_summary.body.scan"), value=str(scan)),
+            KeyValueBlock(key=t("notification.auto.auto_pipeline_summary.body.query_found"), value=str(found)),
+            KeyValueBlock(
+                key=t("notification.auto.auto_pipeline_summary.body.download_success"), value=str(downloaded)
+            ),
+            KeyValueBlock(key=t("notification.auto.auto_pipeline_summary.body.organize_moved"), value=str(moved)),
+        ]
+    )
 
     return NotificationMessage(
         title=t("notification.auto.auto_pipeline_summary.title"),

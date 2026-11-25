@@ -18,13 +18,26 @@ class StandardService:
     def _map_filter_status(filter_status: str) -> tuple[list[str], str | None]:
         """将前端筛选状态值映射到文件索引表的查询条件子句。
         返回：(值列表, 操作符) —— 操作符为包含、不包含或等于。
+
+        废止族口径 = `ABOLISHED_STATUSES` 的现行数据值（废止 + 被代替 + 作废）：
+        `作废` 是 `Status` 枚举内的合法废止族状态（见 `core/status.py`），必须随
+        「已废止」筛选一起返回、并从「未知」补集中排除，否则 88 条名额中的 58 条
+        `作废` 会被错误折叠进「未知」（P1-5 摸底报告 §5.1-A1）。
         """
         if filter_status == Status.ACTIVE.value:
             return ([Status.ACTIVE.value], None)
         if filter_status == Status.WITHDRAWN_NORMALIZED.value:
-            return ([Status.WITHDRAWN.value, Status.SUPERSEDED.value], "IN")
+            return ([Status.WITHDRAWN.value, Status.SUPERSEDED.value, Status.VOIDED.value], "IN")
         if filter_status == Status.UNKNOWN.value:
-            return ([Status.ACTIVE.value, Status.WITHDRAWN.value, Status.SUPERSEDED.value], "NOT IN")
+            return (
+                [
+                    Status.ACTIVE.value,
+                    Status.WITHDRAWN.value,
+                    Status.SUPERSEDED.value,
+                    Status.VOIDED.value,
+                ],
+                "NOT IN",
+            )
         return ([filter_status], None)
 
     @staticmethod
@@ -64,17 +77,28 @@ class StandardService:
     def get_stats(self) -> dict[str, Any]:
         """获取标准统计信息（按状态分组计数），数据源为文件索引表。
         查询语句与首页卡片 get_status_stats() 完全一致。
+
+        口径（P1-5 §5.1-A1）：已废止 = 废止 + 被代替 + **作废**；未知 = 上述三者
+        之外的状态补集（`作废` 属 `ABOLISHED_STATUSES`，不得落入未知）。
         """
         db = self._mgr.db
         rows = db.fetchall("SELECT status, COUNT(*) AS cnt FROM file_index WHERE status IS NOT NULL GROUP BY status")
         s = {row["status"]: row["cnt"] for row in rows}
         by_status = {
             Status.ACTIVE.value: s.get(Status.ACTIVE.value, 0),
-            Status.WITHDRAWN_NORMALIZED.value: s.get(Status.WITHDRAWN.value, 0) + s.get(Status.SUPERSEDED.value, 0),
+            Status.WITHDRAWN_NORMALIZED.value: s.get(Status.WITHDRAWN.value, 0)
+            + s.get(Status.SUPERSEDED.value, 0)
+            + s.get(Status.VOIDED.value, 0),
             Status.UNKNOWN.value: sum(
                 cnt
                 for st, cnt in s.items()
-                if st not in (Status.ACTIVE.value, Status.WITHDRAWN.value, Status.SUPERSEDED.value)
+                if st
+                not in (
+                    Status.ACTIVE.value,
+                    Status.WITHDRAWN.value,
+                    Status.SUPERSEDED.value,
+                    Status.VOIDED.value,
+                )
             ),
         }
         return {

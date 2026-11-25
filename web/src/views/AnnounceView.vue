@@ -210,7 +210,18 @@ function onPage(e: any) {
         </div>
       </template>
     </DataView>
-    <Paginator :rows="rows" :rowsPerPageOptions="ANNOUNCE_PAGE_SIZES" :totalRecords="totalRecords" @page="onPage" class="mt-2" />
+    <!-- 修 2026-11-24（P0-3）：必须绑 :first，否则刷新后 paginator 与数据页错位。
+         `page` 会从 localStorage 恢复（onPage 写入），刷新时 load() 按恢复的 page 取数，
+         但 Paginator 的 first 未受控 → 内部从 0 开始，高亮恒为第 1 页，
+         用户看到「内容已换页但页码没变」，误以为要刷新。 -->
+    <Paginator
+      :first="page * rows"
+      :rows="rows"
+      :rowsPerPageOptions="ANNOUNCE_PAGE_SIZES"
+      :totalRecords="totalRecords"
+      @page="onPage"
+      class="mt-2"
+    />
     <LogBar class="mt-3" />
   </template>
   <div v-else class="empty-state mt-4">

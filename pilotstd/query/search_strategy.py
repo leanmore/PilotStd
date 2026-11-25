@@ -43,16 +43,20 @@ def _parse_result_number(num_str: str) -> dict[str, Any]:
     return r if r else {}
 
 
-# 代号里的"噪音后缀"：部分站点把标准写成 `API STD 610`，解析出的代号是 `APISTD`，
-# 与用户查询的 `API` 不等。这类后缀不改变标准身份，比对前统一剥掉（2026-10-24）。
-_CODE_NOISE_SUFFIXES = ("STANDARD", "STD")
+# 代号里的"噪音后缀"：部分站点把标准写成 `API STD 610` / `API RP 520` / `API Spec 610`，
+# 解析出的代号可能是 `APISTD`/`APIRP`/`APISPEC`，与用户查询的 `API` 不等。这类出版类型词
+# 不改变标准身份，比对前统一剥掉（2026-10-24 起；2026-11-24 补 API 类型词全表，P1-7.1 B-6）。
+_CODE_NOISE_SUFFIXES = ("STANDARD", "SPEC", "STD", "BULL", "MPMS", "TDB", "PUBL", "RP", "TR")
 
 
 def _strip_code_noise(code: str) -> str:
-    """去掉代号尾部的 `STD`/`STANDARD` 噪音，便于与用户输入比对。"""
+    """去掉代号尾部的出版类型噪音，便于与用户输入比对。
+
+    仅当剥离后仍保留 ≥2 字符基础代号时才剥，避免把 `ARP`/`TR` 这类真正的短代号剥没。
+    """
     c = code.replace(" ", "").upper()
     for suffix in _CODE_NOISE_SUFFIXES:
-        if c.endswith(suffix) and len(c) > len(suffix):
+        if c.endswith(suffix) and len(c) - len(suffix) >= 2:
             return c[: -len(suffix)]
     return c
 
@@ -284,6 +288,7 @@ ADAPTER_TYPE_MAP: dict[str, dict[str, str | list[str] | list[int]]] = {
     "db": {"primary": "dbba", "fallback": "csres"},
     "db11": {"primary": "dbba", "fallback": "csres"},
     "db31": {"primary": "dbba", "fallback": "csres"},
+    "db50": {"primary": "cqis", "fallback": "dbba"},
     # 国际标准→_
     "iso": {"primary": "iso_gov", "fallback": "csres"},
     "iec": {"primary": "iso_gov", "fallback": "csres"},
@@ -291,8 +296,8 @@ ADAPTER_TYPE_MAP: dict[str, dict[str, str | list[str] | list[int]]] = {
     "iso_iec": {"primary": "iso_gov", "fallback": "csres"},
     # 国外标准 → 通用路由
     "astm": {"primary": "iso_gov", "fallback": "csres"},
-    "asme": {"primary": "iso_gov", "fallback": "csres"},
-    "api": {"primary": "iso_gov", "fallback": "csres"},
+    "asme": {"primary": "asme", "fallback": "iso_gov"},
+    "api": {"primary": "api_webstore", "fallback": "iso_gov"},
     "foreign": {"primary": "njbz365", "fallback": "ahbz"},
     # 团体标准→专业平台（=5），365兜底
     "group": {"primary": "ttbz", "fallback": "ahbz"},

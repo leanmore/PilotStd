@@ -93,9 +93,14 @@ class BaseAdapter(ABC):
         number: int,
         year: int,
         part: int | None,
-        accepted_statuses: set = {"exact"},
+        accepted_statuses: set[str] | None = None,
     ) -> Optional[QueryResult]:
-        """通用精确搜索：搜索→匹配状态→后处理。匹配到接受的状态则返回 QueryResult，否则 None。"""
+        """通用精确搜索：搜索→匹配状态→后处理。匹配到接受的状态则返回 QueryResult，否则 None。
+
+        `accepted_statuses` 默认 `{"exact"}`：2026-11-25 修掉可变默认参数（set 会在调用间共享）。
+        """
+        if accepted_statuses is None:
+            accepted_statuses = {"exact"}
         result = self._search(search_term)
         if result and result.is_found():
             _, status = match_result(

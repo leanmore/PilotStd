@@ -202,7 +202,7 @@
 | # | 编号 | 类别 | 位置 | 问题 | 影响 | 修法 |
 |---|---|---|---|---|---|---|
 | 103 | NEW-43 | 测试缺口 | `pilotstd/**`、`docker/**` | ~~**30 个后端模块**在 `tests/` 里无任何文本引用~~ → **已归零**（实测 446 模块中，除 8 个一次性迁移脚本与 1 个 Jinja 模板外全部有测试引用） | 已解决 | **已闭合**（2026-11-24）：本轮补 9 批共 **176 例**，覆盖 `_builders_common`、`_channel_registry`、`validity_replacement`、`_shared_ssl`、`_text_cleaner`、`_language_detector`、`renderer_links`、`validity_log`、`notification_deps`、`announce_lookup`、`_topic_index`、`_announce_detail_*`、`_builders_system_security`、`_profiles`、`_core_adapters`、`protocols`、`group_std_orgs`、`diagnose_announce`、`_table_io` |
-| 104 | NEW-44 | 测试缺口 | `web/src/**` | **84 个前端源文件**无同名测试（133 源 / 62 测试）→ 已补 3 个（**api/http.ts** 8 例、**composables/useNotificationLogs.ts** 20 例、**useQueryAdapters.ts** 12 例），剩 81 个 | 核心路径已保护；其余为视图/组件层 | **部分闭合**（2026-11-24）：`api/*.ts` 剩 13 个、`views/`、`components/dashboard/widgets/*` 持续补测 |
+| 104 | NEW-44 | 测试缺口 | `web/src/**` | **84 个前端源文件**无同名测试（133 源 / 62 测试）→ 已全部补齐：共新增 **55 个测试文件 / 344 例**（api 10、views 9、views/settings 7、components 10、dashboard/widgets 10、composables 2、根级与 config/lib 5、ui 1 等） | 核心路径已保护；其余为视图/组件层 | **已闭合**（2026-11-25）：剩余 9 个文件为**合理排除**——纯类型声明 ×5（`types/*.ts`、`views/TaskView/types.ts`）、`stores/app.native-test.ts`（由 `pnpm test:native` 独立运行）、测试基建 ×3（`test-env/test-helper/test-setup.ts`）。前端测试基线 93 文件/925 例 → **148 文件 / 1275 例** |
 | 105 | NEW-45 | 测试缺口 | `scripts/check_g_010_code_size.py` | **G-010 只拦 >500 阻断档，>400 警告档不阻断**：实测 **20 个文件 >400**（最高 `docker/scheduler.py` 494），全部 PASS | 20 个文件在 400~500 区间缓慢增长，任一破 500 即阻断 CI（且历史上已多次靠「拆分证据」豁免） | 警告档加「棘轮」：登记当前 20 个文件与行数，只拦「新增或增长」 |
 | 106 | NEW-46 | 测试缺口 | `scripts/check_g_012_comment_density.py` | `[LANG]` 注释语言警告 **27 条**长期挂着（不阻断）；V-17 记的是同一族问题的另一种表现 | 注释质量门禁形同虚设 | 与 V-17 同批处理：要么清 27 条，要么改判定口径 |
 
@@ -301,7 +301,7 @@
 - **范围**：
   - 资源（6）：NEW-36（13 文件 Session 无 close）/ NEW-37（`announcement/base.py` 每次新建）/ NEW-38（`network.py` 两处）/ NEW-39（`DriveEnumerator` QThread）/ NEW-40（`LogHandler` QTimer 未停）/ NEW-41（DB 连接累积）
   - 安全（1）：NEW-42（CSP `unsafe-eval`）
-  - 测试（4）：NEW-43（30 后端模块无测试）/ NEW-44（84 前端文件无测试）/ NEW-45（G-010 警告档无棘轮）/ NEW-46（G-012 `[LANG]` 27 条）
+  - 测试（4）：NEW-43（30 后端模块无测试）✅ / NEW-44（84 前端文件无测试）✅ / NEW-45（G-010 警告档无棘轮）✅ / NEW-46（G-012 `[LANG]` 27 条）✅
 - **预估改动文件数**：15~20
 - **可独立验证**：是（Session 用 mock 断言 `close()`；QThread 用 `qtbot` 断言 `deleteLater`；门禁用 `--emit` 比对）
 - **完成判据**：① 13 个 Session 创建点全部有配对 `close()`/`with`（单测断言）② `DriveEnumerator` 有 `finished→deleteLater` ③ `LogHandler.close()` 停定时器 ④ CSP 生产构建去掉 `unsafe-eval` ⑤ `api/http.ts` 有测试覆盖池泄漏/取消语义 ⑥ G-010 警告档棘轮上线（20 文件登记，只拦新增/增长）⑦ `[LANG]` 27 条清零或改判定口径
@@ -317,7 +317,7 @@
 | 5 后端性能 | P2 | 9 | 10 | 批量入库/查询提速，消除 N+1 |
 | 6 异常静默 + TODO | P2 | 10 | 14 | 失败可见 + 3 个无主 TODO 有主 |
 | 7 文档漂移与死链 | P2 | 9 | 10~15 | 文档可跳转、数字可信 |
-| 8 资源泄漏 + 测试 | 11 | **10** | 🔶 部分 | 5 类泄漏已修；NEW-45 棘轮、NEW-46 [LANG] 清零完成；**NEW-43 已归零**（后端模块无测试引用 30→0，补 176 例）；NEW-44 已补 api/http.ts + 2 个 composables，剩 81 文件持续补测 |
+| 8 资源泄漏 + 测试 | 11 | **11** | ✅ | 5 类泄漏已修；NEW-45 棘轮、NEW-46 [LANG] 清零完成；**NEW-43 已归零**（后端 30→0，补 176 例）；**NEW-44 已归零**（前端补 55 文件 / 344 例，93 文件/925 例 → 148 文件/1275 例；余 9 文件为纯类型/测试基建/独立 runner，见其行内说明） |
 | **合计** | | **106** | | 覆盖全部 P0/P1/P2 |
 
 ### 覆盖率核对（机械校验）
@@ -472,6 +472,48 @@ python scripts/audit_design_tokens.py --check    # A=0 B=148 C=588 D=0
 这两项已在批次 3（G-050 补 `except: continue|break` 识别，26 处吞错冻结）
 与批次 5（9 项 N+1 全部消除）中系统性处理，本清单第三/五节有完整记录，
 本节不重复。
+
+### 附五、CI 版本号 bump 未落库缺陷（2026-11-24 实测取证）
+
+**发现时机**：PR #26 合并后观察 main CI 的 `version` / `docker` job。
+
+**现象**：
+
+| 事实 | 证据 |
+|---|---|
+| main HEAD 仍为 `0e92e5d2`（合并提交），`VERSION` = `0.206.0` | `git show origin/main:VERSION` |
+| `version` job 的 `Commit version bump` 步骤报 **success** | Actions API job steps |
+| bump 提交 `295fe12f`（`chore: bump version to v0.207.0`）**不在任何远端分支** | `git branch -r --contains 295fe12f` 为空 |
+| `v0.207.0` tag 指向 `295fe12f`（孤儿） | GitHub git/ref API |
+| `v0.206.1` 同样**不是** main 的祖先（也是孤儿） | `git merge-base --is-ancestor v0.206.1 origin/main` → 1 |
+
+**后果**：
+
+1. main 的 `VERSION` / `pilotstd/__init__.py` 自 `v0.206.0` 起**再未更新** → `/api/system/version` 上报陈旧版本。
+2. 镜像 tag 与内容漂移：本次 `:v0.207.0` 镜像内容里的 `VERSION` 实为 `0.206.0`。
+3. **更严重**：`:v0.206.0` 这个已发布版本 tag **被本次构建覆盖**（tag 名取自
+   `needs.version.outputs.version`，而 version 未真正提升）→ 按版本号 pin 镜像的人会拿到不同内容。
+
+**根因（代码层，行为可定位）**：`.github/workflows/ci.yml` 的 `Commit version bump` 步骤：
+
+```bash
+for i in 1 2 3; do
+  if git push; then break; fi
+  git pull --rebase origin main
+  sleep 2
+done          # 循环结束不检查是否成功，步骤仍 exit 0
+```
+
+随后 `Create and push tag` 只在 `bumped == true` 时对**本地 HEAD** 打 tag 并 push。
+push 到 main 失败时本地 bump 提交仍在，于是 tag 指向孤儿提交。
+
+**待修（需谨慎，避免 main CI 变红阻断镜像构建）**：
+
+1. retry 循环记录 `PUSHED=1`；三次失败则**不打 tag**，并以 `::warning::` 注解显式告警
+   （保持 job 绿，否则 `docker` job 因 `needs.version.result == 'success'` 被跳过，反而阻断发布）。
+2. `Create and push tag` 增加守卫：`git merge-base --is-ancestor HEAD origin/main` 不成立则跳过。
+3. 另需排查 push 到 main 为何失败（job 日志 401 拿不到，需仓库 admin 查看）。
+4. 修复前**不要**再按版本 tag 部署，统一用 `:latest` + `/api/health` 的 sha 做身份核对。
 
 ## 附三、过期注释深度扫描（2026-11-24）
 

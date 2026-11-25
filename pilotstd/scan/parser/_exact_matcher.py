@@ -126,7 +126,11 @@ class ExactMatcher:
         )
 
     def _exact_match_bpvc(self, text: str) -> Optional[ParsedStdInfo]:
-        """ASME BPVC 罗马数字卷号专用匹配。"""
+        """ASME BPVC 卷/册/篇专用匹配（P1-7.1 B-5）。
+
+        捕获组口径见 `_ASME_BPVC_RE`：1=卷号罗马、2=分册(Div)数字、3=册/篇字母、4=年份。
+        支持点号写法与 Section/Div/Part 文字写法；册/篇字母（D / D.M）落 `num_suffix`。
+        """
         m = _ASME_BPVC_RE.match(text)
         if not m:
             return None
@@ -135,7 +139,8 @@ class ExactMatcher:
         if vol_num is None:
             return None
         sub = m.group(2)
-        year_str = m.group(3)
+        book = (m.group(3) or "").upper()
+        year_str = m.group(4)
         year = int(year_str) if year_str else 0
         remaining = text[m.end() :].strip()
         name = re.sub(r"^[-–—\s]+", "", remaining)
@@ -147,6 +152,7 @@ class ExactMatcher:
             logical_code="ASME",
             number=vol_num,
             num_prefix=roman_str,
+            num_suffix=book,
             part=int(sub) if sub else None,
             year=year,
             std_name=name,

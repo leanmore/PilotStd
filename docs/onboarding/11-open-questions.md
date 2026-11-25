@@ -66,7 +66,7 @@
 
 - 公告抓取：tasks.auto_announce_enabled + tasks.auto_announce_cron；
 - `announcement.enabled` 只在 `pending_query_dialog` 中使用，不是全局抓取开关；
-- 公告适配器是 3 个 SAMR 源（GB/HB/DB），与 21 个查询适配器、1 个下载适配器不是同一套。
+- 公告适配器是 3 个 SAMR 源（GB/HB/DB），与 24 个查询适配器、1 个下载适配器不是同一套。
 
 ### 待决策选项
 

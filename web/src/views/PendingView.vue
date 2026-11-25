@@ -44,8 +44,8 @@ async function requery() {
   loading.value = true
   try {
     const r = await postRequery(numbers, selectedSite.value)
+    // `_site` 用于结果行展示站点标签；2026-11-25 修复：原第二行 map 把它覆盖掉 → 标签恒空
     results.value = (r.results || []).map((x: any) => ({ ...x, _site: selectedSite.value }))
-    results.value = (r.results || []).map((x: any) => ({ ...x }))
   } catch (e: any) { error.value = t('pending.requery_failed') }
   finally { loading.value = false }
 }
@@ -147,7 +147,9 @@ onMounted(() => { ensure() })
         </div>
       </template>
     </DataView>
-    <Paginator :rows="rows" :totalRecords="results.length" @page="onPage" class="mt-2" />
+    <!-- 修 2026-11-24（P0-3 同类）：`:first` 必须受控，否则从存储恢复的 page 与
+         Paginator 内部索引错位（内容已是第 N 页、高亮仍停在第 1 页）。 -->
+    <Paginator :first="page * rows" :rows="rows" :totalRecords="results.length" @page="onPage" class="mt-2" />
   </template>
   <LogBar />
 </template>

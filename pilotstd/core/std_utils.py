@@ -4,6 +4,9 @@
 import re
 from typing import Any
 
+from .std_utils_api import _try_parse_api_typed
+from .std_utils_bpvc import _try_parse_bpvc
+
 GB_CODES: frozenset[Any] = frozenset({"GB", "GB/T", "GB/Z"})
 GB_T_CODES: frozenset[Any] = frozenset({"GB/T", "GBT"})
 GB_Z_CODES: frozenset[Any] = frozenset({"GB/Z", "GBZ"})
@@ -375,8 +378,44 @@ def _try_parse_sample_code(text: str) -> dict[str, Any] | None:
     }
 
 
+# ASME 分类字母系列：`ASME B16.5` 的 `B` 是分类字母（models.ParsedStdInfo.num_prefix），
+# 16 才是序号、5 是部分号。`STD_CODE_TOKEN_PATTERN` 的代号段允许尾随数字，会把 `ASME B16`
+# 吞成代号、`6.5` 当序号（拆号错位，导致同一编号与自身比对 mismatch）。
+# 这里在 variant 分支**之前**用独立正则精确解析，不改被公告提取共用的 token 正则。
+_LETTER_SERIES_RE = re.compile(
+    r"^([A-Z]+(?:/[A-Z]+)?)\s+([BCY])(\d+)(?:\.(\d+))?(?:\s*[-:]\s*((?:19|20)\d{2}))?$"
+)
+
+
+def _try_parse_letter_series(text: str) -> dict[str, Any] | None:
+    """解析 ASME 分类字母系列：`ASME B16.5-2020` / `ASME B31.3` / `ASME Y14.5` / `ASME C1`。
+
+    与 `_try_parse_variant_prefix` 的区别：代号段只允许纯字母、分类字母+序号单独成字段，
+    避免 `B16`/`Y14` 被当成代号。年份可缺省（返回 year=0，与 `_try_parse_fallback` 口径一致）。
+    """
+    s = re.sub(r"\s+", " ", normalize_std_code_text(text)).strip()
+    m = _LETTER_SERIES_RE.match(s)
+    if not m:
+        return None
+    raw = m.group(1).upper()
+    return {
+        "raw_code": raw,
+        "code": raw.replace("/", ""),
+        "number": int(m.group(3)),
+        "part": int(m.group(4)) if m.group(4) else None,
+        "year": int(m.group(5)) if m.group(5) else 0,
+        "num_prefix": m.group(2),
+        "num_suffix": "",
+    }
+
+
 def _try_parse_variant_prefix(text: str) -> dict[str, Any] | None:
-    """解析新版公告里常见的变形前缀：DB52T、DB11/、NB/SH/T、SJ/T-、HG/T … 一 …、QB T。"""
+    """解析新版公告里常见的变形前缀：DB52T、DB11/、NB/SH/T、SJ/T-、HG/T … 一 …、QB T。
+
+    B-6：`STD_CODE_TOKEN_PATTERN` 的代号段允许尾随字母/数字，会把 API 全大写类型词
+    （`API STD 610-2004` 的 `STD`、`API RP 520-2020` 的 `RP`、`API Q1-2023` 的 `Q`）并进
+    代号，产出 `APISTD`/`APIRP`/`APIQ`。类型词不属于代号，命中后拆回 `num_prefix`。
+    """
     s = re.sub(r"\s+", " ", normalize_std_code_text(text)).strip()
     # DB11/ 2567：尾部斜杠是行政区分隔符，不是“/T”代号段
     s = re.sub(r"^(DB\d{2,4})/\s*(?=\d)", r"\1 ", s)
@@ -388,13 +427,22 @@ def _try_parse_variant_prefix(text: str) -> dict[str, Any] | None:
         return None
     parts = [int(x) for x in m.group(2).split(".")]
     prefix = m.group(1)
+    num_prefix = ""
+    tokens = prefix.split()
+    if len(tokens) == 2 and tokens[0].upper() == "API":
+        from ..scan.parser._constants import API_TYPES
+
+        second = tokens[1]
+        if second.upper() in {t.upper() for t in API_TYPES} or second.upper() == "Q":
+            prefix = tokens[0]
+            num_prefix = second
     return {
         "raw_code": prefix,
         "code": re.sub(r"\s+", "", prefix).replace("/", ""),
         "number": parts[0],
         "part": parts[1] if len(parts) > 1 else None,
         "year": int(m.group(3)),
-        "num_prefix": "",
+        "num_prefix": num_prefix,
         "num_suffix": "",
     }
 
@@ -432,6 +480,9 @@ def parse_std_number(text: str) -> dict[str, Any] | None:
     # 按优先级依次尝试各解析器
     for parser in (
         _try_parse_sample_code,
+        _try_parse_bpvc,
+        _try_parse_letter_series,
+        _try_parse_api_typed,
         _try_parse_variant_prefix,
         _try_parse_db_standard,
         _try_parse_general_format,

@@ -352,6 +352,7 @@
     "browse_failed": "浏览失败，请检查路径和权限",
     "clean_empty": "清理空目录",
     "cleaned": "已清理 {n} 个空目录",
+    "clean_failed": "清理空目录失败",
     "no_empty_dirs": "无空目录",
     "root": "根目录",
     "files": "{n} 个文件",

@@ -46,10 +46,14 @@ class AhbzAdapter(BaseAdapter):
     # ── 公共查询接口 ──
 
     def _search(self, search_term: str) -> Optional[QueryResult]:
-        """BaseAdapter 要求实现的基础搜索。委托 _search_single。"""
-        session = requests.Session()
-        session.headers["User-Agent"] = CHROME_UA
-        return self._search_single(search_term, session)
+        """BaseAdapter 要求实现的基础搜索。委托 _search_single。
+
+        2026-11-25（方向 C 第三轮深扫）：原实现每次查询新建 `requests.Session()` 且从不关闭
+        —— 每次查询泄漏一个连接池。改用 `with` 保证释放（响应体在 `_search_single` 内已读完）。
+        """
+        with requests.Session() as session:
+            session.headers["User-Agent"] = CHROME_UA
+            return self._search_single(search_term, session)
 
     def _search_single(self, standard_number: str, session: requests.Session) -> QueryResult:
         """搜索单个标准号，在模糊匹配结果中过滤精确匹配。"""

@@ -86,6 +86,25 @@ def _channel_instance(channel: str, creds: dict[str, str]) -> Any | None:
 
         return TelegramChannel(token, chat_id)
 
+    if channel == "wechat":
+        from .channels.wechat import WechatChannel
+
+        # P1-4：与 `channels/wechat.py` 的形态选择一致——**应用形态优先**（三要素齐备），
+        # 其次群机器人 Webhook。生产企微是应用形态（webhook_url 为空），此前只认
+        # webhook_url ⇒ 直连安全告警被静默跳过，三类安全事件收不到。
+        url = (creds.get("webhook_url") or "").strip()
+        corpid = (creds.get("corpid") or "").strip()
+        agentid = (creds.get("agentid") or "").strip()
+        corpsecret = (creds.get("corpsecret") or "").strip()
+        proxy_url = (creds.get("proxy_url") or "").strip()
+        touser = (creds.get("touser") or "").strip()
+        if corpid and agentid and corpsecret:
+            # 构造签名与 `channel_spec.ctor` 一致（6 个位置参数），故用位置传参
+            return WechatChannel(url, corpid, agentid, corpsecret, proxy_url, touser)
+        if not url:
+            return None
+        return WechatChannel(url, proxy_url=proxy_url, touser=touser)
+
     url = (creds.get("webhook_url") or "").strip()
     if not url:
         return None
@@ -98,10 +117,6 @@ def _channel_instance(channel: str, creds: dict[str, str]) -> Any | None:
 
         # FeishuChannel 只接 webhook_url（不接受 `secret`，与钉钉不同）
         return FeishuChannel(url)
-    if channel == "wechat":
-        from .channels.wechat import WechatChannel
-
-        return WechatChannel(url)
     # 未知渠道：不构造（不猜测 URL 类型），由调用方按"无可用渠道"处理
     return None
 

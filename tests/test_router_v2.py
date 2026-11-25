@@ -152,11 +152,11 @@ class TestRouterEngine:
 class TestLoadCapabilities:
     """能力模型加载完整性。"""
 
-    def test_loads_all_21_sites(self, capabilities):
-        """验证 YAML 加载出完整 21 个站点。"""
-        assert len(capabilities) == 21, f"应加载 21 个站点，实际={len(capabilities)}"
+    def test_loads_all_24_sites(self, capabilities):
+        """验证 YAML 加载出完整 24 个站点（2026-11-24 新增 cqis）。"""
+        assert len(capabilities) == 24, f"应加载 24 个站点，实际={len(capabilities)}"
         ids = {s.site_id for s in capabilities}
-        assert len(ids) == 21, f"站点 ID 不应重复，实际={len(ids)}"
+        assert len(ids) == 24, f"站点 ID 不应重复，实际={len(ids)}"
 
     def test_mee_excludes_gb(self, capabilities):
         """验证 mee 能力模型已修正（阶段一产出）：supported_types 不含 GB。"""
@@ -200,3 +200,71 @@ class TestQuotaManager:
         _exhaust(quota, "std_gov")
         l1_ids = [s.site_id for s in quota.get_available_sites("L1", intent)]
         assert "std_gov" not in l1_ids, f"耗尽后 std_gov 不应出现在 L1 可用列表，实际={l1_ids}"
+
+
+class TestGroupStdAndEnergyRouting:
+    """P2 侦查发现（2026-11-24）：团体标准 / 能源标准在默认 v2 路由下不可达。
+
+    - `_STD_PREFIX_RE` 要求 2~6 个字母，`T/CIESC ...` 匹配不上 → `std_type=None`
+      → 判为**纯关键词** → 跳过 L1/L2 直落 L3 兜底（`njbz365`），`ttbz` 永远选不中。
+    - `energy` 的 `supported_types` 只声明 `NB`，而单条查询传入的 `std_type` 是 `NB/T`
+      → L1 精确匹配失败，能源标准单条查询不命中能源平台。
+    """
+
+    def test_group_std_type_recognized(self, parser):
+        """`T/XXX` 必须识别为团体标准类型 `T/`，不能退化成关键词查询。"""
+        intent = parser.parse("T/CIESC 001-2019")
+        assert intent.std_type == "T/", f"std_type 应为 T/，实际={intent.std_type}"
+        assert intent.is_keyword_query is False, "团体标准号不应被判为纯关键词"
+
+    def test_group_std_routes_to_ttbz(self, parser, engine):
+        """团体标准查询应首命中 `ttbz`（原缺陷：落到 njbz365 兜底）。"""
+        chain = engine.route(parser.parse("T/CIESC 001-2019"))
+        assert chain.sites, "团标查询不应得到空链"
+        assert chain.sites[0] == "ttbz", f"团标应首命中 ttbz，实际={chain.sites}"
+
+    def test_group_std_bare_code_routes_to_ttbz(self, parser, engine):
+        """批量路径传入纯代号 `T/CECS` 时也应命中 ttbz。"""
+        chain = engine.route(parser.parse("T/CECS"))
+        assert chain.sites and chain.sites[0] == "ttbz", f"实际={chain.sites}"
+
+    def test_nb_t_routes_to_energy(self, parser, engine):
+        """`NB/T` 单条查询应能命中能源标准平台（原缺陷：只声明 NB，NB/T 不匹配）。"""
+        chain = engine.route(parser.parse("NB/T 47016-2023"))
+        assert "energy" in chain.sites, f"NB/T 应命中 energy，实际={chain.sites}"
+
+    def test_gb_chain_unaffected(self, parser, engine):
+        """回归：国标 L1 链不受本次改动影响。"""
+        chain = engine.route(parser.parse("GB/T 12345"))
+        assert chain.sites[:3] == ["std_gov", "csres", "cssn"], f"实际={chain.sites}"
+
+    def test_slash_variant_base_code_routing(self, parser, engine):
+        """`<基码>/T` 斜杠变体按基码回退到对应特色站（2026-11-24 系统性修复）。
+
+        真实标准号里 14+ 个族以 `<基码>/T` 形态出现（HJ/T、TB/T、YD/T、DZ/T、JT/T…），
+        而站点配置只声明基码（HJ/TB/YD/DZ/JT）；此前精确匹配全部漏掉 →
+        直落 L2 通用兜底。规则：**该类型未被任何站点声明时才启用基码回退**。
+        """
+        cases = {
+            "HJ/T 001-2020": "mee",
+            "TB/T 1-2020": "tdpress",
+            "YD/T 1-2020": "miit",
+            "DZ/T 1-2020": "nrsis",
+            "JT/T 1-2020": "jtst",
+        }
+        for number, site in cases.items():
+            chain = engine.route(parser.parse(number))
+            assert site in chain.sites, f"{number} 应命中 {site}，实际={chain.sites}"
+            assert chain.sites[0] == site, f"{number} 应首命中 {site}，实际={chain.sites}"
+
+    def test_declared_types_do_not_fall_back(self, parser, engine):
+        """已被声明的类型**不做**基码回退：`GB/T` 不得落到只声明 `GB` 的站点。"""
+        chain = engine.route(parser.parse("GB/T 12345"))
+        assert chain.sites[:3] == ["std_gov", "csres", "cssn"], f"实际={chain.sites}"
+        # ahbz 同时声明 GB 与 GB/T，属正常命中；sppt 只声明 GB 且限食品领域，不得出现
+        assert "sppt" not in chain.sites, f"GB/T 不应过匹配到 sppt，实际={chain.sites}"
+
+    def test_non_slash_code_unaffected(self, parser, engine):
+        """无斜杠的整码（JTG）仍走精确匹配，不受基码回退影响。"""
+        chain = engine.route(parser.parse("JTG 1-2020"))
+        assert chain.sites == ["jtst"], f"实际={chain.sites}"

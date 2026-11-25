@@ -367,3 +367,39 @@ getsize → parse(basename)                              ← 都廉价
 
 `scan_and_index` 相关注释里的英文词（`px` 类单位、方法名等）统一用反引号包裹，
 以通过 G-012 的 `[LANG]` 检查。属注释规范化，无行为变更。
+
+## 标准状态统计与筛选口径：作废计入废止族（2026-11-24，P1-5）
+
+`Status.VOIDED`（作废）在 `core/status.py` 的 `ABOLISHED_STATUSES` 中已属废止族，
+但 `standard_service` 的聚合与筛选只认「废止 + 被代替」，导致生产状态页出现
+**「未知 88」= 作废 58 + 即将实施 20 + 未生效 10** 的假象（数据/解析问题为 0）。
+
+修法（`pilotstd/manager/standard_service.py`）：
+- `_map_filter_status(已废止)` 的 `IN` 增加 `Status.VOIDED.value`；
+- `_map_filter_status(未知)` 的 `NOT IN` 增加 `Status.VOIDED.value`（列表与卡片口径互补）；
+- `get_stats()` 的「已废止」加 `s.get(Status.VOIDED.value, 0)`。
+
+效果：`inactive 116 → 174`、`unknown 88 → 30`、`?status=voided` 仍单独返回 58 条、总数守恒 776。
+**口径修正非数据变化**，发布说明需注明。回归：`tests/test_standard_service.py`。
+
+## 通知事件补对象（2026-11-24，P1-6 P1-5）
+
+5 个事件此前只说「失败/未命中/没新增」，缺少可定位的对象，已补 payload 与渲染：
+`scan_empty`（扫描根路径）、`query_empty`（查询标准号清单，正文列前 10 条）、
+`archive_failed`（单条给标准号 / 多条给失败明细，二选一）、`normalize_failed`（失败明细）、
+`auto_pipeline_summary`（批次键 `task_id` + 处理范围 `path`）。
+生产者侧只新增字段采集，不改变控制流与计数；`event_spec_data.payload_keys` 同批同步
+（e2e 的 `builder_keys` 由 spec 派生，不同步会让新契约不可见）。
+回归：`tests/unit/core/notification/test_message_builders_snapshot.py::TestObjectInMessage`、
+`tests/integration/test_notification_high_value_events.py`。
+
+## 本地缓存离线查询：批量化（2026-11-25，方向 C 深度扫描）
+
+`PendingService.query_local_cache`（GUI 离线查询）原实现**逐标准**点查 1~2 次 DB
+（`standard_info_cache` → 未命中再查 `announcement_match`）——典型 N+1。
+**修法**：新增 `_fetch_result_json_map`，按批 `IN (...)`（批 500）**预取**到
+`standard_number → result_json` 字典，循环内全内存查找；语义不变（先网络缓存、后公告缓存、
+未命中仍返回「本地数据库未找到」）。
+
+**回归**：`tests/unit/core/test_n_plus_one_batching.py::TestQueryLocalCacheBatched`
+（结果等价 + 查询次数为常数 2，而不是 2N）。

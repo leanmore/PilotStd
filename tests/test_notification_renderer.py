@@ -1,5 +1,6 @@
 """core/notification/renderer.py 补测 — BlockRenderer + 4 个子类全覆盖。"""
 
+from pilotstd.core.notification._builders_system import _build_auto_backup_message
 from pilotstd.core.notification.blocks import (
     KeyValueBlock,
     ListBlock,
@@ -216,6 +217,27 @@ class TestTelegramRenderer:
 
     def test_mono(self):
         assert TelegramRenderer()._mono("x") == "`x`"
+
+
+class TestAutoBackupTelegramRender:
+    """P0-1 回归：`auto_backup` 的 float `size_mb` 不得让 TG 渲染崩溃。
+
+    缺陷背景（生产实证）：`docker/scheduler.py` 把 `os.path.getsize(...)/(1024*1024)` 的
+    **float** 原样塞进构建器 → `KeyValueBlock.value` 声明 str 但无运行时校验 ⇒
+    `TelegramRenderer._escape()` 的 `re.sub` 收到 float 抛
+    `TypeError: expected string or bytes-like object, got 'float'`，
+    `_dispatcher` 把该渠道标 failed ⇒ **TG 用户整条收不到**（`notification_log` id=2034）。
+
+    判别力：把构建器的值转换去掉（`value=str(size)` → `value=size`）⇒ 本用例 FAIL。
+    """
+
+    def test_float_size_mb_renders_without_type_error(self) -> None:
+        msg = _build_auto_backup_message(
+            {"success": True, "backup_path": "/backups/2024.db", "size_mb": 42.5}
+        )
+        rendered = TelegramRenderer().render(msg)
+        # MarkdownV2 会把 `.` 转义为 `\.` ⇒ 断言转义后的 number 文本
+        assert r"42\.5" in rendered, f"size 文本丢失：{rendered!r}"
 
 
 class TestMarkdownRenderer:

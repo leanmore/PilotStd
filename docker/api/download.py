@@ -18,13 +18,39 @@ router = APIRouter(tags=["download"])
 
 
 class DownloadResultItem(BaseModel):
-    """单条下载任务结果：标准号、标准名、状态、保存路径与错误信息。"""
+    """单条下载任务结果：标准号、标准名、状态、保存路径与错误信息。
+
+    `logical_code` / `number` / `year` / `num_prefix` 是**后端解析结果**（2026-11-24 新增）：
+    前端归档（`buildArchiveItems`）此前用它自己的正则解析下载件标准号，对 API/ASME 等
+    编号 38/40 全盲 → 解析失败即**静默跳过归档**，文件滞留 `/standards` 根目录。
+    现由后端用唯一口径 `parse_std_number` 给出字段，前端优先消费、只在缺失时回落自身解析，
+    避免前端成为「第二套口径」。解析不出时这四个字段保持默认空值。
+    """
 
     standard_number: str
     standard_name: str
     status: str
     saved_path: str
     error: str | None = None
+    logical_code: str = ""
+    number: int = 0
+    year: int = 0
+    num_prefix: str = ""
+
+
+def _parsed_fields(standard_number: str) -> dict[str, object]:
+    """把标准号解析成归档所需字段；解析不出返回空 dict（前端据此回落自身解析）。"""
+    from pilotstd.core.std_utils import parse_std_number
+
+    parsed = parse_std_number(standard_number or "")
+    if not parsed:
+        return {}
+    return {
+        "logical_code": str(parsed.get("raw_code") or ""),
+        "number": int(parsed.get("number") or 0),
+        "year": int(parsed.get("year") or 0),
+        "num_prefix": str(parsed.get("num_prefix") or ""),
+    }
 
 
 class DownloadStatsResponse(BaseModel):
@@ -80,6 +106,7 @@ def download_standards(
                 "status": t.status.value,
                 "saved_path": t.saved_path,
                 "error": t.error_message,
+                **_parsed_fields(t.standard_number),
             }
             for t in tasks
         ]
@@ -173,6 +200,7 @@ async def import_downloads(
                 "status": t.status.value,
                 "saved_path": t.saved_path,
                 "error": t.error_message,
+                **_parsed_fields(t.standard_number),
             }
             for t in tasks
         ],

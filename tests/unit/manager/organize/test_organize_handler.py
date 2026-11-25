@@ -376,7 +376,7 @@ class TestNormalizeFilesStream:
         assert batch_cb.call_count == 2
 
     def test_stream_exception_sends_normalize_failed(self, handler):
-        """异常 → normalize_failed 事件 + 重新抛出。"""
+        """异常 → normalize_failed 事件（P1-5：载荷带失败明细）+ 重新抛出。"""
         items = [_make_parsed()]
 
         with patch.object(
@@ -387,9 +387,15 @@ class TestNormalizeFilesStream:
             with pytest.raises(RuntimeError, match="boom"):
                 handler.normalize_files_stream(items)
 
-        handler._core.notification_mgr.send_event.assert_any_call(
-            "normalize_failed", {"total": 1, "error": "boom"}
+        payload = next(
+            c.args[1]
+            for c in handler._core.notification_mgr.send_event.call_args_list
+            if c.args[0] == "normalize_failed"
         )
+        assert payload["total"] == 1 and payload["error"] == "boom"
+        failed_items = payload.get("failed_items") or []
+        assert failed_items, f"normalize_failed 缺对象明细：{payload}"
+        assert failed_items[0]["standard_number"] == "GB 1-2020"
 
     def test_stream_complete_event_sent(self, handler):
         """正常完成 → normalize_complete 事件。"""
@@ -662,7 +668,19 @@ class TestNormalizeStreamNotificationExceptions:
                 handler.normalize_files_stream([p])
 
         handler._core.notification_mgr.send_event.assert_any_call(
-            "normalize_failed", {"total": 1, "error": "boom"}
+            "normalize_failed",
+            {
+                "total": 1,
+                "error": "boom",
+                "failed_items": [
+                    {
+                        "standard_number": "GB 1-2020",
+                        "standard_name": "-",
+                        "error_type": "unknown",
+                        "error_message": "boom",
+                    }
+                ],
+            },
         )
 
 

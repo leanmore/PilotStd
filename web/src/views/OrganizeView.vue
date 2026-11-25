@@ -38,10 +38,16 @@ async function browse(dir?: string) {
 }
 
 async function cleanEmpty() {
-  const data = await postCleanEmpty(rootPath.value)
-  cleanResult.value = data.removed ? t('organize.cleaned', { n: data.removed }) : t('organize.no_empty_dirs')
-  setTimeout(() => cleanResult.value = '', 3000)
-  browse()
+  // 2026-11-25 修复：原实现无 try/catch —— 清理失败时产生未捕获 Promise rejection，
+  // 用户也得不到任何提示。
+  try {
+    const data = await postCleanEmpty(rootPath.value)
+    cleanResult.value = data.removed ? t('organize.cleaned', { n: data.removed }) : t('organize.no_empty_dirs')
+    setTimeout(() => cleanResult.value = '', 3000)
+    await browse()
+  } catch (e: any) {
+    error.value = e.response?.data?.error || t('organize.clean_failed')
+  }
 }
 
 // ── 文件选择 + 入队 ──
@@ -221,7 +227,9 @@ const breadcrumbs = computed(() => {
       </div>
     </template>
   </DataView>
-  <Paginator :rows="rows" :totalRecords="files.length" @page="onPage" class="mt-2" />
+  <!-- 修 2026-11-24（P0-3 同类）：`:first` 必须受控，否则从存储恢复的 page 与
+       Paginator 内部索引错位（内容已是第 N 页、高亮仍停在第 1 页）。 -->
+  <Paginator :first="page * rows" :rows="rows" :totalRecords="files.length" @page="onPage" class="mt-2" />
   <LogBar />
 </template>
 

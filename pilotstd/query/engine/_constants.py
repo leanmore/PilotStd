@@ -36,11 +36,19 @@ def _build_default_code_routes() -> dict[str, list[str]]:
         # 文物保护行业标准→专业平台优先
         "WW": ["ncha", "std_gov"],
         "WW/T": ["ncha", "std_gov"],
+        # API（美国石油学会）标准→API Webstore 优先
+        "API": ["api_webstore", "iso_gov", "csres"],
+        # ASME（美国机械工程师学会）标准→ASME 商品目录优先
+        "ASME": ["asme", "iso_gov", "csres"],
     }
     # 地方标准省级代码：数据库11,数据库11/,数据库35,数据库35/等→优先
     for province_code in _DB_PROVINCE_MAP:
-        routes[f"DB{province_code}"] = ["dbba", "ahbz", "njbz365"]
-        routes[f"DB{province_code}/T"] = ["dbba", "ahbz", "njbz365"]
+        chain = ["dbba", "ahbz", "njbz365"]
+        if str(province_code) == "50":
+            # 重庆 DB50：重庆标准信息平台是权威源（含全文 PDF），排在地标平台之前
+            chain = ["cqis", *chain]
+        routes[f"DB{province_code}"] = chain
+        routes[f"DB{province_code}/T"] = chain
     return routes
 
 

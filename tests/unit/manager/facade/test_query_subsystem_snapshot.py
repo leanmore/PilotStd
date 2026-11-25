@@ -219,7 +219,7 @@ class TestQueryIntegrationPaths:
         assert "batch_query_summary" in events
 
     def test_finalize_query_empty_notifies_and_records_pending(self, qs, core, monkeypatch):
-        """全部未命中 → query_empty 通知；pending_list 非空 → 触发 record_pending。"""
+        """全部未命中 → query_empty 通知（P1-5：载荷带所查询标准号）+ pending 记录。"""
         core.pending_list = [MagicMock()]
         recorded: list[list[Any]] = []
         monkeypatch.setattr(qs, "record_pending", lambda pending_items: recorded.append(pending_items))
@@ -232,6 +232,10 @@ class TestQueryIntegrationPaths:
         assert stats.total == 1 and stats.found == 0
         events = [c.args[0] for c in core.notification_mgr.send_event.call_args_list]
         assert "query_empty" in events
+        payload = next(
+            c.args[1] for c in core.notification_mgr.send_event.call_args_list if c.args[0] == "query_empty"
+        )
+        assert payload["standards"] == ["GB 1-2020"], f"query_empty 缺对象：{payload}"
         assert recorded and len(recorded[0]) == 1
 
     def test_query_main(self, qs, core, monkeypatch):

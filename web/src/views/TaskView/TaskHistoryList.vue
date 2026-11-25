@@ -86,7 +86,17 @@ function statusLabel(s: string) {
         </div>
       </template>
     </DataView>
-    <Paginator :rows="rows" :rowsPerPageOptions="TASK_HISTORY_PAGE_SIZES" :totalRecords="history.length" @page="emit('page', $event)" class="mt-2" />
+    <!-- 修 2026-11-24（P0-3 同类）：本组件是**受控**列表（按 props.page 切片），
+         Paginator 必须绑 :first 才能与父级 page 保持同步；否则父级重置页码后
+         内部索引残留，出现「数据已回第 1 页、高亮仍停在第 N 页」。 -->
+    <Paginator
+      :first="page * rows"
+      :rows="rows"
+      :rowsPerPageOptions="TASK_HISTORY_PAGE_SIZES"
+      :totalRecords="history.length"
+      @page="emit('page', $event)"
+      class="mt-2"
+    />
   </div>
 </template>
 

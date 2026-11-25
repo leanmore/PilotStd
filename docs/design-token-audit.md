@@ -76,143 +76,177 @@
 <!-- AUDIT:BEGIN -->
 ### 4.1 可替换明细（A 精确映射 / B 近似映射）
 
-共 **115** 条（A 0 / B 115）。
+共 **149** 条（A 0 / B 149）。
 
 | 文件路径 | 行号 | 当前硬编码值 | 样式属性 | 建议令牌 | 匹配置信度 | 备注 |
 |---|---|---|---|---|---|---|
-| components/AppHeader.vue | 107 | 60px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| components/AppHeader.vue | 110 | rgba(255, 255, 255, 0.8) | background | （无） | 低 | 无对应语义令牌 |
-| components/AppHeader.vue | 115 | 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 12px -4px rgba(0, 0, 0, 0.08) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
-| components/AppHeader.vue | 126 | rgba(30, 41, 59, 0.85) | background | （无） | 低 | 无对应语义令牌 |
-| components/AppHeader.vue | 230 | 56px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| components/AppHeader.vue | 247 | 40px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| components/AppLayout.vue | 190 | 72px | padding-bottom | （无） | 中 | 含混合单位/calc，需人工确认 |
-| components/AppLayout.vue | 209 | 0 auto | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
-| components/AppLayout.vue | 211 | 32px 36px | padding | （无） | 中 | 含混合单位/calc，需人工确认 |
-| components/AppLayout.vue | 236 | 68px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| components/AppLayout.vue | 239 | env(safe-area-inset-bottom) | padding-bottom | （无） | 中 | 含混合单位/calc，需人工确认 |
-| components/AppLayout.vue | 241 | rgba(255, 255, 255, 0.9) | background | （无） | 低 | 无对应语义令牌 |
-| components/AppLayout.vue | 245 | 1px solid rgba(226, 232, 240, 0.5) | border-top | （无） | 低 | 无对应语义令牌 |
-| components/AppLayout.vue | 247 | 0 -2px 16px rgba(0, 0, 0, 0.06) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
-| components/AppLayout.vue | 254 | rgba(15, 23, 42, 0.9) | background | （无） | 低 | 无对应语义令牌 |
-| components/AppLayout.vue | 256 | rgba(51, 65, 85, 0.5) | border-top-color | （无） | 低 | 无对应语义令牌 |
-| components/AppLayout.vue | 284 | 0 0 3px 3px | border-radius | （无） | 中 | 非令牌圆角档位 |
-| components/AppLayout.vue | 318 | 64px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| components/AppLayout.vue | 347 | 56px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| components/AppLayout.vue | 354 | #ffffff | color | （无） | 低 | 无对应语义令牌 |
-| components/AppLayout.vue | 360 | 0 4px 12px rgba(0, 0, 0, 0.15) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
-| components/AppLayout.vue | 372 | 0 6px 16px rgba(0, 0, 0, 0.2) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
-| components/AppSidebar.vue | 78 | 2px 0 8px rgba(0, 0, 0, 0.03) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
-| components/AppSidebar.vue | 146 | 0 2px 8px rgba(99, 102, 241, 0.08) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
-| components/AppSidebar.vue | 157 | 24px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| components/AppSidebar.vue | 160 | 0 4px 4px 0 | border-radius | （无） | 中 | 非令牌圆角档位 |
-| components/AppSidebar.vue | 162 | 2px 0 8px rgba(99, 102, 241, 0.3) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
-| components/LogBar.vue | 225 | 8px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| components/AppHeader.vue | 118 | 60px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| components/AppHeader.vue | 121 | rgba(255, 255, 255, 0.8) | background | （无） | 低 | 无对应语义令牌 |
+| components/AppHeader.vue | 127 | 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 12px -4px rgba(0, 0, 0, 0.08) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
+| components/AppHeader.vue | 138 | rgba(30, 41, 59, 0.85) | background | （无） | 低 | 无对应语义令牌 |
+| components/AppHeader.vue | 242 | 56px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| components/AppHeader.vue | 259 | 40px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| components/AppLayout.vue | 208 | 100vh | min-height | （无） | — | 视口/弹性布局单位（P5-5 收紧） |
+| components/AppLayout.vue | 212 | 72px | padding-bottom | （无） | 中 | 含混合单位/calc，需人工确认 |
+| components/AppLayout.vue | 231 | 0 auto | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
+| components/AppLayout.vue | 233 | 32px 36px | padding | （无） | 中 | 含混合单位/calc，需人工确认 |
+| components/AppLayout.vue | 258 | 68px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| components/AppLayout.vue | 261 | env(safe-area-inset-bottom) | padding-bottom | （无） | 中 | 含混合单位/calc，需人工确认 |
+| components/AppLayout.vue | 263 | rgba(255, 255, 255, 0.9) | background | （无） | 低 | 无对应语义令牌 |
+| components/AppLayout.vue | 267 | 1px solid rgba(226, 232, 240, 0.5) | border-top | （无） | 低 | 无对应语义令牌 |
+| components/AppLayout.vue | 270 | 0 -2px 16px rgba(0, 0, 0, 0.06) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
+| components/AppLayout.vue | 277 | rgba(15, 23, 42, 0.9) | background | （无） | 低 | 无对应语义令牌 |
+| components/AppLayout.vue | 279 | rgba(51, 65, 85, 0.5) | border-top-color | （无） | 低 | 无对应语义令牌 |
+| components/AppLayout.vue | 307 | 0 0 3px 3px | border-radius | （无） | 中 | 非令牌圆角档位 |
+| components/AppLayout.vue | 341 | 64px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| components/AppLayout.vue | 370 | 56px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| components/AppLayout.vue | 383 | 0 4px 12px rgba(0, 0, 0, 0.15) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
+| components/AppLayout.vue | 396 | 0 6px 16px rgba(0, 0, 0, 0.2) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
+| components/AppLayout.vue | 427 | 100% | width | （无） | — | 百分比布局单位（P5-4 收紧） |
+| components/AppSidebar.vue | 89 | 100vh | height | （无） | — | 视口/弹性布局单位（P5-5 收紧） |
+| components/AppSidebar.vue | 92 | 2px 0 8px rgba(0, 0, 0, 0.03) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
+| components/AppSidebar.vue | 161 | 0 2px 8px rgba(99, 102, 241, 0.08) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
+| components/AppSidebar.vue | 175 | 0 4px 4px 0 | border-radius | （无） | 中 | 非令牌圆角档位 |
+| components/AppSidebar.vue | 178 | 2px 0 8px rgba(99, 102, 241, 0.3) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
+| components/AppSidebar.vue | 206 | 100% | width | （无） | — | 百分比布局单位（P5-4 收紧） |
+| components/DynamicSettingField.vue | 305 | 100% | width | （无） | — | 百分比布局单位（P5-4 收紧） |
+| components/FileMonitor.vue | 255 | 100% | width | （无） | — | 百分比布局单位（P5-4 收紧） |
 | components/LogBar.vue | 243 | #555 | background | （无） | 低 | 无对应语义令牌 |
-| components/LogBar.vue | 249 | 4px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| components/NotificationBell.vue | 218 | 8px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| components/RouteDebugPanel.vue | 144 | #fff | color | （无） | 低 | 无对应语义令牌 |
-| components/TableLoadFooter.vue | 69 | #fff | color | （无） | 低 | 无对应语义令牌 |
-| components/TableLoadFooter.vue | 73 | #ca8a04 | color | （无） | 低 | 无对应语义令牌 |
-| components/TableLoadFooter.vue | 77 | 20px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| components/UnifiedFilterBar.vue | 87 | #fff | color | （无） | 低 | 无对应语义令牌 |
-| components/ValidityConfig.vue | 445 | 36px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| components/ValidityConfig.vue | 447 | 36px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| components/ValidityConfig.vue | 479 | bold | font-weight | （无） | 低 | 非常规字重 |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 162 | rgba(239,68,68,0.25) | border-color | （无） | 低 | 无对应语义令牌 |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 162 | rgba(239,68,68,0.04) | background | （无） | 低 | 无对应语义令牌 |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 165 | rgba(245,158,11,0.25) | border-color | （无） | 低 | 无对应语义令牌 |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 165 | rgba(245,158,11,0.04) | background | （无） | 低 | 无对应语义令牌 |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 169 | 36px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 184 | 6px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 153 | rgba(59,130,246,0.3) | border-color | （无） | 低 | 无对应语义令牌 |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 153 | rgba(59,130,246,0.04) | background | （无） | 低 | 无对应语义令牌 |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 156 | rgba(239,68,68,0.2) | border-color | （无） | 低 | 无对应语义令牌 |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 156 | rgba(239,68,68,0.03) | background | （无） | 低 | 无对应语义令牌 |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 159 | rgba(245,158,11,0.2) | border-color | （无） | 低 | 无对应语义令牌 |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 159 | rgba(245,158,11,0.03) | background | （无） | 低 | 无对应语义令牌 |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 182 | 6px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 190 | rgba(239,68,68,0.85) | background | （无） | 低 | 无对应语义令牌 |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 193 | #fff | color | （无） | 低 | 无对应语义令牌 |
+| components/NotificationConfig.vue | 316 | 100% | width | （无） | — | 百分比布局单位（P5-4 收紧） |
+| components/RouteDebugPanel.vue | 155 | 100% | width | （无） | — | 百分比布局单位（P5-4 收紧） |
+| components/TableLoadFooter.vue | 76 | #ca8a04 | color | （无） | 低 | 无对应语义令牌 |
+| components/TaskManager.vue | 150 | fit-content | width | （无） | — | 视口/弹性布局单位（P5-5 收紧） |
+| components/ValidityConfig.vue | 548 | 100% | width | （无） | — | 百分比布局单位（P5-4 收紧） |
+| components/ValidityConfig.vue | 548 | 36px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| components/ValidityConfig.vue | 550 | 36px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| components/ValidityConfig.vue | 580 | bold | font-weight | （无） | 低 | 非常规字重 |
+| components/WechatTrustIP.vue | 221 | 100% | width | （无） | — | 百分比布局单位（P5-4 收紧） |
+| components/WechatTrustIP.vue | 225 | 100% | width | （无） | — | 百分比布局单位（P5-4 收紧） |
+| components/WechatTrustIP.vue | 251 | 100% | width | （无） | — | 百分比布局单位（P5-4 收紧） |
+| components/WechatTrustIP.vue | 268 | 100% | width | （无） | — | 百分比布局单位（P5-4 收紧） |
+| components/WechatTrustIP.vue | 277 | 100% | width | （无） | — | 百分比布局单位（P5-4 收紧） |
+| components/WechatTrustIP.vue | 281 | 100% | width | （无） | — | 百分比布局单位（P5-4 收紧） |
+| components/WechatTrustIP.vue | 285 | 100% | width | （无） | — | 百分比布局单位（P5-4 收紧） |
+| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 143 | 100% | height | （无） | — | 百分比布局单位（P5-4 收紧） |
+| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 169 | rgba(239,68,68,0.25) | border-color | （无） | 低 | 无对应语义令牌 |
+| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 169 | rgba(239,68,68,0.04) | background | （无） | 低 | 无对应语义令牌 |
+| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 172 | rgba(245,158,11,0.25) | border-color | （无） | 低 | 无对应语义令牌 |
+| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 172 | rgba(245,158,11,0.04) | background | （无） | 低 | 无对应语义令牌 |
+| components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 176 | 36px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| components/dashboard/widgets/AdapterStatusCard.vue | 112 | 100% | height | （无） | — | 百分比布局单位（P5-4 收紧） |
+| components/dashboard/widgets/AdapterStatusQueryCard.vue | 132 | 100% | height | （无） | — | 百分比布局单位（P5-4 收紧） |
+| components/dashboard/widgets/AdapterStatusQueryCard.vue | 160 | rgba(59,130,246,0.3) | border-color | （无） | 低 | 无对应语义令牌 |
+| components/dashboard/widgets/AdapterStatusQueryCard.vue | 160 | rgba(59,130,246,0.04) | background | （无） | 低 | 无对应语义令牌 |
+| components/dashboard/widgets/AdapterStatusQueryCard.vue | 163 | rgba(239,68,68,0.2) | border-color | （无） | 低 | 无对应语义令牌 |
+| components/dashboard/widgets/AdapterStatusQueryCard.vue | 163 | rgba(239,68,68,0.03) | background | （无） | 低 | 无对应语义令牌 |
+| components/dashboard/widgets/AdapterStatusQueryCard.vue | 166 | rgba(245,158,11,0.2) | border-color | （无） | 低 | 无对应语义令牌 |
+| components/dashboard/widgets/AdapterStatusQueryCard.vue | 166 | rgba(245,158,11,0.03) | background | （无） | 低 | 无对应语义令牌 |
+| components/dashboard/widgets/AdapterStatusQueryCard.vue | 177 | 100% | width | （无） | — | 百分比布局单位（P5-4 收紧） |
+| components/dashboard/widgets/AdapterStatusQueryCard.vue | 178 | 100% | height | （无） | — | 百分比布局单位（P5-4 收紧） |
+| components/dashboard/widgets/AdapterStatusQueryCard.vue | 186 | 100% | width | （无） | — | 百分比布局单位（P5-4 收紧） |
+| components/dashboard/widgets/AdapterStatusQueryCard.vue | 197 | rgba(239,68,68,0.85) | background | （无） | 低 | 无对应语义令牌 |
+| components/dashboard/widgets/AdapterStatusQueryCard.vue | 200 | #fff | color | （无） | 低 | 无对应语义令牌 |
+| components/dashboard/widgets/PendingItemsCard.vue | 73 | 100% | height | （无） | — | 百分比布局单位（P5-4 收紧） |
+| components/dashboard/widgets/PlaceholderWidget.vue | 20 | 100% | height | （无） | — | 百分比布局单位（P5-4 收紧） |
+| components/dashboard/widgets/QuickActionsCard.vue | 134 | 100% | height | （无） | — | 百分比布局单位（P5-4 收紧） |
 | components/dashboard/widgets/QuickActionsCard.vue | 143 | rgba(139,92,246,0.12) | background | （无） | 低 | 无对应语义令牌 |
 | components/dashboard/widgets/QuickActionsCard.vue | 145 | #8b5cf6 | color | （无） | 低 | 无对应语义令牌 |
+| components/dashboard/widgets/RecentAnnounceCard.vue | 123 | 100% | height | （无） | — | 百分比布局单位（P5-4 收紧） |
+| components/dashboard/widgets/StatsCard.vue | 71 | 100% | height | （无） | — | 百分比布局单位（P5-4 收紧） |
 | components/dashboard/widgets/StatsCard.vue | 83 | linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.08)) | background | （无） | 低 | 无对应语义令牌 |
 | components/dashboard/widgets/StatsCard.vue | 85 | 1px solid rgba(99,102,241,0.25) | border | （无） | 低 | 无对应语义令牌 |
 | components/dashboard/widgets/StatsCard.vue | 96 | 100px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| components/dashboard/widgets/SystemInfoCard.vue | 94 | 6px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| components/dashboard/widgets/SystemLogCard.vue | 114 | rgba(0,0,0,0.08) | background | （无） | 低 | 无对应语义令牌 |
-| style.css | 126 | rgba(99, 102, 241, 0.2) | border-color | （无） | 低 | 无对应语义令牌 |
-| style.css | 140 | rgba(99, 102, 241, 0.04) | background | （无） | 低 | 无对应语义令牌 |
-| style.css | 143 | 0 0 4px rgba(34,197,94,0.4) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
-| style.css | 145 | 0 0 14px rgba(34,197,94,0.7) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
-| style.css | 148 | 8px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| style.css | 150 | 8px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| style.css | 152 | 8px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| style.css | 757 | 0 2px 2px 0 | border-radius | （无） | 中 | 非令牌圆角档位 |
-| style.css | 798 | 6px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| views/AnnounceDetail.vue | 255 | 0 auto | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
-| views/AnnounceDetail.vue | 270 | bold | font-weight | （无） | 低 | 非常规字重 |
-| views/AnnounceDetail.vue | 274 | 0.5rem 0 | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
-| views/AnnounceDetail.vue | 280 | 0 auto | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
-| views/AnnounceDetail.vue | 295 | 0.5em 0 | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
-| views/AnnounceDetail.vue | 314 | 0.25em 0 | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
-| views/AnnounceDetail.vue | 325 | 0.25em 0 | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
-| views/AnnounceDetail.vue | 336 | 0.25em 0 | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
-| views/AnnounceDetail.vue | 348 | 0.25rem 0.5rem | padding | （无） | 中 | 含混合单位/calc，需人工确认 |
-| views/DownloadImport.vue | 210 | 0 auto | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
-| views/FavoritesView.vue | 182 | 0 auto | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
-| views/ForbiddenView.vue | 28 | 12vh auto 0 | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
-| views/HomeView.vue | 84 | 22px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| views/HomeView.vue | 84 | rgba(239,68,68,0.85) | background | （无） | 低 | 无对应语义令牌 |
-| views/HomeView.vue | 84 | #fff | color | （无） | 低 | 无对应语义令牌 |
-| views/LoginView.vue | 69 | linear-gradient(135deg, #667eea 0%, #764ba2 100%) | background | （无） | 低 | 无对应语义令牌 |
-| views/LoginView.vue | 71 | 44px 36px | padding | （无） | 中 | 含混合单位/calc，需人工确认 |
-| views/NotificationLogsView.vue | 236 | 400px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| views/NotificationLogsView.vue | 262 | 8px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| views/NotificationLogsView.vue | 285 | 4px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| views/OrganizeView.vue | 199 | 9px 13px | padding | （无） | 中 | 含混合单位/calc，需人工确认 |
-| views/PendingView.vue | 90 | 20px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| views/RegisterView.vue | 66 | linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%) | background | （无） | 低 | 无对应语义令牌 |
-| views/RegisterView.vue | 70 | rgba(255,255,255,0.06) | background | （无） | 低 | 无对应语义令牌 |
-| views/RegisterView.vue | 72 | 1px solid rgba(255,255,255,0.1) | border | （无） | 低 | 无对应语义令牌 |
-| views/RegisterView.vue | 77 | #fff | color | （无） | 低 | 无对应语义令牌 |
-| views/RegisterView.vue | 79 | rgba(255,255,255,0.5) | color | （无） | 低 | 无对应语义令牌 |
-| views/RegisterView.vue | 82 | 1px solid rgba(255,255,255,0.1) | border | （无） | 低 | 无对应语义令牌 |
-| views/RegisterView.vue | 85 | rgba(255,255,255,0.05) | background | （无） | 低 | 无对应语义令牌 |
-| views/RegisterView.vue | 85 | #fff | color | （无） | 低 | 无对应语义令牌 |
-| views/RegisterView.vue | 89 | rgba(255,255,255,0.3) | color | （无） | 低 | 无对应语义令牌 |
-| views/SettingsView.vue | 443 | #ffffff | color | （无） | 低 | 无对应语义令牌 |
-| views/SettingsView.vue | 446 | 0 2px 8px rgba(99, 102, 241, 0.25) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
-| views/SystemResources.vue | 49 | 24px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| views/TaskView.vue | 483 | 9px 13px | padding | （无） | 中 | 含混合单位/calc，需人工确认 |
-| views/TaskView.vue | 508 | rgba(239,68,68,0.06) | background | （无） | 低 | 无对应语义令牌 |
-| views/TaskView.vue | 520 | #fff | color | （无） | 低 | 无对应语义令牌 |
-| views/TaskView.vue | 522 | #fff | color | （无） | 低 | 无对应语义令牌 |
-| views/TaskView.vue | 524 | #fff | color | （无） | 低 | 无对应语义令牌 |
-| views/settings/SettingsTabSites.vue | 324 | 8px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| views/settings/shared.css | 109 | 12px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| components/dashboard/widgets/StatsCard.vue | 112 | 1fr | grid-template-columns | （无） | — | 视口/弹性布局单位（P5-5 收紧） |
+| components/dashboard/widgets/SystemInfoCard.vue | 75 | 100% | width | （无） | — | 百分比布局单位（P5-4 收紧） |
+| components/dashboard/widgets/SystemInfoCard.vue | 90 | 100% | height | （无） | — | 百分比布局单位（P5-4 收紧） |
+| components/dashboard/widgets/SystemInfoCard.vue | 112 | 100% | height | （无） | — | 百分比布局单位（P5-4 收紧） |
+| components/dashboard/widgets/SystemLogCard.vue | 97 | 100% | height | （无） | — | 百分比布局单位（P5-4 收紧） |
+| components/dashboard/widgets/SystemLogCard.vue | 121 | rgba(0,0,0,0.08) | background | （无） | 低 | 无对应语义令牌 |
+| components/dashboard/widgets/TaskTrendCard.vue | 52 | 100% | height | （无） | — | 百分比布局单位（P5-4 收紧） |
+| components/ui/AppButton.vue | 135 | 100% | width | （无） | — | 百分比布局单位（P5-4 收紧） |
+| components/ui/AppLoading.vue | 117 | 100% | width | （无） | — | 百分比布局单位（P5-4 收紧） |
+| components/ui/AppLoading.vue | 185 | 100% | width | （无） | — | 百分比布局单位（P5-4 收紧） |
+| components/ui/AppLoading.vue | 190 | 100% | width | （无） | — | 百分比布局单位（P5-4 收紧） |
+| components/ui/AppLoading.vue | 217 | -1px | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
+| style.css | 132 | rgba(99, 102, 241, 0.2) | border-color | （无） | 低 | 无对应语义令牌 |
+| style.css | 146 | rgba(99, 102, 241, 0.04) | background | （无） | 低 | 无对应语义令牌 |
+| style.css | 150 | 0 0 4px rgba(34,197,94,0.4) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
+| style.css | 153 | 0 0 14px rgba(34,197,94,0.7) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
+| style.css | 794 | 0 2px 2px 0 | border-radius | （无） | 中 | 非令牌圆角档位 |
+| style.css | 809 | 1fr | grid-template-columns | （无） | — | 视口/弹性布局单位（P5-5 收紧） |
+| style.css | 813 | 1fr | grid-template-columns | （无） | — | 视口/弹性布局单位（P5-5 收紧） |
+| style.css | 835 | 6px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| views/AnnounceDetail.vue | 267 | 0 auto | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
+| views/AnnounceDetail.vue | 270 | 100vh | min-height | （无） | — | 视口/弹性布局单位（P5-5 收紧） |
+| views/AnnounceDetail.vue | 282 | bold | font-weight | （无） | 低 | 非常规字重 |
+| views/AnnounceDetail.vue | 286 | 0.5rem 0 | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
+| views/AnnounceDetail.vue | 292 | 0 auto | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
+| views/AnnounceDetail.vue | 307 | 0.5em 0 | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
+| views/AnnounceDetail.vue | 326 | 0.25em 0 | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
+| views/AnnounceDetail.vue | 337 | 0.25em 0 | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
+| views/AnnounceDetail.vue | 348 | 0.25em 0 | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
+| views/AnnounceDetail.vue | 353 | 100% | width | （无） | — | 百分比布局单位（P5-4 收紧） |
+| views/AnnounceDetail.vue | 360 | 0.25rem 0.5rem | padding | （无） | 中 | 含混合单位/calc，需人工确认 |
+| views/DownloadImport.vue | 220 | 0 auto | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
+| views/FavoritesView.vue | 196 | 0 auto | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
+| views/ForbiddenView.vue | 34 | 12vh auto 0 | margin | （无） | 中 | 含混合单位/calc，需人工确认 |
+| views/HomeView.vue | 77 | 100% | width | （无） | — | 百分比布局单位（P5-4 收紧） |
+| views/HomeView.vue | 77 | 100% | height | （无） | — | 百分比布局单位（P5-4 收紧） |
+| views/HomeView.vue | 84 | 100% | width | （无） | — | 百分比布局单位（P5-4 收紧） |
+| views/HomeView.vue | 84 | 100% | height | （无） | — | 百分比布局单位（P5-4 收紧） |
+| views/HomeView.vue | 85 | 100% | width | （无） | — | 百分比布局单位（P5-4 收紧） |
+| views/HomeView.vue | 85 | 100% | height | （无） | — | 百分比布局单位（P5-4 收紧） |
+| views/HomeView.vue | 90 | 22px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| views/HomeView.vue | 90 | rgba(239,68,68,0.85) | background | （无） | 低 | 无对应语义令牌 |
+| views/HomeView.vue | 90 | #fff | color | （无） | 低 | 无对应语义令牌 |
+| views/HomeView.vue | 92 | 100% | width | （无） | — | 百分比布局单位（P5-4 收紧） |
+| views/LoginView.vue | 66 | 100% | width | （无） | — | 百分比布局单位（P5-4 收紧） |
+| views/LoginView.vue | 78 | 100vh | min-height | （无） | — | 视口/弹性布局单位（P5-5 收紧） |
+| views/LoginView.vue | 78 | linear-gradient(135deg, #667eea 0%, #764ba2 100%) | background | （无） | 低 | 无对应语义令牌 |
+| views/LoginView.vue | 80 | 44px 36px | padding | （无） | 中 | 含混合单位/calc，需人工确认 |
+| views/LoginView.vue | 85 | 100% | width | （无） | — | 百分比布局单位（P5-4 收紧） |
+| views/NotificationLogsView.vue | 292 | 400px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
+| views/NotificationLogsView.vue | 304 | 100% | width | （无） | — | 百分比布局单位（P5-4 收紧） |
+| views/RegisterView.vue | 58 | 100% | width | （无） | — | 百分比布局单位（P5-4 收紧） |
+| views/RegisterView.vue | 73 | 100vh | min-height | （无） | — | 视口/弹性布局单位（P5-5 收紧） |
+| views/RegisterView.vue | 75 | linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%) | background | （无） | 低 | 无对应语义令牌 |
+| views/RegisterView.vue | 79 | rgba(255,255,255,0.06) | background | （无） | 低 | 无对应语义令牌 |
+| views/RegisterView.vue | 81 | 1px solid rgba(255,255,255,0.1) | border | （无） | 低 | 无对应语义令牌 |
+| views/RegisterView.vue | 86 | #fff | color | （无） | 低 | 无对应语义令牌 |
+| views/RegisterView.vue | 88 | rgba(255,255,255,0.5) | color | （无） | 低 | 无对应语义令牌 |
+| views/RegisterView.vue | 92 | 100% | width | （无） | — | 百分比布局单位（P5-4 收紧） |
+| views/RegisterView.vue | 93 | rgba(255,255,255,0.05) | background | （无） | 低 | 无对应语义令牌 |
+| views/RegisterView.vue | 97 | rgba(255,255,255,0.3) | color | （无） | 低 | 无对应语义令牌 |
+| views/SettingsView.vue | 429 | fit-content | width | （无） | — | 视口/弹性布局单位（P5-5 收紧） |
+| views/SettingsView.vue | 456 | 0 2px 8px rgba(99, 102, 241, 0.25) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
+| views/TaskView.vue | 519 | rgba(239,68,68,0.06) | background | （无） | 低 | 无对应语义令牌 |
+| views/TaskView.vue | 531 | #fff | color | （无） | 低 | 无对应语义令牌 |
+| views/TaskView.vue | 535 | #fff | color | （无） | 低 | 无对应语义令牌 |
+| views/settings/SettingsTabSchedule.vue | 228 | 100% | flex-basis | （无） | — | 百分比布局单位（P5-4 收紧） |
+| views/settings/shared.css | 47 | 1fr | grid-template-columns | （无） | — | 视口/弹性布局单位（P5-5 收紧） |
+| views/settings/shared.css | 81 | 100% | width | （无） | — | 百分比布局单位（P5-4 收紧） |
 | views/settings/shared.css | 167 | 44px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| views/settings/shared.css | 185 | 12px | height | （无） | 中 | 布局/控件尺寸，需确认是否令牌化 |
-| views/settings/shared.css | 191 | 0 2px 4px rgba(0, 0, 0, 0.2) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
-| views/settings/shared.css | 259 | inset 0 2px 4px rgba(0, 0, 0, 0.05) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
+| views/settings/shared.css | 192 | 0 2px 4px rgba(0, 0, 0, 0.2) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
+| views/settings/shared.css | 216 | 100% | height | （无） | — | 百分比布局单位（P5-4 收紧） |
+| views/settings/shared.css | 261 | inset 0 2px 4px rgba(0, 0, 0, 0.05) | box-shadow | （无） | 低 | 阴影组合值，无令牌 |
 
 ### 4.2 排除明细（C：不纳入替换）
 
 | 排除理由 | 条数 |
 |---|---|
-| 无字面量/布局值 | 228 |
-| 布局尺寸（不纳入令牌） | 118 |
-| PrimeVue 组件覆盖（RETAINED 已批准例外） | 93 |
+| 无字面量/布局值 | 216 |
+| 布局尺寸（不纳入令牌） | 110 |
+| PrimeVue 组件覆盖（RETAINED 已批准例外） | 78 |
 | 相对单位布局值 | 53 |
 | SVG 图表组件（几何/配色与数据绑定，整体排除） | 43 |
 | var() fallback（随令牌变化，不改） | 28 |
+| 圆形（装饰性） | 14 |
 | 计算值（布局，不纳入令牌） | 14 |
-| 圆形（装饰性） | 13 |
+| 分隔细线高度 | 9 |
 | 装饰细线圆角（滚动条/进度条） | 9 |
 | 滤镜效果（非令牌值） | 8 |
-| 分隔细线高度 | 8 |
+| 百分比尺寸（布局） | 7 |
 | 默认令牌层定义 | 7 |
-| 百分比尺寸（布局） | 6 |
 
 ### 4.3 缺陷明细（D：未定义变量引用）
 
@@ -222,37 +256,39 @@
 
 | 指标 | 数值 |
 |---|---|
-| 涉及文件（有命中） | 59 |
-| 命中总数 | 743 |
-| 已令牌化声明（不计入明细） | 1838 |
-| 与视觉令牌无关（布局属性等） | 1095 |
+| 涉及文件（有命中） | 62 |
+| 命中总数 | 745 |
+| 已令牌化声明（不计入明细） | 2168 |
+| 与视觉令牌无关（布局属性等） | 1273 |
 | A 精确映射 | 0 |
-| B 近似映射（需 TODO） | 115 |
-| C 排除 | 627 |
+| B 近似映射（需 TODO） | 149 |
+| C 排除 | 596 |
 | D 缺陷 | 0 |
 
 ### 4.5 按属性分类
 
 | 属性 | A | B | 合计 |
 |---|---|---|---|
+| width | 0 | 34 | 34 |
 | height | 0 | 32 | 32 |
 | background | 0 | 21 | 21 |
-| color | 0 | 16 | 16 |
 | box-shadow | 0 | 12 | 12 |
-| margin | 0 | 11 | 11 |
-| border | 0 | 11 | 11 |
-| padding | 0 | 7 | 7 |
+| margin | 0 | 12 | 12 |
+| border | 0 | 10 | 10 |
+| color | 0 | 9 | 9 |
+| padding | 0 | 5 | 5 |
+| min-height | 0 | 4 | 4 |
+| grid-template-columns | 0 | 4 | 4 |
 | border-radius | 0 | 3 | 3 |
 | font-weight | 0 | 2 | 2 |
+| flex-basis | 0 | 1 | 1 |
 
 ### 4.6 无对应令牌的颜色字面量（B 类）
 
 | 字面量 | 出现次数 |
 |---|---|
-| `#fff` | 10 |
-| `#ffffff` | 2 |
+| `#fff` | 5 |
 | `rgba(239,68,68,0.85)` | 2 |
-| `1px solid rgba(255,255,255,0.1)` | 2 |
 | `rgba(255, 255, 255, 0.8)` | 1 |
 | `rgba(30, 41, 59, 0.85)` | 1 |
 | `rgba(255, 255, 255, 0.9)` | 1 |
@@ -274,21 +310,23 @@
 | `linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.08))` | 1 |
 | `1px solid rgba(99,102,241,0.25)` | 1 |
 | `rgba(0,0,0,0.08)` | 1 |
+| `#555` | 1 |
+| `#ca8a04` | 1 |
 
 ### 4.7 文件维度 Top 10（A+B）
 
 | 文件 | 条数 |
 |---|---|
-| components/AppLayout.vue | 16 |
-| components/dashboard/widgets/AdapterStatusQueryCard.vue | 9 |
-| style.css | 9 |
-| views/AnnounceDetail.vue | 9 |
-| views/RegisterView.vue | 9 |
+| components/AppLayout.vue | 17 |
+| components/dashboard/widgets/AdapterStatusQueryCard.vue | 12 |
+| views/AnnounceDetail.vue | 11 |
+| views/HomeView.vue | 10 |
+| views/RegisterView.vue | 10 |
+| style.css | 8 |
+| components/WechatTrustIP.vue | 7 |
 | components/AppHeader.vue | 6 |
+| components/AppSidebar.vue | 6 |
 | components/dashboard/widgets/AdapterStatusAnnounceCard.vue | 6 |
-| components/AppSidebar.vue | 5 |
-| views/TaskView.vue | 5 |
-| views/settings/shared.css | 5 |
 
 <!-- AUDIT:END -->
 

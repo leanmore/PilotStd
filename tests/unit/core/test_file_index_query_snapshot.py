@@ -153,6 +153,19 @@ class TestStats:
         stats = q.get_status_stats()
         assert stats == {"current": 0, "expired": 0, "pending": 0, "upcoming": 0}
 
+    def test_voided_counted_in_expired(self, db, q):
+        """「作废」属废止族，必须计入 expired（2026-11-24 口径修正）。
+
+        背景：P1-5 摸底确认生产 88 条「未知」里有 58 条是 `作废`，
+        根因是聚合口径漏了 `Status.VOIDED`。`standard_service.get_stats` 已修，
+        首页卡片走的本方法必须同口径，否则两处数字再次自相矛盾。
+        """
+        _seed(db, "/v1.pdf", "GB", 1, 2020, status=Status.VOIDED.value)
+        _seed(db, "/v2.pdf", "GB", 2, 2020, status=Status.WITHDRAWN.value)
+        stats = q.get_status_stats()
+        assert stats["expired"] == 2, "作废 + 废止 都应计入废止族"
+        assert stats["current"] == 0
+
 
 class TestRestoreParsed:
 

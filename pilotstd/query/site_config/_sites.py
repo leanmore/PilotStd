@@ -11,6 +11,27 @@ def _create_sites_part1() -> list[SiteState]:
     S = SiteState  # noqa: N806
     return [
         S(
+            name="api_webstore",
+            base_url="https://www.apiwebstore.org",
+            search_url=(
+                "https://platform.cloud.coveo.com/rest/search/v2"
+                "?organizationId=americanpetroleuminstituteproductionafn6944o"
+            ),
+            max_requests=50,
+            daily_limit=300,
+            cooldown_seconds=1,
+            request_interval=0.5,
+        ),
+        S(
+            name="asme",
+            base_url="https://www.asme.org",
+            search_url="https://www.asme.org/api/products",
+            max_requests=50,
+            daily_limit=300,
+            cooldown_seconds=1,
+            request_interval=0.5,
+        ),
+        S(
             name="ahbz",
             base_url="https://bzxx.ahbz.org.cn",
             search_url="https://bzxx.ahbz.org.cn/standard/query",
@@ -197,6 +218,16 @@ def _create_sites_part3() -> list[SiteState]:
             name="ncha",
             base_url="http://bz.ncha.gov.cn",
             search_url="http://bz.ncha.gov.cn:9005/knowledge/bzgf/find",
+            max_requests=50,
+            daily_limit=500,
+            cooldown_seconds=1,
+            request_interval=0.5,
+        ),
+        S(
+            name="cqis",
+            # 该站点仅 HTTP（HTTPS 握手失败），见 docs/plans/2026-11-24-p2-recon-cq-fj.md
+            base_url="http://db.cqis.cn",
+            search_url="http://db.cqis.cn/LocalStandard/GetDB50ShareList",
             max_requests=50,
             daily_limit=500,
             cooldown_seconds=1,

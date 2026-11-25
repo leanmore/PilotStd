@@ -82,11 +82,11 @@ class EnergyAdapter(BaseAdapter):
     def _fetch_candidates(self, keyword: str) -> list[QueryResult]:
         """GET AJAX 端点获取搜索结果，支持翻页循环。"""
 
-        # ✅#462:翻页循环+备用域名列表
-        FALLBACK_URLS = [
-            "http://114.251.111.103:18080",  # IP 不变（HTTP 降级）
-            "https://energy.nbse.org.cn:18080",  # 可能的域名（待验证）
-        ]
+        # ✅#462:翻页循环+备用地址列表
+        # 2026-11-24 清理：删除未经实测的 `energy.nbse.org.cn` 域名 `fallback` ——
+        # 该域名从未验证可达，且与下方固定 `Host` 头自相矛盾（会拿到错误的主机响应），
+        # 站点故障时还会白等一个 15s 超时。此处只保留**同主机**的 `HTTP` 降级（`TLS` 不可用时）。
+        FALLBACK_URLS = ["http://114.251.111.103:18080"]
         MAX_PAGES = 5  # 最大翻页数，防止无限循环
         PAGE_SIZE = 15
 
