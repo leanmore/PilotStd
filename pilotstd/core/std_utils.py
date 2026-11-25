@@ -4,7 +4,9 @@
 import re
 from typing import Any
 
+from .std_number_format import format_standard_number
 from .std_utils_api import _try_parse_api_typed
+from .std_utils_asme import _try_parse_asme_series
 from .std_utils_bpvc import _try_parse_bpvc
 
 GB_CODES: frozenset[Any] = frozenset({"GB", "GB/T", "GB/Z"})
@@ -12,8 +14,11 @@ GB_T_CODES: frozenset[Any] = frozenset({"GB/T", "GBT"})
 GB_Z_CODES: frozenset[Any] = frozenset({"GB/Z", "GBZ"})
 SAMPLE_CODES: frozenset[Any] = frozenset({"GSB"})
 
-# 规范键形态：`CODE number[.part]-year`（可选年份）；用于阻断“空代号 + 前导空格”的畸形键
-CANONICAL_KEY_RE = re.compile(r"^\S+ \d+(?:\.\d+)?(?:-\d{4})?$")
+# 规范键形态：`CODE [类型词/系列词] <编号含字母前后缀>[.部分][-4位年份]`；可选年份。
+# 批次10：原正则 `^\S+ \d+` 不接受字母前缀（ASME B16.5 / BPVC.II.D / API STD 610），
+# 导致 `validity_checker.register_new_standard` 把这些合法键判“畸形”拒绝登记（报告 §3.2 R2）。
+# 末段必须含阿拉伯数字或罗马数字（BPVC.II.D 无阿拉伯数字），前导空格由 strip 判据另行拦截。
+CANONICAL_KEY_RE = re.compile(r"^\S+(?: [A-Za-z][A-Za-z0-9.]*)* \S*[0-9IVXLCDM]\S*$")
 
 
 def is_canonical_standard_number(key: str) -> bool:
@@ -29,36 +34,28 @@ _COMBINED_RANGE_RE = re.compile(
 _TSG_PREFIX_RE = re.compile(r"^TSG\s*([A-Z])?\s*(\d{3,5})\s*[-－]\s*((?:19|20)\d{2})")
 
 
-def _as_int(value: Any) -> int:
-    """宽松转 int：空/非数字返回 0（不用 try/except，避免被 G-050 记为静默吞错）。"""
-    if isinstance(value, bool):
-        return 0
-    if isinstance(value, int):
-        return value
-    text = str(value or "").strip()
-    return int(text) if text.isdigit() else 0
-
-
 def build_standard_number(
-    logical_code: str, number: Any, part: Any = None, year: Any = None, num_prefix: str = ""
+    logical_code: str,
+    number: Any,
+    part: Any = None,
+    year: Any = None,
+    num_prefix: str = "",
+    num_suffix: str = "",
 ) -> str:
     """拼规范标准号；代号为空/编号非法时返回空串（调用方不得写入 DB）。
 
     背景（2026-11-15 P2-11 根因）：`_organize` 曾直接 `f"{p.logical_code} {p.number}"`，
     代号为空时写出 `" 11-2020"` 这类畸形键，standard_validity 里累计 7 条且每轮复检都命中。
+    批次10 起统一委托 `std_number_format.format_standard_number`（与 `get_full_number` 同口径）。
     """
-    code = str(logical_code or "").strip()
-    num = _as_int(number)
-    if not code or num <= 0:
-        return ""
-    part_val = _as_int(part)
-    suffix = f".{part_val}" if part_val > 0 else ""
-    prefix = str(num_prefix or "").strip()
-    key = f"{code} {prefix}{num}{suffix}"
-    year_val = _as_int(year)
-    if year_val > 0:
-        key += f"-{year_val}"
-    return key
+    return format_standard_number(
+        logical_code,
+        number,
+        part,
+        year,
+        num_prefix=num_prefix,
+        num_suffix=num_suffix,
+    )
 
 
 def is_gb_code(code: str) -> bool:
@@ -378,37 +375,6 @@ def _try_parse_sample_code(text: str) -> dict[str, Any] | None:
     }
 
 
-# ASME 分类字母系列：`ASME B16.5` 的 `B` 是分类字母（models.ParsedStdInfo.num_prefix），
-# 16 才是序号、5 是部分号。`STD_CODE_TOKEN_PATTERN` 的代号段允许尾随数字，会把 `ASME B16`
-# 吞成代号、`6.5` 当序号（拆号错位，导致同一编号与自身比对 mismatch）。
-# 这里在 variant 分支**之前**用独立正则精确解析，不改被公告提取共用的 token 正则。
-_LETTER_SERIES_RE = re.compile(
-    r"^([A-Z]+(?:/[A-Z]+)?)\s+([BCY])(\d+)(?:\.(\d+))?(?:\s*[-:]\s*((?:19|20)\d{2}))?$"
-)
-
-
-def _try_parse_letter_series(text: str) -> dict[str, Any] | None:
-    """解析 ASME 分类字母系列：`ASME B16.5-2020` / `ASME B31.3` / `ASME Y14.5` / `ASME C1`。
-
-    与 `_try_parse_variant_prefix` 的区别：代号段只允许纯字母、分类字母+序号单独成字段，
-    避免 `B16`/`Y14` 被当成代号。年份可缺省（返回 year=0，与 `_try_parse_fallback` 口径一致）。
-    """
-    s = re.sub(r"\s+", " ", normalize_std_code_text(text)).strip()
-    m = _LETTER_SERIES_RE.match(s)
-    if not m:
-        return None
-    raw = m.group(1).upper()
-    return {
-        "raw_code": raw,
-        "code": raw.replace("/", ""),
-        "number": int(m.group(3)),
-        "part": int(m.group(4)) if m.group(4) else None,
-        "year": int(m.group(5)) if m.group(5) else 0,
-        "num_prefix": m.group(2),
-        "num_suffix": "",
-    }
-
-
 def _try_parse_variant_prefix(text: str) -> dict[str, Any] | None:
     """解析新版公告里常见的变形前缀：DB52T、DB11/、NB/SH/T、SJ/T-、HG/T … 一 …、QB T。
 
@@ -481,7 +447,7 @@ def parse_std_number(text: str) -> dict[str, Any] | None:
     for parser in (
         _try_parse_sample_code,
         _try_parse_bpvc,
-        _try_parse_letter_series,
+        _try_parse_asme_series,
         _try_parse_api_typed,
         _try_parse_variant_prefix,
         _try_parse_db_standard,

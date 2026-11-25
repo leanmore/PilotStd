@@ -92,7 +92,23 @@ pilotstd/scan/
 `scan/parser/_exact_matcher.py` 同步取值并写入 `num_suffix`（`D` / `D.M`）。
 
 **已知边界**：扫描侧 BPVC **无年份**写法（`Section VIII Div.1`、`II.D`）仍被 `validate_result` 拒绝
-（属 G5 范围，本批未放开）。
+（属 G5 范围，本批未放开；**批次10 已放开，见下节**）。
 
 回归：`tests/unit/scan/parser/test_bpvc_section_snapshot.py`；
 缺口依据：`docs/plans/2026-11-24-p1-api-asme-gap.md` §2.2 / §4-G2。
+
+## 解析器无年份/系列词/版次回归（2026-11-25，批次10）
+
+扫描子包 `pilotstd/scan/parser/` 的口径扩展详见 [parser.md](parser.md) 同名章节；本节记录
+`pilotstd/scan/` 层面同批变化与边界：
+
+- `parser/_result_builder.validate_result` 对国外/国际代号允许 `year=0`（国内仍要求年份）——
+  扫描件「可匹配但缺年份」不再整体判 MISS，`ASME B16.5` / `API STD 610` 等可进入归档/索引链路。
+- `parser/_constants._NUM` 支持多字母/连字符后缀（`5CT` / `2A-WSD` / `938-C`）。
+- `edition_detect.strip_edition` 在 `_preprocess_input` 中剥离英文序数版次（`11th`），
+  避免被 `_YEAR_LOOSE` 当两位年份。
+- 新增 `parser/_asme_series.py` 承载 ASME 分类字母/系列词匹配，故 `parse()` 匹配通道 8 → 9。
+
+**已知边界**：`year=0` 记录进入归档后仍需下游按「无年份」展示/去重；国内标准仍不接受无年份。
+
+回归：`tests/unit/scan/parser/test_no_year_and_series.py`、`tests/unit/scan/test_parser_failure_log.py`。

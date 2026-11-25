@@ -10,6 +10,8 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
+from .std_number_format import format_standard_number
+
 logger = logging.getLogger(__name__)
 
 # 路径上限260字符，保留20字符给系统追加的后缀（如"."、"(1)"）
@@ -396,27 +398,20 @@ def make_standard_filename(
     raw_number: Optional[str] = None,
 ) -> str:
     """根据标准信息生成规范文件名：{代号} {编号}[.{部分号}]-{年份} {名称}[ 语言][ file_kind].<ext>
-    raw_number 非空时优先使用（保留前导零等原始格式），为空则回退 str(number)。
-    num_prefix 为罗马数字时直接作为编号显示，多字母前缀时加空格（如 'Spec 6D'）。"""
+
+    编号段委托 `std_number_format.format_standard_number`（批次10 B-11）：修复 BPVC 下载件丢卷册
+    （`ASME 8.1-2025.pdf` → `ASME BPVC.VIII.1-2025.pdf`），无年份（0）不再拼 `-0`。
+    """
     win_code = safe_code_for_filename(logical_code)
-    part_str = f".{part}" if part else ""
     name_part = f" {safe_name_for_filename(re.sub(r'<[^>]+>', '', std_name))}" if std_name else ""
     lang_part = f"({language})" if language else ""
-    # 修改单标识可能已包含在 std_name 里（"…第1号修改单"），避免重复追加成
-    # "第1号修改单 第1号修改单"（2026-11-04 审计）。
+    # 修改单标识可能已包含在 std_name 里，避免重复追加成 "第1号修改单 第1号修改单"（2026-11-04）
     kind_part = f" {file_kind}" if file_kind and file_kind not in (std_name or "") else ""
-    num_display = raw_number if raw_number else str(number)
-    # 罗马数字前缀（≥2字符，如//）：直接用罗马数字替代阿拉伯数字
-    if num_prefix and len(num_prefix) >= 2 and all(c in "IVXLCDM" for c in num_prefix.upper()):
-        num_str = f"{num_prefix}{num_suffix}"
-    elif num_prefix and len(num_prefix) > 1 and num_prefix.isalpha():
-        num_str = f"{num_prefix} {num_display}{num_suffix}"
-    elif num_prefix:
-        num_str = f"{num_prefix}{num_display}{num_suffix}"
-    else:
-        num_str = f"{num_display}{num_suffix}"
-    safe_ext = ensure_dot_ext(ext)
-    return f"{win_code} {num_str}{part_str}-{year}{name_part}{lang_part}{kind_part}{safe_ext}"
+    std_no = format_standard_number(
+        win_code, number, part, year,
+        num_prefix=num_prefix, num_suffix=num_suffix, raw_number=raw_number or "",
+    )
+    return f"{std_no}{name_part}{lang_part}{kind_part}{ensure_dot_ext(ext)}"
 
 
 def ensure_dot_ext(ext: str) -> str:

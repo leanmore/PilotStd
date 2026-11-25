@@ -1599,3 +1599,27 @@ ailed 字段归一、终态词表（completed/cancelled/failed）、result_json 
   G-047 Python 侧无新增；G-010 行数 `status.py` 164→205、`standard_service.py` 146→246、`standards.py` 109→138，均 <400。
 - **回滚**：还原 `_STATUS_ALIASES`/`API_FILTER_ACCEPTED_VALUES`/`_STATUS_BUCKETS`/`normalize_status_for_write`
   与端点 400 分支，删除/还原对应测试即可；无 DB/Schema/迁移变更，无生产写库。
+
+### 128. 批次10：API/ASME 编号识别规则修复 + B 通道无年份放开 + 表示层/查询 target 统一（2026-11-25）
+
+- **依据**：`docs/plans/2026-11-25-p1-api-refresh.md`（只读复核：16 条 A+B 7/16、40 条 21/40）；
+  `docs/plans/2026-11-24-p1-api-asme-gap.md` §4 G1~G9。
+- **改动**（4 个提交，分支 `fix/parse-rules`）：
+  1. A 通道：新增 `core/std_utils_asme.py`；重写 `core/std_utils_api.py`（类型词/多段后缀/联合标准/版次）。
+  2. B 通道：`_result_builder.validate_result` 国外代号允许 `year=0`；`_NUM`/`extract_number`
+     支持多字母/连字符后缀；新增 `regex_typed_no_year` 与 `parser/_asme_series.py`；
+     `edition_detect.strip_edition` 剥离 `11th`。
+  3. 表示层：新增 `core/std_number_format.py`（`build_standard_number` 与 `get_full_number` 共用）、
+     `CANONICAL_KEY_RE` 放开、`make_standard_filename` 委托、`download/filename_parts.py`、
+     `manager/facade/_organize_keys.py`。
+  4. 查询/前端：新增 `search_strategy.build_query_target`；`BaseAdapter`/`SingleQueryHandler` 统一 target；
+     `num_suffix` 从 `_query_subsystem` 七元组透传到适配器；`build_code_variants` 修 BPVC 分册号；
+     `engine/_constants.normalize_route_code` 防 `ASMEPTC` 落通用国外兜底；
+     `web/` 新增 `resolveScanFields`（`TaskView.vue` year 真值门 → 后端字段优先）。
+- **验证**：探针（`%TEMP%`）16 条 A+B **16/16**（修前 7/16）、40 条 **40/40**（修前 21/40）、
+  match 自比对 0 mismatch；新增后端测试 4 文件 + 前端 `resolveScanFields.test.ts`；
+  文档回写 core/parser/scan/query/manager + 08/26/27。
+- **门禁**：G-010 告警档文件（`std_utils.py`/`file_utils.py`）未增长；G-013 测试同批；
+  G-031 两套映射表同批满足；G-047 无新增中文字面量。
+- **剩余**：前端 `standardParser.ts` 旧正则未改（不属本批契约）；联合标准
+  `ASME A112.18.1/CSA B125.1` 的查询 target 无法表达联合段（字段模型不含该信息）。

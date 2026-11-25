@@ -43,16 +43,22 @@ class ParsedStdInfo:
     file_kind: str = ""  # 文件属性标签：扫描版/扫描件/水印版/文本版（解析时从文件名提取）
 
     def get_full_number(self) -> str:
-        """生成逻辑标准编号，如 GB/T 12345.1-2020、ASME VIII.1-2021、API Spec 6D-2021"""
-        part_str = f".{self.part}" if self.part else ""
-        prefix = self.num_prefix or ""
-        suffix = self.num_suffix or ""
-        year_str = f"-{self.year}" if self.year else ""
-        num_display = self.raw_number or str(self.number)
-        if prefix and len(prefix) >= 2 and all(c in "IVXLCDM" for c in prefix.upper()):
-            return f"{self.logical_code} {prefix}{suffix}{part_str}{year_str}"
-        sep = " " if len(prefix) > 1 and prefix.isalpha() else ""
-        return f"{self.logical_code} {prefix}{sep}{num_display}{suffix}{part_str}{year_str}"
+        """生成逻辑标准编号，如 GB/T 12345.1-2020、ASME BPVC.VIII.1-2025、API Spec 6D-2021。
+
+        批次10（P1-7.1 B-11）：统一委托 `core.std_number_format.format_standard_number`，
+        修复双前缀 `ASME BB16.5-2020` / 双后缀 `API SPEC 6DD-2021` / BPVC 丢卷册。
+        """
+        from .core.std_number_format import format_standard_number
+
+        return format_standard_number(
+            self.logical_code,
+            self.number,
+            self.part,
+            self.year,
+            num_prefix=self.num_prefix,
+            num_suffix=self.num_suffix,
+            raw_number=self.raw_number,
+        )
 
     @property
     def is_valid_standard(self) -> bool:

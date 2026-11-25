@@ -5,7 +5,7 @@
 | 模块路径 | `pilotstd/core/` |
 | G-031 映射 | `pilotstd/core/`（2026-09-25 落地：`DOC_SYNC_MAP` 已含该条，改任何 core 文件都会要求同步本文件） |
 | 核心类 | `Database` / `ConfigManager` / `CacheManager` / `NotificationManager` |
-| 子模块数 | 142 个 `.py`（新增 `validity_log.py` + `db/_migrate_v76_validity_check_log.py`（检查病历，2026-11-07）；上一轮 `notification/_log_scope.py`（日志用户/系统可见性）；上一轮 `db/_migrate_v75_validity_queue.py`（选中文件检查队列）；再上一轮 `db/_migrate_v74_repair_validity_keys.py`（validity 畸形键修复）；上一轮新增 `archive_reconcile.py`（启动归档对账，C-2，2026-11-05）；再上一轮 `db/_migrate_v72_announcement_dedupe.py`（公告记录去重 + `standard_count` 重算，2026-11-03）；**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-11-07**；顶层 = 3 个包 config / db / notification + 23 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
+| 子模块数 | 144 个 `.py`（2026-11-25 批次10 新增 `std_utils_asme.py`（ASME 分类字母/系列词解析）与 `std_number_format.py`（标准号表示唯一实现）；再上一轮新增 `validity_log.py` + `db/_migrate_v76_validity_check_log.py`（检查病历，2026-11-07）；上一轮 `notification/_log_scope.py`（日志用户/系统可见性）；上一轮 `db/_migrate_v75_validity_queue.py`（选中文件检查队列）；再上一轮 `db/_migrate_v74_repair_validity_keys.py`（validity 畸形键修复）；上一轮新增 `archive_reconcile.py`（启动归档对账，C-2，2026-11-05）；再上一轮 `db/_migrate_v72_announcement_dedupe.py`（公告记录去重 + `standard_count` 重算，2026-11-03）；**口径**：`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`、不含 `__pycache__`；**截至 2026-11-07**；顶层 = 3 个包 config / db / notification + 23 个直属模块。**该行由 G-048 门禁锁定**——增删包内 `.py` 必须同批改本行，否则提交被阻断） |
 | Schema 版本 | `CURRENT_SCHEMA_VERSION = 76`（`db/_constants.py`；v75＝`validity_check_queue` 队列；v74＝`standard_validity` 畸形键修复；v73＝时间字符串 ISO 化；v72＝公告记录去重 + `standard_count` 重算） |
 | 状态 | 活跃 |
 
@@ -976,3 +976,29 @@ P1-5 复核（`docs/plans/2026-11-25-p1-unknown-refresh.md` §5.1/§5.3）暴露
 
 **回归**：`tests/unit/core/test_n_plus_one_batching.py::TestReconcileSingleWalk`
 （含 `Path.rglob` 调用次数断言 = 1）。
+
+## ASME/API 编号规则与表示层修复（2026-11-25，批次10 / P1-7.1）
+
+已查阅：`docs/plans/2026-11-25-p1-api-refresh.md` §2 逐条矩阵 / §3.1 F1·F3·F6 / §3.2 R2；
+`docs/plans/2026-11-24-p1-api-asme-gap.md` §4 G3·G6·G7。
+
+- **ASME 系列词不再污染代号**：新增 `std_utils_asme.py`（`_try_parse_asme_series`，吸收原
+  `_try_parse_letter_series`），解析链位于 `_try_parse_bpvc` 之后、`_try_parse_api_typed` 之前：
+  分类字母系列 `ASME B16.5`/`Y14.5`/`C1`（`B`/`Y`/`C`→`num_prefix`）、系列词 `ASME PTC 4-2013`
+  与 `ASME CSD-1-2024`（`PTC`/`CSD`→`num_prefix`，修复前代号被吞成 `ASMEPTC`/`ASMECSD`）、
+  三级编号 `ASME A112.18.1/CSA B125.1`（联合段只取主标准，第三级 `.1`→`num_suffix`）。
+- **API 后缀/联合标准**：`std_utils_api.py` 重写 `_try_parse_api_typed`：类型词 + 序号 +
+  多段字母后缀（`6D`/`5CT`/`2A-WSD`/`938-C`）+ 分册（`579-1`/`MPMS 11.1`）+ 联合标准
+  （`API 579-1/ASME FFS-1` 取 `/` 前主标准）+ 版次（`11th` → `year=0`）。
+- **表示层唯一实现**：新增 `std_number_format.py`（`format_standard_number`），
+  `build_standard_number` 与 `models.ParsedStdInfo.get_full_number` 共用：
+  修复双前缀 `ASME BB16.5-2020`、双后缀 `API SPEC 6DD-2021`、BPVC 丢卷册
+  （`ASME BPVC.VIII.1-2025`）、类型词与序号粘连（`API STD 610`）；
+  `build_standard_number` 增加 `num_suffix` 参数；`CANONICAL_KEY_RE` 放开字母前缀/类型词/BPVC 键，
+  `validity_checker.register_new_standard` 不再把合法 ASME/BY 系列与 BPVC 键判畸形。
+- **下载文件名**：`make_standard_filename` 委托表示层（`num_prefix`/`num_suffix` 生效），
+  `download/engine.py` 经新增 `download/filename_parts.py` 提取字段后传入。
+
+**回归锚点**：`tests/unit/core/test_std_utils_api_asme_series.py`、
+`tests/unit/core/test_std_number_format.py`、`tests/test_std_utils_asme.py`、
+`tests/test_p211_root_cause.py`。

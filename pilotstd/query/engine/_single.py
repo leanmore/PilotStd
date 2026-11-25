@@ -87,6 +87,7 @@ class SingleQueryHandler:
         cache: Any,
         rotator: Any = None,
         metrics: Any = None,
+        num_suffix: str = "",
     ) -> tuple[QueryResult | None, list[str], bool]:
         """Step 3：按优先级链逐适配器查询。
 
@@ -124,7 +125,9 @@ class SingleQueryHandler:
                     _time.sleep(_interval)
                     if metrics:
                         metrics.increment("request_interval_wait", count=int(_interval * 1000))  # 毫秒累加
-            result = adp.query_with_strategy(logical_code, number, year, std_name, part, num_prefix=num_prefix)
+            result = adp.query_with_strategy(
+                logical_code, number, year, std_name, part, num_prefix=num_prefix, num_suffix=num_suffix
+            )
             if rotator is not None:
                 rotator.record_result(name, bool(result and result.is_found()))
             if result and result.is_found():
@@ -177,13 +180,16 @@ class SingleQueryHandler:
         force_refresh: bool = False,
         num_prefix: str = "",
         preferred_site: str | None = None,
+        num_suffix: str = "",
     ) -> QueryResult:
         """单条查询内核：缓存优先 + 适配器优先级链 + 配额感知。
 
         内部编排 5 步搜索链路，每步已提取为独立可测方法。
         """
-        part_str = f".{part}" if part else ""
-        target = f"{logical_code} {number}{part_str}-{year}"
+        # 批次10 B-12：target 与编号表示层同口径（BPVC 点号 / 类型词空格 / year=0 不追加 -0）
+        from ..search_strategy import build_query_target
+
+        target = build_query_target(logical_code, number, year, part, num_prefix, num_suffix)
 
         # 步骤1:缓存查找
         cached = self._step_cache_lookup(
@@ -204,7 +210,9 @@ class SingleQueryHandler:
             record_v2_skip(target, "preferred_site", preferred_site)
         if is_v2_enabled() and not preferred_site:
             try:
-                return self._query_one_v2(target, logical_code, number, year, std_name, part, num_prefix)
+                return self._query_one_v2(
+                    target, logical_code, number, year, std_name, part, num_prefix, num_suffix
+                )
             except AllRoutesExhaustedException as exc:
                 logger.info("查询 [%s] ✗%s", target, exc)
                 return QueryResult(standard_number=target, error_message=str(exc), source_site="")
@@ -237,6 +245,7 @@ class SingleQueryHandler:
             cache=self._core.cache,
             rotator=self._core.rotator,  # ✅ #46 P0: 运行时冷却检查
             metrics=getattr(self._core, "metrics", None),
+            num_suffix=num_suffix,
         )
         if result is not None:
             record_v1_brief(target, getattr(result, "source_site", None), (time.time() - _v1_t0) * 1000)
@@ -262,6 +271,7 @@ class SingleQueryHandler:
         std_name: str,
         part: int | None,
         num_prefix: str,
+        num_suffix: str = "",
     ) -> QueryResult:
         """v2 执行路径：遍历 RouteChain 实现链式降级 + 批次配额扣减。
 
@@ -288,7 +298,9 @@ class SingleQueryHandler:
                 continue
             tried.append(site_id)
             try:
-                result = adp.query_with_strategy(logical_code, number, year, std_name, part, num_prefix=num_prefix)
+                result = adp.query_with_strategy(
+                    logical_code, number, year, std_name, part, num_prefix=num_prefix, num_suffix=num_suffix
+                )
                 if result and result.is_found():
                     result.source_site = adp.site_name
                     if not result.standard_number:

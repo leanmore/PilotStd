@@ -12,6 +12,26 @@ export interface ArchiveItem {
   ext: string
 }
 
+/**
+ * 扫描件字段解析：后端已解析字段优先，缺失时才回落前端正则。
+ *
+ * 批次10（P1-7.1 B-13）：旧实现把 `f.year` 当真值门（`f.logical_code && f.number && f.year`），
+ * 后端 B 通道合法的 `year=0`（`API STD 610` / `ASME B16.5` / BPVC 无年份）会被打回前端正则 → null
+ * → 不进入 normalizeResults → buildArchiveItems 的 archiveMap 缺键 → 文件静默不归档。
+ */
+export function resolveScanFields(
+  f: any,
+): { logical_code: string; number: number; year: number } | null {
+  if (f && f.logical_code && f.number) {
+    return {
+      logical_code: String(f.logical_code),
+      number: Number(f.number),
+      year: Number(f.year) || 0,
+    }
+  }
+  return parseStandardNumber(f?.standard_number || '')
+}
+
 /** 扫描件 + 下载成功件合并为归档项；按 source_path 去重。 */
 export function buildArchiveItems(
   scanFiles: any[],

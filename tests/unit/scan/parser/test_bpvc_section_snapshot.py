@@ -80,9 +80,18 @@ class TestNonBpvcAsmeUnaffected:
         assert info.part == 5
         assert info.year == 2021
 
-    def test_b16_5_without_year_still_rejected(self, parser):
-        """无年份仍被 validate_result 拒绝（无年份放开属 G5，不在 B-5 范围）。"""
-        assert parser.parse("ASME B16.5.pdf") is None
+    def test_b16_5_without_year_accepted(self, parser):
+        """无年份自批次10（P1-7.1 B-7）起合法：国外标准 `year=0`（附录一 §5.4 口径）。
+
+        修复前本用例断言 `is None`（当时无年份放开属 G5，不在 B-5 范围）；批次10 已放开
+        `_result_builder.validate_result` 对国外/国际代号的年份硬门，故同批更新为解析成功。
+        """
+        info = parser.parse("ASME B16.5.pdf")
+        assert info is not None
+        assert info.logical_code == "ASME"
+        assert info.number == 16
+        assert info.part == 5
+        assert info.year == 0
 
     def test_plain_roman_volume(self, parser):
         info = parser.parse("ASME VIII.1-2021 压力容器建造规则（中）.pdf")

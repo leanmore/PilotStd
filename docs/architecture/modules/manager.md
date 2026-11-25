@@ -422,3 +422,18 @@ A1（上节）只修了 `作废` 这个**具体值**，没有修「四值之外�
 
 **回归**：`tests/unit/core/test_n_plus_one_batching.py::TestQueryLocalCacheBatched`
 （结果等价 + 查询次数为常数 2，而不是 2N）。
+
+## 归档键/查询元组补 `num_suffix`（2026-11-25，批次10 / P1-7.1 B-11~B-12）
+
+已查阅：`docs/plans/2026-11-25-p1-api-refresh.md` §3.2 R1/R2。
+
+- `facade/_organize.py`：归档成功登记 `standard_validity` 键、核销 `pending_lookup` 时补
+  `num_suffix`（`API 6D` 的 `D`、BPVC 册篇字母），键构造抽到新增
+  `facade/_organize_keys.py`（`standard_number_for_item` / `standard_number_from_parsed`），
+  避免在 G-010 警告档文件里重复长参数调用。
+- `facade/_query_subsystem.py`：进入 `QueryEngine` 的条目元组由六元组扩展为七元组
+  （末位 `num_suffix`），查询 target 构造与编号表示层同口径；`_batch` 对旧六元组保持兼容。
+- 边界：`num_suffix` 属既有字段语义扩展（不新增 DB 列），归档键/索引键会随之后缀更精确。
+
+**回归**：`tests/test_p211_root_cause.py`、`tests/unit/core/test_std_number_format.py`、
+`tests/unit/query/test_query_target_construction.py`。

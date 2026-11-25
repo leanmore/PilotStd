@@ -14,6 +14,7 @@ from typing import Optional, Pattern
 
 from ...constants.group_std_orgs import group_std_orgs
 from ...models import ParsedStdInfo
+from ._asme_series import match_asme_series
 from ._constants import _ASME_BPVC_RE, _ROMAN_MAP, _SEP, _YEAR4
 
 logger = logging.getLogger(__name__)
@@ -30,6 +31,7 @@ class ExactMatcher:
         self.regex_no_year: Pattern[str] = parser.regex_no_year
         self.regex_typed: Pattern[str] = parser.regex_typed
         self.regex_typed_v2: Pattern[str] = parser.regex_typed_v2
+        self.regex_typed_no_year: Pattern[str] = parser.regex_typed_no_year
         self.regex_db: Pattern[str] = parser.regex_db
         self.code_mapping: dict = parser.code_mapping
 
@@ -159,6 +161,15 @@ class ExactMatcher:
             source_name=name,
         )
 
+    def _exact_match_asme_series(self, text: str) -> Optional[ParsedStdInfo]:
+        """ASME 分类字母/系列词专用匹配（批次10 B-8/B-9；实现见 `_asme_series.py`）。
+
+        覆盖 `ASME B16.5[-年份]`、`ASME PTC 4[-年份]`、`ASME CSD-1[-年份]`、
+        `ASME A112.18.1/CSA B125.1`；年份可缺省（`year=0`，validate_result 对国外代号放行）。
+        通用 exact/typed 通道对三级编号会丢 part/后缀，故单列通道并在 BPVC 之后优先命中。
+        """
+        return match_asme_series(self._parser, text)
+
     def _exact_match_itu(self, text: str) -> Optional[ParsedStdInfo]:
         """ITU 推荐号专用匹配。格式: ITU-T G.992.1-1999, ITU-R M.1457-2019。"""
         m = re.match(
@@ -241,22 +252,33 @@ class ExactMatcher:
         )
 
     def _exact_match_typed(self, text: str) -> Optional[ParsedStdInfo]:
-        """带类型前缀的精确匹配通道：先尝试 regex_typed，失败回退到 regex_typed_v2。"""
+        """带类型前缀的精确匹配通道：先尝试 regex_typed，失败回退到 regex_typed_v2。
+
+        批次10 B-7：年份缺省时改用 `regex_typed_no_year`（`regex_typed` 的 `[\\-]?` 会吞掉
+        `API 579-1` 的分册分隔符，导致 part 丢失）。
+        """
+        # 批次10 B-7：年份缺省且无分册时，改用无年份专用正则——`regex_typed` 的 `[\\-]?`
+        # 会先吞掉 `-分册` 的前导连字符，使 `API 579-1` 的 part=1 静默丢失。
         match = self.regex_typed.match(text)
+        if match is not None and match.groupdict().get("year") is None and match.groupdict().get("part") is None:
+            match = self.regex_typed_no_year.match(text) or match
         if not match:
             match = self.regex_typed_v2.match(text)  # 回退：无分册号的简化版正则
         if not match:
+            match = self.regex_typed_no_year.match(text)
+        if not match:
             return None
 
+        # 字段取值统一走 groupdict().get：三个候选正则的可选组不完全一致（v2/无年份无年份组）
         prefix = self._parser._trim_prefix(match.group("prefix"), text)
         num_str = match.group("number")
         number, num_suffix, raw_number_str = self._parser._extract_number(num_str)
         if number is None:
             return None
         num_prefix = self._parser._extract_num_prefix(num_str)
-        part = self._parser._extract_part(match.group("part"))
+        part = self._parser._extract_part(match.groupdict().get("part"))
 
-        year_str = match.group("year")
+        year_str = match.groupdict().get("year")
         if not year_str:
             year = 0
         else:

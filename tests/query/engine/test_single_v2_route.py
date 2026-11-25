@@ -297,6 +297,48 @@ def test_query_one_quota_exhausted_returns_friendly_error(monkeypatch) -> None:
     assert "请明日再试" in result.error_message
 
 
+# ── 12) num_suffix 透传到适配器（批次10 / P1-7.1 B-12）────────────────
+
+
+def test_query_one_v2_forwards_num_suffix(monkeypatch) -> None:
+    """`API 6D` 这类后缀在 API 通道解析出来，查询时必须透传，否则 productcode 丢掉 `D`。"""
+    captured: dict = {}
+
+    class _SuffixAdapter(_Adapter):
+        def query_with_strategy(self, *args, **kwargs):  # noqa: ANN002, ANN003
+            captured["args"] = args
+            captured["kwargs"] = kwargs
+            return _found()
+
+    core = _Core(adapter_map={"a": _SuffixAdapter("a")})
+    handler = _handler(core)
+    monkeypatch.setattr(_single, "get_routing_service", lambda: _Service(["a"]))
+
+    handler._query_one_v2("API 6D-2021", "API", 6, 2021, "", None, "SPEC", "D")
+
+    assert captured["args"][-1] == "D" or captured["kwargs"].get("num_suffix") == "D"
+
+
+def test_query_one_v1_forwards_num_suffix(monkeypatch) -> None:
+    """v1 单条路径同样透传 num_suffix（`_query_one` → `_step_query_adapters`）。"""
+    monkeypatch.setenv("ROUTING_ENGINE_VERSION", "v1")
+    captured: dict = {}
+
+    class _SuffixAdapter(_Adapter):
+        def query_with_strategy(self, *args, **kwargs):  # noqa: ANN002, ANN003
+            captured["args"] = args
+            captured["kwargs"] = kwargs
+            return _found()
+
+    core = _Core(adapter_map={"a": _SuffixAdapter("a")})
+    handler = _handler(core, priority=["a"])
+    monkeypatch.setattr(_single, "record_v1_brief", lambda *a: None)
+
+    handler._query_one("API", 6, 2021, part=None, num_prefix="SPEC", num_suffix="D")
+
+    assert captured["args"][-1] == "D" or captured["kwargs"].get("num_suffix") == "D"
+
+
 # ── 11) env=v1 时禁用 v2 ───────────────────────────────────────────────
 
 

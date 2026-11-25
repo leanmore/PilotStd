@@ -127,6 +127,7 @@ class BatchHandler:
                     part=item[4] if len(item) > 4 else None,
                     force_refresh=force_refresh,
                     num_prefix=item[5] if len(item) > 5 else "",
+                    num_suffix=item[6] if len(item) > 6 else "",
                     preferred_site=preferred_site,
                 )
                 results.append(r)

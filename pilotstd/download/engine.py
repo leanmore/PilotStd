@@ -20,6 +20,7 @@ from ..core.notification.context import NotificationContext
 from ..core.path_guard import validate_path_in_root
 from ..core.std_utils import is_gb_code
 from .adapters.base import BaseDownloadAdapter
+from .filename_parts import build_filename_fields
 from .models import ADOPTED_SKIP_MESSAGE, BatchDownloadStats, DownloadStatus, DownloadTask
 from .part_cleanup import cleanup_stale_parts
 from .session import SessionManager
@@ -395,20 +396,17 @@ class DownloadEngine:
 
     def _resolve_target_path(self, task: DownloadTask) -> str:
         """解析任务的标准号并生成目标文件路径，校验路径范围。"""
-        from ..query.search_strategy import _parse_result_number
-
         query = task.query_result
         std_name = getattr(query, "standard_name", "") if query else ""
-        parsed = _parse_result_number(task.standard_number)
-        if parsed:
-            logical_code = f"{parsed['code']}"
-        else:
-            logical_code = task.standard_number.split()[0] if " " in task.standard_number else task.standard_number
-        number = parsed.get("number", 0) if parsed else 0
-        year = parsed.get("year", 0) if parsed else 0
-        part = parsed.get("part", None) if parsed else None
-
-        filename = make_standard_filename(logical_code, number or 0, year or 0, std_name, part, ext=".pdf")
+        fields = build_filename_fields(task.standard_number)
+        filename = make_standard_filename(
+            fields.pop("logical_code"),
+            fields.pop("number"),
+            fields.pop("year"),
+            std_name,
+            ext=".pdf",
+            **fields,
+        )
         # 仅保留文件名，剥离可能混入的路径分隔符
         filename = os.path.basename(filename)
         final_path = os.path.join(self._save_root, filename)

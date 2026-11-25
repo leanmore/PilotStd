@@ -7,12 +7,22 @@ import re
 from typing import Callable, Optional
 
 from ...models import ParsedStdInfo
-from ._constants import PRESERVED_MULTI_WORD
+from ._constants import FOREIGN_CODE_SET, ISO_IEC_SET, ITU_CODES, PRESERVED_MULTI_WORD
 
 logger = logging.getLogger(__name__)
 
 # ✅#461:模块级校验失败计数器
 _result_builder_fail_count = [0]
+
+# 无年份合法的代号族（批次10 / P1-7.1 B-7）：国外/国际标准无年份是常态
+# （`ASME BPVC Section II Part D` → `year=0`，见附录一 §5.4），国内标准仍要求年份。
+_YEAR_OPTIONAL_CODES = FOREIGN_CODE_SET | ISO_IEC_SET | ITU_CODES
+
+
+def _missing_year_allowed(logical_code: str) -> bool:
+    """代号族是否允许 `year=0`（无年份）。"""
+    base = str(logical_code or "").strip().split(" ")[0].upper()
+    return base in _YEAR_OPTIONAL_CODES
 
 
 def get_validate_fail_count() -> int:
@@ -107,7 +117,8 @@ class ResultBuilder:
         """校验解析结果是否构成合法的标准编号。
 
         规则:
-          - year 必须大于 0（当 require_year=True 时）：0 表示"无年份"。
+          - year 缺省（0）对国外/国际标准合法（批次10 B-7：附录一 §5.4 口径），
+            对国内标准（GB/行业/地标）仍判失败；require_year=False 时跳过年份校验。
           - year 在 1-99（两位年份，如 "98"）或 1900-2099（四位年份）范围内。
           - require_year=False 时跳过年份校验，仅校验 logical_code 和 number。
             用于支持字母修订版标准（如 MIL-STD-810G），此类标准无年份。
@@ -120,10 +131,13 @@ class ResultBuilder:
         if not isinstance(number, int) or number <= 0:
             failures.append(f"invalid_number({number})")
         if require_year:
-            if not isinstance(year, int) or year <= 0:
+            if not isinstance(year, int):
                 failures.append(f"year_non_positive({year})")
-            # 两位年份（1-99）或四位年份（1900-2099）
-            if year > 99 and (year < 1900 or year > 2099):
+            elif year <= 0:
+                if not _missing_year_allowed(logical_code):
+                    failures.append(f"year_non_positive({year})")
+            elif year > 99 and (year < 1900 or year > 2099):
+                # 两位年份（1-99）或四位年份（1900-2099）
                 failures.append(f"year_out_of_range({year})")
         if failures:
             logger.warning(

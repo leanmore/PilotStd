@@ -193,7 +193,16 @@ class QuerySubsystem:
     ) -> list[QueryResult]:
         """直接调用 QueryEngine 查询（无公告缓存的默认路径）。"""
         parsed_tuples = [
-            (p.logical_code, p.number, p.year, p.std_name or "", p.part, getattr(p, "num_prefix", "")) for p in items
+            (
+                p.logical_code,
+                p.number,
+                p.year,
+                p.std_name or "",
+                p.part,
+                getattr(p, "num_prefix", ""),
+                getattr(p, "num_suffix", ""),
+            )
+            for p in items
         ]
         return self._core.query_engine.query_standards(  # type: ignore[no-any-return]
             parsed_tuples,

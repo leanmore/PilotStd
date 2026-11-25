@@ -91,3 +91,25 @@ StandardParser (入口)
 `_exact_matcher` 同步取值并写入 `num_suffix`。**已知边界**：扫描侧 BPVC 无年份写法
 （`Section VIII Div.1`、`II.D`）仍被 `validate_result` 拒绝（属 G5 范围）。
 回归：`tests/unit/scan/parser/test_bpvc_section_snapshot.py`。
+
+## 无年份放开 + ASME 系列/多字母后缀 + 版次剥离（2026-11-25，批次10）
+
+已查阅：`docs/plans/2026-11-25-p1-api-refresh.md` §2 逐条矩阵 / §3.1 F2·F3·F4·F5；
+`docs/plans/2026-11-24-p1-api-asme-gap.md` §3.2 / §4 G5·G6·G7·B-7~B-9。
+
+- **无年份放开**：`_result_builder.validate_result` 对国外/国际代号族
+  （`FOREIGN_CODE_SET ∪ ISO_IEC_SET ∪ ITU_CODES`）允许 `year=0`（附录一 §5.4 口径），
+  国内代号仍要求年份；`API STD 610` / `ASME B16.5` / `ASME BPVC Section II Part D` 不再判 MISS。
+- **多字母/连字符后缀**：`_constants._NUM` 尾段扩展为 `(?:[A-Z]{1,3})?(?:-[A-Z]{1,3}(?!\d))*`
+  （`5CT` / `2A-WSD` / `938-C`），`_number_extractor.extract_number` 从尾部整体收集后缀
+  （前导连字符不进入后缀）；带 `(?!\d)` 防止 `SH/T 3503-J801` 的 `-J` 被当后缀后把 `80` 当年份。
+- **无年份分册**：新增 `regex_typed_no_year`，年份缺省时优先使用（`regex_typed` 的 `[\-]?`
+  会吞掉 `API 579-1` 的分册分隔符）。
+- **ASME 系列**：新增 `_asme_series.py`（`match_asme_series`）并挂为 `parse()` 的
+  `_exact_match_asme_series` 通道（BPVC 之后）：`ASME PTC 4` / `ASME CSD-1` 的系列词→`num_prefix`，
+  `ASME A112.18.1/CSA B125.1` 的第三级 `.1`→`num_suffix`。
+- **版次剥离**：`scan/edition_detect.py` 新增 `strip_edition`，`_preprocess_input` 在清洗后剥离
+  `11th` / `11th Edition`，避免 `_YEAR_LOOSE` 把 `11` 当 2011。
+
+**回归锚点**：`tests/unit/scan/parser/test_no_year_and_series.py`、
+`tests/unit/scan/parser/test_bpvc_section_snapshot.py`、`tests/test_scanner.py`。

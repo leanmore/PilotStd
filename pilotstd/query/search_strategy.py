@@ -10,28 +10,66 @@ from pilotstd.core.status import Status
 logger = logging.getLogger(__name__)
 
 
-def build_code_variants(logical_code: str, number: int, year: int, num_prefix: str = "") -> List[str]:
+def build_code_variants(
+    logical_code: str, number: int, year: int, num_prefix: str = "", part: int | None = None
+) -> List[str]:
     """按标准类型生成搜索词变体，补充公共回退中缺失的分类标记。
-    所有适配器共享，不绑定特定站点。"""
+    所有适配器共享，不绑定特定站点。
+
+    批次10（P1-7.1 B-12 / 报告 §4 G8）：ASME 罗马卷号的变体改为点号写法
+    `BPVC.VIII.1`（卷号 + 分册号），修复前把卷号当分册号生成 `BPVC VIII.8`。
+    """
     variants = []
     upper = logical_code.upper().replace("/", "")
 
     # +罗马数字前缀→追加分类标记
     if upper == "ASME" and num_prefix and re.match(r"^[IVXLCDM]+$", num_prefix):
-        variants.append(f"ASME BPVC {num_prefix}.{number}-{year}")
-        variants.append(f"ASME BPVC {num_prefix}.{number}")
-        variants.append(f"ASME BPVC {num_prefix}-{year}")
+        div = f".{part}" if part else ""
+        year_suffix = f"-{year}" if year else ""
+        variants.append(f"ASME BPVC.{num_prefix}{div}{year_suffix}")
+        variants.append(f"ASME BPVC.{num_prefix}{div}")
+        if year:
+            # 文字写法兼容（`ASME BPVC VIII-2025`）
+            variants.append(f"ASME BPVC {num_prefix}-{year}")
 
-    # 接口→追加/出版类型前缀
+    # 接口→追加/出版类型前缀（year=0 时不追加 `-0`）
     if upper == "API":
-        variants.append(f"API Std {number}-{year}")
-        variants.append(f"API Spec {number}-{year}")
+        year_suffix = f"-{year}" if year else ""
+        variants.append(f"API Std {number}{year_suffix}")
+        variants.append(f"API Spec {number}{year_suffix}")
 
     # （非前缀）→追加变体
     if upper == "DIN" and "EN" not in logical_code.upper():
-        variants.append(f"DIN EN {number}-{year}")
+        year_suffix = f"-{year}" if year else ""
+        variants.append(f"DIN EN {number}{year_suffix}")
 
     return variants
+
+
+def build_query_target(
+    logical_code: str,
+    number: int,
+    year: int,
+    part: int | None = None,
+    num_prefix: str = "",
+    num_suffix: str = "",
+) -> str:
+    """构造查询 target（唯一实现）：与编号表示层同口径。
+
+    批次10（P1-7.1 B-12）：修复前 `base.py` / `_single.py` 各自拼接
+    `f"{code} {prefix}{number}{suffix}{part}-{year}"`，导致类型词与序号粘连、
+    `year=0` 追加 `-0`、BPVC 卷册变成 `VIII8.1`、后缀被忽略（报告 §3.2 R1）。
+    """
+    from ..core.std_number_format import format_standard_number
+
+    return format_standard_number(
+        logical_code,
+        number,
+        part,
+        year,
+        num_prefix=num_prefix,
+        num_suffix=num_suffix,
+    )
 
 
 def _parse_result_number(num_str: str) -> dict[str, Any]:
