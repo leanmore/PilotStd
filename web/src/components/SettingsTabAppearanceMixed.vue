@@ -136,7 +136,7 @@ function handleLocaleChange(val: unknown) {
 
 <style scoped>
 @import '@/views/settings/shared.css';
-.field-error { color: var(--danger, #e53e3e); font-size: var(--font-size-11); }
+.field-error { color: var(--danger); font-size: var(--font-size-11); }
 /* 修复浅色主题下选项文字对比度不足的问题 */
 .theme-option span {
   color: var(--text) !important;

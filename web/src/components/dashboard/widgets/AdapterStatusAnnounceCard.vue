@@ -191,7 +191,7 @@ onBeforeUnmount(() => {
 .health-dot { width: var(--size-6); height: var(--size-6); border-radius: 50%; flex-shrink: 0; }
 .health-up { background: var(--success); }
 .health-down { background: var(--danger); }
-.health-none { background: var(--border-light, #ccc); }
+.health-none { background: var(--border-light); }
 .health-time { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .row-status { display: flex; align-items: center; gap: var(--space-6); flex-shrink: 0; }

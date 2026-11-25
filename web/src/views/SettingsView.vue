@@ -476,6 +476,6 @@ onMounted(() => {
 
 /* ── 工具类（父组件专用）── */
 .mt-2 { margin-top: var(--space-8); }
-.err-msg { color: var(--danger, #e74c3c); font-size: var(--font-size-12); margin-left: var(--space-8); }
+.err-msg { color: var(--danger); font-size: var(--font-size-12); margin-left: var(--space-8); }
 .text-dim { color: var(--text-dim); font-size: var(--font-size-13); }
 </style>

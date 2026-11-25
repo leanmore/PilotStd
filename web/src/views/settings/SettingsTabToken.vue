@@ -132,7 +132,7 @@ onMounted(() => { loadToken(); loadGhToken() })
           type="secondary"
         />
       </div>
-      <span v-if="tokenCopied" class="text-dim" style="font-size:var(--font-size-12);color:var(--success,#22c55e)">{{ t('settings.token.copied') }}</span>
+      <span v-if="tokenCopied" class="text-dim" style="font-size:var(--font-size-12);color:var(--success)">{{ t('settings.token.copied') }}</span>
     </div>
   </div>
 

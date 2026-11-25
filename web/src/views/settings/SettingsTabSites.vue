@@ -338,7 +338,7 @@ onMounted(() => { loadSites() })
 }
 .health-up { background: var(--success); }
 .health-down { background: var(--danger); }
-.health-none { background: var(--border-light, #ccc); }
+.health-none { background: var(--border-light); }
 .discard-btn {
   margin-left: var(--space-2);
 }
@@ -348,7 +348,7 @@ onMounted(() => { loadSites() })
   gap: var(--space-8);
   margin-top: var(--space-8);
   padding-top: var(--space-8);
-  border-top: 1px solid var(--border-light, #e5e7eb);
+  border-top: 1px solid var(--border-light);
 }
 .site-field {
   display: flex;
@@ -377,7 +377,7 @@ onMounted(() => { loadSites() })
   gap: var(--space-16);
   margin-top: var(--space-8);
   padding-top: var(--space-6);
-  border-top: 1px solid var(--border-light, #e5e7eb);
+  border-top: 1px solid var(--border-light);
   font-size: var(--font-size-12);
   color: var(--text-dim);
 }

@@ -246,12 +246,12 @@ const breadcrumbs = computed(() => {
 .crumb-sep { color: var(--text-dim); font-size: var(--font-size-11); user-select: none; }
 .dir-row:hover { background: var(--selected); }
 .clean-msg { font-size: var(--font-size-12); color: var(--success); margin-top: var(--space-6); }
-.err-msg { color: var(--danger, #e74c3c); font-size: var(--font-size-12); margin-top: var(--space-6); }
+.err-msg { color: var(--danger); font-size: var(--font-size-12); margin-top: var(--space-6); }
 .stats-row { display: flex; gap: var(--space-8); flex-wrap: wrap; align-items: center; }
 .op-bar { display: flex; align-items: center; gap: var(--space-8); }
 .selected-count { font-size: var(--font-size-12); color: var(--primary); font-weight: var(--font-weight-medium); }
 .enqueue-msg { font-size: var(--font-size-12); color: var(--success); }
 .select-all-row { display: flex; align-items: center; gap: var(--space-8); padding: var(--space-6) var(--space-12); background: var(--surface-raised); border-bottom: 1px solid var(--border); }
 .select-all-label { font-size: var(--font-size-12); color: var(--text-secondary); cursor: pointer; }
-.border-bottom { border-bottom: 1px solid var(--border-light, #e5e7eb); }
+.border-bottom { border-bottom: 1px solid var(--border-light); }
 </style>

@@ -103,7 +103,7 @@ function statusLabel(s: string) {
 <style scoped>
 .mt-2 { margin-top: var(--space-12); }
 .mt-3 { margin-top: var(--space-16); }
-.border-bottom { border-bottom: 1px solid var(--border-light, #e5e7eb); }
-.text-dim { color: var(--text-dim, #6b7280); }
-.text-mono { font-family: var(--mono, 'Consolas', 'Courier New', monospace); }
+.border-bottom { border-bottom: 1px solid var(--border-light); }
+.text-dim { color: var(--text-dim); }
+.text-mono { font-family: var(--mono); }
 </style>

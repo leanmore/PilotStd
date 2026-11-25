@@ -178,8 +178,8 @@ watch(() => route?.path, () => {
    #1e293b，比背景浅会造成层级倒挂）、正文 --p-content-color、级别 [I] 用 --text-dim、[W]/[E] 语义色 */
 .log-bar {
   background: var(--bg);
-  border: var(--mp-card-border, 1px solid var(--p-surface-200));
-  border-radius: var(--radius-sm, 6px);
+  border: var(--mp-card-border);
+  border-radius: var(--radius-sm);
   margin-top: var(--space-12);
   overflow: hidden;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;

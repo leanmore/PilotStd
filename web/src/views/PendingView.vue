@@ -156,8 +156,8 @@ onMounted(() => { ensure() })
 
 <style scoped>
 .btn-row { display: flex; align-items: center; gap: var(--space-12); }
-.import-msg { font-size: var(--font-size-12); color: var(--accent, #10b981); }
-.err-msg { color: var(--danger, #e74c3c); font-size: var(--font-size-12); margin-top: var(--space-6); }
+.import-msg { font-size: var(--font-size-12); color: var(--accent); }
+.err-msg { color: var(--danger); font-size: var(--font-size-12); margin-top: var(--space-6); }
 
 /* 站点卡片网格 —— 与设置页站点管理一致 */
 .site-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--space-10); }
@@ -168,6 +168,6 @@ onMounted(() => { ensure() })
 .site-name { font-size: var(--font-size-13); font-weight: var(--font-weight-semibold); color: var(--text-heading); }
 .site-desc { font-size: var(--font-size-12); color: var(--text-dim); }
 .mt-2 { margin-top: var(--space-12); }
-.border-bottom { border-bottom: 1px solid var(--border-light, #e5e7eb); }
-.text-dim { color: var(--text-dim, #6b7280); }
+.border-bottom { border-bottom: 1px solid var(--border-light); }
+.text-dim { color: var(--text-dim); }
 </style>

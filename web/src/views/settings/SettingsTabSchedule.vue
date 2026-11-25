@@ -197,7 +197,7 @@ onMounted(loadTasks)
   align-items: center;
   gap: var(--space-20);
   padding: var(--space-10) 0;
-  border-bottom: 1px solid var(--border-light, #e5e7eb);
+  border-bottom: 1px solid var(--border-light);
 }
 .task-row:last-of-type {
   border-bottom: none;
