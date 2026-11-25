@@ -4,8 +4,8 @@
 
 · `card_image` 与 `image_text_area` **必填其一，不可都不填**；
 · `card_action` **必填**，且 `type=1` 时**必须带 URL**；
-· `vertical_content_list` **最多 4 条**，条目 `title` **必填**（建议 ≤26 字），
-  `desc` 建议 ≤112 字（二级纯文本）；
+· `vertical_content_list` **最多 4 条**，条目 `title` **必填**（建议 ≤26/38 字，取值见
+  `_CARD_TITLE_WIDTH` 注释），`desc` 建议 ≤112 字（二级纯文本）；
 · `jump_list` 最多 3 条。
 
 取证来源：企业微信开发者中心《模板卡片类型》
@@ -54,7 +54,10 @@ from .renderer_links import action_label, link_actions
 _CARD_ITEM_LIMIT = 4  # `vertical_content_list` 最多 4 条
 _CARD_JUMP_LIMIT = 3  # `jump_list` 最多 3 条
 _CARD_DESC_WIDTH = 112  # `desc` 建议 ≤112 字
-_CARD_TITLE_WIDTH = 26  # 条目 `title` 建议 ≤26 字（不同版本文档写 26/38，取保守值）
+# 条目 `title` 建议值：官方不同版本文档分别写 26 / 38 字（均为**建议**而非硬限）。
+# 取较宽的 38：字段名/首个列表值常超过 26 字，按 26 会在词中断开（实测把「示例」拆成两段）；
+# 38 仍远小于正文上限，且标题过长由企微客户端自行折行，不违反硬契约。
+_CARD_TITLE_WIDTH = 38
 _CARD_IMAGE_PATH = "/notification-card.png"  # 站内静态透明占位图（`web/public/`）
 
 # 行内自然分隔符：优先按它们拆「标题 + 正文」（`title` 必填，不能靠空串占位）

@@ -93,6 +93,19 @@ def test_card_vertical_item_title_uses_line_label() -> None:
     assert _card_items(card) == [{"title": "标准号", "desc": "GB/T 12345-2020"}]
 
 
+def test_card_title_keeps_semantic_label_without_mid_word_cut() -> None:
+    """长标签（>26 字）不得在词中硬切开：语义标签整体进 `title`，内容进 `desc`。
+
+    官方 `title` 建议值在不同版本文档里写作 26/38 字（均为建议）；取 38 以保住
+    「字段名 + 首个值」的语义标签，避免出现「…示例」被拆成「…示 / 例」的观感缺陷。
+    """
+    msg = _msg(body="GB/T 12345-2020 食品安全国家标准 示例：现行 → 废止")
+    card = WeChatCardRenderer().render_card(_linked(msg))
+    item = _card_items(card)[0]
+    assert item["title"] == "GB/T 12345-2020 食品安全国家标准 示例"
+    assert item["desc"] == "现行 → 废止"
+
+
 def test_card_list_truncated_to_four_with_count_tail() -> None:
     """列表行超 4 时**截断到 ≤4 并计数**：尾部条目给「共 N 条」提示。"""
     msg = _msg(body="")
