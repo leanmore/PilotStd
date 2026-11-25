@@ -497,3 +497,23 @@ continue/break 识别、新增 G-056 死链扫描），CI 严格模式拦了两�
 >   python scripts/docs_sync_check.py --strict-block
 > python scripts/check_module_doc_mappings.py --strict-block
 > ```
+
+## 2026-11-25 受保护分支 + PR 事件范围：`github.event.before` 不是 base
+
+**现象**：lane 分支 rebase/force-push 后 CI 的 `repo-compliance` 稳定红：
+`显式范围 <旧head>..<新head> 内变更文件数为 0 —— 范围取值异常（假绿防护：拒绝 PASS）`。
+
+**根因**：工作流把 `github.event.before` 当作范围左端。它在 **push 事件**里是「本次推送前」，
+但在 **PR 事件**里是「该 PR 上一次的 head」。force-push/rebase 后新旧 head **内容相同** ⇒
+`before..head` 的 diff 为 0 ⇒ 合规脚本的假绿防护把**正常 PR** 判成失败（假红）。
+
+**修复（2026-11-25）**：所有比较范围统一按事件取值——
+左端 `github.event.pull_request.base.sha || github.event.before`，
+右端 `github.event.pull_request.head.sha || github.sha`
+（`COMPLIANCE_RANGE` / `DOCS_SYNC_RANGE` / `G029_RANGE` / `GOVERNANCE_DOCS_RANGE` / G-013 的 `EVENT_BEFORE`+`EVENT_SHA`）。
+
+**教训**：
+1. 「同一个字段在不同事件里语义不同」是 CI 脚本的经典陷阱——范围表达式必须显式按事件分支，
+   不能只测 push 路径；`G-029` 步骤早已按事件分支，但其它三处漏了，说明**同类修复要全量回扫**；
+2. 假绿防护（拒绝 0 变更）本身正确，但它把「范围取错」暴露成了「PR 失败」——
+   排查时应先看 `COMPLIANCE_RANGE` 的**实际取值**，而不是先怀疑 PR 内容。
