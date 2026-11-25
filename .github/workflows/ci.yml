@@ -177,6 +177,10 @@ jobs:
             --ignore=tests/test_ci_scan_fix.py
 
       - name: Run backend tests
+        id: backend-tests
+        # NEW-47：单测失败不再直接判 job 红，交给「Retry failed backend tests once」再跑一次失败用例；
+        # 真失败会第二次仍红（不掩盖），只有间歇性 flake 被这一次重试消化。
+        continue-on-error: true
         env:
           STANDARD_ROOT: /tmp/standards
           SUPERUSER: superadmin
@@ -201,18 +205,62 @@ jobs:
             --deselect "tests/test_cli.py::TestCLIMove::test_cmd_move" \
             --ignore=tests/test_ci_scan_fix.py
 
-      # 后端失败时把失败用例转成 check-run 注解（Actions 日志需 actions:read，
-      # 而注解可用仓库读权限直接取回；仅失败时运行，不改变测试判定）。
+      # NEW-47（2026-11-26）：失败用例转 **step summary + 注解**，并只重跑失败用例一次。
+      # 背景：test-backend 在 PR 上间歇性假红，而 Actions 日志需 actions:read 权限（本仓库 token 拿不到，
+      # job 日志 API 404、注解常为空）→ 无法定位具体用例。step summary 在 check-run 页面直接可见，
+      # 无需日志权限；重试只针对已失败用例，真失败第二次仍红，不改变判定口径。
+      - name: Retry failed backend tests once (flake guard)
+        if: steps.backend-tests.outcome == 'failure'
+        env:
+          STANDARD_ROOT: /tmp/standards
+          SUPERUSER: superadmin
+          ADMIN_USERNAME: superadmin
+        run: |
+          python - <<'PY' > /tmp/failed_nodes.txt
+          import os
+          import xml.etree.ElementTree as ET
+
+          path = "/tmp/backend-report.xml"
+          if not os.path.exists(path):
+              print("::error title=Backend tests::junit report missing（collection/覆盖率等非用例失败，重试不适用）")
+              raise SystemExit(1)
+          root = ET.parse(path).getroot()
+
+          def nodeid(classname: str, name: str) -> str:
+              parts = (classname or "").split(".")
+              idx = next((i for i, part in enumerate(parts) if part[:1].isupper()), len(parts))
+              module = "/".join(parts[:idx]) + ".py"
+              cls = "::".join(parts[idx:])
+              return f"{module}::{cls}::{name}" if cls else f"{module}::{name}"
+
+          for tc in root.iter("testcase"):
+              if tc.find("failure") is not None or tc.find("error") is not None:
+                  print(nodeid(tc.get("classname"), tc.get("name")))
+          PY
+          if [ ! -s /tmp/failed_nodes.txt ]; then
+            echo "::error title=Backend tests::没有解析到失败用例，无法重试"
+            exit 1
+          fi
+          echo "只重跑失败用例："
+          cat /tmp/failed_nodes.txt
+          python -m pytest $(cat /tmp/failed_nodes.txt) -q -rs --tb=short -p no:pytest-qt \
+            --timeout=60 --timeout_method=signal
+
       - name: Backend failures summary
-        if: failure()
+        if: always()
         run: |
           python - <<'PY'
           import os
           import xml.etree.ElementTree as ET
 
           path = "/tmp/backend-report.xml"
+          summary = os.environ.get("GITHUB_STEP_SUMMARY")
           if not os.path.exists(path):
-              print("::error title=Backend tests::junit report missing")
+              message = "junit report missing（可能是 collection/覆盖率阈值等非用例失败）"
+              print(f"::error title=Backend tests::{message}")
+              if summary:
+                  with open(summary, "a", encoding="utf-8") as fh:
+                      fh.write(f"### 后端失败\n\n- {message}\n")
               raise SystemExit(0)
           root = ET.parse(path).getroot()
           failed = [
@@ -223,6 +271,13 @@ jobs:
           for name in failed[:25]:
               print(f"::error title=Pytest failure::{name}")
           print(f"failed={len(failed)}")
+          if summary:
+              with open(summary, "a", encoding="utf-8") as fh:
+                  fh.write(f"### 后端失败用例（{len(failed)}）\n\n")
+                  for name in failed[:50]:
+                      fh.write(f"- `{name}`\n")
+                  if not failed:
+                      fh.write("- junit 报告存在但无失败用例：失败可能来自覆盖率阈值或其它步骤\n")
           PY
 
       # G-034（2026-10-17 接线，体检 A-3/B-1）：报告此前是 2026-08-21 的陈旧快照

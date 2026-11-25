@@ -598,3 +598,17 @@ push 路径由 version job 的 `bump_version.py --check` 校验「VERSION == 按
 3. 已登记技术债：见 docs/debt/06-full-inventory.md（CI 假红诊断能力项）。
 
 **教训**：CI 日志不可读时，最有效的取证是「本地全量 + rerun 对照」；不要在没有本地证据时猜。
+
+## 2026-11-26（同日落地）后端假红处置：**已从「人工 rerun」升级为 CI 自动重试一次**
+
+上文登记了「test-backend 间歇性假红、日志不可读」的现象与人工处置口径；同日已落地自动化缓解：
+
+| 改动 | 作用 |
+|---|---|
+| `Run backend tests` → `continue-on-error: true` | 首跑失败不再直接判 job 红 |
+| 新增 `Retry failed backend tests once (flake guard)` | 从 junit 解析**失败 nodeid**，只重跑这些用例（不是全量重跑） |
+| `Backend failures summary` → `if: always()` + 写 `$GITHUB_STEP_SUMMARY` | 失败用例在 **check-run 页面**直接可见，不再依赖 actions:read 日志权限 |
+| 解析不到失败用例（collection/覆盖率阈值等） | 重试步骤**显式退出 1**，真失败不会被掩盖 |
+
+**判定口径不变**：重试只给间歇性 flake 一次机会；**真失败第二次仍红**。
+回归：`tests/test_ci_backend_flake_guard.py`（3 例，锁 continue-on-error / 只跑失败用例 / summary always + step summary）。

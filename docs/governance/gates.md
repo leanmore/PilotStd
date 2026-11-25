@@ -100,6 +100,8 @@
 
 ### G-031：文档同步检查
 
+**2026-11-26 NEW-47 补记**：`.github/workflows/ci.yml` 的 `test-backend` 改为「首跑失败→只重跑失败用例一次→summary always 写 step summary」；真失败仍红（`tests/test_ci_backend_flake_guard.py` 锁定）。
+
 **2026-11-26 v0.207.0 验收脚本**：新增 `scripts/ops/probe_v0207.py`（只读，自动核对版本/状态口径/数据治理/统计四组共 11 项），配套 `tests/ops/test_probe_v0207.py`（3 例：全绿/旧版本/口径回退）。该脚本不参与任何门禁模式，属部署验收入口。ersion.py 对齐补记**：scripts/version.py 计算版本时同样跳过 infra scope（ci/docs/test/build/ops），与 check_version_bump.py 同口径，避免「版本想 bump / 门禁豁免」互相矛盾。
 
 **2026-11-26 tag 身份补记**：`.github/workflows/ci.yml` 的 tag 步骤显式配置 committer 身份（`git tag -a` 必需；原 commit 步骤删除后身份配置一并丢失，导致 CI 发布 tag 失败）。
