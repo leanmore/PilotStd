@@ -6,7 +6,7 @@ import logging
 import os
 from typing import Any
 
-from pilotstd.core.status import Status
+from pilotstd.core.status import Status, normalize_status_for_write
 
 from ...core.config import get_library_root
 from ...core.file_utils import (
@@ -242,6 +242,8 @@ class OrganizerCore:
                 content_hashes[fhash] = dst
             self._dedup_standard(p, dst)
             if self._file_index:
+                # 写入端统一归一（N3，P1-5 §5.4）：`effect_status` 可能来自站点原文/历史数据
+                # （如 `未生效`），必须映射为规范数据值再落库，否则批次 12 清洗后仍会再生脏值。
                 self._file_index.upsert(
                     file_path=dst,
                     logical_code=p.logical_code,
@@ -249,7 +251,9 @@ class OrganizerCore:
                     year=p.year,
                     part=getattr(p, "part", None),
                     std_name=p.std_name or "",
-                    status=getattr(p, "effect_status", "") or Status.ACTIVE.value,
+                    status=normalize_status_for_write(
+                        getattr(p, "effect_status", "") or Status.ACTIVE.value
+                    ),
                     raw_number=p.raw_number or "",
                 )
             # 6-0:归档成功后注册到表
