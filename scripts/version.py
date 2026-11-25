@@ -23,6 +23,12 @@ def bump_version(version: str, commit_messages: list[str]) -> str | None:
     # 剥离-8（+），防止/前缀被吞导致版本号不升
     cleaned = [msg.removeprefix("\ufeff") for msg in commit_messages]
 
+    # 基础设施类 scope（CI/文档/测试/构建/运维脚本）不触发行版本 bump —— 与
+    # `scripts/check_version_bump.py` 的 INFRA_SCOPES 保持同一口径，否则会出现
+    # 「version job 想 bump、门禁豁免不 bump」的互相矛盾（main 实测：feat(ops) 让发布停摆）。
+    infra = re.compile(r"^(@ )?(feat|fix)\((ci|docs|test|build|ops)\):")
+    cleaned = [msg for msg in cleaned if not infra.match(msg)]
+
     has_breaking = any("BREAKING CHANGE:" in msg for msg in cleaned)
     # 兼容'@'前缀（残留）和标准格式
     has_feat = any(re.search(r"^(@ )?feat(\(.+\))?:", msg) for msg in cleaned)
