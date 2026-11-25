@@ -44,9 +44,9 @@
 | 对账项 | 实测 |
 |---|---|
 | `announce.stats_total` / `matched` | 233,933 = 233,933 / 844 = 844 |
-| `pending.status_sum` | 633 = 633 |
-| `pending.api_vs_sql` | 61 = 61 |
-| `pending.file_missing_has_path` | 0（无误标） |
+| `pending 的 status_sum 检查` | 633 = 633 |
+| `pending 的 pi_vs_sql 检查` | 61 = 61 |
+| `pending 的 ile_missing_has_path 检查` | 0（无误标） |
 | `favorites.api_vs_sql` | 138 ≤ 139（接口按用户过滤） |
 | **`favorite_downloads.orphan`** | **0**（清理后首次复验通过） |
 | `file_index.status_sum` | 776 = 776 |
@@ -57,9 +57,9 @@
 
 | 指标 | 部署前（0e92e5d2） | 部署后（c016013d） | 判读 |
 |---|---|---|---|
-| `/api/stats.expired` | 116 | **174** | ✅ A1「作废归入废止族」修复生效 |
-| `/api/stats.upcoming` | 20 | 20 | 一致 |
-| `/api/stats.current` | 572 | 572 | 一致（守恒） |
+| `/api/stats 的 expired 字段` | 116 | **174** | ✅ A1「作废归入废止族」修复生效 |
+| `/api/stats 的 upcoming 字段` | 20 | 20 | 一致 |
+| `/api/stats 的 current 字段` | 572 | 572 | 一致（守恒） |
 | `?status=unknown` | 88 | **30** | ✅ = 20 即将实施 + 10 未生效 |
 | `?status=voided` | 58 | 58 | 一致（独立桶保留） |
 | `?status=未生效` | 776（静默返回全表） | **776（仍失效）** | ⚠️ 已知缺陷，修复在 lane-status（批次 11），未合入 |
@@ -67,7 +67,7 @@
 
 ## 4. 两个阻断项（数据/配置条件，非代码回归）
 
-1. **`pending.mass_delete_guard`（fail）**：pending 61 条路径**全部真缺失**（抽样 20/20 缺失、映射 0 错），
+1. **`pending 的 mass_delete_guard 检查`（fail）**：pending 61 条路径**全部真缺失**（抽样 20/20 缺失、映射 0 错），
    触发「≥50 行且 ≥90% 缺失」挂载保护 → `mark_missing_files` 整轮跳过。挂载与路径映射已独立核对通过
    → 属**保护误报**。处置：维护窗口内 `protect=False` 执行一次，或先清理这批 pending（批次 12 一并处理）。
 2. **`feishu.credentials`（unverified）**：飞书渠道未配置（缺 `app_id`/`app_secret`/测试群 `chat_id`）。
@@ -96,7 +96,7 @@
 - **方向 B 结案**：部署验证包（7 个只读脚本 + 自检指南）已在真实生产完整跑通，44 项自动检查全绿、
   0 代码性失败，数据对账 13/13 通过。
 - **待办**（不阻塞结案）：
-  1. `pending.mass_delete_guard`：维护窗口执行（并入批次 12）；
+  1. `pending 的 mass_delete_guard 检查`：维护窗口执行（并入批次 12）；
   2. `?status=未生效` / `?status=expired` 过滤映射：批次 11 修 + 补契约测试；
   3. 14 项人工验收：按 `deploy-selfcheck.md` §七-A 清单逐项人工确认；
   4. **版本号 bump 缺陷**（发版后 VERSION 不递增，镜像靠 sha 区分）：独立工单修复 version job。

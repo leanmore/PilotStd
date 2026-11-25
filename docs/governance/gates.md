@@ -100,6 +100,8 @@
 
 ### G-031：文档同步检查
 
+**2026-11-25 版本号流程补记**：`scripts/bump_version.py` / `scripts/check_version_bump.py` 引入后，探针与发版测试不得写死版本号（`tests/ops/test_probe_scripts.py` 已改为动态读取 `VERSION`）。
+
 **2026-11-25 补充（版本号流程修复同批）**：`scripts/`（门禁/发布脚本）与 `.github/workflows/`（流水线定义）的变更必须同批更新本文件；本次新增 `scripts/bump_version.py`（PR 内 bump）与 `scripts/check_version_bump.py`（feat/fix 必须同批改 `VERSION` 的门禁），并把 `version` job 的直推 main 逻辑改为「校验 + 只在已在 main 的提交上打 tag」（杜绝孤儿 tag）。
 
 - **检查内容**：核心模块变更时，对应文档同步更新
