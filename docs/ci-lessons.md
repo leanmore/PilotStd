@@ -568,3 +568,15 @@ push 路径由 version job 的 `bump_version.py --check` 校验「VERSION == 按
 
 **教训**：「同一条校验」在 PR 与 push 两种事件下语义不同——凡是「本次改动是否满足纪律」的步骤，
 都应显式限定事件类型；把 PR 纪律检查挂到 push 上，会把**已完成的合规工作**当成违规重复检查。
+
+## 2026-11-26 tag 步骤：annotated tag 需要 committer 身份
+
+**现象**：main 79f10ed1 的 ersion job 仍在「Create and push tag」失败 → docker 依旧 skipped。
+
+**根因**：git tag -a（annotated tag）需要 tagger 身份；原先 git config user.name/email 写在
+**已删除**的「Commit version bump」步骤里，tag 步骤因此没有身份 → CI 上报
+atal: unable to auto-detect email address。浅克隆 fetch 是前一个坑，身份丢失是这一个。
+
+**修复**：tag 步骤开头显式 git config user.name/email（bot 身份）。
+
+**教训**：删除一个 CI 步骤时，要检查它**顺带设置的环境状态**（git 身份、工作目录、环境变量）是否被其它步骤依赖。

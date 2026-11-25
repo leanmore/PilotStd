@@ -1127,6 +1127,11 @@ jobs:
         run: |
           set -e
           TAG="v${{ steps.bump.outputs.version }}"
+          # annotated tag 需要 tagger 身份；原「Commit version bump」步骤被删除后，
+          # `git config user.name/email` 也随之丢失 → CI 上 `git tag -a` 报
+          # `fatal: unable to auto-detect email address`（2026-11-26 实测：v0.207.0 发布因此失败）。
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           # 安全前提：只给「已在 origin/main 上的提交」打 tag（杜绝孤儿 tag）。
           # 注意：actions/checkout 默认浅克隆且**不一定创建 origin/main 远端引用**，
           # 必须先 fetch 再判祖先关系（否则 merge-base 报 unknown revision，把正常发布判失败；
