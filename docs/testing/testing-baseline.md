@@ -31,6 +31,14 @@
 > `tests/unit/query/test_adapter_http_discipline.py`（HTTP 超时/Session 关闭/默认参数）。
 > 详见 `docs/plans/2026-11-25-final-debt-inventory.md` 与 `docs/plans/2026-11-25-deep-scan*.md`。
 
+> **2026-11-25 批次 9 增量（通知 P0 收口）**：新增 3 个测试文件共 **28 例**——
+> `tests/test_notification_tg_markdownv2_link.py`（TG MarkdownV2 链接行转义，内含与实现无关的
+> 极简校验器）、`tests/test_notification_wecom_card_contract.py`（企微 `template_card` 官方必填项 /
+> `vertical_content_list` ≤4 / `desc` ≤112 / 纯文本无 markdown）、
+> `tests/test_notification_aggregate_contract.py`（聚合保留真实 `event_type` / 摘要首行跳过级别前缀 /
+> 日志 `level` 口径 / `normalize_failed` 计数一致 / `open_logs` 接线）。
+> **后端全量计数未在本批重跑**（本批只跑通知相关子集 1600+ 例），留待下一次基线刷新统一复核。
+
 > **2026-11-13 增量（P3-16 / P2-10 / P2-07）**：新增
 > `tests/integration/test_monitor_catchup_e2e.py`（6 例，启动补扫真归档）、
 > `tests/test_p2_10_silent_error_triage.py`（3 例）、`tests/test_check_docs_drift_counts.py`（4 例）

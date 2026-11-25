@@ -477,6 +477,9 @@ class TestScopeOfThisSubStep(unittest.TestCase):
             "scripts/audit_notification_trigger_map.py",
             # 同批新增的"声明式可验证性"契约用例（只读 `verify`/`verify_reason` 并断言闭集自洽）
             "tests/test_event_verify_declaration.py",
+            # 批次 9（2026-11-25）：通知日志接口按「事件声明的唯一级别」真实返回 level（D7-3 修复）。
+            # 该端点**只读**事件声明的 `level`，不派生文案/渠道，属计划内的契约消费方。
+            "docker/api/notification_logs.py",
         }
         self_relative = SPEC_FILE.relative_to(ROOT).as_posix()
         this_file = Path(__file__).resolve().relative_to(ROOT).as_posix()

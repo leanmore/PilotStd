@@ -12,7 +12,7 @@ from typing import Any
 from pilotstd.i18n import t
 
 from .blocks import KeyValueBlock, ListBlock, StatusChangeBlock, TextBlock
-from .renderer_base import BlockRenderer, logger
+from .renderer_base import BlockRenderer, level_prefix, logger
 from .renderer_links import action_label as _action_label
 from .renderer_links import link_actions
 
@@ -126,6 +126,33 @@ class TelegramRenderer(BlockRenderer):
         if not text:
             return ""
         return _TELEGRAM_ESCAPE_CHARS.sub(r"\\\1", text)
+
+    # ── D2：追加段（级别前缀/详情链接）的 MarkdownV2 处理 ──
+
+    def _render_level_line(self, level: str) -> str:
+        """级别前缀行：按 MarkdownV2 正文规则转义（前缀文案由 i18n 提供，可能含保留字符）。"""
+        return self._escape(level_prefix(level))
+
+    def _render_detail_line(self, link: str) -> str:
+        """详情链接段：用官方**内联链接语法**渲染（D2 根因修复）。
+
+        **缺陷**（`docs/plans/2026-11-25-p1-notify-refresh.md` §4-D2）：基座在
+        `_render_block()` 逐块转义**之后**才拼接裸 URL，Telegram 未覆盖该段 ⇒ URL 里
+        的 `.`/`-`/`_` 等 MarkdownV2 保留字符未转义，`parse_mode=MarkdownV2` 下
+        Telegram 返回 `HTTP 400: can't parse entities`，7 个带 link 事件**整条丢失**。
+
+        **修法依据**（`https://core.telegram.org/bots/api#markdownv2-style`）：
+        内联链接 `[标签](目标)` 的**目标部分只需转义 `)` 与 `\\`**（其余字符在目标里合法）；
+        标签部分仍按正文规则走 18 字符转义。这样既合法、又让"详情"变成可点击链接
+        （比转义后的裸文本更进一步）。
+        """
+        link = (link or "").strip()
+        if not link:
+            return ""
+        label = self._escape(t("notification.renderer.detail"))
+        # 官方规则：链接目标里 `\\` 必须先转义，再转义 `)`（顺序不能反，否则二次转义）
+        dest = link.replace("\\", "\\\\").replace(")", "\\)")
+        return f"[{label}]({dest})"
 
     def _render_plain_text(self, message: Any) -> str:
         """无 blocks 的纯文本：MarkdownV2 转义 + 补标题（test 发送/简单正文走这里）。"""

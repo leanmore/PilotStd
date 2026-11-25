@@ -18,6 +18,9 @@
      "有失败明细"时的下一步动作就是去日志页看细节；两者同址但**不会同时出现两个同义按钮**；
    · 地址不可用时**不挂动作**，改为追加一段**纯文本提示**（"请前往 Web 端「通知日志」查看"），
      即"按钮变提示"的降级（用户裁定允许的三种降级之一）。
+3. `with_failed_items()`：把 payload 的失败明细搬到消息字段（D9 修复；构建出口唯一搬运点）。
+   此前 `message.failed_items` **没有生产者**，导致上面的 `open_logs` 分支与
+   `notification_log.failed_items` 列（失败明细端点）都是死路径。
 
 **不做**：不猜 URL（不拼接未配置的域名、不用请求头里的 Host），不生成相对路径
 （聊天客户端里相对路径无意义，等于坏链）。
@@ -123,6 +126,15 @@ class _LinkMessage(Protocol):
     link: "str | None"
 
 
+class _FailedItemsMessage(Protocol):
+    """只要求 `failed_items` 字段的消息协议（D9 搬运用；同样不反向依赖 `channel`）。"""
+
+    failed_items: list[dict[str, str]]
+
+
+_FailedItemsT = TypeVar("_FailedItemsT", bound="_FailedItemsMessage")
+
+
 def absolute_link(base: str, link: str) -> str:
     """把站内相对路径补成绝对地址；已是绝对地址原样返回；无基址则返回空串。
 
@@ -145,4 +157,33 @@ def absolutize_message_link(message: T, config: Any) -> T:
         return message
     base = resolve_web_base(config)
     message.link = absolute_link(base, link) or None
+    return message
+
+
+def with_failed_items(message: _FailedItemsT, data: Any) -> _FailedItemsT:
+    """把 payload 的失败明细搬到 `message.failed_items`（D9：构建出口唯一搬运点）。
+
+    **为什么需要**：`attach_web_actions()` 的 `open_logs` 分支与
+    `notification_log.failed_items` 列都读这个字段，但此前**全库没有构建器设置它**
+    （失败明细只渲染进 `ListBlock`）⇒ `open_logs` 永不触发、失败明细端点恒空。
+    在构建出口（`manager._build_message`）统一搬运，避免逐个构建器重复实现。
+
+    **口径**：构建器已显式设置时**不覆盖**（保留业务方语义）；payload 形状异常时
+    **不静默**（G-050：记开发者告警，字段保持默认空列表）。
+    """
+    if getattr(message, "failed_items", None):
+        return message
+    raw = data.get("failed_items") if isinstance(data, dict) else None
+    if not raw:
+        return message
+    if not isinstance(raw, list):
+        logger.warning("failed_items payload ignored (unexpected type: %s)", type(raw).__name__)
+        return message
+    items = [
+        {str(k): ("" if v is None else str(v)) for k, v in item.items()}
+        for item in raw
+        if isinstance(item, dict)
+    ]
+    if items:
+        message.failed_items = items
     return message

@@ -14,6 +14,7 @@ from pydantic import BaseModel
 
 from pilotstd.core.notification._json_codec import loads_dict as _loads_dict
 from pilotstd.core.notification._json_codec import loads_list as _loads_list
+from pilotstd.core.notification.event_spec import EVENT_SPECS
 from pilotstd.i18n import t
 
 from ..auth import get_current_role, require_role
@@ -130,12 +131,36 @@ def task_context_view(raw: str, cfg) -> dict:
     keys = cfg.get("notification.logs.task_context_whitelist", []) or []
     return {k: data[k] for k in keys if k in data}
 
-def _business_level(event_type: str) -> str:
-    """业务级别：渠道投递成功不代表任务成功。"""
-    if event_type == "security_alert":
-        return "warning"
-    if event_type == "task_failure":
-        return "error"
+
+# 事件声明里「级别唯一」的事件 ⇒ 该级别就是**真实级别**（多级别事件无法从日志表还原，
+# 见 `_business_level` docstring；`levels` 是源事件的闭集，不是运行时分支结果）。
+_UNIQUE_EVENT_LEVELS: dict[str, str] = {
+    spec.key: spec.levels[0] for spec in EVENT_SPECS if len(spec.levels) == 1
+}
+
+
+def _business_level(event_type: str, notify_event: str = "") -> str:
+    """业务级别：渠道投递成功不代表任务成功（列表与分布接口共用同一口径）。
+
+    **修复背景（D7-3）**：旧实现只拿 `event_type` 与 `security_alert`/`task_failure`
+    两个**类别名**比较，而非聚合行的 `event_type` 是**真实事件名**（如 `download_failed`）
+    ⇒ level 恒 `info`，前端告警着色失效。现按三级口径判定：
+
+    1. `event_type` 在事件声明中**级别唯一** ⇒ 直接取真实级别（最准）；
+    2. 类别名映射（优先 `notify_event`；兼容旧行 `event_type` 本身就是类别名）；
+    3. 其余 `info`。
+
+    已知边界：多级别事件（同一事件按分支产生 info/warning/error）的真实级别**未落库**
+    （`notification_log` 无 level 列），只能落到第 2 步的类别映射；彻底修复需加列迁移。
+    """
+    declared = _UNIQUE_EVENT_LEVELS.get(event_type or "")
+    if declared:
+        return declared
+    for name in (notify_event or "", event_type or ""):
+        if name in ("security_alert", "anomaly_alert"):
+            return "warning"
+        if name == "task_failure":
+            return "error"
     return "info"
 
 
@@ -192,8 +217,9 @@ def get_logs(
                 "body": r["body"],
                 "standard_number": r["standard_number"],
                 "status": r["status"],
-                # 投递状态与业务级别分开：安全告警/任务失败即使渠道投递成功也标 warning/error
-                "level": _business_level(r["event_type"]),
+                # 投递状态与业务级别分开：安全告警/任务失败即使渠道投递成功也标 warning/error。
+                # D7-3：非聚合行的 `event_type` 是真实事件名，必须连同 `notify_event` 一起判定。
+                "level": _business_level(r["event_type"], r.get("notify_event") or ""),
                 "error_msg": r["error_msg"],
                 "sent_at": r["sent_at"],
                 "is_read": r.get("is_read", 0),
@@ -352,10 +378,11 @@ def get_log_level_distribution(
         from collections import Counter
 
         rows = nmgr.ops._db.fetchall(  # noqa: SLF001 - ops 无公开的分布接口
-            "SELECT event_type FROM notification_log WHERE sent_at >= datetime('now', ?)",
+            # D7-3：`notify_event` 参与 level 判定（只有 event_type 会恒 info）
+            "SELECT event_type, notify_event FROM notification_log WHERE sent_at >= datetime('now', ?)",
             (f"-{days} days",),
         )
-        dist = Counter(_business_level(r["event_type"]) for r in rows)
+        dist = Counter(_business_level(r["event_type"], r.get("notify_event") or "") for r in rows)
         by_event = Counter(r["event_type"] for r in rows)
         return {
             "days": days,
@@ -365,7 +392,9 @@ def get_log_level_distribution(
             "by_event_type": dict(by_event.most_common(50)),
             "level_rule": {
                 "security_alert": "warning",
+                "anomaly_alert": "warning",
                 "task_failure": "error",
+                "declared_unique_level": "event-declared unique level",
                 "default": "info",
             },
         }

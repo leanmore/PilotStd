@@ -73,7 +73,12 @@ def test_incomplete_credentials_return_none() -> None:
 
 
 def test_notify_security_event_delivers_via_app_form(monkeypatch: Any) -> None:
-    """整链路：应用形态凭据下直连投递走模板卡片，不再被静默跳过。"""
+    """整链路：应用形态凭据下直连投递**确实走应用消息**，不再被静默跳过。
+
+    D1（批次 9）起：直连路径没有站内入口/config 上下文 ⇒ 消息无合法 `card_action`，
+    `news_notice` 卡片必填项不满足（且凭空造占位动作等于给用户死链）⇒ 渠道按设计
+    改发**应用 markdown 消息**（D3）。核心断言仍是"应用形态参与投递、不静默丢"。
+    """
     sent: list[dict] = []
     _stub_http(monkeypatch, sent)
 
@@ -90,7 +95,9 @@ def test_notify_security_event_delivers_via_app_form(monkeypatch: Any) -> None:
     )
     assert failed == [], f"应用形态不应计失败：{failed}"
     assert sent_channels == ["wechat"], f"应用形态渠道未参与直连投递：{sent_channels}"
-    assert sent and sent[0]["msgtype"] == "template_card", f"未走应用形态：{sent}"
+    assert sent, "应用形态未发出任何应用消息"
+    assert sent[0]["msgtype"] == "markdown", f"无合法卡片动作时应发 markdown：{sent[0]}"
+    assert sent[0]["markdown"]["content"].strip(), "markdown 内容不得为空"
 
 
 def test_app_form_keeps_webhook_url_for_fallback(monkeypatch: Any) -> None:

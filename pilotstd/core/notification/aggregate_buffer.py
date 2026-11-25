@@ -34,7 +34,7 @@ from copy import deepcopy
 from pilotstd.i18n import t
 
 from .channel import NotificationMessage
-from .renderer import _fallback_text
+from .renderer import _fallback_text, level_prefix
 
 # ── 分组键语义（实现在 `aggregate_keys.py`；T-41/4 拆分，此处**再导出** + 薄委托，保持既有用法）──
 # `__all__` 必须收录再导出名，否则 `ruff --fix` 会按「未使用」删除它们（T-41/3 实测教训）。
@@ -90,6 +90,22 @@ _PREVIEW_CHARS = 60  # 每条摘要保留的首行字符数
 
 # 每个条目在缓冲中的存储结构
 _Entry = tuple[NotificationMessage, list[str], float]  # (msg, channels, enqueued_at)
+
+
+def _first_content_line(rendered: str, level: str, title: str) -> str:
+    """取渲染结果的**首个内容行**（跳过级别前缀行；D7-2）。
+
+    多条聚合摘要此前用 `render(msg).split("\\n")[0]`：warning/error 消息的首行是
+    `level_prefix()`（如 `⚠️ 警告`）⇒ 摘要退化成 N 行级别前缀，真实内容全丢
+    （生产实证 `notification_log` id=4619）。改为跳过与外层一致的前缀行后取首个非空行；
+    渲染为空时回退标题、再兜底固定占位。单条聚合路径不走本函数（保留全文）。
+    """
+    prefix = level_prefix(level)
+    for line in (rendered or "").splitlines():
+        text = line.strip()
+        if text and text != prefix:
+            return text
+    return title or _fallback_text()
 
 
 class NotificationAggregator:
@@ -446,7 +462,13 @@ class NotificationAggregator:
             level=self._worst_level(entries),
             standard_number=first_msg.standard_number,
             standard_name=getattr(first_msg, "standard_name", None),
-            event_type=event_type,
+            # D7-1：`event_type` **取首条的真实事件名**（此前取类别名——日常桶键把
+            # `event_type` 写成 `daily`、批次键写成 `batch_summary`，落库后真实事件名丢失，
+            # 日志接口的 level 判定因此恒 info）。类别名仍可从 `notify_event` 取。
+            event_type=first_msg.event_type or event_type,
+            # D9：失败明细随聚合**合并**（否则聚合路径的 `open_logs` 与
+            # `notification_log.failed_items` 仍是死路径）；列表元素是四列口径字典，直接拼接。
+            failed_items=[item for entry_msg, _ch, _ts in entries for item in (entry_msg.failed_items or [])],
             user_id=first_msg.user_id,
             delivery_user_id=first_msg.delivery_user_id,
             link=first_msg.link,
@@ -502,9 +524,8 @@ class NotificationAggregator:
 
         lines: list[str] = [t("notification.aggregated.body.header").format(n=len(entries))]
         for msg, _ch, _ts in entries[:_PREVIEW_ITEMS]:
-            rendered = self._renderer.render(msg)
-            first_line = (
-                rendered.split("\n")[0].strip() if rendered else (msg.title or _fallback_text())
+            first_line = _first_content_line(
+                self._renderer.render(msg), getattr(msg, "level", ""), msg.title or ""
             )
             lines.append(
                 t("notification.aggregated.body.item").format(line=first_line[:_PREVIEW_CHARS])
