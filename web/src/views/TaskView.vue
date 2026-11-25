@@ -525,11 +525,11 @@ function stepSeverity(s: string) {
   flex-shrink: 0;
 }
 /* TODO: [Design Debt] A-52 — #fff 无精确令牌，暂不替换，待定令牌后统一处理 */
-.step.done .step-indicator { background: var(--success, #10b981); color: #fff; }
+.step.done .step-indicator { background: var(--success); color: #fff; }
 /* TODO: [Design Debt] A-52 — #fff 无精确令牌，暂不替换，待定令牌后统一处理 */
 .step.running .step-indicator { background: var(--primary-fill); color: var(--text-on-primary); }
 /* TODO: [Design Debt] A-52 — #fff 无精确令牌，暂不替换，待定令牌后统一处理 */
-.step.fail .step-indicator { background: var(--danger, #ef4444); color: #fff; }
+.step.fail .step-indicator { background: var(--danger); color: #fff; }
 
 .step-info { flex: 1; min-width: 0; }
 .step-label { font-size: var(--font-size-14); font-weight: var(--font-weight-medium); color: var(--text-heading); }
@@ -541,8 +541,8 @@ function stepSeverity(s: string) {
 .sum-item { display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-10); background: var(--bg); border-radius: var(--radius-sm); }
 .sum-label { font-size: var(--font-size-12); color: var(--text-dim); }
 .sum-val { font-size: var(--font-size-18); font-weight: var(--font-weight-semibold); color: var(--text-heading); font-family: var(--mono); }
-.border-bottom { border-bottom: 1px solid var(--border-light, #e5e7eb); }
-.text-dim { color: var(--text-dim, #6b7280); }
-.text-mono { font-family: var(--mono, 'Consolas', 'Courier New', monospace); }
+.border-bottom { border-bottom: 1px solid var(--border-light); }
+.text-dim { color: var(--text-dim); }
+.text-mono { font-family: var(--mono); }
 .mt-2 { margin-top: var(--space-12); }
 </style>

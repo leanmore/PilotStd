@@ -102,7 +102,9 @@
 
 **2026-11-26 版本门禁修正**：`.github/workflows/ci.yml` 的「版本号 bump 校验」改为仅 `pull_request` 事件强制（push 事件交给 version job 的 `bump_version.py --check`），避免把已合并 PR 的 feat/fix 提交重复判违规。
 
-**2026-11-25 适配器节点 A2 补记**：新增 `scripts/smoke_adapters.py`（4 站冒烟，默认离线、`--live` 联网），离线一致性由 `tests/test_adapter_site_conformance.py` 锁定；福建站仍 BLOCKED（全端口 TCP 超时）。该脚本**不参与任何门禁模式**，与 `scripts/encrypt_config_secrets.py` 同为运维/诊断脚本。发布 tag 步骤补记**：.github/workflows/ci.yml 的 tag 步骤先 git fetch origin main 再判祖先（浅克隆下 origin/main 引用可能不存在）；教训见 docs/ci-lessons.md。
+**2026-11-25 适配器节点 A2 补记**：新增 `scripts/smoke_adapters.py`（4 站冒烟，默认离线、`--live` 联网），离线一致性由 `tests/test_adapter_site_conformance.py` 锁定；福建站仍 BLOCKED（全端口 TCP 超时）。该脚本**不参与任何门禁模式**，与 `scripts/encrypt_config_secrets.py` 同为运维/诊断脚本。发布 tag 步骤补记**：.github/workflows/ci.yml 的 tag 步骤先 git fetch origin main 再判祖先（浅克隆下 origin/main 引用可能不存在）；教训见 docs/ci-lessons.md。A-52 方案 a 补记**：清理 **32 处死 fallback**（`var(--已定义令牌, 字面量)` → `var(--令牌)`，令牌在四主题均有定义 → 视觉零变化）；同步 `scripts/design_token_baseline.json` 收紧基线（G-055 过期提示 62 → **0**）。
+
+**2026-11-25 适配器节点 A2 补记**：新增 `scripts/smoke_adapters.py`（4 站冒烟，默认离线、`--live` 联网），离线一致性由 `tests/test_adapter_site_conformance.py` 锁定；福建站仍 BLOCKED（全端口 TCP 超时）。该脚本**不参与任何门禁模式**，与 `scripts/encrypt_config_secrets.py` 同为运维/诊断脚本。
 
 **2026-11-25 版本号流程补记**：`scripts/bump_version.py` / `scripts/check_version_bump.py` 引入后，探针与发版测试不得写死版本号（`tests/ops/test_probe_scripts.py` 已改为动态读取 `VERSION`）。
 

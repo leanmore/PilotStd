@@ -91,7 +91,7 @@
 
 /* 错误消息 */
 .error { color: var(--danger); font-size: var(--font-size-12); }
-.err-msg { color: var(--danger, #e74c3c); font-size: var(--font-size-12); margin-left: var(--space-8); }
+.err-msg { color: var(--danger); font-size: var(--font-size-12); margin-left: var(--space-8); }
 
 /* 辅助文字 */
 .text-dim { color: var(--text-dim); font-size: var(--font-size-13); }
@@ -102,7 +102,7 @@
 .mt-2 { margin-top: var(--space-8); }
 
 /* 边框 */
-.border-bottom { border-bottom: 1px solid var(--border-light, #e5e7eb); }
+.border-bottom { border-bottom: 1px solid var(--border-light); }
 
 /* 字段集分隔 */
 /* TODO: [Design Debt] A-52 — 12px 无精确令牌，暂不替换，待定令牌后统一处理 */

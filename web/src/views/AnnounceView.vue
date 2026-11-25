@@ -233,7 +233,7 @@ function onPage(e: any) {
 
 <style scoped>
 .header { display: flex; align-items: center; gap: var(--space-12); flex-wrap: wrap; }
-.err-msg { color: var(--danger, #e74c3c); font-size: var(--font-size-12); margin: var(--space-4) 0; }
+.err-msg { color: var(--danger); font-size: var(--font-size-12); margin: var(--space-4) 0; }
 /* 起始日期说明改为图标 + Tooltip：颜色/字号/间距全部取 design-tokens.css，不写字面量 */
 .since-hint-icon {
   font-size: var(--font-size-13);
@@ -247,10 +247,10 @@ function onPage(e: any) {
 
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: var(--space-12); }
 .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-14) var(--space-16); text-align: center; }
-.fail-panel { border: 1px solid var(--danger, #e74c3c); border-radius: var(--radius); padding: var(--space-10) var(--space-14); background: var(--surface); }
-.fail-head { color: var(--danger, #e74c3c); font-size: var(--font-size-13); font-weight: var(--font-weight-semibold); }
+.fail-panel { border: 1px solid var(--danger); border-radius: var(--radius); padding: var(--space-10) var(--space-14); background: var(--surface); }
+.fail-head { color: var(--danger); font-size: var(--font-size-13); font-weight: var(--font-weight-semibold); }
 .fail-list { list-style: none; margin: var(--space-8) 0 0; padding: 0; }
-.fail-list li { display: flex; gap: var(--space-10); font-size: var(--font-size-12); color: var(--text); padding: var(--space-4) 0; border-top: 1px solid var(--border-light, #e5e7eb); }
+.fail-list li { display: flex; gap: var(--space-10); font-size: var(--font-size-12); color: var(--text); padding: var(--space-4) 0; border-top: 1px solid var(--border-light); }
 .fail-site { min-width: 90px; color: var(--text-dim); }
 .fail-msg { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fail-time { min-width: 130px; color: var(--text-dim); text-align: right; }
@@ -258,7 +258,7 @@ function onPage(e: any) {
 .stat-num { font-size: var(--font-size-28); font-weight: var(--font-weight-bold); color: var(--text-heading); font-family: var(--mono); }
 .stat-label { font-size: var(--font-size-12); color: var(--text-dim); margin-top: var(--space-4); }
 .stat-sub { font-size: var(--font-size-11); color: var(--text-dim); margin-top: var(--space-6); line-height: var(--line-height-normal); }
-.border-bottom { border-bottom: 1px solid var(--border-light, #e5e7eb); }
+.border-bottom { border-bottom: 1px solid var(--border-light); }
 .announce-row { cursor: pointer; transition: background 0.15s; }
 .announce-row:hover { background: var(--selected); }
 </style>
