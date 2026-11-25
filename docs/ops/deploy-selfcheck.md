@@ -292,3 +292,61 @@ G-28 / G-33 / G-35 的「演练 → 取证 → 授权 → 全量 → 回滚」�
   → 按现行规则直跑将丢失 **15,755 条「被替代」关系**（15,163 行受影响）；
 - 详细口径、样本与三个可选规则见 `docs/plans/2026-11-25-c3-dryrun-superseded.md`；
 - **结论：`--apply` 需在规则确认后执行**（推荐方案 A：目标行存在才清除，零丢失）。
+
+## 十、v0.207.0 部署后专项验收（2026-11-26 新增）
+
+> 本版本一次性合入了批次 9/10/11/12/13 与发布机制修复。部署后按本清单逐项复验（只读）。
+
+### 10.1 版本与发布（必需）
+
+| 检查 | 期望 |
+|---|---|
+| `GET /api/health` 的 `version` | 镜像 sha（本次为 `4a4f9659…`） |
+| `GET /api/system/version` 的 `version` | **`0.207.0`**（不再是 0.206.0） |
+| 远端 tag | `v0.207.0` 指向 main 提交（非孤儿） |
+
+### 10.2 批次 9 通知（P0）
+
+| 检查 | 期望 |
+|---|---|
+| TG 带 link 事件（7 个）真实发送 | 无 `can't parse entities` 400、不整条丢失 |
+| 企微卡片（`web_base_url` 已配置） | 返回 `errcode=0`；不降级为文本 |
+| 卡片被拒时的降级 | `msgtype=markdown`（不是把 markdown 源码当 text 发） |
+| 聚合通知 | 日志 `event_type` 为真实事件名；首行不是裸级别前缀 |
+
+### 10.3 批次 10 编号识别（P1）
+
+| 检查 | 期望 |
+|---|---|
+| `ASME PTC 4-2013` / `ASME CSD-1-2024` | 解析出 `num_prefix=PTC/CSD`，路由 `asme`（不落 `ahbz/njbz365`） |
+| `API SPEC 6D-2021` / `API TR 938-C` / `API 579-1/ASME FFS-1` | 后缀/part 保留，路由 `api_webstore` |
+| 离线冒烟 | `python scripts/smoke_adapters.py` 输出与 `docs/plans/2026-11-25-adapters-phase1-a2-report.md` 一致 |
+
+### 10.4 批次 11 状态口径（P0）
+
+| 检查 | 期望 |
+|---|---|
+| `GET /api/standards/status?status=未生效` | 返回 **20 条**（不是 776 全表） |
+| 同上，与 `?status=即将实施` / `upcoming` | **结果集完全一致** |
+| 非法值（如 `?status=faq`） | **400**（不再静默返回全表） |
+| `GET /api/stats` | `expired=174 / upcoming=30 / current=572`（C3 清洗后 未生效 已并入 即将实施） |
+
+### 10.5 批次 12 数据治理（已执行，复验）
+
+| 检查 | 期望 |
+|---|---|
+| `file_index` 状态分布 | 无 `未生效` 行（已清洗为 `即将实施` 30 条） |
+| `superseded_by` 方向 | 「方向倒退且目标存在」的残留值 = 0 |
+| `favorite_downloads` 孤儿行 | 0 |
+| `notification_log` 归属 | `user_id=1` 仅剩真实用户动作（14 条 `user_activity`） |
+| `pending` 文件缺失 | `mark-missing(protect=false)` 已执行（checked 61 / updated 28 / forced） |
+
+### 10.6 探针基线（部署后应达到）
+
+```bash
+python scripts/ops/probe_all.py --base-url http://192.168.1.18:9028
+python scripts/ops/probe_batch1.py --base-url http://192.168.1.18:9028
+```
+
+期望：`health 8/8`、`db_counts 13/13`、`batch1 10 通过/0 失败`；
+`pending` 的 `mass_delete_guard` 检查因已完成标记不再作为阻断（如仍报 fail，按 §七-B 数据治理处理）。
