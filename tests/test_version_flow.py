@@ -163,3 +163,12 @@ def test_ops_scope_does_not_require_bump(tmp_path) -> None:  # noqa: ANN001
     _git(repo, "commit", "-qm", "feat(ops): 新增只读验收脚本")
     head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=str(repo), capture_output=True, text=True).stdout.strip()
     assert _run_check(repo, f"{base}..{head}", tmp_path) == 0
+
+def test_version_py_ignores_infra_scopes() -> None:
+    """``scripts/version.py`` 与门禁同口径：``feat(ops)``/``fix(ci)`` 不触发行版本 bump。"""
+    from version import bump_version  # noqa: PLC0415
+
+    assert bump_version("0.207.0", ["feat(ops): 验收脚本"]) is None
+    assert bump_version("0.207.0", ["fix(ci): 流水线修复"]) is None
+    assert bump_version("0.207.0", ["feat(core): 新功能"]) == "0.208.0"
+    assert bump_version("0.207.0", ["fix(web): 修缺陷"]) == "0.207.1"
