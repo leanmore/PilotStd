@@ -1047,3 +1047,9 @@ P1-5 复核（`docs/plans/2026-11-25-p1-unknown-refresh.md` §5.1/§5.3）暴露
 - `web/public/notification-card.png` 是 1×1 透明占位图（`card_image` 必填但通知无配图）；
   若将来支持真实配图，替换该静态资源即可，无需改代码。
 
+### 企微卡片边界（2026-11-25，批次 9 合并注记）
+
+- `web_base_url` 未配置时，企微**不发 `news_notice` 卡片**（`card_action` 必填但没有合法动作 URL），
+  改发应用 `msgtype=markdown`；配置后 44/44 事件走合法卡片。
+- 卡片占位图用站内 `web/public/notification-card.png`（随 Web 构建进 `dist/`，缺失只影响空白不影响契约）。
+- 卡片列表硬上限：`vertical_content_list` ≤4、`jump_list` ≤3、`desc` ≤112 字符；超限截断并带「共 N 条」尾行。
