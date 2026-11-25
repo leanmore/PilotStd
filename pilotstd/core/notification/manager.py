@@ -13,7 +13,7 @@ from ..db import Database
 from . import _channel_registry, _dispatcher, _suppression_queue
 from ._credentials import CredentialHelper
 from ._format_utils import do_test_send, format_standard_status_changed_aggregated
-from ._links import absolutize_message_link
+from ._links import absolutize_message_link, with_failed_items
 from ._manager_ops import NotificationOps
 from ._message_builders import _build_fallback_message
 from ._policy import NotificationPolicyHelper
@@ -421,7 +421,7 @@ class NotificationManager:
         if builder is not None:
             # 注册表由规格派生，取值的静态类型较宽（未定型）；用具名类型局部变量
             # 收口，避免把未定型值直接返回（不使用忽略指令或强制转换）。
-            message: NotificationMessage = builder(data)
+            message: NotificationMessage = with_failed_items(builder(data), data)
             return absolutize_message_link(message, self._cfg)
         return absolutize_message_link(_build_fallback_message(event_type, data), self._cfg)
 

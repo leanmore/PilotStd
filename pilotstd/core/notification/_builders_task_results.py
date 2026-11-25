@@ -209,6 +209,10 @@ def _build_normalize_failed_message(data: dict) -> NotificationMessage:
     无明细时保持原正文形态（零回归），复用 `_builders_batch.build_failed_items_block`。
     """
     total = data.get("total", 0)
+    failed = data.get("failed_items") or []
+    # D8：正文的"N 条规范化失败"必须与明细块**同口径**——producer 的 `total` 是批次总数，
+    # 而 `failed_items` 只带"当前正在处理的那条"；有明细时以明细条数为准（无明细保持旧口径）。
+    total = len(failed) if failed else total
     friendly_error = translate_error_message(data.get("error", ""))
     blocks: list[NotificationBlock] = [
         TextBlock(
