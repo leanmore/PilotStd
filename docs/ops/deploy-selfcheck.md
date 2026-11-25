@@ -320,16 +320,16 @@ G-28 / G-33 / G-35 的「演练 → 取证 → 授权 → 全量 → 回滚」�
 |---|---|
 | `ASME PTC 4-2013` / `ASME CSD-1-2024` | 解析出 `num_prefix=PTC/CSD`，路由 `asme`（不落 `ahbz/njbz365`） |
 | `API SPEC 6D-2021` / `API TR 938-C` / `API 579-1/ASME FFS-1` | 后缀/part 保留，路由 `api_webstore` |
-| 离线冒烟 | `python scripts/smoke_adapters.py` 输出与 `docs/plans/2026-11-25-adapters-phase1-a2-report.md` 一致 |
+| 离线冒烟 | `python scripts/smoke_adapters.py` 输出与 A2 报告一致 |
 
 ### 10.4 批次 11 状态口径（P0）
 
 | 检查 | 期望 |
 |---|---|
-| `GET /api/standards/status?status=未生效` | 返回 **20 条**（不是 776 全表） |
+| `GET /api/standards/status?status=未生效` | 返回 **30 条**（= 即将实施 20 + C3 清洗并入 10；不是 776 全表） |
 | 同上，与 `?status=即将实施` / `upcoming` | **结果集完全一致** |
 | 非法值（如 `?status=faq`） | **400**（不再静默返回全表） |
-| `GET /api/stats` | `expired=174 / upcoming=30 / current=572`（C3 清洗后 未生效 已并入 即将实施） |
+| `GET /api/stats` | `expired=174 / upcoming=30 / current=572`（C3 清洗后未生效已并入即将实施） |
 
 ### 10.5 批次 12 数据治理（已执行，复验）
 
@@ -350,3 +350,13 @@ python scripts/ops/probe_batch1.py --base-url http://192.168.1.18:9028
 
 期望：`health 8/8`、`db_counts 13/13`、`batch1 10 通过/0 失败`；
 `pending` 的 `mass_delete_guard` 检查因已完成标记不再作为阻断（如仍报 fail，按 §七-B 数据治理处理）。
+
+### 10.7 一键验收脚本
+
+```bash
+python scripts/ops/probe_v0207.py --base-url http://192.168.1.18:9028
+```
+
+该脚本**只读**，自动核对 §10.1-10.5 的 11 项（版本 sha / system_version=0.207.0 /
+未生效与即将实施结果集相等且非全表 / 非法值 400 / file_index 无未生效 / 收藏无孤儿 /
+A-40 归零 / stats expired≥170 / 四桶守恒），退出码 0 = 全绿。
