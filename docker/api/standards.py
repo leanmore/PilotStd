@@ -3,7 +3,7 @@
 # ///→分页列表（含筛选）
 import logging
 
-from fastapi import Depends, Query
+from fastapi import Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
 from pydantic import BaseModel
@@ -46,9 +46,6 @@ class StandardStatusListResponse(BaseModel):
     page_size: int
     items: list[StandardStatusItem]
 
-# 对外 API 的合法状态取值（由状态字典派生；A 阶段 #32-A 建立、C 阶段继续作为契约常量）
-_VALID_STATUSES = status_dict.API_VALID_STATUSES
-
 
 @router.get("/api/standards/status/stats", response_model=StandardStatusStatsResponse)
 def get_status_stats(mgr=Depends(get_manager_dep)):
@@ -71,7 +68,13 @@ def get_status_stats(mgr=Depends(get_manager_dep)):
 
 @router.get("/api/standards/status", response_model=StandardStatusListResponse)
 def get_standards_status(
-    status: str | None = Query(None, description="英文键（active/withdrawn/unknown）或历史中文值（现行/已废止/未知）"),
+    status: str | None = Query(
+        None,
+        description=(
+            "英文键（active/upcoming/withdrawn/unknown 等）或历史中文值"
+            "（现行/即将实施/废止/未知 等）；历史别名 未生效=即将实施"
+        ),
+    ),
     standard_no: str | None = Query(None),
     name: str | None = Query(None),
     page: int = Query(1, ge=1),
@@ -82,11 +85,28 @@ def get_standards_status(
 
     **响应契约**：每个 item 同时给出 `status`（数据值，中文，向后兼容）与
     `status_key`（稳定英文键，前端据此比较/取样式，不再比较中文文案）。
-    `status` 查询参数两种写法都接受（`active` 或 `现行`）。
+
+    **过滤契约**（与 `pilotstd.core.status.API_FILTER_ACCEPTED_VALUES` 同源，单一事实源）：
+    `status` 查询参数接受三类写法：
+    - 英文契约键：`active` / `upcoming` / `withdrawn` / `superseded` / `voided` /
+      `expired` / `pending` / `unknown`；
+    - 历史中文值：`现行` / `即将实施` / `废止` / `已废止` / `被代替` / `作废` /
+      `过期` / `待确认` / `未知`（旧前端 / 老书签）；
+    - 历史兼容别名：`未生效`（= `即将实施`，C3 存量清洗后自然收敛）。
+
+    **无法识别的非空取值显式返回 400**，不再静默忽略过滤条件（P1-5 §5.1 的 P0 缺陷：
+    旧实现下 `?status=未生效` 会返回全表）；空值 / 纯空白 = 「不筛选」。
     """
+    raw_status = (status or "").strip()
+    if raw_status and not status_dict.is_valid_status_filter(raw_status):
+        # P0 防复发核心：过滤值非法必须显式失败，而不是静默退化成「全表」
+        raise HTTPException(
+            status_code=400,
+            detail=f"无法识别的状态过滤值: {status}",  # i18n-allow: API 错误文案（同文件既有风格）
+        )
     try:
         filters: dict[str, str] = {}
-        resolved = status_dict.resolve_status_filter(status)
+        resolved = status_dict.resolve_status_filter(raw_status or None)
         if resolved:
             filters["status"] = resolved
         keyword = standard_no or name or None

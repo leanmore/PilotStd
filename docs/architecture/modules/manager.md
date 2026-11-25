@@ -382,6 +382,25 @@ getsize → parse(basename)                              ← 都廉价
 效果：`inactive 116 → 174`、`unknown 88 → 30`、`?status=voided` 仍单独返回 58 条、总数守恒 776。
 **口径修正非数据变化**，发布说明需注明。回归：`tests/test_standard_service.py`。
 
+## 状态口径收口：`unknown` 显式分桶 + 写入端归一（2026-11-25，批次 11）
+
+A1（上节）只修了 `作废` 这个**具体值**，没有修「四值之外即未知」的**补集机制**（P1-5 §5.2）。
+本批把口径收敛成显式枚举，并把洞堵在写入端：
+
+| 项 | 修前 | 修后 |
+|---|---|---|
+| `get_stats()` 分桶 | 四值之外全部计入「未知」（静默、无告警） | `_STATUS_BUCKETS` 显式枚举三桶（现行 / 已废止 / 未知；废止族含双拼写）；枚举外值仍计入「未知」但 **`logger.warning` 一次**（带取值计数 + 最多 3 条样本标准号，按服务实例去重） |
+| `_map_filter_status()` | 手写四值 `IN`/`NOT IN` | 由 `_STATUS_BUCKETS` 派生 `_STATUS_FILTER_VALUES`（排除展示拼写 `已废止`）；「未知」筛选 = 非未知桶的补集 |
+| 写入端 `file_index.status` | `organizer.py` 原样写 `effect_status`（`未生效` 透传） | `normalize_status_for_write()` 统一归一：`未生效 → 即将实施`、`已废止 → 废止`；枚举外且无别名的值原样保留（存量治理属批次 12） |
+| 新增枚举值 | 会被静默吞进「未知」 | 必须显式进 `_STATUS_BUCKETS`，否则 `TestExplicitStatusBuckets` 红 + 生产告警 |
+
+**不变**：`unknown` 卡片数字仍含 `即将实施`（20）+ 存量 `未生效`（10）= 30，直到批次 12 清洗；
+本次修的是「机制可见性」与「不再再生」，不是立刻归零。
+
+**回归**：`tests/test_standard_service.py::TestExplicitStatusBuckets`（枚举归桶守卫 / 分桶口径 /
+筛选同源 / 枚举外告警一次带样本 / 合法值不告警）、
+`tests/unit/manager/organize/test_organizer_status_normalize.py`（写入端归一 11 例）。
+
 ## 通知事件补对象（2026-11-24，P1-6 P1-5）
 
 5 个事件此前只说「失败/未命中/没新增」，缺少可定位的对象，已补 payload 与渲染：

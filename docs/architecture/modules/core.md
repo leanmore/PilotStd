@@ -896,6 +896,29 @@ G-012 的 `[LANG]` 检查要求注释全部用中文，但会**先剔除反引�
 口径：**废止族 = 废止 + 被代替 + 作废**；`unknown` 为三分类补集。
 回归：`tests/unit/core/test_file_index_query_snapshot.py::test_voided_counted_in_expired`。
 
+## 状态口径：`未生效` 读取侧别名 + API 过滤契约单一事实源（2026-11-25，批次 11）
+
+P1-5 复核（`docs/plans/2026-11-25-p1-unknown-refresh.md` §5.1/§5.3）暴露两个口径漏洞，
+本批在 `pilotstd/core/status.py` 收口：
+
+1. **`未生效` 历史兼容别名**：生产 10 条 `file_index.status='未生效'` 的公告口径 **10/10 = 即将实施**
+   （不同数据源对同一语义的两种写法，不是两个状态）。`_STATUS_ALIASES` 增加 `未生效 → 即将实施`，
+   因此 `status_key('未生效')='upcoming'`、`resolve_status_filter('未生效')='即将实施'`，
+   `/api/standards/status?status=未生效` 与 `?status=upcoming` **结果集完全一致**（20 条）。
+   **该别名是历史兼容别名（C3 存量清洗后自然收敛）**：批次 12 清洗后两个入参仍返回同一集合。
+2. **API 过滤契约单一事实源**：新增 `API_FILTER_ACCEPTED_VALUES`（英文契约键 ∪ 9 个中文数据值 ∪
+   历史别名），`API_VALID_STATUSES` 由其派生（此前手写 3 个展示桶、与端点实收 9 值不一致；
+   `docker/api/standards.py` 的死常量 `_VALID_STATUSES` 已删除）。端点对**非空且无法识别**的
+   `status` 显式返回 **400**（此前静默忽略过滤 → `?status=未生效` 返回全表 776，P0）。
+   空值 / 纯空白仍表示「不筛选」。
+3. **写入端归一**：`normalize_status_for_write()` 把 `未生效 → 即将实施`、`已废止 → 废止`
+   （落库拼写保持 DB 既有数据值），由 `manager/organize/organizer.py` 的 `file_index.upsert` 调用。
+
+**契约测试**：`tests/unit/core/test_status_contract.py`（枚举 × 端点接受性、非法值 400、
+`未生效`/`即将实施`/`upcoming` 同集合）；**集成实测**：
+`tests/test_standards_status_caliber.py`（生产分布夹具 776 条：`?status=未生效` → 20 条、
+每条 `status=即将实施`、`status_key=upcoming`；`withdrawn`=174、`voided`=58、`unknown`=30）。
+
 ## 通知渲染：企微模板卡片字段补齐 + auto_backup 跨渠道不对称（2026-11-24，P1-6）
 
 摸底结论：44 个事件里，**企微应用形态（模板卡片）** 比 TG 少核心字段，影响 34/44 事件；

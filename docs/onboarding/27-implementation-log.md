@@ -1582,3 +1582,20 @@ ailed 字段归一、终态词表（completed/cancelled/failed）、result_json 
 - **修法**：正则只匹配行首的 `<script setup ...>` 标签（允许前置空白）。
 - **守护**：新增 `tests/test_check_g_027_define_options.py`（3 条边界：注释不误报 / 真实 setup 缺
   defineOptions 仍报错 / 合规通过）。
+
+### 127. 状态口径 4 项：`未生效` 过滤 P0 / 显式分桶 / API 契约 / 写入端归一（2026-11-25，批次 11）
+
+依据：`docs/plans/2026-11-25-p1-unknown-refresh.md` §5（P1-5 复核，4 处口径漏洞）。
+
+| 项 | 文件 | 行为 | 测试 |
+|---|---|---|---|
+| N1 `?status=未生效` 静默返回全表 776 | `pilotstd/core/status.py`、`docker/api/standards.py` | `_STATUS_ALIASES` 增 `未生效 → 即将实施`（历史兼容别名，C3 后收敛）；端点对非空非法 `status` **显式 400**（空值仍=不筛选） | `tests/unit/core/test_status_contract.py`（别名同集合 / 枚举 × 接受性 / 非法 400）、`tests/test_standards_status_caliber.py`（776 条生产分布夹具：未生效→20、每条 `status=即将实施`/`status_key=upcoming`） |
+| N2 `unknown` 补集吞新值 | `pilotstd/manager/standard_service.py` | `_STATUS_BUCKETS` 显式分桶（现行/已废止/未知）；枚举外值计入未知 + `logger.warning` 一次（带计数 + ≤3 条样本，实例级去重）；筛选由分桶派生 | `tests/test_standard_service.py::TestExplicitStatusBuckets`（枚举归桶守卫 / 告警一次带样本 / 合法值不告警） |
+| N4 `API_VALID_STATUSES` 3 值 vs 实收 9 值 | `pilotstd/core/status.py`、`docker/api/standards.py` | 新增 `API_FILTER_ACCEPTED_VALUES` 单一事实源，`API_VALID_STATUSES` 派生；删除死常量 `_VALID_STATUSES`；docstring 与实际集合一致 | 同上契约测试（枚举 × 端点接受性） |
+| N3 写入端 `effect_status` 透传 | `pilotstd/core/status.py`、`pilotstd/manager/organize/organizer.py` | 新增 `normalize_status_for_write()`（`未生效→即将实施`、`已废止→废止`），`file_index.upsert` 前调用 → 存量清洗后不再再生；**不做生产数据清洗**（批次 12） | `tests/unit/manager/organize/test_organizer_status_normalize.py`（写入端 5 例 + 纯函数 7 例） |
+
+- **红→绿**：先写测试实测 28 failed → 实现后目标套件 107 passed；`tests/unit` 全量 **1139 passed**。
+- **验证**：`status_convergence` 零裸中文字面量（`未生效` 只在 `status.py` 别名表内并带 `# i18n-allow`）；
+  G-047 Python 侧无新增；G-010 行数 `status.py` 164→205、`standard_service.py` 146→246、`standards.py` 109→138，均 <400。
+- **回滚**：还原 `_STATUS_ALIASES`/`API_FILTER_ACCEPTED_VALUES`/`_STATUS_BUCKETS`/`normalize_status_for_write`
+  与端点 400 分支，删除/还原对应测试即可；无 DB/Schema/迁移变更，无生产写库。

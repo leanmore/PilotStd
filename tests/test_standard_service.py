@@ -212,3 +212,94 @@ class TestGetList:
         svc.get_list()
         count_sql = mock_mgr.db.fetchone.call_args[0][0]
         assert "FROM file_index f" in count_sql
+
+
+class TestExplicitStatusBuckets:
+    """N2：`unknown` 从「四值之外即未知」的补集机制改为**显式枚举分桶**。
+
+    背景：`docs/plans/2026-11-25-p1-unknown-refresh.md` §5.2 —— A1 只修了 `作废` 这个
+    具体值，没有修机制；任何枚举外新值都会被静默吞进「未知」、既不报错也不告警。
+    """
+
+    def test_every_status_member_belongs_to_exactly_one_bucket(self):
+        """守卫：新增 `Status` 枚举值必须显式进统计分桶，否则本测试红。"""
+        from pilotstd.manager.standard_service import _STATUS_BUCKETS, _STATUS_TO_BUCKET
+
+        all_bucketed = [member.value for members in _STATUS_BUCKETS.values() for member in members]
+        assert len(all_bucketed) == len(set(all_bucketed)), "同一状态值不得重复归桶"
+        assert set(all_bucketed) == {member.value for member in Status}, "每个枚举值必须且只能归一个桶"
+        assert set(_STATUS_TO_BUCKET) == {member.value for member in Status}
+
+    def test_bucket_mapping_matches_caliber(self):
+        """分桶口径：现行→active；废止族→已废止；其余（即将实施/过期/待确认/未知）→未知。"""
+        from pilotstd.manager.standard_service import _STATUS_TO_BUCKET
+
+        assert _STATUS_TO_BUCKET[Status.ACTIVE.value] == Status.ACTIVE.value
+        for abolished in (Status.WITHDRAWN.value, Status.WITHDRAWN_NORMALIZED.value,
+                          Status.VOIDED.value, Status.SUPERSEDED.value):
+            assert _STATUS_TO_BUCKET[abolished] == Status.WITHDRAWN_NORMALIZED.value
+        for unknown_bucket in (Status.UPCOMING.value, Status.EXPIRED.value,
+                               Status.PENDING.value, Status.UNKNOWN.value):
+            assert _STATUS_TO_BUCKET[unknown_bucket] == Status.UNKNOWN.value
+
+    def test_unknown_filter_derived_from_explicit_buckets(self):
+        """`未知` 筛选的 NOT IN 取值来自显式分桶（而非手写四值清单）。"""
+        from pilotstd.manager.standard_service import _STATUS_FILTER_VALUES, _STATUS_TO_BUCKET
+
+        vals, op = StandardService._map_filter_status(Status.UNKNOWN.value)
+        assert op == "NOT IN"
+        expected = [
+            value
+            for bucket, values in _STATUS_FILTER_VALUES.items()
+            if bucket != Status.UNKNOWN.value
+            for value in values
+        ]
+        assert vals == expected
+        assert all(_STATUS_TO_BUCKET[v] != Status.UNKNOWN.value for v in vals)
+
+    def test_junk_status_counted_in_unknown_and_warned_once(self, mock_mgr, caplog):
+        """枚举外脏值 → 计入未知 + `logger.warning` 一次（带取值与样本），不重复刷屏。"""
+        import logging
+
+        from pilotstd.manager.standard_service import StandardService as _Svc
+
+        mock_mgr.db.fetchall.side_effect = [
+            [
+                {"status": Status.ACTIVE.value, "cnt": 572},
+                {"status": "custom_dirty", "cnt": 3},
+            ],
+            [{"standard_number": "GB/T 99999-2020"}],  # 样本查询
+            [  # 第二次 get_stats 只查分布（同一枚举外值不再重复告警/查样本）
+                {"status": Status.ACTIVE.value, "cnt": 572},
+                {"status": "custom_dirty", "cnt": 3},
+            ],
+        ]
+        svc = _Svc(mock_mgr)
+        caplog.set_level(logging.WARNING, logger="pilotstd.manager.standard_service")
+
+        first = svc.get_stats()
+        second = svc.get_stats()
+
+        assert first["by_status"][Status.UNKNOWN.value] == 3, "枚举外值必须计入未知桶"
+        assert first["total"] == 575
+        assert second["by_status"][Status.UNKNOWN.value] == 3
+        warnings = [rec for rec in caplog.records if rec.levelno == logging.WARNING]
+        assert len(warnings) == 1, "同一枚举外值只告警一次"
+        message = warnings[0].getMessage()
+        assert "custom_dirty" in message
+        assert "GB/T 99999-2020" in message, "告警必须带样本，便于定位脏数据"
+
+    def test_known_statuses_do_not_warn(self, mock_mgr, caplog):
+        """合法枚举值不触发告警（只有枚举外值才告警）。"""
+        import logging
+
+        mock_mgr.db.fetchall.return_value = [
+            {"status": Status.ACTIVE.value, "cnt": 1},
+            {"status": Status.UPCOMING.value, "cnt": 1},
+            {"status": Status.UNKNOWN.value, "cnt": 1},
+        ]
+        svc = StandardService(mock_mgr)
+        caplog.set_level(logging.WARNING, logger="pilotstd.manager.standard_service")
+        svc.get_stats()
+        assert [rec for rec in caplog.records if rec.levelno == logging.WARNING] == []
+

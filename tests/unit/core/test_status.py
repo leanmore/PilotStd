@@ -89,6 +89,9 @@ def test_status_members_are_str_compatible():
         ("", ""),
         (None, ""),
         ("自定义状态", "自定义状态"),  # 未知值不猜测、不改写
+        # 历史兼容别名（P1-5 §3.3）：`未生效` = `即将实施` 的另一种写法，读取侧归一
+        ("未生效", Status.UPCOMING.value),
+        (f" {Status.UPCOMING.value} ", Status.UPCOMING.value),
     ],
 )
 def test_normalize_status(raw, expected):
@@ -138,11 +141,9 @@ def test_named_sets_equal_pre_refactor_literals():
         Status.VOIDED.value,
         Status.PENDING.value,
     }
-    assert status_dict.API_VALID_STATUSES == (
-        Status.ACTIVE.value,
-        Status.WITHDRAWN_NORMALIZED.value,
-        Status.UNKNOWN.value,
-    )
+    # API 契约常量不再是「3 个展示桶」手写清单：由单一事实源派生，见 test_status_contract.py
+    assert set(status_dict.API_VALID_STATUSES) == set(status_dict.API_FILTER_ACCEPTED_VALUES)
+    assert all(member.value in status_dict.API_VALID_STATUSES for member in Status)
 
 
 def test_containers_are_the_shared_sets():
@@ -156,10 +157,6 @@ def test_containers_are_the_shared_sets():
     assert QuerySubsystem._EXPIRE_STATUSES is status_dict.ABOLISHED_STATUSES
     assert FileMover._EXPIRE_STATUSES is status_dict.ABOLISHED_STATUSES_WITH_EXPIRED
     assert ABOLISHED_STATUS_TOKENS is status_dict.ABOLISHED_STATUSES_WITH_EXPIRED
-
-    from docker.api.standards import _VALID_STATUSES as api_valid_statuses
-
-    assert api_valid_statuses is status_dict.API_VALID_STATUSES
 
 
 def test_ui_containers_are_the_shared_sets():
@@ -178,7 +175,12 @@ def test_ui_containers_are_the_shared_sets():
 
 
 def test_api_valid_statuses_is_still_a_tuple():
-    """`API_VALID_STATUSES` 类型保持 tuple（原 `_VALID_STATUSES` 为 tuple，`in` 判定语义不变）。"""
+    """`API_VALID_STATUSES` 类型保持 tuple（历史契约要求），且内容由单一事实源派生。"""
     assert isinstance(status_dict.API_VALID_STATUSES, tuple)
+    # 9 个中文数据值全部是端点合法入参（此前常量只有 3 个展示桶，与实收集合不一致）
     assert Status.ACTIVE.value in status_dict.API_VALID_STATUSES
-    assert Status.WITHDRAWN.value not in status_dict.API_VALID_STATUSES  # 旧拼写不在 API 白名单（与重构前一致）
+    assert Status.WITHDRAWN.value in status_dict.API_VALID_STATUSES  # 历史中文值（旧前端/老书签）
+    assert Status.WITHDRAWN_NORMALIZED.value in status_dict.API_VALID_STATUSES
+    assert "active" in status_dict.API_VALID_STATUSES  # 英文契约键（当前前端发送值）
+    assert "未生效" in status_dict.API_VALID_STATUSES  # 历史兼容别名（C3 清洗后收敛）
+    assert "nonsense" not in status_dict.API_VALID_STATUSES
