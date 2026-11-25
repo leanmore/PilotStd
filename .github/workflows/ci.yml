@@ -1122,9 +1122,13 @@ jobs:
         run: |
           set -e
           TAG="v${{ steps.bump.outputs.version }}"
-          # 安全前提：只给「已存在于 origin/main 的提交」打 tag（杜绝孤儿 tag）
+          # 安全前提：只给「已在 origin/main 上的提交」打 tag（杜绝孤儿 tag）。
+          # 注意：actions/checkout 默认浅克隆且**不一定创建 origin/main 远端引用**，
+          # 必须先 fetch 再判祖先关系（否则 merge-base 报 unknown revision，把正常发布判失败；
+          # 2026-11-25 生产实测：v0.207.0 发布首跑即因此失败、docker 被跳过）。
           HEAD_SHA=$(git rev-parse HEAD)
-          if ! git merge-base --is-ancestor "$HEAD_SHA" origin/main; then
+          git fetch --no-tags origin main:refs/remotes/origin/main --depth=1
+          if ! git merge-base --is-ancestor "$HEAD_SHA" refs/remotes/origin/main; then
             echo "::error::HEAD ($HEAD_SHA) 不在 origin/main 上，拒绝打 tag $TAG（防孤儿 tag）"
             exit 1
           fi
