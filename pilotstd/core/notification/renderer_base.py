@@ -155,7 +155,12 @@ def level_prefix(level: str) -> str:
 
 
 def detail_link_line(message: NotificationMessage) -> str:
-    """详情链接行（`message.link` 非空时）；渲染层统一追加，避免四渠道各写一套。"""
+    """详情链接行（`message.link` 非空时）；渲染层统一追加，避免四渠道各写一套。
+
+    **D2 注意**：该行拼接发生在**逐块转义之后**，故只适用于"正文无需转义"的渠道
+    （`MarkdownRenderer`/飞书/钉钉/桌面）。Telegram 走 `BlockRenderer._render_detail_line()`
+    钩子做 MarkdownV2 合法转义，避免裸 URL 里的保留字符让整条消息 400 丢失。
+    """
     link = str(getattr(message, "link", "") or "").strip()
     if not link:
         return ""
@@ -203,8 +208,10 @@ class BlockRenderer:
             text = message.title or _fallback_text()
         # D-2 缺口③：级别前缀（warning/error）——企微/Telegram/桌面此前完全看不出紧急度
         # D-2 缺口②：详情链接——此前四渠道都不渲染 message.link
-        prefix = level_prefix(getattr(message, "level", ""))
-        link_line = detail_link_line(message)
+        # **D2 修复**：两段 meta 改走**可覆盖钩子**——它们在逐块转义**之后**拼接，
+        # 需要转义的渠道（MarkdownV2）必须能接管，否则裸 URL 会让整条消息被渠道拒收。
+        prefix = self._render_level_line(getattr(message, "level", ""))
+        link_line = self._render_detail_line(str(getattr(message, "link", "") or "").strip())
         if prefix:
             text = f"{prefix}\n{text}"
         if link_line:
@@ -274,6 +281,26 @@ class BlockRenderer:
     def _block_separator(self) -> str:
         """Block 之间的分隔符。"""
         return "\n\n"
+
+    def _render_level_line(self, level: str) -> str:
+        """级别前缀行（warning/error 才有）；渠道可覆盖做转义。
+
+        默认实现与 `level_prefix()` 等价：无 Markdown 约束的渠道（企微/飞书/钉钉/桌面）
+        保持既有输出；Telegram 覆盖后对前缀做 MarkdownV2 转义（当前文案无保留字符，
+        但翻译可扩充 ⇒ 由渠道自行兜底，避免"基座替所有渠道假设无需转义"）。
+        """
+        return level_prefix(level)
+
+    def _render_detail_line(self, link: str) -> str:
+        """详情链接段（`link` 非空时）；渠道可覆盖做转义/语法化。
+
+        默认返回「详情：URL」纯文本（`MarkdownRenderer`/桌面等渠道的既有形态）。
+        调用点在**块渲染之后**，故需要转义的渠道必须覆盖本方法（D2：Telegram 的
+        MarkdownV2 裸 URL 会导致整条消息解析失败）。
+        """
+        if not link:
+            return ""
+        return f"{t('notification.renderer.detail')}：{link}"
 
     def _escape(self, text: str) -> str:
         """转义渠道特殊字符。基类默认不做转义，子类按需覆盖。"""

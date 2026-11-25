@@ -1002,3 +1002,48 @@ P1-5 复核（`docs/plans/2026-11-25-p1-unknown-refresh.md` §5.1/§5.3）暴露
 **回归锚点**：`tests/unit/core/test_std_utils_api_asme_series.py`、
 `tests/unit/core/test_std_number_format.py`、`tests/test_std_utils_asme.py`、
 `tests/test_p211_root_cause.py`。
+
+## 通知 P0 收口：TG 链接转义 / 企微卡片契约 / 降级类型 / 聚合与模板口径（2026-11-25，批次 9）
+
+依据 `docs/plans/2026-11-25-p1-notify-refresh.md` §4（D1~D9）。本批为**渠道级**收口：
+模板字段层已在上批闭合，但「实际发出的报文」仍可能整条丢失或被平台拒收。
+
+### 根因 → 修法
+
+| 缺陷 | 根因（文件:行） | 修法 |
+|---|---|---|
+| **D2 TG 带 link 的 7 事件整条丢失** | `renderer_base.py` 的 `BlockRenderer.render()` 在**逐块转义之后**拼接 `detail_link_line()`（裸 URL），Telegram 未覆盖该追加段 ⇒ `.`/`-`/`_` 等 MarkdownV2 保留字符未转义，`parse_mode=MarkdownV2` 下 Telegram 返回 400 `can't parse entities` | 基座新增可覆盖钩子 `_render_level_line()` / `_render_detail_line()`；`renderer_telegram.py` 覆盖为官方**内联链接** `[详情](URL)`（官方规则：链接目标只需转义 `)` 与 `\`），且前缀行也走渠道转义。其它渠道默认钩子输出与改动前逐字一致 |
+| **D1 企微 `template_card` 不满足官方契约**（44/44 缺 `card_image`、条目 `title` 恒空、列表可超 4、无 base 时无 `card_action`） | `renderer_wecom_card.py` 只产出"已被第三方语料实证"的字段，官方正文未取证项被省略 | **保留 `news_notice`**（官方：`card_image`/`image_text_area` 必填其一、`card_action` 必填、`vertical_content_list` ≤4 且条目 `title` 必填、`jump_list` ≤3；见 `https://developer.work.weixin.qq.com/document/path/101032` 与 `.../101839`）。修法：无图时输出**站内静态透明占位图** `{站点根}/notification-card.png`（新增 `web/public/notification-card.png`，1×1 透明 PNG）；条目按「行内自然分隔符（`：`/` | `）→ 标题 + 正文」拆分且 `title` 必填；超 4 条**截断为前 3 条 + 计数尾行**（`notification.wecom.card.more`）；`jump_list` 截到 3；有跳转 URL 时 `card_action` 必产出 |
+| **D1 无 base 时的取舍** | 未配置 `notification.web_base_url` 时没有合法动作 URL（`jump_list` 为空） | 按项目既有原则「宁可不给链接，也不给坏链」**不产出非法卡**：渠道层改发**应用 markdown 消息**（见 D3）。卡型三选一结论：`text_notice` 同样要求 `card_action` 且没有 `vertical_content_list` 多行结构 ⇒ 不改卡型 |
+| **D3 降级消息类型选错** | `channels/wechat.py::_send_app_text` 用 `msgtype=text` 发 `MarkdownRenderer` 输出（用户看到字面 `##`/`**`/`[x](url)`） | 降级首选拔高为 `msgtype=markdown`（应用消息支持、≤2048 字节、与 Webhook 同渲染器/同分段）：新增 `_send_app_markdown()`；`text` 降为**最后兜底**（卡与 markdown 都失败时） |
+| **D4 卡片 desc 含字面 markdown** | `renderer_wecom_card.py::_render_list` 输出 `**标题**` 与 `- ` 前缀，而卡片 `desc` 是纯文本 | `_render_list` 改纯文本标题 + `•` 项目符号；条目构建再统一 `_plain_text()` 兜底去 `**`/`__`/列表前缀/裸链接语法 |
+| **D5 body-only 140 字符硬截断** | `render_wecom_card` 旧路径 `str(body)[:140]` | 按行/按句末标点切块（`_split_long_line`，单块 ≤112 字），逐块进 `vertical_content_list`，超 4 条由计数尾行提示，**不丢尾部信息** |
+| **D6 卡片 desc 宽 140>112** | `textwrap.wrap(width=140)` | `desc` 上限收敛到官方建议 **112** 字（`_CARD_DESC_WIDTH`） |
+| **D7-1 聚合后 `event_type` 被改成类别名** | `aggregate_buffer.py::_send_merged` 把分组键还原的类别名写进 `merged.event_type`（日常桶落库 `daily`） | 改取**首条真实事件名** `first_msg.event_type or event_type`；类别名仍由 `notify_event` 承载 |
+| **D7-2 聚合摘要首行退化为级别前缀** | `_build_summary` 取 `render(msg).split("\n")[0]`，warning/error 首行是 `⚠️ 警告` | 新增 `_first_content_line()`：跳过与外层一致的 `level_prefix` 行后取首个非空行 |
+| **D7-3 日志接口 `level` 恒 info** | `docker/api/notification_logs.py::_business_level(event_type)` 拿真实事件名与 `security_alert`/`task_failure` 两个**类别名**比较 | 三级口径：① 事件声明里**级别唯一**的事件直接用真实级别；② 类别名映射（优先 `notify_event`，`anomaly_alert` 归 warning）；③ 其余 info。列表与分布端点共用同一函数 |
+| **D8 `normalize_failed`「2 条失败」但明细 1 条** | producer 的 `total` 是批次总数，`failed_items` 只带当前处理的那条 | 正文条数在有明细时取明细条数（无明细保留旧口径），与明细块「共 N 条」一致 |
+| **D9 `open_logs` 死路径 + `notification_log.failed_items` 恒空** | `_links.attach_web_actions()` 依赖 `message.failed_items`，但全库无构建器设置该字段 | **修复而非删除**：新增 `_links.with_failed_items()`，在构建出口 `manager._build_message()` 统一把 payload 的 `failed_items` 搬到消息字段；聚合时按条目合并（`_send_merged` 的 `failed_items` 并集）。副作用（正面）：`open_logs` 与 `GET /api/notification/logs/{log_id}/failed-items` 恢复可达 |
+
+### 验证（2026-11-25，本工作树真实构建器 + 真实渲染器实跑）
+
+- **44 事件 × 2 场景（`web_base_url` 配/不配）= 88 条渲染记录**：渲染异常 **0**、i18n 键泄漏 **0**；
+  7 个带 link 事件的 TG 输出全部通过独立 MarkdownV2 校验（URL 里 `.`/`-`/`_` 不再触发 400）；
+- **卡片契约 44/44**（base 已配置场景）：`card_image.url`/`card_action.url` 齐、`jump_list` ≤3、
+  `vertical_content_list` ≤4、条目 `title` 全非空、`desc` ≤112、无字面 `**`/`- `；
+- **渠道出站矩阵 88/88**：base 已配置 ⇒ 44/44 `msgtype=template_card`；base 未配置 ⇒
+  44/44 应用 `msgtype=markdown`（不再发必被 40058 拒收的卡，也不再发 markdown 源码 `text`）；
+- 单测：`tests/test_notification_tg_markdownv2_link.py`、`tests/test_notification_wecom_card_contract.py`、
+  `tests/test_notification_aggregate_contract.py`，以及既有 `tests/test_notification_wechat_card.py`、
+  `tests/test_notification_security_channel_form.py`（直连安全告警无动作时按 D1 改发 markdown）。
+
+### 已知边界（本批不闭合）
+
+- **多级别事件**（同一事件按分支产生 info/warning/error，如 `standard_status_changed`）的真实级别
+  **未落库**（`notification_log` 无 `level` 列），日志接口只能落到 `notify_event` 类别映射；
+  彻底修复需加列迁移（另批）。
+- 企微对卡片的**实际 errcode** 仍只能靠维护窗口真机验证（本批为官方契约 + 错误码口径推断）；
+  未配置 `web_base_url` 的部署将一直走应用 markdown（卡片视觉不出现，但信息量不丢）。
+- `web/public/notification-card.png` 是 1×1 透明占位图（`card_image` 必填但通知无配图）；
+  若将来支持真实配图，替换该静态资源即可，无需改代码。
+
