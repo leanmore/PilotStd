@@ -650,3 +650,19 @@ push 到 main 失败时本地 bump 提交仍在，于是 tag 指向孤儿提交�
 - 11-23（info=10）与 11-25（info=12、warning=2）差异由 `security_alert` 当日出现解释，无异常跳变；
 - 列表与分布接口共用同一函数；「新增 2 条 info」= `batch_summary` + `schedule_reminder` 真实事件；
 - **状态：已核实闭合**（无需代码改动）；报告 `docs/plans/2026-11-26-g43-log-level-caliber.md`。
+
+
+### CI 假红诊断能力（2026-11-26 新登记，NEW-47）
+
+**现象**：PR 分支 `test-backend` 间歇性失败、rerun 即绿；失败 run 的 job 日志 API 404、注解为空，
+**无法从 GitHub 侧定位具体失败用例**。
+
+**影响**：每次假红要花 10-15 分钟 rerun 才能继续；无法区分「真 flake」与「环境相关真失败」。
+
+**处置建议（待排期）**：
+1. `Backend failures summary` 改为始终运行（`if: always() && failure()`），失败用例写进
+   **step summary**（``，check-run 页面直接可见、无需日志权限）；
+2. `test-backend` 增加 `pytest --last-failed` 二次尝试（仅重跑已失败用例，失败仍红）；
+3. 若仍无法定位，再排查缓存/资源差异。
+
+**状态**：已登记（P2），触发条件＝下次再遇无法定位的 test-backend 红；处置口径见 `docs/ci-lessons.md`。
