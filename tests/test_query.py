@@ -956,11 +956,12 @@ class TestProgressiveSearch(unittest.TestCase):
         self.assertIn("ASME B16.5", calls)
 
     def test_roman_numeral_triggers_bpvc_variant(self):
-        """罗马数字前缀触发 BPVC 变体搜索。"""
+        """罗马数字前缀触发 BPVC 变体搜索（批次10 B-12：用点号写法且不以卷号当分册）。"""
         self.adapter._search = MagicMock(return_value=None)  # type: ignore[method-assign]
-        self.adapter.query_with_strategy("ASME", 8, 2021, num_prefix="VIII")
+        self.adapter.query_with_strategy("ASME", 8, 2021, part=1, num_prefix="VIII")
         calls = [c[0][0] for c in self.adapter._search.call_args_list]
-        self.assertIn("ASME BPVC VIII.8-2021", calls)
+        self.assertIn("ASME BPVC.VIII.1-2021", calls)
+        self.assertNotIn("ASME BPVC VIII.8-2021", calls)
 
     def test_api_stdspec_variant_fallback(self):
         """API 代号生成 Std/Spec 变体回退搜索。"""

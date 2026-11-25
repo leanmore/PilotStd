@@ -165,3 +165,16 @@
 > 前端 `web/src/components/__new16_17.test.ts`（8 例）。
 > 前端 vitest：**69 files / 680 tests**。
 > 测试文件数变化幅度较大，按 CI 严格模式要求在此登记。
+
+> **2026-11-25 增量（批次10 编号识别规则修复）**：新增 4 个 Python 测试文件 + 1 个前端测试文件 ——
+> `tests/unit/core/test_std_utils_api_asme_series.py`（33 例）、
+> `tests/unit/scan/parser/test_no_year_and_series.py`（30 例）、
+> `tests/unit/core/test_std_number_format.py`（52 例）、
+> `tests/unit/query/test_query_target_construction.py`（31 例），
+> 另有 `tests/query/engine/test_single_v2_route.py` 追加 num_suffix 透传 2 例、
+> 既有 `test_scanner.py`/`test_parser.py`/`test_query.py`/`test_bpvc_section_snapshot.py`/
+> `test_parser_failure_log.py` 同批更新断言（无年份 ASME B16.5 由拒绝改为解析、匹配通道数 8→9、
+> BPVC 变体改为点号写法）。前端新增 `web/src/utils/resolveScanFields.test.ts`（4 例）。
+> CI 过滤口径（`--ignore tests/gui/ --ignore tests/test_regression_architecture.py`）
+> 实测 `--collect-only`：**7151 tests collected**。
+> 测试文件数变化幅度较大，按 CI 严格模式要求在此登记。

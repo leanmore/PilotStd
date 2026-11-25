@@ -12,6 +12,7 @@ from ..search_strategy import (
     MATCH_SCORE_HIGH_CONFIDENCE,
     _parse_result_number,
     build_code_variants,
+    build_query_target,
     match_result,
 )
 
@@ -122,33 +123,36 @@ class BaseAdapter(ABC):
         num_suffix: str,
         target: str,
     ) -> Optional[QueryResult]:
-        """渐进式搜索前4步：完整号直搜 → 空格回退 → 去前缀 → 去年份。"""
-        part_str = f".{part}" if part else ""
+        """渐进式搜索前4步：完整号直搜 → 空格回退 → 去前缀 → 去年份。
 
-        # 第一步：完整标准号直接搜（横杠格式）
+        target 已由 `build_query_target` 统一构造（批次10 B-12）。
+        """
+        no_year_target = build_query_target(logical_code, number, 0, part, num_prefix, num_suffix)
+
+        # 第一步：完整标准号直接搜
         result = self._try_exact_search(target, logical_code, number, year, part)
         if result is not None:
             return result
 
-        # 第二步：空格格式回退
-        space_target = f"{logical_code} {num_prefix or ''}{number}{num_suffix or ''}{part_str} {year}"
-        if space_target != target:
-            result = self._try_exact_search(space_target, logical_code, number, year, part)
-            if result is not None:
-                return result
+        # 第二步：年份用空格分隔的回退（`GB/T 1 2020` 这类站点写法）
+        if year:
+            space_target = f"{no_year_target} {year}"
+            if space_target != target:
+                result = self._try_exact_search(space_target, logical_code, number, year, part)
+                if result is not None:
+                    return result
 
-        # 第三步：去除_回退（如78.81→78.81）
+        # 第三步：去除类型词/系列词回退（如 `API STD 610` → `API 610`），保留字母后缀
         if num_prefix:
-            no_prefix = f"{logical_code} {number}{num_suffix or ''}{part_str}-{year}"
+            no_prefix = build_query_target(logical_code, number, year, part, "", num_suffix)
             if no_prefix != target:
                 result = self._try_exact_search(no_prefix, logical_code, number, year, part)
                 if result is not None:
                     return result
 
         # 第四步：去年份回退
-        no_year = f"{logical_code} {num_prefix or ''}{number}{num_suffix or ''}{part_str}"
         result = self._try_exact_search(
-            no_year, logical_code, number, year, part, accepted_statuses={"exact", "newer", "older"}
+            no_year_target, logical_code, number, year, part, accepted_statuses={"exact", "newer", "older"}
         )
         if result is not None:
             return result
@@ -166,15 +170,14 @@ class BaseAdapter(ABC):
         num_suffix: str = "",
     ) -> Optional[QueryResult]:
         """渐进式搜索：完整号直搜 → 空格回退 → 去前缀 → 去年份 → 代号变体。"""
-        part_str = f".{part}" if part else ""
-        target = f"{logical_code} {num_prefix or ''}{number}{num_suffix or ''}{part_str}-{year}"
+        target = build_query_target(logical_code, number, year, part, num_prefix, num_suffix)
 
         result = self._search_progressive(logical_code, number, year, part, num_prefix, num_suffix, target)
         if result is not None:
             return result
 
         # 第五步：代号变体补充（接口/、、等）
-        variants = build_code_variants(logical_code, number, year, num_prefix)
+        variants = build_code_variants(logical_code, number, year, num_prefix, part)
         best_score = -1
         best_result: Optional[QueryResult] = None
         best_match_status = ""

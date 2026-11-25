@@ -443,3 +443,24 @@ Session 必须 `with` 关闭、默认参数为 `None`、默认口径仍只接受
 **同轮复核后判定不改**（详见 `docs/plans/2026-11-25-deep-scan3.md`）：
 `network.py` 的 `safe_raw_*` 用 `with Session`（已关闭）；`announcement/base.py` 有
 `owns_session` + finally 关闭；各适配器 `__init__` 内建的 Session/Client 是长生命周期实例，正常。
+
+## 查询 target 构造统一 + BPVC 变体修复（2026-11-25，批次10 / P1-7.1 B-12）
+
+已查阅：`docs/plans/2026-11-25-p1-api-refresh.md` §3.2 R1（16 条样本仅 4/16 生成期望
+designator/productcode、BPVC 全 miss）；`docs/plans/2026-11-24-p1-api-asme-gap.md` §4 G8。
+
+- **唯一 target 构造**：`search_strategy.build_query_target` 委托编号表示层
+  （`core.std_number_format.format_standard_number`），`BaseAdapter.query_with_strategy`、
+  `BaseAdapter._search_progressive`、`SingleQueryHandler._query_one` 三处共用；
+  修复 `code prefix+number+suffix+part-year` 直接粘连、`year=0` 追加 `-0`、忽略 `num_suffix`。
+- **`num_suffix` 透传**：`query_with_strategy(..., num_suffix=...)` 已在生产链路接通
+  （`_query_subsystem` 七元组 → `_batch` → `_single._query_one` / `_query_one_v2` →
+  `_step_query_adapters` → 适配器），`API 6D` 这类后缀不再在查询时丢失。
+- **BPVC 代号变体**：`build_code_variants` 增加 `part` 参数，ASME 罗马卷号变体改为点号写法
+  `ASME BPVC.VIII.1-2025`（修复前把卷号当分册号生成 `BPVC VIII.8`）。
+- **路由代号归一化**：`engine/_constants.normalize_route_code` 把历史脏代号
+  `ASMEPTC`/`ASMECSD`/`ASME PTC` 归一为 `ASME`，`_resolve_base_route` 先归一化再查
+  `CODE_ROUTES`，避免落通用国外兜底链 `_FOREIGN_FALLBACK`（应走 `asme` 站点）。
+
+**回归锚点**：`tests/unit/query/test_query_target_construction.py`、
+`tests/query/engine/test_single_v2_route.py`（`num_suffix` 透传 2 例）、`tests/test_query.py`。

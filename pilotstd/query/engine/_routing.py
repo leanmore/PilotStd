@@ -18,7 +18,13 @@ from ..adapters.base import BaseAdapter
 from ..routing.router_v2 import get_routing_service, is_v2_enabled
 from ..routing.scorer import _collect_runtime_state, get_priority_chain
 from ..search_strategy import ADAPTER_TYPE_MAP
-from ._constants import _DEFAULT_FALLBACK_CHAIN, _FOREIGN_FALLBACK, _INDUSTRY_FALLBACK, CODE_ROUTES
+from ._constants import (
+    _DEFAULT_FALLBACK_CHAIN,
+    _FOREIGN_FALLBACK,
+    _INDUSTRY_FALLBACK,
+    CODE_ROUTES,
+    normalize_route_code,
+)
 
 if TYPE_CHECKING:
     from ._core_types import EngineCore
@@ -45,6 +51,8 @@ class RoutingHandler:
 
         Phase 3.1: 优先使用评分器动态路由；旧硬编码路由作为兜底。
         """
+        # 历史脏代号（ASMEPTC/ASMECSD）先归一化到 ASME，否则会落通用国外兜底链（批次10）
+        logical_code = normalize_route_code(logical_code)
         # 阶段3.1:评分器动态路由（优先）
         try:
             rotator = self._core.rotator

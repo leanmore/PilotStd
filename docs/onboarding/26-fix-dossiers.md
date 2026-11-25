@@ -362,3 +362,29 @@ Web 五段式执行后，下载成功的文件留在 `/standards` 根目录，�
   **整列渲染为空白**（省略到 0 像素）。修法：item/表头水平内边距交给 Qt 委托默认，只保留竖直内边距，
   行高/表头高用 `setDefaultSectionSize` / `setFixedHeight` 显式设（QSS 的 `::item padding` 只影响
   `sizeHintForRow()`，不改 `rowHeight()`）。
+
+## D-09 API/ASME 编号识别与表示层六类缺口（2026-11-25，批次10 / P1-7.1 收口）
+
+**现象**（依据 `docs/plans/2026-11-25-p1-api-refresh.md` §2/§3）：16 条任务样本 A+B 双通道仅 7/16
+全对、40 条历史样本 21/40；查询 target 仅 4/16 生成期望 designator/productcode；有效性登记对
+ASME/BY 系列与 BPVC 键全被拒。
+
+**六类根因 → 修法**：
+
+1. ASME 系列词污染 A 代号（`ASME PTC 4-2013`→`ASMEPTC/4`）：新增 `core/std_utils_asme.py`，
+   系列词落 `num_prefix`；`core/std_utils.py` 解析链改用 `_try_parse_asme_series`。
+2. B 通道无年份硬拒（`API STD 610`/`ASME BPVC Section II Part D` MISS）：`validate_result` 对
+   国外/国际代号允许 `year=0`。
+3. 多字母/连字符后缀与联合标准（`6D`/`5CT`/`2A-WSD`/`938-C`/`579-1`/`A112.18.1/CSA`）：
+   A 通道重写 `_try_parse_api_typed`；B 通道扩 `_NUM` + `extract_number` + `regex_typed_no_year`。
+4. 表示层/键畸形（`ASME BB16.5-2020`、`API SPEC 6DD-2021`、BPVC 下载件 `ASME 8.1-2025.pdf`、
+   validity 拒绝合法键）：新增 `core/std_number_format.py` 作唯一实现，`CANONICAL_KEY_RE` 放开。
+5. 前端 year 真值门丢件（`TaskView.vue` 的 `f.year`）：抽 `resolveScanFields`，后端字段优先、
+   `year=0` 不回落不丢件。
+6. 查询 target 拼接错/BPVC 变体用卷号当分册：新增 `build_query_target` 统一构造，
+   `build_code_variants` 增加 `part`；`num_suffix` 从扫描解析一路透传到适配器。
+
+**验证**：16 条样本 A+B 全对 16/16（修前 7/16），40 条样本 40/40（修前 21/40）；
+查询 target 期望命中 15/16（剩余 1 条为联合标准 `ASME A112.18.1/CSA B125.1`，字段无法表达联合段）。
+**门禁**：G-010（`std_utils.py` 498→464，`file_utils.py` 453→448，告警档文件不增长）、
+G-013（新增 4 个测试文件 + 前端测试）、G-031（core/scan/parser/query/manager 五份模块文档同批）。

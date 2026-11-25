@@ -25,6 +25,29 @@ _FOREIGN_FALLBACK = ["ahbz", "njbz365"]
 # 行业标准兜底路由（评分器失败时的硬编码回退）
 _INDUSTRY_FALLBACK = ["hbba", "njbz365", "csres"]
 
+# 历史脏代号：旧解析器曾把 ASME 系列词并入代号（`ASMEPTC`/`ASMECSD`）。
+# 路由前归一化到 `ASME`，避免按通用国外代号落到 `_FOREIGN_FALLBACK`（应走 `asme` 站点）。
+_ASME_SERIES_SUFFIXES = ("PTC", "CSD")
+
+
+def normalize_route_code(logical_code: str) -> str:
+    """路由用代号归一化：仅处理 ASME 系列词污染，其余代号原样返回。
+
+    `ASMEPTC`/`ASMECSD`（历史脏代号）与 `ASME PTC`（带系列词的代号）统一归一为 `ASME`，
+    使路由命中 `CODE_ROUTES["ASME"]`（asme 站点），而不是通用国外兜底链。
+    """
+    text = str(logical_code or "").strip()
+    if not text:
+        return ""
+    tokens = text.split(" ")
+    first = tokens[0].upper()
+    if first == "ASME":
+        return "ASME"
+    for suffix in _ASME_SERIES_SUFFIXES:
+        if first == f"ASME{suffix}":
+            return "ASME"
+    return text
+
 
 # 按标准代号分流：专业站点优先，365二线，国标/行业兜底
 def _build_default_code_routes() -> dict[str, list[str]]:

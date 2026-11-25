@@ -712,3 +712,20 @@
   （写生产库需维护窗口，红线）。清洗脚本属批次 12。
 - **端点对非法 `status` 返回 400**：老客户端若传了历史拼写以外的值会从「静默全表」变成显式失败；
   空串/纯空白仍表示不筛选。前端只发 3 个英文键（`active`/`withdrawn`/`unknown`），不受影响。
+
+### 32. 编号识别口径放宽后的边界（2026-11-25，批次10 / P1-7.1）
+
+- **无年份（`year=0`）只对国外/国际标准合法**：`scan/parser/_result_builder.validate_result` 按
+  `FOREIGN_CODE_SET ∪ ISO_IEC_SET ∪ ITU_CODES` 放行；国内代号（GB/行业/地标/团体）仍要求年份，
+  不要以"放开无年份"为由给国内标准造 `year=0` 记录（库表/文件名/去重仍以有年份为常态）。
+- **`num_suffix` 语义是约定复用**：ASME 册/篇字母（`II.D` 的 `D`）与三级编号第三级（`A112.18.1`
+  的 `.1`，带前导点）都复用该字段；新增字段需走 schema 评估，不在本批范围。
+- **表示层唯一实现**：`build_standard_number` / `ParsedStdInfo.get_full_number` 都委托
+  `core/std_number_format.format_standard_number`。不要再在别处手拼标准号，否则会重新引入
+  双前缀/双后缀/BPVC 丢卷册（批次10 已修）。
+- **BPVC/ASME 变体写法**：ASME 罗马卷号在查询 target/变体里用点号 `ASME BPVC.VIII.1-2025`；
+  `PTC` 用空格（`ASME PTC 4`），`CSD`/`NQA`/`QME` 用连字符（`ASME CSD-1`）；`API TR` 的字母修订
+  用连字符（`API TR 938-C`）。这些是表示层按系列词补的官方分隔符（字段本身不含连字符）。
+- **前端 `standardParser.ts` 仍是旧正则**：16 条样本 raw 仅 1/16。本批只修 `TaskView.vue` 的
+  year 真值门（后端字段优先、year 缺省不丢件），**不要**把前端正则当成第二套口径；
+  下载/扫描归档以 `docker/api` 返回的后端字段为准。

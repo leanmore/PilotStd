@@ -11,8 +11,7 @@ import { useUserPreferences } from '@/composables/useUserPreferences'
 import Tag from 'primevue/tag'
 import ProgressBar from 'primevue/progressbar'
 import { TASK_HISTORY_PAGE_SIZES, resolveRows } from '@/utils/pagination'
-import { parseStandardNumber } from '@/utils/standardParser'
-import { buildArchiveItems } from '@/utils/taskPipeline'
+import { buildArchiveItems, resolveScanFields } from '@/utils/taskPipeline'
 import LogBar from '@/components/LogBar.vue'
 import TaskHistoryList from './TaskView/TaskHistoryList.vue'
 import type { StepState, TaskRecord } from './TaskView/types'
@@ -301,10 +300,8 @@ async function runPipeline(resume = false) {
       const normItems = (scan.files || [])
       .filter((f: any) => f.standard_number)
       .map((f: any) => {
-        // 优先透传 scan 返回的结构化字段，仅在缺失时回退到正则解析
-        const parsed = (f.logical_code && f.number && f.year)
-          ? { logical_code: f.logical_code, number: f.number, year: f.year }
-          : parseStandardNumber(f.standard_number)
+        // 后端已解析字段优先（year=0 是合法产物），仅在缺失时回退到前端正则（批次10 B-13）
+        const parsed = resolveScanFields(f)
 
         if (!parsed) {
           console.warn('[Normalize] 跳过无法解析的标准号:', f.standard_number, '| 文件:', f.full_path) // i18n-allow: 开发者日志：跳过无法解析的标准号
