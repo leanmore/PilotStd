@@ -129,4 +129,17 @@ describe('App.vue 模板分支', () => {
 
     wrapper.unmount()
   })
+
+  // 2026-11-25 回归：Transition 必须包在**单根** .page-host 上
+  // 背景：页面组件多为多根 fragment，直接包 <Transition mode="out-in"> 会挂起 leave 回调，
+  // 导致路由跳转后新页面根本不渲染（公告详情页「必须刷新浏览器」缺陷的根因）。
+  it('页面过渡宿主是单根 .page-host（防 fragment 根挂起 out-in 过渡）', async () => {
+    const { wrapper } = await mountApp('/')
+    const host = wrapper.find('.page-host')
+    expect(host.exists()).toBe(true)
+    // 宿主必须有唯一根元素（fragment 会渲染成多个节点）
+    expect(host.element.children.length).toBe(1)
+    expect(host.find('.page-home').exists()).toBe(true)
+    wrapper.unmount()
+  })
 })
