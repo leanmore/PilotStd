@@ -536,3 +536,19 @@ continue/break 识别、新增 G-056 死链扫描），CI 严格模式拦了两�
 1. 「命令失败但脚本继续」是最危险的一类缺陷——凡 `git push`/网络写操作，失败必须 `set -e` 或显式 `exit 1`；
 2. 受保护分支上任何「CI 自动提交」方案都要先验证 token 权限，否则会以**孤儿 tag / 静默旧版本**的形式长期潜伏；
 3. 版本号必须与发版动作同批评审，不能依赖 CI 事后补写。
+
+## 2026-11-25 发布 tag 步骤：浅克隆下 origin/main 远端引用可能不存在
+
+**现象**：版本号流程修复后的首次发布（main c5867460，VERSION 0.207.0），
+ersion job 的「Create and push tag」失败 → docker 被跳过（**没有产出镜像**）。
+
+**根因**：ctions/checkout@v5 默认浅克隆，且**不保证创建 origin/main 远端引用**；
+新加的防孤儿 tag 校验 git merge-base --is-ancestor " origin/main 因此拿到
+unknown revision，把**正常发布**误判成「HEAD 不在 main 上」。
+
+**修复**：判祖先前先 git fetch --no-tags origin main:refs/remotes/origin/main --depth=1，
+再对 
+efs/remotes/origin/main 判 merge-base --is-ancestor。
+
+**教训**：CI 步骤里凡是引用 origin/<branch> 的地方，都要先确认「这个远端引用在这个 checkout 形态下存在」；
+本地能过 ≠ runner 能过（本地工作区有完整 remote refs，浅克隆没有）。
