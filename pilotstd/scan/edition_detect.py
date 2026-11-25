@@ -68,3 +68,18 @@ def edition_skip_pattern() -> str:
     兼容: 10版 / 第10版 / 10th Edition / TENTH EDITION
     """
     return r"(?:\s*\d+版\s*|\s*[A-Za-z]+\s+Edition\s*)?"
+
+
+# 英文序数版次（`11th` / `11th Edition`）：B 通道 `_YEAR_LOOSE` 会把 `11th` 的 `11`
+# 当两位年份（`API 610-11th` → year=2011，2026-11-25 实测）。匹配带前导分隔符，剥离时不
+# 破坏编号本体；`(?![A-Za-z0-9])` 而非 `\b`，以便后面紧跟中文名称时也能剥离。
+_EDITION_STRIP_RE = re.compile(
+    r"\s*[-–—\s]\s*\d{1,2}\s*(?:st|nd|rd|th)\s*(?:Edition)?(?![A-Za-z0-9])",
+    re.IGNORECASE,
+)
+
+
+def strip_edition(text: str) -> str:
+    """剥离英文序数版次（`11th` / `11th Edition`）；未命中时原样返回。"""
+    stripped = _EDITION_STRIP_RE.sub(" ", str(text or ""))
+    return re.sub(r"\s{2,}", " ", stripped).strip()

@@ -133,9 +133,17 @@ class TestStandardParser(unittest.TestCase):
         self.assertEqual(info.year, 1992)
 
     def test_parse_asme(self):
-        """ASME B16.5 无年份应被拒绝"""
+        """ASME B16.5 无年份自批次10（P1-7.1 B-7）起合法：国外标准 year=0（附录一 §5.4）。
+
+        修复前本用例断言 None（无年份硬拒）；批次10 放开 `validate_result` 对国外代号的年份门，
+        同批更新为解析成功（与 `docs/guides/人工测试方案.md` 1.7 期望一致）。
+        """
         info = self.parser.parse("ASME B16.5.pdf")
-        self.assertIsNone(info)
+        self.assertIsNotNone(info)
+        self.assertEqual(info.logical_code, "ASME")
+        self.assertEqual(info.number, 16)
+        self.assertEqual(info.part, 5)
+        self.assertEqual(info.year, 0)
 
     # ── 新增国际标准 ──────────────────────────────────
 

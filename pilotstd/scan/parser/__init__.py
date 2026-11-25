@@ -7,6 +7,7 @@ import re
 from typing import Dict, Optional
 
 from ...models import ParsedStdInfo
+from ..edition_detect import strip_edition
 from ._constants import (
     _EDITION_SKIP,
     _ENDORSER,
@@ -113,6 +114,17 @@ class StandardParser:
             _YEAR_LOOSE,
             r"?",
         )
+        # 无年份专用（批次10 B-7）：`regex_typed` 的 `[\-]?` 会吞掉分册分隔符，
+        # 导致 `API 579-1` 的 part 丢失；年份缺省时优先用本正则（分册号仍用 _PART_LONG）。
+        self.regex_typed_no_year = _compile(
+            _PFX,
+            _ENDORSER,
+            r"(?:\s+|(?:\-))",
+            _TYPE,
+            _NUM,
+            _EDITION_SKIP,
+            _PART_LONG,
+        )
         # 地方标准—"数据库11/1951-2021","数据库3501/002-2023","数据库50/1982-2026"
         self.regex_db = _compile(
             r"DB\s?(?P<code>\d{2,4})",  # DB + 可选空格 + 2~4位行政区划代码
@@ -166,7 +178,9 @@ class StandardParser:
         返回 (cleaned, raw_ext, language, basename)。"""
         basename = os.path.splitext(filename)[0]
         raw_ext = os.path.splitext(filename)[1] or ".pdf"
-        cleaned = self._expand_short_year(self._clean(basename))
+        # 先剥离英文序数版次（11th / 11th Edition），否则 regex_typed 的两位年份分支
+        # 会把 `11` 当 2011（批次10 B-10）；名称信息保留在 basename/语言检测路径。
+        cleaned = self._expand_short_year(strip_edition(self._clean(basename)))
         language = self._detect_language(basename)
         self._current_file_kind = self._detect_file_kind(basename)
         return cleaned, raw_ext, language, basename
@@ -218,6 +232,7 @@ class StandardParser:
             (self._matcher._exact_match_db, cleaned, "DB"),
             (self._matcher._exact_match_group, cleaned, "group"),
             (self._matcher._exact_match_bpvc, cleaned, "BPVC"),
+            (self._matcher._exact_match_asme_series, cleaned, "ASME"),
             (self._matcher._exact_match_itu, cleaned, "ITU"),
             (self._matcher._exact_match, cleaned, "exact"),
             (self._matcher._exact_match_typed, cleaned, "typed"),

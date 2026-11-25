@@ -21,21 +21,26 @@ class NumberExtractor:
 
     @staticmethod
     def extract_number(number_str: str) -> tuple[Optional[int], str, str]:
-        """从编号字符串提取整数、后缀字母和原始字符串。如 '6D'→(6,'D','6D'), '001'→(1,'','001')。
-        返回三元组 (int_val, suffix, raw_str)，raw_str 保留前导零等原始信息。"""
+        """从编号字符串提取整数、字母后缀和原始字符串。
+
+        批次10（P1-7.1 B-8）：后缀允许「多字母 + 连字符多段」，从尾部整体收集：
+        `6D`→(6,'D','6D')、`5CT`→(5,'CT','5CT')、`A-WSD` 段的 `2A-WSD`→(2,'A-WSD',…)、
+        `938-C`→(938,'C','938-C')（前导连字符不进入后缀）。前导字母仍剥离（`B16`→16）。
+        无法提取纯数字部分（如 `abc` / `12A3`）返回 (None, "", "")。
+        """
         if not number_str:
             return None, "", ""
-        clean = number_str
-        while clean and clean[0].isalpha():
-            clean = clean[1:]
-        suffix = ""
-        while clean and clean[-1].isalpha():
-            suffix = clean[-1] + suffix
-            clean = clean[:-1]
-        try:
-            return (int(clean), suffix, number_str) if clean else (None, "", "")
-        except ValueError:
+        body = number_str
+        while body and body[0].isalpha():
+            body = body[1:]
+        end = len(body)
+        while end > 0 and (body[end - 1].isalpha() or body[end - 1] == "-"):
+            end -= 1
+        digits = body[:end]
+        suffix = body[end:].strip("-")
+        if not digits.isdigit():
             return None, "", ""
+        return int(digits), suffix, number_str
 
     @staticmethod
     def extract_num_prefix(number_str: str) -> str:

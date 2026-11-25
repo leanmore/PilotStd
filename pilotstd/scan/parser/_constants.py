@@ -140,7 +140,7 @@ _ASME_BPVC_RE = re.compile(
 
 # ── 正则原子构件 ────────────────────────────────────────────
 _PFX = r"(?P<prefix>(?:ITU-[TRD])|[A-Z]{2,}(?:[\-\s]+[A-Z]{2,})*(?:/[A-Z]+)?)"  # 标准代号段（如 "BS EN", "ITU-T", "ANSI/UL"）  # noqa: E501
-_NUM = r"(?P<number>[A-Z]?\d{1,6}[A-Z]?)"  # 编号（支持字母后缀如 API 6D）
+_NUM = r"(?P<number>[A-Z]?\d{1,6}(?:[A-Z]{1,3})?(?:-[A-Z]{1,3}(?!\d))*(?!\d))"  # 编号（字母前后缀可多段，如 API Spec 5CT / API RP 2A-WSD / API TR 938-C）  # noqa: E501
 _PART_SHORT = r"(?:[\.\-](?P<part>\d{1,2}))?"  # 短分册号（1-2位纯数字）
 _PART_LONG = r"(?:[\.\-](?P<part>[A-Z]?\d{1,3}))?"  # 长分册号（可含前导字母，如 B16）
 _YEAR4 = r"(?P<year>(?:19|20)\d{2})"  # 四位年份
