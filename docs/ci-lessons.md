@@ -552,3 +552,19 @@ efs/remotes/origin/main 判 merge-base --is-ancestor。
 
 **教训**：CI 步骤里凡是引用 origin/<branch> 的地方，都要先确认「这个远端引用在这个 checkout 形态下存在」；
 本地能过 ≠ runner 能过（本地工作区有完整 remote refs，浅克隆没有）。
+
+## 2026-11-26 版本门禁误挂 push 事件：每次正常 merge 都把 repo-compliance 判红
+
+**现象**：main `ea7b4db6`（合并 PR #40）的 CI `repo-compliance` 红在「版本号 bump 校验」→
+`version`/`docker`/`exe` 全部 skipped，**发布流水线停摆**。
+
+**根因**：该步骤用 `github.event.before..github.sha` 作为范围。**push 到 main 时**，这个范围
+包含刚合并 PR 的全部 feat/fix 提交；步骤语义却是「本范围必须修改 VERSION」——
+而 PR 的 VERSION bump 在**另一个** PR（#35）里、并且合并后 `before..sha` 已看不到它，
+于是每次正常 merge 都被判「feat/fix 未 bump」。
+
+**修复（2026-11-26）**：该步骤 `if: github.event_name == 'pull_request'`；
+push 路径由 version job 的 `bump_version.py --check` 校验「VERSION == 按提交计算值」。
+
+**教训**：「同一条校验」在 PR 与 push 两种事件下语义不同——凡是「本次改动是否满足纪律」的步骤，
+都应显式限定事件类型；把 PR 纪律检查挂到 push 上，会把**已完成的合规工作**当成违规重复检查。

@@ -52,3 +52,15 @@ def test_docker_build_depends_on_version_success() -> None:
     idx = text.index("  docker:")
     segment = text[idx : idx + 400]
     assert "needs: version" in segment
+
+def test_version_bump_gate_runs_only_on_pull_request() -> None:
+    """版本号门禁只能挂在 PR 事件。
+
+    push 到 main 时 `before..sha` 范围包含「已合并 PR 的 feat/fix 提交」，若在该事件强制
+    「本范围必须改 VERSION」，每次正常 merge 都会被判失败（实测 main ea7b4db6 因此红、
+    docker 被跳过）。push 路径由 version job 的 `bump_version.py --check` 校验一致性。
+    """
+    text = _text()
+    idx = text.index("版本号 bump 校验")
+    block = text[idx : idx + 500]
+    assert "github.event_name == 'pull_request'" in block, "版本门禁缺少 PR 事件限定"
