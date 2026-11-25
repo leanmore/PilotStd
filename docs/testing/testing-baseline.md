@@ -15,6 +15,22 @@
 | E2E + Integration 总耗时 | 16.0s | 2026-08-03 | — |
 | 合计行覆盖率 | **12.4%** | 2026-08-03 | 678b246 |
 
+> **2026-11-25 增量（NEW-44 归零 / PR #27 合并）**——测试规模大幅变化，基线刷新：
+>
+> | 指标 | 变更前 | 变更后 | 说明 |
+> |---|---:|---:|---|
+> | 后端全量 | 6740 passed / 12 skipped | **7047 passed / 23 skipped** | 新增深扫/适配器/i18n 用例 |
+> | 前端测试文件 | 93 | **149** | NEW-44 补 55 个同名测试文件 |
+> | 前端用例 | 925 | **1286** | +344（含 12 个 web 缺陷回归用例） |
+> | 前端行覆盖率 | 48.07%（阈值） | **85.98%（实测）**，阈值提到 **85.5** | `vite.config.ts` thresholds 同步收紧（stmts 44.11→83.2 / branch 32.12→75.3 / funcs 23.42→73.2） |
+> | G-050 静默吞错基线 | 191 条 | **179 条** | continue/break/debug/return 四档收紧 |
+> | G-054 单文件基线 | `taskPipeline.ts` 87.5% | **100%** | 补测后收紧 |
+>
+> 同批完成：新增 i18n 缺键守卫（`tests/unit/test_i18n_completeness.py`，扫全库 `t("...")` 对三语词典）、
+> `tests/unit/core/test_n_plus_one_batching.py`（N+1/目录遍历回归）、
+> `tests/unit/query/test_adapter_http_discipline.py`（HTTP 超时/Session 关闭/默认参数）。
+> 详见 `docs/plans/2026-11-25-final-debt-inventory.md` 与 `docs/plans/2026-11-25-deep-scan*.md`。
+
 > **2026-11-13 增量（P3-16 / P2-10 / P2-07）**：新增
 > `tests/integration/test_monitor_catchup_e2e.py`（6 例，启动补扫真归档）、
 > `tests/test_p2_10_silent_error_triage.py`（3 例）、`tests/test_check_docs_drift_counts.py`（4 例）
@@ -50,6 +66,7 @@
 |------|:--:|:--:|------|
 | 2026-08-03 | 11 | 12.4% | 初始基线：detect_ip(4) + gongbiaoku(4) + Baidu OCR(3) |
 | 2026-11-13 | +14 | — | P3-16 monitor 启动补扫 e2e(6) + P2-10 triage(3) + G-052 数字校验(4) + G-013 消息告警(1) |
+| 2026-11-25 | 后端 7047 / 前端 1286 | 前端 85.98% | NEW-44 归零（前端 +55 文件/+344 例）；12 个 web 缺陷回归；三类深扫守卫测试；覆盖率/G-050/G-054 棘轮收紧 |
 
 ## 使用说明
 
