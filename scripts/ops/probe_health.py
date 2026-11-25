@@ -25,13 +25,17 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import re
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import _probe_common as common  # noqa: E402  共享层（凭据/HTTP/报告）
+
+logger = logging.getLogger(__name__)
 
 ROOT = common.ROOT
 VERSION_FILE = ROOT / "VERSION"
@@ -65,36 +69,55 @@ def _local_schema_version() -> int:
     return int(match.group(1)) if match else -1
 
 
-def _git_commit_exists(sha: str) -> tuple[bool, str]:
-    """判断 sha 是否存在于本地仓库，并返回它相对 `HEAD` 的关系说明（只读 git 调用）。"""
+def _run_git(args: list[str]) -> tuple[int, str, str]:
+    """跑一条只读 `git` 命令，返回 `(returncode, stdout, stderr)`。
+
+    双通道实现（2026-11-25 修）：部分受限/沙箱环境**禁止为子进程创建管道**，
+    此时 `subprocess.run(capture_output=True)` 会拿到 `stdout=None`（甚至读线程抛异常）。
+    先在内存捕获，拿不到再退化为「重定向到临时文件再读」，保证两种环境都能工作。
+    """
     try:
-        kind = subprocess.run(
-            ["git", "cat-file", "-t", sha],
+        proc = subprocess.run(
+            ["git", *args],
             cwd=str(ROOT),
             capture_output=True,
             text=True,
             timeout=20,
         )
+        if proc.stdout is not None and proc.stderr is not None:
+            return proc.returncode, proc.stdout, proc.stderr
+    except (OSError, subprocess.SubprocessError, ValueError) as exc:
+        # 预期回退：管道不可用（受限/沙箱环境），改走文件重定向；此处显式记录而非静默吞掉
+        logger.info("管道捕获不可用，退回文件重定向: %s", exc)
+    # 退路：文件重定向，不经过管道（沙箱下也可用）
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            out_path = Path(tmp) / "out.txt"
+            err_path = Path(tmp) / "err.txt"
+            with out_path.open("w", encoding="utf-8") as out, err_path.open("w", encoding="utf-8") as err:
+                proc = subprocess.run(["git", *args], cwd=str(ROOT), stdout=out, stderr=err, timeout=20)
+            return (
+                proc.returncode,
+                out_path.read_text(encoding="utf-8", errors="replace"),
+                err_path.read_text(encoding="utf-8", errors="replace"),
+            )
     except (OSError, subprocess.SubprocessError) as exc:
-        # `git` 不可用：无法验证，必须明说而不是当成通过
-        return False, f"git 不可用（{type(exc).__name__}），无法核对 sha 是否在仓库中"
-    if kind.returncode != 0 or kind.stdout.strip() != "commit":
-        return False, f"本地仓库中不存在该 commit（git cat-file 返回 {kind.returncode}）"
-    subject = subprocess.run(
-        ["git", "log", "--oneline", "-1", sha],
-        cwd=str(ROOT),
-        capture_output=True,
-        text=True,
-        timeout=20,
-    ).stdout.strip()
-    ancestor = subprocess.run(
-        ["git", "merge-base", "--is-ancestor", sha, "HEAD"],
-        cwd=str(ROOT),
-        capture_output=True,
-        text=True,
-        timeout=20,
-    )
-    if ancestor.returncode == 0:
+        return 127, "", f"{type(exc).__name__}: {exc}"
+
+
+def _git_commit_exists(sha: str) -> tuple[bool, str]:
+    """判断 sha 是否存在于本地仓库，并返回它相对 `HEAD` 的关系说明（只读 git 调用）。"""
+    kind_rc, kind_out, kind_err = _run_git(["cat-file", "-t", sha])
+    if kind_rc != 0 or kind_out.strip() != "commit":
+        detail = kind_err.strip() or f"git cat-file 返回 {kind_rc}"
+        # `git` 不可用（127）与「不存在该 commit」要区分：前者必须如实标 unverified
+        if kind_rc == 127:
+            return False, f"git 不可用（{detail}），无法核对 sha 是否在仓库中"
+        return False, f"本地仓库中不存在该 commit（{detail}）"
+    _log_rc, subject_out, _log_err = _run_git(["log", "--oneline", "-1", sha])
+    subject = subject_out.strip() or sha[:12]
+    ancestor_rc, _anc_out, _anc_err = _run_git(["merge-base", "--is-ancestor", sha, "HEAD"])
+    if ancestor_rc == 0:
         return True, f"commit 存在且是 HEAD 的祖先：{subject}"
     return True, f"commit 存在但**不是** HEAD 的祖先（本地领先/分叉）：{subject}"
 
