@@ -666,3 +666,19 @@ push 到 main 失败时本地 bump 提交仍在，于是 tag 指向孤儿提交�
 3. 若仍无法定位，再排查缓存/资源差异。
 
 **状态**：已登记（P2），触发条件＝下次再遇无法定位的 test-backend 红；处置口径见 `docs/ci-lessons.md`。
+
+### 批次 12 执行后的阻断项状态更新（2026-11-26）
+
+> 上文 §「完整部署自检（4 个 probe + 批次 1）」是 **2026-11-23 首次实测**的快照（保留作证据），
+> 维护窗口执行后状态如下：
+
+| 原阻断项 | 2026-11-25 执行后 |
+|---|---|
+| `pending` 的 `mass_delete_guard`（fail：61/61 缺失 → mark_missing 整轮跳过） | **已放行执行**：`POST /api/pending/mark-missing?protect=false` → `checked=61 / missing=61 / updated=28 / forced=true`；不再整轮跳过 |
+| `favorite_downloads.orphan`（fail：3 条孤儿） | 复验 **0 条**（`LEFT JOIN` 计数为 0） |
+| `feishu.credentials`（unverified） | 仍为 **预期**：飞书渠道未启用，未配置不属缺陷 |
+| C3 存量 `file_index.status='未生效'` | **已清洗**：10 行 → `即将实施`；复验 `未生效=0`、总数 776 守恒 |
+| A-40 旧数据 `user_id=1` 归属 | **已闭合**：`notification_log` 中 `user_id=1` 仅剩 14 行（全部 `user_activity`），系统事件 2610 行归 `user_id=0` |
+
+**备份**：`_bak_20261125_file_index_status`(776) / `_bak_20261125_pending`(633) / `_bak_20261125_notification_user`(2622)；
+执行记录：`docs/ops/batch12-superseded-by-rule-a-execution.md` 与 `C:/Temp/batch12_maintenance_result.json`（本机）。
