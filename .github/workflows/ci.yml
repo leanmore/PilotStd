@@ -903,6 +903,12 @@ jobs:
           COMPLIANCE_RANGE: ${{ github.event.pull_request.base.sha || github.event.before }}..${{ github.event.pull_request.head.sha || github.sha }}
         run: bash .github/scripts/check-repo-compliance.sh
 
+      # 2026-11-25 新增：版本号必须随 PR 递增（main 受 ruleset 保护，CI 不再直推 bump 提交）
+      - name: 版本号 bump 校验（feat/fix 必须同批改 VERSION）
+        env:
+          VERSION_CHECK_RANGE: ${{ github.event.before || github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha || github.sha }}
+        run: python scripts/check_version_bump.py --range "$VERSION_CHECK_RANGE"
+
       - name: G-026 — Docker 挂载黑名单
         run: python scripts/check_g_026_docker_mounts.py
 
@@ -1101,71 +1107,37 @@ jobs:
             echo "bumped=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Commit version bump
+      # 2026-11-25 修复（版本号不升级 + 孤儿 tag）：
+      #   main 受 ruleset 保护（必须走 PR），GITHUB_TOKEN 直推 bump 提交会被拒；
+      #   旧实现吞掉 push 失败后仍打 tag → tag 指向未推送提交（孤儿 tag）。
+      #   新流程：bump 由 PR 内的 `scripts/bump_version.py` 完成，这里**只校验不写库**。
+      - name: Verify VERSION bumped in PR
         if: steps.bump.outputs.bumped == 'true'
         run: |
-          TARGET_VER="${{ steps.bump.outputs.version }}"
-          CURRENT_VER=$(cat VERSION 2>/dev/null || echo "")
-
-          # 防重：若 VERSION 已为目标值则跳过（前一个 CI 已完成 bump）
-          if [ "$CURRENT_VER" = "$TARGET_VER" ]; then
-            echo "VERSION already at $TARGET_VER, commit skipped"
-            exit 0
-          fi
-
-          # 1. 更新 VERSION 文件
-          echo "$TARGET_VER" > VERSION
-
-          # 2. 精准替换 pilotstd/__init__.py 第 10 行的 __version__
-          sed -i "10s/__version__ = .*/__version__ = \"$TARGET_VER\"/" pilotstd/__init__.py
-
-          # 3. 同步 CHANGELOG（在 # CHANGELOG 行后插入新版本条目）
-          export V="$TARGET_VER"
-          export DATE=$(date +%Y-%m-%d)
-          python3 << 'PYEOF'
-          import os
-          v = os.environ["V"]
-          date = os.environ["DATE"]
-          with open("CHANGELOG.md", "r") as f:
-              content = f.read()
-          entry = f"## v{v} ({date})\n\n### Fixed\n- 版本号自动同步（CI 更新）\n\n"
-          idx = content.index("\n") + 1
-          content = content[:idx] + entry + content[idx:]
-          with open("CHANGELOG.md", "w") as f:
-              f.write(content)
-          PYEOF
-
-          # 4. 统一提交并推送（防竞态：fetch+rebase 后重试，最多 3 次）
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add VERSION pilotstd/__init__.py CHANGELOG.md
-          git commit -m "chore: bump version to v$TARGET_VER" || { echo "Nothing to commit, skipped"; exit 0; }
-          for i in 1 2 3; do
-            if git push; then
-              echo "Push succeeded on attempt $i"
-              break
-            fi
-            echo "Push attempt $i failed, fetching and retrying..."
-            git pull --rebase origin main
-            # 解决 CHANGELOG.md 可能产生的冲突：清除冲突标记保留内容
-            if [ -f CHANGELOG.md ] && git diff --name-only --diff-filter=U | grep -q CHANGELOG.md; then
-              python3 -c "import re; c=open('CHANGELOG.md').read(); open('CHANGELOG.md','w').write(re.sub(r'<<<<<<<[^\n]*\n|=======\n|>>>>>>>[^\n]*\n','',c))"
-              git add CHANGELOG.md
-              GIT_EDITOR=true git rebase --continue 2>/dev/null || true
-            fi
-            sleep 2
-          done
-          # 防冲突：等待 push 完成后再打 tag
-          sleep 2
+          set -e
+          python scripts/bump_version.py --check
 
       - name: Create and push tag
         if: steps.bump.outputs.bumped == 'true'
         run: |
+          set -e
           TAG="v${{ steps.bump.outputs.version }}"
+          # 安全前提：只给「已存在于 origin/main 的提交」打 tag（杜绝孤儿 tag）
+          HEAD_SHA=$(git rev-parse HEAD)
+          if ! git merge-base --is-ancestor "$HEAD_SHA" origin/main; then
+            echo "::error::HEAD ($HEAD_SHA) 不在 origin/main 上，拒绝打 tag $TAG（防孤儿 tag）"
+            exit 1
+          fi
           if git ls-remote --tags origin | grep -q "refs/tags/${TAG}$"; then
-            echo "Tag $TAG already exists on remote, skipping creation"
+            REMOTE_SHA=$(git ls-remote --tags origin "refs/tags/${TAG}" | awk '{print $1}')
+            if [ "$REMOTE_SHA" = "$HEAD_SHA" ]; then
+              echo "Tag $TAG already points to $HEAD_SHA, skipping"
+            else
+              echo "::error::Tag $TAG 已存在但指向 $REMOTE_SHA（非本次 $HEAD_SHA）——请先人工确认并删除孤立 tag"
+              exit 1
+            fi
           else
-            git tag -a "$TAG" -m "Release $TAG"
+            git tag -a "$TAG" -m "Release $TAG" "$HEAD_SHA"
             git push origin "$TAG"
           fi
 
