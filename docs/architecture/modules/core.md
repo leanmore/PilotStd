@@ -1053,3 +1053,17 @@ P1-5 复核（`docs/plans/2026-11-25-p1-unknown-refresh.md` §5.1/§5.3）暴露
   改发应用 `msgtype=markdown`；配置后 44/44 事件走合法卡片。
 - 卡片占位图用站内 `web/public/notification-card.png`（随 Web 构建进 `dist/`，缺失只影响空白不影响契约）。
 - 卡片列表硬上限：`vertical_content_list` ≤4、`jump_list` ≤3、`desc` ≤112 字符；超限截断并带「共 N 条」尾行。
+
+### 渠道限流按码判定（T-42 收口，2026-11-26）
+
+`pilotstd/core/notification/channels/base.py` 的 `CHANNEL_RATE_LIMIT_CODES` 已补齐四家取证结果：
+
+| 渠道 | 限流码 | 来源 |
+|---|---|---|
+| 企微 | 45009 | 企微官方「主动调用频率限制」文档 |
+| 飞书 | 99991400 | 飞书官方「频控策略」文档 |
+| 钉钉 | **90018** | 钉钉官方「调用频率限制」文档（本次新取证） |
+| Telegram | 无业务码 | 仅 HTTP 429 + `retry_after` 头/文本 |
+
+判定顺序：**码优先，未命中码回退关键词**（`looks_rate_limited`）；命中路径均打
+`rate_limited_by=code|keyword` 日志便于生产归因。回归：`tests/test_channel_rate_limit_codes.py`。

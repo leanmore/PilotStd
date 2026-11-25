@@ -77,7 +77,7 @@
 
 | # | 编号 | 类别 | 位置 | 问题 | 影响 | 修法 |
 |---|---|---|---|---|---|---|
-| 26 | T-42 | 台账·通知 | `pilotstd/core/notification/channels/base.py:49-59` | 渠道限流**具体错误码未逐家取证**（钉钉官方文档 JS 渲染取不到正文），现用 `_RATE_LIMIT_HINTS` 关键词兜底 | 站点改文案后限流识别失效 → 当场丢通知 | 取到任一家的 `errcode`/`code` 后改按码判定 |
+| 26 | T-42 | 台账·通知 | `pilotstd/core/notification/channels/base.py:49-59` | 渠道限流**错误码已逐家取证**（企微 45009 / 飞书 99991400 / 钉钉 **90018**，2026-11-26 从官方文档抄录）；判定改为**码优先**，`_RATE_LIMIT_HINTS` 仅作兜底 | 站点改文案后限流识别失效 → 当场丢通知 | 取到任一家的 `errcode`/`code` 后改按码判定 |
 | 27 | A-40 | 台账·数据 | `notification_log`（v71 前存量） | 残余 **89 行**（2026-10-31~11-14）`user_id=1` 待决；已订正 452+67 行 | 多用户下这些通知归错用户 | 先确认 89 行是否含真实用户动作，再按「系统→0 / 用户动作→1」清零 |
 | 28 | A-44 | 台账·功能 | `pilotstd/monitor/scheduler.py`（watchdog） | monitor 实时路径：新目录不触发（旧目录正常）；Windows bind mount 下目录创建事件未送达 | 新目录投放必须 restart 补扫，实时性残缺 | ① 补子目录 watch 巡检 ② 评估 `PollingObserver` ③ 文档写明（现按 ③） |
 | 29 | A-45 | 台账·通知 | 通知渠道系统 | 无 dry-run/站内渠道：`test-event` 会真实外发，AC-6 触发链路无法在生产安全复验（`dry_run` 已修，站内渠道仍缺） | 生产复验要冒真实外发风险 | 新增站内渠道（需产品决策），不阻塞现有验收 |
@@ -635,3 +635,10 @@ push 到 main 失败时本地 bump 提交仍在，于是 tag 指向孤儿提交�
 
 > 这 3 条与方向 B 首次实测（2026-11-23）结论完全一致 —— 说明探测脚本可复现，
 > 不是一次性偶然。
+
+### T-42 收口（2026-11-26）
+
+- 钉钉限流码 **90018** 已从官方文档取证（`open.dingtalk.com/document/orgapp/invocation-frequency-limit`：「每个应用调用每个接口最高频率…触发限流，返回错误码 90018」）；
+- `CHANNEL_RATE_LIMIT_CODES` 现为：企微 45009 / 飞书 99991400 / 钉钉 90018 / Telegram（仅 HTTP 429）；
+- 回归：`tests/test_channel_rate_limit_codes.py` 新增钉钉码用例（共 9 例通过）；
+- **状态：已闭合**（原「待取证」项不再阻塞）。
