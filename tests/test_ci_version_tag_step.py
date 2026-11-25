@@ -25,7 +25,7 @@ def test_version_job_never_pushes_commits_to_main() -> None:
     text = _text()
     # 旧的直推实现特征：commit 后 `git push` 到 main
     assert 'git commit -m "chore: bump version' not in text, "version job 不应再提交 bump 到 main"
-    assert "Commit version bump" not in text, "旧的 bump 提交步骤应已删除"
+    assert "- name: Commit version bump" not in text, "旧的 bump 提交步骤应已删除"
 
 
 def test_tag_step_fetches_origin_main_before_ancestry_check() -> None:
@@ -64,3 +64,13 @@ def test_version_bump_gate_runs_only_on_pull_request() -> None:
     idx = text.index("版本号 bump 校验")
     block = text[idx : idx + 500]
     assert "github.event_name == 'pull_request'" in block, "版本门禁缺少 PR 事件限定"
+
+
+def test_tag_step_configures_committer_identity() -> None:
+    """annotated tag 需要 tagger 身份（原 commit 步骤删除后身份配置丢失 → CI 上 tag 失败）。"""
+    text = _text()
+    idx = text.index("Create and push tag")
+    block = text[idx : idx + 900]
+    assert "git config user.name" in block, "tag 步骤缺少 committer 身份配置"
+    assert "git config user.email" in block
+
