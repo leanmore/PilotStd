@@ -642,3 +642,11 @@ push 到 main 失败时本地 bump 提交仍在，于是 tag 指向孤儿提交�
 - `CHANNEL_RATE_LIMIT_CODES` 现为：企微 45009 / 飞书 99991400 / 钉钉 90018 / Telegram（仅 HTTP 429）；
 - 回归：`tests/test_channel_rate_limit_codes.py` 新增钉钉码用例（共 9 例通过）；
 - **状态：已闭合**（原「待取证」项不再阻塞）。
+
+### G-43 核实闭合（2026-11-26）
+
+- 取生产 `notification_log` 61 个聚合行（11-20 起），按 `_business_level` 归并：
+  info 59 / warning 11 / error 0；每个 event_type 级别唯一（无歧义）；
+- 11-23（info=10）与 11-25（info=12、warning=2）差异由 `security_alert` 当日出现解释，无异常跳变；
+- 列表与分布接口共用同一函数；「新增 2 条 info」= `batch_summary` + `schedule_reminder` 真实事件；
+- **状态：已核实闭合**（无需代码改动）；报告 `docs/plans/2026-11-26-g43-log-level-caliber.md`。
