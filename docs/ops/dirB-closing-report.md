@@ -100,3 +100,8 @@
   2. `?status=未生效` / `?status=expired` 过滤映射：批次 11 修 + 补契约测试；
   3. 14 项人工验收：按 `deploy-selfcheck.md` §七-A 清单逐项人工确认；
   4. **版本号 bump 缺陷**（发版后 VERSION 不递增，镜像靠 sha 区分）：独立工单修复 version job。
+
+## 8. 执行注记（2026-11-25）
+
+- 本报告与探针修复同批提交；probe_all.py 已在部署版本（c016013d）上完整跑通（44 通过 / 1 数据条件失败 / 17 无法验证）。
+- 同批完成的还有：批次 12 规则 A 生产迁移（见 docs/ops/batch12-superseded-by-rule-a-execution.md）。
