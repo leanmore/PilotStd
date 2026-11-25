@@ -801,6 +801,7 @@
   "notification.auto.auto_pipeline_summary.body.download_success": "下載成功",
   "notification.auto.auto_pipeline_summary.body.organize_moved": "歸檔完成",
   "notification.renderer.detail": "詳情",
+  "notification.wecom.card.more": "共 {total} 段，其餘見詳情",
   "notification.renderer.level.warning": "⚠️ 警告",
   "notification.renderer.level.error": "❌ 錯誤",
   "notification.manager.skipped_no_channel": "未設定任何通知渠道，事件未投遞（站內可見）",

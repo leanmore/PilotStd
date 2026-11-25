@@ -880,6 +880,7 @@
   "notification.auto.auto_pipeline_summary.body.download_success": "Downloaded",
   "notification.auto.auto_pipeline_summary.body.organize_moved": "Archived",
   "notification.renderer.detail": "Details",
+  "notification.wecom.card.more": "{total} sections total; see details for the rest",
   "notification.renderer.level.warning": "⚠️ Warning",
   "notification.renderer.level.error": "❌ Error",
   "notification.manager.skipped_no_channel": "No notification channel configured; event not delivered (visible in app)",

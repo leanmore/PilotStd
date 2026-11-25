@@ -38,17 +38,29 @@ def _msg(body: str = "共 10 条，全部成功") -> NotificationMessage:
     return msg
 
 
+def _linked(msg: NotificationMessage) -> NotificationMessage:
+    """模拟分发层：`_dispatcher.send_now` 会给每条消息挂站内入口动作。
+
+    D1 起卡片仅在**有合法跳转 URL** 时才会被发送（否则渠道改发 markdown），
+    故"走卡片"的用例必须先挂动作。
+    """
+    attach_web_actions(msg, _Cfg())
+    return msg
+
+
 # ── 1. 渲染器 ────────────────────────────────────────────────────────────────
 
 
-def test_card_is_news_notice_with_evidenced_fields_only() -> None:
-    """只产出实证过的字段：`source`/`main_title`/`vertical_content_list`；**不含** card_image。"""
-    card = WeChatCardRenderer().render_card(_msg())
+def test_card_is_news_notice_with_official_required_fields() -> None:
+    """卡片满足 `news_notice` 官方必填项（D1；更细的契约见 `test_notification_wecom_card_contract.py`）。"""
+    card = WeChatCardRenderer().render_card(_linked(_msg()))
     assert card["card_type"] == "news_notice"
-    assert set(card) == {"card_type", "source", "main_title", "vertical_content_list"}
     assert card["main_title"]["title"] == "扫描完成"
-    assert card["vertical_content_list"][0]["desc"] == "共 10 条，全部成功"
-    assert "card_image" not in card, "无图时不得臆造 card_image（官方是否必填未取证）"
+    joined = " ".join(it["title"] + it["desc"] for it in card["vertical_content_list"])
+    assert "共 10 条" in joined
+    # 官方必填：card_image 与 card_action（news_notice）
+    assert card["card_image"]["url"]
+    assert card["card_action"]["url"]
 
 
 def test_card_puts_web_links_into_jump_list_and_card_action() -> None:
@@ -63,7 +75,7 @@ def test_card_puts_web_links_into_jump_list_and_card_action() -> None:
 
 
 def test_card_without_links_has_no_jump_list() -> None:
-    """地址未配置（降级）⇒ 卡片里不出现 jump_list / card_action（不产生坏链）。"""
+    """地址未配置（降级）⇒ 卡片里不出现 jump_list / card_action（不产生坏链、不发非法卡）。"""
     msg = _msg()
     attach_web_actions(msg, _Cfg(None))
     card = WeChatCardRenderer().render_card(msg)
@@ -71,10 +83,10 @@ def test_card_without_links_has_no_jump_list() -> None:
 
 
 def test_card_renders_blocks_into_vertical_content() -> None:
-    """结构化块（B1 的失败明细列表）逐行进 `vertical_content_list`。"""
+    """结构化块（B1 的失败明细列表）逐行拆进 `vertical_content_list` 的标题/正文。"""
     from pilotstd.core.notification.blocks import ListBlock
 
-    msg = _msg(body="")
+    msg = _linked(_msg(body=""))
     msg.blocks = [
         ListBlock(
             title="失败明细",
@@ -82,9 +94,11 @@ def test_card_renders_blocks_into_vertical_content() -> None:
         )
     ]
     card = WeChatCardRenderer().render_card(msg)
-    descs = [it["desc"] for it in card["vertical_content_list"]]
-    assert any("GB/T 1-2020" in d for d in descs)
-    assert all(len(d) <= 140 for d in descs), "单行长度需受控（卡片行宽有限）"
+    items = card["vertical_content_list"]
+    joined = " ".join(it["title"] + it["desc"] for it in items)
+    assert "GB/T 1-2020" in joined
+    assert all(len(it["desc"]) <= 112 for it in items), "单条正文宽度需受控（官方建议 ≤112）"
+    assert all(it["title"] for it in items), "条目 title 是官方必填字段"
 
 
 def test_card_renderer_also_produces_degradation_text() -> None:
@@ -139,14 +153,14 @@ def test_app_form_sends_template_card(monkeypatch) -> None:
     sent: list[dict] = []
     _stub_http(monkeypatch, sent)
     ch = WechatChannel("", "ww123", "1000001", "secret", "", "@all")
-    assert ch.send(_msg()) is True
+    assert ch.send(_linked(_msg())) is True
     assert sent and sent[0]["msgtype"] == "template_card"
     assert sent[0]["touser"] == "@all" and sent[0]["agentid"] == "1000001"
     assert sent[0]["template_card"]["card_type"] == "news_notice"
 
 
-def test_app_form_degrades_to_text_when_card_rejected(monkeypatch) -> None:
-    """卡片被平台拒收（errcode≠0）⇒ **降级为文本消息**，绝不静默丢消息。"""
+def test_app_form_degrades_to_markdown_when_card_rejected(monkeypatch) -> None:
+    """D3：卡片被平台拒收（errcode≠0）⇒ 降级为 **`msgtype=markdown`**（不是 text 源码）。"""
     sent: list[dict] = []
     state = {"card_failed": False}
 
@@ -161,9 +175,47 @@ def test_app_form_degrades_to_text_when_card_rejected(monkeypatch) -> None:
 
     monkeypatch.setattr(WechatChannel, "_open", lambda self, url, payload=None: _open(url, payload))
     ch = WechatChannel("", "ww123", "1000001", "secret")
-    assert ch.send(_msg()) is True
+    assert ch.send(_linked(_msg())) is True
     kinds = [p.get("msgtype") for p in sent]
-    assert kinds == ["template_card", "text"], f"应为卡片失败后降级文本，实测 {kinds}"
+    assert kinds == ["template_card", "markdown"], f"应为卡片失败后降级 markdown，实测 {kinds}"
+    assert "共 10 条" in sent[-1]["markdown"]["content"]
+    # markdown 源码里的渲染标记是**合法内容**（企微 markdown 消息会解析它们）
+    assert "## 扫描完成" in sent[-1]["markdown"]["content"]
+
+
+def test_app_form_uses_markdown_when_no_legal_card_action(monkeypatch) -> None:
+    """D1：无合法跳转 URL ⇒ 不产出/不发送必被拒的卡，直接发 markdown 应用消息。"""
+    sent: list[dict] = []
+    _stub_http(monkeypatch, sent)
+    ch = WechatChannel("", "ww123", "1000001", "secret")
+    assert ch.send(_msg()) is True  # 未挂站内入口动作
+    kinds = [p.get("msgtype") for p in sent]
+    assert kinds == ["markdown"], f"无合法 card_action 时不得发模板卡片，实测 {kinds}"
+
+
+def test_app_form_text_is_last_resort_when_markdown_also_fails(monkeypatch) -> None:
+    """卡片与 markdown 都失败 ⇒ 最后兜底发 text（绝不静默丢消息）。"""
+    sent: list[dict] = []
+    state = {"card_failed": False, "md_failed": False}
+
+    def _open(url: str, payload: dict | None = None) -> _Resp:
+        if "gettoken" in url:
+            return _Resp({"errcode": 0, "access_token": "tok"})
+        sent.append(payload or {})
+        kind = (payload or {}).get("msgtype")
+        if kind == "template_card" and not state["card_failed"]:
+            state["card_failed"] = True
+            return _Resp({"errcode": 40058, "errmsg": "invalid card"})
+        if kind == "markdown" and not state["md_failed"]:
+            state["md_failed"] = True
+            return _Resp({"errcode": 40058, "errmsg": "invalid markdown"})
+        return _Resp({"errcode": 0})
+
+    monkeypatch.setattr(WechatChannel, "_open", lambda self, url, payload=None: _open(url, payload))
+    ch = WechatChannel("", "ww123", "1000001", "secret")
+    assert ch.send(_linked(_msg())) is True
+    kinds = [p.get("msgtype") for p in sent]
+    assert kinds == ["template_card", "markdown", "text"], f"兜底顺序不符：{kinds}"
     assert "共 10 条" in sent[-1]["text"]["content"]
 
 
@@ -182,7 +234,7 @@ def test_app_form_takes_precedence_when_both_configured(monkeypatch) -> None:
     sent: list[dict] = []
     _stub_http(monkeypatch, sent)
     ch = WechatChannel("https://hook/x", "ww123", "1000001", "secret")
-    assert ch.send(_msg()) is True
+    assert ch.send(_linked(_msg())) is True
     assert sent[0]["msgtype"] == "template_card"
 
 
@@ -230,10 +282,10 @@ def test_app_form_text_fallback_splits_by_wecom_byte_limit(monkeypatch) -> None:
     tail = "尾部结束标记"
     body = "长" * 3000 + tail
     ch = WechatChannel("", "ww123", "1000001", "secret")
-    assert ch.send(_msg(body=body)) is True
+    assert ch.send(_linked(_msg(body=body))) is True
 
-    texts = [p["text"]["content"] for p in sent if p.get("msgtype") == "text"]
-    assert len(texts) > 1, f"降级文本未按字节分段（字符截断回归）：段数={len(texts)}"
+    texts = [p["markdown"]["content"] for p in sent if p.get("msgtype") == "markdown"]
+    assert len(texts) > 1, f"降级消息未按字节分段（字符截断回归）：段数={len(texts)}"
     for seg in texts:
         size = len(seg.encode("utf-8"))
         assert size <= 2048, f"分段超过企微 2048 字节上限：{size}"
@@ -258,10 +310,10 @@ def test_app_form_short_text_still_sent_as_single_message(monkeypatch) -> None:
 
     monkeypatch.setattr(WechatChannel, "_open", lambda self, url, payload=None: _open(url, payload))
     ch = WechatChannel("", "ww123", "1000001", "secret")
-    assert ch.send(_msg(body="短消息")) is True
-    texts = [p for p in sent if p.get("msgtype") == "text"]
+    assert ch.send(_linked(_msg(body="短消息"))) is True
+    texts = [p for p in sent if p.get("msgtype") == "markdown"]
     assert len(texts) == 1
-    assert "短消息" in texts[0]["text"]["content"]
+    assert "短消息" in texts[0]["markdown"]["content"]
 
 
 # ── 3. 信息量对齐（P0-2 级别 / P0-3 详情链接 / P1-1 列表计数） ────────────────
@@ -325,7 +377,7 @@ def test_card_list_renders_count_and_detail_url() -> None:
     """P1-1：ListBlock 的「共 N 条」与 `detail_url` 不得再丢（5 个事件受影响）。"""
     from pilotstd.core.notification.blocks import ListBlock
 
-    msg = _msg(body="")
+    msg = _linked(_msg(body=""))
     msg.blocks = [
         ListBlock(
             title="新登记",
@@ -335,7 +387,7 @@ def test_card_list_renders_count_and_detail_url() -> None:
         )
     ]
     card = WeChatCardRenderer().render_card(msg)
-    descs = " ".join(item["desc"] for item in card["vertical_content_list"])
-    assert t("notification.renderer.list_count").format(total=2) in descs
-    assert "https://std.example.com/standards?ids=1,2" in descs
+    joined = " ".join(item["title"] + item["desc"] for item in card["vertical_content_list"])
+    assert t("notification.renderer.list_count").format(total=2) in joined
+    assert "https://std.example.com/standards?ids=1,2" in joined
 

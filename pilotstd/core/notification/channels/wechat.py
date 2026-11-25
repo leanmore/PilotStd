@@ -28,10 +28,15 @@ class WechatChannel(NotificationChannel):
     | 形态 | 必需参数 | 出站形态 |
     |---|---|---|
     | **群机器人 Webhook** | `webhook_url` | `markdown`（按 2048 字节分段） |
-    | **企业应用（自建应用）** | `corpid` + `corpsecret` + `agentid` | **`template_card`（模板卡片）**，
-      平台拒收时降级为文本 |
+    | **企业应用（自建应用）** | `corpid` + `corpsecret` + `agentid` | 合法时发 **`template_card`（模板卡片）**；
+      卡片被拒/无合法动作时降级为 **`markdown` 应用消息**（按 2048 字节分段），
+      两者都失败才退回 `text`（最后兜底，绝不静默丢消息） |
 
     两者都配好时**优先企业应用形态**（与 `channel_spec.status_rule` 的分支顺序一致）。
+
+    **降级消息类型（D3，2026-11-25）**：旧实现降级用 `msgtype=text` 发 markdown **源码**，
+    用户看到字面 `##`/`**`/`[x](url)`；企微应用消息支持 `msgtype=markdown`（≤2048 字节），
+    故降级首选拔高为 markdown（与 Webhook 同渲染器/同分段口径），`text` 仅作最后兜底。
 
     **为什么应用形态才有卡片**：企微的 `template_card` 只能经应用消息端点
     `cgi-bin/message/send` 下发，群机器人 Webhook **不支持**（取证见 `renderer.WeChatCardRenderer`）。
@@ -76,9 +81,8 @@ class WechatChannel(NotificationChannel):
         if self._app_configured:
             if self._send_by_app(message):
                 return True
-            # 卡片链路失败 ⇒ **不静默丢弃**：降级为文本应用消息再试一次
-            # ASCII 开发者日志（G-047 只允许用户可见文案走 i18n）
-            logger.warning("wecom template_card send failed, falling back to text: %s", self.last_error)
+            # 卡片与 markdown 应用消息都失败 ⇒ 最后兜底：纯 text 消息（保留"绝不静默丢"）
+            logger.warning("wecom app message delivery failed, falling back to text: %s", self.last_error)
             if self._send_app_text(message):
                 return True
             return False
@@ -170,16 +174,41 @@ class WechatChannel(NotificationChannel):
         return False, is_rate_limited("wechat", errcode, errmsg)
 
     def _send_by_app(self, message: NotificationMessage) -> bool:
-        """应用形态：发送 `template_card`（模板卡片）。"""
+        """应用形态：**合法时**发 `template_card`，否则/被拒后改发 `markdown` 应用消息。
+
+        D1：`news_notice` 卡片缺必填项（`card_action` 等）会被平台 40058 拒收；渲染器在
+        没有合法跳转 URL 时不产出这些字段 ⇒ 此处直接走 markdown，不发必然被拒的卡。
+        D3：降级消息类型由 `text` 改为 `markdown`（应用消息支持、与 Webhook 同渲染器/分段）。
+        """
         card = self._card_renderer.render_card(message)
-        return self._post_app_with_retry({"msgtype": "template_card", "template_card": card})
+        if card.get("card_action") and card.get("card_image"):
+            if self._post_app_with_retry({"msgtype": "template_card", "template_card": card}):
+                return True
+            logger.warning("wecom template_card rejected, falling back to markdown: %s", self.last_error)
+        return self._send_app_markdown(message)
+
+    def _send_app_markdown(self, message: NotificationMessage) -> bool:
+        """应用形态降级：发送 **`msgtype=markdown`** 应用消息（D3）。
+
+        渲染来源仍是 `MarkdownRenderer`（`## 标题` / `**字段**：值` / `- 条目` / `[查看详情](url)`），
+        但必须用企微**会解析 markdown** 的 `msgtype=markdown` 发送——旧实现用 `msgtype=text`
+        发同一份 markdown 源码，用户看到的是字面 `##`/`**`，链接也不可点。
+        分段沿用 `split_for_channel` 的**字节口径**（企微上限 2048 字节），任一段失败即整体失败。
+        """
+        text = self._renderer.render(message) or str(message.title or "")
+        for segment in split_for_channel(text, "wecom"):
+            if not self._post_app_with_retry({"msgtype": "markdown", "markdown": {"content": segment}}):
+                return False
+        return True
 
     def _send_app_text(self, message: NotificationMessage) -> bool:
-        """应用形态降级：发送文本消息（卡片被拒收时的兜底，绝不静默丢消息）。
+        """应用形态**最后兜底**：发送纯 `text` 消息（卡片与 markdown 均失败时）。
 
         P1-2：企微文本上限是 **2048 字节**（不是 2000 字符）。原实现 `text[:2000]` 按字符
         硬截断——2000 汉字 ≈ 6000 字节，降级消息本身仍会被平台拒收，且尾部信息直接丢失。
         改为复用 `split_for_channel` 的**字节口径**分段、逐段发送（任一段失败即整体失败）。
+        注意：`text` 消息不解析 markdown（用户会看到源码），故它只是最后兜底，正常降级走
+        `_send_app_markdown`。
         """
         text = self._renderer.render(message) or str(message.title or "")
         for segment in split_for_channel(text, "wecom"):
