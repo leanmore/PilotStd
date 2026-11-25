@@ -187,8 +187,14 @@ def test_report_exit_code_semantics() -> None:
 # ── probe_health ────────────────────────────────────────────
 
 
-def health_routes(schema_version: int = 76, status: str = "ok", version: str = "0.206.0") -> dict:
-    """构造健康检查相关路由表（默认全绿）。"""
+def health_routes(schema_version: int = 76, status: str = "ok", version: str | None = None) -> dict:
+    """构造健康检查相关路由表（默认全绿）。
+
+    默认 `version` 取仓库 `VERSION` 文件动态值：写死字面量会在每次发版 bump 后让
+    `version.consistency` 假失败（2026-11-25 实测：VERSION 0.206.0→0.207.0 触发 2 例红）。
+    """
+    if version is None:
+        version = (Path(__file__).resolve().parents[2] / "VERSION").read_text(encoding="utf-8").strip()
     return {
         ("GET", "/api/health"): FakeResponse(
             200 if status == "ok" else 207,
@@ -209,7 +215,7 @@ def health_routes(schema_version: int = 76, status: str = "ok", version: str = "
             },
         ),
         ("GET", "/api/system/version"): FakeResponse(
-            200, {"version": "0.206.0", "tag": "v0.206.0", "image": "ghcr.io/leanmore/pilotstd:v0.206.0"}
+            200, {"version": version, "tag": f"v{version}", "image": f"ghcr.io/leanmore/pilotstd:v{version}"}
         ),
     }
 

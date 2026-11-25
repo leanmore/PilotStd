@@ -82,4 +82,4 @@ python C:/Temp/ds_batch12_rule_a.py --verify
 | `superseded_by` 方向纠正（规则 A） | ✅ **本次完成** |
 | C3 存量状态清洗（`未生效` → `即将实施` 等） | ⏳ 待 lane-status（批次 11 代码修复）合并后执行，避免「清洗后又被写回」 |
 | A-40 残余 89 行 `user_id=1` | ⏳ 待与用户确认这 89 行是否含真实用户动作（台账登记为「先确认再清零」） |
-| `pending.mass_delete_guard` 误报 | ⏳ 维护窗口内 `protect=False` 执行一次，或先清理 61 条 pending（台账 G-30 口径） |
+| `pending 的 mass_delete_guard 检查` 误报 | ⏳ 维护窗口内 `protect=False` 执行一次，或先清理 61 条 pending（台账 G-30 口径） |

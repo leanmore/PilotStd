@@ -520,7 +520,7 @@ continue/break 识别、新增 G-056 死链扫描），CI 严格模式拦了两�
 
 ## 2026-11-25 版本号不升级 + 孤儿 tag：CI 直推受保护分支被静默吞掉
 
-**现象**：合并 46 提交并部署后，`/api/health.version` 是新 sha，但 `/api/system/version` 仍是
+**现象**：合并 46 提交并部署后，`/api/health 的 ersion 字段` 是新 sha，但 `/api/system/version` 仍是
 `0.206.0`；远端存在 `v0.206.1`/`v0.207.0` 两个 tag，指向**不在 main 上**的 bump 提交（孤儿 tag）。
 
 **根因**：`main` 启用了 ruleset `main-protection`（`pull_request` 必填 + 必需状态检查 +
