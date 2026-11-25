@@ -17,10 +17,11 @@ from pilotstd.core.status import Status
 from ...core.notification import EVENT_ARCHIVE_COMPLETE
 from ...core.notification.batch import ensure_batch_key
 from ...core.notification.context import NotificationContext
-from ...core.std_utils import build_standard_number, classify_std_code, parse_std_number
+from ...core.std_utils import classify_std_code, parse_std_number
 from ...i18n import t
 from ...models import ParsedStdInfo
 from ...organizer.industry_lookup import INDUSTRY_MAP
+from ._organize_keys import standard_number_for_item, standard_number_from_parsed
 from ._organize_payloads import _fmt_std_number, build_failed_item
 
 if TYPE_CHECKING:
@@ -181,23 +182,11 @@ class OrganizeHandler:
     def _register_moved_standards(self, items: Any, ctx: NotificationContext, expire_statuses: Any) -> None:
         """归档成功后登记 validity 键（并触发废止通知）；孤儿代号跳过登记。"""
         for p in items:
-            std_no = build_standard_number(
-                str(p.logical_code or ""),
-                p.number,
-                getattr(p, "part", None),
-                p.year,
-                getattr(p, "num_prefix", "") or "",
-            )
+            std_no = standard_number_for_item(p)
             if not std_no:
                 parsed = parse_std_number(getattr(p, "raw_filename", "") or "")
                 if parsed:
-                    std_no = build_standard_number(
-                        str(parsed.get("code") or ""),
-                        parsed.get("number"),
-                        parsed.get("part"),
-                        parsed.get("year"),
-                        parsed.get("num_prefix", "") or "",
-                    )
+                    std_no = standard_number_from_parsed(parsed)
             if not std_no:
                 logger.warning(
                     "跳过标准登记：无法确定规范标准号（code=%r number=%r）", p.logical_code, p.number
@@ -227,16 +216,8 @@ class OrganizeHandler:
             src = getattr(p, "source_path", "") or ""
             if not src or os.path.exists(src):
                 continue  # 源文件仍在 = 未真正归档
-            base = build_standard_number(
-                str(p.logical_code or ""), p.number, getattr(p, "part", None), p.year
-            )
-            prefixed = build_standard_number(
-                str(p.logical_code or ""),
-                p.number,
-                getattr(p, "part", None),
-                p.year,
-                getattr(p, "num_prefix", "") or "",
-            )
+            base = standard_number_for_item(p, include_prefix=False)
+            prefixed = standard_number_for_item(p)
             for key in (base, prefixed):
                 if key and key not in keys:
                     keys.append(key)
