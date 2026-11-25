@@ -899,7 +899,8 @@ jobs:
           # T-27（R14-1，2026-10-01）：与 docs-sync（T-25/R11-3b）同一手法——推送路径上
           #   `origin/main` 已被推进到本次 tip，脚本内 `origin/main..HEAD` 恒空 → 恒 PASS（假绿）。
           #   故显式传本次推送范围；push 载荷专用字段是 `github.event.before`，右端用通用的 `github.sha`。
-          COMPLIANCE_RANGE: ${{ github.event.before }}..${{ github.sha }}
+          # PR 事件必须用 base..head（`before` 是上一次 head，force-push/rebase 后 diff 为空 → 假失败）
+          COMPLIANCE_RANGE: ${{ github.event.pull_request.base.sha || github.event.before }}..${{ github.event.pull_request.head.sha || github.sha }}
         run: bash .github/scripts/check-repo-compliance.sh
 
       - name: G-026 — Docker 挂载黑名单
@@ -914,7 +915,7 @@ jobs:
           # 2026-11-21 修正（PR 路径）：`github.event.before` **只存在于 push 事件**，PR 下展开为空串
           #   ⇒ 范围退化成 `..<sha>` → 脚本判"显式范围 0 变更文件"并拒绝静默通过（run 44893174320 实证）。
           #   现按事件回落：push 用 before..sha；PR 用 base.sha..head.sha（= 本 PR 的改动）。
-          G029_RANGE: ${{ github.event.before || github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha || github.sha }}
+          G029_RANGE: ${{ github.event.pull_request.base.sha || github.event.before }}..${{ github.event.pull_request.head.sha || github.sha }}
         run: python scripts/check_g_029_test_coverage.py
 
       - name: B — API response_model 全覆盖
@@ -939,7 +940,7 @@ jobs:
       - name: Docs sync check
         env:
           AUTO_FIX_DOCS: "false"
-          DOCS_SYNC_RANGE: ${{ github.event.before }}..${{ github.sha }}
+          DOCS_SYNC_RANGE: ${{ github.event.pull_request.base.sha || github.event.before }}..${{ github.event.pull_request.head.sha || github.sha }}
           BASE_BRANCH: ${{ github.event.pull_request.base.ref || 'main' }}
         run: |
           set -e
@@ -1008,7 +1009,7 @@ jobs:
       # 合并为 repo-compliance 的步骤，显式传入本次推送/PR 的完整范围。
       - name: Governance Docs Check
         env:
-          GOVERNANCE_DOCS_RANGE: ${{ github.event.pull_request.base.sha || github.event.before }}..${{ github.sha }}
+          GOVERNANCE_DOCS_RANGE: ${{ github.event.pull_request.base.sha || github.event.before }}..${{ github.event.pull_request.head.sha || github.sha }}
         run: bash scripts/check_governance_docs.sh
 
       # E-5（2026-10-18 体检）：`check_no_migrating.sh` 原先**没有任何调用方**（写了门禁但不跑）。
@@ -1030,8 +1031,9 @@ jobs:
       - name: G-013 — 测试联动（CI 形态）
         env:
           BASE_BRANCH: ${{ github.event.pull_request.base.ref || 'main' }}
-          EVENT_BEFORE: ${{ github.event.before }}
-          EVENT_SHA: ${{ github.sha }}
+          # PR 事件优先 base.sha（`before` 是上一次 head，force-push 后 diff 为 0 → 假失败）
+          EVENT_BEFORE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          EVENT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           set -e
           if git rev-parse --verify --quiet "${EVENT_BEFORE}" > /dev/null; then
