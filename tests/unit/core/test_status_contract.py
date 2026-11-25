@@ -6,7 +6,8 @@ C 阶段把状态契约显式化：后端在原有 `status`（数据值，中文
 
 ① `status_key()` / `resolve_status_filter()` 纯函数语义（含别名归一与兜底）；
 ② `/api/standards/status`：item 带 `status_key`；`status=active` 与 `status=现行` 等价；
-   非法值不生效（与旧实现一致）；
+   `status=未生效` 与 `status=upcoming` 结果集一致（历史兼容别名）；
+   **无法识别的 `status` 值显式 400**（不再静默忽略过滤）；
 ③ `/api/query/results`：结果带 `status_key`，**磁盘文件不被改写**；
 ④ `/api/pending/requery`：结果带 `status_key`；
 ⑤ `WechatIPService.get_status()`：带 `current_ip_known` 布尔键（前端不再比较 '未知'）。
@@ -17,6 +18,7 @@ from __future__ import annotations
 import json
 
 import pytest
+from fastapi import HTTPException
 
 from pilotstd.core.status import Status, resolve_status_filter, status_key
 
@@ -54,6 +56,9 @@ class _StubManager:
         (None, "unknown"),
         ("不认识的值", "unknown"),
         (" active ", "active"),  # 空白剥离；入参已是英文键时幂等
+        # 历史兼容别名：`未生效` 与 `即将实施` 是同一语义的两种写法（P1-5 §3.3 公告口径 10/10）
+        ("未生效", "upcoming"),
+        (Status.UPCOMING.value, "upcoming"),
     ],
 )
 def test_status_key(raw, expected):
@@ -70,13 +75,51 @@ def test_status_key(raw, expected):
         (Status.WITHDRAWN.value, Status.WITHDRAWN_NORMALIZED.value),  # 别名归一
         # Sentinel: 确保枚举 value 与现网中文契约一致（旧前端/老书签发来的就是这个中文值）
         ("现行", Status.ACTIVE.value),
+        # 历史兼容别名（C3 存量清洗后自然收敛）：与「即将实施」/`upcoming` 解析为**同一取值**
+        ("未生效", Status.UPCOMING.value),
+        (Status.UPCOMING.value, Status.UPCOMING.value),
         ("", None),
         (None, None),
-        ("nonsense", None),  # 非法值不生效（同旧实现）
+        ("nonsense", None),  # 无法识别 → 端点显式 400（见下方端点契约测试）
     ],
 )
 def test_resolve_status_filter(raw, expected):
     assert resolve_status_filter(raw) == expected
+
+
+def test_not_effective_alias_resolves_identically_to_upcoming():
+    """`未生效`/`即将实施`/`upcoming` 三种写法必须解析为同一过滤取值（结果集完全一致）。"""
+    assert (
+        resolve_status_filter("未生效")
+        == resolve_status_filter(Status.UPCOMING.value)
+        == resolve_status_filter("upcoming")
+        == Status.UPCOMING.value
+    )
+
+
+def test_api_valid_statuses_derives_from_single_source():
+    """**单一事实源**：`API_VALID_STATUSES` 由 `API_FILTER_ACCEPTED_VALUES` 派生（P1-5 §5.3）。
+
+    `API_VALID_STATUSES` 过去只列 3 个展示桶，而端点实际接受 9 个中文值 + 8 个英文键 +
+    历史兼容别名 —— 契约常量与实际行为不一致（docstring 也只列 3 个键）。本测试锁定：
+    ① 常量与解析函数接受集合**逐项相等**；② 每个 `Status` 枚举值都在其中。
+    """
+    from pilotstd.core import status as status_dict
+
+    accepted = status_dict.API_FILTER_ACCEPTED_VALUES
+    assert status_dict.API_VALID_STATUSES == tuple(sorted(accepted)), "必须由单一事实源派生"
+    assert len(set(status_dict.API_VALID_STATUSES)) == len(status_dict.API_VALID_STATUSES), "不得有重复项"
+    # 枚举 × 接受性：9 个中文数据值全部被接受
+    for member in Status:
+        assert member.value in accepted
+    # 英文契约键（前端筛选实际发送的值）全部被接受
+    for english_key in status_dict.STATUS_EN_KEYS.values():
+        assert english_key in accepted
+    # 历史兼容别名同样被接受
+    assert "未生效" in accepted
+    # 反向：无法识别的取值一律不在接受集合内
+    assert "nonsense" not in accepted
+    assert "Active" not in accepted  # 枚举名不是契约值（大小写敏感）
 
 
 # ── ② 标准状态列表契约 ────────────────────────────────────────────────────
@@ -100,22 +143,62 @@ def test_standards_status_items_expose_status_key():
     [
         ("active", Status.ACTIVE.value),
         (Status.ACTIVE.value, Status.ACTIVE.value),
-        ("Active", None),
         ("active ", Status.ACTIVE.value),
+        ("withdrawn", Status.WITHDRAWN_NORMALIZED.value),
+        ("upcoming", Status.UPCOMING.value),
+        ("unknown", Status.UNKNOWN.value),
+        (Status.UPCOMING.value, Status.UPCOMING.value),
+        ("未生效", Status.UPCOMING.value),  # 历史兼容别名
     ],
 )
 def test_standards_status_filter_accepts_key_and_legacy_value(raw, expected):
-    """过滤入参：英文键与历史中文值都接受；`Active`（枚举名，非契约值）不生效。"""
+    """过滤入参：英文键、历史中文值与历史兼容别名都接受，并按统一口径解析。"""
     from docker.api.standards import get_standards_status
 
     mgr = _StubManager()
     get_standards_status(status=raw, standard_no=None, name=None, page=1, page_size=20, mgr=mgr)
 
-    filters = mgr.standard_service.seen_filters[0]
-    if expected is None:
-        assert filters is None, "非法过滤值必须被忽略（与旧实现一致）"
-    else:
-        assert filters == {"status": expected}
+    assert mgr.standard_service.seen_filters[0] == {"status": expected}
+
+
+def test_endpoint_accepts_every_value_of_the_single_source_contract():
+    """**契约测试（枚举 × 端点接受性）**：`API_VALID_STATUSES` 每一项端点都必须接受。
+
+    端点接受集合若比契约常量窄/宽，这里立刻红（历史问题：常量 3 值、实收 9 值）。
+    """
+    from docker.api.standards import get_standards_status
+    from pilotstd.core import status as status_dict
+
+    for raw in status_dict.API_VALID_STATUSES:
+        mgr = _StubManager()
+        get_standards_status(status=raw, standard_no=None, name=None, page=1, page_size=20, mgr=mgr)
+        resolved = status_dict.resolve_status_filter(raw)
+        assert resolved is not None, f"契约内取值 {raw!r} 必须可解析"
+        assert mgr.standard_service.seen_filters[0] == {"status": resolved}
+
+
+@pytest.mark.parametrize("raw", ["nonsense", "Active", "即将实施-", "现行,废止", "未 生效"])
+def test_endpoint_rejects_unrecognized_status_with_400(raw):
+    """**P0 防复发核心**：无法识别的 `status` 值必须显式 400，不得静默忽略过滤。"""
+    from docker.api.standards import get_standards_status
+
+    mgr = _StubManager()
+    with pytest.raises(HTTPException) as excinfo:
+        get_standards_status(status=raw, standard_no=None, name=None, page=1, page_size=20, mgr=mgr)
+
+    assert excinfo.value.status_code == 400
+    assert raw in str(excinfo.value.detail), "400 文案应回显非法取值，便于定位"
+    assert mgr.standard_service.seen_filters == [], "非法值不得进入查询"
+
+
+@pytest.mark.parametrize("raw", [None, "", "   "])
+def test_endpoint_empty_status_means_no_filter(raw):
+    """空值/纯空白 = 「全部」而不是非法值（前端未选筛选时不会传，但老客户端可能传空串）。"""
+    from docker.api.standards import get_standards_status
+
+    mgr = _StubManager()
+    get_standards_status(status=raw, standard_no=None, name=None, page=1, page_size=20, mgr=mgr)
+    assert mgr.standard_service.seen_filters == [None]
 
 
 # ── ③ 查询结果契约 ────────────────────────────────────────────────────────
