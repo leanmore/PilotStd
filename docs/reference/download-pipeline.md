@@ -508,3 +508,10 @@ ASME（`ASME B16.5-2020`）、BPVC 等编号 **38/40 解析不出** → 解析�
 
 **回归**：`tests/unit/core/test_std_number_format.py::TestMakeStandardFilename`、
 `tests/test_download.py`（目标路径计算复算 `_resolve_target_path`）。
+
+## 编号表示边界（2026-11-25，批次 10 合并注记）
+
+- 表示层唯一实现：`build_standard_number` / `get_full_number` 均委托 `core/std_number_format.format_standard_number`；
+  新增编号拼接必须复用，禁止另手拼（否则会回归双前缀/双后缀/BPVC 丢卷册）。
+- 联合标准 `API 579-1/ASME FFS-1`、`ASME A112.18.1/CSA B125.1`：解析两侧可正确识别，但查询 target
+  字段模型不承载联合段（`/CSA B125.1`），当前 15/16；若需 16/16 要新增联合标准字段（schema 评估，另批）。
