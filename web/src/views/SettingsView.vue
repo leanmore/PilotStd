@@ -451,9 +451,9 @@ onMounted(() => {
   background: linear-gradient(135deg, var(--primary), var(--primary-hover));
   color: var(--text-on-primary);
   font-weight: var(--font-weight-semibold);
-  /* TODO: [Design Debt] A-52 — 0 2px 8px rgba(99, 102, 241, 0.25) 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — var(--ds-shadow-accent) 无精确令牌，暂不替换，待定令牌后统一处理 */
   /* TODO: [Design Debt] 原生阴影与既有 --shadow-* 层级不匹配（半径/扩散/透明度不同），待统一评估（A-52） */
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
+  box-shadow: var(--ds-shadow-accent);
 }
 
 /* ── 底部操作栏 ── */

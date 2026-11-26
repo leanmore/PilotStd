@@ -1632,3 +1632,9 @@ ailed 字段归一、终态词表（completed/cancelled/failed）、result_json 
   `GET/PUT /api/notification/config` 支持 `web_base_url`（校验同发送侧）；设置页新增输入框（三语 i18n）；
 - **测试**：企微渠道 25 例、配置 API 4 例、前端 composable 1 例；四件套全绿（150 文件 / 1292 例）；
 - **文档**：`docs/plans/2026-11-26-mp-notification-borrow.md`、`core.md`、`08`、`26`。
+
+## 2026-11-26 D-1：overlay / shadow 令牌化（零视觉变化，A-52 方案 b 第一批）
+
+- 新增 `--ds-overlay-a*`（14 档，精确 α）与 `--ds-shadow-*`（13 个，值逐字保留）于 `style.css :root`；
+- 组件内 `rgba(0,0,0,α)` 61 处、裸 `box-shadow` 11 处全部替换为 `var()`（含 `!important` 与 keyframes）；
+- **验证**：四页 Playwright 截图逐像素比对差异 **0**；四件套全绿（150 文件/1291 例）；G-055 基线收紧后再 PASS（过期 0）。

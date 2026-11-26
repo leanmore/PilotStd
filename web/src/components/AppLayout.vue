@@ -265,9 +265,9 @@ const {
   -webkit-backdrop-filter: blur(16px) saturate(180%);
   /* TODO: [Design Debt] A-52 — 1px solid rgba(226, 232, 240, 0.5) 无精确令牌，暂不替换，待定令牌后统一处理 */
   border-top: 1px solid rgba(226, 232, 240, 0.5);
-  /* TODO: [Design Debt] A-52 — 0 -2px 16px rgba(0, 0, 0, 0.06) 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — var(--ds-shadow-top) 无精确令牌，暂不替换，待定令牌后统一处理 */
   /* TODO: [Design Debt] 原生阴影与既有 --shadow-* 层级不匹配（半径/扩散/透明度不同），待统一评估（A-52） */
-  box-shadow: 0 -2px 16px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--ds-shadow-top);
   z-index: 100;
 }
 /* 暗色主题下的毛玻璃（dark + blue） */
@@ -378,9 +378,9 @@ const {
   display: flex;
   align-items: center;
   justify-content: center;
-  /* TODO: [Design Debt] A-52 — 0 4px 12px rgba(0, 0, 0, 0.15) 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — var(--ds-shadow-toast) 无精确令牌，暂不替换，待定令牌后统一处理 */
   /* TODO: [Design Debt] 原生阴影与既有 --shadow-* 层级不匹配（半径/扩散/透明度不同），待统一评估（A-52） */
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--ds-shadow-toast);
   backdrop-filter: blur(4px);
   cursor: pointer;
   /* 阻止触摸拖拽时触发页面滚动 */
@@ -391,9 +391,9 @@ const {
   background: var(--primary-fill-hover);
   filter: brightness(1.02);
   transform: scale(1.08);
-  /* TODO: [Design Debt] A-52 — 0 6px 16px rgba(0, 0, 0, 0.2) 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — var(--ds-shadow-pop) 无精确令牌，暂不替换，待定令牌后统一处理 */
   /* TODO: [Design Debt] 原生阴影与既有 --shadow-* 层级不匹配（半径/扩散/透明度不同），待统一评估（A-52） */
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--ds-shadow-pop);
 }
 .floating-workspace-btn i { line-height: var(--line-height-none); }
 

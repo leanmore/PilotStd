@@ -8,7 +8,7 @@
  *   - header 底部一条 --border 分隔线；标题 --text-heading + --font-weight-semibold
  *   - 关闭按钮：右上角，图标尺寸 --size-20
  *   - 遮罩层：**不新增颜色令牌**，沿用 PrimeVue Aura 默认 mask
- *     （light `rgba(0,0,0,0.4)` / dark `rgba(0,0,0,0.6)`，由主题 preset 的 `mask.background` 提供）。
+ *     （light `var(--ds-overlay-a40)` / dark `var(--ds-overlay-a60)`，由主题 preset 的 `mask.background` 提供）。
  *     理由见下方"遮罩层"注释。
  *
  * ── 显式 props vs $attrs 的分界 ──

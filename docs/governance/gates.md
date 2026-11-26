@@ -100,6 +100,8 @@
 
 ### G-031：文档同步检查
 
+**2026-11-26 D-1 补记**：`web/src` 的 overlay/阴影字面量令牌化（`--ds-overlay-*`/`--ds-shadow-*`，零视觉：四页截图像素差异 0）；`scripts/design_token_baseline.json` 同步收紧（过期提示 14→0）。
+
 **2026-11-26 批次 14 验收补记**：`scripts/ops/probe_pending_paths.py` 的 `mass_delete_guard` 判据改为「缺失行已全部标 `file_missing` → 幂等 no-op → PASS」，批次 12 后不再误报阻断；实测 `probe_v0207 11/11`、`probe_all 45 通过/0 失败`、`probe_batch1 10 通过/0 失败`。
 
 **2026-11-26 NEW-47 补记**：`.github/workflows/ci.yml` 的 `test-backend` 改为「首跑失败→只重跑失败用例一次→summary always 写 step summary」；真失败仍红（`tests/test_ci_backend_flake_guard.py` 锁定）。
