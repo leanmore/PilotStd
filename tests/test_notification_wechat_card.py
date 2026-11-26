@@ -456,3 +456,30 @@ def test_mp_text_link_falls_back_to_web_actions(monkeypatch) -> None:
     assert ch.send(msg) is True
     content = sent[0]["text"]["content"]
     assert content.endswith("点击查看：http://192.168.1.18:9028/notification-logs")
+
+def test_mp_text_dedupes_title_from_body(monkeypatch) -> None:
+    """body 首行与标题相同 ⇒ 纯文本里标题只出现一次（真机 2026-11-26 实测缺陷）。"""
+    monkeypatch.delenv("PILOTSTD_WECHAT_APP_FORMAT", raising=False)
+    sent: list[dict] = []
+    _stub_http(monkeypatch, sent)
+    msg = NotificationMessage(title="收藏成功：GB/T 48564-2026")
+    msg.body = "收藏成功：GB/T 48564-2026\n标准号：GB/T 48564-2026\n名称：压力容器"
+    ch = WechatChannel("", "ww123", "1000001", "secret")
+    assert ch.send(msg) is True
+    content = sent[0]["text"]["content"]
+    assert content.count("收藏成功：GB/T 48564-2026") == 1, content
+    assert "标准号：GB/T 48564-2026" in content
+
+
+def test_mp_text_does_not_duplicate_existing_link(monkeypatch) -> None:
+    """正文已包含同一 URL ⇒ 不再追加「点击查看」，避免两条链接（真机 2026-11-26 实测缺陷）。"""
+    monkeypatch.delenv("PILOTSTD_WECHAT_APP_FORMAT", raising=False)
+    sent: list[dict] = []
+    _stub_http(monkeypatch, sent)
+    msg = NotificationMessage(title="收藏成功", body="详情：https://std.example.com/x")
+    msg.link = "https://std.example.com/x"
+    ch = WechatChannel("", "ww123", "1000001", "secret")
+    assert ch.send(msg) is True
+    content = sent[0]["text"]["content"]
+    assert content.count("https://std.example.com/x") == 1, content
+    assert "点击查看" not in content

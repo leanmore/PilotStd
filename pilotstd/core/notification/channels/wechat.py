@@ -219,12 +219,21 @@ class WechatChannel(NotificationChannel):
         return True
 
     def _format_app_text(self, message: NotificationMessage) -> str:
-        """MP 风格文本：`title\n正文`（连续空行折叠），有链接时追加「点击查看：{url}」。
+        """MP 风格文本：`title\n正文`（连续空行折叠），链接按需追加「点击查看：{url}」。
 
         对齐 MoviePilot `WeChat.__send_message`：正文空只发标题；空行折叠避免手机端大段留白。
+
+        **2026-11-26 真机修正（0.209.2）**：
+        1. 标题去重——多数 builder 的 `body` 首行就是标题，直接 `title\nbody` 会出现两遍；
+        2. 链接去重——正文里常已带「详情：<url>」，再追加「点击查看」会重复两个链接。
         """
         title = str(getattr(message, "title", "") or "").strip()
         body = str(getattr(message, "body", "") or "").strip().replace("\n\n", "\n")
+        # 1) body 首行与标题相同 ⇒ 去掉该行，避免标题出现两次（可能连续多次）
+        lines = body.splitlines()
+        while title and lines and lines[0].strip() == title:
+            lines.pop(0)
+        body = "\n".join(lines).strip()
         content = f"{title}\n{body}" if title and body else (title or body)
         link = str(getattr(message, "link", "") or "").strip()
         if not link:
@@ -235,7 +244,8 @@ class WechatChannel(NotificationChannel):
                 if candidate.lower().startswith(("http://", "https://")):
                     link = candidate
                     break
-        if link:
+        # 2) 正文已包含该链接 ⇒ 不再追加（避免「详情：url」+「点击查看：url」重复）
+        if link and link not in content:
             content = f"{content}\n点击查看：{link}" if content else f"点击查看：{link}"
         return content
 
