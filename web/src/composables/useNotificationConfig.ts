@@ -59,6 +59,8 @@ export function useNotificationConfig() {
   }
 
   const enabled = ref(false)
+  /** 站内访问地址（通知里的详情链接基址；2026-11-26 起可读写） */
+  const webBaseUrl = ref('')
   /** 渠道元数据（唯一来源 = 后端 `channel_spec.py`，经 `GET /api/notification/channels` 下发） */
   const specs = ref<ChannelSpec[]>([])
   const channels = ref<Record<string, ChannelFormState>>({})
@@ -269,6 +271,7 @@ export function useNotificationConfig() {
       await loadChannelSpecs()
       const cfg = await getNotificationConfig('/settings')
       enabled.value = cfg.enabled
+      webBaseUrl.value = String((cfg as { web_base_url?: string }).web_base_url ?? '')
       // 静音时段以**服务端 config 为唯一真相**：偏好仅作加载前占位/缓存，
       // 这里用服务端值覆盖并回写偏好，避免"页面显示已启用、服务端已关闭"的分叉（A-27）。
       const serverQuiet = (cfg as { quiet_hours?: { enabled: boolean; start: string; end: string } }).quiet_hours
@@ -360,6 +363,7 @@ export function useNotificationConfig() {
       for (const spec of specs.value) payloadChannels[spec.name] = cleanChannel(spec)
       await putNotificationConfig({
         enabled: enabled.value,
+        web_base_url: webBaseUrl.value.trim(),
         channels: payloadChannels as NotificationConfigUpdate['channels'],
         rules: newRules,
       })
@@ -461,6 +465,7 @@ export function useNotificationConfig() {
     t,
     te,
     eventLabel,
+    webBaseUrl,
     enabled,
     specs,
     channels,

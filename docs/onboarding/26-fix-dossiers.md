@@ -388,3 +388,21 @@ ASME/BY 系列与 BPVC 键全被拒。
 查询 target 期望命中 15/16（剩余 1 条为联合标准 `ASME A112.18.1/CSA B125.1`，字段无法表达联合段）。
 **门禁**：G-010（`std_utils.py` 498→464，`file_utils.py` 453→448，告警档文件不增长）、
 G-013（新增 4 个测试文件 + 前端测试）、G-031（core/scan/parser/query/manager 五份模块文档同批）。
+
+## 企微通知排版崩坏 + web_base_url 无入口（2026-11-26，借鉴 MoviePilot 重构）
+
+**现象**：企微通知在微信插件端显示「暂不支持此消息类型」；卡片/markdown 排版崩坏；
+所有消息带「未配置站内访问地址」提示。
+
+**根因**：
+1. 应用消息优先发 `template_card` / `markdown` —— 微信插件端不支持这两种应用消息类型；
+2. `notification.web_base_url` **没有 API/UI 读写入口**（只有 config.json 默认值），用户配置后
+   发送侧仍读不到 → 永远降级为「无链接」提示。
+
+**修复（对照 MoviePilot `app/modules/wechat/wechat.py`）**：
+默认改发 `msgtype=text`（`title\nbody`、空行折叠、末尾 `点击查看：{url}`、2048 字节分段、
+端点带 `safe/enable_id_trans/enable_duplicate_check`）；`markdown`/`card` 变显式选项；
+`web_base_url` 接入 `GET/PUT /api/notification/config` + 设置页输入框（三语）。
+
+**回归**：`tests/test_notification_wechat_card.py`（25 例）、`tests/test_notification_api.py`（4 例）、
+`useNotificationConfig.test.ts`（web_base_url 读写）。

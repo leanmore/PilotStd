@@ -148,10 +148,29 @@ def _stub_http(monkeypatch: Any, send_payloads: list[dict], token_ok: bool = Tru
     return None
 
 
-def test_app_form_sends_template_card(monkeypatch) -> None:
-    """应用形态（corpid+corpsecret+agentid）⇒ `msgtype=template_card`，且带上 touser/agentid。"""
+def test_app_form_defaults_to_mp_text(monkeypatch) -> None:
+    """默认（对齐 MoviePilot）：应用形态发 **`msgtype=text`**，标题+正文，主动不带 markdown 源码。"""
     sent: list[dict] = []
     _stub_http(monkeypatch, sent)
+    monkeypatch.delenv("PILOTSTD_WECHAT_APP_FORMAT", raising=False)
+    msg = _linked(_msg())
+    msg.title = "扫描完成"
+    msg.link = f"{BASE}/notification-logs"
+    ch = WechatChannel("", "ww123", "1000001", "secret", "", "@all")
+    assert ch.send(msg) is True
+    payload = sent[0]
+    assert payload["msgtype"] == "text"
+    assert payload["text"]["content"] == "扫描完成\n共 10 条，全部成功\n点击查看：" + f"{BASE}/notification-logs"
+    assert payload["touser"] == "@all" and payload["agentid"] == "1000001"
+    # MP 对齐的端点字段
+    assert payload["safe"] == 0 and payload["enable_id_trans"] == 0 and payload["enable_duplicate_check"] == 0
+
+
+def test_app_form_sends_template_card(monkeypatch) -> None:
+    """显式启用 card 格式时仍发 `template_card`（保留既有能力，默认不启用）。"""
+    sent: list[dict] = []
+    _stub_http(monkeypatch, sent)
+    monkeypatch.setenv("PILOTSTD_WECHAT_APP_FORMAT", "card")
     ch = WechatChannel("", "ww123", "1000001", "secret", "", "@all")
     assert ch.send(_linked(_msg())) is True
     assert sent and sent[0]["msgtype"] == "template_card"
@@ -161,6 +180,7 @@ def test_app_form_sends_template_card(monkeypatch) -> None:
 
 def test_app_form_degrades_to_markdown_when_card_rejected(monkeypatch) -> None:
     """D3：卡片被平台拒收（errcode≠0）⇒ 降级为 **`msgtype=markdown`**（不是 text 源码）。"""
+    monkeypatch.setenv("PILOTSTD_WECHAT_APP_FORMAT", "card")
     sent: list[dict] = []
     state = {"card_failed": False}
 
@@ -187,6 +207,7 @@ def test_app_form_uses_markdown_when_no_legal_card_action(monkeypatch) -> None:
     """D1：无合法跳转 URL ⇒ 不产出/不发送必被拒的卡，直接发 markdown 应用消息。"""
     sent: list[dict] = []
     _stub_http(monkeypatch, sent)
+    monkeypatch.setenv("PILOTSTD_WECHAT_APP_FORMAT", "card")
     ch = WechatChannel("", "ww123", "1000001", "secret")
     assert ch.send(_msg()) is True  # 未挂站内入口动作
     kinds = [p.get("msgtype") for p in sent]
@@ -195,6 +216,7 @@ def test_app_form_uses_markdown_when_no_legal_card_action(monkeypatch) -> None:
 
 def test_app_form_text_is_last_resort_when_markdown_also_fails(monkeypatch) -> None:
     """卡片与 markdown 都失败 ⇒ 最后兜底发 text（绝不静默丢消息）。"""
+    monkeypatch.setenv("PILOTSTD_WECHAT_APP_FORMAT", "card")
     sent: list[dict] = []
     state = {"card_failed": False, "md_failed": False}
 
@@ -233,9 +255,10 @@ def test_app_form_takes_precedence_when_both_configured(monkeypatch) -> None:
     """两形态都配好 ⇒ **优先应用形态**（与 `channel_spec.status_rule` 分支序 app→webhook 一致）。"""
     sent: list[dict] = []
     _stub_http(monkeypatch, sent)
+    monkeypatch.delenv("PILOTSTD_WECHAT_APP_FORMAT", raising=False)
     ch = WechatChannel("https://hook/x", "ww123", "1000001", "secret")
     assert ch.send(_linked(_msg())) is True
-    assert sent[0]["msgtype"] == "template_card"
+    assert sent[0]["msgtype"] == "text"
 
 
 def test_neither_form_configured_reports_error() -> None:
@@ -258,6 +281,7 @@ def test_token_failure_is_reported(monkeypatch) -> None:
 
 
 def test_app_form_text_fallback_splits_by_wecom_byte_limit(monkeypatch) -> None:
+    monkeypatch.setenv("PILOTSTD_WECHAT_APP_FORMAT", "card")
     """P1-2：降级文本必须按 2048 **字节**分段发送，且末段含消息尾部。
 
     缺陷背景：原实现 `text[:2000]` 按**字符**硬截断——2000 汉字 ≈ 6000 字节，
@@ -295,6 +319,7 @@ def test_app_form_text_fallback_splits_by_wecom_byte_limit(monkeypatch) -> None:
 
 
 def test_app_form_short_text_still_sent_as_single_message(monkeypatch) -> None:
+    monkeypatch.setenv("PILOTSTD_WECHAT_APP_FORMAT", "card")
     """未超限时 `split_for_channel` 原样返回单段（零行为变更，不多发消息）。"""
     sent: list[dict] = []
     state = {"card_failed": False}
@@ -391,3 +416,27 @@ def test_card_list_renders_count_and_detail_url() -> None:
     assert t("notification.renderer.list_count").format(total=2) in joined
     assert "https://std.example.com/standards?ids=1,2" in joined
 
+
+def test_app_form_format_switch_to_markdown(monkeypatch) -> None:
+    """显式 markdown 选项仍可用（企微内网/富文本场景）。"""
+    monkeypatch.setenv("PILOTSTD_WECHAT_APP_FORMAT", "markdown")
+    sent: list[dict] = []
+    _stub_http(monkeypatch, sent)
+    ch = WechatChannel("", "ww123", "1000001", "secret")
+    assert ch.send(_linked(_msg())) is True
+    assert sent[0]["msgtype"] == "markdown"
+    assert "共 10 条" in sent[0]["markdown"]["content"]
+
+
+def test_mp_text_collapses_blank_lines_and_appends_link(monkeypatch) -> None:
+    """MP 对齐：连续空行折叠 + 链接以「点击查看：」追加在末尾。"""
+    monkeypatch.delenv("PILOTSTD_WECHAT_APP_FORMAT", raising=False)
+    sent: list[dict] = []
+    _stub_http(monkeypatch, sent)
+    msg = NotificationMessage(title="公告抓取完成", body="共 3 条\n\n已入库 3 条")
+    msg.link = "https://std.example.com/announce"
+    ch = WechatChannel("", "ww123", "1000001", "secret")
+    assert ch.send(msg) is True
+    content = sent[0]["text"]["content"]
+    assert "\n\n" not in content
+    assert content.endswith("点击查看：https://std.example.com/announce")

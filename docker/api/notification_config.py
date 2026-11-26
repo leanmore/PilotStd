@@ -59,6 +59,8 @@ class NotificationConfigResponse(BaseModel):
 
     enabled: bool
     quiet_hours: QuietHoursView
+    # 站内访问地址（通知里的「查看详情」链接基址）；空 = 未配置（消息按降级文案处理）
+    web_base_url: str = ""
     channels: dict[str, dict[str, Any]]
     rules: dict[str, Any]
 
@@ -212,6 +214,9 @@ def get_config(request: Request, mgr=Depends(get_manager_dep), user_id: int = De
             )
             for s in CHANNEL_SPECS
         },
+        # 2026-11-26：站内访问地址此前**没有读取入口**（只在 config.json 里，UI/API 都拿不到），
+        # 导致通知永远提示「未配置站内访问地址」。现随配置接口下发，设置页可读写。
+        "web_base_url": str(mgr.cfg.get("notification.web_base_url", "") or ""),
         "rules": {ev: mgr.cfg.get(f"notification.rules.{ev}", []) for ev in ALL_EVENT_KEYS},
     }
 
@@ -395,6 +400,20 @@ def _persist_config_and_audit(
                             extra={"source_type": "notification_api", "user_id": user_id},
                         )
                         return JSONResponse({"error": str(e)}, status_code=400)
+        elif key == "web_base_url":
+            # 校验口径与发送侧 `_links.resolve_web_base` 完全一致：必须是 http(s) 绝对地址且非回环，
+            # 否则存进来也只会被发送侧忽略（等于"保存成功但永远不生效"）。
+            from pilotstd.core.notification._links import resolve_web_base
+
+            raw_value = str(value or "").strip()
+            if raw_value:
+                canonical = resolve_web_base({"notification.web_base_url": raw_value})
+                if not canonical:
+                    invalid = "invalid web_base_url (absolute http(s), non-loopback required)"
+                    return JSONResponse({"error": invalid}, status_code=400)
+                mgr.cfg.set("notification.web_base_url", canonical)
+            else:
+                mgr.cfg.set("notification.web_base_url", "")
         elif key == "rules":
             for rule_name, channels in value.items():
                 mgr.cfg.set(f"notification.rules.{rule_name}", channels)

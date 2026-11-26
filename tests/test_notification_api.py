@@ -435,3 +435,68 @@ def test_spec_endpoint_returns_subscribable_events():
     assert payload["events"] == expected
     # 37 = 原 36 + `auto_pipeline_summary`（Q11 裁决，2026-10-24：可订阅）
     assert len(payload["events"]) == 37
+
+
+class TestWebBaseUrlConfig(unittest.TestCase):
+    """web_base_url 配置读写（2026-11-26：此前没有任何读取入口，通知永远提示未配置）。"""
+
+    def _make_mgr(self):
+        from unittest.mock import MagicMock
+
+        mgr = MagicMock()
+        mgr.cfg = MagicMock()
+        mgr.notification_mgr = MagicMock()
+        mgr.notification_mgr._cred_helper = None
+        return mgr
+
+    @staticmethod
+    def _json(result):
+        import json
+
+        return json.loads(result.body)
+
+    def test_get_config_returns_web_base_url(self):
+        from unittest.mock import MagicMock
+
+        from docker.api.notification_config import get_config
+
+        mgr = self._make_mgr()
+        mgr.cfg.get.side_effect = lambda key, default=None: (
+            "http://192.168.1.18:5173" if key == "notification.web_base_url" else default
+        )
+        payload = get_config(request=MagicMock(), mgr=mgr, user_id=1)
+        self.assertEqual(payload["web_base_url"], "http://192.168.1.18:5173")
+
+    def test_put_config_saves_canonical_url(self):
+        from unittest.mock import MagicMock
+
+        from docker.api.notification import update_config
+
+        mgr = self._make_mgr()
+        result = update_config(
+            request=MagicMock(), body={"web_base_url": "http://192.168.1.18:5173/"}, mgr=mgr, user_id=1
+        )
+        mgr.cfg.set.assert_any_call("notification.web_base_url", "http://192.168.1.18:5173")
+        self.assertTrue(self._json(result)["ok"])
+
+    def test_put_config_rejects_loopback(self):
+        from unittest.mock import MagicMock
+
+        from docker.api.notification import update_config
+
+        mgr = self._make_mgr()
+        result = update_config(
+            request=MagicMock(), body={"web_base_url": "http://localhost:5173"}, mgr=mgr, user_id=1
+        )
+        self.assertEqual(result.status_code, 400)
+        self.assertIn("web_base_url", self._json(result)["error"])
+        mgr.cfg.set.assert_not_called()
+
+    def test_put_config_empty_clears(self):
+        from unittest.mock import MagicMock
+
+        from docker.api.notification import update_config
+
+        mgr = self._make_mgr()
+        update_config(request=MagicMock(), body={"web_base_url": ""}, mgr=mgr, user_id=1)
+        mgr.cfg.set.assert_any_call("notification.web_base_url", "")

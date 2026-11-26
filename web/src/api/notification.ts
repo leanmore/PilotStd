@@ -45,6 +45,8 @@ export type ChannelConfig = WechatChannelConfig | TelegramChannelConfig | Feishu
 
 export interface NotificationConfig {
   enabled: boolean
+  /** 站内访问地址（通知「查看详情」链接基址）；空 = 未配置 */
+  web_base_url?: string
   channels: {
     wechat: WechatChannelConfig
     telegram: TelegramChannelConfig
@@ -66,6 +68,8 @@ export interface QuietHoursConfig {
 
 export interface NotificationConfigUpdate {
   enabled?: boolean
+  /** 站内访问地址（后端校验 http(s) 且非回环） */
+  web_base_url?: string
   channels?: {
     wechat?: Partial<WechatChannelConfig>
     telegram?: Partial<TelegramChannelConfig>
