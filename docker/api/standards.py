@@ -19,10 +19,12 @@ router = APIRouter(tags=["standards"])
 
 
 class StandardStatusStatsResponse(BaseModel):
-    """标准状态计数响应：现行、已废止、未知三类。"""
+    """标准状态计数响应（4 桶互斥：现行 / 已废止 / 即将实施 / 未知）。"""
 
     active: int
     inactive: int
+    # 即将实施（2026-11-26 拆出：此前并入 unknown，前端把「即将实施 30」显示成「未知 30」）
+    upcoming: int = 0
     unknown: int
 
 
@@ -53,10 +55,15 @@ def get_status_stats(mgr=Depends(get_manager_dep)):
     try:
         stats = mgr.standard_service.get_stats()
         by_status = stats["by_status"]
+        upcoming = int(stats.get("upcoming", 0) or 0)
+        # 「未知」桶按既有口径含 即将实施/过期/待确认/枚举外脏值；4 桶展示需要互斥：
+        # unknown = 未知桶 - 即将实施（过期/待确认仍归未知，属既有语义）。
+        unknown_bucket = int(by_status.get(Status.UNKNOWN.value, 0) or 0)
         return {
             "active": by_status.get(Status.ACTIVE.value, 0),
             "inactive": by_status.get(Status.WITHDRAWN_NORMALIZED.value, 0),
-            "unknown": by_status.get(Status.UNKNOWN.value, 0),
+            "upcoming": upcoming,
+            "unknown": max(unknown_bucket - upcoming, 0),
         }
     except DatabaseError as e:
         logger.error("标准状态统计查询失败: %s", e)

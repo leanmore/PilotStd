@@ -437,3 +437,15 @@ A1（上节）只修了 `作废` 这个**具体值**，没有修「四值之外�
 
 **回归**：`tests/test_p211_root_cause.py`、`tests/unit/core/test_std_number_format.py`、
 `tests/unit/query/test_query_target_construction.py`。
+
+## 标准状态统计拆 4 桶（2026-11-26）
+
+`StandardService.get_stats()` 在 `{"total", "by_status"}` 之外**新增 `upcoming`**（即将实施计数）。
+原因：`by_status["未知"]` 桶按既有口径同时收纳 即将实施/过期/待确认/未知/枚举外脏值，
+`/api/standards/status/stats` 直接回传该桶会让前端把「即将实施 30」显示成「未知 30」。
+
+API 侧改为 4 桶互斥：`active / inactive / upcoming / unknown(=未知桶-upcoming)`；
+`file_index` 与既有 `by_status` 口径**不变**（向后兼容），仅展示层拆桶。
+
+回归：`tests/test_standard_service.py::TestGetStatsUpcoming`、前端
+`StandardsStatusView.test.ts`（4 张统计卡）。

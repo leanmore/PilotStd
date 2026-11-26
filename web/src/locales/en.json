@@ -128,7 +128,8 @@
       "all": "All",
       "current": "Active",
       "abolished": "Withdrawn",
-      "unknown": "Unknown"
+      "unknown": "Unknown",
+      "upcoming": "Upcoming"
     },
     "filter_status": "Status",
     "filter_standard_no": "Standard No.",
@@ -520,7 +521,7 @@
       "queryAdapter": "Query Adapter",
       "queryAdapterTitle": "Query Adapter Cluster",
       "recentAnnounce": "Latest Announcements",
-      "pending": "Pending Standards",
+      "pending": "Fetch pending",
       "trend": "Library Overview",
       "sysLog": "System Log"
     },

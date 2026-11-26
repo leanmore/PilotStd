@@ -148,7 +148,7 @@ def run(options: argparse.Namespace, session: object | None = None) -> common.Re
         rows = _sql(
             client,
             "SELECT COUNT(*) AS c FROM notification_log "
-            "WHERE user_id=1 AND notify_event != 'user_activity'",
+            "WHERE user_id=1 AND notify_event != 'user_activity' AND event_type != 'test'",
         )
         sys_rows = int(rows[0]["c"]) if rows else -1
         report.add(

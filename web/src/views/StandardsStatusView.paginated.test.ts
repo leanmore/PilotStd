@@ -69,7 +69,7 @@ describe('StandardsStatusView 分页模式（D-6 回归）', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     storage.clear()
-    vi.mocked(getStandardsStats).mockResolvedValue({ active: 1, inactive: 2, unknown: 3 } as never)
+    vi.mocked(getStandardsStats).mockResolvedValue({ active: 1, inactive: 2, upcoming: 3, unknown: 0 } as never)
     vi.mocked(getStandardsStatus).mockResolvedValue({ total: 1, page: 1, page_size: 50, items: ITEMS } as never)
   })
 

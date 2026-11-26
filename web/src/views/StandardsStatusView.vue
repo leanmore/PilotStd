@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n'
 import Tag from 'primevue/tag'
 import Message from 'primevue/message'
 import Column from 'primevue/column'
-import { getStandardsStats, getStandardsStatus, clearStandardsStatusCache, type StandardStatusItem } from '@/api/standards'
+import { getStandardsStats, getStandardsStatus, clearStandardsStatusCache, type StandardStatusItem , type StandardStats } from '@/api/standards'
 import { STD_STATUS_FILTER, severityOfStatusKey } from '@/utils/stdStatus'
 import { getItem, setItem } from '@/lib/storage'
 import { useIncrementalScroll, type PaginatedResult } from '@/composables/useIncrementalScroll'
@@ -19,7 +19,7 @@ import AppCard from '@/components/ui/AppCard.vue'
 
 const MAX_SIZE = 100
 
-const stats = ref({ active: 0, inactive: 0, unknown: 0 })
+const stats = ref<StandardStats>({ active: 0, inactive: 0, upcoming: 0, unknown: 0 })
 const allItems = ref<StandardStatusItem[]>([])
 const total = ref(0)
 const loading = ref(false)
@@ -178,6 +178,12 @@ onMounted(() => {
           <div class="stat-label">📕 {{ t('standards.status.abolished') }}</div>
         </template>
       </AppCard>
+      <AppCard class="stat-card upcoming">
+        <template #content>
+          <div class="stat-num">{{ stats.upcoming ?? 0 }}</div>
+          <div class="stat-label">📘 {{ t('standards.status.upcoming') }}</div>
+        </template>
+      </AppCard>
       <AppCard class="stat-card unknown">
         <template #content>
           <div class="stat-num">{{ stats.unknown }}</div>
@@ -280,11 +286,12 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-16); margin-bottom: var(--space-16); }
+.stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-16); margin-bottom: var(--space-16); }
 .stat-card { text-align: center; }
 .stat-card.active { border-left: 4px solid var(--success); }
 .stat-card.inactive { border-left: 4px solid var(--danger); }
 .stat-card.unknown { border-left: 4px solid var(--text-dim); }
+.stat-card.upcoming { border-left: 4px solid var(--info); }
 .stat-num { font-size: var(--font-size-28); font-weight: var(--font-weight-bold); }
 .stat-label { font-size: var(--font-size-13); color: var(--text-dim); margin-top: var(--space-4); }
 .section { margin-bottom: var(--space-16); }

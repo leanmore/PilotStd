@@ -33,7 +33,7 @@ describe('standards API', () => {
   })
 
   it('getStandardsStats 走 GET /standards/status/stats 并透传 routeTag', async () => {
-    const stats = { active: 1, inactive: 2, unknown: 3 }
+    const stats = { active: 1, inactive: 2, upcoming: 3, unknown: 0 }
     h.get.mockResolvedValueOnce({ data: stats })
 
     await expect(getStandardsStats('/standards-status')).resolves.toEqual(stats)

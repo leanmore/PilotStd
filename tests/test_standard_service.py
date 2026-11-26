@@ -303,3 +303,23 @@ class TestExplicitStatusBuckets:
         svc.get_stats()
         assert [rec for rec in caplog.records if rec.levelno == logging.WARNING] == []
 
+
+class TestGetStatsUpcoming:
+    """2026-11-26：`get_stats()` 增加 `upcoming`（即将实施），供 API 拆 4 桶。"""
+
+    def test_upcoming_returned_separately(self, tmp_path):
+        """即将实施既进「未知」桶（既有口径），也单独回传 `upcoming`。"""
+        from unittest.mock import MagicMock
+
+        from pilotstd.core.db.database import Database
+        from pilotstd.manager.standard_service import StandardService
+
+        db = Database(str(tmp_path / "s.db"))
+        db.execute("INSERT INTO file_index (status, file_path) VALUES ('即将实施', '/x/a.pdf')")
+        db.execute("INSERT INTO file_index (status, file_path) VALUES ('现行', '/x/b.pdf')")
+        mgr = MagicMock()
+        mgr.db = db
+        stats = StandardService(mgr).get_stats()
+        assert stats["upcoming"] == 1
+        assert stats["by_status"]["现行"] == 1
+        assert stats["total"] == 2

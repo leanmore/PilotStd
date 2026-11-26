@@ -60,7 +60,7 @@ describe('StandardsStatusView 标准状态', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     storage.clear()
-    vi.mocked(getStandardsStats).mockResolvedValue({ active: 1, inactive: 2, unknown: 3 } as never)
+    vi.mocked(getStandardsStats).mockResolvedValue({ active: 1, inactive: 2, upcoming: 3, unknown: 0 } as never)
     vi.mocked(getStandardsStatus).mockResolvedValue({ total: 120, page: 1, page_size: 100, items: ITEMS } as never)
   })
 
@@ -74,7 +74,7 @@ describe('StandardsStatusView 标准状态', () => {
       '/standards-status',
     )
     const stats = wrapper.findAll('.stat-num').map((n) => n.text())
-    expect(stats).toEqual(['1', '2', '3'])
+    expect(stats).toEqual(['1', '2', '3', '0'])
   })
 
   it('渲染列表行、总数与「已显示 n / total」提示', async () => {
