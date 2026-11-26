@@ -100,6 +100,8 @@
 
 ### G-031：文档同步检查
 
+**2026-11-26 阶段二补记**：`scripts/ops/probe_v0207.py` 的 A-40 复查排除 `event_type='test'`（管理员测试消息不是系统事件）；`scripts/` 变更按 G-031 同步本文件与 `docs/governance/README.md`。
+
 **2026-11-26 D-1 补记**：`web/src` 的 overlay/阴影字面量令牌化（`--ds-overlay-*`/`--ds-shadow-*`，零视觉：四页截图像素差异 0）；`scripts/design_token_baseline.json` 同步收紧（过期提示 14→0）。
 
 **2026-11-26 批次 14 验收补记**：`scripts/ops/probe_pending_paths.py` 的 `mass_delete_guard` 判据改为「缺失行已全部标 `file_missing` → 幂等 no-op → PASS」，批次 12 后不再误报阻断；实测 `probe_v0207 11/11`、`probe_all 45 通过/0 失败`、`probe_batch1 10 通过/0 失败`。

@@ -128,7 +128,8 @@
       "all": "全部",
       "current": "現行",
       "abolished": "已廢止",
-      "unknown": "未知"
+      "unknown": "未知",
+      "upcoming": "即將實施"
     },
     "filter_status": "狀態",
     "filter_standard_no": "標準號",
@@ -520,7 +521,7 @@
       "queryAdapter": "查詢適配器",
       "queryAdapterTitle": "查詢適配器叢集",
       "recentAnnounce": "最新公告",
-      "pending": "待確認標準",
+      "pending": "抓取待處理",
       "trend": "標準庫構成",
       "sysLog": "系統日誌"
     },

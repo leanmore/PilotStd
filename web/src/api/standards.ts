@@ -5,6 +5,8 @@ import type { RouteTag } from '../types/route-tag'
 export interface StandardStats {
   active: number
   inactive: number
+  /** 即将实施（2026-11-26 起后端单独回传；此前并入 unknown 导致显示成「未知」） */
+  upcoming?: number
   unknown: number
 }
 

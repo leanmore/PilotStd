@@ -137,6 +137,9 @@ class StandardService:
         return {
             "total": sum(by_status.values()),
             "by_status": by_status,
+            # 即将实施单独回传（API 统计拆 4 桶用；`by_status["未知"]` 桶仍按既有口径包含它，
+            # 调用方需要「纯未知」时自行相减，见 `docker/api/standards.py::get_status_stats`）。
+            "upcoming": s.get(Status.UPCOMING.value, 0),
         }
 
     # ── 枚举外状态值告警（N2）──

@@ -141,9 +141,9 @@ describe('批 5 i18n：仪表板/布局文案随语言切换', () => {
     await expectSwitches(C, '最新公告', 'Latest Announcements')
   })
 
-  it('PendingItemsCard：待确认标准文案随语言切换', async () => {
+  it('PendingItemsCard：抓取待处理文案随语言切换', async () => {
     const { default: C } = await W('PendingItemsCard')
-    await expectSwitches(C, '待确认标准', 'Pending Standards')
+    await expectSwitches(C, '抓取待处理', 'Fetch pending')
   })
 
   it('PlaceholderWidget：占位卡片文案随语言切换', async () => {

@@ -128,7 +128,8 @@
       "all": "全部",
       "current": "现行",
       "abolished": "已废止",
-      "unknown": "未知"
+      "unknown": "未知",
+      "upcoming": "即将实施"
     },
     "filter_status": "状态",
     "filter_standard_no": "标准号",
@@ -520,7 +521,7 @@
       "queryAdapter": "查询适配器",
       "queryAdapterTitle": "查询适配器集群",
       "recentAnnounce": "最新公告",
-      "pending": "待确认标准",
+      "pending": "抓取待处理",
       "trend": "标准库构成",
       "sysLog": "系统日志"
     },
