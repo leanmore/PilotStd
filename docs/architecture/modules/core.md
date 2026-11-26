@@ -1086,3 +1086,6 @@ P1-5 复核（`docs/plans/2026-11-25-p1-unknown-refresh.md` §5.1/§5.3）暴露
 此前该键只在 `config.json` 默认值里，**没有任何 API/UI 读写入口** → 通知永远提示「未配置站内访问地址」。
 现 `GET /api/notification/config` 下发、`PUT` 接受（校验与发送侧 `_links.resolve_web_base` 同口径：
 必须 http(s) 绝对地址且非回环），Web 设置页新增「站内访问地址」输入框（三语）。
+
+**2026-11-26 补记（0.209.1）**：纯文本模式的「点击查看」链接来源为 message.link **或** actions 里
+iew_detail/open_logs 的 rgs.url（多数事件只有 actions）——修复首版纯文本无链接的问题。
