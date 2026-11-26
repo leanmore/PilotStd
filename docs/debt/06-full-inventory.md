@@ -682,3 +682,13 @@ push 到 main 失败时本地 bump 提交仍在，于是 tag 指向孤儿提交�
 
 **备份**：`_bak_20261125_file_index_status`(776) / `_bak_20261125_pending`(633) / `_bak_20261125_notification_user`(2622)；
 执行记录：`docs/ops/batch12-superseded-by-rule-a-execution.md` 与 `C:/Temp/batch12_maintenance_result.json`（本机）。
+
+### 批次 14 与通知模块收尾（2026-11-26）
+
+| 项 | 状态 |
+|---|---|
+| 批次 14（部署验收：探针 11/11 + 45/0 + 10/0） | ✅ 自动化全绿；14 项人工按 runbook 逐项（真机截图项待最终） |
+| 批次 9 通知 P0（TG 转义/企微卡片契约/降级/聚合口径） | ✅ 代码合入；**重构为 MP 风格纯文本**并经真机两轮迭代（0.209.0→0.209.2） |
+| `web_base_url` 无入口缺陷 | ✅ 已接线（API + 设置页），生产已写入并生效 |
+| 发布目录版本链 | `v0.207.1 → v0.208.0 → v0.209.0 → v0.209.1 → v0.209.2`（全部 CI 绿） |
+| 收尾报告 | `docs/ops/2026-11-26-batch14-notification-closeout.md` |
