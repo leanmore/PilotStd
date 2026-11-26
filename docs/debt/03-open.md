@@ -23,7 +23,7 @@
 | # | 项目 | 状态 | 现在能做什么 | 触发条件 / 备注 |
 |---|---|---|---|---|
 | **A-5** | **cookiecutter 真实 CLI 端到端未入 CI** | 观察 | 模板改动涉及 hooks 时补一条真实 CLI 用例（渲染/编译/零字面量已由 jinja2 用例覆盖） | 触发条件＝hooks 变更或脚手架被频繁使用 |
-| **A-22** | **Q7：Windows 端 15 个共享事件是否走托盘（S4 真实验收）** | 挂起 | 需 Windows 端实跑：触发一个共享事件，确认进托盘且 Web 端仍收到；本机/CI 无法覆盖 | 触发条件＝用户有空在 Windows 本机跑一次（5 分钟） |
+| **A-22** | **Q7：Windows 端 15 个共享事件是否走托盘（S4 真实验收）** | **无限期冻结（2026-11-26 用户裁定）** | 需 Windows 端实跑：触发一个共享事件，确认进托盘且 Web 端仍收到；本机/CI 无法覆盖 | 触发条件＝用户有空在 Windows 本机跑一次（5 分钟） |
 | **A-27** | **自定义菜单（企微/飞书/Telegram/钉钉）** | 调研中（2026-10-29 立项，当前主线） | 企微 a（3+5）、飞书 b（3+5 或 5+10，仅单聊）、Telegram c（命令列表）、钉钉 d（待补信息）；菜单动作映射、配置存储、静态/动态生成待方案确认；复用回调端点处理菜单 click | 方案确认后开工 |
 
 | **A-32** | **cookiecutter 把 `myadapter.py` 判为二进制**（binaryornot 特征判定；同目录测试/README 正常） | 已兜底 | `post_gen_project.py` 用 `_CONTEXT`（`cookiecutter|tojson`）+ Jinja2 手动渲染；**属绕开行为**，判定边界：只匹配 `{{` + `cookiecutter` 字面量；**不覆盖** `{% if %}` 控制块（不含字面量会被跳过）、也可能误判合法代码里的 `{{`（如格式化字符串）。扩展其它文件前先检查这两类边界；待修复后删除该步 | 触发条件＝升级 cookiecutter 时 |
@@ -102,3 +102,10 @@
 | 「**隐式依赖 `cryptography` 未显式声明**」（我于 2026-10-17 曾登记为 A-7） | **撤回该条目**（不成立，不是债） | 我上一轮**漏查**：只 grep 了 `pyproject.toml` 与 `docker/requirements-docker.txt`，而那条"逐文件检查"命令因 PowerShell 语法错误**静默失败**，我据此误判"四个依赖文件均无声明"。实测 `requirements.txt:6` = `cryptography>=48.0.1`（段注释"敏感数据加密"）⇒ **本就是显式依赖**。教训：命令失败时不得依据其输出下结论（R-004 实证优先） |
 | **A-47** | **无结果转 pending 时未记 chain_exhausted**：62 批缩小版 28 条 pending 的 match_status 为空、chain_exhausted=0，no_result 188+ 与最终 pending 原因脱节（P3-16 指标分流不完整） | **已修（待部署 v0.192.x）** | 修法：`_finalize_batch` 对无结果条目返回 `status=pending`、`match_status=chain_exhausted` 并 +chain_exhausted 指标；单测锁定 | 触发：pending 中 `match_status=''` 且 `chain_exhausted=0` 的行累计 >10 条时；或下次动 P3-16 查询分类代码时 |
 | **A-55** | **CI 整体覆盖率门槛临时降到 58%**（原为无主 TODO，2026-11-23 认领）：`ci.yml` 的 `--fail-under=58`，注释原写 `TODO(P2): restore to 68 after UI handler tests are added` 但没有债号、没有触发条件，永远不会被跟踪 | **已认领** | 恢复条件：UI handler 测试补齐后回到 68。判据：`python -m pytest tests --cov=pilotstd --cov-report=term-missing` 看 TOTAL 行是否 ≥68%；未达标前保持 58，但**不得再降** | 触发：每次新增 UI handler 测试后复核；或有人质疑覆盖率门槛为何是 58 时 |
+
+### 福建站（A3）结论：已评估，无互补价值，放弃（2026-11-26）
+
+- `dbba`（地方标准信息服务平台）实测已覆盖 DB35：关键词 15 条、精确号命中、含 2026 最新版；
+- DB35 全文亦可由 dbba 官方平台在线预览/下载；
+- 福建平台 `pt.fjbz.org.cn` 全端口 TCP 超时，接入需反爬破局且无新增能力；
+- 评估报告：`docs/plans/2026-11-26-fujian-site-eval.md`；**A3 关闭**。
