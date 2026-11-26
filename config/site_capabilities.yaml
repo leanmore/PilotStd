@@ -201,8 +201,8 @@ sites:
   - site_id: cqis
     classification:
       # 2026-11-24 新增（P2 批次 A1）：重庆标准信息平台，DB50 权威源（含全文 PDF）。
-      # 按「零路由改动」方案声明 `DB`（`_extract_std_type` 对 `DB50/T` 统一产出 `DB`），
-      # 与 dbba 同属 L1，dbba 在前（YAML 顺序）、cqis 紧随其后；省份精准粒度属后续待决项。
+      # 2026-11-26 D-2：声明 `province: 重庆` —— L1 精准层对 `DB50/T` 等省级标准**优先本省站**
+      # 并排除声明了其它省份的站点（通用库仍作兜底）。
       level1: 特色
       level2: 按标准类型区分
     capabilities:
@@ -210,6 +210,7 @@ sites:
       industries: []
       is_international: false
       search_reliability: medium
+      province: 重庆
     constraints:
       batch_limit: 50
     status:

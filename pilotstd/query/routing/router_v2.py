@@ -47,6 +47,7 @@ class Capabilities:
     industries: list[str]  # 覆盖行业领域，空表示无领域限制
     is_international: bool  # 是否覆盖国际标准（仅全综合站为 True）
     search_reliability: str  # 搜索可靠性评级（unknown/low/medium/high）
+    province: str = ""  # 省级站覆盖省份（如「重庆」）；空表示不限定/非省级站
 
 
 @dataclass
@@ -135,6 +136,60 @@ _STD_PREFIX_RE = re.compile(r"^([A-Za-z]{2,6}(?:/[A-Za-z])?)")
 # → 跳过 L1/L2 直落 L3 兜底（`njbz365`），`ttbz` 永远不会被选中（2026-11-24 实测）。
 # 注意 `TB/T`（铁道行业标准）以 `TB/` 开头，不会被本正则命中。
 _T_GROUP_RE = re.compile(r"^[Tt]/")
+
+
+# ── 省份粒度路由（D-2，2026-11-26 用户批准方案 b）─────────────────────────
+# GB 2260 省级行政区划代码（前两位）→ 省名。省级地方标准代码形如 `DB50/T`（重庆）、
+# `DB11/T`（北京）、`DB35/T`（福建）——数字前缀即省份代码。
+PROVINCE_BY_CODE: dict[str, str] = {
+    "11": "北京",  # i18n-allow
+    "12": "天津",  # i18n-allow
+    "13": "河北",  # i18n-allow
+    "14": "山西",  # i18n-allow
+    "15": "内蒙古",  # i18n-allow
+    "21": "辽宁",  # i18n-allow
+    "22": "吉林",  # i18n-allow
+    "23": "黑龙江",  # i18n-allow
+    "31": "上海",  # i18n-allow
+    "32": "江苏",  # i18n-allow
+    "33": "浙江",  # i18n-allow
+    "34": "安徽",  # i18n-allow
+    "35": "福建",  # i18n-allow
+    "36": "江西",  # i18n-allow
+    "37": "山东",  # i18n-allow
+    "41": "河南",  # i18n-allow
+    "42": "湖北",  # i18n-allow
+    "43": "湖南",  # i18n-allow
+    "44": "广东",  # i18n-allow
+    "45": "广西",  # i18n-allow
+    "46": "海南",  # i18n-allow
+    "50": "重庆",  # i18n-allow
+    "51": "四川",  # i18n-allow
+    "52": "贵州",  # i18n-allow
+    "53": "云南",  # i18n-allow
+    "54": "西藏",  # i18n-allow
+    "61": "陕西",  # i18n-allow
+    "62": "甘肃",  # i18n-allow
+    "63": "青海",  # i18n-allow
+    "64": "宁夏",  # i18n-allow
+    "65": "新疆",  # i18n-allow
+    "71": "台湾",  # i18n-allow
+    "81": "香港",  # i18n-allow
+    "82": "澳门",  # i18n-allow
+}
+
+
+def province_of_query(query: str) -> str:
+    """从原始查询串识别省级代码对应的省名；非省级标准返回空串。
+
+    支持 `DB50/T 1234-2021`、`DB50T1234`、`db11/t` 等写法（大小写不敏感）。
+    """
+    import re
+
+    match = re.match(r"^\s*DB\s*(\d{2})", str(query or ""), re.I)
+    if not match:
+        return ""
+    return PROVINCE_BY_CODE.get(match.group(1), "")
 
 
 class IntentParser:
@@ -245,11 +300,11 @@ class QuotaManager:
         """按层级过滤站点，返回保持 YAML 原始顺序的站点列表。"""
         sites = list(self._capabilities.values())
         if layer == "L1":
-            return [s for s in sites if s.classification.level1 == "特色"]
+            return [s for s in sites if s.classification.level1 == "特色"]  # i18n-allow
         if layer == "L2":
-            return [s for s in sites if s.classification.level2 in ("国内综合", "全综合")]
+            return [s for s in sites if s.classification.level2 in ("国内综合", "全综合")]  # i18n-allow
         if layer == "L3":
-            return [s for s in sites if s.classification.level2 == "全综合"]
+            return [s for s in sites if s.classification.level2 == "全综合"]  # i18n-allow
         return []
 
 
@@ -327,7 +382,7 @@ class RouterEngine:
     def _route_l1(self, intent: QueryIntent) -> RouteChain:
         """L1 精准匹配层：仅处理国内标准，按标准前缀 + 领域精准匹配。"""
         # 硬性前置条件：L1 不处理国际标准
-        assert not intent.is_international, "L1 不处理国际标准"
+        assert not intent.is_international, "L1 不处理国际标准"  # i18n-allow
 
         candidates = self.quota.get_available_sites("L1", intent)
         # 精准筛选：标准前缀命中 且（站点无领域限制 或 领域匹配）
@@ -337,12 +392,28 @@ class RouterEngine:
             if self._type_matches(s, intent.std_type)
             and (not s.capabilities.industries or intent.industry in s.capabilities.industries)
         ]
-        # 排序：按历史命中率降序
-        matched.sort(key=lambda s: s.status.historical_hit_rate, reverse=True)
-        return RouteChain(
-            sites=[s.site_id for s in matched],
-            decisions=[f"L1 exact match: {s.site_id} (std_type={intent.std_type})" for s in matched],
-        )
+        # 省份粒度（D-2）：省级标准（DB50/T 等）优先本省站，并排除**其它省份**的站点。
+        # 未声明 province 的站点（通用库）保留为兜底，不排除。
+        query_province = province_of_query(intent.raw_query)
+        province_note = ""
+        if query_province:
+            matched = [
+                s for s in matched if not s.capabilities.province or s.capabilities.province == query_province
+            ]
+            matched.sort(
+                key=lambda s: (0 if s.capabilities.province == query_province else 1, -s.status.historical_hit_rate)
+            )
+            province_note = f", province={query_province}"
+            decisions = [
+                f"L1 exact match: {s.site_id} (std_type={intent.std_type}{province_note}"
+                f"{', province_hit' if s.capabilities.province == query_province else ''})"
+                for s in matched
+            ]
+        else:
+            # 排序：按历史命中率降序
+            matched.sort(key=lambda s: s.status.historical_hit_rate, reverse=True)
+            decisions = [f"L1 exact match: {s.site_id} (std_type={intent.std_type})" for s in matched]
+        return RouteChain(sites=[s.site_id for s in matched], decisions=decisions)
 
     def _route_l2(self, intent: QueryIntent) -> RouteChain:
         """L2 综合兜底层：有明确标准号但 L1 未命中时，走综合站兜底。"""
@@ -411,6 +482,7 @@ def load_capabilities(yaml_path: str) -> list[SiteCapability]:
                     industries=list(capabilities.get("industries", [])),
                     is_international=bool(capabilities.get("is_international", False)),
                     search_reliability=capabilities.get("search_reliability", "unknown"),
+                    province=str(capabilities.get("province") or ""),
                 ),
                 constraints=Constraints(batch_limit=int(constraints.get("batch_limit", 50))),
                 status=Status(historical_hit_rate=float(status.get("historical_hit_rate", 0.0))),

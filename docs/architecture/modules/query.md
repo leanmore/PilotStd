@@ -464,3 +464,22 @@ designator/productcode、BPVC 全 miss）；`docs/plans/2026-11-24-p1-api-asme-g
 
 **回归锚点**：`tests/unit/query/test_query_target_construction.py`、
 `tests/query/engine/test_single_v2_route.py`（`num_suffix` 透传 2 例）、`tests/test_query.py`。
+
+## 省份粒度路由（D-2，2026-11-26）
+
+**背景**：DB50/T（重庆地方标准）此前路由链是 dbba → cqis——通用地方库在前、权威省站在后。
+用户批准方案 b 后，L1 精准层引入**省份维度**：
+
+| 机制 | 实现 |
+|---|---|
+| 省代码 → 省名 | 
+outer_v2.PROVINCE_BY_CODE（GB 2260 前两位：50 重庆 / 11 北京 / 35 福建 …共 34 项） |
+| 查询识别 | province_of_query(raw_query)：^DB\s*(\d{2})，大小写不敏感，支持 DB50/T、DB50T 写法 |
+| 站点声明 | site_capabilities.yaml 的 capabilities.province（当前 cqis: 重庆；未声明=通用库） |
+| L1 排序 | 省份匹配站点**排最前**；声明了**其它省份**的站点**排除**；通用库保留兜底 |
+| 可观测性 | RouteChain.decisions 带 province=<省名> 与 province_hit 标记 |
+
+**实测**：DB50/T 1234-2021 → cqis, dbba（此前 dbba, cqis）；
+DB11/T 1000-2020（北京）→ dbba（cqis 被排除）；GB/T 1.1-2020 与关键词查询行为不变。
+
+**回归**：	ests/test_router_province.py（16 例）。
