@@ -374,8 +374,9 @@ def test_pending_paths_guard_flags_mass_missing() -> None:
     构造 60 条全部不存在的路径（父目录可列但不含该文件），模拟「数据真缺失」场景：
     保护会误报，probe 需明确指出这一点，而不是给出「可以标记」的错误结论。
     """
+    # 关键：reason **不是** file_missing（还有待标记行）→ guard 跳过才是真风险
     items = [
-        {"id": i, "reason": "file_missing", "file_path": f"/inbox/AQ 安全/不存在-{i}.pdf", "status": "pending"}
+        {"id": i, "reason": "", "file_path": f"/inbox/AQ 安全/不存在-{i}.pdf", "status": "pending"}
         for i in range(60)
     ]
     routes, _dispatch = pending_routes()
@@ -618,3 +619,38 @@ def test_probe_all_masks_secrets_in_json(tmp_path: Path) -> None:
     report = common.Report("demo", "http://x")
     report.add("auth.admin", common.STATUS_PASS, creds.describe())
     assert "SUPERSECRET" not in json.dumps(report.as_dict(), ensure_ascii=False)
+
+def test_pending_paths_guard_skip_is_ok_when_all_missing_already_marked() -> None:
+    """缺失行**已全部标 file_missing** 时，挂载保护跳过属幂等 no-op → 必须判 PASS。
+
+    背景（2026-11-26 批次 12 维护窗口）：管理员已用 `protect=false` 强制标记 61 条缺失行；
+    之后探测仍观察到「guard 会整轮跳过」，但已无待更新行 —— 若继续判 FAIL 就是误报。
+    """
+    items = [
+        {"id": i, "reason": "file_missing", "file_path": f"/inbox/AQ 安全/不存在-{i}.pdf", "status": "pending"}
+        for i in range(60)
+    ]
+    routes, _dispatch = pending_routes()
+
+    def files_dispatch(method: str, url: str, **kwargs: Any) -> FakeResponse:
+        """所有目录可列但为空（文件确实不存在）。"""
+        target = str((kwargs.get("params") or {}).get("path") or "")
+        if target in ("/inbox", "/standards"):
+            return FakeResponse(200, {"path": target, "files": [{"name": "AQ 安全", "type": "dir"}]})
+        return FakeResponse(200, {"path": target, "files": []})
+
+    routes[("GET", "/api/pending")] = FakeResponse(200, {"items": items})
+    session = FakeSession(routes)
+    original = session.request
+
+    def request(method: str, url: str, **kwargs: Any) -> FakeResponse:
+        if method == "GET" and url.endswith("/api/files"):
+            session.calls.append((method, url))
+            return files_dispatch(method, url, **kwargs)
+        return original(method, url, **kwargs)
+
+    session.request = request  # type: ignore[method-assign]
+    report = probe_pending_paths.run(options(max_items=60), session=session)
+    guard = next(c for c in report.checks if c.name == "pending.mass_delete_guard")
+    assert guard.status == common.STATUS_PASS, guard.detail
+    assert "无实际影响" in guard.detail or "已全部标记" in guard.detail

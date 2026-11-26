@@ -100,6 +100,8 @@
 
 ### G-031：文档同步检查
 
+**2026-11-26 批次 14 验收补记**：`scripts/ops/probe_pending_paths.py` 的 `mass_delete_guard` 判据改为「缺失行已全部标 `file_missing` → 幂等 no-op → PASS」，批次 12 后不再误报阻断；实测 `probe_v0207 11/11`、`probe_all 45 通过/0 失败`、`probe_batch1 10 通过/0 失败`。
+
 **2026-11-26 NEW-47 补记**：`.github/workflows/ci.yml` 的 `test-backend` 改为「首跑失败→只重跑失败用例一次→summary always 写 step summary」；真失败仍红（`tests/test_ci_backend_flake_guard.py` 锁定）。
 
 **2026-11-26 v0.207.0 验收脚本**：新增 `scripts/ops/probe_v0207.py`（只读，自动核对版本/状态口径/数据治理/统计四组共 11 项），配套 `tests/ops/test_probe_v0207.py`（3 例：全绿/旧版本/口径回退）。该脚本不参与任何门禁模式，属部署验收入口。ersion.py 对齐补记**：scripts/version.py 计算版本时同样跳过 infra scope（ci/docs/test/build/ops），与 check_version_bump.py 同口径，避免「版本想 bump / 门禁豁免」互相矛盾。

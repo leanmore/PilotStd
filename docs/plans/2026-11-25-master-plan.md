@@ -121,3 +121,12 @@ main `4a4f9659` 的 CI：`version` ✅ + `docker` ✅，远端 **`v0.207.0` tag 
 - **A1**（批次 10）✅ 已合入；**A2** ✅ 三站真实检索通过（API/ASME/重庆）、福建仍 BLOCKED（全端口超时）；
 - 交付：`scripts/smoke_adapters.py`、`tests/test_adapter_site_conformance.py`（15 例）、A2 报告；
 - **A3** 待福建网络放开；**A4** 省份粒度路由 / POST 口径待产品决策。
+
+### 批次 14 部署验收完成（2026-11-26 18:35）
+
+- 部署镜像 `e6107c3e…` / `system_version=0.207.1`；
+- `probe_v0207` **11/11**、`probe_all` **45 通过/0 失败**（`--allow-unconfigured-channels`，退出码 0）、
+  `probe_batch1` **10 通过/0 失败**（退出码 0）；
+- 原 3 条生产阻断全部清零；探针「挂载保护幂等」判据修正（批次 12 后已标记行不再误报 fail）；
+- 企微真发 `ok:true` + 日志 `status=success`；T-40 待用户确认真机形态。
+- **剩余**：批次 15 决策项（已获用户批准 D-1/D-2/D-3/D-4 方案）→ 开对应批次；A3 福建仍外部阻塞；A-22 用户本机自验。

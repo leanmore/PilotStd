@@ -105,3 +105,13 @@
 
 - 本报告与探针修复同批提交；probe_all.py 已在部署版本（c016013d）上完整跑通（44 通过 / 1 数据条件失败 / 17 无法验证）。
 - 同批完成的还有：批次 12 规则 A 生产迁移（见 docs/ops/batch12-superseded-by-rule-a-execution.md）。
+
+## 2026-11-26 最终验收（v0.207.1 部署后）
+
+- 部署版本：镜像 `e6107c3e…`，`/api/system/version = 0.207.1`（版本号缺陷已修）；
+- `probe_v0207.py`：**11/11**；`probe_all.py --allow-unconfigured-channels`：**45 通过 / 0 失败 / 17 无法验证**（退出码 0）；
+- `probe_batch1.py`：**10 通过 / 0 失败 / 14 无法验证**（退出码 0）；
+- **原 3 条阻断全部清零**：`mass_delete_guard`（维护窗口强制标记后幂等 no-op，探针判据已同步修正）、
+  `favorite_downloads.orphan`（0 条）、`feishu.credentials`（渠道未启用，`--allow-unconfigured-channels` 豁免）；
+- 企微真发：`POST /api/notification/test-event` 返回 `ok:true`，日志 `id=4663 status=success`（平台 errcode=0），
+  真机形态（卡片或 markdown 降级）由用户确认后补记。
