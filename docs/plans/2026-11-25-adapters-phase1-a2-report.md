@@ -67,3 +67,8 @@
 | `tests/test_adapter_site_conformance.py` | 15 例离线一致性契约（解析→路由→站点选择 + 福建阻塞事实） |
 | `docs/reference/adapter-development.md` §9.4 | 冒烟工具用法登记 |
 | 本报告 | A2 结论与 A4 待办 |
+
+## 7. 后续（2026-11-26 用户裁定）
+
+- **福建站：放弃**（已评估无互补价值，详见 `docs/plans/2026-11-26-fujian-site-eval.md`）；
+- 适配器节点 A3 关闭；A4（省份路由）已随 D-2 合入，A2 结论保持。
