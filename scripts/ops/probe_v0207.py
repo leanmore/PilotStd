@@ -21,13 +21,30 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import _probe_common as common  # noqa: E402  共享层（凭据/HTTP/报告）
 
+# 期望版本号**动态读取仓库 VERSION**：硬编码会在每次发版后假失败
+# （2026-11-26 实测：部署 v0.207.1 后脚本仍期望 0.207.0 而误报 FAIL）。
 EXPECT_SYSTEM_VERSION = "0.207.0"
+_FALLBACK_EXPECT_VERSION = EXPECT_SYSTEM_VERSION
+
+
+def expected_system_version() -> str:
+    """期望的 `/api/system/version`：优先 `PROBE_EXPECT_VERSION`，否则读仓库 `VERSION`。"""
+    override = os.environ.get("PROBE_EXPECT_VERSION", "").strip()
+    if override:
+        return override
+    version_file = Path(__file__).resolve().parents[2] / "VERSION"
+    try:
+        text = version_file.read_text(encoding="utf-8").strip()
+    except OSError:
+        return _FALLBACK_EXPECT_VERSION
+    return text or _FALLBACK_EXPECT_VERSION
 
 
 def _sql(client: common.HttpClient, sql: str) -> list[dict]:
@@ -63,10 +80,11 @@ def run(options: argparse.Namespace, session: object | None = None) -> common.Re
         )
         system = client.get("/api/system/version").json()
         sys_ver = str(system.get("version") or "")
+        expected = expected_system_version()
         report.add(
             "version.system_version",
-            common.STATUS_PASS if sys_ver == EXPECT_SYSTEM_VERSION else common.STATUS_FAIL,
-            f"/api/system/version={sys_ver}（期望 {EXPECT_SYSTEM_VERSION}）",
+            common.STATUS_PASS if sys_ver == expected else common.STATUS_FAIL,
+            f"/api/system/version={sys_ver}（期望 {expected}）",
             tag=system.get("tag"),
             image=system.get("image"),
         )

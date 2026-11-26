@@ -81,6 +81,7 @@ class FakeClient:
 
 def _run(monkeypatch: pytest.MonkeyPatch, client: FakeClient) -> common.Report:
     monkeypatch.setattr(probe_v0207.common, "build_client", lambda options, session=None: client)
+    monkeypatch.setattr(probe_v0207, "expected_system_version", lambda: "0.207.0")
     parser_args = common.ProbeOptions(base_url="http://fake.local:9028", timeout=1.0)
     import argparse
 
@@ -106,3 +107,9 @@ class TestV0207Acceptance:
         report = _run(monkeypatch, FakeClient(wei_total=776))
         names = {c.name for c in report.checks if c.status == common.STATUS_FAIL}
         assert "status.not_whole_table" in names
+
+def test_expected_version_reads_repo_version(monkeypatch: pytest.MonkeyPatch) -> None:
+    """期望版本号应动态来源（仓库 VERSION / 环境变量），不能硬编码。"""
+    monkeypatch.delenv("PROBE_EXPECT_VERSION", raising=False)
+    repo_root = Path(__file__).resolve().parents[2]
+    assert probe_v0207.expected_system_version() == (repo_root / "VERSION").read_text(encoding="utf-8").strip()

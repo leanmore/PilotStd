@@ -376,7 +376,17 @@ def run(options: common.ProbeOptions, session=None) -> common.Report:
         mapping_ok = not any(
             c.name == "pending.path_mapping" and c.status == common.STATUS_FAIL for c in report.checks
         )
-        if would_skip and mounts_ok and mapping_ok:
+        already_missing = int(stats.get("already_missing") or 0)
+        # 幂等修正（2026-11-26 批次 12 执行后实测）：维护窗口已用 protect=False 把缺失行全部标成
+        # `file_missing`。此时下一轮 mark_missing 仍会命中挂载保护而「整轮跳过」，但**没有任何待更新行**
+        # （idempotent no-op），对数据无影响 → 应判 PASS；只有「还存在未标记的缺失行」时跳过才是真风险。
+        all_missing_marked = estimated_missing > 0 and already_missing >= estimated_missing
+        if would_skip and all_missing_marked:
+            conclusion = (
+                f"挂载保护会跳过，但缺失行**已全部标记 file_missing**"
+                f"（已标 {already_missing} ≥ 外推 {estimated_missing}，幂等无待更新行）→ 无实际影响"
+            )
+        elif would_skip and mounts_ok and mapping_ok:
             conclusion = (
                 "**会整轮跳过**：缺失比例触发了挂载保护，定时任务与端点跑完都不会标记任何行。"
                 "本探测已确认挂载可列、路径都在配置扫描根下 → 这是保护的**误报**（数据真的缺失），"
@@ -386,9 +396,10 @@ def run(options: common.ProbeOptions, session=None) -> common.Report:
             conclusion = "**会整轮跳过**：缺失比例触发挂载保护，需先人工确认 /inbox 挂载与路径映射"
         else:
             conclusion = "不会触发，可正常标记"
+        guard_ok = (not would_skip) or all_missing_marked
         report.add(
             "pending.mass_delete_guard",
-            common.STATUS_PASS if not would_skip else common.STATUS_FAIL,
+            common.STATUS_PASS if guard_ok else common.STATUS_FAIL,
             (
                 f"按抽样外推：缺失约 {estimated_missing}/{pending_total}"
                 f"（阈值 ≥{GUARD_MIN_ROWS} 行且 ≥{GUARD_MISSING_RATIO:.0%}）：" + conclusion

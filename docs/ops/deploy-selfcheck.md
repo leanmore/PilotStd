@@ -360,3 +360,17 @@ python scripts/ops/probe_v0207.py --base-url http://192.168.1.18:9028
 该脚本**只读**，自动核对 §10.1-10.5 的 11 项（版本 sha / system_version=0.207.0 /
 未生效与即将实施结果集相等且非全表 / 非法值 400 / file_index 无未生效 / 收藏无孤儿 /
 A-40 归零 / stats expired≥170 / 四桶守恒），退出码 0 = 全绿。
+
+### 10.8 v0.207.1 实测结果（2026-11-26 18:35，生产 `http://192.168.1.18:9028`）
+
+| 探测 | 结果 | 说明 |
+|---|---|---|
+| `probe_v0207.py` | **11 / 11 通过**，退出码 0 | `health.version=e6107c3e…`、`system_version=0.207.1`、四桶守恒、A-40/C3 复验全绿 |
+| `probe_all.py --allow-unconfigured-channels` | **45 通过 / 0 失败 / 17 无法验证**，退出码 0 | `health 8/8`、`pending_paths 9/9`、`db_counts 13/13`、`batch1 10 通过/0 失败` |
+| `probe_batch1.py` | **10 通过 / 0 失败 / 14 无法验证**，退出码 0 | 14 项为渲染/目录/真实外发类，需人工 |
+| 企微真发（T-40 配合） | `POST /api/notification/test-event` → `{"ok":true}`；`notification_log id=4663 status=success error_msg=""` | 平台侧 `errcode=0`；卡片/降级形态由真机确认 |
+
+**重要修正（本次实测发现并已修）**：批次 12 维护窗口后，缺失行已全部标 `file_missing`，
+`mark_missing` 的挂载保护仍会「整轮跳过」但**已无待更新行**（幂等 no-op）。
+`probe_pending_paths` 原判据把它当阻断（fail），现改为：**全部已标记 → PASS**；
+仅当「仍有未标记缺失行」时跳过才判 fail。回归 `tests/ops/test_probe_scripts.py`（30 例）。
