@@ -1623,3 +1623,12 @@ ailed 字段归一、终态词表（completed/cancelled/failed）、result_json 
   G-031 两套映射表同批满足；G-047 无新增中文字面量。
 - **剩余**：前端 `standardParser.ts` 旧正则未改（不属本批契约）；联合标准
   `ASME A112.18.1/CSA B125.1` 的查询 target 无法表达联合段（字段模型不含该信息）。
+
+## 2026-11-26 企微通知重构（借鉴 MoviePilot）+ web_base_url 接线
+
+- **取证**：clone MoviePilot `56af7d4`，定位 `app/modules/wechat/wechat.py`；其自建应用只发 `text`
+  （标题+正文、空行折叠、`点击查看：` 链接、2048 字节分段、端点三字段），域名统一走 `APP_DOMAIN`；
+- **改动**：`WechatChannel._send_by_app` 默认 `text`（`_format_app_text`），`markdown`/`card` 变显式选项；
+  `GET/PUT /api/notification/config` 支持 `web_base_url`（校验同发送侧）；设置页新增输入框（三语 i18n）；
+- **测试**：企微渠道 25 例、配置 API 4 例、前端 composable 1 例；四件套全绿（150 文件 / 1292 例）；
+- **文档**：`docs/plans/2026-11-26-mp-notification-borrow.md`、`core.md`、`08`、`26`。

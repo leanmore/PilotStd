@@ -96,8 +96,9 @@ def test_notify_security_event_delivers_via_app_form(monkeypatch: Any) -> None:
     assert failed == [], f"应用形态不应计失败：{failed}"
     assert sent_channels == ["wechat"], f"应用形态渠道未参与直连投递：{sent_channels}"
     assert sent, "应用形态未发出任何应用消息"
-    assert sent[0]["msgtype"] == "markdown", f"无合法卡片动作时应发 markdown：{sent[0]}"
-    assert sent[0]["markdown"]["content"].strip(), "markdown 内容不得为空"
+    # 2026-11-26 借鉴 MoviePilot 后：应用形态默认发**纯文本**（多端兼容）
+    assert sent[0]["msgtype"] == "text", f"应用形态应默认发 text：{sent[0]}"
+    assert sent[0]["text"]["content"].strip(), "文本内容不得为空"
 
 
 def test_app_form_keeps_webhook_url_for_fallback(monkeypatch: Any) -> None:

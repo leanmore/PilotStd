@@ -103,6 +103,7 @@ const CONFIG = {
   },
   rules: { archive_complete: ['wechat'] },
   quiet_hours: { enabled: true, start: '23:30', end: '06:15' },
+  web_base_url: 'http://std.example.com',
 }
 
 let api: ReturnType<typeof useNotificationConfig>
@@ -152,6 +153,7 @@ describe('useNotificationConfig', () => {
     expect([api.specHash.value, api.EVENTS.value]).toEqual(['hash-1', SPEC_EVENTS])
     expect([api.NOTIFY_EVENTS.value, api.EVENT_CLASS_MAP.value]).toEqual([CHANNELS.notify_events, CHANNELS.event_class_map])
     expect(api.enabled.value).toBe(true)
+    expect(api.webBaseUrl.value).toBe('http://std.example.com')
     expect(api.channels.value.wechat).toEqual({
       enabled: true, events: ['archive_complete'], eventClasses: [],
       fields: { webhook_url: 'https://hook', secret: 'sec' },
@@ -359,6 +361,7 @@ describe('useNotificationConfig', () => {
     vi.useFakeTimers()
     api.channels.value.wechat.fields.webhook_url = '****1234' // 掩码回显 → 不提交
     api.channels.value.wechat.fields.secret = 'secret-1'
+    api.webBaseUrl.value = '  http://192.168.1.18:5173  '
     api.channels.value.wechat.events = ['archive_complete']
     api.channels.value.wechat.eventClasses = ['task']
     api.channels.value.telegram.events = ['archive_complete']
@@ -367,6 +370,7 @@ describe('useNotificationConfig', () => {
 
     expect(mocks.putConfig).toHaveBeenCalledWith({
       enabled: true,
+      web_base_url: 'http://192.168.1.18:5173',
       channels: {
         wechat: { secret: 'secret-1', enabled: true, events: ['archive_complete'] },
         telegram: { bot_token: 'tok', enabled: false, events: ['archive_complete'] },

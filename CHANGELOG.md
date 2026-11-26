@@ -1,4 +1,9 @@
 # CHANGELOG
+## v0.209.0 (2026-11-26)
+
+### Changed
+- 企微通知重构（借鉴 MoviePilot）：应用消息默认纯文本；web_base_url 支持配置读写
+
 ## v0.208.0 (2026-11-26)
 
 ### Added

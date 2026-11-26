@@ -22,6 +22,7 @@ const { t } = useI18n()
 const {
   eventLabel,
   enabled,
+  webBaseUrl,
   specs,
   channels,
   noChannelConfigured,
@@ -78,6 +79,18 @@ defineExpose({ saveConfig })
         <AppToggle v-model="enabled" />
         <span style="font-size:var(--font-size-13);color:var(--text)">{{ t('notification.config.enable_all') }}</span>
       </div>
+    </div>
+
+    <div class="web-base-row">
+      <label class="web-base-label">
+        {{ t('notification.config.web_base_url') }}
+      </label>
+      <AppInput
+        v-model="webBaseUrl"
+        class="w-full"
+        :placeholder="t('notification.config.web_base_url_placeholder')"
+      />
+      <div class="web-base-hint">{{ t('notification.config.web_base_url_hint') }}</div>
     </div>
 
     <div class="channel-grid">
@@ -277,6 +290,25 @@ defineExpose({ saveConfig })
 </template>
 
 <style scoped>
+/* 站内访问地址（全局设置，位于渠道卡片之上） */
+.web-base-row {
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: var(--space-12);
+  margin-bottom: var(--space-16);
+  background: var(--bg);
+}
+.web-base-label {
+  display: block;
+  font-size: var(--font-size-12);
+  color: var(--text);
+  margin-bottom: var(--space-6);
+}
+.web-base-hint {
+  margin-top: var(--space-6);
+  font-size: var(--font-size-11);
+  color: var(--text-dim);
+}
 .channel-grid { display: flex; flex-direction: column; gap: var(--space-12); }
 
 .collapsible-card {

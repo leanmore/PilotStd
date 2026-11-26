@@ -1058,7 +1058,10 @@
       },
       "advanced_other": "其他（未分類）",
       "no_channel_title": "還沒有設定任何通知渠道",
-      "no_channel_hint": "事件仍會記錄到「通知日誌」，但不會推送。請在下方各渠道啟用一個並填好憑證。"
+      "no_channel_hint": "事件仍會記錄到「通知日誌」，但不會推送。請在下方各渠道啟用一個並填好憑證。",
+      "web_base_url": "站內訪問地址",
+      "web_base_url_placeholder": "http://你的網域或IP:埠（如 http://192.168.1.18:5173）",
+      "web_base_url_hint": "用於生成通知裡的「查看詳情」連結；留空則不生成連結（不影響訊息送達）。"
     },
     "event": {
       "auto_pipeline_summary": "一鍵處理完成",

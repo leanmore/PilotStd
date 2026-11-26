@@ -729,3 +729,10 @@
 - **前端 `standardParser.ts` 仍是旧正则**：16 条样本 raw 仅 1/16。本批只修 `TaskView.vue` 的
   year 真值门（后端字段优先、year 缺省不丢件），**不要**把前端正则当成第二套口径；
   下载/扫描归档以 `docker/api` 返回的后端字段为准。
+
+### 企微通知排版与 web_base_url（2026-11-26 实测）
+
+- 企微应用消息**默认纯文本**（借鉴 MoviePilot）：`标题\n正文` + `点击查看：{url}`；微信插件端同样可读；
+- 需要富文本/卡片时显式设 `PILOTSTD_WECHAT_APP_FORMAT=markdown|card`（微信插件端不支持，慎用）；
+- 「站内访问地址」在 **设置 → 通知** 里配置（`notification.web_base_url`），留空则通知不带链接；
+- 判断渠道是否真正可用必须**真机观察**（平台 `errcode=0` ≠ 用户可见）。

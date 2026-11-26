@@ -1067,3 +1067,22 @@ P1-5 复核（`docs/plans/2026-11-25-p1-unknown-refresh.md` §5.1/§5.3）暴露
 
 判定顺序：**码优先，未命中码回退关键词**（`looks_rate_limited`）；命中路径均打
 `rate_limited_by=code|keyword` 日志便于生产归因。回归：`tests/test_channel_rate_limit_codes.py`。
+
+### 企微应用消息改为纯文本（借鉴 MoviePilot，2026-11-26）
+
+**真机问题**：企微应用消息用 `markdown`/`template_card` 时，微信插件端显示「暂不支持此消息类型」，
+排版依赖客户端差异 → 崩坏。
+
+**MP 取证**：MoviePilot `app/modules/wechat/wechat.py` 对自建应用**只发 `msgtype=text`**：
+`title\n正文`（连续空行折叠）、末尾追加 `点击查看：{link}`、按 UTF-8 2048 字节分段、
+端点带 `safe=0/enable_id_trans=0/enable_duplicate_check=0`。
+
+**落地**：`WechatChannel._send_by_app` 默认 `text`（`_format_app_text`）；`markdown`/`card` 为显式选项
+（`PILOTSTD_WECHAT_APP_FORMAT`）；Webhook（群机器人）继续 markdown。
+对比与取证见 `docs/plans/2026-11-26-mp-notification-borrow.md`。
+
+### 站内访问地址 `web_base_url` 可配置（2026-11-26）
+
+此前该键只在 `config.json` 默认值里，**没有任何 API/UI 读写入口** → 通知永远提示「未配置站内访问地址」。
+现 `GET /api/notification/config` 下发、`PUT` 接受（校验与发送侧 `_links.resolve_web_base` 同口径：
+必须 http(s) 绝对地址且非回环），Web 设置页新增「站内访问地址」输入框（三语）。

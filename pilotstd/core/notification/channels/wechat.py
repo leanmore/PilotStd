@@ -63,6 +63,11 @@ class WechatChannel(NotificationChannel):
         self._touser = touser or "@all"
         self._renderer = MarkdownRenderer()
         self._card_renderer = WeChatCardRenderer()
+        # 2026-11-26 借鉴 MoviePilot（app/modules/wechat/wechat.py）：企微自建应用默认只发**纯文本**，
+        # 「企业微信 + 微信插件」都能正常渲染、排版干净；`markdown` / `card` 为显式选项。
+        import os as _os
+
+        self._app_format = _os.environ.get("PILOTSTD_WECHAT_APP_FORMAT", "text").strip().lower() or "text"
         # access_token 缓存（应用形态；8600 秒有效期，留 300 秒余量）
         self._token = ""
         self._token_expire_at = 0.0
@@ -155,7 +160,15 @@ class WechatChannel(NotificationChannel):
         if not token:
             # 取令牌失败多为配置/网络问题：无法判定可重试 ⇒ 不重试（避免把配置错误放大 3 次）
             return False, False
-        payload = {"touser": self._touser, "agentid": self._agentid, **msgtype_payload}
+        # 对齐 MoviePilot：显式声明非安全消息/不转译/不做重复检查（避免服务端默认策略变化影响排版）
+        payload = {
+            "touser": self._touser,
+            "agentid": self._agentid,
+            "safe": 0,
+            "enable_id_trans": 0,
+            "enable_duplicate_check": 0,
+            **msgtype_payload,
+        }
         try:
             with self._open(f"{self._SEND_URL}?access_token={token}", payload) as resp:
                 if resp.status != 200:
@@ -174,12 +187,16 @@ class WechatChannel(NotificationChannel):
         return False, is_rate_limited("wechat", errcode, errmsg)
 
     def _send_by_app(self, message: NotificationMessage) -> bool:
-        """应用形态：**合法时**发 `template_card`，否则/被拒后改发 `markdown` 应用消息。
+        """应用形态：默认发**纯文本**（对齐 MoviePilot）；`markdown`/`card` 需显式选（`PILOTSTD_WECHAT_APP_FORMAT`）。
 
         D1：`news_notice` 卡片缺必填项（`card_action` 等）会被平台 40058 拒收；渲染器在
         没有合法跳转 URL 时不产出这些字段 ⇒ 此处直接走 markdown，不发必然被拒的卡。
         D3：降级消息类型由 `text` 改为 `markdown`（应用消息支持、与 Webhook 同渲染器/分段）。
         """
+        if self._app_format == "text":
+            return self._send_app_text(message)
+        if self._app_format == "markdown":
+            return self._send_app_markdown(message)
         card = self._card_renderer.render_card(message)
         if card.get("card_action") and card.get("card_image"):
             if self._post_app_with_retry({"msgtype": "template_card", "template_card": card}):
@@ -201,8 +218,21 @@ class WechatChannel(NotificationChannel):
                 return False
         return True
 
+    def _format_app_text(self, message: NotificationMessage) -> str:
+        """MP 风格文本：`title\n正文`（连续空行折叠），有链接时追加「点击查看：{url}」。
+
+        对齐 MoviePilot `WeChat.__send_message`：正文空只发标题；空行折叠避免手机端大段留白。
+        """
+        title = str(getattr(message, "title", "") or "").strip()
+        body = str(getattr(message, "body", "") or "").strip().replace("\n\n", "\n")
+        content = f"{title}\n{body}" if title and body else (title or body)
+        link = str(getattr(message, "link", "") or "").strip()
+        if link:
+            content = f"{content}\n点击查看：{link}" if content else f"点击查看：{link}"
+        return content
+
     def _send_app_text(self, message: NotificationMessage) -> bool:
-        """应用形态**最后兜底**：发送纯 `text` 消息（卡片与 markdown 均失败时）。
+        """应用形态**默认路径**：发送 MP 风格纯文本（标题 + 正文 + 可选「点击查看」链接）。
 
         P1-2：企微文本上限是 **2048 字节**（不是 2000 字符）。原实现 `text[:2000]` 按字符
         硬截断——2000 汉字 ≈ 6000 字节，降级消息本身仍会被平台拒收，且尾部信息直接丢失。
@@ -210,7 +240,10 @@ class WechatChannel(NotificationChannel):
         注意：`text` 消息不解析 markdown（用户会看到源码），故它只是最后兜底，正常降级走
         `_send_app_markdown`。
         """
-        text = self._renderer.render(message) or str(message.title or "")
+        text = self._format_app_text(message)
+        if not text:
+            self.last_error = t("notification.channel.not_configured_webhook")
+            return False
         for segment in split_for_channel(text, "wecom"):
             if not self._post_app_with_retry({"msgtype": "text", "text": {"content": segment}}):
                 return False
@@ -254,7 +287,7 @@ class WechatChannel(NotificationChannel):
                     logger.debug("错误响应体读取失败: %s", read_exc)
             # 透传具体错误描述
             self.last_error = f"{e}: {body}" if body else str(e)
-            logger.warning("企业微信通知异常: %s, body=%s", e, body, exc_info=True)
+            logger.warning("企业微信通知异常: %s, body=%s", e, body, exc_info=True)  # i18n-allow: 内部运维日志
             # HTTP 429/`5xx` 或网络类异常（无 HTTPError 即连接/超时类）⇒ 可重试
             return False, is_retryable_http_status(status) if status else True
 

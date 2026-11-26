@@ -1058,7 +1058,10 @@
       },
       "advanced_other": "其他（未归类）",
       "no_channel_title": "还没有配置任何通知渠道",
-      "no_channel_hint": "事件仍会记录到「通知日志」，但不会推送。请在下方各渠道里启用一个并填好凭据。"
+      "no_channel_hint": "事件仍会记录到「通知日志」，但不会推送。请在下方各渠道里启用一个并填好凭据。",
+      "web_base_url": "站内访问地址",
+      "web_base_url_placeholder": "http://你的域名或IP:端口（如 http://192.168.1.18:5173）",
+      "web_base_url_hint": "用于生成通知里的「查看详情」链接；留空则不生成链接（不影响消息送达）。"
     },
     "event": {
       "auto_pipeline_summary": "一键处理完成",
