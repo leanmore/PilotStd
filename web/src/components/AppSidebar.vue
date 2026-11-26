@@ -87,9 +87,9 @@ const emit = defineEmits<{
   top: 0;
   align-self: flex-start;
   height: 100vh;
-  /* TODO: [Design Debt] A-52 — 2px 0 8px rgba(0, 0, 0, 0.03) 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — var(--ds-shadow-rail-right) 无精确令牌，暂不替换，待定令牌后统一处理 */
   /* TODO: [Design Debt] 原生阴影与既有 --shadow-* 层级不匹配（半径/扩散/透明度不同），待统一评估（A-52） */
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.03);
+  box-shadow: var(--ds-shadow-rail-right);
 }
 .sidebar.collapsed { width: var(--sidebar-width-collapsed); }  /* ✅ #50: 原 72px */
 
@@ -156,9 +156,9 @@ nav::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
   background: linear-gradient(135deg, var(--primary-bg), transparent);
   color: var(--primary);
   font-weight: var(--font-weight-semibold);
-  /* TODO: [Design Debt] A-52 — 0 2px 8px rgba(99, 102, 241, 0.08) 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — var(--ds-shadow-focus-primary-weak) 无精确令牌，暂不替换，待定令牌后统一处理 */
   /* TODO: [Design Debt] 原生阴影与既有 --shadow-* 层级不匹配（半径/扩散/透明度不同），待统一评估（A-52） */
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.08);
+  box-shadow: var(--ds-shadow-focus-primary-weak);
 }
 /* 活跃指示条 */
 .nav-item.active::before {
@@ -173,9 +173,9 @@ nav::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
   background: linear-gradient(180deg, var(--primary), var(--primary-hover));
   /* TODO: [Design Debt] A-52 — 0 4px 4px 0 无精确令牌，暂不替换，待定令牌后统一处理 */
   border-radius: 0 4px 4px 0;
-  /* TODO: [Design Debt] A-52 — 2px 0 8px rgba(99, 102, 241, 0.3) 无精确令牌，暂不替换，待定令牌后统一处理 */
+  /* TODO: [Design Debt] A-52 — var(--ds-shadow-accent-left) 无精确令牌，暂不替换，待定令牌后统一处理 */
   /* TODO: [Design Debt] 原生阴影与既有 --shadow-* 层级不匹配（半径/扩散/透明度不同），待统一评估（A-52） */
-  box-shadow: 2px 0 8px rgba(99, 102, 241, 0.3);
+  box-shadow: var(--ds-shadow-accent-left);
 }
 .sidebar.collapsed .nav-item.active::before { left: 0; }
 

@@ -87,6 +87,38 @@
   --radius: 10px;
   --radius-lg: 14px;
 
+  /* D-1（2026-11-26）：半透明遮罩/底纹 —— 按实测 α 建精确档位（值不变，零视觉变化） */
+  --ds-overlay-a03: rgba(0, 0, 0, 0.03);
+  --ds-overlay-a05: rgba(0, 0, 0, 0.05);
+  --ds-overlay-a06: rgba(0, 0, 0, 0.06);
+  --ds-overlay-a08: rgba(0, 0, 0, 0.08);
+  --ds-overlay-a10: rgba(0, 0, 0, 0.1);
+  --ds-overlay-a12: rgba(0, 0, 0, 0.12);
+  --ds-overlay-a15: rgba(0, 0, 0, 0.15);
+  --ds-overlay-a18: rgba(0, 0, 0, 0.18);
+  --ds-overlay-a20: rgba(0, 0, 0, 0.2);
+  --ds-overlay-a30: rgba(0, 0, 0, 0.3);
+  --ds-overlay-a40: rgba(0, 0, 0, 0.4);
+  --ds-overlay-a50: rgba(0, 0, 0, 0.5);
+  --ds-overlay-a60: rgba(0, 0, 0, 0.6);
+  --ds-overlay-a70: rgba(0, 0, 0, 0.7);
+
+  /* D-1（2026-11-26）：组件用阴影 —— 按用途命名、值逐字保留（与四主题仅 --shadow-* 家族并存） */
+  --ds-shadow-top: 0 -2px 16px rgba(0, 0, 0, 0.06);
+  --ds-shadow-success-glow-strong: 0 0 14px rgba(34,197,94,0.7);
+  --ds-shadow-success-glow: 0 0 4px rgba(34,197,94,0.4);
+  --ds-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 12px -4px rgba(0, 0, 0, 0.08);
+  --ds-shadow-deep: 0 2px 4px rgba(0, 0, 0, 0.2);
+  --ds-shadow-focus-primary-weak: 0 2px 8px rgba(99, 102, 241, 0.08);
+  --ds-shadow-accent: 0 2px 8px rgba(99, 102, 241, 0.25);
+  --ds-shadow-toast: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --ds-shadow-menu: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --ds-shadow-pop: 0 6px 16px rgba(0, 0, 0, 0.2);
+  --ds-shadow-rail-right: 2px 0 8px rgba(0, 0, 0, 0.03);
+  --ds-shadow-accent-left: 2px 0 8px rgba(99, 102, 241, 0.3);
+  --ds-shadow-inset: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+
+
   /* 字体 */
   --sans: 'Inter', system-ui, -apple-system, sans-serif;
   --mono: 'JetBrains Mono', ui-monospace, monospace;
@@ -145,12 +177,10 @@
 /* TODO: [Design Debt] A-52 — rgba(99, 102, 241, 0.04) 无精确令牌，暂不替换，待定令牌后统一处理 */
 .mp-list-row:hover { background: rgba(99, 102, 241, 0.04); }
 @keyframes mp-pulse-glow {
-  /* TODO: [Design Debt] A-52 — 0 0 4px rgba(34,197,94,0.4) 无精确令牌，暂不替换，待定令牌后统一处理 */
   /* TODO: [Design Debt] 原生阴影与既有 --shadow-* 层级不匹配（半径/扩散/透明度不同），待统一评估（A-52） */
-  0%, 100% { box-shadow: 0 0 4px rgba(34,197,94,0.4); }
-  /* TODO: [Design Debt] A-52 — 0 0 14px rgba(34,197,94,0.7) 无精确令牌，暂不替换，待定令牌后统一处理 */
+  0%, 100% { box-shadow: var(--ds-shadow-success-glow); }
   /* TODO: [Design Debt] 原生阴影与既有 --shadow-* 层级不匹配（半径/扩散/透明度不同），待统一评估（A-52） */
-  50% { box-shadow: 0 0 14px rgba(34,197,94,0.7); }
+  50% { box-shadow: var(--ds-shadow-success-glow-strong); }
 }
 .mp-dot-success { width: var(--size-8); height: var(--size-8); border-radius: 50%; background: var(--success); animation: mp-pulse-glow 2s ease-in-out infinite; }
 .mp-dot-danger  { width: var(--size-8); height: var(--size-8); border-radius: 50%; background: var(--danger);  animation: mp-pulse-glow 2s ease-in-out infinite; }
@@ -869,7 +899,7 @@ html .p-datepicker-panel .p-datepicker-day-selected {
 html .p-datepicker-panel {
   border-color: #cbd5e1 !important;
   /* TODO: [Design Debt] 原生阴影与既有 --shadow-* 层级不匹配（半径/扩散/透明度不同），待统一评估（A-52） */
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+  box-shadow: var(--ds-shadow-menu) !important;
 }
 html .p-datepicker-panel .p-datepicker-day-view thead {
   border-bottom: 1px solid #cbd5e1 !important;
