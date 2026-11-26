@@ -227,6 +227,14 @@ class WechatChannel(NotificationChannel):
         body = str(getattr(message, "body", "") or "").strip().replace("\n\n", "\n")
         content = f"{title}\n{body}" if title and body else (title or body)
         link = str(getattr(message, "link", "") or "").strip()
+        if not link:
+            # 多数事件没有 `message.link`，站内入口在 `actions`（`view_detail`/`open_logs` 的 args.url）
+            # 里 —— 纯文本模式从动作里取第一个绝对 URL 作为「点击查看」目标（与卡片 jump_list 同源）。
+            for spec in getattr(message, "actions", []) or []:
+                candidate = str((getattr(spec, "args", None) or {}).get("url") or "").strip()
+                if candidate.lower().startswith(("http://", "https://")):
+                    link = candidate
+                    break
         if link:
             content = f"{content}\n点击查看：{link}" if content else f"点击查看：{link}"
         return content

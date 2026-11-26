@@ -440,3 +440,19 @@ def test_mp_text_collapses_blank_lines_and_appends_link(monkeypatch) -> None:
     content = sent[0]["text"]["content"]
     assert "\n\n" not in content
     assert content.endswith("点击查看：https://std.example.com/announce")
+
+
+def test_mp_text_link_falls_back_to_web_actions(monkeypatch) -> None:
+    """`message.link` 为空时，从 actions（view_detail 的 args.url）取「点击查看」目标。"""
+    from pilotstd.core.notification.specs import ActionSpec
+
+    monkeypatch.delenv("PILOTSTD_WECHAT_APP_FORMAT", raising=False)
+    sent: list[dict] = []
+    _stub_http(monkeypatch, sent)
+    msg = NotificationMessage(title="公告抓取完成", body="共 3 条")
+    msg.actions = [ActionSpec(action="view_detail", label_key="notification.action.view_detail",
+                              args={"url": "http://192.168.1.18:9028/notification-logs"})]
+    ch = WechatChannel("", "ww123", "1000001", "secret")
+    assert ch.send(msg) is True
+    content = sent[0]["text"]["content"]
+    assert content.endswith("点击查看：http://192.168.1.18:9028/notification-logs")

@@ -1,4 +1,9 @@
 # CHANGELOG
+## v0.209.1 (2026-11-26)
+
+### Fixed
+- 企微纯文本模式「点击查看」链接兜底（actions 的 view_detail URL）
+
 ## v0.209.0 (2026-11-26)
 
 ### Changed
