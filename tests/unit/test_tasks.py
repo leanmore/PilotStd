@@ -652,6 +652,9 @@ class TestDownloadToInboxMainFlow:
 
         sleep_mock, _ = self._run(db, mgr, tmp_path, find=[None, None, "/found/path.pdf"])
 
+        if sleep_mock.call_count != 2:
+            # 转检查注解：CI 失败时可从 check-run 直接看到实际值（Actions 日志不可读）
+            print(f"::error title=polling-sleep-count::expected=2 got={sleep_mock.call_count}")
         assert sleep_mock.call_count == 2
         done_updates = [c for c in db.execute.call_args_list if "done" in str(c.args[0])]
         assert len(done_updates) >= 1

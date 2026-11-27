@@ -30,7 +30,8 @@ def _normalize(items: list[dict]) -> list[dict]:
                 if k in ("publish_date", "implementation_date"):
                     it[k] = _norm_date(v)
                 elif k == "std_code":
-                    it[k] = re.sub(r"\s+", " ", v.translate(_DASHES).replace("／", "/")).strip()
+                    # 标准号里的空格不是语义（CI 的 PDF 抽取把 "GSB 02" 抽成 "GSB02"）
+                    it[k] = re.sub(r"\s+", "", v.translate(_DASHES).replace("／", "/"))
                 elif k == "std_name":
                     # PDF 抽取会把 "WO 3 30" 与 "WO330" 视为不同；名称比较忽略空白
                     it[k] = re.sub(r"\s+", "", v)
