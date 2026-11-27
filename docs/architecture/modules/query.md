@@ -483,3 +483,18 @@ outer_v2.PROVINCE_BY_CODE（GB 2260 前两位：50 重庆 / 11 北京 / 35 福�
 DB11/T 1000-2020（北京）→ dbba（cqis 被排除）；GB/T 1.1-2020 与关键词查询行为不变。
 
 **回归**：	ests/test_router_province.py（16 例）。
+
+## 全局聚合搜索（P0，2026-11-27）
+
+`pilotstd/query/aggregation.py` 新增 `AggregationService`：一次查询跨站并行检索 → 合并去重 → 按置信度排序。
+
+| 项 | 实现 |
+|---|---|
+| 开关 | `query.aggregate.enabled`（**默认 false**，关闭时零网络请求） |
+| 并发闸门 | 线程池 `max_concurrency`（默认 4）+ 单站超时 `per_site_timeout`（8s）+ `total_budget`（12s） |
+| 按站限速 | `per_site_min_interval`（默认 0.5s，进程内） |
+| 站点选择 | 复用 `RoutingService.get_route_chain()`；路由不可用时退回注册顺序；`max_sites` 截断（默认 6） |
+| 合并去重 | `parse_std_number` 归一后同号合并，`sources[]` 记录来源站；置信度 `exact` / `keyword` |
+| 失败隔离 | 单站异常/超时不影响整体；`sites[]` 逐站给出 `ok/elapsed_ms/count/error` |
+| API | `POST /api/query/aggregate`（只读、不落库；关闭时 409） |
+| 验证 | `tests/test_query_aggregation.py`（9 例）+ `scripts/query_aggregate_matrix.py --live`（3 站矩阵 9/9，见 `docs/plans/2026-11-27-aggregate-matrix-3sites.md`） |

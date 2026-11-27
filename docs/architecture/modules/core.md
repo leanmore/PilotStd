@@ -1096,3 +1096,8 @@ P1-5 复核（`docs/plans/2026-11-25-p1-unknown-refresh.md` §5.1/§5.3）暴露
 
 **2026-11-26 补记（阶段二，0.209.3）**：_builders_system.py 的 uto_backup 注释按 G-012 规范改写
 （英文标识符加反引号），行为零变化；同批：标准状态统计拆「即将实施」桶（manager.md）、探针 A-40 口径收窄。
+
+**2026-11-27 补记（聚合搜索 P0）**：`pilotstd/core/config/defaults.py` 新增 6 个配置键
+`query.aggregate.enabled / max_concurrency / per_site_timeout / max_sites / per_site_min_interval / total_budget`
+（**默认 enabled=false**，关闭时聚合端点返回 409 且零网络请求）。实现与验证见 `docs/architecture/modules/query.md`
+与 `docs/plans/2026-11-27-aggregate-matrix-3sites.md`。

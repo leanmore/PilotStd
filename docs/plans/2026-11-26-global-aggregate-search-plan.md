@@ -66,3 +66,11 @@
 - **风险 2**：并发放大被封风险 → 默认并发 4、单站 1-2 QPS，灰度观察一周再调；
 - **风险 3**：结果去重的标准号归一（`GB/T 1.1-2020` vs `GB/T1.1—2020`）→ 复用 `parse_std_number` 归一；
 - **前置**：先在 P0 中把「聚合查询」做成**只读、可开关**（`query.aggregate.enabled`，默认关），不影响现有单站查询链路。
+
+## 7. 执行进度（2026-11-27）
+
+- **P0 已交付**：`AggregationService` + `POST /api/query/aggregate` + 配置开关（默认关）+ 9 例单测；
+- **3 站矩阵验证完成**（std_gov / dbba / api_webstore × exact/semi/keyword = 9/9 有返回）：
+  见 `docs/plans/2026-11-27-aggregate-matrix-3sites.md`（含延迟数据与参数校准结论）；
+- **P1 待办**：`per_site_limit`、站点预热、熔断/指标/缓存接入、24 站矩阵；
+- **P2 待办**：前端聚合页（合并/分组视图、渐进加载、失败可见）。

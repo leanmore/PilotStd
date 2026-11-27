@@ -27,6 +27,13 @@ FACTORY_DEFAULTS = {
     "query.use_announcement_match": False,
     "query.announcement_url": "http://localhost:9028",
     "query.announcement_api_key": "",
+    # 全局聚合搜索（P0）：默认关闭，不影响现有单站查询链路
+    "query.aggregate.enabled": False,
+    "query.aggregate.max_concurrency": 4,
+    "query.aggregate.per_site_timeout": 8.0,
+    "query.aggregate.max_sites": 6,
+    "query.aggregate.per_site_min_interval": 0.5,
+    "query.aggregate.total_budget": 12.0,
     "scan.skip_folders": [
         "过期作废",
         "征求意见稿",
