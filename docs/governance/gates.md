@@ -100,7 +100,7 @@
 
 ### G-031：文档同步检查
 
-**2026-11-27 聚合搜索 P0 补记**：新增 `scripts/query_aggregate_matrix.py`（3 站矩阵验证，默认离线、`--live` 联网）；`pilotstd/query/aggregation.py` 的 `AggregationService` + `POST /api/query/aggregate`，配置 `query.aggregate.enabled` 默认关闭。
+**2026-11-27 聚合搜索 P0 补记**：新增 `scripts/query_aggregate_matrix.py`（3 站矩阵验证，默认离线、`--live` 联网）；`pilotstd/query/aggregation.py` 的 `AggregationService` + `GET /api/query/aggregate`，配置 `query.aggregate.enabled` 默认关闭。
 
 **2026-11-26 阶段二补记**：`scripts/ops/probe_v0207.py` 的 A-40 复查排除 `event_type='test'`（管理员测试消息不是系统事件）；`scripts/` 变更按 G-031 同步本文件与 `docs/governance/README.md`。
 

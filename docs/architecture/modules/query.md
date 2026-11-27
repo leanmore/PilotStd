@@ -496,5 +496,5 @@ DB11/T 1000-2020（北京）→ dbba（cqis 被排除）；GB/T 1.1-2020 与关�
 | 站点选择 | 复用 `RoutingService.get_route_chain()`；路由不可用时退回注册顺序；`max_sites` 截断（默认 6） |
 | 合并去重 | `parse_std_number` 归一后同号合并，`sources[]` 记录来源站；置信度 `exact` / `keyword` |
 | 失败隔离 | 单站异常/超时不影响整体；`sites[]` 逐站给出 `ok/elapsed_ms/count/error` |
-| API | `POST /api/query/aggregate`（只读、不落库；关闭时 409） |
+| API | `GET /api/query/aggregate?query=…`（纯读、不落库；关闭时 409） |
 | 验证 | `tests/test_query_aggregation.py`（9 例）+ `scripts/query_aggregate_matrix.py --live`（3 站矩阵 9/9，见 `docs/plans/2026-11-27-aggregate-matrix-3sites.md`） |

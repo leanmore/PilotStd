@@ -115,5 +115,5 @@ PilotStd 治理体系基于三条不可分割的支柱：
 
 - 复核结论：本文件列出的治理原则仍与现状一致（单一真相源、门禁不绕过、最小 diff、文档联动、证据优先）；
 - 本次变更：聚合搜索 P0 引入新配置键 `query.aggregate.*`（默认关闭）与新只读端点
-  `POST /api/query/aggregate`，已按 G-031 同步 `docs/architecture/modules/query.md`、`gates.md`、`README.md`；
+  `GET /api/query/aggregate`，已按 G-031 同步 `docs/architecture/modules/query.md`、`gates.md`、`README.md`；
 - 下次复核：2027-01-31 前（本文件由 G-032 守护，超过 60 天未更新即阻断）。

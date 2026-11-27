@@ -38,7 +38,7 @@
 | 按站限速 | 同站最小间隔 0.5s（进程内） | 同上 |
 | 合并去重 | 按标准号归一（`parse_std_number`）合并 → `sources[]` | 同上 |
 | 置信度 | exact / keyword | 同上 |
-| API | `POST /api/query/aggregate`（只读，不落库） | `docker/api/query_aggregate.py` |
+| API | `GET /api/query/aggregate?query=…`（纯读，不落库） | `docker/api/query_aggregate.py` |
 | 单测 | 9 例（关闭/合并/排序/超时/异常/max_sites/JSON） | `tests/test_query_aggregation.py` |
 
 ## 4. 测试包（给验收用）
@@ -52,8 +52,7 @@ python scripts/query_aggregate_matrix.py                     # 打印计划
 python scripts/query_aggregate_matrix.py --live              # 9 项实测（本报告数据）
 
 # 3) API 冒烟（部署 0.210.0 后；默认关闭时返回 409）
-curl -s -X POST http://192.168.1.18:9028/api/query/aggregate \
-  -H 'Content-Type: application/json' -d '{"query":"GB/T 1.1-2020"}'
+curl -s 'http://192.168.1.18:9028/api/query/aggregate?query=GB%2FT%201.1-2020'
 ```
 
 ## 5. P1 待办（下一阶段）

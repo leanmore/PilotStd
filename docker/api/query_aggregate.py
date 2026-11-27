@@ -12,7 +12,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from fastapi import Depends
+from fastapi import Depends, Query
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
 from pydantic import BaseModel
@@ -29,13 +29,6 @@ router = APIRouter(tags=["query"])
 
 # 能力模型路径：容器内仓库根相对路径（与 `docker/app.py` 同级布局一致）
 _CAPABILITIES = Path(__file__).resolve().parents[2] / "config" / "site_capabilities.yaml"
-
-
-class AggregateRequest(BaseModel):
-    """聚合查询请求。"""
-
-    query: str
-    max_sites: int | None = None
 
 
 class AggregateItemView(BaseModel):
@@ -100,10 +93,14 @@ def _build_service(mgr) -> AggregationService:
     )
 
 
-@router.post("/api/query/aggregate", response_model=AggregateResponse)
-def aggregate_query(body: AggregateRequest, mgr=Depends(get_manager_dep)):
-    """跨站聚合检索（P0 只读，不落库）。"""
-    result = _build_service(mgr).search(body.query, max_sites=body.max_sites)
+@router.get("/api/query/aggregate", response_model=AggregateResponse)
+def aggregate_query(
+    query: str = Query(..., description="standard number or keyword"),
+    max_sites: int | None = Query(None, description="override max candidate sites"),
+    mgr=Depends(get_manager_dep),
+):
+    """跨站聚合检索（P0 **纯读**：GET + 不落库；关闭时 409 且零网络请求）。"""
+    result = _build_service(mgr).search(query, max_sites=max_sites)
     if not result.enabled:
         return JSONResponse(
             {"error": "aggregate disabled (query.aggregate.enabled=false)"},

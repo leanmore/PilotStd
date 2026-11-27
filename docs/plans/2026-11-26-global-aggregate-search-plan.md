@@ -56,7 +56,7 @@
 
 | 批次 | 内容 | 估时 | 关键验收 |
 |---|---|---|---|
-| **P0 聚合编排（后端）** | 新增 `AggregationService`：并发闸门 + 每站配额/超时 + 结果归并去重（按标准号归一）+ 置信度排序；`POST /api/query/aggregate` | 1.5-2 人日 | 24 站标准号查询一次返回；单站超时不影响整体；聚合请求 P95 ≤ 8s |
+| **P0 聚合编排（后端）** | 新增 `AggregationService`：并发闸门 + 每站配额/超时 + 结果归并去重（按标准号归一）+ 置信度排序；`GET /api/query/aggregate` | 1.5-2 人日 | 24 站标准号查询一次返回；单站超时不影响整体；聚合请求 P95 ≤ 8s |
 | **P1 防封 + 缓存 + 观测** | 令牌桶、熔断接入、缓存命中、UA/代理接口、`query_metrics` 聚合指标 | 1-1.5 人日 | 连续 100 次查询无 429 累积；缓存命中率可观测 |
 | **P2 前端聚合页** | 搜索框 + 合并/分组视图 + 渐进加载 + 失败可见 + i18n 三语 | 1.5-2 人日 | 四件套绿；三语截图验收 |
 
@@ -69,7 +69,7 @@
 
 ## 7. 执行进度（2026-11-27）
 
-- **P0 已交付**：`AggregationService` + `POST /api/query/aggregate` + 配置开关（默认关）+ 9 例单测；
+- **P0 已交付**：`AggregationService` + `GET /api/query/aggregate` + 配置开关（默认关）+ 9 例单测；
 - **3 站矩阵验证完成**（std_gov / dbba / api_webstore × exact/semi/keyword = 9/9 有返回）：
   见 `docs/plans/2026-11-27-aggregate-matrix-3sites.md`（含延迟数据与参数校准结论）；
 - **P1 待办**：`per_site_limit`、站点预热、熔断/指标/缓存接入、24 站矩阵；
