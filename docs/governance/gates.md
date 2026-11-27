@@ -100,6 +100,8 @@
 
 ### G-031：文档同步检查
 
+**2026-11-27 聚合搜索 P0 补记**：新增 `scripts/query_aggregate_matrix.py`（3 站矩阵验证，默认离线、`--live` 联网）；`pilotstd/query/aggregation.py` 的 `AggregationService` + `GET /api/query/aggregate`，配置 `query.aggregate.enabled` 默认关闭。
+
 **2026-11-26 阶段二补记**：`scripts/ops/probe_v0207.py` 的 A-40 复查排除 `event_type='test'`（管理员测试消息不是系统事件）；`scripts/` 变更按 G-031 同步本文件与 `docs/governance/README.md`。
 
 **2026-11-26 D-1 补记**：`web/src` 的 overlay/阴影字面量令牌化（`--ds-overlay-*`/`--ds-shadow-*`，零视觉：四页截图像素差异 0）；`scripts/design_token_baseline.json` 同步收紧（过期提示 14→0）。

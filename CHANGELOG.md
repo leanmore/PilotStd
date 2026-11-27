@@ -1,4 +1,10 @@
 # CHANGELOG
+## v0.210.0 (2026-11-27)
+
+### Added
+- 全局聚合搜索 P0：`AggregationService`（并发闸门/合并去重/置信度/失败隔离）+ `POST /api/query/aggregate`，配置 `query.aggregate.enabled` 默认关闭
+- 3 站矩阵验证脚本 `scripts/query_aggregate_matrix.py`（9/9 实测）
+
 ## v0.209.3 (2026-11-26)
 
 ### Fixed
